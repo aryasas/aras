@@ -1,0 +1,31 @@
+{% extends 'admin/adm_base.html' %}
+{% block page_content %}
+<div class="row mt-4">
+  <div class="col-12 mb-3 d-flex justify-content-between align-items-center">
+    <h4>arasPOT</h4>
+  </div>
+
+  {% if not terminals %}
+  <div class="col-12">
+    <div class="alert alert-warning">Belum ada terminal aktif. <a href="/admin/erp/pos/terminal/add/">Tambah Terminal</a></div>
+  </div>
+  {% endif %}
+
+  {% for t in terminals %}
+  <div class="col-6 col-md-4 col-lg-3 mb-3">
+    <div class="card h-100" style="border:1px solid #e8edf0;">
+      <div class="card-body text-center py-4">
+        <i class="fa fa-desktop fa-3x text-primary mb-3"></i>
+        <h6 class="mb-1">{{ t.name }}</h6>
+        <small class="text-muted">{{ t.code }}</small>
+        <div class="mt-3">
+          <a href="{{ url_for('erp.pos_open_session', terminal_id=t.id) }}" class="btn btn-primary btn-sm">
+            <i class="fa fa-play mr-1"></i> Buka Sesi
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

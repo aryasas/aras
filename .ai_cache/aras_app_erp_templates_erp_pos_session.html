@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>arasPOT — {{ terminal.name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/assets/css/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/assets/css/font-awesome.min.css') }}">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; background:#f0f2f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; height:100vh; overflow:hidden; }
+
+    /* Layout utama */
+    #pos-root { display:flex; height:100vh; }
+
+    /* Panel kiri: produk */
+    #panel-left { flex:1; display:flex; flex-direction:column; overflow:hidden; background:#fff; }
+
+    /* Panel kanan: cart */
+    #panel-right { width:380px; min-width:320px; display:flex; flex-direction:column; background:#fff; border-left:1px solid #e8edf0; }
+
+    /* Header */
+    .pos-header { background:#2c3e50; color:#fff; padding:10px 16px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+    .pos-header h6 { margin:0; font-size:14px; }
+
+    /* Search + filter */
+    #search-bar { padding:10px 12px; border-bottom:1px solid #eee; flex-shrink:0; }
+    #search-bar input { width:100%; padding:7px 12px; border:1px solid #dde; border-radius:6px; font-size:13px; outline:none; }
+    #search-bar input:focus { border-color:#5a6fd6; }
+
+    /* Grid produk */
+    #product-grid { flex:1; overflow-y:auto; padding:10px; display:grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap:8px; align-content:start; }
+    .product-card { border:1px solid #eaecef; border-radius:8px; padding:12px 8px; text-align:center; cursor:pointer; background:#fafbfc; transition:.15s; user-select:none; }
+    .product-card:hover { background:#e8f0fe; border-color:#5a6fd6; }
+    .product-card .p-name { font-size:12px; font-weight:600; color:#2c3e50; margin-top:4px; line-height:1.3; }
+    .product-card .p-price { font-size:13px; color:#27ae60; font-weight:700; margin-top:2px; }
+    .product-card .p-code { font-size:10px; color:#aaa; }
+
+    /* Cart header */
+    .cart-header { padding:10px 14px; border-bottom:1px solid #eee; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; }
+    .cart-header select { border:1px solid #dde; border-radius:5px; padding:4px 8px; font-size:12px; outline:none; max-width:180px; }
+
+    /* Cart lines */
+    #cart-lines { flex:1; overflow-y:auto; }
+    .cart-line { padding:8px 14px; border-bottom:1px solid #f0f0f0; display:flex; align-items:center; gap:6px; }
+    .cart-line .cl-name { flex:1; font-size:12px; font-weight:600; }
+    .cart-line .cl-qty { display:flex; align-items:center; gap:4px; }
+    .cart-line .cl-qty button { width:24px; height:24px; border:1px solid #dde; border-radius:4px; background:#fff; font-size:13px; cursor:pointer; line-height:1; }
+    .cart-line .cl-qty input { width:44px; text-align:center; border:1px solid #dde; border-radius:4px; padding:2px 4px; font-size:12px; }
+    .cart-line .cl-price { font-size:12px; width:72px; text-align:right; }
+    .cart-line .cl-del { color:#e74c3c; cursor:pointer; font-size:14px; padding:2px 4px; }
+    .cart-empty { text-align:center; color:#aaa; padding:40px 20px; font-size:13px; }
+
+    /* Cart footer */
+    .cart-footer { border-top:1px solid #eee; padding:12px 14px; flex-shrink:0; background:#fafbfc; }
+    .total-row { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; }
+    .total-row.grand { font-size:17px; font-weight:700; color:#2c3e50; margin-top:6px; padding-top:6px; border-top:2px solid #2c3e50; }
+
+    /* Payment modal */
+    #pay-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1000; align-items:center; justify-content:center; }
+    #pay-modal.show { display:flex; }
+    #pay-box { background:#fff; border-radius:12px; width:380px; max-width:95vw; padding:0; overflow:hidden; }
+    #pay-box .pay-hdr { background:#2c3e50; color:#fff; padding:14px 18px; font-size:15px; font-weight:700; }
+    #pay-box .pay-body { padding:18px; }
+    #pay-box .pay-total { font-size:26px; font-weight:800; color:#27ae60; text-align:center; margin-bottom:16px; }
+    .method-btns { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+    .method-btn { flex:1; min-width:80px; padding:8px 4px; border:2px solid #dde; border-radius:7px; background:#fff; cursor:pointer; font-size:12px; font-weight:600; text-align:center; transition:.15s; }
+    .method-btn.active { border-color:#5a6fd6; background:#e8f0fe; color:#5a6fd6; }
+    #pay-amount { width:100%; padding:10px 12px; font-size:20px; border:2px solid #5a6fd6; border-radius:7px; text-align:right; font-weight:700; outline:none; }
+    #pay-change { text-align:center; font-size:14px; color:#e74c3c; margin-top:8px; min-height:22px; }
+
+    /* Numpad */
+    .numpad { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:10px; }
+    .numpad button { padding:12px; font-size:16px; font-weight:600; border:1px solid #e0e0e0; border-radius:7px; background:#f8f9fa; cursor:pointer; transition:.1s; }
+    .numpad button:hover { background:#e8f0fe; }
+    .numpad button.clear { color:#e74c3c; }
+    .numpad button.zero { grid-column:span 2; }
+
+    #btn-pay { width:100%; padding:13px; background:#27ae60; color:#fff; border:none; border-radius:8px; font-size:16px; font-weight:700; cursor:pointer; margin-top:10px; transition:.15s; }
+    #btn-pay:hover { background:#219a52; }
+    #btn-pay:disabled { background:#aaa; }
+    .pay-close { float:right; background:none; border:none; color:rgba(255,255,255,.7); font-size:20px; cursor:pointer; line-height:1; }
+
+    /* Receipt modal */
+    #receipt-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1100; align-items:center; justify-content:center; }
+    #receipt-modal.show { display:flex; }
+    #receipt-box { background:#fff; border-radius:10px; width:320px; max-width:95vw; padding:20px; text-align:center; }
+    #receipt-box h5 { color:#27ae60; }
+    #receipt-box .change-amt { font-size:28px; font-weight:800; color:#2c3e50; }
+  </style>
+</head>
+<body>
+<div id="pos-root">
+
+  <!-- Kiri: produk -->
+  <div id="panel-left">
+    <div class="pot-header">
+      <div>
+        <h6><i class="fa fa-desktop mr-1"></i>{{ terminal.name }} &nbsp;·&nbsp; <small style="opacity:.7">{{ session.cashier.username }}</small></h6>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <a href="{{ url_for('erp.pos_close_session', session_id=session.id) }}" class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;font-size:12px;">
+          <i class="fa fa-stop mr-1"></i>Tutup Sesi
+        </a>
+      </div>
+    </div>
+
+    <div id="search-bar">
+      <input type="text" id="search-input" placeholder="Cari produk atau scan barcode..." autocomplete="off">
+    </div>
+
+    <div id="product-grid">
+      {% for p in products %}
+      <div class="product-card"
+           data-id="{{ p.id }}"
+           data-name="{{ p.name }}"
+           data-code="{{ p.code }}"
+           data-price="{{ p.standard_price or 0 }}"
+           data-uom="{{ p.uom.name if p.uom else '' }}"
+           onclick="addToCart(this)">
+        <i class="fa fa-cube fa-lg" style="color:#8a9bb0;"></i>
+        <div class="p-name">{{ p.name }}</div>
+        <div class="p-price">{{ "{:,.0f}".format(p.standard_price or 0) }}</div>
+        <div class="p-code">{{ p.code }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Kanan: cart -->
+  <div id="panel-right">
+    <div class="cart-header">
+      <div style="font-size:13px;font-weight:600;">
+        <i class="fa fa-shopping-cart mr-1 text-primary"></i>Order
+      </div>
+      <select id="customer-select">
+        <option value="">-- Walk-in --</option>
+        {% for c in customers %}
+        <option value="{{ c.id }}">{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div id="cart-lines">
+      <div class="cart-empty" id="cart-empty">
+        <i class="fa fa-shopping-basket fa-2x mb-2" style="color:#ddd;"></i><br>
+        Belum ada item
+      </div>
+    </div>
+
+    <div class="cart-footer">
+      <div class="total-row">
+        <span>Subtotal</span>
+        <span id="disp-subtotal">0</span>
+      </div>
+      <div class="total-row">
+        <span>Diskon</span>
+        <span id="disp-discount">0</span>
+      </div>
+      <div class="total-row">
+        <span>Pajak</span>
+        <span id="disp-tax">0</span>
+      </div>
+      <div class="total-row grand">
+        <span>TOTAL</span>
+        <span id="disp-total">0</span>
+      </div>
+      <div class="mt-3 d-flex gap-2">
+        <button onclick="clearCart()" class="btn btn-sm btn-outline-danger flex-grow-0">
+          <i class="fa fa-trash"></i>
+        </button>
+        <button onclick="openPayment()" id="btn-open-pay" class="btn btn-success btn-sm flex-grow-1" disabled>
+          <i class="fa fa-credit-card mr-1"></i> Bayar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment modal -->
+<div id="pay-modal">
+  <div id="pay-box">
+    <div class="pay-hdr">
+      Pembayaran
+      <button class="pay-close" onclick="closePayment()">×</button>
+    </div>
+    <div class="pay-body">
+      <div class="pay-total" id="pay-display-total">0</div>
+      <div class="method-btns">
+        <div class="method-btn active" data-method="cash" onclick="selectMethod(this)"><i class="fa fa-money"></i><br>Tunai</div>
+        <div class="method-btn" data-method="card" onclick="selectMethod(this)"><i class="fa fa-credit-card"></i><br>Kartu</div>
+        <div class="method-btn" data-method="qris" onclick="selectMethod(this)"><i class="fa fa-qrcode"></i><br>QRIS</div>
+        <div class="method-btn" data-method="transfer" onclick="selectMethod(this)"><i class="fa fa-exchange"></i><br>Transfer</div>
+      </div>
+      <input type="number" id="pay-amount" placeholder="0" min="0" oninput="calcChange()">
+      <div id="pay-change"></div>
+      <div class="numpad">
+        <button onclick="numpad('1')">1</button>
+        <button onclick="numpad('2')">2</button>
+        <button onclick="numpad('3')">3</button>
+        <button onclick="numpad('4')">4</button>
+        <button onclick="numpad('5')">5</button>
+        <button onclick="numpad('6')">6</button>
+        <button onclick="numpad('7')">7</button>
+        <button onclick="numpad('8')">8</button>
+        <button onclick="numpad('9')">9</button>
+        <button onclick="numpad('000')">000</button>
+        <button onclick="numpad('0')" class="zero">0</button>
+        <button onclick="numpad('back')" class="clear"><i class="fa fa-backspace"></i></button>
+      </div>
+      <button id="btn-pay" onclick="submitOrder()"><i class="fa fa-check mr-1"></i>Proses Pembayaran</button>
+    </div>
+  </div>
+</div>
+
+<!-- Receipt modal -->
+<div id="receipt-modal">
+  <div id="receipt-box">
+    <h5><i class="fa fa-check-circle"></i> Transaksi Berhasil</h5>
+    <p id="receipt-order-name" style="color:#888;font-size:13px;"></p>
+    <div style="font-size:13px;">Kembalian:</div>
+    <div class="change-amt" id="receipt-change">0</div>
+    <div class="mt-4 d-flex gap-2 justify-content-center">
+      <button onclick="newOrder()" class="btn btn-primary"><i class="fa fa-plus mr-1"></i>Order Baru</button>
+      <button onclick="window.print()" class="btn btn-outline-secondary"><i class="fa fa-print mr-1"></i>Print</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SESSION_ID = {{ session.id }};
+const CSRF = "{{ csrf_token() }}";
+let cart = [];
+let payMethod = "cash";
+
+function fmt(n) {
+  return Number(n).toLocaleString('id-ID');
+}
+
+// ── Cart logic ──────────────────────────────────────────────────────────────
+function addToCart(el) {
+  const id = el.dataset.id;
+  const existing = cart.find(i => i.id === id);
+  if (existing) {
+    existing.qty += 1;
+    existing.subtotal = existing.qty * existing.price;
+  } else {
+    cart.push({
+      id, product_name: el.dataset.name, product_code: el.dataset.code,
+      qty: 1, unit_price: parseFloat(el.dataset.price),
+      price: parseFloat(el.dataset.price),
+      discount_pct: 0, tax_amt: 0,
+      subtotal: parseFloat(el.dataset.price),
+    });
+  }
+  renderCart();
+}
+
+function renderCart() {
+  const el = document.getElementById('cart-lines');
+  const empty = document.getElementById('cart-empty');
+  if (!cart.length) {
+    empty.style.display = 'block';
+    el.innerHTML = '';
+    el.appendChild(empty);
+    updateTotals();
+    return;
+  }
+  empty.style.display = 'none';
+  el.innerHTML = '';
+  cart.forEach((item, idx) => {
+    const div = document.createElement('div');
+    div.className = 'cart-line';
+    div.innerHTML = `
+      <div class="cl-name">${item.product_name}<br><small class="text-muted">${fmt(item.unit_price)} / pcs</small></div>
+      <div class="cl-qty">
+        <button onclick="changeQty(${idx}, -1)">−</button>
+        <input type="number" value="${item.qty}" min="0.01" step="1" style="width:44px;text-align:center;border:1px solid #dde;border-radius:4px;padding:2px 4px;font-size:12px;" onchange="setQty(${idx}, this.value)">
+        <button onclick="changeQty(${idx}, 1)">+</button>
+      </div>
+      <div class="cl-price">${fmt(item.subtotal)}</div>
+      <div class="cl-del" onclick="removeItem(${idx})"><i class="fa fa-times"></i></div>`;
+    el.appendChild(div);
+  });
+  updateTotals();
+}
+
+function changeQty(idx, delta) {
+  cart[idx].qty = Math.max(0.01, cart[idx].qty + delta);
+  cart[idx].subtotal = cart[idx].qty * cart[idx].unit_price;
+  renderCart();
+}
+function setQty(idx, val) {
+  cart[idx].qty = Math.max(0.01, parseFloat(val) || 1);
+  cart[idx].subtotal = cart[idx].qty * cart[idx].unit_price;
+  renderCart();
+}
+function removeItem(idx) { cart.splice(idx, 1); renderCart(); }
+function clearCart() { cart = []; renderCart(); }
+
+function updateTotals() {
+  const sub = cart.reduce((s, i) => s + i.subtotal, 0);
+  const tax = cart.reduce((s, i) => s + (i.tax_amt || 0), 0);
+  document.getElementById('disp-subtotal').textContent = fmt(sub);
+  document.getElementById('disp-discount').textContent = '0';
+  document.getElementById('disp-tax').textContent = fmt(tax);
+  document.getElementById('disp-total').textContent = fmt(sub + tax);
+  document.getElementById('btn-open-pay').disabled = !cart.length;
+}
+
+// ── Search ──────────────────────────────────────────────────────────────────
+document.getElementById('search-input').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('.product-card').forEach(c => {
+    const match = c.dataset.name.toLowerCase().includes(q) || c.dataset.code.toLowerCase().includes(q) || (c.dataset.barcode||'').includes(q);
+    c.style.display = match ? '' : 'none';
+  });
+});
+
+// ── Payment ─────────────────────────────────────────────────────────────────
+function openPayment() {
+  if (!cart.length) return;
+  const total = cart.reduce((s,i) => s + i.subtotal, 0);
+  document.getElementById('pay-display-total').textContent = fmt(total);
+  document.getElementById('pay-amount').value = Math.ceil(total / 1000) * 1000;
+  calcChange();
+  document.getElementById('pay-modal').classList.add('show');
+}
+function closePayment() { document.getElementById('pay-modal').classList.remove('show'); }
+function selectMethod(el) {
+  document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  payMethod = el.dataset.method;
+}
+function calcChange() {
+  const total = cart.reduce((s,i) => s + i.subtotal, 0);
+  const paid = parseFloat(document.getElementById('pay-amount').value) || 0;
+  const change = paid - total;
+  const el = document.getElementById('pay-change');
+  if (change >= 0) {
+    el.style.color = '#27ae60';
+    el.textContent = 'Kembalian: Rp ' + fmt(change);
+  } else {
+    el.style.color = '#e74c3c';
+    el.textContent = 'Kurang: Rp ' + fmt(-change);
+  }
+  document.getElementById('btn-pay').disabled = change < 0;
+}
+function numpad(val) {
+  const inp = document.getElementById('pay-amount');
+  if (val === 'back') {
+    inp.value = inp.value.slice(0, -1) || '0';
+  } else {
+    if (inp.value === '0') inp.value = val;
+    else inp.value += val;
+  }
+  calcChange();
+}
+
+// ── Submit order ─────────────────────────────────────────────────────────────
+async function submitOrder() {
+  const total = cart.reduce((s,i) => s + i.subtotal, 0);
+  const paid = parseFloat(document.getElementById('pay-amount').value) || 0;
+  const customer_id = document.getElementById('customer-select').value || null;
+
+  const payload = {
+    lines: cart.map(i => ({
+      product_name: i.product_name, product_code: i.product_code,
+      qty: i.qty, unit_price: i.unit_price, subtotal: i.subtotal,
+      discount_pct: i.discount_pct, tax_amt: i.tax_amt,
+    })),
+    payments: [{ method: payMethod, amount: paid }],
+    customer_id,
+    discount_amt: 0,
+  };
+
+  const r = await fetch(`/erp/api/pos/session/${SESSION_ID}/order`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+    body: JSON.stringify(payload),
+  });
+  const data = await r.json();
+  if (data.ok) {
+    closePayment();
+    document.getElementById('receipt-order-name').textContent = data.name;
+    document.getElementById('receipt-change').textContent = 'Rp ' + fmt(data.change);
+    document.getElementById('receipt-modal').classList.add('show');
+  } else {
+    alert('Error: ' + data.error);
+  }
+}
+
+function newOrder() {
+  document.getElementById('receipt-modal').classList.remove('show');
+  clearCart();
+  document.getElementById('customer-select').value = '';
+}
+</script>
+</body>
+</html>

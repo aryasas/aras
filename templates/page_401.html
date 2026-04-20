@@ -1,0 +1,9 @@
+{% extends '_page_error.html' %}
+{% block error_title %}401 Unauthorized{% endblock %}
+{% block content %}
+    <div class="error-code">401</div>
+    <i class="fa fa-lock error-icon"></i>
+    <div class="error-divider"></div>
+    <h3>Authentication Required</h3>
+    <p>You need to be logged in to access this page.<br>Please sign in and try again.</p>
+{% endblock %}

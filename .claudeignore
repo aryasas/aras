@@ -1,0 +1,23 @@
+# Python & Virtual Environments
+venv/
+.env/
+__pycache__/
+*.pyc
+
+
+# Project specifics (Ignore compiled static assets, logs, DB files)
+log/
+*.sqlite3
+*.db
+aras/static/media/
+.claude_cache/
+dist/
+*.lock
+*.min.js
+target/
+bu/
+.qwen/
+.vscode/
+next/
+node_modules/
+*.egg-info/

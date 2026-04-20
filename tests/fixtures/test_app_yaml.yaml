@@ -1,0 +1,49 @@
+app:
+  name: test_yaml_app
+  title: Test YAML App
+  main_title: Test YAML App
+  url: /test-yaml-app
+  endpoint: test_yaml_app
+  description: Install test via .yaml
+  icon: fa-file-code-o
+  is_active: true
+  in_sidebar: true
+  require_login: true
+  api_enabled: true
+  items_per_page: 20
+
+tables:
+  - name: products
+    title: Products
+    url_suffix: /products
+    menu_title: Products
+    menu_icon: fa-shopping-cart
+    show_in_menu: true
+    menu_order: 1
+    is_active: true
+    allow_create: true
+    allow_edit: true
+    allow_delete: true
+    search_enabled: true
+    columns:
+      - name: name
+        label: Name
+        field_type: string
+        required: true
+        order: 1
+        show_in_list: true
+        show_in_form: true
+      - name: price
+        label: Price
+        field_type: float
+        required: false
+        order: 2
+        show_in_list: true
+        show_in_form: true
+      - name: notes
+        label: Notes
+        field_type: text
+        required: false
+        order: 3
+        show_in_list: false
+        show_in_form: true

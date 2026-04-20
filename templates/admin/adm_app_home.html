@@ -1,0 +1,144 @@
+{% extends 'admin/adm_base.html' %}
+
+{% block page_content %}
+<div class="row mt-3">
+  <div class="col-12">
+
+    <!-- App header -->
+    <div class="card mb-3">
+      <div class="card-body d-flex align-items-center">
+        <div style="font-size:2.5rem;color:#5a6fd6;margin-right:18px;">
+          <i class="fa {{ app_icon }}"></i>
+        </div>
+        <div style="flex:1;">
+          <h4 class="mb-1">{{ app_title }}</h4>
+          {% if app_description %}
+            <p class="mb-0 text-muted" style="font-size:13px;">{{ app_description }}</p>
+          {% else %}
+            <p class="mb-0 text-muted" style="font-size:13px;">
+              <code>{{ app_name }}</code> &mdash; {{ app_url }}
+            </p>
+          {% endif %}
+        </div>
+        <div>
+          <a href="{{ settings_url }}" class="btn btn-sm btn-outline-secondary">
+            <i class="fa fa-cog mr-1"></i>Settings
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard widgets -->
+    {% if widgets %}
+    <div class="row mb-3">
+      {% for w in widgets %}
+        <div class="col-md-{{ w.width }} mb-3">
+          <div class="card border-{{ w.color }}">
+            <div class="card-body d-flex align-items-center">
+              <div class="text-{{ w.color }}" style="font-size:1.8rem;margin-right:14px;">
+                <i class="fa {{ w.icon }}"></i>
+              </div>
+              <div style="flex:1;">
+                <div class="text-muted" style="font-size:12px;text-transform:uppercase;">
+                  {{ w.label }}
+                </div>
+                <div style="font-size:1.5rem;font-weight:600;">
+                  {{ w.value }}
+                </div>
+                {% if w.link %}
+                  <a href="{{ w.link }}" style="font-size:12px;">View &rarr;</a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Page-type tiles -->
+    <div class="card">
+      <div class="card-body">
+        <h6 class="text-muted mb-3">
+          <i class="fa fa-th-large mr-1"></i>Pages
+        </h6>
+
+        {% if not tiles %}
+          <p class="text-muted mb-0">
+            No pages in this app yet.
+            {% if is_dynamic %}
+              <a href="/admin/apps">Add one in App Manager &rarr;</a>
+            {% endif %}
+          </p>
+        {% else %}
+
+          {% set grouped = {} %}
+          {% set ungrouped = [] %}
+          {% for t in tiles %}
+            {% if t.group %}
+              {% if t.group not in grouped %}{% set _ = grouped.update({t.group: []}) %}{% endif %}
+              {% set _ = grouped[t.group].append(t) %}
+            {% else %}
+              {% set _ = ungrouped.append(t) %}
+            {% endif %}
+          {% endfor %}
+
+          {% macro render_tile(t) %}
+            <div class="col-md-3 col-sm-6 mb-3">
+              <a href="{{ t.url }}" class="text-dark" style="text-decoration:none;">
+                <div class="card h-100 tile-card" style="transition:transform .1s,box-shadow .1s;">
+                  <div class="card-body text-center py-4">
+                    <div style="font-size:2rem;color:#5a6fd6;">
+                      <i class="fa {{ t.icon }}"></i>
+                    </div>
+                    <div class="mt-2" style="font-weight:600;">{{ t.title }}</div>
+                    {% if t.count is not none %}
+                      <div class="text-muted" style="font-size:12px;">
+                        {{ t.count }} record{{ '' if t.count == 1 else 's' }}
+                      </div>
+                    {% endif %}
+                    {% if t.description %}
+                      <div class="text-muted mt-1" style="font-size:11px;">
+                        {{ t.description }}
+                      </div>
+                    {% endif %}
+                    {% if t.page_type == 'group' %}
+                      <span class="badge badge-secondary mt-2" style="font-size:10px;">
+                        <i class="fa fa-angle-double-right"></i> open
+                      </span>
+                    {% elif t.page_type and t.page_type != 'list' %}
+                      <span class="badge badge-light mt-2">{{ t.page_type }}</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </a>
+            </div>
+          {% endmacro %}
+
+          {% if ungrouped %}
+            <div class="row">
+              {% for t in ungrouped %}{{ render_tile(t) }}{% endfor %}
+            </div>
+          {% endif %}
+
+          {% for grp_name, grp_tiles in grouped.items() %}
+            <h6 class="text-muted mt-4 mb-2">{{ grp_name }}</h6>
+            <div class="row">
+              {% for t in grp_tiles %}{{ render_tile(t) }}{% endfor %}
+            </div>
+          {% endfor %}
+
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+  .tile-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,.08);
+  }
+</style>
+{% endblock %}

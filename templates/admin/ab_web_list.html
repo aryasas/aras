@@ -1,0 +1,78 @@
+{% extends 'web_base.html' %}
+
+{% block page_content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4>{{ main_title }} <span class="badge badge-secondary">{{ items|length }}</span></h4>
+  {% if current_user.is_authenticated %}
+    <a href="{{ add_url }}" class="btn btn-primary btn-sm">
+      <i class="fa fa-plus mr-1"></i> Add New
+    </a>
+  {% endif %}
+</div>
+
+{% if sibling_tabs %}
+<nav class="mb-3" style="border-bottom:1px solid #dee2e6;">
+  {% for tab_title, tab_url in sibling_tabs %}
+    <a href="{{ tab_url }}/"
+       class="mr-3 pb-1"
+       style="text-decoration:none;font-size:14px;
+              {% if tab_url == current_tab_url %}font-weight:600;color:#313b3d;border-bottom:2px solid #5a6fd6;{% else %}color:#6c757d;{% endif %}">
+      {{ tab_title }}
+    </a>
+  {% endfor %}
+</nav>
+{% endif %}
+
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>#</th>
+            {% for label, field in view_columns %}
+              <th>{{ label }}</th>
+            {% endfor %}
+            {% if current_user.is_authenticated %}
+              <th>Action</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td>{{ item.id }}</td>
+            {% for label, field in view_columns %}
+              <td>{{ item|attr(field) if item|attr(field) is not none else '—' }}</td>
+            {% endfor %}
+            {% if current_user.is_authenticated %}
+            <td>
+              <a href="{{ edit_url_base }}/{{ item.id }}/" class="btn btn-xs btn-outline-secondary" title="Edit">
+                <i class="fa fa-edit"></i>
+              </a>
+              <form method="POST" action="{{ delete_url_base }}/{{ item.id }}/delete/" style="display:inline;"
+                    onsubmit="return confirm('Delete this record?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-xs btn-outline-danger" title="Delete">
+                  <i class="fa fa-trash"></i>
+                </button>
+              </form>
+            </td>
+            {% endif %}
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="{{ view_columns|length + 2 }}" class="text-center text-muted py-4">
+              No data yet.
+              {% if current_user.is_authenticated %}
+                <a href="{{ add_url }}">Add the first record</a>.
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

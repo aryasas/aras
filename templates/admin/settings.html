@@ -1,0 +1,1400 @@
+{% extends extends_layout if extends_layout else 'admin/adm_base.html' %} {%
+block submenu %}
+<div
+    class="page-title-area"
+    style="padding: 0 30px; border-bottom: 1px solid #eef0f2"
+>
+    <nav style="display: flex; gap: 0; align-items: stretch">
+        {% for panel_id, icon, label in [ ('panel-general', 'ti-settings',
+        'General'), ('panel-server', 'ti-desktop', 'Server'), ('panel-apps',
+        'ti-layout-grid2', 'App Manager'), ('panel-doctypes', 'ti-files',
+        'DocTypes'), ('panel-uploads', 'ti-folder', 'Uploads'), ('panel-users',
+        'ti-user', 'Users'), ('panel-database', 'ti-server', 'Database'),
+        ('panel-roles', 'ti-shield', 'Roles'), ] %}
+        <a
+            href="#{{ panel_id }}"
+            class="settings-tab-link {% if loop.first %}active{% endif %}"
+            data-panel="{{ panel_id }}"
+            style="
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 10px 18px;
+                font-size: 13px;
+                color: #6c757d;
+                text-decoration: none;
+                border-bottom: 2px solid transparent;
+            "
+        >
+            <i class="{{ icon }}"></i> {{ label }}
+        </a>
+        {% endfor %}
+    </nav>
+</div>
+{% endblock %} {% block page_content %}
+<div class="row mt-4">
+    <!-- Settings Sidebar -->
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush" id="settings-nav">
+                    <li
+                        class="list-group-item list-group-item-action settings-nav-item active"
+                        data-panel="panel-general"
+                        style="cursor: pointer"
+                    >
+                        <i class="ti-settings mr-2"></i> General
+                    </li>
+                    <li
+                        class="list-group-item list-group-item-action settings-nav-item"
+                        data-panel="panel-server"
+                        style="cursor: pointer"
+                    >
+                        <i class="ti-desktop mr-2"></i> Server
+                    </li>
+                    <li
+                        class="list-group-item list-group-item-action settings-nav-item"
+                        data-panel="panel-apps"
+                        style="cursor: pointer"
+                    >
+                        <i class="ti-layout-grid2 mr-2"></i> App Manager
+                    </li>
+                    <li
+                        class="list-group-item list-group-item-action settings-nav-item"
+                        data-panel="panel-doctypes"
+                        style="cursor: pointer"
+                    >
+                        <i class="ti-files mr-2"></i> DocTypes
+                    </li>
+                    <li
+                        class="list-group-item list-group-item-action settings-nav-item"
+                        data-panel="panel-uploads"
+                        style="cursor: pointer"
+                    >
+                        <i class="ti-folder mr-2"></i> Uploads
+                    </li>
+                    <li
+                        class="list-group-item list-group-item-action settings-nav-item"
+                        data-panel="panel-users"
+                        style="cursor: pointer"
+                    >
+                        <i class="ti-user mr-2"></i> Users
+                    </li>
+                    <li
+                        class="list-group-item list-group-item-action settings-nav-item"
+                        data-panel="panel-database"
+                        style="cursor: pointer"
+                    >
+                        <i class="ti-server mr-2"></i> Database
+                    </li>
+                    <li
+                        class="list-group-item list-group-item-action settings-nav-item"
+                        data-panel="panel-roles"
+                        style="cursor: pointer"
+                    >
+                        <i class="ti-shield mr-2"></i> Roles &amp; Permissions
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panels -->
+    <div class="col-md-9">
+        <!-- General -->
+        <div class="settings-panel" id="panel-general">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="mb-3">General Settings</h5>
+                    <p class="text-muted">
+                        Configure general application settings.
+                    </p>
+                    <hr />
+                    <div class="row">
+                        <div class="col-6">
+                            <p>
+                                <b>App Name:</b> {{ config.get('APP_NAME',
+                                'Aras') if config is defined else 'Aras' }}
+                            </p>
+                        </div>
+                        <div class="col-6">
+                            <p>
+                                <b>Environment:</b> {{ config.get('ENV',
+                                'production') if config is defined else '—' }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Server -->
+        <div class="settings-panel d-none" id="panel-server">
+            <!-- Status Card -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="mb-3">
+                        <i class="ti-desktop mr-2"></i>Server Status
+                    </h5>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-4">
+                            <small class="text-muted d-block"
+                                >Environment</small
+                            >
+                            <code>{{ server_info.env }}</code>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Debug Mode</small>
+                            {% if server_info.debug %}<span
+                                class="badge badge-warning"
+                                >ON</span
+                            >
+                            {% else %}<span class="badge badge-success"
+                                >OFF</span
+                            >{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Python</small>
+                            <code>{{ server_info.python_version }}</code>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Host</small>
+                            <code>{{ server_info.host }}</code>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block"
+                                >Server Time</small
+                            >
+                            <code>{{ server_info.server_time }}</code>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Uptime</small>
+                            <code>{{ server_info.uptime }}</code>
+                        </div>
+                    </div>
+                    <hr />
+                    <form
+                        method="POST"
+                        action="{{ url_for('admin.server_restart') }}"
+                        onsubmit="
+                            return confirm(
+                                'Restart server? Active connections will be dropped.',
+                            );
+                        "
+                    >
+                        <input
+                            type="hidden"
+                            name="csrf_token"
+                            value="{{ csrf_token() }}"
+                        />
+                        <button type="submit" class="btn btn-danger btn-sm">
+                            <i class="fa fa-refresh mr-1"></i> Restart Server
+                        </button>
+                        <small class="text-muted ml-2"
+                            >Gunicorn: graceful reload. Dev server: process
+                            exit.</small
+                        >
+                    </form>
+                </div>
+            </div>
+
+            <!-- Config Form -->
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="mb-3">
+                        <i class="ti-settings mr-2"></i>Production Server Config
+                    </h5>
+                    <p class="text-muted small">
+                        Settings saved to <code>instance/server.json</code> and
+                        auto-generates <code>gunicorn.conf.py</code>.
+                    </p>
+                    <hr />
+                    <form
+                        method="POST"
+                        action="{{ url_for('admin.server_settings_save') }}"
+                    >
+                        <input
+                            type="hidden"
+                            name="csrf_token"
+                            value="{{ csrf_token() }}"
+                        />
+
+                        <!-- WSGI Server -->
+                        <div class="form-group row">
+                            <label
+                                class="col-sm-3 col-form-label font-weight-bold"
+                                >WSGI Server</label
+                            >
+                            <div class="col-sm-9">
+                                <select
+                                    name="wsgi_server"
+                                    class="form-control form-control-sm"
+                                >
+                                    {% for opt in ['gunicorn', 'uwsgi', 'flask']
+                                    %}
+                                    <option
+                                        value="{{ opt }}"
+                                        {%
+                                        if
+                                        server_cfg.wsgi_server ==
+                                        opt
+                                        %}selected{%
+                                        endif
+                                        %}
+                                    >
+                                        {{ opt }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted"
+                                    >Use <code>gunicorn</code> or
+                                    <code>uwsgi</code> for production.
+                                    <code>flask</code> = dev only.</small
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Bind -->
+                        <div class="form-group row">
+                            <label
+                                class="col-sm-3 col-form-label font-weight-bold"
+                                >Bind Host</label
+                            >
+                            <div class="col-sm-5">
+                                <input
+                                    type="text"
+                                    name="host"
+                                    class="form-control form-control-sm"
+                                    value="{{ server_cfg.host }}"
+                                    placeholder="0.0.0.0"
+                                />
+                            </div>
+                            <label class="col-sm-1 col-form-label text-right"
+                                >Port</label
+                            >
+                            <div class="col-sm-3">
+                                <input
+                                    type="number"
+                                    name="port"
+                                    class="form-control form-control-sm"
+                                    value="{{ server_cfg.port }}"
+                                    min="1"
+                                    max="65535"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Workers & Threads -->
+                        <div class="form-group row">
+                            <label
+                                class="col-sm-3 col-form-label font-weight-bold"
+                                >Workers</label
+                            >
+                            <div class="col-sm-3">
+                                <input
+                                    type="number"
+                                    name="workers"
+                                    class="form-control form-control-sm"
+                                    value="{{ server_cfg.workers }}"
+                                    min="1"
+                                    max="32"
+                                />
+                                <small class="text-muted"
+                                    >Recommended: (2×CPU)+1</small
+                                >
+                            </div>
+                            <label class="col-sm-2 col-form-label text-right"
+                                >Threads</label
+                            >
+                            <div class="col-sm-4">
+                                <input
+                                    type="number"
+                                    name="threads"
+                                    class="form-control form-control-sm"
+                                    value="{{ server_cfg.threads }}"
+                                    min="1"
+                                    max="32"
+                                />
+                                <small class="text-muted"
+                                    >Per worker (for
+                                    <code>gthread</code>)</small
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Worker Class -->
+                        <div class="form-group row">
+                            <label
+                                class="col-sm-3 col-form-label font-weight-bold"
+                                >Worker Class</label
+                            >
+                            <div class="col-sm-9">
+                                <select
+                                    name="worker_class"
+                                    class="form-control form-control-sm"
+                                >
+                                    {% for opt in ['sync', 'gthread', 'gevent',
+                                    'eventlet'] %}
+                                    <option
+                                        value="{{ opt }}"
+                                        {%
+                                        if
+                                        server_cfg.worker_class ==
+                                        opt
+                                        %}selected{%
+                                        endif
+                                        %}
+                                    >
+                                        {{ opt }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted"
+                                    ><code>sync</code> = default.
+                                    <code>gthread</code> = multi-thread.
+                                    <code>gevent</code> = async (needs
+                                    <code>pip install gevent</code>).</small
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Timeout & Keepalive -->
+                        <div class="form-group row">
+                            <label
+                                class="col-sm-3 col-form-label font-weight-bold"
+                                >Timeout (s)</label
+                            >
+                            <div class="col-sm-3">
+                                <input
+                                    type="number"
+                                    name="timeout"
+                                    class="form-control form-control-sm"
+                                    value="{{ server_cfg.timeout }}"
+                                    min="1"
+                                />
+                            </div>
+                            <label class="col-sm-2 col-form-label text-right"
+                                >Keepalive (s)</label
+                            >
+                            <div class="col-sm-4">
+                                <input
+                                    type="number"
+                                    name="keepalive"
+                                    class="form-control form-control-sm"
+                                    value="{{ server_cfg.keepalive }}"
+                                    min="0"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Max Requests -->
+                        <div class="form-group row">
+                            <label
+                                class="col-sm-3 col-form-label font-weight-bold"
+                                >Max Requests</label
+                            >
+                            <div class="col-sm-4">
+                                <input
+                                    type="number"
+                                    name="max_requests"
+                                    class="form-control form-control-sm"
+                                    value="{{ server_cfg.max_requests }}"
+                                    min="0"
+                                />
+                                <small class="text-muted"
+                                    >0 = unlimited. Restart worker after N
+                                    requests (prevents memory leaks).</small
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Log Level -->
+                        <div class="form-group row">
+                            <label
+                                class="col-sm-3 col-form-label font-weight-bold"
+                                >Log Level</label
+                            >
+                            <div class="col-sm-4">
+                                <select
+                                    name="loglevel"
+                                    class="form-control form-control-sm"
+                                >
+                                    {% for opt in ['debug', 'info', 'warning',
+                                    'error', 'critical'] %}
+                                    <option
+                                        value="{{ opt }}"
+                                        {%
+                                        if
+                                        server_cfg.loglevel ==
+                                        opt
+                                        %}selected{%
+                                        endif
+                                        %}
+                                    >
+                                        {{ opt }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Access / Error Log -->
+                        <div class="form-group row">
+                            <label
+                                class="col-sm-3 col-form-label font-weight-bold"
+                                >Access Log</label
+                            >
+                            <div class="col-sm-9">
+                                <input
+                                    type="text"
+                                    name="accesslog"
+                                    class="form-control form-control-sm"
+                                    value="{{ server_cfg.accesslog }}"
+                                    placeholder="- (stdout) or /path/to/access.log"
+                                />
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label
+                                class="col-sm-3 col-form-label font-weight-bold"
+                                >Error Log</label
+                            >
+                            <div class="col-sm-9">
+                                <input
+                                    type="text"
+                                    name="errorlog"
+                                    class="form-control form-control-sm"
+                                    value="{{ server_cfg.errorlog }}"
+                                    placeholder="- (stderr) or /path/to/error.log"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- SSL -->
+                        <hr />
+                        <div class="form-group row">
+                            <label
+                                class="col-sm-3 col-form-label font-weight-bold"
+                                >SSL / TLS</label
+                            >
+                            <div class="col-sm-9 pt-1">
+                                <div class="custom-control custom-switch">
+                                    <input
+                                        type="checkbox"
+                                        class="custom-control-input"
+                                        id="ssl_enabled"
+                                        name="ssl_enabled"
+                                        value="1"
+                                        {%
+                                        if
+                                        server_cfg.ssl_enabled
+                                        %}checked{%
+                                        endif
+                                        %}
+                                        onchange="
+                                            document
+                                                .getElementById('ssl-fields')
+                                                .classList.toggle(
+                                                    'd-none',
+                                                    !this.checked,
+                                                )
+                                        "
+                                    />
+                                    <label
+                                        class="custom-control-label"
+                                        for="ssl_enabled"
+                                        >Enable HTTPS</label
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            id="ssl-fields"
+                            {%
+                            if
+                            not
+                            server_cfg.ssl_enabled
+                            %}class="d-none"
+                            {%
+                            endif
+                            %}
+                        >
+                            <div class="form-group row">
+                                <label class="col-sm-3 col-form-label"
+                                    >Cert File</label
+                                >
+                                <div class="col-sm-9">
+                                    <input
+                                        type="text"
+                                        name="ssl_certfile"
+                                        class="form-control form-control-sm"
+                                        value="{{ server_cfg.ssl_certfile }}"
+                                        placeholder="/path/to/cert.pem"
+                                    />
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-sm-3 col-form-label"
+                                    >Key File</label
+                                >
+                                <div class="col-sm-9">
+                                    <input
+                                        type="text"
+                                        name="ssl_keyfile"
+                                        class="form-control form-control-sm"
+                                        value="{{ server_cfg.ssl_keyfile }}"
+                                        placeholder="/path/to/key.pem"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr />
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa fa-save mr-1"></i> Save Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- App Manager -->
+        <div class="settings-panel d-none" id="panel-apps">
+            <div class="card">
+                <div class="card-body">
+                    <div
+                        class="d-flex justify-content-between align-items-center mb-3"
+                    >
+                        <h5 class="mb-0">App Manager</h5>
+                        <div class="d-flex gap-2">
+                            <a
+                                href="{{ url_for('admin.apps_install') }}"
+                                class="btn btn-outline-secondary btn-sm"
+                            >
+                                <i class="fa fa-upload mr-1"></i> Install from
+                                File
+                            </a>
+                            <a
+                                href="{{ url_for('admin.apps_new') }}"
+                                class="btn btn-primary btn-sm"
+                            >
+                                <i class="fa fa-plus mr-1"></i> Add New App
+                            </a>
+                        </div>
+                    </div>
+                    <hr />
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Name</th>
+                                    <th>Title</th>
+                                    <th>URL</th>
+                                    <th>Fields</th>
+                                    <th>Active</th>
+                                    <th>Sidebar</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for app in apps %}
+                                <tr>
+                                    <td>{{ app.id }}</td>
+                                    <td><code>{{ app.name }}</code></td>
+                                    <td>{{ app.title }}</td>
+                                    <td><code>{{ app.url }}</code></td>
+                                    <td>
+                                        <a
+                                            href="{{ url_for('admin.apps_tables', app_id=app.id) }}"
+                                            class="badge badge-info"
+                                        >
+                                            {{ app.tables.count() }} table(s)
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if app.is_active %}<span
+                                            class="badge badge-success"
+                                            >Yes</span
+                                        >
+                                        {% else %}<span
+                                            class="badge badge-secondary"
+                                            >No</span
+                                        >{% endif %}
+                                    </td>
+                                    <td>
+                                        {% if app.in_sidebar %}<span
+                                            class="badge badge-info"
+                                            >Yes</span
+                                        >
+                                        {% else %}<span
+                                            class="badge badge-light"
+                                            >No</span
+                                        >{% endif %}
+                                    </td>
+                                    <td style="white-space: nowrap">
+                                        <a
+                                            href="{{ url_for('admin.apps_tables', app_id=app.id) }}"
+                                            class="btn btn-xs btn-outline-info"
+                                            title="Tables"
+                                        >
+                                            <i class="fa fa-table"></i>
+                                        </a>
+                                        <a
+                                            href="{{ url_for('admin.apps_edit', app_id=app.id) }}"
+                                            class="btn btn-xs btn-outline-secondary"
+                                            title="Edit"
+                                        >
+                                            <i class="fa fa-edit"></i>
+                                        </a>
+                                        {% if app.is_active %}
+                                        <form
+                                            method="POST"
+                                            action="{{ url_for('admin.apps_deactivate', app_id=app.id) }}"
+                                            style="display: inline"
+                                        >
+                                            <input
+                                                type="hidden"
+                                                name="csrf_token"
+                                                value="{{ csrf_token() }}"
+                                            />
+                                            <button
+                                                type="submit"
+                                                class="btn btn-xs btn-outline-warning"
+                                                title="Deactivate"
+                                            >
+                                                <i class="fa fa-pause"></i>
+                                            </button>
+                                        </form>
+                                        {% else %}
+                                        <form
+                                            method="POST"
+                                            action="{{ url_for('admin.apps_activate', app_id=app.id) }}"
+                                            style="display: inline"
+                                        >
+                                            <input
+                                                type="hidden"
+                                                name="csrf_token"
+                                                value="{{ csrf_token() }}"
+                                            />
+                                            <button
+                                                type="submit"
+                                                class="btn btn-xs btn-outline-success"
+                                                title="Activate"
+                                            >
+                                                <i class="fa fa-play"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                        <form
+                                            method="POST"
+                                            action="{{ url_for('admin.apps_delete', app_id=app.id) }}"
+                                            style="display: inline"
+                                            onsubmit="return confirm('Delete app {{ app.title }}?')"
+                                        >
+                                            <input
+                                                type="hidden"
+                                                name="csrf_token"
+                                                value="{{ csrf_token() }}"
+                                            />
+                                            <button
+                                                type="submit"
+                                                class="btn btn-xs btn-outline-danger"
+                                                title="Delete"
+                                            >
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td
+                                        colspan="8"
+                                        class="text-center text-muted"
+                                    >
+                                        No apps yet.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DocTypes -->
+        <div class="settings-panel d-none" id="panel-doctypes">
+            <div class="card">
+                <div class="card-body">
+                    <div
+                        class="d-flex justify-content-between align-items-center mb-3"
+                    >
+                        <h5 class="mb-0">
+                            <i class="ti-files mr-2"></i>DocTypes / Page Types
+                        </h5>
+                        <small class="text-muted"
+                            >All page types across every app</small
+                        >
+                    </div>
+                    <hr />
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>App</th>
+                                    <th>Name</th>
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>Columns</th>
+                                    <th>Active</th>
+                                    <th>Menu</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tbl in all_tables %}
+                                <tr>
+                                    <td>{{ tbl.id }}</td>
+                                    <td>
+                                        <a
+                                            href="{{ url_for('admin.apps_tables', app_id=tbl.app_id) }}"
+                                            class="badge badge-light"
+                                            style="font-size: 11px"
+                                        >
+                                            {{ tbl.app.name }}
+                                        </a>
+                                    </td>
+                                    <td><code>{{ tbl.name }}</code></td>
+                                    <td>{{ tbl.title }}</td>
+                                    <td>
+                                        <span class="badge badge-secondary"
+                                            >{{ tbl.page_type or 'list' }}</span
+                                        >
+                                    </td>
+                                    <td>
+                                        <a
+                                            href="{{ url_for('admin.apps_columns', app_id=tbl.app_id, table_id=tbl.id) }}"
+                                            class="badge badge-info"
+                                        >
+                                            {{ tbl.columns.count() }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if tbl.is_active %}<span
+                                            class="badge badge-success"
+                                            >Yes</span
+                                        >
+                                        {% else %}<span
+                                            class="badge badge-secondary"
+                                            >No</span
+                                        >{% endif %}
+                                    </td>
+                                    <td>
+                                        {% if tbl.show_in_menu %}<span
+                                            class="badge badge-info"
+                                            >Yes</span
+                                        >
+                                        {% else %}<span
+                                            class="badge badge-light"
+                                            >No</span
+                                        >{% endif %}
+                                    </td>
+                                    <td style="white-space: nowrap">
+                                        <a
+                                            href="{{ url_for('admin.apps_table_edit', app_id=tbl.app_id, table_id=tbl.id) }}"
+                                            class="btn btn-xs btn-outline-secondary"
+                                            title="Edit"
+                                        >
+                                            <i class="fa fa-edit"></i>
+                                        </a>
+                                        <a
+                                            href="{{ url_for('admin.apps_columns', app_id=tbl.app_id, table_id=tbl.id) }}"
+                                            class="btn btn-xs btn-outline-info"
+                                            title="Columns"
+                                        >
+                                            <i class="fa fa-columns"></i>
+                                        </a>
+                                        <form
+                                            method="POST"
+                                            action="{{ url_for('admin.apps_table_delete', app_id=tbl.app_id, table_id=tbl.id) }}"
+                                            style="display: inline"
+                                            onsubmit="return confirm('Delete page type {{ tbl.title }}?')"
+                                        >
+                                            <input
+                                                type="hidden"
+                                                name="csrf_token"
+                                                value="{{ csrf_token() }}"
+                                            />
+                                            <button
+                                                type="submit"
+                                                class="btn btn-xs btn-outline-danger"
+                                                title="Delete"
+                                            >
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td
+                                        colspan="9"
+                                        class="text-center text-muted"
+                                    >
+                                        No page types defined yet.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Uploads -->
+        <div class="settings-panel d-none" id="panel-uploads">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="mb-3">
+                        <i class="ti-folder mr-2"></i>Upload Folder Settings
+                    </h5>
+                    <p class="text-muted small">
+                        These paths are configured in <code>config.py</code>.
+                        Editing here updates
+                        <code>instance/server.json</code> overrides (restart
+                        required to apply).
+                    </p>
+                    <hr />
+                    <form
+                        method="POST"
+                        action="{{ url_for('admin.settings_upload_save') }}"
+                    >
+                        <input
+                            type="hidden"
+                            name="csrf_token"
+                            value="{{ csrf_token() }}"
+                        />
+                        {% for key, path in upload_folders.items() %}
+                        <div class="form-group row">
+                            <label
+                                class="col-sm-3 col-form-label font-weight-bold"
+                                style="font-size: 13px"
+                            >
+                                {{ key.replace('_', ' ').title() }}
+                            </label>
+                            <div class="col-sm-9">
+                                <div class="input-group input-group-sm">
+                                    <input
+                                        type="text"
+                                        name="{{ key }}"
+                                        class="form-control form-control-sm font-monospace"
+                                        value="{{ path }}"
+                                        placeholder="/path/to/folder"
+                                    />
+                                    <div class="input-group-append">
+                                        <span
+                                            class="input-group-text"
+                                            id="status-{{ loop.index }}"
+                                            style="font-size: 11px"
+                                        >
+                                            {% if path %}
+                                            <i
+                                                class="fa fa-check text-success"
+                                                title="Path set"
+                                            ></i>
+                                            {% else %}
+                                            <i
+                                                class="fa fa-exclamation-triangle text-warning"
+                                                title="Not set"
+                                            ></i>
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                                {% if path %}
+                                <small class="text-muted"
+                                    >Current: <code>{{ path }}</code></small
+                                >
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        <hr />
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="fa fa-save mr-1"></i> Save Upload Paths
+                        </button>
+                        <small class="text-muted ml-2"
+                            >Saved to <code>instance/server.json</code>. Restart
+                            server to apply.</small
+                        >
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6><i class="ti-upload mr-1"></i>Test Upload Folder</h6>
+                    <hr />
+                    <form
+                        method="POST"
+                        action="{{ url_for('admin.settings_upload_test') }}"
+                        enctype="multipart/form-data"
+                    >
+                        <input
+                            type="hidden"
+                            name="csrf_token"
+                            value="{{ csrf_token() }}"
+                        />
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label"
+                                >Folder</label
+                            >
+                            <div class="col-sm-4">
+                                <select
+                                    name="folder_key"
+                                    class="form-control form-control-sm"
+                                >
+                                    {% for key in upload_folders %}
+                                    <option value="{{ key }}">{{ key }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <label class="col-sm-1 col-form-label">File</label>
+                            <div class="col-sm-4">
+                                <input
+                                    type="file"
+                                    name="test_file"
+                                    class="form-control-file form-control-sm"
+                                />
+                            </div>
+                        </div>
+                        <button
+                            type="submit"
+                            class="btn btn-outline-secondary btn-sm"
+                        >
+                            <i class="fa fa-upload mr-1"></i> Upload Test File
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users -->
+        <div class="settings-panel d-none" id="panel-users">
+            <div class="card">
+                <div class="card-body">
+                    <div
+                        class="d-flex justify-content-between align-items-center mb-3"
+                    >
+                        <h5 class="mb-0">Users</h5>
+                        <a
+                            href="{{ url_for('admin.users') }}"
+                            class="btn btn-outline-secondary btn-sm"
+                        >
+                            View All Users
+                        </a>
+                    </div>
+                    <hr />
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Admin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u in users %}
+                                <tr>
+                                    <td>{{ u.id }}</td>
+                                    <td>{{ u.username }}</td>
+                                    <td>{{ u.email }}</td>
+                                    <td>
+                                        {% if u.is_admin %}<span
+                                            class="badge badge-danger"
+                                            >Admin</span
+                                        >
+                                        {% else %}<span
+                                            class="badge badge-light"
+                                            >User</span
+                                        >{% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td
+                                        colspan="4"
+                                        class="text-center text-muted"
+                                    >
+                                        No users.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database -->
+        <div class="settings-panel d-none" id="panel-database">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="mb-3"><i class="ti-server mr-2"></i>Database</h5>
+                    <hr />
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <p><b>Connection:</b> <code>{{ db_uri }}</code></p>
+                        </div>
+                    </div>
+
+                    <h6 class="mt-3 mb-2">Tables</h6>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Table Name</th>
+                                    <th>Columns</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tbl in db_tables %}
+                                <tr>
+                                    <td><code>{{ tbl.name }}</code></td>
+                                    <td>
+                                        <small class="text-muted"
+                                            >{{ tbl.columns | join(', ')
+                                            }}</small
+                                        >
+                                    </td>
+                                    <td>
+                                        <form
+                                            method="POST"
+                                            action="{{ url_for('admin.db_generate_view') }}"
+                                            style="display: inline"
+                                        >
+                                            <input
+                                                type="hidden"
+                                                name="csrf_token"
+                                                value="{{ csrf_token() }}"
+                                            />
+                                            <input
+                                                type="hidden"
+                                                name="table_name"
+                                                value="{{ tbl.name }}"
+                                            />
+                                            <button
+                                                type="submit"
+                                                class="btn btn-sm btn-outline-primary"
+                                            >
+                                                <i class="fa fa-magic mr-1"></i
+                                                >Generate View
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td
+                                        colspan="3"
+                                        class="text-center text-muted"
+                                    >
+                                        No tables found.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Roles & Permissions -->
+        <div class="settings-panel d-none" id="panel-roles">
+            <!-- Create Role -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <i class="ti-plus mr-1"></i> New Role
+                </div>
+                <div class="card-body">
+                    <form
+                        method="POST"
+                        action="{{ url_for('admin.role_new') }}"
+                        class="form-inline"
+                    >
+                        <input
+                            type="text"
+                            name="name"
+                            class="form-control form-control-sm mr-2"
+                            placeholder="Role name"
+                            required
+                        />
+                        <input
+                            type="text"
+                            name="slug"
+                            class="form-control form-control-sm mr-2"
+                            placeholder="slug (auto)"
+                        />
+                        <input
+                            type="text"
+                            name="description"
+                            class="form-control form-control-sm mr-2"
+                            placeholder="Description"
+                        />
+                        <button class="btn btn-primary btn-sm">Create</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Roles table -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <i class="ti-shield mr-1"></i> Roles
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>Slug</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for role in all_roles %}
+                            <tr>
+                                <td>{{ role.name }}</td>
+                                <td><code>{{ role.slug }}</code></td>
+                                <td>{{ role.description or '—' }}</td>
+                                <td>
+                                    <form
+                                        method="POST"
+                                        action="{{ url_for('admin.role_toggle', role_id=role.id) }}"
+                                        style="display: inline"
+                                    >
+                                        <button
+                                            class="btn btn-xs {% if role.is_active %}btn-success{% else %}btn-secondary{% endif %}"
+                                        >
+                                            {{ 'Active' if role.is_active else
+                                            'Inactive' }}
+                                        </button>
+                                    </form>
+                                </td>
+                                <td>
+                                    <button
+                                        class="btn btn-xs btn-outline-primary mr-1"
+                                        onclick="toggleRoleDetail({{ role.id }})"
+                                    >
+                                        Permissions / Users
+                                    </button>
+                                    <form
+                                        method="POST"
+                                        action="{{ url_for('admin.role_delete', role_id=role.id) }}"
+                                        style="display: inline"
+                                        onsubmit="return confirm('Delete role {{ role.name }}?')"
+                                    >
+                                        <button class="btn btn-xs btn-danger">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <tr id="role-detail-{{ role.id }}" class="d-none">
+                                <td colspan="5">
+                                    <div class="row px-3 py-2">
+                                        <!-- Permissions -->
+                                        <div class="col-md-7">
+                                            <strong>Permissions</strong>
+                                            <form
+                                                method="POST"
+                                                action="{{ url_for('admin.role_permissions_save', role_id=role.id) }}"
+                                                class="mt-2"
+                                            >
+                                                {% set role_perm_ids =
+                                                role.permissions |
+                                                map(attribute='id') | list %} {%
+                                                set grouped = {} %} {% for p in
+                                                all_permissions %} {% if
+                                                p.app_slug not in grouped %}{%
+                                                set _ =
+                                                grouped.update({p.app_slug: []})
+                                                %}{% endif %} {% set _ =
+                                                grouped[p.app_slug].append(p) %}
+                                                {% endfor %} {% for app_slug,
+                                                perms in grouped.items() %}
+                                                <div class="mb-2">
+                                                    <small
+                                                        class="text-muted text-uppercase font-weight-bold"
+                                                        >{{ app_slug }}</small
+                                                    ><br />
+                                                    {% for p in perms %}
+                                                    <label
+                                                        class="mr-3"
+                                                        style="font-size: 12px"
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            name="perm_ids"
+                                                            value="{{ p.id }}"
+                                                            {%
+                                                            if
+                                                            p.id
+                                                            in
+                                                            role_perm_ids
+                                                            %}checked{%
+                                                            endif
+                                                            %}
+                                                        />
+                                                        {{ p.name }}
+                                                    </label>
+                                                    {% endfor %}
+                                                </div>
+                                                {% endfor %} {% if not
+                                                all_permissions %}
+                                                <p class="text-muted small">
+                                                    No permissions seeded yet.
+                                                </p>
+                                                {% endif %}
+                                                <button
+                                                    class="btn btn-sm btn-primary mt-1"
+                                                >
+                                                    Save Permissions
+                                                </button>
+                                            </form>
+                                        </div>
+                                        <!-- Users -->
+                                        <div class="col-md-5">
+                                            <strong>Assigned Users</strong>
+                                            <form
+                                                method="POST"
+                                                action="{{ url_for('admin.role_users_save', role_id=role.id) }}"
+                                                class="mt-2"
+                                            >
+                                                {% set assigned_uids =
+                                                role.permissions |
+                                                map(attribute='id') | list %} {#
+                                                Collect user IDs assigned to
+                                                this role via UserRole #} {% for
+                                                u in users %} {% set is_assigned
+                                                = namespace(v=false) %} {% for
+                                                ur in u.roles %}{% if ur.role_id
+                                                == role.id %}{% set
+                                                is_assigned.v = true %}{% endif
+                                                %}{% endfor %}
+                                                <label
+                                                    class="d-block"
+                                                    style="font-size: 12px"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        name="user_ids"
+                                                        value="{{ u.id }}"
+                                                        {%
+                                                        if
+                                                        is_assigned.v
+                                                        %}checked{%
+                                                        endif
+                                                        %}
+                                                    />
+                                                    {{ u.username }}
+                                                    <span class="text-muted"
+                                                        >({{ u.email }})</span
+                                                    >
+                                                </label>
+                                                {% endfor %}
+                                                <button
+                                                    class="btn btn-sm btn-primary mt-2"
+                                                >
+                                                    Save Users
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td
+                                    colspan="5"
+                                    class="text-center text-muted py-3"
+                                >
+                                    No roles yet.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} {% block script %} {{ super() }}
+<script>
+    function activatePanel(panelId) {
+        document.querySelectorAll(".settings-nav-item").forEach(function (i) {
+            i.classList.remove("active");
+        });
+        document.querySelectorAll(".settings-tab-link").forEach(function (i) {
+            i.style.borderBottomColor = "transparent";
+            i.style.color = "#6c757d";
+            i.style.fontWeight = "normal";
+        });
+        document.querySelectorAll(".settings-panel").forEach(function (p) {
+            p.classList.add("d-none");
+        });
+
+        var sideItem = document.querySelector(
+            '.settings-nav-item[data-panel="' + panelId + '"]',
+        );
+        if (sideItem) sideItem.classList.add("active");
+
+        var tabLink = document.querySelector(
+            '.settings-tab-link[data-panel="' + panelId + '"]',
+        );
+        if (tabLink) {
+            tabLink.style.borderBottomColor = "var(--primary-color, #5a6fd6)";
+            tabLink.style.color = "#313b3d";
+            tabLink.style.fontWeight = "600";
+        }
+
+        var panel = document.getElementById(panelId);
+        if (panel) panel.classList.remove("d-none");
+        window.location.hash = panelId;
+    }
+
+    document
+        .querySelectorAll(".settings-nav-item, .settings-tab-link")
+        .forEach(function (item) {
+            item.addEventListener("click", function (e) {
+                e.preventDefault();
+                activatePanel(item.getAttribute("data-panel"));
+            });
+        });
+
+    // Restore from hash or default
+    var hash = window.location.hash.replace("#", "");
+    activatePanel(hash || "panel-general");
+
+    function toggleRoleDetail(roleId) {
+        var row = document.getElementById("role-detail-" + roleId);
+        if (row) row.classList.toggle("d-none");
+    }
+</script>
+{% endblock %}

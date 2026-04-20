@@ -1,0 +1,123 @@
+{% extends 'soc/base.html' %}
+{% block title %}Messages — Aras Social{% endblock %}
+
+{% block body %}
+<!-- Messages page overrides full body — no 3-col layout -->
+<div class="soc-msg-layout">
+
+  <!-- Conversation list -->
+  <div class="soc-msg-sidebar">
+    <div class="soc-msg-sidebar-header">
+      Messages
+    </div>
+    <div class="soc-msg-list" id="conv-list">
+      {% if conversations %}
+        {% for conv in conversations %}
+        {% set other = conv.get_other_participant(current_user.id) %}
+        {% if other %}
+        <a href="#" class="soc-msg-item" id="conv-{{ conv.id }}"
+           onclick="openConv({{ conv.id }}, '{{ other.user.username }}'); return false;">
+          <div class="soc-avatar sm">{{ other.user.username[0].upper() }}</div>
+          <div class="soc-msg-item-meta">
+            <div class="soc-msg-item-name">{{ other.user.username }}</div>
+            <div class="soc-msg-item-time">
+              {{ conv.last_message_at.strftime('%d %b %H:%M') if conv.last_message_at else 'New conversation' }}
+            </div>
+          </div>
+        </a>
+        {% endif %}
+        {% endfor %}
+      {% else %}
+      <div style="padding:16px;color:var(--fb-muted);font-size:14px;">No messages yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Chat area -->
+  <div class="soc-chat-area">
+    <div id="chat-placeholder" class="soc-chat-empty">
+      <i class="fa fa-comments" style="font-size:60px;color:var(--fb-border);"></i>
+      <p style="margin:0;font-size:16px;">Select a conversation</p>
+      <p style="margin:4px 0 0;font-size:14px;">or start a new message</p>
+    </div>
+
+    <div id="chat-window" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+      <div class="soc-chat-header">
+        <div class="soc-avatar sm" id="chat-avatar"></div>
+        <span id="chat-title"></span>
+      </div>
+      <div class="soc-chat-messages" id="chat-messages"></div>
+      <div class="soc-chat-footer">
+        <input class="soc-chat-input" id="chat-input" placeholder="Aa"
+               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}">
+        <button class="soc-chat-send" onclick="sendMsg()">
+          <i class="fa fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+var currentConvId = null;
+var currentUserId = {{ current_user.id }};
+
+function openConv(convId, username) {
+  currentConvId = convId;
+  document.getElementById('chat-placeholder').style.display = 'none';
+  var win = document.getElementById('chat-window');
+  win.style.display = 'flex';
+
+  document.getElementById('chat-avatar').textContent = username[0].toUpperCase();
+  document.getElementById('chat-title').textContent = username;
+
+  document.querySelectorAll('.soc-msg-item').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  var active = document.getElementById('conv-' + convId);
+  if (active) active.classList.add('active');
+
+  loadMsgs(convId);
+  fetch('/soc/api/conversations/' + convId + '/read', {
+    method: 'POST', headers: {'X-CSRFToken': getCsrf()}
+  });
+}
+
+function loadMsgs(convId) {
+  fetch('/soc/api/conversations/' + convId + '/messages')
+    .then(r => r.json()).then(d => {
+      var box = document.getElementById('chat-messages');
+      if (!d.data || !d.data.length) {
+        box.innerHTML = '<div style="text-align:center;color:var(--fb-muted);font-size:14px;padding:20px;">No messages yet. Say hello!</div>';
+        return;
+      }
+      box.innerHTML = d.data.map(function(m) {
+        var mine = m.sender_id === currentUserId;
+        return '<div class="soc-bubble ' + (mine ? 'mine' : 'theirs') + '">' +
+               escHtml(m.content) + '</div>';
+      }).join('');
+      box.scrollTop = box.scrollHeight;
+    });
+}
+
+function sendMsg() {
+  var input = document.getElementById('chat-input');
+  var content = input.value.trim();
+  if (!content || !currentConvId) return;
+  fetch('/soc/api/conversations/' + currentConvId + '/messages', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrf()},
+    body: JSON.stringify({content: content})
+  }).then(r => r.json()).then(d => {
+    if (d.ok) { input.value = ''; loadMsgs(currentConvId); }
+  });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+{% endblock %}

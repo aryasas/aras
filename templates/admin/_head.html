@@ -1,0 +1,58 @@
+<meta charset="utf-8">
+<meta http-equiv="x-ua-compatible" content="ie=edge">
+
+<title>Aras |
+  {% if main_title %}
+    {{ main_title }}
+  {% endif %}
+</title>
+
+<!-- Tell the browser to be responsive to screen width -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='admin/assets/images/icon/favicon.ico') }}">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/assets/css/bootstrap.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/assets/css/font-awesome.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/assets/css/themify-icons.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/assets/css/metisMenu.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/assets/css/owl.carousel.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin/assets/css/slicknav.min.css') }}">
+
+<style>
+  tfoot input {
+    width: 100 %;
+    padding: 3 px;
+    box - sizing: border - box;
+  }
+
+  .absolute {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+  }
+
+  .fixed {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+  }
+
+  .alert {
+    display: inline-block;
+    z-index: 999;
+  }
+
+  .panel-footer {
+    height: 70px;
+    border: solid;
+    display: flex;
+  }
+
+  .panel-footer button {
+    position: absolute;
+    right: 0.5em;
+    top: 50%;
+    transform: translate(0, -50%);
+  }
+</style>

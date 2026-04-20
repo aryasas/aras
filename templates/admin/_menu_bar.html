@@ -1,0 +1,174 @@
+<!-- app menu bar -->
+{% if g.gmenu %} {% set _path = request.path %} {# Deteksi app aktif berdasarkan
+prefix URL #} {% set _active_app = namespace(found=none) %} {% for app in
+g.gmenu %} {# Primary: match /admin/<app_slug
+    >/ prefix #} {% if app.app_slug %} {% set _adm_prefix = '/admin/' ~
+    app.app_slug ~ '/' %} {% if _path.startswith(_adm_prefix) %} {% set
+    _active_app.found = app %} {% endif %} {% endif %} {# Fallback: match app
+    home_url or child/item URLs #} {% if app.url and _path.startswith(app.url)
+    and app.url != '/' %} {% set _active_app.found = app %} {% endif %} {% for
+    child in app.children %} {% set _child_url = child.url or '' %} {% if
+    _path.startswith(_child_url) and _child_url != '/' %} {% set
+    _active_app.found = app %} {% endif %} {% if child.children %} {% for item
+    in child.children %} {% if _path.startswith(item.url) and item.url != '/' %}
+    {% set _active_app.found = app %} {% endif %} {% endfor %} {% endif %} {%
+    endfor %} {% endfor %} {% if _active_app.found %} {% set _app =
+    _active_app.found %}
+    <div
+        class="app-menu-bar"
+        style="
+            background: #fff;
+            border-bottom: 1px solid #eef0f2;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            flex-wrap: wrap;
+            min-height: 36px;
+        "
+    >
+        <a
+            href="{{ url_for('admin.dashboard') }}"
+            style="
+                display: inline-flex;
+                align-items: center;
+                padding: 6px 10px;
+                font-size: 12px;
+                color: #6c757d;
+                text-decoration: none;
+                border-radius: 3px;
+                white-space: nowrap;
+            "
+            onmouseover="this.style.background = '#f4f6f8'"
+            onmouseout="this.style.background = 'transparent'"
+        >
+            <i class="ti-home"></i>
+        </a>
+        <span style="color: #dde3e7; font-size: 12px">|</span>
+        <a
+            href="{{ _app.url }}"
+            style="
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                padding: 6px 10px;
+                font-size: 12px;
+                color: #9aacb8;
+                text-decoration: none;
+                white-space: nowrap;
+            "
+        >
+            <i class="fa {{ _app.icon }}" style="font-size: 11px"></i>
+            {{ _app.title }}
+        </a>
+        <span style="color: #dde3e7; font-size: 12px">|</span>
+
+        {% for child in _app.children %} {% if child.children %} {# Group →
+        dropdown #}
+        <div
+            style="position: relative; display: inline-block"
+            class="appmenu-item"
+        >
+            <a
+                href="{{ child.url if child.url else '#' }}"
+                style="
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 5px;
+                    padding: 6px 12px;
+                    font-size: 12px;
+                    color: #313b3d;
+                    text-decoration: none;
+                    border-radius: 3px;
+                    white-space: nowrap;
+                    font-weight: 500;
+                "
+                onmouseover="this.style.background = '#f4f6f8'"
+                onmouseout="this.style.background = 'transparent'"
+            >
+                <i class="fa {{ child.icon }}" style="font-size: 11px"></i>
+                {{ child.title }}
+                <i
+                    class="fa fa-caret-down"
+                    style="font-size: 10px; margin-left: 2px"
+                ></i>
+            </a>
+            <div
+                class="appmenu-dropdown"
+                style="
+                    display: none;
+                    position: absolute;
+                    top: 100%;
+                    left: 0;
+                    background: #fff;
+                    border: 1px solid #eef0f2;
+                    border-radius: 4px;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                    padding: 4px 0;
+                    margin: 0;
+                    min-width: 180px;
+                    z-index: 2000;
+                "
+            >
+                {% for item in child.children %}
+                <a
+                    href="{{ item.url }}"
+                    style="
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 7px 16px;
+                        font-size: 12px;
+                        color: #313b3d;
+                        text-decoration: none;
+                        white-space: nowrap;
+                    "
+                    onmouseover="this.style.background = '#f4f6f8'"
+                    onmouseout="this.style.background = 'transparent'"
+                >
+                    <i
+                        class="fa {{ item.icon }}"
+                        style="
+                            font-size: 11px;
+                            width: 14px;
+                            text-align: center;
+                            color: #8a9bb0;
+                        "
+                    ></i>
+                    {{ item.title }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% else %} {# Item flat #}
+        <a
+            href="{{ child.url }}"
+            style="
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                padding: 6px 12px;
+                font-size: 12px;
+                color: #313b3d;
+                text-decoration: none;
+                border-radius: 3px;
+                white-space: nowrap;
+                font-weight: 500;
+            "
+            onmouseover="this.style.background = '#f4f6f8'"
+            onmouseout="this.style.background = 'transparent'"
+        >
+            <i class="fa {{ child.icon }}" style="font-size: 11px"></i>
+            {{ child.title }}
+        </a>
+        {% endif %} {% endfor %}
+    </div>
+    <style>
+        .appmenu-item:hover > .appmenu-dropdown {
+            display: block !important;
+        }
+    </style>
+    {% endif %} {% endif %}
+    <!-- /app menu bar -->
+</app_slug>

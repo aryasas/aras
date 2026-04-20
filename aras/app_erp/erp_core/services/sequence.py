@@ -1,0 +1,45 @@
+"""core.sequence — thread-safe document numbering via SELECT FOR UPDATE."""
+from datetime import date
+from arasCore.lib.extensions import db
+from aras.app_erp.erp_core.models.sequence import CoreSequence
+
+
+def next_number(code: str, company_id: int) -> str:
+    """
+    Atomically increment and return the next formatted document number.
+    Uses SELECT FOR UPDATE to prevent duplicates under concurrency.
+    """
+    seq = (
+        CoreSequence.query
+        .filter_by(code=code, company_id=company_id)
+        .with_for_update()
+        .first()
+    )
+    if not seq:
+        raise ValueError(f"Sequence '{code}' not found for company {company_id}")
+
+    today = date.today()
+    period_yearly  = str(today.year)
+    period_monthly = today.strftime("%Y-%m")
+
+    current_period = period_monthly if seq.reset_period == "monthly" else period_yearly
+
+    if seq.reset_period != "never" and seq.last_period != current_period:
+        seq.next_value = 1
+        seq.last_period = current_period
+
+    num = seq.next_value
+    seq.next_value += 1
+    db.session.flush()
+
+    padded = str(num).zfill(seq.padding or 5)
+    fmt = seq.format or "{prefix}/{YYYY}/{MM}/{seq}"
+    result = (
+        fmt
+        .replace("{prefix}", seq.prefix or "")
+        .replace("{suffix}", seq.suffix or "")
+        .replace("{YYYY}", str(today.year))
+        .replace("{MM}", today.strftime("%m"))
+        .replace("{seq}", padded)
+    )
+    return result.strip("/")

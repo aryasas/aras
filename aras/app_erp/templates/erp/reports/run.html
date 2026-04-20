@@ -1,0 +1,154 @@
+{% extends 'admin/adm_base.html' %}
+
+{% block submenu %}
+<div class="page-title-area" style="padding:0 30px;border-bottom:1px solid #eef0f2;">
+  <nav style="display:flex;align-items:center;gap:0;flex-wrap:wrap;">
+    <a href="/admin/erp/reports/" style="padding:10px 14px;font-size:13px;text-decoration:none;color:#9aacb8;">
+      Reports
+    </a>
+    <span style="color:#d8e3e7;">/</span>
+    <span style="padding:10px 14px;font-size:13px;font-weight:600;color:#313b3d;">{{ report.title }}</span>
+    <span style="margin-left:auto;padding-right:8px;display:flex;gap:6px;align-items:center;">
+      {% if report.render_mode == 'list' %}
+      <a href="/admin/erp/reports/{{ report.id }}/"
+         class="btn btn-xs btn-outline-secondary" title="List View">
+        <i class="fa fa-list mr-1"></i>List
+      </a>
+      {% endif %}
+      <a href="/admin/erp/reports/{{ report.id }}/run/"
+         class="btn btn-xs btn-primary" title="Report View">
+        <i class="fa fa-bar-chart mr-1"></i>Report
+      </a>
+      <a href="/admin/erp/reports/{{ report.id }}/export.csv?{{ request.query_string.decode() }}"
+         class="btn btn-xs btn-outline-secondary">
+        <i class="fa fa-download mr-1"></i>CSV
+      </a>
+    </span>
+  </nav>
+</div>
+{% endblock %}
+
+{% block page_content %}
+<div class="row mt-3">
+  <div class="col-12">
+
+    {# Filter form #}
+    {% if filters_def %}
+    <form method="get" class="card card-body py-3 mb-3" id="filter-form">
+      <div class="row form-row align-items-end">
+        {% for f in filters_def %}
+        <div class="col-md-3 mb-2">
+          <label class="small mb-1">{{ f.label }}</label>
+          {% if f.type == 'select' %}
+          <select name="{{ f.field }}" class="form-control form-control-sm">
+            {% for val, lbl in f.get('options', []) %}
+            <option value="{{ val }}" {{ 'selected' if filters.get(f.field) == val }}>{{ lbl }}</option>
+            {% endfor %}
+          </select>
+          {% elif f.type == 'date' %}
+          <input type="date" name="{{ f.field }}" class="form-control form-control-sm"
+                 value="{{ filters.get(f.field) or '' }}">
+          {% else %}
+          <input type="text" name="{{ f.field }}" class="form-control form-control-sm"
+                 value="{{ filters.get(f.field) or '' }}">
+          {% endif %}
+        </div>
+        {% endfor %}
+        <div class="col-md-2 mb-2">
+          <label class="small mb-1">&nbsp;</label>
+          <button type="submit" class="btn btn-sm btn-primary btn-block">Run</button>
+        </div>
+      </div>
+    </form>
+    {% else %}
+    <form method="get" class="mb-3">
+      <button type="submit" class="btn btn-sm btn-primary">
+        <i class="fa fa-play"></i> Run Report
+      </button>
+    </form>
+    {% endif %}
+
+    {# Results #}
+    {% if result %}
+      {% if result.get('error') %}
+      <div class="alert alert-danger">
+        <strong>Error:</strong> {{ result.error }}
+      </div>
+      {% else %}
+      <div class="card">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center">
+          <small class="text-muted">{{ result.data|length }} rows</small>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0" id="report-table">
+            <thead class="thead-light">
+              <tr>
+                {% for col in result.columns %}
+                <th>{{ col.label }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in result.data %}
+              <tr>
+                {% for col in result.columns %}
+                {% set i = loop.index0 %}
+                <td class="{{ 'text-right' if col.type in ('currency','integer','number') else '' }}">
+                  {% set val = row[i] if row is iterable else '' %}
+                  {% if col.type == 'currency' and val is not none and val != '' %}
+                    {{ '{:,.2f}'.format(val|float) }}
+                  {% else %}
+                    {{ val if val is not none else '' }}
+                  {% endif %}
+                </td>
+                {% endfor %}
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="{{ result.columns|length }}" class="text-center text-muted py-4">No data.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+    {% elif request.args %}
+    <div class="alert alert-info">No data returned for the selected filters.</div>
+    {% else %}
+    <div class="text-center text-muted py-5">
+      <i class="fa fa-bar-chart fa-3x mb-3 d-block"></i>
+      Apply filters and click <strong>Run</strong> to see results.
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<script>
+(function() {
+  var table = document.getElementById('report-table');
+  if (!table) return;
+  var ths = table.querySelectorAll('thead th');
+  ths.forEach(function(th, i) {
+    th.style.cursor = 'pointer';
+    th.addEventListener('click', function() {
+      var tbody = table.querySelector('tbody');
+      var rows = Array.from(tbody.querySelectorAll('tr'));
+      var asc = th.dataset.sort !== 'asc';
+      rows.sort(function(a, b) {
+        var av = a.cells[i] ? a.cells[i].textContent.trim() : '';
+        var bv = b.cells[i] ? b.cells[i].textContent.trim() : '';
+        var an = parseFloat(av.replace(/,/g, ''));
+        var bn = parseFloat(bv.replace(/,/g, ''));
+        if (!isNaN(an) && !isNaN(bn)) return asc ? an - bn : bn - an;
+        return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+      });
+      rows.forEach(function(r) { tbody.appendChild(r); });
+      ths.forEach(function(h) { h.dataset.sort = ''; });
+      th.dataset.sort = asc ? 'asc' : 'desc';
+    });
+  });
+})();
+</script>
+{% endblock %}

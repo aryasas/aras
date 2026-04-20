@@ -1,0 +1,136 @@
+{% extends extends_layout if extends_layout else 'admin/adm_base.html' %} {%
+block page_content %}
+<div class="row">
+  <div class="col-md-8 col-12 mt-4">
+    <div class="card">
+      <div class="card-body">
+        <h4>{{ main_title }}</h4>
+        <hr />
+
+        <form method="POST">
+          {{ form.hidden_tag() }}
+
+          <div class="form-group">
+            {{ form.name.label(class_="form-label") }} {{
+            form.name(class_="form-control", placeholder="e.g. notes") }}
+            <small class="text-muted"
+              >Lowercase, no spaces. Used as DB table prefix and blueprint
+              name.</small
+            >
+            {% for e in form.name.errors %}
+            <div class="text-danger small">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="form-group">
+            {{ form.title.label(class_="form-label") }} {{
+            form.title(class_="form-control", placeholder="e.g. Notes") }} {%
+            for e in form.title.errors %}
+            <div class="text-danger small">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="form-group">
+            {{ form.main_title.label(class_="form-label") }} {{
+            form.main_title(class_="form-control", placeholder="e.g. My Notes")
+            }}
+            <small class="text-muted"
+              >Label shown in sidebar and page headers.</small
+            >
+          </div>
+
+          <div class="form-group">
+            {{ form.url.label(class_="form-label") }} {{
+            form.url(class_="form-control", placeholder="e.g. /notes") }}
+            <small class="text-muted">URL prefix for this app's routes.</small>
+          </div>
+
+          <div class="form-group">
+            {{ form.endpoint.label(class_="form-label") }} {{
+            form.endpoint(class_="form-control", placeholder="e.g. notes") }}
+            <small class="text-muted">Flask endpoint/blueprint name.</small>
+          </div>
+
+          <div class="form-group">
+            {{ form.description.label(class_="form-label") }} {{
+            form.description(class_="form-control", placeholder="Short
+            description shown in sidebar tooltip") }}
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 form-group">
+              {{ form.icon.label(class_="form-label") }} {{
+              form.icon(class_="form-control form-control-sm") }}
+            </div>
+            <div class="col-md-6 form-group">
+              {{ form.color_theme.label(class_="form-label") }} {{
+              form.color_theme(class_="form-control form-control-sm",
+              placeholder="#3498db") }}
+              <small class="text-muted"
+                >{{ form.color_theme.description }}</small
+              >
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-4 form-group">
+              {{ form.items_per_page.label(class_="form-label") }} {{
+              form.items_per_page(class_="form-control form-control-sm") }}
+            </div>
+          </div>
+
+          <hr />
+          <h6 class="text-muted mb-2">Visibility &amp; Access</h6>
+          <div class="row">
+            <div class="col-6 col-md-3 form-check pl-4 mb-2">
+              {{ form.is_active(class_="form-check-input") }} {{
+              form.is_active.label(class_="form-check-label") }}
+            </div>
+            <div class="col-6 col-md-3 form-check pl-4 mb-2">
+              {{ form.in_sidebar(class_="form-check-input") }} {{
+              form.in_sidebar.label(class_="form-check-label") }}
+            </div>
+            <div class="col-6 col-md-3 form-check pl-4 mb-2">
+              {{ form.require_login(class_="form-check-input") }} {{
+              form.require_login.label(class_="form-check-label") }}
+            </div>
+            <div class="col-6 col-md-3 form-check pl-4 mb-2">
+              {{ form.api_enabled(class_="form-check-input") }} {{
+              form.api_enabled.label(class_="form-check-label") }}
+            </div>
+          </div>
+
+          <hr />
+          <h6 class="text-muted mb-2">Features</h6>
+          <div class="row">
+            <div class="col-6 col-md-3 form-check pl-4 mb-2">
+              {{ form.export_csv(class_="form-check-input") }} {{
+              form.export_csv.label(class_="form-check-label") }}
+            </div>
+            <div class="col-6 col-md-3 form-check pl-4 mb-2">
+              {{ form.export_excel(class_="form-check-input") }} {{
+              form.export_excel.label(class_="form-check-label") }}
+            </div>
+            <div class="col-6 col-md-3 form-check pl-4 mb-2">
+              {{ form.soft_delete(class_="form-check-input") }} {{
+              form.soft_delete.label(class_="form-check-label") }}
+            </div>
+            <div class="col-6 col-md-3 form-check pl-4 mb-2">
+              {{ form.audit_log(class_="form-check-input") }} {{
+              form.audit_log.label(class_="form-check-label") }}
+            </div>
+          </div>
+
+          <hr />
+          {{ form.submit(class_="btn btn-primary") }}
+          <a
+            href="{{ url_for('admin.apps') }}"
+            class="btn btn-outline-secondary ml-2"
+            >Cancel</a
+          >
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

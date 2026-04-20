@@ -1,0 +1,114 @@
+{% extends 'soc/base.html' %}
+{% block title %}{{ profile_user.username }} — Aras Social{% endblock %}
+
+{% block page_content %}
+{% set p = profile_user.soc_profile %}
+
+<!-- Profile card -->
+<div class="soc-card" style="margin-bottom:16px;overflow:visible;">
+  <div class="soc-profile-cover"></div>
+  <div class="soc-profile-header">
+    <div class="soc-profile-avatar-row">
+      <div class="soc-profile-avatar-wrap">
+        <div class="soc-avatar xl">{{ profile_user.username[0].upper() }}</div>
+      </div>
+      <div style="flex:1;padding-bottom:8px;">
+        <div class="soc-profile-name">{{ profile_user.username }}</div>
+        {% if p and p.bio %}
+        <div class="soc-profile-bio">{{ p.bio }}</div>
+        {% endif %}
+        <div class="soc-profile-stats">
+          <span><strong>{{ p.post_count if p else 0 }}</strong> posts</span>
+          <span><strong>{{ p.friend_count if p else 0 }}</strong> friends</span>
+          {% if p and p.location %}
+          <span><i class="fa fa-map-marker"></i> {{ p.location }}</span>
+          {% endif %}
+        </div>
+      </div>
+      <!-- Actions -->
+      {% if profile_user.id != current_user.id %}
+      <div style="display:flex;gap:8px;align-items:flex-end;padding-bottom:8px;" id="profile-actions">
+        {% if not friendship or friendship.status in ('rejected',) %}
+          <button class="soc-btn soc-btn-primary" onclick="addFriend({{ profile_user.id }})">
+            <i class="fa fa-user-plus"></i> Add Friend
+          </button>
+        {% elif friendship.status == 'pending' %}
+          {% if friendship.from_user_id == current_user.id %}
+            <span class="soc-btn soc-btn-secondary" style="cursor:default;">Request Sent</span>
+            <button class="soc-btn soc-btn-secondary" onclick="cancelRequest({{ profile_user.id }})">Cancel</button>
+          {% else %}
+            <button class="soc-btn soc-btn-primary" onclick="acceptFriend({{ profile_user.id }})">Confirm</button>
+            <button class="soc-btn soc-btn-secondary" onclick="rejectFriend({{ profile_user.id }})">Delete</button>
+          {% endif %}
+        {% elif friendship.status == 'accepted' %}
+          <span class="soc-btn soc-btn-green" style="cursor:default;">
+            <i class="fa fa-check"></i> Friends
+          </span>
+          <button class="soc-btn soc-btn-secondary" onclick="unfriend({{ profile_user.id }})">Unfriend</button>
+        {% endif %}
+        <a href="{{ url_for('soc.messages') }}" class="soc-btn soc-btn-secondary">
+          <i class="fa fa-comment"></i> Message
+        </a>
+      </div>
+      {% else %}
+      <div style="padding-bottom:8px;">
+        <button class="soc-btn soc-btn-secondary" onclick="alert('Edit profile coming soon')">
+          <i class="fa fa-pencil"></i> Edit Profile
+        </button>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Profile nav tabs -->
+    <div style="display:flex;gap:4px;border-top:1px solid var(--fb-border);padding-top:4px;">
+      <span class="soc-nav-tab active" style="width:auto;padding:0 12px;font-size:15px;font-weight:600;height:40px;">
+        Posts
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- Posts -->
+<div id="profile-posts">
+  {% for post in posts %}
+    {% include 'soc/components/post_card.html' %}
+  {% else %}
+  <div class="soc-card" style="padding:40px;text-align:center;color:var(--fb-muted);">
+    <i class="fa fa-camera" style="font-size:40px;display:block;margin-bottom:12px;"></i>
+    <p style="margin:0;font-size:16px;">No posts yet.</p>
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}
+
+{% block script %}
+<script>
+function addFriend(id) {
+  fetch('/soc/api/friends/' + id + '/request', {
+    method:'POST', headers:{'X-CSRFToken':getCsrf()}
+  }).then(r=>r.json()).then(d=>{ if (d.ok) location.reload(); });
+}
+function cancelRequest(id) {
+  fetch('/soc/api/friends/' + id + '/cancel', {
+    method:'POST', headers:{'X-CSRFToken':getCsrf()}
+  }).then(r=>r.json()).then(d=>{ if (d.ok) location.reload(); });
+}
+function acceptFriend(id) {
+  fetch('/soc/api/friends/' + id + '/accept', {
+    method:'POST', headers:{'X-CSRFToken':getCsrf()}
+  }).then(r=>r.json()).then(d=>{ if (d.ok) location.reload(); });
+}
+function rejectFriend(id) {
+  fetch('/soc/api/friends/' + id + '/reject', {
+    method:'POST', headers:{'X-CSRFToken':getCsrf()}
+  }).then(r=>r.json()).then(d=>{ if (d.ok) location.reload(); });
+}
+function unfriend(id) {
+  if (!confirm('Remove this friend?')) return;
+  fetch('/soc/api/friends/' + id, {
+    method:'DELETE', headers:{'X-CSRFToken':getCsrf()}
+  }).then(r=>r.json()).then(d=>{ if (d.ok) location.reload(); });
+}
+</script>
+{% endblock %}

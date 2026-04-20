@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>arasPos — {{ terminal.name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/assets/css/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/assets/css/font-awesome.min.css') }}">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@400;500;600;700&display=swap');
+
+    :root {
+      --navy:      #0f1b35;
+      --navy-mid:  #1a2744;
+      --navy-lite: #243358;
+      --teal:      #00c9a7;
+      --teal-dim:  #00a389;
+      --amber:     #f59e0b;
+      --amber-dim: #d97706;
+      --indigo:    #6366f1;
+      --red:       #ef4444;
+      --green:     #22c55e;
+      --slate:     #1e293b;
+      --slate-mid: #263347;
+      --slate-lite:#334155;
+      --text-inv:  #f1f5f9;
+      --text-mute: #94a3b8;
+      --border:    #2d3f5c;
+      --card-bg:   #ffffff;
+      --page-bg:   #f4f6fa;
+      --mono: 'DM Mono', monospace;
+      --sans: 'Sora', -apple-system, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { height: 100%; overflow: hidden; font-family: var(--sans); }
+
+    /* ── Root Layout ── */
+    #pos-root {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: var(--page-bg);
+    }
+
+    /* ── Top Command Bar ── */
+    #cmd-bar {
+      background: var(--navy);
+      color: var(--text-inv);
+      padding: 0 16px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+    }
+
+    .cmd-terminal {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .cmd-terminal .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 6px var(--teal);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .cmd-sep { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
+
+    .cmd-cashier {
+      font-size: 12px;
+      color: var(--text-mute);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .cmd-cashier i { font-size: 11px; }
+
+    /* Mode toggle */
+    #mode-toggle {
+      display: flex;
+      background: var(--navy-lite);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .mode-btn {
+      padding: 4px 10px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-mute);
+      font-family: var(--sans);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      letter-spacing: .03em;
+    }
+    .mode-btn.active-income  { background: var(--teal);   color: var(--navy); }
+    .mode-btn.active-outcome { background: var(--amber);  color: var(--navy); }
+    .mode-btn.active-both    { background: var(--indigo); color: #fff; }
+
+    .cmd-spacer { flex: 1; }
+
+    #btn-close-session {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border: 1px solid rgba(239,68,68,.4);
+      border-radius: 7px;
+      background: rgba(239,68,68,.08);
+      color: #fca5a5;
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all .2s;
+      cursor: pointer;
+    }
+    #btn-close-session:hover {
+      background: rgba(239,68,68,.18);
+      border-color: rgba(239,68,68,.6);
+      color: #fff;
+    }
+
+    /* ── Main Body ── */
+    #pos-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Left Panel ── */
+    #panel-left {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--page-bg);
+    }
+
+    #left-toolbar {
+      padding: 10px 14px;
+      background: #fff;
+      border-bottom: 1px solid #e5eaf2;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    #search-wrap {
+      flex: 1;
+      position: relative;
+    }
+    #search-wrap i {
+      position: absolute;
+      left: 11px; top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+      font-size: 13px;
+      pointer-events: none;
+    }
+    #search-input {
+      width: 100%;
+      padding: 8px 12px 8px 32px;
+      border: 1px solid #dde3ee;
+      border-radius: 8px;
+      font-family: var(--sans);
+      font-size: 13px;
+      outline: none;
+      background: var(--page-bg);
+      color: #1e293b;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    #search-input:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(0,201,167,.1);
+      background: #fff;
+    }
+    #search-input::placeholder { color: #b0bac9; }
+
+    #mode-badge {
+      padding: 5px 10px;
+      border-radius: 7px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .05em;
+      flex-shrink: 0;
+    }
+    .badge-income  { background: rgba(0,201,167,.12); color: var(--teal-dim); border: 1px solid rgba(0,201,167,.25); }
+    .badge-outcome { background: rgba(245,158,11,.12); color: var(--amber-dim); border: 1px solid rgba(245,158,11,.25); }
+    .badge-both    { background: rgba(99,102,241,.12); color: var(--indigo); border: 1px solid rgba(99,102,241,.25); }
+
+    /* Product Grid */
+    #product-grid {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+      align-content: start;
+    }
+    #product-grid::-webkit-scrollbar { width: 5px; }
+    #product-grid::-webkit-scrollbar-thumb { background: #dde3ee; border-radius: 3px; }
+
+    .product-card {
+      background: var(--card-bg);
+      border: 1px solid #e5eaf2;
+      border-radius: 10px;
+      padding: 14px 10px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s, border-color .15s;
+      user-select: none;
+      position: relative;
+      overflow: hidden;
+    }
+    .product-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 0%, rgba(0,201,167,.08), transparent 70%);
+      opacity: 0;
+      transition: opacity .2s;
+    }
+    .product-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,.08);
+      border-color: var(--teal);
+    }
+    .product-card:hover::before { opacity: 1; }
+    .product-card:active { transform: scale(.97); box-shadow: none; }
+
+    .product-card.outcome-card:hover { border-color: var(--amber); }
+    .product-card.outcome-card::before {
+      background: radial-gradient(circle at 50% 0%, rgba(245,158,11,.08), transparent 70%);
+    }
+
+    .pc-icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 8px;
+      font-size: 16px;
+      color: #94a3b8;
+    }
+    .product-card:hover .pc-icon { background: rgba(0,201,167,.1); color: var(--teal-dim); }
+    .outcome-card:hover .pc-icon { background: rgba(245,158,11,.1); color: var(--amber-dim); }
+
+    .pc-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: #1e293b;
+      line-height: 1.3;
+      margin-bottom: 4px;
+    }
+    .pc-price {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--teal-dim);
+      margin-bottom: 2px;
+    }
+    .outcome-card .pc-price { color: var(--amber-dim); }
+    .pc-code {
+      font-size: 10px;
+      color: #b0bac9;
+      margin-bottom: 4px;
+    }
+    .pc-stock {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .stock-ok  { background: rgba(34,197,94,.1);  color: #16a34a; }
+    .stock-low { background: rgba(239,68,68,.1);  color: #dc2626; }
+    .stock-na  { background: rgba(148,163,184,.1); color: #64748b; }
+
+    /* ── Right Panel (Cart) ── */
+    #panel-right {
+      width: 360px;
+      min-width: 300px;
+      display: flex;
+      flex-direction: column;
+      background: var(--slate);
+      color: var(--text-inv);
+      border-left: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    /* Customer Row */
+    #customer-row {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    #customer-row label {
+      font-size: 11px;
+      color: var(--text-mute);
+      font-weight: 600;
+      letter-spacing: .04em;
+      flex-shrink: 0;
+    }
+    #customer-wrap { flex: 1; position: relative; }
+    #customer-input {
+      width: 100%;
+      padding: 6px 10px;
+      background: var(--slate-mid);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text-inv);
+      font-family: var(--sans);
+      font-size: 12px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    #customer-input:focus { border-color: var(--teal); }
+    #customer-input::placeholder { color: var(--text-mute); }
+    #customer-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      background: var(--slate-lite);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      max-height: 180px;
+      overflow-y: auto;
+      z-index: 200;
+      display: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,.3);
+    }
+    #customer-dropdown.open { display: block; }
+    .cust-option {
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--text-inv);
+      transition: background .1s;
+    }
+    .cust-option:hover, .cust-option.selected { background: var(--navy-lite); }
+    #btn-add-customer {
+      width: 30px; height: 30px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--slate-mid);
+      color: var(--teal);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background .2s, border-color .2s;
+      text-decoration: none;
+    }
+    #btn-add-customer:hover { background: rgba(0,201,167,.1); border-color: var(--teal); }
+
+    /* Cart Lines */
+    #cart-lines {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+    #cart-lines::-webkit-scrollbar { width: 4px; }
+    #cart-lines::-webkit-scrollbar-thumb { background: var(--slate-lite); border-radius: 2px; }
+
+    .cart-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-mute);
+      padding: 40px 20px;
+    }
+    .cart-empty .empty-icon {
+      width: 56px; height: 56px;
+      border-radius: 14px;
+      background: var(--slate-mid);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+      font-size: 22px;
+      color: var(--slate-lite);
+    }
+    .cart-empty p { font-size: 13px; }
+
+    .cart-line {
+      padding: 9px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background .15s;
+      animation: slideIn .18s ease;
+    }
+    @keyframes slideIn { from { opacity:0; transform:translateX(8px); } to { opacity:1; transform:translateX(0); } }
+    .cart-line:hover { background: rgba(255,255,255,.03); }
+
+    .cl-name {
+      flex: 1;
+      min-width: 0;
+    }
+    .cl-name .cl-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-inv);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .cl-name .cl-sub {
+      font-size: 10px;
+      color: var(--text-mute);
+      font-family: var(--mono);
+    }
+
+    .cl-qty {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+    .qty-btn {
+      width: 22px; height: 22px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: var(--slate-mid);
+      color: var(--text-inv);
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s;
+      line-height: 1;
+    }
+    .qty-btn:hover { background: var(--slate-lite); }
+    .qty-input {
+      width: 38px;
+      text-align: center;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: var(--slate-mid);
+      color: var(--text-inv);
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 2px 3px;
+      outline: none;
+    }
+    .qty-input:focus { border-color: var(--teal); }
+
+    .cl-price {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-inv);
+      text-align: right;
+      width: 68px;
+      flex-shrink: 0;
+    }
+
+    .cl-del {
+      color: #64748b;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 3px 5px;
+      border-radius: 4px;
+      transition: color .15s, background .15s;
+      flex-shrink: 0;
+    }
+    .cl-del:hover { color: var(--red); background: rgba(239,68,68,.1); }
+
+    /* Cart Footer */
+    #cart-footer {
+      border-top: 1px solid var(--border);
+      padding: 12px 14px;
+      flex-shrink: 0;
+      background: var(--navy-mid);
+    }
+
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-mute);
+      margin-bottom: 4px;
+    }
+    .total-row span:last-child { font-family: var(--mono); }
+    .total-row.grand {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-inv);
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    .total-row.grand span:last-child { color: var(--teal); font-family: var(--mono); }
+
+    .cart-actions { display: flex; gap: 8px; }
+
+    #btn-clear {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      border: 1px solid rgba(239,68,68,.3);
+      background: rgba(239,68,68,.08);
+      color: #f87171;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+      transition: all .2s;
+    }
+    #btn-clear:hover { background: rgba(239,68,68,.18); border-color: rgba(239,68,68,.5); }
+
+    #btn-open-pay {
+      flex: 1;
+      height: 36px;
+      border: none;
+      border-radius: 8px;
+      background: var(--teal);
+      color: var(--navy);
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all .2s;
+      letter-spacing: .02em;
+    }
+    #btn-open-pay:hover:not(:disabled) { background: var(--teal-dim); }
+    #btn-open-pay:disabled { background: var(--slate-lite); color: #64748b; cursor: not-allowed; }
+    #btn-open-pay.outcome-mode { background: var(--amber); }
+    #btn-open-pay.outcome-mode:hover:not(:disabled) { background: var(--amber-dim); }
+
+    /* ── Modals ── */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.6);
+      backdrop-filter: blur(4px);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-backdrop.show { display: flex; }
+
+    /* Payment Modal */
+    #pay-box {
+      background: var(--slate);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 400px;
+      max-width: 96vw;
+      overflow: hidden;
+      animation: popIn .2s ease;
+    }
+    @keyframes popIn { from { opacity:0; transform:scale(.94); } to { opacity:1; transform:scale(1); } }
+
+    .pay-hdr {
+      background: var(--navy);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .pay-hdr-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-inv);
+    }
+    .pay-close-btn {
+      background: none;
+      border: none;
+      color: var(--text-mute);
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+      transition: color .15s;
+    }
+    .pay-close-btn:hover { color: var(--text-inv); }
+
+    .pay-body { padding: 18px; }
+
+    .pay-total-display {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .pay-total-label { font-size: 11px; color: var(--text-mute); letter-spacing: .06em; font-weight: 600; }
+    .pay-total-amt {
+      font-family: var(--mono);
+      font-size: 32px;
+      font-weight: 500;
+      color: var(--teal);
+      line-height: 1.1;
+    }
+
+    .method-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .method-btn {
+      padding: 8px 4px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--slate-mid);
+      color: var(--text-mute);
+      cursor: pointer;
+      text-align: center;
+      font-family: var(--sans);
+      font-size: 11px;
+      font-weight: 600;
+      transition: all .15s;
+    }
+    .method-btn i { display: block; font-size: 16px; margin-bottom: 3px; }
+    .method-btn.active { border-color: var(--teal); background: rgba(0,201,167,.12); color: var(--teal); }
+
+    .pay-amount-wrap { position: relative; margin-bottom: 6px; }
+    #pay-amount {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--slate-mid);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-inv);
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 500;
+      text-align: right;
+      outline: none;
+      transition: border-color .2s;
+    }
+    #pay-amount:focus { border-color: var(--teal); }
+
+    #pay-change-display {
+      text-align: center;
+      font-size: 13px;
+      font-family: var(--mono);
+      min-height: 20px;
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+    .change-positive { color: var(--green); }
+    .change-negative { color: var(--red); }
+
+    .numpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .np-btn {
+      padding: 11px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--slate-mid);
+      color: var(--text-inv);
+      font-family: var(--mono);
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .1s;
+    }
+    .np-btn:hover { background: var(--slate-lite); }
+    .np-btn:active { transform: scale(.95); }
+    .np-btn.np-zero { grid-column: span 2; }
+    .np-btn.np-back { color: #f87171; }
+    .np-btn.np-000  { font-size: 13px; }
+
+    #btn-pay-submit {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 10px;
+      background: var(--teal);
+      color: var(--navy);
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all .2s;
+    }
+    #btn-pay-submit:hover:not(:disabled) { background: var(--teal-dim); }
+    #btn-pay-submit:disabled { background: var(--slate-lite); color: #64748b; cursor: not-allowed; }
+
+    /* Receipt Modal */
+    #receipt-box {
+      background: var(--slate);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 340px;
+      max-width: 96vw;
+      padding: 32px 24px 24px;
+      text-align: center;
+      animation: popIn .25s ease;
+    }
+    .receipt-check {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: rgba(34,197,94,.12);
+      border: 2px solid rgba(34,197,94,.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 26px;
+      color: var(--green);
+    }
+    .receipt-title { font-size: 17px; font-weight: 700; color: var(--text-inv); margin-bottom: 4px; }
+    .receipt-name { font-size: 12px; color: var(--text-mute); margin-bottom: 20px; font-family: var(--mono); }
+    .receipt-change-label { font-size: 11px; color: var(--text-mute); letter-spacing: .06em; font-weight: 600; }
+    .receipt-change-amt {
+      font-family: var(--mono);
+      font-size: 36px;
+      font-weight: 500;
+      color: var(--green);
+      margin-bottom: 24px;
+      line-height: 1.1;
+    }
+    .receipt-actions { display: flex; gap: 8px; justify-content: center; }
+    .btn-receipt {
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all .2s;
+      border: none;
+    }
+    .btn-new-order { background: var(--teal); color: var(--navy); }
+    .btn-new-order:hover { background: var(--teal-dim); }
+    .btn-print { background: var(--slate-mid); color: var(--text-inv); border: 1px solid var(--border); }
+    .btn-print:hover { background: var(--slate-lite); }
+
+    /* Add Customer Modal */
+    #add-cust-box {
+      background: var(--slate);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 360px;
+      max-width: 96vw;
+      overflow: hidden;
+      animation: popIn .2s ease;
+    }
+    .add-cust-hdr {
+      background: var(--navy);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .add-cust-hdr span { font-size: 14px; font-weight: 700; color: var(--text-inv); }
+    .add-cust-body { padding: 18px; }
+    .cust-field { margin-bottom: 12px; }
+    .cust-field label { display: block; font-size: 11px; color: var(--text-mute); font-weight: 600; letter-spacing: .04em; margin-bottom: 5px; }
+    .cust-field input {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--slate-mid);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text-inv);
+      font-family: var(--sans);
+      font-size: 13px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .cust-field input:focus { border-color: var(--teal); }
+    .cust-field input::placeholder { color: var(--text-mute); }
+    .cust-save-btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: var(--teal);
+      color: var(--navy);
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: background .2s;
+    }
+    .cust-save-btn:hover { background: var(--teal-dim); }
+
+    /* Grid state messages */
+    .grid-state {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      color: #94a3b8;
+      gap: 12px;
+    }
+    .grid-state i { font-size: 28px; }
+    .grid-state p { font-size: 13px; }
+    .grid-state button {
+      margin-top: 4px;
+      padding: 7px 16px;
+      border: 1px solid var(--teal);
+      border-radius: 7px;
+      background: transparent;
+      color: var(--teal);
+      font-family: var(--sans);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .grid-state button:hover { background: rgba(0,201,167,.1); }
+
+    /* ── Tablet Responsive ── */
+    @media (max-width: 768px) {
+      #pos-body { flex-direction: column; }
+
+      #panel-left { flex: 0 0 55%; }
+
+      #panel-right {
+        width: 100%;
+        min-width: unset;
+        flex: 0 0 45%;
+        border-left: none;
+        border-top: 1px solid var(--border);
+      }
+
+      #product-grid {
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        padding: 8px;
+        gap: 7px;
+      }
+
+      #cmd-bar { height: 48px; padding: 0 12px; }
+      #mode-toggle { display: none; } /* move to toolbar on mobile */
+      #left-toolbar { flex-wrap: wrap; }
+
+      .pay-total-amt { font-size: 26px; }
+    }
+
+    @media (max-width: 480px) {
+      #panel-left { flex: 0 0 50%; }
+      #panel-right { flex: 0 0 50%; }
+      .cmd-cashier { display: none; }
+    }
+
+    /* Spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { display: inline-block; animation: spin .7s linear infinite; }
+  </style>
+</head>
+<body>
+<div id="pos-root">
+
+  <!-- ── Command Bar ── -->
+  <div id="cmd-bar">
+    <div class="cmd-terminal">
+      <div class="dot"></div>
+      <span>{{ terminal.name }}</span>
+    </div>
+    <div class="cmd-sep"></div>
+    <div class="cmd-cashier">
+      <i class="fa fa-user-circle"></i>
+      {{ session.cashier.username }}
+    </div>
+    <div class="cmd-sep"></div>
+
+    <!-- Mode Toggle -->
+    <div id="mode-toggle">
+      <button class="mode-btn" data-mode="income" onclick="switchMode('income')">
+        <i class="fa fa-arrow-up" style="margin-right:3px;"></i>Income
+      </button>
+      <button class="mode-btn" data-mode="outcome" onclick="switchMode('outcome')">
+        <i class="fa fa-arrow-down" style="margin-right:3px;"></i>Outcome
+      </button>
+      <button class="mode-btn" data-mode="both" onclick="switchMode('both')">
+        <i class="fa fa-exchange" style="margin-right:3px;"></i>Both
+      </button>
+    </div>
+
+    <div class="cmd-spacer"></div>
+
+    <a id="btn-close-session" href="{{ url_for('erp_views.pos_close_session', session_id=session.id) }}">
+      <i class="fa fa-power-off"></i>
+      <span>Tutup Sesi</span>
+    </a>
+  </div>
+
+  <!-- ── Body ── -->
+  <div id="pos-body">
+
+    <!-- Left: Products -->
+    <div id="panel-left">
+      <div id="left-toolbar">
+        <div id="search-wrap">
+          <i class="fa fa-search"></i>
+          <input type="text" id="search-input" placeholder="Cari produk atau scan barcode…" autocomplete="off">
+        </div>
+        <div id="mode-badge" class="badge-income">INCOME</div>
+      </div>
+      <div id="product-grid">
+        <div class="grid-state">
+          <i class="fa fa-spinner spinner"></i>
+          <p>Memuat produk…</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Cart -->
+    <div id="panel-right">
+
+      <!-- Customer -->
+      <div id="customer-row">
+        <label><i class="fa fa-user" style="margin-right:4px;"></i>PELANGGAN</label>
+        <div id="customer-wrap">
+          <input type="text" id="customer-input" placeholder="Walk-in / Cari pelanggan…" autocomplete="off">
+          <div id="customer-dropdown"></div>
+        </div>
+        <button id="btn-add-customer" title="Tambah Pelanggan" onclick="openAddCustomer()">+</button>
+      </div>
+
+      <!-- Cart Lines -->
+      <div id="cart-lines">
+        <div class="cart-empty" id="cart-empty">
+          <div class="empty-icon"><i class="fa fa-shopping-basket"></i></div>
+          <p>Belum ada item ditambahkan</p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div id="cart-footer">
+        <div class="total-row">
+          <span>Subtotal</span>
+          <span id="disp-subtotal">Rp 0</span>
+        </div>
+        <div class="total-row">
+          <span>Diskon</span>
+          <span id="disp-discount">Rp 0</span>
+        </div>
+        <div class="total-row">
+          <span>Pajak</span>
+          <span id="disp-tax">Rp 0</span>
+        </div>
+        <div class="total-row grand">
+          <span>TOTAL</span>
+          <span id="disp-total">Rp 0</span>
+        </div>
+        <div class="cart-actions">
+          <button id="btn-clear" onclick="clearCart()" title="Kosongkan Cart">
+            <i class="fa fa-trash"></i>
+          </button>
+          <button id="btn-open-pay" onclick="openPayment()" disabled>
+            <i class="fa fa-credit-card"></i>
+            <span id="pay-btn-label">Bayar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Payment Modal ── -->
+<div id="pay-modal" class="modal-backdrop">
+  <div id="pay-box">
+    <div class="pay-hdr">
+      <span class="pay-hdr-title"><i class="fa fa-credit-card" style="margin-right:7px;"></i>Pembayaran</span>
+      <button class="pay-close-btn" onclick="closePayment()">×</button>
+    </div>
+    <div class="pay-body">
+      <div class="pay-total-display">
+        <div class="pay-total-label">TOTAL TAGIHAN</div>
+        <div class="pay-total-amt" id="pay-display-total">Rp 0</div>
+      </div>
+
+      <div class="method-grid">
+        <div class="method-btn active" data-method="cash" onclick="selectMethod(this)">
+          <i class="fa fa-money"></i>Tunai
+        </div>
+        <div class="method-btn" data-method="card" onclick="selectMethod(this)">
+          <i class="fa fa-credit-card"></i>Kartu
+        </div>
+        <div class="method-btn" data-method="qris" onclick="selectMethod(this)">
+          <i class="fa fa-qrcode"></i>QRIS
+        </div>
+        <div class="method-btn" data-method="transfer" onclick="selectMethod(this)">
+          <i class="fa fa-exchange"></i>Transfer
+        </div>
+      </div>
+
+      <div class="pay-amount-wrap">
+        <input type="number" id="pay-amount" min="0" oninput="calcChange()">
+      </div>
+      <div id="pay-change-display"></div>
+
+      <div class="numpad">
+        <button class="np-btn" onclick="numpad('1')">1</button>
+        <button class="np-btn" onclick="numpad('2')">2</button>
+        <button class="np-btn" onclick="numpad('3')">3</button>
+        <button class="np-btn" onclick="numpad('4')">4</button>
+        <button class="np-btn" onclick="numpad('5')">5</button>
+        <button class="np-btn" onclick="numpad('6')">6</button>
+        <button class="np-btn" onclick="numpad('7')">7</button>
+        <button class="np-btn" onclick="numpad('8')">8</button>
+        <button class="np-btn" onclick="numpad('9')">9</button>
+        <button class="np-btn np-000" onclick="numpad('000')">000</button>
+        <button class="np-btn np-zero" onclick="numpad('0')">0</button>
+        <button class="np-btn np-back" onclick="numpad('back')"><i class="fa fa-backspace"></i></button>
+      </div>
+
+      <button id="btn-pay-submit" onclick="submitOrder()">
+        <i class="fa fa-check-circle"></i>
+        Proses Pembayaran
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Receipt Modal ── -->
+<div id="receipt-modal" class="modal-backdrop">
+  <div id="receipt-box">
+    <div class="receipt-check"><i class="fa fa-check"></i></div>
+    <div class="receipt-title">Transaksi Berhasil</div>
+    <div class="receipt-name" id="receipt-order-name"></div>
+    <div class="receipt-change-label">KEMBALIAN</div>
+    <div class="receipt-change-amt" id="receipt-change">Rp 0</div>
+    <div class="receipt-actions">
+      <button class="btn-receipt btn-new-order" onclick="newOrder()">
+        <i class="fa fa-plus"></i>Order Baru
+      </button>
+      <button class="btn-receipt btn-print" onclick="window.print()">
+        <i class="fa fa-print"></i>Print
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Customer Modal ── -->
+<div id="add-cust-modal" class="modal-backdrop">
+  <div id="add-cust-box">
+    <div class="add-cust-hdr">
+      <span><i class="fa fa-user-plus" style="margin-right:7px;"></i>Tambah Pelanggan</span>
+      <button class="pay-close-btn" onclick="closeAddCustomer()">×</button>
+    </div>
+    <div class="add-cust-body">
+      <div class="cust-field">
+        <label>NAMA *</label>
+        <input type="text" id="nc-name" placeholder="Nama pelanggan">
+      </div>
+      <div class="cust-field">
+        <label>TELEPON</label>
+        <input type="text" id="nc-phone" placeholder="+62…">
+      </div>
+      <div class="cust-field">
+        <label>EMAIL</label>
+        <input type="email" id="nc-email" placeholder="email@contoh.com">
+      </div>
+      <button class="cust-save-btn" onclick="saveNewCustomer()">
+        <i class="fa fa-save" style="margin-right:6px;"></i>Simpan Pelanggan
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SESSION_ID = {{ session.id }};
+const CSRF = "{{ csrf_token() }}";
+
+let cart = [];
+let payMethod = "cash";
+let allProducts = [];
+let currentMode = "income";
+let selectedCustomerId = null;
+
+// Customer list from server
+const CUSTOMERS = [
+  {% for c in customers %}
+  { id: {{ c.id }}, name: {{ c.name | tojson }} },
+  {% endfor %}
+];
+
+// ── Formatting ──────────────────────────────────────────────────────────────
+function fmt(n) {
+  return "Rp " + Number(n).toLocaleString("id-ID");
+}
+
+// ── Mode Switch ─────────────────────────────────────────────────────────────
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll(".mode-btn").forEach(b => {
+    b.className = "mode-btn" + (b.dataset.mode === mode ? " active-" + mode : "");
+  });
+  const badge = document.getElementById("mode-badge");
+  badge.className = "badge-" + mode;
+  badge.textContent = mode === "both" ? "IN + OUT" : mode.toUpperCase();
+
+  const payBtn = document.getElementById("btn-open-pay");
+  const payLabel = document.getElementById("pay-btn-label");
+  if (mode === "outcome") {
+    payBtn.classList.add("outcome-mode");
+    payLabel.textContent = "Catat Pengeluaran";
+  } else {
+    payBtn.classList.remove("outcome-mode");
+    payLabel.textContent = "Bayar";
+  }
+
+  loadProducts();
+}
+
+// ── Load Products ───────────────────────────────────────────────────────────
+async function loadProducts() {
+  const grid = document.getElementById("product-grid");
+  grid.innerHTML = '<div class="grid-state"><i class="fa fa-spinner spinner"></i><p>Memuat produk…</p></div>';
+
+  try {
+    const r = await fetch(`/api/erp/pos/session/${SESSION_ID}/products/`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+
+    // Sync mode from API response if not manually overridden
+    const apiMode = data.tx_mode || "income";
+    if (currentMode === apiMode || document.querySelectorAll(".mode-btn.active-income, .mode-btn.active-outcome, .mode-btn.active-both").length === 0) {
+      currentMode = apiMode;
+      // Update toggle to reflect API mode
+      document.querySelectorAll(".mode-btn").forEach(b => {
+        b.className = "mode-btn" + (b.dataset.mode === apiMode ? " active-" + apiMode : "");
+      });
+      const badge = document.getElementById("mode-badge");
+      badge.className = "badge-" + apiMode;
+      badge.textContent = apiMode === "both" ? "IN + OUT" : apiMode.toUpperCase();
+    }
+
+    allProducts = Array.isArray(data.products) ? data.products : [];
+    renderProductGrid(allProducts);
+  } catch(e) {
+    grid.innerHTML = `<div class="grid-state" style="color:#f87171;">
+      <i class="fa fa-exclamation-circle"></i>
+      <p>Gagal memuat produk</p>
+      <small style="color:#64748b;">${e.message}</small>
+      <button onclick="loadProducts()">Coba Lagi</button>
+    </div>`;
+  }
+}
+
+// ── Render Product Grid ─────────────────────────────────────────────────────
+function renderProductGrid(products) {
+  const grid = document.getElementById("product-grid");
+  if (!products.length) {
+    grid.innerHTML = '<div class="grid-state"><i class="fa fa-inbox"></i><p>Tidak ada produk ditemukan</p></div>';
+    return;
+  }
+
+  grid.innerHTML = "";
+  products.forEach(p => {
+    const isOutcome = (p.tx_mode || currentMode) === "outcome";
+    let stockHtml = "";
+    if (p.product_type === "storable") {
+      if (p.qty_on_hand === null) {
+        stockHtml = `<span class="pc-stock stock-na">∞</span>`;
+      } else if (p.qty_on_hand > 0) {
+        stockHtml = `<span class="pc-stock stock-ok">${isOutcome ? "Beli" : "Stok"} ${p.qty_on_hand.toLocaleString("id-ID")}</span>`;
+      } else {
+        stockHtml = `<span class="pc-stock stock-low">Stok Habis</span>`;
+      }
+    } else {
+      stockHtml = `<span class="pc-stock stock-na">${p.product_type}</span>`;
+    }
+
+    const card = document.createElement("div");
+    card.className = "product-card" + (isOutcome ? " outcome-card" : "");
+    card.innerHTML = `
+      <div class="pc-icon"><i class="fa fa-cube"></i></div>
+      <div class="pc-name">${escHtml(p.name)}</div>
+      <div class="pc-price">${fmt(p.price)} / ${escHtml(p.uom_name || "pcs")}</div>
+      <div class="pc-code">${escHtml(p.code || "")}</div>
+      ${stockHtml}`;
+    card.onclick = () => addToCartObj(p);
+    grid.appendChild(card);
+  });
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// ── Search ──────────────────────────────────────────────────────────────────
+document.getElementById("search-input").addEventListener("input", function() {
+  const q = this.value.toLowerCase();
+  const filtered = q ? allProducts.filter(p =>
+    p.name.toLowerCase().includes(q) ||
+    (p.code||"").toLowerCase().includes(q) ||
+    (p.barcode||"").includes(q)
+  ) : allProducts;
+  renderProductGrid(filtered);
+});
+
+// ── Cart Logic ──────────────────────────────────────────────────────────────
+function addToCartObj(p) {
+  const id = String(p.id);
+  const existing = cart.find(i => i.id === id);
+  if (existing) {
+    existing.qty += 1;
+    existing.subtotal = existing.qty * existing.unit_price;
+    renderCart();
+    return;
+  }
+  if (p.product_type === "storable" && p.qty_on_hand !== null && p.qty_on_hand < 1) {
+    if (!confirm(`Stok ${p.name} tersisa ${p.qty_on_hand}. Lanjutkan?`)) return;
+  }
+  cart.push({
+    id,
+    product_id: p.id,
+    product_name: p.name,
+    product_code: p.code || "",
+    qty: 1,
+    unit_price: p.price,
+    uom_id: p.uom_id,
+    uom_name: p.uom_name || "pcs",
+    qty_base: 1,
+    discount_pct: 0,
+    tax_amt: 0,
+    subtotal: p.price,
+  });
+  renderCart();
+}
+
+function renderCart() {
+  const container = document.getElementById("cart-lines");
+  const emptyEl   = document.getElementById("cart-empty");
+
+  // Remove all cart-line rows but keep emptyEl in place
+  container.querySelectorAll(".cart-line").forEach(el => el.remove());
+
+  if (!cart.length) {
+    emptyEl.style.display = "flex";
+    updateTotals();
+    return;
+  }
+
+  emptyEl.style.display = "none";
+  cart.forEach((item, idx) => {
+    const div = document.createElement("div");
+    div.className = "cart-line";
+    div.innerHTML = `
+      <div class="cl-name">
+        <div class="cl-title">${escHtml(item.product_name)}</div>
+        <div class="cl-sub">${fmt(item.unit_price)} / ${escHtml(item.uom_name)}</div>
+      </div>
+      <div class="cl-qty">
+        <button class="qty-btn" onclick="changeQty(${idx},-1)">−</button>
+        <input class="qty-input" type="number" value="${item.qty}" min="0.01" step="1" onchange="setQty(${idx},this.value)">
+        <button class="qty-btn" onclick="changeQty(${idx},1)">+</button>
+      </div>
+      <div class="cl-price">${fmt(item.subtotal)}</div>
+      <div class="cl-del" onclick="removeItem(${idx})"><i class="fa fa-times"></i></div>`;
+    container.appendChild(div);
+  });
+  updateTotals();
+}
+
+function changeQty(idx, delta) {
+  cart[idx].qty = Math.max(0.01, cart[idx].qty + delta);
+  cart[idx].subtotal = cart[idx].qty * cart[idx].unit_price;
+  renderCart();
+}
+function setQty(idx, val) {
+  cart[idx].qty = Math.max(0.01, parseFloat(val) || 1);
+  cart[idx].subtotal = cart[idx].qty * cart[idx].unit_price;
+  renderCart();
+}
+function removeItem(idx) { cart.splice(idx, 1); renderCart(); }
+function clearCart()     { cart = []; renderCart(); }
+
+function updateTotals() {
+  const sub = cart.reduce((s, i) => s + i.subtotal, 0);
+  const tax = cart.reduce((s, i) => s + (i.tax_amt || 0), 0);
+  document.getElementById("disp-subtotal").textContent = fmt(sub);
+  document.getElementById("disp-discount").textContent = fmt(0);
+  document.getElementById("disp-tax").textContent      = fmt(tax);
+  document.getElementById("disp-total").textContent    = fmt(sub + tax);
+  document.getElementById("btn-open-pay").disabled     = !cart.length;
+}
+
+// ── Customer Autocomplete ───────────────────────────────────────────────────
+let custFiltered = [...CUSTOMERS];
+
+const custInput    = document.getElementById("customer-input");
+const custDropdown = document.getElementById("customer-dropdown");
+
+custInput.addEventListener("input", function() {
+  const q = this.value.toLowerCase();
+  custFiltered = q
+    ? CUSTOMERS.filter(c => c.name.toLowerCase().includes(q))
+    : CUSTOMERS;
+  if (q === "") { selectedCustomerId = null; }
+  renderCustDropdown();
+  custDropdown.classList.toggle("open", this.value.length > 0);
+});
+
+custInput.addEventListener("focus", function() {
+  if (this.value.length > 0) {
+    renderCustDropdown();
+    custDropdown.classList.add("open");
+  }
+});
+
+document.addEventListener("click", function(e) {
+  if (!document.getElementById("customer-wrap").contains(e.target)) {
+    custDropdown.classList.remove("open");
+  }
+});
+
+function renderCustDropdown() {
+  custDropdown.innerHTML = "";
+  const list = custFiltered.slice(0, 20);
+  if (!list.length) {
+    custDropdown.innerHTML = '<div class="cust-option" style="color:#64748b;cursor:default;">Tidak ditemukan</div>';
+    return;
+  }
+  list.forEach(c => {
+    const div = document.createElement("div");
+    div.className = "cust-option" + (c.id === selectedCustomerId ? " selected" : "");
+    div.textContent = c.name;
+    div.onclick = () => selectCustomer(c);
+    custDropdown.appendChild(div);
+  });
+}
+
+function selectCustomer(c) {
+  selectedCustomerId = c.id;
+  custInput.value = c.name;
+  custDropdown.classList.remove("open");
+}
+
+// ── Add Customer Modal ──────────────────────────────────────────────────────
+function openAddCustomer()  { document.getElementById("add-cust-modal").classList.add("show"); }
+function closeAddCustomer() { document.getElementById("add-cust-modal").classList.remove("show"); }
+
+async function saveNewCustomer() {
+  const name  = document.getElementById("nc-name").value.trim();
+  const phone = document.getElementById("nc-phone").value.trim();
+  const email = document.getElementById("nc-email").value.trim();
+  if (!name) { alert("Nama pelanggan wajib diisi"); return; }
+
+  try {
+    const r = await fetch("/api/erp/crmcustomer/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+      body: JSON.stringify({ name, phone, email, is_active: true }),
+    });
+    const d = await r.json();
+    if (d.id) {
+      const newCust = { id: d.id, name: d.name || name };
+      CUSTOMERS.unshift(newCust);
+      selectCustomer(newCust);
+      closeAddCustomer();
+      document.getElementById("nc-name").value  = "";
+      document.getElementById("nc-phone").value = "";
+      document.getElementById("nc-email").value = "";
+    } else {
+      alert("Gagal menyimpan: " + (d.error || JSON.stringify(d)));
+    }
+  } catch(e) {
+    alert("Error: " + e.message);
+  }
+}
+
+// ── Payment ─────────────────────────────────────────────────────────────────
+function openPayment() {
+  if (!cart.length) return;
+  const total = cart.reduce((s, i) => s + i.subtotal, 0);
+  document.getElementById("pay-display-total").textContent = fmt(total);
+  document.getElementById("pay-amount").value = Math.ceil(total / 1000) * 1000;
+  calcChange();
+  document.getElementById("pay-modal").classList.add("show");
+}
+
+function closePayment() {
+  document.getElementById("pay-modal").classList.remove("show");
+}
+
+function selectMethod(el) {
+  document.querySelectorAll(".method-btn").forEach(b => b.classList.remove("active"));
+  el.classList.add("active");
+  payMethod = el.dataset.method;
+}
+
+function calcChange() {
+  const total = cart.reduce((s, i) => s + i.subtotal, 0);
+  const paid  = parseFloat(document.getElementById("pay-amount").value) || 0;
+  const change = paid - total;
+  const el = document.getElementById("pay-change-display");
+  if (change >= 0) {
+    el.className = "change-positive";
+    el.textContent = "Kembalian: " + fmt(change);
+  } else {
+    el.className = "change-negative";
+    el.textContent = "Kurang: " + fmt(-change);
+  }
+  document.getElementById("btn-pay-submit").disabled = change < 0;
+}
+
+function numpad(val) {
+  const inp = document.getElementById("pay-amount");
+  if (val === "back") {
+    inp.value = String(inp.value).slice(0, -1) || "0";
+  } else {
+    if (inp.value === "0" || inp.value === "") inp.value = val;
+    else inp.value += val;
+  }
+  calcChange();
+}
+
+// ── Submit Order ─────────────────────────────────────────────────────────────
+async function submitOrder() {
+  const total       = cart.reduce((s, i) => s + i.subtotal, 0);
+  const paid        = parseFloat(document.getElementById("pay-amount").value) || 0;
+  const customer_id = selectedCustomerId || null;
+
+  const payload = {
+    lines: cart.map(i => ({
+      product_id:   i.product_id || null,
+      product_name: i.product_name,
+      product_code: i.product_code,
+      uom_id:       i.uom_id || null,
+      qty:          i.qty,
+      qty_base:     i.qty_base || i.qty,
+      unit_price:   i.unit_price,
+      subtotal:     i.subtotal,
+      discount_pct: i.discount_pct || 0,
+      tax_amt:      i.tax_amt || 0,
+    })),
+    payments:     [{ method: payMethod, amount: paid }],
+    customer_id,
+    discount_amt: 0,
+  };
+
+  const btn = document.getElementById("btn-pay-submit");
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner spinner"></i> Memproses…';
+
+  try {
+    const r = await fetch(`/api/erp/pos/session/${SESSION_ID}/order/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+      body: JSON.stringify(payload),
+    });
+    const data = await r.json();
+    if (data.ok) {
+      closePayment();
+      document.getElementById("receipt-order-name").textContent = data.name || "";
+      document.getElementById("receipt-change").textContent = fmt(data.change || 0);
+      document.getElementById("receipt-modal").classList.add("show");
+    } else {
+      alert("Error: " + (data.error || "Terjadi kesalahan"));
+    }
+  } catch(e) {
+    alert("Error: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa fa-check-circle"></i> Proses Pembayaran';
+    calcChange();
+  }
+}
+
+function newOrder() {
+  document.getElementById("receipt-modal").classList.remove("show");
+  clearCart();
+  custInput.value = "";
+  selectedCustomerId = null;
+}
+
+// ── Init ────────────────────────────────────────────────────────────────────
+// Set initial mode toggle state
+document.querySelector('[data-mode="income"]').classList.add("active-income");
+
+loadProducts();
+</script>
+</body>
+</html>

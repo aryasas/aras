@@ -1,0 +1,60 @@
+name: COA PSAK Basic (Indonesia UKM)
+accounts:
+  - {code: "1",         name: "ASET",                          type: view}
+  - {code: "1.1",       name: "Aset Lancar",                   type: view}
+  - {code: "1.1.01",    name: "Kas",                           type: view}
+  - {code: "1.1.01.001",name: "Kas Besar",                     type: asset_current}
+  - {code: "1.1.01.002",name: "Kas Kecil",                     type: asset_current}
+  - {code: "1.1.02",    name: "Bank",                          type: view}
+  - {code: "1.1.02.001",name: "Bank BCA",                      type: asset_current, reconcilable: true}
+  - {code: "1.1.02.002",name: "Bank Mandiri",                  type: asset_current, reconcilable: true}
+  - {code: "1.1.03",    name: "Piutang Usaha",                 type: view}
+  - {code: "1.1.03.001",name: "Piutang Dagang",                type: asset_current, reconcilable: true}
+  - {code: "1.1.04",    name: "Persediaan",                    type: view}
+  - {code: "1.1.04.001",name: "Persediaan Barang Dagang",      type: asset_current}
+  - {code: "1.1.05",    name: "Pajak Dibayar Dimuka",          type: view}
+  - {code: "1.1.05.001",name: "PPN Masukan",                   type: asset_current}
+  - {code: "1.1.99",    name: "Lain-lain",                     type: view}
+  - {code: "1.1.99.001",name: "Akun Sementara",                type: asset_current}
+  - {code: "1.2",       name: "Aset Tetap",                    type: view}
+  - {code: "1.2.01.001",name: "Peralatan",                     type: asset_fixed}
+  - {code: "1.2.01.002",name: "Kendaraan",                     type: asset_fixed}
+  - {code: "1.2.02.001",name: "Akumulasi Penyusutan Peralatan",type: asset_fixed}
+  - {code: "2",         name: "KEWAJIBAN",                     type: view}
+  - {code: "2.1",       name: "Kewajiban Lancar",              type: view}
+  - {code: "2.1.01",    name: "Hutang Usaha",                  type: view}
+  - {code: "2.1.01.001",name: "Hutang Dagang",                 type: liability_current, reconcilable: true}
+  - {code: "2.1.02",    name: "GR/IR Clearing",                type: view}
+  - {code: "2.1.02.001",name: "GR/IR Clearing",                type: liability_current}
+  - {code: "2.1.03",    name: "Pajak",                         type: view}
+  - {code: "2.1.03.001",name: "PPN Keluaran",                  type: liability_current}
+  - {code: "2.1.04.001",name: "Hutang PPh Potong",             type: liability_current}
+  - {code: "3",         name: "EKUITAS",                       type: view}
+  - {code: "3.1.01.001",name: "Modal Disetor",                 type: equity}
+  - {code: "3.1.02.001",name: "Laba Ditahan",                  type: equity}
+  - {code: "4",         name: "PENDAPATAN",                    type: view}
+  - {code: "4.1.01.001",name: "Pendapatan Penjualan",          type: income_operating}
+  - {code: "4.2.01.001",name: "Laba Selisih Kurs",             type: income_other}
+  - {code: "5",         name: "BEBAN",                         type: view}
+  - {code: "5.1.01.001",name: "Harga Pokok Penjualan",         type: expense_cogs}
+  - {code: "5.2.01.001",name: "Rugi Selisih Kurs",             type: expense_other}
+  - {code: "5.2.02.001",name: "Selisih Pembulatan",            type: expense_other}
+  - {code: "5.3.01.001",name: "Beban Gaji",                    type: expense_operating}
+  - {code: "5.3.02.001",name: "Beban Sewa",                    type: expense_operating}
+  - {code: "5.3.03.001",name: "Beban Utilitas",                type: expense_operating}
+
+default_accounts:
+  account_receivable:       "1.1.03.001"
+  account_payable:          "2.1.01.001"
+  inventory_default:        "1.1.04.001"
+  gr_ir_clearing:           "2.1.02.001"
+  cogs_default:             "5.1.01.001"
+  income_default:           "4.1.01.001"
+  tax_output_ppn:           "2.1.03.001"
+  tax_input_ppn:            "1.1.05.001"
+  withholding_payable:      "2.1.04.001"
+  fx_gain:                  "4.2.01.001"
+  fx_loss:                  "5.2.01.001"
+  rounding_diff:            "5.2.02.001"
+  retained_earnings:        "3.1.02.001"
+  suspense:                 "1.1.99.001"

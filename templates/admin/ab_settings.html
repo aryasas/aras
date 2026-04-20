@@ -1,0 +1,158 @@
+{% extends 'admin/adm_base.html' %}
+
+{% block page_content %}
+<div class="row mt-3">
+  <div class="col-md-9">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0">
+            <i class="fa fa-cog mr-2"></i>{{ app_title }} &mdash; Settings
+          </h5>
+          <span class="text-muted" style="font-size:12px;">
+            <code>{{ app_name }}</code>
+          </span>
+        </div>
+        <hr>
+
+        {% if not settings %}
+          <p class="text-muted">
+            No settings defined yet.
+            {% if is_dynamic %}Add your first setting using the form on the right.{% endif %}
+          </p>
+        {% endif %}
+
+        <form method="POST" action="">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="_action" value="save">
+
+          {% for s in settings %}
+            <div class="form-group row mb-3">
+              <label class="col-sm-3 col-form-label" for="setting_{{ s.key }}">
+                <b>{{ s.label or s.key }}</b>
+                {% if s.value_type %}
+                  <small class="text-muted d-block">
+                    <code>{{ s.key }}</code> &middot; {{ s.value_type }}
+                  </small>
+                {% endif %}
+              </label>
+              <div class="col-sm-9">
+                {% set val = s.get_value() %}
+                {% if s.value_type == 'boolean' %}
+                  <div class="form-check" style="padding-top:8px;">
+                    <input type="checkbox" class="form-check-input"
+                           id="setting_{{ s.key }}" name="setting_{{ s.key }}"
+                           value="true" {% if val %}checked{% endif %}>
+                    <label class="form-check-label" for="setting_{{ s.key }}">
+                      Enabled
+                    </label>
+                  </div>
+                {% elif s.value_type == 'text' or s.value_type == 'json' %}
+                  <textarea class="form-control" rows="4"
+                            id="setting_{{ s.key }}"
+                            name="setting_{{ s.key }}">{{ val if val is not none else '' }}</textarea>
+                {% elif s.value_type == 'integer' %}
+                  <input type="number" class="form-control"
+                         id="setting_{{ s.key }}" name="setting_{{ s.key }}"
+                         value="{{ val if val is not none else '' }}">
+                {% elif s.value_type == 'float' %}
+                  <input type="number" step="any" class="form-control"
+                         id="setting_{{ s.key }}" name="setting_{{ s.key }}"
+                         value="{{ val if val is not none else '' }}">
+                {% else %}
+                  <input type="text" class="form-control"
+                         id="setting_{{ s.key }}" name="setting_{{ s.key }}"
+                         value="{{ val if val is not none else '' }}">
+                {% endif %}
+                {% if s.help_text %}
+                  <small class="form-text text-muted">{{ s.help_text }}</small>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+
+          {% if settings %}
+            <div class="form-group row mt-4">
+              <div class="col-sm-9 offset-sm-3">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fa fa-save mr-1"></i>Save Settings
+                </button>
+              </div>
+            </div>
+          {% endif %}
+        </form>
+
+        {% if is_dynamic and settings %}
+          <hr>
+          <h6 class="text-muted mt-4">Delete a setting</h6>
+          <table class="table table-sm table-hover">
+            <thead>
+              <tr><th>Key</th><th>Type</th><th>Value</th><th></th></tr>
+            </thead>
+            <tbody>
+              {% for s in settings %}
+              <tr>
+                <td><code>{{ s.key }}</code></td>
+                <td>{{ s.value_type }}</td>
+                <td>
+                  <small class="text-muted">
+                    {{ s.get_value() if s.get_value() is not none else '—' }}
+                  </small>
+                </td>
+                <td>
+                  <form method="POST" action="" style="display:inline;"
+                        onsubmit="return confirm('Delete setting {{ s.key }}?')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="_action" value="delete">
+                    <input type="hidden" name="delete_key" value="{{ s.key }}">
+                    <button type="submit" class="btn btn-xs btn-outline-danger">
+                      <i class="fa fa-trash"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if is_dynamic %}
+  <div class="col-md-3">
+    <div class="card">
+      <div class="card-body">
+        <h6><i class="fa fa-plus mr-1"></i>Add Setting</h6>
+        <hr>
+        <form method="POST" action="">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="_action" value="add">
+          <div class="form-group">
+            <label>Key</label>
+            <input type="text" class="form-control form-control-sm"
+                   name="new_key" required placeholder="e.g. retention_days">
+          </div>
+          <div class="form-group">
+            <label>Label</label>
+            <input type="text" class="form-control form-control-sm"
+                   name="new_label" placeholder="Display label">
+          </div>
+          <div class="form-group">
+            <label>Type</label>
+            <select class="form-control form-control-sm" name="new_type">
+              {% for t in value_types %}
+                <option value="{{ t }}">{{ t }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-sm btn-outline-primary btn-block">
+            <i class="fa fa-plus mr-1"></i>Add
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

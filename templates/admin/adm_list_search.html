@@ -1,0 +1,49 @@
+{% block head %}{% endblock head %}
+
+{% block top_page_content %}
+
+  <div class="row">
+    <div class="col-12 mt-5">
+      <div class="card">
+        <div class="card-body">
+          <h4 class="header-title">Search:
+            {{ title }}</h4>
+
+          <!-- SEARCH FORM -->
+          <form class="form" action="{{ action }}" method="POST">
+            {{ data_search_form.csrf_token }}
+
+            {% if data_search_form.csrf_token.errors %}
+              <div class="warning">You have submitted an invalid CSRF token</div>
+            {% endif %}
+
+            <div>
+
+              <div class="form-row align-items-center">
+
+                <div class="col-sm-3 my-1">
+                  <label class="sr-only">Column</label>
+                  {{ data_search_form.columns(class_="form-control", style="height:44px", placeholder="Column") }}
+                </div>
+
+                <div class="col-sm-3 my-1">
+                  <label class="sr-only">Parameter</label>
+                  {{ data_search_form.param_string(class_='form-control', placeholder="Parameter") }}
+                </div>
+
+                <div class="col-auto my-1">
+                  <button type="submit" class="btn btn-primary">Search</button>
+                </div>
+
+              </div>
+
+            </div>
+
+          </form>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock top_page_content %}

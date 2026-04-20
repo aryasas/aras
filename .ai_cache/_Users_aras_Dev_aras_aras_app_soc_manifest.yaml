@@ -1,0 +1,156 @@
+app:
+  name: soc
+  title: Social
+  main_title: Social
+  url: /soc
+  endpoint: soc
+  description: Social networking module — posts, profiles, friendships, messaging.
+  icon: fa-users
+  is_active: false
+  in_sidebar: true
+  require_login: true
+  api_enabled: true
+  items_per_page: 20
+  export_csv: false
+  export_excel: false
+
+tables:
+  - name: soc_posts
+    title: Posts
+    url_suffix: /posts
+    menu_title: Posts
+    menu_icon: fa-file-text
+    show_in_menu: true
+    menu_order: 1
+    is_active: true
+    allow_create: true
+    allow_edit: true
+    allow_delete: true
+    columns:
+      - name: author_id
+        label: Author
+        field_type: relation
+        relation_system_table: auth_users
+        relation_display_col: username
+        required: true
+        show_in_list: true
+        show_in_form: true
+        order: 0
+      - name: content
+        label: Content
+        field_type: text
+        required: true
+        show_in_list: true
+        show_in_form: true
+        order: 1
+      - name: visibility
+        label: Visibility
+        field_type: select
+        choices: "public,friends,private"
+        required: false
+        show_in_list: true
+        show_in_form: true
+        order: 2
+      - name: like_count
+        label: Likes
+        field_type: integer
+        required: false
+        show_in_list: true
+        show_in_form: false
+        order: 3
+      - name: comment_count
+        label: Comments
+        field_type: integer
+        required: false
+        show_in_list: true
+        show_in_form: false
+        order: 4
+
+  - name: soc_profiles
+    title: Profiles
+    url_suffix: /profiles
+    menu_title: Profiles
+    menu_icon: fa-user
+    show_in_menu: true
+    menu_order: 2
+    is_active: true
+    allow_create: true
+    allow_edit: true
+    allow_delete: false
+    columns:
+      - name: user_id
+        label: User
+        field_type: relation
+        relation_system_table: auth_users
+        relation_display_col: username
+        required: true
+        show_in_list: true
+        show_in_form: true
+        order: 0
+      - name: bio
+        label: Bio
+        field_type: text
+        required: false
+        show_in_list: false
+        show_in_form: true
+        order: 1
+      - name: location
+        label: Location
+        field_type: string
+        required: false
+        show_in_list: true
+        show_in_form: true
+        order: 2
+      - name: avatar_url
+        label: Avatar URL
+        field_type: url
+        required: false
+        show_in_list: false
+        show_in_form: true
+        order: 3
+      - name: friend_count
+        label: Friends
+        field_type: integer
+        required: false
+        show_in_list: true
+        show_in_form: false
+        order: 4
+
+  - name: soc_friendships
+    title: Friendships
+    url_suffix: /friendships
+    menu_title: Friendships
+    menu_icon: fa-handshake-o
+    show_in_menu: true
+    menu_order: 3
+    is_active: true
+    allow_create: true
+    allow_edit: true
+    allow_delete: true
+    columns:
+      - name: from_user_id
+        label: From User
+        field_type: relation
+        relation_system_table: auth_users
+        relation_display_col: username
+        required: true
+        show_in_list: true
+        show_in_form: true
+        order: 0
+      - name: to_user_id
+        label: To User
+        field_type: relation
+        relation_system_table: auth_users
+        relation_display_col: username
+        required: true
+        show_in_list: true
+        show_in_form: true
+        order: 1
+      - name: status
+        label: Status
+        field_type: select
+        choices: "pending,accepted,blocked"
+        required: true
+        show_in_list: true
+        show_in_form: true
+        order: 2

@@ -1,0 +1,79 @@
+{% extends 'admin/adm_base.html' %}
+{% block page_content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 mt-5">
+    <div class="card">
+      <div class="card-body">
+        <div class="mb-4">
+          <h5 class="header-title">{{ title }}</h5>
+          <small class="text-muted">Definisikan nama, URL, dan endpoint untuk app baru.</small>
+        </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        {% endwith %}
+        <form method="POST" action="">
+          {{ form.hidden_tag() }}
+          <div class="form-group row">
+            <label class="col-sm-3 col-form-label">{{ form.name.label }}</label>
+            <div class="col-sm-9">
+              {{ form.name(class_="form-control", placeholder="contoh: products") }}
+              {% if form.name.errors %}<small class="text-danger">{{ form.name.errors[0] }}</small>{% endif %}
+              <small class="text-muted">Huruf kecil & underscore. Contoh: <code>products</code></small>
+            </div>
+          </div>
+          <div class="form-group row">
+            <label class="col-sm-3 col-form-label">{{ form.title.label }}</label>
+            <div class="col-sm-9">
+              {{ form.title(class_="form-control", placeholder="contoh: Products") }}
+              {% if form.title.errors %}<small class="text-danger">{{ form.title.errors[0] }}</small>{% endif %}
+            </div>
+          </div>
+          <div class="form-group row">
+            <label class="col-sm-3 col-form-label">{{ form.main_title.label }}</label>
+            <div class="col-sm-9">
+              {{ form.main_title(class_="form-control", placeholder="contoh: Product Management") }}
+              {% if form.main_title.errors %}<small class="text-danger">{{ form.main_title.errors[0] }}</small>{% endif %}
+            </div>
+          </div>
+          <div class="form-group row">
+            <label class="col-sm-3 col-form-label">{{ form.url.label }}</label>
+            <div class="col-sm-9">
+              {{ form.url(class_="form-control", placeholder="contoh: /products") }}
+              {% if form.url.errors %}<small class="text-danger">{{ form.url.errors[0] }}</small>{% endif %}
+              <small class="text-muted">Diawali <code>/</code>. Contoh: <code>/products</code></small>
+            </div>
+          </div>
+          <div class="form-group row">
+            <label class="col-sm-3 col-form-label">{{ form.endpoint.label }}</label>
+            <div class="col-sm-9">
+              {{ form.endpoint(class_="form-control", placeholder="contoh: products") }}
+              {% if form.endpoint.errors %}<small class="text-danger">{{ form.endpoint.errors[0] }}</small>{% endif %}
+              <small class="text-muted">Slug unik untuk url_for(). Biasanya sama dengan name.</small>
+            </div>
+          </div>
+          <div class="form-group row">
+            <div class="col-sm-9 offset-sm-3">
+              <div class="form-check">
+                {{ form.in_sidebar(class_="form-check-input") }}
+                <label class="form-check-label ml-1">{{ form.in_sidebar.label.text }}</label>
+              </div>
+              <div class="form-check mt-1">
+                {{ form.is_active(class_="form-check-input") }}
+                <label class="form-check-label ml-1">{{ form.is_active.label.text }}</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-group row">
+            <div class="col-sm-9 offset-sm-3">
+              {{ form.submit(class_="btn btn-primary") }}
+              <a href="{{ url_for('app_manager.index') }}" class="btn btn-outline-secondary ml-2">Cancel</a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

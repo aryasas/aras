@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Aras | {% block error_title %}Error{% endblock %}</title>
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='admin/assets/images/icon/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin/assets/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin/assets/css/font-awesome.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin/assets/css/typography.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin/assets/css/default-css.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin/assets/css/styles.css') }}">
+    <style>
+        body {
+            background: #f4f6f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .error-box {
+            text-align: center;
+            padding: 60px 40px;
+            max-width: 520px;
+            width: 100%;
+        }
+        .error-code {
+            font-size: 100px;
+            font-weight: 700;
+            color: #1a237e;
+            line-height: 1;
+            margin-bottom: 4px;
+            letter-spacing: -4px;
+        }
+        .error-icon {
+            font-size: 42px;
+            color: #5c6bc0;
+            margin-bottom: 16px;
+            display: block;
+        }
+        .error-box h3 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #37474f;
+            margin-bottom: 10px;
+        }
+        .error-box p {
+            color: #78909c;
+            font-size: 14px;
+            margin-bottom: 32px;
+            line-height: 1.7;
+        }
+        .error-actions a {
+            display: inline-block;
+            padding: 9px 24px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            text-decoration: none;
+            margin: 4px;
+        }
+        .btn-primary-action {
+            background: #1a237e;
+            color: #fff;
+            border: 1px solid #1a237e;
+        }
+        .btn-primary-action:hover { background: #283593; color: #fff; }
+        .btn-secondary-action {
+            background: #fff;
+            color: #546e7a;
+            border: 1px solid #cfd8dc;
+        }
+        .btn-secondary-action:hover { background: #eceff1; color: #37474f; }
+        .error-divider {
+            width: 48px;
+            height: 3px;
+            background: #5c6bc0;
+            margin: 16px auto 24px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-box">
+        {% block content %}{% endblock %}
+        <div class="error-actions">
+            <a href="/admin/" class="btn-primary-action"><i class="fa fa-home"></i> Dashboard</a>
+            <a href="javascript:history.back()" class="btn-secondary-action"><i class="fa fa-arrow-left"></i> Go Back</a>
+        </div>
+    </div>
+</body>
+</html>

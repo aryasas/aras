@@ -1,0 +1,82 @@
+{% extends extends_layout if extends_layout else 
+  'admin/adm_base.html' %}
+
+{% block head %}
+  {{ super() }}
+{% endblock %}
+
+{% block page_content %}
+
+  <div class="row">
+    <div class="col-12 mt-5">
+      <div class="card">
+        <div class="card-body">
+
+          <h4 class="header-title">
+
+            {% if title %}
+
+              {{ title }}
+
+            {% endif %}
+
+          </h4>
+
+        </div>
+
+        <div class="card-body">
+
+          {% if param_menu %}
+            {% for menu in param_menu %}
+              {% for menu_app in menu %}
+
+                {% if menu_app['main_title'] == param['title'] %}
+
+                  {% for menu_level_1 in menu_app['sub'] %}
+
+                    {% if menu_level_1['sub'] %}
+
+                      <div class="row">
+                        <p>{{ menu_level_1['text'] }}</p>
+                      </div>
+
+                      <div class="row">
+                        {% for menu_level_2 in menu_level_1['sub'] %}
+                          {% if menu_level_2['child_as_main_list'] %}
+                            {% set param_url = url_for(menu_level_2['url'], child_as_main_list = menu_level_2['child_as_main_list']) %}
+                          {% else %}
+                            {% set param_url = url_for(menu_level_2['url']) %}
+                          {% endif %}
+                          <div class="col-lg-3 col-6">
+                            <a href={{ param_url } }="}">
+                              <div class="btn btn-block btn-default p-3" style="margin-bottom: 20px; " width="100% ;">
+
+                                <i class="{{ menu_level_2['icon'] }} float-left" style="vertical-align: middle; " aria-hidden="true"></i>
+                                <span class="align-middle">{{ menu_level_2['text'] }}</span>
+
+                              </div>
+                            </a>
+                          </div>
+                        {% endfor %}
+                      </div>
+
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
+              {% endfor %}
+            {% endfor %}
+          {% endif %}
+        </div>
+        <!-- /.card-body -->
+
+        <div class="card-footer"></div>
+
+      </div>
+    </div>
+  </div>
+
+  {% endblock %}
+
+  {% block script %}
+    {{ super() }}
+  {% endblock %}

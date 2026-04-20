@@ -1,0 +1,658 @@
+{% extends 'admin/adm_base.html' %}
+
+{% block head %}
+{{ super() }}
+<style>
+  #reportSidebar { border-right: 1px solid #e9ecef; }
+  .report-item {
+    padding: 8px 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .report-item:hover { background: #f0f4ff; color: #3d5af1; }
+  .report-item.active { background: #e8edff; color: #3d5af1; font-weight: 600; }
+  .report-item .badge-mode {
+    font-size: 9px; padding: 2px 5px; border-radius: 3px;
+    background: #e9ecef; color: #6c757d; margin-left: auto;
+  }
+  .report-item.active .badge-mode { background: #c5d0f8; color: #3d5af1; }
+  .module-heading {
+    font-size: 10px; font-weight: 700; color: #adb5bd;
+    text-transform: uppercase; letter-spacing: 1px;
+    padding: 12px 14px 4px;
+  }
+  #reportPanel { min-height: 400px; }
+  .preset-btn { font-size: 11px; padding: 3px 10px; }
+  .preset-btn.active { background: #3d5af1; color: #fff; border-color: #3d5af1; }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<div class="row mt-3">
+
+  {# ── Left sidebar: report list ── #}
+  <div class="col-md-3 col-lg-2" id="reportSidebar">
+    <div class="mb-2 px-2">
+      <input type="text" id="reportSearch" class="form-control form-control-sm"
+             placeholder="Search reports…">
+    </div>
+    {% if not grouped %}
+    <div class="text-muted px-3 py-2" style="font-size:13px;">No reports. <a href="/admin/erp/report/add/">Add one</a>.</div>
+    {% endif %}
+    {% for module, reports in grouped.items() %}
+    <div class="module-group" data-module="{{ module }}">
+      <div class="module-heading">{{ module|capitalize }}</div>
+      {% for r in reports %}
+      <div class="report-item" data-report-id="{{ r.id }}" data-report-name="{{ r.title|lower }}">
+        <i class="fa {{ 'fa-list' if r.render_mode == 'list' else 'fa-bar-chart' }} fa-fw"></i>
+        <span>{{ r.title }}</span>
+        <span class="badge-mode">{{ r.render_mode }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+
+    <div class="px-2 mt-3">
+      <a href="/admin/erp/report/" class="btn btn-sm btn-outline-secondary btn-block">
+        <i class="fa fa-cog mr-1"></i>Manage Reports
+      </a>
+    </div>
+  </div>
+
+  {# ── Right: report runner panel ── #}
+  <div class="col-md-9 col-lg-10" id="reportPanel">
+    <div id="reportPlaceholder" class="text-center text-muted py-5">
+      <i class="fa fa-bar-chart fa-3x d-block mb-3"></i>
+      <p>Select a report from the left to run it.</p>
+    </div>
+
+    <div id="reportContent" style="display:none;">
+      <div class="d-flex align-items-center mb-3" style="gap:8px;flex-wrap:wrap;">
+        <h5 id="reportTitle" class="mb-0 mr-2"></h5>
+        <span id="reportTypeBadge" class="badge badge-light"></span>
+        <div style="margin-left:auto;display:flex;gap:6px;">
+          <button class="btn btn-sm btn-outline-secondary" id="saveSettingsBtn" title="Save current params as default">
+            <i class="fa fa-save mr-1"></i>Save Defaults
+          </button>
+          <a id="openFullBtn" href="#" class="btn btn-sm btn-outline-secondary" title="Open in full page">
+            <i class="fa fa-external-link"></i>
+          </a>
+          <a id="exportCsvBtn" href="#" class="btn btn-sm btn-outline-secondary">
+            <i class="fa fa-download mr-1"></i>CSV
+          </a>
+        </div>
+      </div>
+
+      {# ── Parameter bar ── #}
+      <div class="card card-body py-2 mb-3" id="paramBar">
+        <div class="d-flex align-items-end flex-wrap" style="gap:8px;">
+
+          {# Company selector #}
+          {% if companies|length > 1 %}
+          <div>
+            <label class="small mb-1 d-block">Company</label>
+            <select id="paramCompany" class="form-control form-control-sm" style="max-width:160px;">
+              {% for c in companies %}
+              <option value="{{ c.id }}" {{ 'selected' if c.id == default_company_id }}>{{ c.legal_name or c.trade_name or c.id }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% else %}
+          <input type="hidden" id="paramCompany" value="{{ default_company_id }}">
+          {% endif %}
+
+          {# Date preset buttons #}
+          <div id="datePresetGroup">
+            <label class="small mb-1 d-block">Period</label>
+            <div class="btn-group">
+              {% for key, lbl in [('today','Today'),('this_week','This Week'),('this_month','This Month'),('this_year','This Year'),('custom','Custom')] %}
+              <button type="button" class="btn btn-sm btn-outline-secondary preset-btn" data-preset="{{ key }}">{{ lbl }}</button>
+              {% endfor %}
+            </div>
+          </div>
+
+          {# Custom date inputs — shown only when preset=custom #}
+          <div id="customDateGroup" style="display:none;gap:6px;" class="d-flex align-items-end">
+            <div>
+              <label class="small mb-1 d-block">From</label>
+              <input type="date" id="paramDateFrom" class="form-control form-control-sm" style="max-width:150px;">
+            </div>
+            <div>
+              <label class="small mb-1 d-block">To</label>
+              <input type="date" id="paramDateTo" class="form-control form-control-sm" style="max-width:150px;">
+            </div>
+          </div>
+
+          {# Dynamic report-specific filters #}
+          <div id="extraFilters" class="d-flex flex-wrap align-items-end" style="gap:8px;"></div>
+
+          <div>
+            <label class="small mb-1 d-block">&nbsp;</label>
+            <button class="btn btn-sm btn-primary" id="runReportBtn">
+              <i class="fa fa-play mr-1"></i>Run
+            </button>
+          </div>
+
+          {# Per-page for list reports #}
+          <div id="perPageGroup">
+            <label class="small mb-1 d-block">Rows</label>
+            <select id="paramPerPage" class="form-control form-control-sm" style="width:auto;">
+              {% for n in [20, 50, 100, 200] %}
+              <option value="{{ n }}" {% if n == 50 %}selected{% endif %}>{{ n }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+        </div>
+      </div>
+
+      {# ── Results area ── #}
+      <div id="reportResults">
+        <div class="text-center text-muted py-4" id="resultsPlaceholder">
+          Set parameters and click <strong>Run</strong>.
+        </div>
+        <div id="resultsTable" style="display:none;">
+          <div class="d-flex align-items-center mb-1" style="gap:8px;">
+            <small class="text-muted" id="rowCount"></small>
+            <div style="margin-left:auto;display:flex;gap:6px;">
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="colFilterBtn">
+                <i class="fa fa-filter mr-1"></i>Filter
+              </button>
+              <input type="text" id="inlineSearch" class="form-control form-control-sm"
+                     placeholder="Search results…" style="max-width:200px;">
+            </div>
+          </div>
+
+          {# Column filter panel #}
+          <div id="colFilterPanel" style="display:none;background:#f8f9fa;border:1px solid #e9ecef;border-radius:4px;padding:8px 10px;margin-bottom:8px;">
+            <div id="colFilterRows"></div>
+            <div class="d-flex mt-2" style="gap:6px;">
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="addColFilterRow">
+                <i class="fa fa-plus mr-1"></i>Add Row
+              </button>
+              <button type="button" class="btn btn-sm btn-dark" id="applyColFilters">Apply</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="clearColFilters">Clear</button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-hover table-sm" id="resultsDataTable">
+              <thead id="resultsHead"></thead>
+              <tbody id="resultsBody"></tbody>
+              <tfoot id="resultsFoot" style="display:none;"></tfoot>
+            </table>
+          </div>
+
+          {# Pagination for list reports #}
+          <div id="resultsPagination" class="d-flex justify-content-between align-items-center mt-2" style="display:none!important;">
+            <small class="text-muted" id="pageInfo"></small>
+            <div id="pageButtons" class="d-flex" style="gap:4px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script>
+(function() {
+  // ── State ──────────────────────────────────────────────────────────────────
+  var currentReportId = null;
+  var currentFiltersDef = [];
+  var currentColumns = [];
+  var allRows = [];       // full result from server
+  var filteredRows = [];  // after column-filter + search
+  var currentPage = 1;
+  var perPage = 50;
+  var renderMode = 'list';
+
+  var savedSettings = {{ settings_map | tojson if settings_map else '{}' }};
+
+  // ── Sidebar search ─────────────────────────────────────────────────────────
+  document.getElementById('reportSearch').addEventListener('input', function() {
+    var q = this.value.toLowerCase();
+    document.querySelectorAll('.report-item').forEach(function(el) {
+      var match = el.dataset.reportName.includes(q);
+      el.style.display = match ? '' : 'none';
+    });
+    document.querySelectorAll('.module-group').forEach(function(grp) {
+      var anyVisible = Array.from(grp.querySelectorAll('.report-item')).some(function(el) {
+        return el.style.display !== 'none';
+      });
+      grp.style.display = anyVisible ? '' : 'none';
+    });
+  });
+
+  // ── Report selection ───────────────────────────────────────────────────────
+  document.querySelectorAll('.report-item').forEach(function(el) {
+    el.addEventListener('click', function() {
+      document.querySelectorAll('.report-item').forEach(function(e) { e.classList.remove('active'); });
+      el.classList.add('active');
+      loadReport(parseInt(el.dataset.reportId));
+    });
+  });
+
+  // Check if a report_id is pre-selected via URL hash
+  var hash = window.location.hash.replace('#report-', '');
+  if (hash && !isNaN(parseInt(hash))) {
+    var el = document.querySelector('[data-report-id="' + hash + '"]');
+    if (el) el.click();
+  }
+
+  function loadReport(reportId) {
+    currentReportId = reportId;
+    currentPage = 1;
+
+    fetch('/admin/erp/reports/' + reportId + '/meta.json')
+      .then(function(r) { return r.json(); })
+      .then(function(meta) {
+        renderMode = meta.render_mode || 'list';
+        currentFiltersDef = meta.filters_def || [];
+        document.getElementById('reportTitle').textContent = meta.title;
+        document.getElementById('reportTypeBadge').textContent = meta.report_type + ' / ' + meta.render_mode;
+        document.getElementById('openFullBtn').href = '/admin/erp/reports/' + reportId + '/';
+        document.getElementById('exportCsvBtn').href = '/admin/erp/reports/' + reportId + '/export.csv';
+        document.getElementById('reportPlaceholder').style.display = 'none';
+        document.getElementById('reportContent').style.display = '';
+        window.location.hash = 'report-' + reportId;
+
+        buildExtraFilters(currentFiltersDef);
+        applySavedSettings(reportId);
+        runReport();
+      });
+  }
+
+  function buildExtraFilters(filtersDef) {
+    var container = document.getElementById('extraFilters');
+    container.innerHTML = '';
+    var hasDate = false;
+    filtersDef.forEach(function(f) {
+      if (f.field === 'date_from' || f.field === 'date_to') { hasDate = true; return; }
+      var wrap = document.createElement('div');
+      var lbl = document.createElement('label');
+      lbl.className = 'small mb-1 d-block';
+      lbl.textContent = f.label;
+      var inp;
+      if (f.type === 'select') {
+        inp = document.createElement('select');
+        inp.className = 'form-control form-control-sm';
+        inp.style.maxWidth = '140px';
+        (f.options || []).forEach(function(opt) {
+          var o = document.createElement('option');
+          o.value = Array.isArray(opt) ? opt[0] : opt;
+          o.textContent = Array.isArray(opt) ? opt[1] : opt;
+          inp.appendChild(o);
+        });
+      } else {
+        inp = document.createElement('input');
+        inp.type = f.type === 'date' ? 'date' : 'text';
+        inp.className = 'form-control form-control-sm';
+        inp.style.maxWidth = '150px';
+        inp.placeholder = f.label;
+      }
+      inp.id = 'filter_' + f.field;
+      inp.dataset.field = f.field;
+      wrap.appendChild(lbl); wrap.appendChild(inp);
+      container.appendChild(wrap);
+    });
+    document.getElementById('datePresetGroup').style.display = hasDate ? '' : 'none';
+    document.getElementById('customDateGroup').style.display = 'none';
+  }
+
+  function applySavedSettings(reportId) {
+    var s = savedSettings[reportId];
+    if (!s) s = {date_preset: 'this_month', per_page: 50};
+    setPreset(s.date_preset || 'this_month', s.date_from, s.date_to);
+    var pp = s.per_page || 50;
+    document.getElementById('paramPerPage').value = pp;
+    perPage = pp;
+    if (s.params_json) {
+      try {
+        var params = typeof s.params_json === 'string' ? JSON.parse(s.params_json) : s.params_json;
+        Object.keys(params).forEach(function(k) {
+          var el = document.getElementById('filter_' + k);
+          if (el) el.value = params[k];
+        });
+      } catch(e) {}
+    }
+  }
+
+  // ── Date presets ──────────────────────────────────────────────────────────
+  var activePreset = 'this_month';
+
+  document.querySelectorAll('.preset-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      setPreset(btn.dataset.preset);
+    });
+  });
+
+  function setPreset(preset, customFrom, customTo) {
+    activePreset = preset;
+    document.querySelectorAll('.preset-btn').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.preset === preset);
+    });
+    var customGroup = document.getElementById('customDateGroup');
+    if (preset === 'custom') {
+      customGroup.style.display = 'flex';
+      if (customFrom) document.getElementById('paramDateFrom').value = customFrom;
+      if (customTo)   document.getElementById('paramDateTo').value   = customTo;
+    } else {
+      customGroup.style.display = 'none';
+    }
+  }
+
+  function getDateRange() {
+    var now = new Date();
+    var y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
+    var pad = function(n) { return String(n).padStart(2,'0'); };
+    var fmt = function(dt) { return dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate()); };
+
+    if (activePreset === 'today') {
+      var today = fmt(now);
+      return [today, today];
+    } else if (activePreset === 'this_week') {
+      var day = now.getDay() || 7;
+      var mon = new Date(now); mon.setDate(d - day + 1);
+      var sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+      return [fmt(mon), fmt(sun)];
+    } else if (activePreset === 'this_month') {
+      return [y+'-'+pad(m+1)+'-01', fmt(new Date(y, m+1, 0))];
+    } else if (activePreset === 'this_year') {
+      return [y+'-01-01', y+'-12-31'];
+    } else if (activePreset === 'custom') {
+      return [
+        document.getElementById('paramDateFrom').value || null,
+        document.getElementById('paramDateTo').value   || null,
+      ];
+    }
+    return [null, null];
+  }
+
+  // ── Run report ────────────────────────────────────────────────────────────
+  document.getElementById('runReportBtn').addEventListener('click', runReport);
+
+  function runReport() {
+    if (!currentReportId) return;
+    var params = new URLSearchParams();
+    var dateRange = getDateRange();
+
+    // Apply date filters if present in def
+    currentFiltersDef.forEach(function(f) {
+      if (f.field === 'date_from' && dateRange[0]) params.set('date_from', dateRange[0]);
+      else if (f.field === 'date_to' && dateRange[1]) params.set('date_to', dateRange[1]);
+    });
+
+    // Other custom filters
+    document.querySelectorAll('#extraFilters [data-field]').forEach(function(inp) {
+      if (inp.value) params.set(inp.dataset.field, inp.value);
+    });
+
+    // Company
+    var compEl = document.getElementById('paramCompany');
+    if (compEl && compEl.value) params.set('company_id', compEl.value);
+
+    perPage = parseInt(document.getElementById('paramPerPage').value) || 50;
+
+    document.getElementById('resultsPlaceholder').innerHTML = '<i class="fa fa-spinner fa-spin fa-2x d-block mb-2"></i> Running…';
+    document.getElementById('resultsPlaceholder').style.display = 'block';
+    document.getElementById('resultsTable').style.display = 'none';
+
+    fetch('/admin/erp/reports/' + currentReportId + '/data.json?' + params.toString())
+      .then(function(r) { return r.json(); })
+      .then(function(result) {
+        if (result.error) {
+          document.getElementById('resultsPlaceholder').innerHTML =
+            '<div class="alert alert-danger"><strong>Error:</strong> ' + result.error + '</div>';
+          document.getElementById('resultsPlaceholder').style.display = 'block';
+          return;
+        }
+        currentColumns = result.columns || [];
+        allRows = result.data || [];
+        applyClientFilters();
+        document.getElementById('resultsPlaceholder').style.display = 'none';
+        document.getElementById('resultsTable').style.display = '';
+        updateExportUrl(params);
+      })
+      .catch(function(e) {
+        document.getElementById('resultsPlaceholder').innerHTML =
+          '<div class="alert alert-danger">Request failed: ' + e.message + '</div>';
+      });
+  }
+
+  function updateExportUrl(params) {
+    var url = '/admin/erp/reports/' + currentReportId + '/export.csv?' + params.toString();
+    document.getElementById('exportCsvBtn').href = url;
+  }
+
+  // ── Render table ──────────────────────────────────────────────────────────
+  function renderTable(rows) {
+    var head = document.getElementById('resultsHead');
+    var body = document.getElementById('resultsBody');
+
+    // Header
+    var tr = '<tr><th>#</th>';
+    currentColumns.forEach(function(c) { tr += '<th style="cursor:pointer;" data-field="' + c.field + '">' + c.label + ' <i class="fa fa-sort text-muted" style="font-size:10px;"></i></th>'; });
+    tr += '</tr>';
+    head.innerHTML = tr;
+
+    // Body — paginated slice
+    var start = (currentPage - 1) * perPage;
+    var pageRows = rows.slice(start, start + perPage);
+    body.innerHTML = '';
+    if (!pageRows.length) {
+      body.innerHTML = '<tr><td colspan="' + (currentColumns.length + 1) + '" class="text-center text-muted py-4">No data.</td></tr>';
+    } else {
+      pageRows.forEach(function(row, ri) {
+        var tds = '<td>' + (start + ri + 1) + '</td>';
+        currentColumns.forEach(function(c, ci) {
+          var val = row[ci];
+          var cls = (c.type === 'currency' || c.type === 'integer' || c.type === 'number') ? ' class="text-right"' : '';
+          var disp = (val === null || val === undefined) ? '—' :
+            (c.type === 'currency' ? parseFloat(val).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : val);
+          tds += '<td' + cls + '>' + disp + '</td>';
+        });
+        body.innerHTML += '<tr>' + tds + '</tr>';
+      });
+    }
+
+    // Count
+    document.getElementById('rowCount').textContent = rows.length + ' rows';
+
+    // Pagination
+    renderPagination(rows.length);
+
+    // Sorting
+    head.querySelectorAll('th[data-field]').forEach(function(th, idx) {
+      th.addEventListener('click', function() {
+        var colIdx = idx;
+        var asc = th.dataset.sort !== 'asc';
+        filteredRows.sort(function(a, b) {
+          var av = a[colIdx], bv = b[colIdx];
+          var an = parseFloat(av); var bn = parseFloat(bv);
+          if (!isNaN(an) && !isNaN(bn)) return asc ? an - bn : bn - an;
+          return asc ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+        });
+        head.querySelectorAll('th').forEach(function(h) { h.dataset.sort = ''; });
+        th.dataset.sort = asc ? 'asc' : 'desc';
+        currentPage = 1;
+        renderTable(filteredRows);
+      });
+    });
+  }
+
+  function renderPagination(total) {
+    var pages = Math.ceil(total / perPage);
+    var paginationEl = document.getElementById('resultsPagination');
+    var pageInfo = document.getElementById('pageInfo');
+    var pageButtons = document.getElementById('pageButtons');
+
+    if (pages <= 1) {
+      paginationEl.style.display = 'none';
+      return;
+    }
+    paginationEl.style.cssText = 'display:flex!important;justify-content:space-between;align-items:center;margin-top:8px;';
+    var start = (currentPage - 1) * perPage + 1;
+    var end = Math.min(currentPage * perPage, total);
+    pageInfo.textContent = 'Showing ' + start + '–' + end + ' of ' + total;
+
+    pageButtons.innerHTML = '';
+    var makeBtn = function(label, page, disabled, active) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-sm ' + (active ? 'btn-primary' : 'btn-outline-secondary') + (disabled ? ' disabled' : '');
+      btn.textContent = label;
+      btn.style.padding = '2px 8px';
+      if (!disabled) btn.addEventListener('click', function() {
+        currentPage = page;
+        renderTable(filteredRows);
+      });
+      return btn;
+    };
+
+    pageButtons.appendChild(makeBtn('‹', currentPage - 1, currentPage === 1, false));
+    var start_p = Math.max(1, currentPage - 2);
+    var end_p   = Math.min(pages, currentPage + 2);
+    for (var p = start_p; p <= end_p; p++) {
+      pageButtons.appendChild(makeBtn(p, p, false, p === currentPage));
+    }
+    pageButtons.appendChild(makeBtn('›', currentPage + 1, currentPage === pages, false));
+  }
+
+  // ── Client-side column filter ─────────────────────────────────────────────
+  var colFilters = [];
+
+  document.getElementById('colFilterBtn').addEventListener('click', function() {
+    var panel = document.getElementById('colFilterPanel');
+    panel.style.display = panel.style.display === 'none' ? '' : 'none';
+  });
+
+  document.getElementById('addColFilterRow').addEventListener('click', function() {
+    addColFilterRow();
+  });
+
+  document.getElementById('applyColFilters').addEventListener('click', function() {
+    colFilters = [];
+    document.querySelectorAll('#colFilterRows .col-filter-row').forEach(function(row) {
+      var col = row.querySelector('[name="cf_col"]').value;
+      var op  = row.querySelector('[name="cf_op"]').value;
+      var val = row.querySelector('[name="cf_val"]').value;
+      if (col && op) colFilters.push({col: col, op: op, val: val});
+    });
+    currentPage = 1;
+    applyClientFilters();
+  });
+
+  document.getElementById('clearColFilters').addEventListener('click', function() {
+    colFilters = [];
+    document.getElementById('colFilterRows').innerHTML = '';
+    currentPage = 1;
+    applyClientFilters();
+  });
+
+  function addColFilterRow() {
+    var row = document.createElement('div');
+    row.className = 'col-filter-row d-flex align-items-center mb-1';
+    row.style.cssText = 'gap:6px;';
+
+    var colSel = document.createElement('select');
+    colSel.name = 'cf_col'; colSel.className = 'form-control form-control-sm'; colSel.style.maxWidth = '160px';
+    currentColumns.forEach(function(c) {
+      var o = document.createElement('option'); o.value = c.field; o.textContent = c.label;
+      colSel.appendChild(o);
+    });
+
+    var opSel = document.createElement('select');
+    opSel.name = 'cf_op'; opSel.className = 'form-control form-control-sm'; opSel.style.maxWidth = '120px';
+    [['equals','Equals'],['not_equals','Not Equals'],['like','Contains'],['not_like','Not Contains'],['is','Is Null']].forEach(function(op) {
+      var o = document.createElement('option'); o.value = op[0]; o.textContent = op[1]; opSel.appendChild(o);
+    });
+
+    var valIn = document.createElement('input');
+    valIn.name = 'cf_val'; valIn.type = 'text'; valIn.className = 'form-control form-control-sm'; valIn.style.maxWidth = '200px';
+
+    var rmBtn = document.createElement('button');
+    rmBtn.type = 'button'; rmBtn.className = 'btn btn-sm btn-outline-danger';
+    rmBtn.innerHTML = '<i class="fa fa-times"></i>';
+    rmBtn.addEventListener('click', function() { row.remove(); });
+
+    row.appendChild(colSel); row.appendChild(opSel); row.appendChild(valIn); row.appendChild(rmBtn);
+    document.getElementById('colFilterRows').appendChild(row);
+  }
+
+  function applyClientFilters() {
+    var sq = document.getElementById('inlineSearch').value.toLowerCase().trim();
+    filteredRows = allRows.filter(function(row) {
+      // Column filters
+      for (var i = 0; i < colFilters.length; i++) {
+        var cf = colFilters[i];
+        var ci = currentColumns.findIndex(function(c) { return c.field === cf.col; });
+        if (ci === -1) continue;
+        var cell = String(row[ci] !== null && row[ci] !== undefined ? row[ci] : '').toLowerCase();
+        var val  = cf.val.toLowerCase();
+        if (cf.op === 'equals'     && cell !== val)      return false;
+        if (cf.op === 'not_equals' && cell === val)      return false;
+        if (cf.op === 'like'       && !cell.includes(val)) return false;
+        if (cf.op === 'not_like'   && cell.includes(val))  return false;
+        if (cf.op === 'is'         && cell !== '')         return false;
+      }
+      // Global search
+      if (sq) {
+        return row.some(function(v) { return v !== null && String(v).toLowerCase().includes(sq); });
+      }
+      return true;
+    });
+    currentPage = 1;
+    renderTable(filteredRows);
+  }
+
+  document.getElementById('inlineSearch').addEventListener('input', function() {
+    currentPage = 1;
+    applyClientFilters();
+  });
+
+  // ── Save settings ─────────────────────────────────────────────────────────
+  document.getElementById('saveSettingsBtn').addEventListener('click', function() {
+    if (!currentReportId) return;
+    var dateRange = getDateRange();
+    var params = {};
+    document.querySelectorAll('#extraFilters [data-field]').forEach(function(inp) {
+      if (inp.value) params[inp.dataset.field] = inp.value;
+    });
+    var payload = {
+      date_preset: activePreset,
+      date_from:   dateRange[0],
+      date_to:     dateRange[1],
+      params_json: params,
+      per_page:    parseInt(document.getElementById('paramPerPage').value) || 50,
+    };
+    fetch('/admin/erp/api/report-setting/' + currentReportId + '/', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    }).then(function() {
+      savedSettings[currentReportId] = payload;
+      var btn = document.getElementById('saveSettingsBtn');
+      btn.innerHTML = '<i class="fa fa-check mr-1"></i>Saved';
+      setTimeout(function() { btn.innerHTML = '<i class="fa fa-save mr-1"></i>Save Defaults'; }, 2000);
+    });
+  });
+
+  // ── Per-page change re-renders ─────────────────────────────────────────────
+  document.getElementById('paramPerPage').addEventListener('change', function() {
+    perPage = parseInt(this.value) || 50;
+    currentPage = 1;
+    if (filteredRows.length) renderTable(filteredRows);
+  });
+
+})();
+</script>
+{% endblock %}

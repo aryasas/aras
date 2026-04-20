@@ -1,0 +1,126 @@
+{% extends 'admin/adm_base.html' %}
+{% block page_content %}
+<div class="row mt-5">
+  <div class="col-12 col-md-4">
+    <div class="card">
+      <div class="card-body">
+        <h6 class="header-title mb-3">Add Field — <b>{{ app_def.title }}</b></h6>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ 'success' if category == 'success' else 'warning' }}">{{ message }}</div>
+          {% endfor %}
+        {% endwith %}
+        <form method="POST" action="">
+          {{ form.hidden_tag() }}
+          <div class="form-group">
+            {{ form.name.label }}
+            {{ form.name(class_="form-control form-control-sm", placeholder="contoh: product_name") }}
+            {% if form.name.errors %}<small class="text-danger">{{ form.name.errors[0] }}</small>{% endif %}
+          </div>
+          <div class="form-group">
+            {{ form.label.label }}
+            {{ form.label(class_="form-control form-control-sm", placeholder="contoh: Product Name") }}
+          </div>
+          <div class="form-group">
+            {{ form.field_type.label }}
+            {{ form.field_type(class_="form-control form-control-sm") }}
+          </div>
+          <div class="form-group">
+            {{ form.order.label }}
+            {{ form.order(class_="form-control form-control-sm") }}
+          </div>
+          <div class="form-check mb-3">
+            {{ form.required(class_="form-check-input") }}
+            <label class="form-check-label ml-1">{{ form.required.label.text }}</label>
+          </div>
+          {{ form.submit(class_="btn btn-primary btn-sm btn-block") }}
+        </form>
+        <hr>
+        <small class="text-muted"><b>Field Types tersedia:</b></small><br>
+        {% for val, label in field_types %}
+          <span class="badge badge-light mr-1 mb-1">{{ val }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-8">
+    <div class="card">
+      <div class="card-body">
+        <div class="row mb-3">
+          <div class="col-8">
+            <h6 class="header-title">Fields — <b>{{ app_def.title }}</b></h6>
+            <small class="text-muted">
+              Table: <code>ab_{{ app_def.name }}</code> &nbsp;|&nbsp;
+              Endpoint: <code>{{ app_def.endpoint }}</code> &nbsp;|&nbsp;
+              URL: <code>{{ app_def.url }}</code>
+            </small>
+          </div>
+          <div class="col-4 text-right">
+            {% if app_def.is_active %}
+              <span class="badge badge-success">Active</span>
+            {% elif fields %}
+              <form method="POST" action="{{ url_for('app_manager.activate', app_id=app_def.id) }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-success">
+                  <i class="fa fa-play"></i> Activate App
+                </button>
+              </form>
+            {% else %}
+              <span class="badge badge-warning">Tambah field dulu</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered text-center">
+            <thead class="bg-light text-uppercase">
+              <tr>
+                <td><b>Order</b></td>
+                <td><b>Field Name</b></td>
+                <td><b>Label</b></td>
+                <td><b>Type</b></td>
+                <td><b>Required</b></td>
+                <td><b>Action</b></td>
+              </tr>
+            </thead>
+            <tbody>
+              {% for field in fields %}
+              <tr>
+                <td>{{ field.order }}</td>
+                <td><code>{{ field.name }}</code></td>
+                <td>{{ field.label }}</td>
+                <td><span class="badge badge-secondary">{{ field.field_type }}</span></td>
+                <td>
+                  {% if field.required %}
+                    <i class="fa fa-check text-danger"></i>
+                  {% else %}
+                    <i class="fa fa-minus text-muted"></i>
+                  {% endif %}
+                </td>
+                <td>
+                  <form method="POST"
+                        action="{{ url_for('app_manager.delete_field', app_id=app_def.id, field_id=field.id) }}"
+                        onsubmit="return confirm('Hapus field {{ field.name }}?')"
+                        style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                      <i class="fa fa-trash"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="6" class="text-muted py-3">Belum ada field. Tambahkan dari form kiri.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <a href="{{ url_for('app_manager.index') }}" class="btn btn-sm btn-outline-secondary mt-2">
+          <i class="fa fa-arrow-left"></i> Back to App List
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+# Core
+Flask
+Werkzeug
+Jinja2
+click
+python-dotenv
+
+# Database
+SQLAlchemy
+Flask-SQLAlchemy
+SQLAlchemy-Utils
+Flask-Migrate
+mariadb
+
+# Auth & Forms
+Flask-Login
+Flask-WTF
+WTForms
+WTForms-Alchemy
+WTForms-Components
+
+# Serialization
+marshmallow
+marshmallow-sqlalchemy
+flask-marshmallow
+
+# Mail
+Flask-Mail
+
+# Cache & Queue
+Flask-Caching
+rq
+
+# Utils
+Flask-Moment
+PyYAML
+
+# Dev only
+Flask-DebugToolbar

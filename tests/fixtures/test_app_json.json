@@ -1,0 +1,61 @@
+{
+  "app": {
+    "name": "test_json_app",
+    "title": "Test JSON App",
+    "main_title": "Test JSON App",
+    "url": "/test-json-app",
+    "endpoint": "test_json_app",
+    "description": "Install test via .json",
+    "icon": "fa-file",
+    "is_active": true,
+    "in_sidebar": true,
+    "require_login": true,
+    "api_enabled": true,
+    "items_per_page": 20
+  },
+  "tables": [
+    {
+      "name": "contacts",
+      "title": "Contacts",
+      "url_suffix": "/contacts",
+      "menu_title": "Contacts",
+      "menu_icon": "fa-address-book",
+      "show_in_menu": true,
+      "menu_order": 1,
+      "is_active": true,
+      "allow_create": true,
+      "allow_edit": true,
+      "allow_delete": true,
+      "search_enabled": true,
+      "columns": [
+        {
+          "name": "full_name",
+          "label": "Full Name",
+          "field_type": "string",
+          "required": true,
+          "order": 1,
+          "show_in_list": true,
+          "show_in_form": true
+        },
+        {
+          "name": "email",
+          "label": "Email",
+          "field_type": "email",
+          "required": false,
+          "order": 2,
+          "show_in_list": true,
+          "show_in_form": true
+        },
+        {
+          "name": "phone",
+          "label": "Phone",
+          "field_type": "phone",
+          "required": false,
+          "order": 3,
+          "show_in_list": true,
+          "show_in_form": true
+        }
+      ]
+    }
+  ]
+}

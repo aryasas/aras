@@ -1,0 +1,320 @@
+{% extends 'admin/adm_base.html' %}
+
+{% block submenu %}
+<div class="page-title-area" style="padding:0 30px;border-bottom:1px solid #eef0f2;">
+  <nav style="display:flex;align-items:center;gap:0;flex-wrap:wrap;">
+    <a href="/admin/erp/reports/" style="padding:10px 14px;font-size:13px;text-decoration:none;color:#9aacb8;">
+      Reports
+    </a>
+    <span style="color:#d8e3e7;">/</span>
+    <span style="padding:10px 14px;font-size:13px;font-weight:600;color:#313b3d;">{{ report.title }}</span>
+    <span style="margin-left:auto;padding-right:8px;display:flex;gap:6px;align-items:center;">
+      <a href="/admin/erp/reports/{{ report.id }}/"
+         class="btn btn-xs btn-primary" title="List View">
+        <i class="fa fa-list mr-1"></i>List
+      </a>
+      <a href="/admin/erp/reports/{{ report.id }}/run/"
+         class="btn btn-xs btn-outline-secondary" title="Report View">
+        <i class="fa fa-bar-chart mr-1"></i>Report
+      </a>
+      <a href="/admin/erp/reports/{{ report.id }}/export.csv?{{ request.query_string.decode() }}"
+         class="btn btn-xs btn-outline-secondary">
+        <i class="fa fa-download mr-1"></i>CSV
+      </a>
+    </span>
+  </nav>
+</div>
+{% endblock %}
+
+{% block page_content %}
+<div class="row">
+  <div class="col-12 mt-4">
+    <div class="card">
+      <div class="card-body">
+
+        {# ── Top bar ── #}
+        <div class="d-flex align-items-center mb-2" style="gap:8px;flex-wrap:wrap;">
+          <h4 class="mb-0 mr-2">{{ report.title }}
+            <span class="badge badge-secondary">{{ rows|length }}</span>
+          </h4>
+
+          {# Report date/custom filters #}
+          {% if filters_def %}
+          <form method="GET" id="reportFilterForm" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            {% if search_q %}<input type="hidden" name="q" value="{{ search_q }}">{% endif %}
+            {% for af in active_filters %}
+              <input type="hidden" name="f_col[]" value="{{ af.col }}">
+              <input type="hidden" name="f_op[]"  value="{{ af.op }}">
+              <input type="hidden" name="f_val[]" value="{{ af.val }}">
+            {% endfor %}
+            {% for f in filters_def %}
+              {% if f.type == 'select' %}
+              <select name="{{ f.field }}" class="form-control form-control-sm" style="max-width:140px;" title="{{ f.label }}">
+                {% for opt in f.get('options', []) %}
+                  {% if opt is string %}
+                    <option value="{{ opt }}" {{ 'selected' if filters.get(f.field) == opt }}>{{ opt }}</option>
+                  {% else %}
+                    <option value="{{ opt[0] }}" {{ 'selected' if filters.get(f.field) == opt[0]|string }}>{{ opt[1] }}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+              {% elif f.type == 'date' %}
+              <input type="date" name="{{ f.field }}" class="form-control form-control-sm"
+                     style="max-width:150px;" placeholder="{{ f.label }}"
+                     value="{{ filters.get(f.field) or '' }}" title="{{ f.label }}">
+              {% else %}
+              <input type="text" name="{{ f.field }}" class="form-control form-control-sm"
+                     style="max-width:140px;" placeholder="{{ f.label }}"
+                     value="{{ filters.get(f.field) or '' }}">
+              {% endif %}
+            {% endfor %}
+            <button type="submit" class="btn btn-sm btn-primary">
+              <i class="fa fa-search mr-1"></i>Run
+            </button>
+            {% if request.args %}
+            <a href="?" class="btn btn-sm btn-outline-secondary">Clear</a>
+            {% endif %}
+          </form>
+          {% endif %}
+
+          <div style="display:flex;gap:6px;margin-left:auto;align-items:center;">
+            {# Global search #}
+            <form method="GET" id="searchForm" style="display:flex;gap:0;">
+              {% for f in filters_def %}
+                {% set fv = filters.get(f.field) %}
+                {% if fv %}<input type="hidden" name="{{ f.field }}" value="{{ fv }}">{% endif %}
+              {% endfor %}
+              {% for af in active_filters %}
+                <input type="hidden" name="f_col[]" value="{{ af.col }}">
+                <input type="hidden" name="f_op[]"  value="{{ af.op }}">
+                <input type="hidden" name="f_val[]" value="{{ af.val }}">
+              {% endfor %}
+              <input type="text" name="q" class="form-control form-control-sm"
+                     placeholder="Search…" value="{{ search_q or '' }}"
+                     style="border-radius:4px 0 0 4px;width:180px;">
+              <button class="btn btn-sm btn-outline-secondary" type="submit"
+                      style="border-radius:0;border-left:0;"><i class="fa fa-search"></i></button>
+              {% if search_q %}
+              <a href="?{% for f in filters_def %}{% set fv = filters.get(f.field) %}{% if fv %}{{ f.field }}={{ fv }}&{% endif %}{% endfor %}"
+                 class="btn btn-sm btn-outline-danger" style="border-radius:0 4px 4px 0;">
+                <i class="fa fa-times"></i>
+              </a>
+              {% endif %}
+            </form>
+
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="addFilterBtn">
+              <i class="fa fa-filter mr-1"></i>Filter
+              {% if active_filters %}<span class="badge badge-dark">{{ active_filters|length }}</span>{% endif %}
+            </button>
+          </div>
+        </div>
+
+        {# ── Column filter panel ── #}
+        <form method="GET" id="listFilterForm">
+          {% for f in filters_def %}
+            {% set fv = filters.get(f.field) %}
+            {% if fv %}<input type="hidden" name="{{ f.field }}" value="{{ fv }}">{% endif %}
+          {% endfor %}
+          {% if search_q %}<input type="hidden" name="q" value="{{ search_q }}">{% endif %}
+          <div id="filterPanel"
+               style="{% if not active_filters %}display:none;{% endif %}background:#f8f9fa;border:1px solid #e9ecef;border-radius:4px;padding:10px 12px;margin-bottom:8px;">
+            <div id="filterRows">
+              {% for af in (active_filters or []) %}
+              <div class="filter-row d-flex align-items-center mb-1" style="gap:6px;flex-wrap:wrap;">
+                <select name="f_col[]" class="form-control form-control-sm" style="max-width:160px;">
+                  {% for col in columns %}
+                  <option value="{{ col.field }}" {% if col.field == af.col %}selected{% endif %}>{{ col.label }}</option>
+                  {% endfor %}
+                </select>
+                <select name="f_op[]" class="form-control form-control-sm op-select" style="max-width:130px;">
+                  {% for op_val, op_lbl in [('equals','Equals'),('not_equals','Not Equals'),('like','Like'),('not_like','Not Like'),('is','Is Null')] %}
+                  <option value="{{ op_val }}" {% if op_val == af.op %}selected{% endif %}>{{ op_lbl }}</option>
+                  {% endfor %}
+                </select>
+                <input type="text" name="f_val[]" class="form-control form-control-sm val-input"
+                       style="max-width:200px;{% if af.op == 'is' %}display:none;{% endif %}"
+                       value="{{ af.val }}">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-filter-row">
+                  <i class="fa fa-times"></i>
+                </button>
+              </div>
+              {% endfor %}
+            </div>
+            <div class="d-flex align-items-center mt-2" style="gap:6px;">
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="addFilterRowBtn">
+                <i class="fa fa-plus mr-1"></i>Add Row
+              </button>
+              <button type="submit" class="btn btn-sm btn-dark">Apply</button>
+              {% if active_filters %}
+              <a href="?{% for f in filters_def %}{% set fv = filters.get(f.field) %}{% if fv %}{{ f.field }}={{ fv }}&{% endif %}{% endfor %}"
+                 class="btn btn-sm btn-outline-secondary">Clear Filters</a>
+              {% endif %}
+            </div>
+          </div>
+        </form>
+
+        <hr class="mt-1 mb-2">
+
+        {% if error %}
+        <div class="alert alert-danger"><strong>Error:</strong> {{ error }}</div>
+        {% else %}
+
+        {# ── Data table ── #}
+        <div class="table-responsive">
+          <table class="table table-hover" id="report-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                {% for col in columns %}
+                <th>{{ col.label }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                {% for col in columns %}
+                {% set val = row[loop.index0] if row is iterable else '' %}
+                <td class="{{ 'text-right' if col.type in ('currency','integer','number') else '' }}">
+                  {% if col.type == 'currency' and val is not none and val != '' %}
+                    {{ '{:,.2f}'.format(val|float) }}
+                  {% else %}
+                    {{ val if val is not none else '—' }}
+                  {% endif %}
+                </td>
+                {% endfor %}
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="{{ columns|length + 1 }}" class="text-center text-muted py-4">No data.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script>
+(function() {
+  var filterCols = {{ columns | map(attribute='field') | list | tojson }};
+  var filterLabels = {{ columns | map(attribute='label') | list | tojson }};
+  var opOptions = [
+    ['equals','Equals'],['not_equals','Not Equals'],
+    ['like','Like'],['not_like','Not Like'],['is','Is Null']
+  ];
+
+  function buildRow() {
+    var row = document.createElement('div');
+    row.className = 'filter-row d-flex align-items-center mb-1';
+    row.style.cssText = 'gap:6px;flex-wrap:wrap;';
+
+    var colSel = document.createElement('select');
+    colSel.name = 'f_col[]';
+    colSel.className = 'form-control form-control-sm';
+    colSel.style.maxWidth = '160px';
+    filterCols.forEach(function(fc, i) {
+      var o = document.createElement('option');
+      o.value = fc; o.textContent = filterLabels[i] || fc;
+      colSel.appendChild(o);
+    });
+
+    var opSel = document.createElement('select');
+    opSel.name = 'f_op[]';
+    opSel.className = 'form-control form-control-sm op-select';
+    opSel.style.maxWidth = '130px';
+    opOptions.forEach(function(op) {
+      var o = document.createElement('option');
+      o.value = op[0]; o.textContent = op[1];
+      opSel.appendChild(o);
+    });
+
+    var valIn = document.createElement('input');
+    valIn.type = 'text'; valIn.name = 'f_val[]';
+    valIn.className = 'form-control form-control-sm val-input';
+    valIn.style.cssText = 'max-width:200px;';
+
+    var rmBtn = document.createElement('button');
+    rmBtn.type = 'button';
+    rmBtn.className = 'btn btn-sm btn-outline-danger remove-filter-row';
+    rmBtn.innerHTML = '<i class="fa fa-times"></i>';
+
+    opSel.addEventListener('change', function() {
+      valIn.style.display = this.value === 'is' ? 'none' : '';
+    });
+    rmBtn.addEventListener('click', function() {
+      row.remove();
+      if (!document.querySelectorAll('#filterRows .filter-row').length)
+        document.getElementById('filterPanel').style.display = 'none';
+    });
+
+    row.appendChild(colSel); row.appendChild(opSel);
+    row.appendChild(valIn);  row.appendChild(rmBtn);
+    return row;
+  }
+
+  document.getElementById('addFilterBtn').addEventListener('click', function() {
+    var panel = document.getElementById('filterPanel');
+    panel.style.display = 'block';
+    document.getElementById('filterRows').appendChild(buildRow());
+  });
+
+  var addRowBtn = document.getElementById('addFilterRowBtn');
+  if (addRowBtn) addRowBtn.addEventListener('click', function() {
+    document.getElementById('filterRows').appendChild(buildRow());
+  });
+
+  document.querySelectorAll('.remove-filter-row').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      btn.closest('.filter-row').remove();
+      if (!document.querySelectorAll('#filterRows .filter-row').length)
+        document.getElementById('filterPanel').style.display = 'none';
+    });
+  });
+
+  document.querySelectorAll('.op-select').forEach(function(sel) {
+    if (sel.value === 'is') {
+      var vi = sel.closest('.filter-row').querySelector('.val-input');
+      if (vi) vi.style.display = 'none';
+    }
+    sel.addEventListener('change', function() {
+      var vi = this.closest('.filter-row').querySelector('.val-input');
+      if (vi) vi.style.display = this.value === 'is' ? 'none' : '';
+    });
+  });
+
+  // Column sort
+  var table = document.getElementById('report-table');
+  if (table) {
+    table.querySelectorAll('thead th').forEach(function(th, i) {
+      if (i === 0) return;
+      th.style.cursor = 'pointer';
+      th.addEventListener('click', function() {
+        var tbody = table.querySelector('tbody');
+        var rows = Array.from(tbody.querySelectorAll('tr'));
+        var asc = th.dataset.sort !== 'asc';
+        rows.sort(function(a, b) {
+          var av = a.cells[i] ? a.cells[i].textContent.trim() : '';
+          var bv = b.cells[i] ? b.cells[i].textContent.trim() : '';
+          var an = parseFloat(av.replace(/,/g,''));
+          var bn = parseFloat(bv.replace(/,/g,''));
+          if (!isNaN(an) && !isNaN(bn)) return asc ? an-bn : bn-an;
+          return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+        });
+        rows.forEach(function(r) { tbody.appendChild(r); });
+        table.querySelectorAll('thead th').forEach(function(h) { h.dataset.sort=''; });
+        th.dataset.sort = asc ? 'asc' : 'desc';
+      });
+    });
+  }
+})();
+</script>
+{% endblock %}

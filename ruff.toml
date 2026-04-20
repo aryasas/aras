@@ -1,0 +1,4 @@
+# pyproject.toml
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "I"]  # errors, pyflakes, isort

@@ -1,0 +1,177 @@
+{% extends 'admin/adm_base.html' %} {% block page_content %}
+<div class="row">
+    <div class="col-12 mt-5">
+        <div class="card">
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-8">
+                        <h5 class="header-title">App Manager</h5>
+                        <small class="text-muted"
+                            >Apps dibuat secara dinamis, tersimpan di
+                            database.</small
+                        >
+                    </div>
+                    <div class="col-4 text-right">
+                        <a
+                            href="{{ url_for('app_manager.create') }}"
+                            class="btn btn-primary"
+                        >
+                            <i class="fa fa-plus"></i> Create New App
+                        </a>
+                    </div>
+                </div>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                <div
+                    class="alert alert-{{ 'success' if category == 'success' else 'warning' if category == 'warning' else 'danger' if category == 'danger' else 'info' }} alert-dismissible"
+                >
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert">
+                        &times;
+                    </button>
+                </div>
+                {% endfor %} {% endwith %}
+                <div class="table-responsive">
+                    <table class="table table-bordered text-center">
+                        <thead class="text-uppercase bg-light">
+                            <tr>
+                                <td><b>#</b></td>
+                                <td><b>Name</b></td>
+                                <td><b>Title</b></td>
+                                <td><b>URL</b></td>
+                                <td><b>Fields</b></td>
+                                <td><b>Status</b></td>
+                                <td><b>Sidebar</b></td>
+                                <td><b>Actions</b></td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for app in apps %}
+                            <tr>
+                                <td>{{ app.id }}</td>
+                                <td><code>{{ app.name }}</code></td>
+                                <td>{{ app.title }}</td>
+                                <td><code>{{ app.url }}</code></td>
+                                <td>
+                                    <a
+                                        href="{{ url_for('app_manager.manage_fields', app_id=app.id) }}"
+                                        class="badge badge-info"
+                                    >
+                                        {{ app.fields.count() }} field(s)
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if app.is_active %}
+                                    <span class="badge badge-success"
+                                        >Active</span
+                                    >
+                                    {% else %}
+                                    <span class="badge badge-secondary"
+                                        >Inactive</span
+                                    >
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if app.in_sidebar %}
+                                    <i class="fa fa-check text-success"></i>
+                                    {% else %}
+                                    <i class="fa fa-times text-muted"></i>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a
+                                        href="{{ url_for('app_manager.manage_fields', app_id=app.id) }}"
+                                        class="btn btn-sm btn-outline-info"
+                                        title="Fields"
+                                    >
+                                        <i class="fa fa-columns"></i>
+                                    </a>
+                                    <a
+                                        href="{{ url_for('app_manager.edit', app_id=app.id) }}"
+                                        class="btn btn-sm btn-outline-secondary"
+                                        title="Edit"
+                                    >
+                                        <i class="fa fa-edit"></i>
+                                    </a>
+                                    {% if app.is_active %}
+                                    <form
+                                        method="POST"
+                                        action="{{ url_for('app_manager.deactivate', app_id=app.id) }}"
+                                        style="display: inline"
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="csrf_token"
+                                            value="{{ csrf_token() }}"
+                                        />
+                                        <button
+                                            type="submit"
+                                            class="btn btn-sm btn-outline-warning"
+                                            title="Deactivate"
+                                        >
+                                            <i class="fa fa-pause"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <form
+                                        method="POST"
+                                        action="{{ url_for('app_manager.activate', app_id=app.id) }}"
+                                        style="display: inline"
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="csrf_token"
+                                            value="{{ csrf_token() }}"
+                                        />
+                                        <button
+                                            type="submit"
+                                            class="btn btn-sm btn-outline-success"
+                                            title="Activate"
+                                        >
+                                            <i class="fa fa-play"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    <form
+                                        method="POST"
+                                        action="{{ url_for('app_manager.delete_app', app_id=app.id) }}"
+                                        style="display: inline"
+                                        onsubmit="return confirm('Hapus app {{ app.title }}?')"
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="csrf_token"
+                                            value="{{ csrf_token() }}"
+                                        />
+                                        <button
+                                            type="submit"
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="Delete"
+                                        >
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td
+                                    colspan="8"
+                                    class="text-center text-muted py-4"
+                                >
+                                    Belum ada app.
+                                    <a
+                                        href="{{ url_for('app_manager.create') }}"
+                                        >Buat sekarang</a
+                                    >.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+==================================================
+Test login: admin@example.com / admin123
+==================================================
+[1] GET /auth/login → 200 http://localhost:8080/auth/login
+[2] CSRF token: IjFhODEyMmRiOTUzNDA1...
+[3] POST /auth/login → 200 redirect → http://localhost:8080/auth/login
+[❌] LOGIN GAGAL → masih di http://localhost:8080/auth/login
+    <div class="alert alert-danger d-inline-block fade show" role="alert">
+    <b>DANGER: </b>Invalid username or password.
+    <div class="alert alert-danger d-inline-block fade show" role="alert">
+    <b>DANGER: </b>Invalid username or password.
+    <div class="text-danger"></div>
+    <div class="text-danger"></div>
+    <td>itsdangerous</td>
+    <td>PASSTHROUGH_ERROR</td>
+    <td>TRAP_BAD_REQUEST_ERRORS</td>
+==================================================
+
+Test dengan username...
+==================================================
+[1] GET /auth/login → 200 http://localhost:8080/auth/login
+[2] CSRF token: IjkzZjYwYTU2YTc1YmEx...
+[3] POST /auth/login → ERROR 500: INTERNAL SERVER ERROR
+    --- Flash/Error snippet ---
+    <title>werkzeug.routing.BuildError: Could not build url for endpoint &#x27;admin.post&#x27;. Did you mean &#x27;admin.dashboard&#x27; instead? // Werkzeug Debugger</title>
+    <h1>werkzeug.routing.BuildError</h1>
+    <p class="errormsg">werkzeug.routing.BuildError: Could not build url for endpoint &#x27;admin.post&#x27;. Did you mean &#x27;admin.dashboard&#x27; instead?</p>
+    <pre class="line before"><span class="ws">                </span>error = e</pre>
+    <pre class="line after"><span class="ws">                </span>error = sys.exc_info()[1]</pre>
+    <pre class="line before"><span class="ws">        </span>error: t.Optional[BaseException] = None</pre>
+    <pre class="line after"><span class="ws">                </span>error = e</pre>
+    <pre class="line after"><span class="ws">                </span>error = sys.exc_info()[1]</pre></div>
+    <pre class="line current"><span class="ws">        </span>return appctx.app.handle_url_build_error(error, endpoint, values)</pre>
+    <pre class="line current"><span class="ws">            </span>raise BuildError(endpoint, values, method, self)</pre>
+    <blockquote>werkzeug.routing.BuildError: Could not build url for endpoint &#x27;admin.post&#x27;. Did you mean &#x27;admin.dashboard&#x27; instead?</blockquote>
+    return appctx.app.handle_url_build_error(error, endpoint, values)
+    raise BuildError(endpoint, values, method, self)
+    werkzeug.routing.BuildError: Could not build url for endpoint &#x27;admin.post&#x27;. Did you mean &#x27;admin.dashboard&#x27; instead?</textarea>
+    look at the traceback which led to the error.  <span class="nojavascript">
+    return appctx.app.handle_url_build_error(error, endpoint, values)
+    raise BuildError(endpoint, values, method, self)
+    werkzeug.routing.BuildError: Could not build url for endpoint 'admin.post'. Did you mean 'admin.dashboard' instead?

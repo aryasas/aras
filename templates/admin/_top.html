@@ -1,0 +1,318 @@
+<!-- header area start -->
+<div class="header-area">
+    <div class="row align-items-center" style="height: 100%">
+        <!-- left: sidebar toggle + back/forward + title/breadcrumb -->
+        <div class="col-md-6 col-sm-8 clearfix">
+            <div style="display: flex; align-items: center; gap: 10px">
+                <!-- Sidebar toggle (show when collapsed) -->
+                <button
+                    onclick="document.body.classList.toggle('sbar_collapsed')"
+                    title="Toggle sidebar"
+                    style="
+                        background: none;
+                        border: none;
+                        padding: 4px 6px;
+                        cursor: pointer;
+                        color: #6c757d;
+                        font-size: 16px;
+                        line-height: 1;
+                        flex-shrink: 0;
+                    "
+                >
+                    <i class="ti-menu"></i>
+                </button>
+
+                <!-- Back / Forward -->
+                <button
+                    onclick="history.back()"
+                    title="Back"
+                    style="
+                        background: #f4f6f8;
+                        border: 1px solid #dde3e7;
+                        border-radius: 4px;
+                        color: #6c757d;
+                        padding: 4px 8px;
+                        cursor: pointer;
+                        font-size: 13px;
+                        line-height: 1;
+                        flex-shrink: 0;
+                    "
+                >
+                    <i class="fa fa-chevron-left"></i>
+                </button>
+                <button
+                    onclick="history.forward()"
+                    title="Forward"
+                    style="
+                        background: #f4f6f8;
+                        border: 1px solid #dde3e7;
+                        border-radius: 4px;
+                        color: #6c757d;
+                        padding: 4px 8px;
+                        cursor: pointer;
+                        font-size: 13px;
+                        line-height: 1;
+                        flex-shrink: 0;
+                    "
+                >
+                    <i class="fa fa-chevron-right"></i>
+                </button>
+
+                <!-- Title + breadcrumb -->
+                <div style="line-height: 1.2; min-width: 0">
+                    {% if main_title %}
+                    <div
+                        style="
+                            font-size: 15px;
+                            font-weight: 600;
+                            color: #313b3d;
+                            white-space: nowrap;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                        "
+                    >
+                        {{ main_title }}
+                    </div>
+                    {% endif %}
+                    <div
+                        style="
+                            font-size: 12px;
+                            color: #9aacb8;
+                            white-space: nowrap;
+                        "
+                    >
+                        <a
+                            href="{{ url_for('admin.dashboard') }}"
+                            style="color: #9aacb8"
+                            >Home</a
+                        >
+                        {% if title %}
+                        <span style="margin: 0 4px">/</span>
+                        <span>{{ title }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- right: icons + user -->
+        <div class="col-md-6 col-sm-4 clearfix">
+            <ul
+                class="notification-area pull-right"
+                style="
+                    display: flex;
+                    align-items: center;
+                    margin: 0;
+                    padding: 0;
+                    list-style: none;
+                    gap: 0;
+                "
+            >
+                <li
+                    id="full-view"
+                    style="
+                        display: flex;
+                        align-items: center;
+                        padding: 0 8px;
+                        cursor: pointer;
+                    "
+                >
+                    <i
+                        class="ti-fullscreen"
+                        style="
+                            font-size: 16px;
+                            line-height: 1;
+                            color: #6c757d;
+                            display: block;
+                        "
+                    ></i>
+                </li>
+
+                <li
+                    id="full-view-exit"
+                    style="
+                        display: flex;
+                        align-items: center;
+                        padding: 0 8px;
+                        cursor: pointer;
+                    "
+                >
+                    <i
+                        class="ti-zoom-out"
+                        style="
+                            font-size: 16px;
+                            line-height: 1;
+                            color: #6c757d;
+                            display: block;
+                        "
+                    ></i>
+                </li>
+
+                <li
+                    class="dropdown"
+                    style="display: flex; align-items: center; padding: 0 8px"
+                >
+                    <span
+                        class="dropdown-toggle"
+                        data-toggle="dropdown"
+                        style="
+                            cursor: pointer;
+                            line-height: 1;
+                            position: relative;
+                        "
+                    >
+                        <i
+                            class="ti-bell"
+                            style="
+                                font-size: 16px;
+                                line-height: 1;
+                                color: #6c757d;
+                                display: block;
+                            "
+                        ></i>
+                        <span
+                            id="activity_count"
+                            class="badge"
+                            style="
+                                position: absolute;
+                                top: -6px;
+                                right: -6px;
+                                visibility: hidden;
+                            "
+                        ></span>
+                    </span>
+                    <div class="dropdown-menu notify-box nt-enveloper-box">
+                        <span class="notify-title"
+                            >User Log
+                            <a href="{{ url_for('admin.user_log') }}"
+                                >view all</a
+                            >
+                        </span>
+                        <div class="nofity-list"></div>
+                    </div>
+                </li>
+
+                <li
+                    class="dropdown"
+                    style="display: flex; align-items: center; padding: 0 8px"
+                >
+                    <span
+                        class="dropdown-toggle"
+                        data-toggle="dropdown"
+                        style="
+                            cursor: pointer;
+                            line-height: 1;
+                            position: relative;
+                        "
+                    >
+                        <i
+                            class="fa fa-envelope-o"
+                            style="
+                                font-size: 16px;
+                                line-height: 1;
+                                color: #6c757d;
+                                display: block;
+                            "
+                        ></i>
+                        <span
+                            id="message_count"
+                            class="badge"
+                            style="
+                                position: absolute;
+                                top: -6px;
+                                right: -6px;
+                                visibility: hidden;
+                            "
+                        ></span>
+                    </span>
+                    <div class="dropdown-menu notify-box nt-enveloper-box">
+                        <span class="notify-title">Messages </span>
+                        <div class="nofity-list"></div>
+                    </div>
+                </li>
+
+                <li style="display: flex; align-items: center; padding: 0 8px">
+                    <a
+                        href="{{ url_for('admin.settings') }}"
+                        style="
+                            display: flex;
+                            align-items: center;
+                            color: #6c757d;
+                            text-decoration: none;
+                        "
+                    >
+                        <i
+                            class="ti-settings"
+                            style="
+                                font-size: 16px;
+                                line-height: 1;
+                                display: block;
+                            "
+                        ></i>
+                    </a>
+                </li>
+
+                {% if current_user.is_authenticated %}
+                <li
+                    class="dropdown"
+                    style="display: flex; align-items: center; padding: 0 8px"
+                >
+                    <a
+                        href="#"
+                        class="dropdown-toggle"
+                        data-toggle="dropdown"
+                        style="
+                            display: flex;
+                            align-items: center;
+                            gap: 6px;
+                            text-decoration: none;
+                            color: inherit;
+                        "
+                    >
+                        <img
+                            src="{{ current_user.gravatar(28) }}"
+                            style="
+                                border-radius: 50%;
+                                width: 28px;
+                                height: 28px;
+                                display: block;
+                                flex-shrink: 0;
+                            "
+                        />
+                        <span
+                            style="
+                                font-size: 13px;
+                                color: #666;
+                                white-space: nowrap;
+                            "
+                            >{{ current_user.username }}</span
+                        >
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a
+                            class="dropdown-item"
+                            href="{{ url_for('auth.user', username=current_user.username) }}"
+                        >
+                            <i class="ti-user mr-2"></i> Profile
+                        </a>
+                        <a
+                            class="dropdown-item"
+                            href="{{ url_for('auth.change_password') }}"
+                        >
+                            <i class="ti-lock mr-2"></i> Change Password
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a
+                            class="dropdown-item text-danger"
+                            href="{{ url_for('auth.logout_view') }}"
+                        >
+                            <i class="ti-power-off mr-2"></i> Logout
+                        </a>
+                    </div>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</div>
+<!-- header area end -->

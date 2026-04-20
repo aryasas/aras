@@ -1,0 +1,38 @@
+app:
+  name: todo
+  title: Todo
+  url: /todo
+  endpoint: todo
+  icon: fa-check-square
+  is_active: true
+  in_sidebar: true
+
+tables:
+  - name: task
+    title: Task
+    url_suffix: /task
+    menu_title: Task
+    menu_icon: fa-tasks
+    show_in_menu: true
+    is_active: true
+    allow_create: true
+    allow_edit: true
+    allow_delete: true
+    search_enabled: true
+
+    columns:
+      - name: title
+        label: Title
+        field_type: string
+        required: true
+        show_in_list: true
+        show_in_form: true
+        order: 0
+
+      - name: done
+        label: Done
+        field_type: boolean
+        required: false
+        show_in_list: true
+        show_in_form: true
+        order: 1

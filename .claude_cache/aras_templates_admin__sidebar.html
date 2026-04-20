@@ -1,0 +1,76 @@
+<!-- sidebar menu area start -->
+<div class="sidebar-menu">
+
+  <div class="sidebar-header">
+    <div class="logo">
+      <a href="{{ url_for('admin.dashboard') }}" style="font-family: Avenir Black;font-size: 300%; color: white;">aras</a>
+    </div>
+  </div>
+
+  <div class="main-menu">
+    <div class="menu-inner">
+
+      <nav>
+        <ul class="metismenu" id="menu">
+
+          <li class="{{ 'active' if request.endpoint == 'admin.dashboard' else '' }}">
+            <a href="{{ url_for('admin.dashboard') }}" aria-expanded="true">
+              <i class="ti-dashboard"></i>
+              <span>dashboard</span></a>
+          </li>
+
+          {% if g.gmenu %}
+            {% for app_entry in g.gmenu %}
+              {% if app_entry.children %}
+                <li class="has-sub {{ 'active' if app_entry.bp_name in request.endpoint else '' }}">
+                  <a href="javascript:void(0)" aria-expanded="false">
+                    <i class="fa {{ app_entry.icon }} mr-1"></i>
+                    <span>{{ app_entry.title }}</span>
+                  </a>
+                  <ul class="submenu">
+                    {% for child in app_entry.children %}
+                      <li class="{{ 'active' if request.endpoint == child.bp_ep else '' }}">
+                        <a href="{{ child.url }}">
+                          <i class="fa {{ child.icon }} mr-1"></i>{{ child.title }}
+                        </a>
+                        {% if child.children %}
+                          <ul class="submenu">
+                            {% for sub in child.children %}
+                              <li>
+                                <a href="{{ sub.url }}">
+                                  <i class="fa {{ sub.icon }} mr-1"></i>{{ sub.title }}
+                                </a>
+                              </li>
+                            {% endfor %}
+                          </ul>
+                        {% endif %}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </li>
+              {% else %}
+                <li>
+                  <a href="{{ app_entry.children[0].url if app_entry.children else '#' }}" aria-expanded="false">
+                    <i class="fa {{ app_entry.icon }} mr-1"></i>
+                    <span>{{ app_entry.title }}</span>
+                  </a>
+                </li>
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+
+          <li class="{{ 'active' if request.endpoint == 'admin.settings' else '' }}">
+            <a href="{{ url_for('admin.settings') }}" aria-expanded="true">
+              <i class="ti-settings"></i>
+              <span>Settings</span></a>
+          </li>
+
+        </ul>
+      </nav>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- sidebar menu area end -->

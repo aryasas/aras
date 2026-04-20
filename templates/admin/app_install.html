@@ -1,0 +1,149 @@
+{% extends extends_layout if extends_layout else 'admin/adm_base.html' %}
+{% block page_content %}
+<div class="row">
+  <div class="col-md-8 col-12 mt-4">
+
+    <!-- Nav tabs -->
+    <ul class="nav nav-tabs mb-0" id="installTabs">
+      <li class="nav-item">
+        <a class="nav-link active" data-toggle="tab" href="#tab-definition">
+          <i class="fa fa-file-code-o"></i> YAML / JSON
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-toggle="tab" href="#tab-python">
+          <i class="fa fa-python"></i> Python Package
+        </a>
+      </li>
+    </ul>
+
+    <div class="tab-content border border-top-0 rounded-bottom p-4 bg-white mb-4">
+
+      <!-- ── Tab 1: YAML/JSON definition ── -->
+      <div class="tab-pane fade show active" id="tab-definition">
+        <h5 class="mb-3">Install from YAML or JSON</h5>
+        <p class="text-muted small">Define your app structure in YAML/JSON. Aras will create the tables and columns automatically.</p>
+        <form method="POST" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="install_type" value="definition">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Definition File <span class="text-danger">*</span></label>
+            <input type="file" name="definition_file" class="form-control" accept=".yaml,.yml,.json" required>
+            <div class="form-text">Accepted: <code>.yaml</code>, <code>.yml</code>, <code>.json</code></div>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="fa fa-upload"></i> Install
+          </button>
+          <a href="{{ url_for('admin.apps') }}" class="btn btn-secondary ms-2">Cancel</a>
+        </form>
+
+        <hr class="my-4">
+        <h6>Download Starter Template</h6>
+        <a href="{{ url_for('admin.apps_template_yaml') }}" class="btn btn-outline-primary btn-sm me-2">
+          <i class="fa fa-download"></i> YAML Template
+        </a>
+        <a href="{{ url_for('admin.apps_template_json') }}" class="btn btn-outline-secondary btn-sm">
+          <i class="fa fa-download"></i> JSON Template
+        </a>
+      </div>
+
+      <!-- ── Tab 2: Python package ── -->
+      <div class="tab-pane fade" id="tab-python">
+        <h5 class="mb-3">Install Python Package</h5>
+        <p class="text-muted small">
+          Upload a <code>.zip</code> file containing a Python app module.<br>
+          The zip must contain a folder named after your app with <code>views.py</code> exposing <code>app_bp</code>.
+        </p>
+
+        <div class="alert alert-info small">
+          <i class="fa fa-info-circle"></i>
+          <strong>Note:</strong> Python apps are registered live if the blueprint name is new.
+          For updates to existing apps, a server restart is required.
+        </div>
+
+        <form method="POST" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="install_type" value="python">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Python App Package (.zip) <span class="text-danger">*</span></label>
+            <input type="file" name="python_file" class="form-control" accept=".zip" required>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="fa fa-upload"></i> Install Package
+          </button>
+          <a href="{{ url_for('admin.apps') }}" class="btn btn-secondary ms-2">Cancel</a>
+        </form>
+
+        <hr class="my-4">
+        <h6>Expected Zip Structure</h6>
+        <pre class="bg-light p-3 rounded small"><code>my_app.zip
+└── my_app/
+    ├── __init__.py
+    ├── models.py
+    ├── forms.py
+    └── views.py        ← must expose app_bp</code></pre>
+
+        <p class="small text-muted">
+          Use the scaffold generator in App Manager to generate a starter Python package.
+        </p>
+      </div>
+    </div>
+
+    <!-- Format reference -->
+    <div class="card">
+      <div class="card-body">
+        <h6>YAML Format Reference</h6>
+        <pre class="bg-light p-3 rounded" style="font-size:0.8rem; max-height:280px; overflow-y:auto"><code>app:
+  name: inventory
+  title: Inventory
+  url: /inventory
+
+tables:
+  - name: products
+    title: Products
+    url_suffix: /products
+    columns:
+      - name: name
+        label: Name
+        field_type: string
+        required: true
+      - name: price
+        label: Price
+        field_type: decimal
+      - name: category
+        label: Category
+        field_type: select
+        choices: "Electronics,Clothing,Food"</code></pre>
+        <div class="mt-2">
+          <span class="small text-muted me-1">Field types:</span>
+          {% for ft in ["string","text","integer","float","decimal","boolean","date","datetime","email","url","phone","select","file","image","json","uuid","relation"] %}
+          <span class="badge bg-secondary me-1">{{ ft }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="col-md-4 col-12 mt-4">
+    <div class="card">
+      <div class="card-body">
+        <h6>Install Methods</h6>
+        <dl class="small">
+          <dt><i class="fa fa-file-code-o text-primary"></i> YAML / JSON</dt>
+          <dd class="text-muted mb-2">Define schema → Aras creates DB tables dynamically. Best for business apps without custom logic.</dd>
+          <dt><i class="fa fa-code text-success"></i> Python Package</dt>
+          <dd class="text-muted">Full control: models, forms, custom views. Best when you need custom logic, complex queries, or non-standard UI.</dd>
+        </dl>
+        <hr>
+        <h6>Quick Steps (YAML)</h6>
+        <ol class="small text-muted ps-3 mb-0">
+          <li>Download template</li>
+          <li>Fill in app name, tables, columns</li>
+          <li>Upload → Activate</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
