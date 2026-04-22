@@ -17,9 +17,8 @@ def json_response():
 def register_errorhandlers(app):
     def render_error(error):
         error_code = getattr(error, "code", 500)
-        tmpl = f"page_{error_code}.html"
         try:
-            return render_template(tmpl), error_code
+            return render_template("page_error.html", error_code=error_code), error_code
         except Exception:
             return f"<h1>{error_code}</h1>", error_code
 
@@ -34,7 +33,7 @@ def register_errorhandlers(app):
         if current_app.config.get("DEBUG"):
             raise e
         try:
-            return render_template("page_500.html"), 500
+            return render_template("page_error.html", error_code=500), 500
         except Exception:
             return "<h1>500 Internal Server Error</h1>", 500
 

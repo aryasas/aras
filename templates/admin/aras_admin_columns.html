@@ -1,0 +1,412 @@
+{% extends extends_layout if extends_layout else 'admin/adm_base.html' %}
+
+{% block submenu %}
+<div class="page-title-area" style="padding:0 30px;border-bottom:1px solid #eef0f2;">
+  <nav style="display:flex;align-items:center;gap:0;flex-wrap:wrap;">
+    <a href="{{ url_for('admin.settings') }}#panel-apps"
+       style="padding:10px 14px;font-size:13px;color:#9aacb8;text-decoration:none;">Settings</a>
+    <span style="color:#d8e3e7;">/</span>
+    <a href="{{ url_for('admin.apps_tables', app_id=app_def.id) }}"
+       style="padding:10px 14px;font-size:13px;color:#9aacb8;text-decoration:none;">{{ app_def.title }}</a>
+    <span style="color:#d8e3e7;">/</span>
+    <span style="padding:10px 14px;font-size:13px;font-weight:600;color:#313b3d;border-bottom:2px solid var(--primary-color,#5a6fd6);">
+      <i class="fa {{ tbl.menu_icon or 'fa-table' }} mr-1"></i>{{ tbl.title }} — Columns
+    </span>
+    {% if all_tables|length > 1 %}
+      <span style="margin-left:auto;display:flex;align-items:center;gap:4px;padding-right:8px;">
+        {% for t in all_tables %}{% if t.id != tbl.id %}
+          <a href="{{ url_for('admin.apps_columns', app_id=app_def.id, table_id=t.id) }}"
+             style="padding:6px 10px;font-size:12px;color:#6c757d;text-decoration:none;border:1px solid #d8e3e7;border-radius:3px;">
+            {{ t.title }}
+          </a>
+        {% endif %}{% endfor %}
+      </span>
+    {% endif %}
+  </nav>
+</div>
+{% endblock %}
+
+
+{% block page_content %}
+<div class="row mt-4">
+
+  <!-- Add / Edit Column Form -->
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-body">
+        <h6 class="mb-3" id="col-form-title"><i class="fa fa-plus-circle mr-1 text-primary"></i>Add Column</h6>
+        <form method="POST" action="{{ url_for('admin.apps_columns', app_id=app_def.id, table_id=tbl.id) }}" id="col-form">
+          <input type="hidden" id="col-edit-id" name="_col_id" value="">
+          {{ form.hidden_tag() }}
+
+          <div class="form-group">
+            {{ form.name.label(class_="col-form-label-sm") }}
+            {{ form.name(class_="form-control form-control-sm", placeholder="e.g. product_name") }}
+            {% for e in form.name.errors %}<small class="text-danger">{{ e }}</small>{% endfor %}
+          </div>
+
+          <div class="form-group">
+            {{ form.label.label(class_="col-form-label-sm") }}
+            {{ form.label(class_="form-control form-control-sm", placeholder="e.g. Product Name") }}
+          </div>
+
+          <div class="form-group">
+            {{ form.field_type.label(class_="col-form-label-sm") }}
+            {{ form.field_type(class_="form-control form-control-sm", id="field_type_sel") }}
+          </div>
+
+          <!-- String length -->
+          <div class="form-group" id="length-option">
+            {{ form.length.label(class_="col-form-label-sm") }}
+            {{ form.length(class_="form-control form-control-sm", placeholder="200") }}
+          </div>
+
+          <!-- Relation options -->
+          <div id="relation-options" class="border rounded p-2 mb-2 bg-light">
+            <small class="text-muted d-block mb-2"><b>Relation Options</b></small>
+            <div class="form-group mb-1">
+              {{ form.relation_table_id.label(class_="col-form-label-sm") }}
+              {{ form.relation_table_id(class_="form-control form-control-sm") }}
+            </div>
+            <div class="form-group mb-1">
+              {{ form.relation_system_table.label(class_="col-form-label-sm") }}
+              {{ form.relation_system_table(class_="form-control form-control-sm", placeholder="e.g. auth_users") }}
+              <small class="text-muted">Use if target is a system table, not in this app.</small>
+            </div>
+            <div class="form-group mb-1">
+              {{ form.relation_display_col.label(class_="col-form-label-sm") }}
+              {{ form.relation_display_col(class_="form-control form-control-sm", placeholder="e.g. name") }}
+            </div>
+            <div class="form-check mb-1">
+              {{ form.cascade_delete(class_="form-check-input") }}
+              {{ form.cascade_delete.label(class_="form-check-label small") }}
+            </div>
+          </div>
+
+          <!-- Select choices -->
+          <div id="select-options" class="border rounded p-2 mb-2 bg-light">
+            <small class="text-muted d-block mb-1"><b>Select Options</b></small>
+            <div class="form-group mb-0">
+              {{ form.choices.label(class_="col-form-label-sm") }}
+              {{ form.choices(class_="form-control form-control-sm", placeholder="e.g. Active,Inactive,Pending") }}
+              <small class="text-muted">{{ form.choices.description }}</small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            {{ form.default_value.label(class_="col-form-label-sm") }}
+            {{ form.default_value(class_="form-control form-control-sm", placeholder="optional") }}
+          </div>
+
+          <div class="row">
+            <div class="col-6 form-group">
+              {{ form.order.label(class_="col-form-label-sm") }}
+              {{ form.order(class_="form-control form-control-sm") }}
+            </div>
+            <div class="col-6 form-group d-flex align-items-end">
+              <div class="form-check mb-2">
+                {{ form.required(class_="form-check-input") }}
+                {{ form.required.label(class_="form-check-label small") }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Display / UX -->
+          <div class="col-settings-section">
+            <small class="text-muted d-block mb-1"><b>Display</b></small>
+            <div class="form-group mb-1">
+              {{ form.placeholder.label(class_="col-form-label-sm") }}
+              {{ form.placeholder(class_="form-control form-control-sm") }}
+            </div>
+            <div class="form-group mb-1">
+              {{ form.help_text.label(class_="col-form-label-sm") }}
+              {{ form.help_text(class_="form-control form-control-sm") }}
+            </div>
+            <div class="row">
+              <div class="col-4 form-check pl-4">
+                {{ form.show_in_list(class_="form-check-input") }}
+                {{ form.show_in_list.label(class_="form-check-label small") }}
+              </div>
+              <div class="col-4 form-check pl-4">
+                {{ form.show_in_form(class_="form-check-input") }}
+                {{ form.show_in_form.label(class_="form-check-label small") }}
+              </div>
+              <div class="col-4 form-check pl-4">
+                {{ form.readonly(class_="form-check-input") }}
+                {{ form.readonly.label(class_="form-check-label small") }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Validation -->
+          <div class="col-settings-section">
+            <small class="text-muted d-block mb-1"><b>Validation</b></small>
+            <div class="row">
+              <div class="col-6 form-group mb-1">
+                {{ form.min_value.label(class_="col-form-label-sm") }}
+                {{ form.min_value(class_="form-control form-control-sm") }}
+              </div>
+              <div class="col-6 form-group mb-1">
+                {{ form.max_value.label(class_="col-form-label-sm") }}
+                {{ form.max_value(class_="form-control form-control-sm") }}
+              </div>
+            </div>
+            <div class="form-group mb-1">
+              {{ form.max_length.label(class_="col-form-label-sm") }}
+              {{ form.max_length(class_="form-control form-control-sm") }}
+            </div>
+            <div class="row">
+              <div class="col-6 form-check pl-4">
+                {{ form.unique(class_="form-check-input") }}
+                {{ form.unique.label(class_="form-check-label small") }}
+              </div>
+              <div class="col-6 form-check pl-4">
+                {{ form.searchable(class_="form-check-input") }}
+                {{ form.searchable.label(class_="form-check-label small") }}
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex mt-3" style="gap:6px;">
+            <button type="submit" id="col-submit-btn" class="btn btn-primary btn-sm flex-grow-1">
+              <i class="fa fa-plus mr-1"></i> Add Column
+            </button>
+            <button type="button" id="col-cancel-btn" class="btn btn-outline-secondary btn-sm" style="display:none;" onclick="resetColForm()">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Columns List -->
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div>
+            <h6 class="mb-0">
+              <i class="fa fa-table mr-1"></i>
+              <b>{{ tbl.title }}</b>
+              <small class="text-muted ml-1">&mdash; DB: <code>ab_{{ app_def.name }}_{{ tbl.name }}</code></small>
+            </h6>
+          </div>
+          <div>
+            {% if not app_def.is_active %}
+              <form method="POST" action="{{ url_for('admin.apps_activate', app_id=app_def.id) }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-xs btn-success mr-1">
+                  <i class="fa fa-play"></i> Activate
+                </button>
+              </form>
+            {% else %}
+              <span class="badge badge-success mr-1">Active</span>
+            {% endif %}
+            <a href="{{ url_for('admin.apps_table_edit', app_id=app_def.id, table_id=tbl.id) }}"
+               class="btn btn-xs btn-outline-secondary">
+              <i class="fa fa-cog"></i> Table Settings
+            </a>
+          </div>
+        </div>
+        <hr class="mt-1">
+
+        <!-- Column type reference -->
+        <div class="mb-2">
+          {% set type_colors = {'string':'secondary','text':'secondary','integer':'primary','float':'primary','decimal':'primary','boolean':'warning','date':'info','datetime':'info','json':'dark','relation':'danger'} %}
+          <small class="text-muted">
+            {% for col in columns %}
+              <span class="badge badge-{{ type_colors.get(col.field_type, 'light') }} mr-1">{{ col.name }}</span>
+            {% endfor %}
+          </small>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="bg-light">
+              <tr>
+                <th style="width:30px">#</th>
+                <th>Column</th>
+                <th>Label</th>
+                <th>Type</th>
+                <th>Details</th>
+                <th style="width:50px">Req</th>
+                <th style="width:40px">Ord</th>
+                <th style="width:70px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Virtual: id (always present) -->
+              <tr class="text-muted">
+                <td>—</td>
+                <td><code>id</code></td>
+                <td>ID</td>
+                <td><span class="badge badge-primary">integer</span></td>
+                <td><small>Primary Key (auto)</small></td>
+                <td><i class="fa fa-check text-success"></i></td>
+                <td>—</td>
+                <td></td>
+              </tr>
+              {% for col in columns %}
+              <tr>
+                <td>{{ col.id }}</td>
+                <td><code>{{ col.name }}{% if col.field_type == 'relation' %}_id{% endif %}</code></td>
+                <td>{{ col.label }}</td>
+                <td>
+                  <span class="badge badge-{{ type_colors.get(col.field_type, 'light') }}">
+                    {{ col.field_type }}{% if col.length %}({{ col.length }}){% endif %}
+                  </span>
+                </td>
+                <td class="small text-muted">
+                  {% if col.field_type == 'relation' %}
+                    {% if col.relation_table %}
+                      FK → {{ col.relation_table.title }}
+                      {% if col.cascade_delete %}<span class="badge badge-danger badge-sm ml-1">cascade</span>{% endif %}
+                    {% elif col.relation_system_table %}
+                      FK → <code>{{ col.relation_system_table }}</code>
+                    {% endif %}
+                    {% if col.relation_display_col %}· display: <code>{{ col.relation_display_col }}</code>{% endif %}
+                  {% elif col.field_type == 'select' and col.choices %}
+                    <span title="{{ col.choices }}">{{ col.choices[:30] }}{% if col.choices|length > 30 %}…{% endif %}</span>
+                  {% elif col.default_value %}
+                    default: <code>{{ col.default_value }}</code>
+                  {% else %}
+                    —
+                  {% endif %}
+                  {% if col.unique %}<span class="badge badge-info badge-sm ml-1">unique</span>{% endif %}
+                  {% if col.searchable %}<span class="badge badge-secondary badge-sm ml-1">search</span>{% endif %}
+                  {% if col.readonly %}<span class="badge badge-warning badge-sm ml-1">readonly</span>{% endif %}
+                  {% if not col.show_in_list %}<span class="badge badge-light badge-sm ml-1">hidden-list</span>{% endif %}
+                </td>
+                <td>
+                  {% if col.required %}
+                    <i class="fa fa-check text-success"></i>
+                  {% else %}
+                    <i class="fa fa-times text-muted"></i>
+                  {% endif %}
+                </td>
+                <td>{{ col.order }}</td>
+                <td style="white-space:nowrap;">
+                  <button type="button" class="btn btn-xs btn-outline-secondary mr-1"
+                          onclick="fillEditForm({{ col.id }}, '{{ col.name }}', '{{ col.label }}', '{{ col.field_type }}', {{ col.order }}, {{ 'true' if col.required else 'false' }}, {{ 'true' if col.show_in_list else 'false' }}, {{ 'true' if col.show_in_form else 'false' }}, {{ 'true' if col.searchable else 'false' }}, {{ 'true' if col.readonly else 'false' }}, {{ 'true' if col.unique else 'false' }})"
+                          title="Edit">
+                    <i class="fa fa-pencil"></i>
+                  </button>
+                  <form method="POST"
+                        action="{{ url_for('admin.apps_column_delete', app_id=app_def.id, table_id=tbl.id, col_id=col.id) }}"
+                        style="display:inline;"
+                        onsubmit="return confirm('Delete column {{ col.name }}?')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-xs btn-outline-danger" title="Delete">
+                      <i class="fa fa-trash"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="8" class="text-center text-muted py-3">
+                  No columns yet — add the first column on the left.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-3 d-flex justify-content-between align-items-center">
+          <a href="{{ url_for('admin.apps_tables', app_id=app_def.id) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa fa-arrow-left mr-1"></i>Back to Tables
+          </a>
+          <small class="text-muted">
+            SQL: <code>ab_{{ app_def.name }}_{{ tbl.name }}</code>
+            &mdash; {{ columns|length + 1 }} column(s) incl. PK
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Other tables in this app -->
+    {% if all_tables|length > 1 %}
+    <div class="card mt-3">
+      <div class="card-body py-2">
+        <small class="text-muted"><b>Other tables in {{ app_def.title }}:</b></small>
+        {% for t in all_tables %}
+          {% if t.id != tbl.id %}
+            <a href="{{ url_for('admin.apps_columns', app_id=app_def.id, table_id=t.id) }}"
+               class="btn btn-xs btn-outline-secondary ml-1 mt-1">
+              <i class="fa fa-table mr-1"></i>{{ t.title }}
+            </a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script>
+(function(){
+  var sel = document.getElementById('field_type_sel');
+  if (!sel) return;
+
+  function update() {
+    var v = sel.value;
+    document.getElementById('relation-options').style.display = (v === 'relation') ? 'block' : 'none';
+    document.getElementById('select-options').style.display   = (v === 'select')   ? 'block' : 'none';
+    document.getElementById('length-option').style.display    = (v === 'string' || v === 'email' || v === 'phone') ? 'block' : 'none';
+  }
+
+  sel.addEventListener('change', update);
+  update();
+})();
+
+var ADD_URL  = "{{ url_for('admin.apps_columns', app_id=app_def.id, table_id=tbl.id) }}";
+var EDIT_URL = "{{ url_for('admin.apps_columns', app_id=app_def.id, table_id=tbl.id) }}".replace(
+  /\/columns$/, '/columns/__COL_ID__/edit'
+);
+
+function fillEditForm(colId, name, label, fieldType, order, required, showInList, showInForm, searchable, readonly, unique) {
+  var form  = document.getElementById('col-form');
+  form.action = EDIT_URL.replace('__COL_ID__', colId);
+  document.getElementById('col-edit-id').value = colId;
+  form.elements['name'].value           = name;
+  form.elements['label'].value          = label;
+  form.elements['field_type_sel'] ? (document.getElementById('field_type_sel').value = fieldType) : null;
+  form.elements['order'].value          = order;
+  form.elements['required'].checked     = required;
+  form.elements['show_in_list'].checked = showInList;
+  form.elements['show_in_form'].checked = showInForm;
+  form.elements['searchable'].checked   = searchable;
+  form.elements['readonly'].checked     = readonly;
+  form.elements['unique'].checked       = unique;
+
+  document.getElementById('col-form-title').innerHTML =
+    '<i class="fa fa-pencil mr-1 text-warning"></i>Edit Column: <b>' + label + '</b>';
+  document.getElementById('col-submit-btn').innerHTML = '<i class="fa fa-save mr-1"></i> Save Changes';
+  document.getElementById('col-submit-btn').className = 'btn btn-warning btn-sm flex-grow-1';
+  document.getElementById('col-cancel-btn').style.display = 'inline-block';
+
+  // trigger field_type change to show/hide options
+  document.getElementById('field_type_sel').dispatchEvent(new Event('change'));
+  document.getElementById('col-form').scrollIntoView({behavior:'smooth'});
+}
+
+function resetColForm() {
+  var form = document.getElementById('col-form');
+  form.action = ADD_URL;
+  form.reset();
+  document.getElementById('col-edit-id').value = '';
+  document.getElementById('col-form-title').innerHTML =
+    '<i class="fa fa-plus-circle mr-1 text-primary"></i>Add Column';
+  document.getElementById('col-submit-btn').innerHTML = '<i class="fa fa-plus mr-1"></i> Add Column';
+  document.getElementById('col-submit-btn').className = 'btn btn-primary btn-sm flex-grow-1';
+  document.getElementById('col-cancel-btn').style.display = 'none';
+  document.getElementById('field_type_sel').dispatchEvent(new Event('change'));
+}
+</script>
+{% endblock %}
