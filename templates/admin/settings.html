@@ -1,1400 +1,1286 @@
-{% extends extends_layout if extends_layout else 'admin/adm_base.html' %} {%
-block submenu %}
-<div
-    class="page-title-area"
-    style="padding: 0 30px; border-bottom: 1px solid #eef0f2"
->
-    <nav style="display: flex; gap: 0; align-items: stretch">
-        {% for panel_id, icon, label in [ ('panel-general', 'ti-settings',
-        'General'), ('panel-server', 'ti-desktop', 'Server'), ('panel-apps',
-        'ti-layout-grid2', 'App Manager'), ('panel-doctypes', 'ti-files',
-        'DocTypes'), ('panel-uploads', 'ti-folder', 'Uploads'), ('panel-users',
-        'ti-user', 'Users'), ('panel-database', 'ti-server', 'Database'),
-        ('panel-roles', 'ti-shield', 'Roles'), ] %}
-        <a
-            href="#{{ panel_id }}"
-            class="settings-tab-link {% if loop.first %}active{% endif %}"
-            data-panel="{{ panel_id }}"
-            style="
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                padding: 10px 18px;
-                font-size: 13px;
-                color: #6c757d;
-                text-decoration: none;
-                border-bottom: 2px solid transparent;
-            "
-        >
-            <i class="{{ icon }}"></i> {{ label }}
-        </a>
-        {% endfor %}
-    </nav>
+{% extends extends_layout if extends_layout else 'admin/adm_base.html' %}
+
+{% block submenu %}
+<div class="aras-tab-bar">
+  <nav class="aras-tab-nav">
+    {% for panel_id, icon, label in [
+      ('panel-general',  'ti-settings',     'General'),
+      ('panel-server',   'ti-desktop',      'Server'),
+      ('panel-apps',     'ti-layout-grid2', 'App Manager'),
+      ('panel-doctypes', 'ti-files',        'DocTypes'),
+      ('panel-uploads',  'ti-folder',       'Uploads'),
+      ('panel-users',    'ti-user',         'Users'),
+      ('panel-userlog',  'ti-time',         'User Log'),
+      ('panel-database', 'ti-server',       'Database'),
+      ('panel-roles',    'ti-shield',       'Roles'),
+      ('panel-menu',     'ti-menu',         'Menu Editor'),
+      ('panel-dev',      'ti-dashboard',    'Dev'),
+    ] %}
+    <a href="#{{ panel_id }}"
+       class="aras-tab settings-tab-link {% if loop.first %}active{% endif %}"
+       data-panel="{{ panel_id }}">
+      <i class="{{ icon }}"></i> {{ label }}
+    </a>
+    {% endfor %}
+  </nav>
 </div>
-{% endblock %} {% block page_content %}
-<div class="row mt-4">
-    <!-- Settings Sidebar -->
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body p-0">
-                <ul class="list-group list-group-flush" id="settings-nav">
-                    <li
-                        class="list-group-item list-group-item-action settings-nav-item active"
-                        data-panel="panel-general"
-                        style="cursor: pointer"
-                    >
-                        <i class="ti-settings mr-2"></i> General
-                    </li>
-                    <li
-                        class="list-group-item list-group-item-action settings-nav-item"
-                        data-panel="panel-server"
-                        style="cursor: pointer"
-                    >
-                        <i class="ti-desktop mr-2"></i> Server
-                    </li>
-                    <li
-                        class="list-group-item list-group-item-action settings-nav-item"
-                        data-panel="panel-apps"
-                        style="cursor: pointer"
-                    >
-                        <i class="ti-layout-grid2 mr-2"></i> App Manager
-                    </li>
-                    <li
-                        class="list-group-item list-group-item-action settings-nav-item"
-                        data-panel="panel-doctypes"
-                        style="cursor: pointer"
-                    >
-                        <i class="ti-files mr-2"></i> DocTypes
-                    </li>
-                    <li
-                        class="list-group-item list-group-item-action settings-nav-item"
-                        data-panel="panel-uploads"
-                        style="cursor: pointer"
-                    >
-                        <i class="ti-folder mr-2"></i> Uploads
-                    </li>
-                    <li
-                        class="list-group-item list-group-item-action settings-nav-item"
-                        data-panel="panel-users"
-                        style="cursor: pointer"
-                    >
-                        <i class="ti-user mr-2"></i> Users
-                    </li>
-                    <li
-                        class="list-group-item list-group-item-action settings-nav-item"
-                        data-panel="panel-database"
-                        style="cursor: pointer"
-                    >
-                        <i class="ti-server mr-2"></i> Database
-                    </li>
-                    <li
-                        class="list-group-item list-group-item-action settings-nav-item"
-                        data-panel="panel-roles"
-                        style="cursor: pointer"
-                    >
-                        <i class="ti-shield mr-2"></i> Roles &amp; Permissions
-                    </li>
-                </ul>
+{% endblock %}
+
+{% block page_content %}
+<div class="row mt-4 px-3">
+
+  {# ── Sidebar nav ── #}
+  <div class="col-md-2">
+    <div class="card">
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush" id="settings-nav">
+          {% for panel_id, icon, label in [
+            ('panel-general',  'ti-settings',     'General'),
+            ('panel-server',   'ti-desktop',      'Server'),
+            ('panel-apps',     'ti-layout-grid2', 'App Manager'),
+            ('panel-doctypes', 'ti-files',        'DocTypes'),
+            ('panel-uploads',  'ti-folder',       'Uploads'),
+            ('panel-users',    'ti-user',         'Users'),
+            ('panel-userlog',  'ti-time',         'User Log'),
+            ('panel-database', 'ti-server',       'Database'),
+            ('panel-roles',    'ti-shield',       'Roles'),
+            ('panel-menu',     'ti-menu',         'Menu Editor'),
+            ('panel-dev',      'ti-dashboard',    'Dev'),
+          ] %}
+          <li class="list-group-item list-group-item-action settings-nav-item {% if loop.first %}active{% endif %}"
+              data-panel="{{ panel_id }}" style="cursor:pointer;font-size:13px;">
+            <i class="{{ icon }} mr-2"></i>{{ label }}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  {# ── Panels ── #}
+  <div class="col-md-10">
+
+    {# ── General ── #}
+    <div class="settings-panel" id="panel-general">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="mb-3">General Settings</h5>
+          <p class="text-muted">Configure general application settings.</p>
+          <hr>
+          <div class="row">
+            <div class="col-6">
+              <p><b>App Name:</b> {{ config.get('APP_NAME', 'Aras') if config is defined else 'Aras' }}</p>
             </div>
+            <div class="col-6">
+              <p><b>Environment:</b> {{ config.get('ENV', 'production') if config is defined else '—' }}</p>
+            </div>
+          </div>
         </div>
+      </div>
     </div>
 
-    <!-- Settings Panels -->
-    <div class="col-md-9">
-        <!-- General -->
-        <div class="settings-panel" id="panel-general">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="mb-3">General Settings</h5>
-                    <p class="text-muted">
-                        Configure general application settings.
-                    </p>
-                    <hr />
-                    <div class="row">
-                        <div class="col-6">
-                            <p>
-                                <b>App Name:</b> {{ config.get('APP_NAME',
-                                'Aras') if config is defined else 'Aras' }}
-                            </p>
-                        </div>
-                        <div class="col-6">
-                            <p>
-                                <b>Environment:</b> {{ config.get('ENV',
-                                'production') if config is defined else '—' }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
+    {# ── Server ── #}
+    <div class="settings-panel d-none" id="panel-server">
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5 class="mb-3"><i class="ti-desktop mr-2"></i>Server Status</h5>
+          <hr>
+          <div class="row">
+            <div class="col-md-4">
+              <small class="text-muted d-block">Environment</small>
+              <code>{{ server_info.env }}</code>
             </div>
+            <div class="col-md-4">
+              <small class="text-muted d-block">Debug Mode</small>
+              {% if server_info.debug %}<span class="badge badge-warning">ON</span>
+              {% else %}<span class="badge badge-success">OFF</span>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted d-block">Python</small>
+              <code>{{ server_info.python_version }}</code>
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-md-4">
+              <small class="text-muted d-block">Host</small>
+              <code>{{ server_info.host }}</code>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted d-block">Server Time</small>
+              <code>{{ server_info.server_time }}</code>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted d-block">Uptime</small>
+              <code>{{ server_info.uptime }}</code>
+            </div>
+          </div>
+          <hr>
+          <form method="POST" action="{{ url_for('admin.server_restart') }}"
+                onsubmit="return confirm('Restart server? Active connections will be dropped.')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger btn-sm">
+              <i class="fa fa-refresh mr-1"></i> Restart Server
+            </button>
+            <small class="text-muted ml-2">Gunicorn: graceful reload. Dev server: process exit.</small>
+          </form>
         </div>
+      </div>
 
-        <!-- Server -->
-        <div class="settings-panel d-none" id="panel-server">
-            <!-- Status Card -->
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h5 class="mb-3">
-                        <i class="ti-desktop mr-2"></i>Server Status
-                    </h5>
-                    <hr />
-                    <div class="row">
-                        <div class="col-md-4">
-                            <small class="text-muted d-block"
-                                >Environment</small
-                            >
-                            <code>{{ server_info.env }}</code>
-                        </div>
-                        <div class="col-md-4">
-                            <small class="text-muted d-block">Debug Mode</small>
-                            {% if server_info.debug %}<span
-                                class="badge badge-warning"
-                                >ON</span
-                            >
-                            {% else %}<span class="badge badge-success"
-                                >OFF</span
-                            >{% endif %}
-                        </div>
-                        <div class="col-md-4">
-                            <small class="text-muted d-block">Python</small>
-                            <code>{{ server_info.python_version }}</code>
-                        </div>
-                    </div>
-                    <div class="row mt-3">
-                        <div class="col-md-4">
-                            <small class="text-muted d-block">Host</small>
-                            <code>{{ server_info.host }}</code>
-                        </div>
-                        <div class="col-md-4">
-                            <small class="text-muted d-block"
-                                >Server Time</small
-                            >
-                            <code>{{ server_info.server_time }}</code>
-                        </div>
-                        <div class="col-md-4">
-                            <small class="text-muted d-block">Uptime</small>
-                            <code>{{ server_info.uptime }}</code>
-                        </div>
-                    </div>
-                    <hr />
-                    <form
-                        method="POST"
-                        action="{{ url_for('admin.server_restart') }}"
-                        onsubmit="
-                            return confirm(
-                                'Restart server? Active connections will be dropped.',
-                            );
-                        "
-                    >
-                        <input
-                            type="hidden"
-                            name="csrf_token"
-                            value="{{ csrf_token() }}"
-                        />
-                        <button type="submit" class="btn btn-danger btn-sm">
-                            <i class="fa fa-refresh mr-1"></i> Restart Server
-                        </button>
-                        <small class="text-muted ml-2"
-                            >Gunicorn: graceful reload. Dev server: process
-                            exit.</small
-                        >
-                    </form>
-                </div>
+      <div class="card">
+        <div class="card-body">
+          <h5 class="mb-3"><i class="ti-settings mr-2"></i>Production Server Config</h5>
+          <p class="text-muted small">Settings saved to <code>instance/server.json</code> and auto-generates <code>gunicorn.conf.py</code>.</p>
+          <hr>
+          <form method="POST" action="{{ url_for('admin.server_settings_save') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label font-weight-bold">WSGI Server</label>
+              <div class="col-sm-9">
+                <select name="wsgi_server" class="form-control form-control-sm">
+                  {% for opt in ['gunicorn','uwsgi','flask'] %}
+                  <option value="{{ opt }}" {% if server_cfg.wsgi_server == opt %}selected{% endif %}>{{ opt }}</option>
+                  {% endfor %}
+                </select>
+                <small class="text-muted">Use <code>gunicorn</code> or <code>uwsgi</code> for production.</small>
+              </div>
             </div>
-
-            <!-- Config Form -->
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="mb-3">
-                        <i class="ti-settings mr-2"></i>Production Server Config
-                    </h5>
-                    <p class="text-muted small">
-                        Settings saved to <code>instance/server.json</code> and
-                        auto-generates <code>gunicorn.conf.py</code>.
-                    </p>
-                    <hr />
-                    <form
-                        method="POST"
-                        action="{{ url_for('admin.server_settings_save') }}"
-                    >
-                        <input
-                            type="hidden"
-                            name="csrf_token"
-                            value="{{ csrf_token() }}"
-                        />
-
-                        <!-- WSGI Server -->
-                        <div class="form-group row">
-                            <label
-                                class="col-sm-3 col-form-label font-weight-bold"
-                                >WSGI Server</label
-                            >
-                            <div class="col-sm-9">
-                                <select
-                                    name="wsgi_server"
-                                    class="form-control form-control-sm"
-                                >
-                                    {% for opt in ['gunicorn', 'uwsgi', 'flask']
-                                    %}
-                                    <option
-                                        value="{{ opt }}"
-                                        {%
-                                        if
-                                        server_cfg.wsgi_server ==
-                                        opt
-                                        %}selected{%
-                                        endif
-                                        %}
-                                    >
-                                        {{ opt }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                                <small class="text-muted"
-                                    >Use <code>gunicorn</code> or
-                                    <code>uwsgi</code> for production.
-                                    <code>flask</code> = dev only.</small
-                                >
-                            </div>
-                        </div>
-
-                        <!-- Bind -->
-                        <div class="form-group row">
-                            <label
-                                class="col-sm-3 col-form-label font-weight-bold"
-                                >Bind Host</label
-                            >
-                            <div class="col-sm-5">
-                                <input
-                                    type="text"
-                                    name="host"
-                                    class="form-control form-control-sm"
-                                    value="{{ server_cfg.host }}"
-                                    placeholder="0.0.0.0"
-                                />
-                            </div>
-                            <label class="col-sm-1 col-form-label text-right"
-                                >Port</label
-                            >
-                            <div class="col-sm-3">
-                                <input
-                                    type="number"
-                                    name="port"
-                                    class="form-control form-control-sm"
-                                    value="{{ server_cfg.port }}"
-                                    min="1"
-                                    max="65535"
-                                />
-                            </div>
-                        </div>
-
-                        <!-- Workers & Threads -->
-                        <div class="form-group row">
-                            <label
-                                class="col-sm-3 col-form-label font-weight-bold"
-                                >Workers</label
-                            >
-                            <div class="col-sm-3">
-                                <input
-                                    type="number"
-                                    name="workers"
-                                    class="form-control form-control-sm"
-                                    value="{{ server_cfg.workers }}"
-                                    min="1"
-                                    max="32"
-                                />
-                                <small class="text-muted"
-                                    >Recommended: (2×CPU)+1</small
-                                >
-                            </div>
-                            <label class="col-sm-2 col-form-label text-right"
-                                >Threads</label
-                            >
-                            <div class="col-sm-4">
-                                <input
-                                    type="number"
-                                    name="threads"
-                                    class="form-control form-control-sm"
-                                    value="{{ server_cfg.threads }}"
-                                    min="1"
-                                    max="32"
-                                />
-                                <small class="text-muted"
-                                    >Per worker (for
-                                    <code>gthread</code>)</small
-                                >
-                            </div>
-                        </div>
-
-                        <!-- Worker Class -->
-                        <div class="form-group row">
-                            <label
-                                class="col-sm-3 col-form-label font-weight-bold"
-                                >Worker Class</label
-                            >
-                            <div class="col-sm-9">
-                                <select
-                                    name="worker_class"
-                                    class="form-control form-control-sm"
-                                >
-                                    {% for opt in ['sync', 'gthread', 'gevent',
-                                    'eventlet'] %}
-                                    <option
-                                        value="{{ opt }}"
-                                        {%
-                                        if
-                                        server_cfg.worker_class ==
-                                        opt
-                                        %}selected{%
-                                        endif
-                                        %}
-                                    >
-                                        {{ opt }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                                <small class="text-muted"
-                                    ><code>sync</code> = default.
-                                    <code>gthread</code> = multi-thread.
-                                    <code>gevent</code> = async (needs
-                                    <code>pip install gevent</code>).</small
-                                >
-                            </div>
-                        </div>
-
-                        <!-- Timeout & Keepalive -->
-                        <div class="form-group row">
-                            <label
-                                class="col-sm-3 col-form-label font-weight-bold"
-                                >Timeout (s)</label
-                            >
-                            <div class="col-sm-3">
-                                <input
-                                    type="number"
-                                    name="timeout"
-                                    class="form-control form-control-sm"
-                                    value="{{ server_cfg.timeout }}"
-                                    min="1"
-                                />
-                            </div>
-                            <label class="col-sm-2 col-form-label text-right"
-                                >Keepalive (s)</label
-                            >
-                            <div class="col-sm-4">
-                                <input
-                                    type="number"
-                                    name="keepalive"
-                                    class="form-control form-control-sm"
-                                    value="{{ server_cfg.keepalive }}"
-                                    min="0"
-                                />
-                            </div>
-                        </div>
-
-                        <!-- Max Requests -->
-                        <div class="form-group row">
-                            <label
-                                class="col-sm-3 col-form-label font-weight-bold"
-                                >Max Requests</label
-                            >
-                            <div class="col-sm-4">
-                                <input
-                                    type="number"
-                                    name="max_requests"
-                                    class="form-control form-control-sm"
-                                    value="{{ server_cfg.max_requests }}"
-                                    min="0"
-                                />
-                                <small class="text-muted"
-                                    >0 = unlimited. Restart worker after N
-                                    requests (prevents memory leaks).</small
-                                >
-                            </div>
-                        </div>
-
-                        <!-- Log Level -->
-                        <div class="form-group row">
-                            <label
-                                class="col-sm-3 col-form-label font-weight-bold"
-                                >Log Level</label
-                            >
-                            <div class="col-sm-4">
-                                <select
-                                    name="loglevel"
-                                    class="form-control form-control-sm"
-                                >
-                                    {% for opt in ['debug', 'info', 'warning',
-                                    'error', 'critical'] %}
-                                    <option
-                                        value="{{ opt }}"
-                                        {%
-                                        if
-                                        server_cfg.loglevel ==
-                                        opt
-                                        %}selected{%
-                                        endif
-                                        %}
-                                    >
-                                        {{ opt }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Access / Error Log -->
-                        <div class="form-group row">
-                            <label
-                                class="col-sm-3 col-form-label font-weight-bold"
-                                >Access Log</label
-                            >
-                            <div class="col-sm-9">
-                                <input
-                                    type="text"
-                                    name="accesslog"
-                                    class="form-control form-control-sm"
-                                    value="{{ server_cfg.accesslog }}"
-                                    placeholder="- (stdout) or /path/to/access.log"
-                                />
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <label
-                                class="col-sm-3 col-form-label font-weight-bold"
-                                >Error Log</label
-                            >
-                            <div class="col-sm-9">
-                                <input
-                                    type="text"
-                                    name="errorlog"
-                                    class="form-control form-control-sm"
-                                    value="{{ server_cfg.errorlog }}"
-                                    placeholder="- (stderr) or /path/to/error.log"
-                                />
-                            </div>
-                        </div>
-
-                        <!-- SSL -->
-                        <hr />
-                        <div class="form-group row">
-                            <label
-                                class="col-sm-3 col-form-label font-weight-bold"
-                                >SSL / TLS</label
-                            >
-                            <div class="col-sm-9 pt-1">
-                                <div class="custom-control custom-switch">
-                                    <input
-                                        type="checkbox"
-                                        class="custom-control-input"
-                                        id="ssl_enabled"
-                                        name="ssl_enabled"
-                                        value="1"
-                                        {%
-                                        if
-                                        server_cfg.ssl_enabled
-                                        %}checked{%
-                                        endif
-                                        %}
-                                        onchange="
-                                            document
-                                                .getElementById('ssl-fields')
-                                                .classList.toggle(
-                                                    'd-none',
-                                                    !this.checked,
-                                                )
-                                        "
-                                    />
-                                    <label
-                                        class="custom-control-label"
-                                        for="ssl_enabled"
-                                        >Enable HTTPS</label
-                                    >
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            id="ssl-fields"
-                            {%
-                            if
-                            not
-                            server_cfg.ssl_enabled
-                            %}class="d-none"
-                            {%
-                            endif
-                            %}
-                        >
-                            <div class="form-group row">
-                                <label class="col-sm-3 col-form-label"
-                                    >Cert File</label
-                                >
-                                <div class="col-sm-9">
-                                    <input
-                                        type="text"
-                                        name="ssl_certfile"
-                                        class="form-control form-control-sm"
-                                        value="{{ server_cfg.ssl_certfile }}"
-                                        placeholder="/path/to/cert.pem"
-                                    />
-                                </div>
-                            </div>
-                            <div class="form-group row">
-                                <label class="col-sm-3 col-form-label"
-                                    >Key File</label
-                                >
-                                <div class="col-sm-9">
-                                    <input
-                                        type="text"
-                                        name="ssl_keyfile"
-                                        class="form-control form-control-sm"
-                                        value="{{ server_cfg.ssl_keyfile }}"
-                                        placeholder="/path/to/key.pem"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <hr />
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fa fa-save mr-1"></i> Save Settings
-                            </button>
-                        </div>
-                    </form>
-                </div>
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label font-weight-bold">Bind Host</label>
+              <div class="col-sm-5">
+                <input type="text" name="host" class="form-control form-control-sm" value="{{ server_cfg.host }}" placeholder="0.0.0.0">
+              </div>
+              <label class="col-sm-1 col-form-label text-right">Port</label>
+              <div class="col-sm-3">
+                <input type="number" name="port" class="form-control form-control-sm" value="{{ server_cfg.port }}" min="1" max="65535">
+              </div>
             </div>
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label font-weight-bold">Workers</label>
+              <div class="col-sm-3">
+                <input type="number" name="workers" class="form-control form-control-sm" value="{{ server_cfg.workers }}" min="1" max="32">
+                <small class="text-muted">Recommended: (2×CPU)+1</small>
+              </div>
+              <label class="col-sm-2 col-form-label text-right">Threads</label>
+              <div class="col-sm-4">
+                <input type="number" name="threads" class="form-control form-control-sm" value="{{ server_cfg.threads }}" min="1" max="32">
+              </div>
+            </div>
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label font-weight-bold">Worker Class</label>
+              <div class="col-sm-9">
+                <select name="worker_class" class="form-control form-control-sm">
+                  {% for opt in ['sync','gthread','gevent','eventlet'] %}
+                  <option value="{{ opt }}" {% if server_cfg.worker_class == opt %}selected{% endif %}>{{ opt }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label font-weight-bold">Timeout (s)</label>
+              <div class="col-sm-3">
+                <input type="number" name="timeout" class="form-control form-control-sm" value="{{ server_cfg.timeout }}" min="1">
+              </div>
+              <label class="col-sm-2 col-form-label text-right">Keepalive (s)</label>
+              <div class="col-sm-4">
+                <input type="number" name="keepalive" class="form-control form-control-sm" value="{{ server_cfg.keepalive }}" min="0">
+              </div>
+            </div>
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label font-weight-bold">Max Requests</label>
+              <div class="col-sm-4">
+                <input type="number" name="max_requests" class="form-control form-control-sm" value="{{ server_cfg.max_requests }}" min="0">
+                <small class="text-muted">0 = unlimited.</small>
+              </div>
+            </div>
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label font-weight-bold">Log Level</label>
+              <div class="col-sm-4">
+                <select name="loglevel" class="form-control form-control-sm">
+                  {% for opt in ['debug','info','warning','error','critical'] %}
+                  <option value="{{ opt }}" {% if server_cfg.loglevel == opt %}selected{% endif %}>{{ opt }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label font-weight-bold">Access Log</label>
+              <div class="col-sm-9">
+                <input type="text" name="accesslog" class="form-control form-control-sm" value="{{ server_cfg.accesslog }}" placeholder="- (stdout) or /path/to/access.log">
+              </div>
+            </div>
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label font-weight-bold">Error Log</label>
+              <div class="col-sm-9">
+                <input type="text" name="errorlog" class="form-control form-control-sm" value="{{ server_cfg.errorlog }}" placeholder="- (stderr) or /path/to/error.log">
+              </div>
+            </div>
+            <hr>
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label font-weight-bold">SSL / TLS</label>
+              <div class="col-sm-9 pt-1">
+                <div class="custom-control custom-switch">
+                  <input type="checkbox" class="custom-control-input" id="ssl_enabled" name="ssl_enabled" value="1"
+                         {% if server_cfg.ssl_enabled %}checked{% endif %}
+                         onchange="document.getElementById('ssl-fields').classList.toggle('d-none', !this.checked)">
+                  <label class="custom-control-label" for="ssl_enabled">Enable HTTPS</label>
+                </div>
+              </div>
+            </div>
+            <div id="ssl-fields" {% if not server_cfg.ssl_enabled %}class="d-none"{% endif %}>
+              <div class="form-group row">
+                <label class="col-sm-3 col-form-label">Cert File</label>
+                <div class="col-sm-9">
+                  <input type="text" name="ssl_certfile" class="form-control form-control-sm" value="{{ server_cfg.ssl_certfile }}" placeholder="/path/to/cert.pem">
+                </div>
+              </div>
+              <div class="form-group row">
+                <label class="col-sm-3 col-form-label">Key File</label>
+                <div class="col-sm-9">
+                  <input type="text" name="ssl_keyfile" class="form-control form-control-sm" value="{{ server_cfg.ssl_keyfile }}" placeholder="/path/to/key.pem">
+                </div>
+              </div>
+            </div>
+            <hr>
+            <button type="submit" class="aras-btn aras-btn--primary">
+              <i class="fa fa-save mr-1"></i> Save Settings
+            </button>
+          </form>
         </div>
-
-        <!-- App Manager -->
-        <div class="settings-panel d-none" id="panel-apps">
-            <div class="card">
-                <div class="card-body">
-                    <div
-                        class="d-flex justify-content-between align-items-center mb-3"
-                    >
-                        <h5 class="mb-0">App Manager</h5>
-                        <div class="d-flex gap-2">
-                            <a
-                                href="{{ url_for('admin.apps_install') }}"
-                                class="btn btn-outline-secondary btn-sm"
-                            >
-                                <i class="fa fa-upload mr-1"></i> Install from
-                                File
-                            </a>
-                            <a
-                                href="{{ url_for('admin.apps_new') }}"
-                                class="btn btn-primary btn-sm"
-                            >
-                                <i class="fa fa-plus mr-1"></i> Add New App
-                            </a>
-                        </div>
-                    </div>
-                    <hr />
-                    <div class="table-responsive">
-                        <table class="table table-hover table-sm">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Name</th>
-                                    <th>Title</th>
-                                    <th>URL</th>
-                                    <th>Fields</th>
-                                    <th>Active</th>
-                                    <th>Sidebar</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for app in apps %}
-                                <tr>
-                                    <td>{{ app.id }}</td>
-                                    <td><code>{{ app.name }}</code></td>
-                                    <td>{{ app.title }}</td>
-                                    <td><code>{{ app.url }}</code></td>
-                                    <td>
-                                        <a
-                                            href="{{ url_for('admin.apps_tables', app_id=app.id) }}"
-                                            class="badge badge-info"
-                                        >
-                                            {{ app.tables.count() }} table(s)
-                                        </a>
-                                    </td>
-                                    <td>
-                                        {% if app.is_active %}<span
-                                            class="badge badge-success"
-                                            >Yes</span
-                                        >
-                                        {% else %}<span
-                                            class="badge badge-secondary"
-                                            >No</span
-                                        >{% endif %}
-                                    </td>
-                                    <td>
-                                        {% if app.in_sidebar %}<span
-                                            class="badge badge-info"
-                                            >Yes</span
-                                        >
-                                        {% else %}<span
-                                            class="badge badge-light"
-                                            >No</span
-                                        >{% endif %}
-                                    </td>
-                                    <td style="white-space: nowrap">
-                                        <a
-                                            href="{{ url_for('admin.apps_tables', app_id=app.id) }}"
-                                            class="btn btn-xs btn-outline-info"
-                                            title="Tables"
-                                        >
-                                            <i class="fa fa-table"></i>
-                                        </a>
-                                        <a
-                                            href="{{ url_for('admin.apps_edit', app_id=app.id) }}"
-                                            class="btn btn-xs btn-outline-secondary"
-                                            title="Edit"
-                                        >
-                                            <i class="fa fa-edit"></i>
-                                        </a>
-                                        {% if app.is_active %}
-                                        <form
-                                            method="POST"
-                                            action="{{ url_for('admin.apps_deactivate', app_id=app.id) }}"
-                                            style="display: inline"
-                                        >
-                                            <input
-                                                type="hidden"
-                                                name="csrf_token"
-                                                value="{{ csrf_token() }}"
-                                            />
-                                            <button
-                                                type="submit"
-                                                class="btn btn-xs btn-outline-warning"
-                                                title="Deactivate"
-                                            >
-                                                <i class="fa fa-pause"></i>
-                                            </button>
-                                        </form>
-                                        {% else %}
-                                        <form
-                                            method="POST"
-                                            action="{{ url_for('admin.apps_activate', app_id=app.id) }}"
-                                            style="display: inline"
-                                        >
-                                            <input
-                                                type="hidden"
-                                                name="csrf_token"
-                                                value="{{ csrf_token() }}"
-                                            />
-                                            <button
-                                                type="submit"
-                                                class="btn btn-xs btn-outline-success"
-                                                title="Activate"
-                                            >
-                                                <i class="fa fa-play"></i>
-                                            </button>
-                                        </form>
-                                        {% endif %}
-                                        <form
-                                            method="POST"
-                                            action="{{ url_for('admin.apps_delete', app_id=app.id) }}"
-                                            style="display: inline"
-                                            onsubmit="return confirm('Delete app {{ app.title }}?')"
-                                        >
-                                            <input
-                                                type="hidden"
-                                                name="csrf_token"
-                                                value="{{ csrf_token() }}"
-                                            />
-                                            <button
-                                                type="submit"
-                                                class="btn btn-xs btn-outline-danger"
-                                                title="Delete"
-                                            >
-                                                <i class="fa fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td
-                                        colspan="8"
-                                        class="text-center text-muted"
-                                    >
-                                        No apps yet.
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- DocTypes -->
-        <div class="settings-panel d-none" id="panel-doctypes">
-            <div class="card">
-                <div class="card-body">
-                    <div
-                        class="d-flex justify-content-between align-items-center mb-3"
-                    >
-                        <h5 class="mb-0">
-                            <i class="ti-files mr-2"></i>DocTypes / Page Types
-                        </h5>
-                        <small class="text-muted"
-                            >All page types across every app</small
-                        >
-                    </div>
-                    <hr />
-                    <div class="table-responsive">
-                        <table class="table table-hover table-sm">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>App</th>
-                                    <th>Name</th>
-                                    <th>Title</th>
-                                    <th>Type</th>
-                                    <th>Columns</th>
-                                    <th>Active</th>
-                                    <th>Menu</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for tbl in all_tables %}
-                                <tr>
-                                    <td>{{ tbl.id }}</td>
-                                    <td>
-                                        <a
-                                            href="{{ url_for('admin.apps_tables', app_id=tbl.app_id) }}"
-                                            class="badge badge-light"
-                                            style="font-size: 11px"
-                                        >
-                                            {{ tbl.app.name }}
-                                        </a>
-                                    </td>
-                                    <td><code>{{ tbl.name }}</code></td>
-                                    <td>{{ tbl.title }}</td>
-                                    <td>
-                                        <span class="badge badge-secondary"
-                                            >{{ tbl.page_type or 'list' }}</span
-                                        >
-                                    </td>
-                                    <td>
-                                        <a
-                                            href="{{ url_for('admin.apps_columns', app_id=tbl.app_id, table_id=tbl.id) }}"
-                                            class="badge badge-info"
-                                        >
-                                            {{ tbl.columns.count() }}
-                                        </a>
-                                    </td>
-                                    <td>
-                                        {% if tbl.is_active %}<span
-                                            class="badge badge-success"
-                                            >Yes</span
-                                        >
-                                        {% else %}<span
-                                            class="badge badge-secondary"
-                                            >No</span
-                                        >{% endif %}
-                                    </td>
-                                    <td>
-                                        {% if tbl.show_in_menu %}<span
-                                            class="badge badge-info"
-                                            >Yes</span
-                                        >
-                                        {% else %}<span
-                                            class="badge badge-light"
-                                            >No</span
-                                        >{% endif %}
-                                    </td>
-                                    <td style="white-space: nowrap">
-                                        <a
-                                            href="{{ url_for('admin.apps_table_edit', app_id=tbl.app_id, table_id=tbl.id) }}"
-                                            class="btn btn-xs btn-outline-secondary"
-                                            title="Edit"
-                                        >
-                                            <i class="fa fa-edit"></i>
-                                        </a>
-                                        <a
-                                            href="{{ url_for('admin.apps_columns', app_id=tbl.app_id, table_id=tbl.id) }}"
-                                            class="btn btn-xs btn-outline-info"
-                                            title="Columns"
-                                        >
-                                            <i class="fa fa-columns"></i>
-                                        </a>
-                                        <form
-                                            method="POST"
-                                            action="{{ url_for('admin.apps_table_delete', app_id=tbl.app_id, table_id=tbl.id) }}"
-                                            style="display: inline"
-                                            onsubmit="return confirm('Delete page type {{ tbl.title }}?')"
-                                        >
-                                            <input
-                                                type="hidden"
-                                                name="csrf_token"
-                                                value="{{ csrf_token() }}"
-                                            />
-                                            <button
-                                                type="submit"
-                                                class="btn btn-xs btn-outline-danger"
-                                                title="Delete"
-                                            >
-                                                <i class="fa fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td
-                                        colspan="9"
-                                        class="text-center text-muted"
-                                    >
-                                        No page types defined yet.
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Uploads -->
-        <div class="settings-panel d-none" id="panel-uploads">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="mb-3">
-                        <i class="ti-folder mr-2"></i>Upload Folder Settings
-                    </h5>
-                    <p class="text-muted small">
-                        These paths are configured in <code>config.py</code>.
-                        Editing here updates
-                        <code>instance/server.json</code> overrides (restart
-                        required to apply).
-                    </p>
-                    <hr />
-                    <form
-                        method="POST"
-                        action="{{ url_for('admin.settings_upload_save') }}"
-                    >
-                        <input
-                            type="hidden"
-                            name="csrf_token"
-                            value="{{ csrf_token() }}"
-                        />
-                        {% for key, path in upload_folders.items() %}
-                        <div class="form-group row">
-                            <label
-                                class="col-sm-3 col-form-label font-weight-bold"
-                                style="font-size: 13px"
-                            >
-                                {{ key.replace('_', ' ').title() }}
-                            </label>
-                            <div class="col-sm-9">
-                                <div class="input-group input-group-sm">
-                                    <input
-                                        type="text"
-                                        name="{{ key }}"
-                                        class="form-control form-control-sm font-monospace"
-                                        value="{{ path }}"
-                                        placeholder="/path/to/folder"
-                                    />
-                                    <div class="input-group-append">
-                                        <span
-                                            class="input-group-text"
-                                            id="status-{{ loop.index }}"
-                                            style="font-size: 11px"
-                                        >
-                                            {% if path %}
-                                            <i
-                                                class="fa fa-check text-success"
-                                                title="Path set"
-                                            ></i>
-                                            {% else %}
-                                            <i
-                                                class="fa fa-exclamation-triangle text-warning"
-                                                title="Not set"
-                                            ></i>
-                                            {% endif %}
-                                        </span>
-                                    </div>
-                                </div>
-                                {% if path %}
-                                <small class="text-muted"
-                                    >Current: <code>{{ path }}</code></small
-                                >
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% endfor %}
-                        <hr />
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            <i class="fa fa-save mr-1"></i> Save Upload Paths
-                        </button>
-                        <small class="text-muted ml-2"
-                            >Saved to <code>instance/server.json</code>. Restart
-                            server to apply.</small
-                        >
-                    </form>
-                </div>
-            </div>
-
-            <div class="card mt-3">
-                <div class="card-body">
-                    <h6><i class="ti-upload mr-1"></i>Test Upload Folder</h6>
-                    <hr />
-                    <form
-                        method="POST"
-                        action="{{ url_for('admin.settings_upload_test') }}"
-                        enctype="multipart/form-data"
-                    >
-                        <input
-                            type="hidden"
-                            name="csrf_token"
-                            value="{{ csrf_token() }}"
-                        />
-                        <div class="form-group row">
-                            <label class="col-sm-3 col-form-label"
-                                >Folder</label
-                            >
-                            <div class="col-sm-4">
-                                <select
-                                    name="folder_key"
-                                    class="form-control form-control-sm"
-                                >
-                                    {% for key in upload_folders %}
-                                    <option value="{{ key }}">{{ key }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <label class="col-sm-1 col-form-label">File</label>
-                            <div class="col-sm-4">
-                                <input
-                                    type="file"
-                                    name="test_file"
-                                    class="form-control-file form-control-sm"
-                                />
-                            </div>
-                        </div>
-                        <button
-                            type="submit"
-                            class="btn btn-outline-secondary btn-sm"
-                        >
-                            <i class="fa fa-upload mr-1"></i> Upload Test File
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Users -->
-        <div class="settings-panel d-none" id="panel-users">
-            <div class="card">
-                <div class="card-body">
-                    <div
-                        class="d-flex justify-content-between align-items-center mb-3"
-                    >
-                        <h5 class="mb-0">Users</h5>
-                        <a
-                            href="{{ url_for('admin.users') }}"
-                            class="btn btn-outline-secondary btn-sm"
-                        >
-                            View All Users
-                        </a>
-                    </div>
-                    <hr />
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Username</th>
-                                    <th>Email</th>
-                                    <th>Admin</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for u in users %}
-                                <tr>
-                                    <td>{{ u.id }}</td>
-                                    <td>{{ u.username }}</td>
-                                    <td>{{ u.email }}</td>
-                                    <td>
-                                        {% if u.is_admin %}<span
-                                            class="badge badge-danger"
-                                            >Admin</span
-                                        >
-                                        {% else %}<span
-                                            class="badge badge-light"
-                                            >User</span
-                                        >{% endif %}
-                                    </td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td
-                                        colspan="4"
-                                        class="text-center text-muted"
-                                    >
-                                        No users.
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Database -->
-        <div class="settings-panel d-none" id="panel-database">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="mb-3"><i class="ti-server mr-2"></i>Database</h5>
-                    <hr />
-                    <div class="row mb-3">
-                        <div class="col-12">
-                            <p><b>Connection:</b> <code>{{ db_uri }}</code></p>
-                        </div>
-                    </div>
-
-                    <h6 class="mt-3 mb-2">Tables</h6>
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Table Name</th>
-                                    <th>Columns</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for tbl in db_tables %}
-                                <tr>
-                                    <td><code>{{ tbl.name }}</code></td>
-                                    <td>
-                                        <small class="text-muted"
-                                            >{{ tbl.columns | join(', ')
-                                            }}</small
-                                        >
-                                    </td>
-                                    <td>
-                                        <form
-                                            method="POST"
-                                            action="{{ url_for('admin.db_generate_view') }}"
-                                            style="display: inline"
-                                        >
-                                            <input
-                                                type="hidden"
-                                                name="csrf_token"
-                                                value="{{ csrf_token() }}"
-                                            />
-                                            <input
-                                                type="hidden"
-                                                name="table_name"
-                                                value="{{ tbl.name }}"
-                                            />
-                                            <button
-                                                type="submit"
-                                                class="btn btn-sm btn-outline-primary"
-                                            >
-                                                <i class="fa fa-magic mr-1"></i
-                                                >Generate View
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td
-                                        colspan="3"
-                                        class="text-center text-muted"
-                                    >
-                                        No tables found.
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Roles & Permissions -->
-        <div class="settings-panel d-none" id="panel-roles">
-            <!-- Create Role -->
-            <div class="card mb-3">
-                <div class="card-header">
-                    <i class="ti-plus mr-1"></i> New Role
-                </div>
-                <div class="card-body">
-                    <form
-                        method="POST"
-                        action="{{ url_for('admin.role_new') }}"
-                        class="form-inline"
-                    >
-                        <input
-                            type="text"
-                            name="name"
-                            class="form-control form-control-sm mr-2"
-                            placeholder="Role name"
-                            required
-                        />
-                        <input
-                            type="text"
-                            name="slug"
-                            class="form-control form-control-sm mr-2"
-                            placeholder="slug (auto)"
-                        />
-                        <input
-                            type="text"
-                            name="description"
-                            class="form-control form-control-sm mr-2"
-                            placeholder="Description"
-                        />
-                        <button class="btn btn-primary btn-sm">Create</button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Roles table -->
-            <div class="card mb-3">
-                <div class="card-header">
-                    <i class="ti-shield mr-1"></i> Roles
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-sm mb-0">
-                        <thead class="thead-light">
-                            <tr>
-                                <th>Name</th>
-                                <th>Slug</th>
-                                <th>Description</th>
-                                <th>Status</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for role in all_roles %}
-                            <tr>
-                                <td>{{ role.name }}</td>
-                                <td><code>{{ role.slug }}</code></td>
-                                <td>{{ role.description or '—' }}</td>
-                                <td>
-                                    <form
-                                        method="POST"
-                                        action="{{ url_for('admin.role_toggle', role_id=role.id) }}"
-                                        style="display: inline"
-                                    >
-                                        <button
-                                            class="btn btn-xs {% if role.is_active %}btn-success{% else %}btn-secondary{% endif %}"
-                                        >
-                                            {{ 'Active' if role.is_active else
-                                            'Inactive' }}
-                                        </button>
-                                    </form>
-                                </td>
-                                <td>
-                                    <button
-                                        class="btn btn-xs btn-outline-primary mr-1"
-                                        onclick="toggleRoleDetail({{ role.id }})"
-                                    >
-                                        Permissions / Users
-                                    </button>
-                                    <form
-                                        method="POST"
-                                        action="{{ url_for('admin.role_delete', role_id=role.id) }}"
-                                        style="display: inline"
-                                        onsubmit="return confirm('Delete role {{ role.name }}?')"
-                                    >
-                                        <button class="btn btn-xs btn-danger">
-                                            Delete
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                            <tr id="role-detail-{{ role.id }}" class="d-none">
-                                <td colspan="5">
-                                    <div class="row px-3 py-2">
-                                        <!-- Permissions -->
-                                        <div class="col-md-7">
-                                            <strong>Permissions</strong>
-                                            <form
-                                                method="POST"
-                                                action="{{ url_for('admin.role_permissions_save', role_id=role.id) }}"
-                                                class="mt-2"
-                                            >
-                                                {% set role_perm_ids =
-                                                role.permissions |
-                                                map(attribute='id') | list %} {%
-                                                set grouped = {} %} {% for p in
-                                                all_permissions %} {% if
-                                                p.app_slug not in grouped %}{%
-                                                set _ =
-                                                grouped.update({p.app_slug: []})
-                                                %}{% endif %} {% set _ =
-                                                grouped[p.app_slug].append(p) %}
-                                                {% endfor %} {% for app_slug,
-                                                perms in grouped.items() %}
-                                                <div class="mb-2">
-                                                    <small
-                                                        class="text-muted text-uppercase font-weight-bold"
-                                                        >{{ app_slug }}</small
-                                                    ><br />
-                                                    {% for p in perms %}
-                                                    <label
-                                                        class="mr-3"
-                                                        style="font-size: 12px"
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            name="perm_ids"
-                                                            value="{{ p.id }}"
-                                                            {%
-                                                            if
-                                                            p.id
-                                                            in
-                                                            role_perm_ids
-                                                            %}checked{%
-                                                            endif
-                                                            %}
-                                                        />
-                                                        {{ p.name }}
-                                                    </label>
-                                                    {% endfor %}
-                                                </div>
-                                                {% endfor %} {% if not
-                                                all_permissions %}
-                                                <p class="text-muted small">
-                                                    No permissions seeded yet.
-                                                </p>
-                                                {% endif %}
-                                                <button
-                                                    class="btn btn-sm btn-primary mt-1"
-                                                >
-                                                    Save Permissions
-                                                </button>
-                                            </form>
-                                        </div>
-                                        <!-- Users -->
-                                        <div class="col-md-5">
-                                            <strong>Assigned Users</strong>
-                                            <form
-                                                method="POST"
-                                                action="{{ url_for('admin.role_users_save', role_id=role.id) }}"
-                                                class="mt-2"
-                                            >
-                                                {% set assigned_uids =
-                                                role.permissions |
-                                                map(attribute='id') | list %} {#
-                                                Collect user IDs assigned to
-                                                this role via UserRole #} {% for
-                                                u in users %} {% set is_assigned
-                                                = namespace(v=false) %} {% for
-                                                ur in u.roles %}{% if ur.role_id
-                                                == role.id %}{% set
-                                                is_assigned.v = true %}{% endif
-                                                %}{% endfor %}
-                                                <label
-                                                    class="d-block"
-                                                    style="font-size: 12px"
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        name="user_ids"
-                                                        value="{{ u.id }}"
-                                                        {%
-                                                        if
-                                                        is_assigned.v
-                                                        %}checked{%
-                                                        endif
-                                                        %}
-                                                    />
-                                                    {{ u.username }}
-                                                    <span class="text-muted"
-                                                        >({{ u.email }})</span
-                                                    >
-                                                </label>
-                                                {% endfor %}
-                                                <button
-                                                    class="btn btn-sm btn-primary mt-2"
-                                                >
-                                                    Save Users
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td
-                                    colspan="5"
-                                    class="text-center text-muted py-3"
-                                >
-                                    No roles yet.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
-</div>
-{% endblock %} {% block script %} {{ super() }}
-<script>
-    function activatePanel(panelId) {
-        document.querySelectorAll(".settings-nav-item").forEach(function (i) {
-            i.classList.remove("active");
-        });
-        document.querySelectorAll(".settings-tab-link").forEach(function (i) {
-            i.style.borderBottomColor = "transparent";
-            i.style.color = "#6c757d";
-            i.style.fontWeight = "normal";
-        });
-        document.querySelectorAll(".settings-panel").forEach(function (p) {
-            p.classList.add("d-none");
-        });
 
-        var sideItem = document.querySelector(
-            '.settings-nav-item[data-panel="' + panelId + '"]',
-        );
-        if (sideItem) sideItem.classList.add("active");
+    {# ── App Manager ── #}
+    <div class="settings-panel d-none" id="panel-apps">
+      {% set main_title      = "App Manager" %}
+      {% set items           = apps %}
+      {% set view_columns    = [("Name","name"),("Title","title"),("URL","url"),("Active","is_active")] %}
+      {% set edit_url_base   = "/admin/apps" %}
+      {% set delete_url_base = "/admin/apps" %}
+      {% set add_url         = url_for('admin.apps_new') %}
+      {% set search_enabled  = true %}
+      {% set search_q        = q_apps %}
+      {% set search_param    = "q_apps" %}
+      {% set filter_cols     = view_columns %}
+      {% set active_filters  = [] %}
+      {% set extra_buttons   = [
+           {"label":"Install from File","url":url_for('admin.apps_install'),"icon":"fa-upload","style":"outline"},
+      ] %}
+      {% set _list_id = "apps" %}
+      {% include 'admin/_list_partial.html' %}
+    </div>
 
-        var tabLink = document.querySelector(
-            '.settings-tab-link[data-panel="' + panelId + '"]',
-        );
-        if (tabLink) {
-            tabLink.style.borderBottomColor = "var(--primary-color, #5a6fd6)";
-            tabLink.style.color = "#313b3d";
-            tabLink.style.fontWeight = "600";
+    {# ── DocTypes ── #}
+    <div class="settings-panel d-none" id="panel-doctypes">
+      {% set main_title         = "DocTypes" %}
+      {% set items              = all_tables %}
+      {% set view_columns       = [("App","app_name"),("Name","name"),("DB Table","db_table_name"),("Type","page_type"),("Active","is_active")] %}
+      {% set edit_url_base      = false %}
+      {% set use_item_edit_url  = true %}
+      {% set delete_url_base    = "/admin/apps/tables" %}
+      {% set add_url            = false %}
+      {% set search_enabled     = true %}
+      {% set search_q           = q_doctypes %}
+      {% set search_param       = "q_doctypes" %}
+      {% set filter_cols        = view_columns %}
+      {% set active_filters     = [] %}
+      {% set _list_id = "doctypes" %}
+      {% include 'admin/_list_partial.html' %}
+    </div>
+
+    {# ── Uploads ── #}
+    <div class="settings-panel d-none" id="panel-uploads">
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5 class="mb-3"><i class="ti-folder mr-2"></i>Upload Folder Settings</h5>
+          <p class="text-muted small">These paths are configured in <code>config.py</code>. Editing here updates <code>instance/server.json</code> overrides.</p>
+          <hr>
+          <form method="POST" action="{{ url_for('admin.settings_upload_save') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% for key, path in upload_folders.items() %}
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label font-weight-bold" style="font-size:13px;">
+                {{ key.replace('_',' ').title() }}
+              </label>
+              <div class="col-sm-9">
+                <div class="input-group input-group-sm">
+                  <input type="text" name="{{ key }}" class="form-control form-control-sm" value="{{ path }}" placeholder="/path/to/folder">
+                  <div class="input-group-append">
+                    <span class="input-group-text" style="font-size:11px;">
+                      {% if path %}<i class="fa fa-check text-success"></i>
+                      {% else %}<i class="fa fa-exclamation-triangle text-warning"></i>{% endif %}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+            <hr>
+            <button type="submit" class="aras-btn aras-btn--primary">
+              <i class="fa fa-save mr-1"></i> Save Upload Paths
+            </button>
+            <small class="text-muted ml-2">Restart server to apply.</small>
+          </form>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <h6><i class="ti-upload mr-1"></i>Test Upload Folder</h6>
+          <hr>
+          <form method="POST" action="{{ url_for('admin.settings_upload_test') }}" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label">Folder</label>
+              <div class="col-sm-4">
+                <select name="folder_key" class="form-control form-control-sm">
+                  {% for key in upload_folders %}<option value="{{ key }}">{{ key }}</option>{% endfor %}
+                </select>
+              </div>
+              <label class="col-sm-1 col-form-label">File</label>
+              <div class="col-sm-4">
+                <input type="file" name="test_file" class="form-control-file form-control-sm">
+              </div>
+            </div>
+            <button type="submit" class="aras-btn aras-btn--sm"><i class="fa fa-upload mr-1"></i> Upload Test File</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    {# ── Users ── #}
+    <div class="settings-panel d-none" id="panel-users">
+      {% set main_title      = "Users" %}
+      {% set items           = users %}
+      {% set view_columns    = [("Username","username"),("Email","email"),("Admin","is_admin"),("Active","is_active"),("Joined","created_at")] %}
+      {% set edit_url_base   = "/admin/users" %}
+      {% set add_url         = url_for('admin.users_new') %}
+      {% set delete_url_base = "/admin/users" %}
+      {% set search_enabled  = true %}
+      {% set search_q        = q_users %}
+      {% set search_param    = "q_users" %}
+      {% set filter_cols     = view_columns %}
+      {% set active_filters  = [] %}
+      {% set extra_buttons   = [
+           {"label":"Export CSV","url":url_for('admin.users_export_csv'),"icon":"fa-download","style":"outline"},
+      ] %}
+      {% set _list_id = "users" %}
+      {% include 'admin/_list_partial.html' %}
+    </div>
+
+    {# ── User Log ── #}
+    <div class="settings-panel d-none" id="panel-userlog">
+      {% set main_title         = "User Log" %}
+      {% set items              = activities if activities is defined else [] %}
+      {% set view_columns       = [("Action","name"),("Module","module"),("Date","created_at")] %}
+      {% set edit_url_base      = false %}
+      {% set use_item_edit_url  = true %}
+      {% set delete_url_base    = "/admin/user-log" %}
+      {% set search_enabled  = true %}
+      {% set search_q        = q_userlog %}
+      {% set search_param    = "q_userlog" %}
+      {% set filter_cols     = view_columns %}
+      {% set active_filters  = [] %}
+      {% set _list_id = "userlog" %}
+      {% include 'admin/_list_partial.html' %}
+    </div>
+
+    {# ── Database ── #}
+    <div class="settings-panel d-none" id="panel-database">
+      {% set main_title         = "DB Tables" %}
+      {% set items              = db_tables %}
+      {% set view_columns       = [("Table Name","name"),("Columns","columns")] %}
+      {% set edit_url_base      = false %}
+      {% set use_item_edit_url  = true %}
+      {% set delete_url_base    = false %}
+      {% set add_url            = false %}
+      {% set search_enabled     = true %}
+      {% set search_q           = q_database %}
+      {% set search_param       = "q_database" %}
+      {% set filter_cols        = view_columns %}
+      {% set active_filters     = [] %}
+      {% set _list_id = "database" %}
+      {% include 'admin/_list_partial.html' %}
+    </div>
+
+    {# ── Roles & Permissions ── #}
+    <div class="settings-panel d-none" id="panel-roles">
+      {% set main_title      = "Roles" %}
+      {% set items           = all_roles %}
+      {% set view_columns    = [("Name","name"),("Slug","slug"),("Description","description"),("Active","is_active")] %}
+      {% set edit_url_base      = "/admin/roles" %}
+      {% set use_item_edit_url  = false %}
+      {% set delete_url_base    = "/admin/roles" %}
+      {% set add_url            = false %}
+      {% set search_enabled  = true %}
+      {% set search_q        = q_roles %}
+      {% set search_param    = "q_roles" %}
+      {% set filter_cols     = view_columns %}
+      {% set active_filters  = [] %}
+      {% set extra_buttons   = [
+           {"label":"New Role","url":"#new-role-form","icon":"fa-plus","style":"primary","onclick":"document.getElementById('new-role-form').classList.toggle('d-none');return false;"},
+      ] %}
+      {% set _list_id = "roles" %}
+      {% include 'admin/_list_partial.html' %}
+      <div id="new-role-form" class="aras-table-wrap d-none mt-3" style="padding:16px;">
+        <form method="POST" action="{{ url_for('admin.role_new') }}" class="form-inline" style="gap:6px;flex-wrap:wrap;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="text" name="name" class="form-control form-control-sm" placeholder="Role name" required>
+          <input type="text" name="slug" class="form-control form-control-sm" placeholder="slug (auto)">
+          <input type="text" name="description" class="form-control form-control-sm" placeholder="Description">
+          <button class="aras-btn aras-btn--primary">Create</button>
+        </form>
+      </div>
+    </div>
+
+    {# ── Menu Editor ── #}
+    <div class="settings-panel d-none" id="panel-menu">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h5 class="mb-1"><i class="ti-menu mr-2"></i>Menu Editor</h5>
+              <p class="text-muted mb-0" style="font-size:13px;">
+                Drag <i class="ti-menu-alt"></i> to reorder. Click a row to edit. Drop onto a row's <strong>indent zone</strong> to nest it as a child.
+              </p>
+            </div>
+            <div class="d-flex gap-2" style="gap:8px;">
+              <button class="btn btn-outline-secondary btn-sm" onclick="ME.openAddModal('group')" title="Add a new menu group">
+                <i class="ti-folder mr-1"></i>Add Group
+              </button>
+              <button class="btn btn-outline-secondary btn-sm" onclick="ME.openAddModal('page')" title="Add a new menu page">
+                <i class="ti-file mr-1"></i>Add Page
+              </button>
+              <button class="btn btn-primary btn-sm" id="menuSaveBtn" onclick="ME.save()">
+                <i class="ti-save mr-1"></i>Save Changes
+              </button>
+            </div>
+          </div>
+          <div id="menuEditorRoot"></div>
+        </div>
+      </div>
+
+      {# ── Edit drawer (inline, not modal) ── #}
+      <div id="meDrawer" style="display:none;position:fixed;top:0;right:0;width:320px;height:100vh;
+           background:#fff;box-shadow:-4px 0 16px rgba(0,0,0,.12);z-index:9999;
+           display:none;flex-direction:column;overflow:hidden;">
+        <div style="padding:16px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;">
+          <strong style="font-size:14px;" id="meDrawer_title">Edit Item</strong>
+          <button onclick="ME.drawerClose()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#6c757d;">&times;</button>
+        </div>
+        <div style="padding:20px;flex:1;overflow-y:auto;">
+          <input type="hidden" id="medit_type">
+          <input type="hidden" id="medit_id">
+          <div class="form-group mb-3">
+            <label class="small font-weight-bold mb-1">Display Title</label>
+            <input type="text" class="form-control form-control-sm" id="medit_title" placeholder="Leave blank to use default">
+          </div>
+          <div class="form-group mb-3">
+            <label class="small font-weight-bold mb-1">Icon</label>
+            <input type="text" class="form-control form-control-sm" id="medit_icon" placeholder="e.g. fa-home or ti-star">
+            <div id="medit_icon_preview" style="margin-top:6px;font-size:20px;color:#4e73df;min-height:28px;"></div>
+          </div>
+          <div class="form-group mb-3" id="medit_parent_row">
+            <label class="small font-weight-bold mb-1">Parent</label>
+            <select class="form-control form-control-sm" id="medit_parent"></select>
+            <small class="text-muted">Move this item under another page or to top level.</small>
+          </div>
+          <div class="form-group mb-2" id="medit_show_row">
+            <div class="custom-control custom-switch">
+              <input type="checkbox" class="custom-control-input" id="medit_show">
+              <label class="custom-control-label small" for="medit_show">Show in sidebar</label>
+            </div>
+          </div>
+          <div class="form-group mb-0" id="medit_sidebar_row">
+            <div class="custom-control custom-switch">
+              <input type="checkbox" class="custom-control-input" id="medit_in_sidebar">
+              <label class="custom-control-label small" for="medit_in_sidebar">App visible in sidebar</label>
+            </div>
+          </div>
+        </div>
+        <div style="padding:14px 20px;border-top:1px solid #eee;display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm flex-fill" onclick="ME.drawerApply()">Apply</button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="ME.drawerClose()">Cancel</button>
+        </div>
+      </div>
+      <div id="meOverlay" onclick="ME.drawerClose()"
+           style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.25);"></div>
+
+      {# ── Add Group / Add Page modal ── #}
+      <div id="meAddModal" style="display:none;position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;">
+        <div style="position:absolute;inset:0;background:rgba(0,0,0,.4);" onclick="ME.closeAddModal()"></div>
+        <div style="position:relative;background:#fff;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.2);width:400px;max-width:95vw;padding:0;overflow:hidden;">
+          <div style="padding:16px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;">
+            <strong id="meAddModal_title" style="font-size:14px;">Add Group</strong>
+            <button onclick="ME.closeAddModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#6c757d;">&times;</button>
+          </div>
+          <div style="padding:20px;">
+            <input type="hidden" id="meAdd_type">
+            <div class="form-group mb-3">
+              <label class="small font-weight-bold mb-1">App</label>
+              <select class="form-control form-control-sm" id="meAdd_app"></select>
+            </div>
+            <div class="form-group mb-3">
+              <label class="small font-weight-bold mb-1">Title <span class="text-danger">*</span></label>
+              <input type="text" class="form-control form-control-sm" id="meAdd_title" placeholder="e.g. Reports">
+            </div>
+            <div class="form-group mb-3">
+              <label class="small font-weight-bold mb-1">Icon</label>
+              <input type="text" class="form-control form-control-sm" id="meAdd_icon" placeholder="e.g. fa-folder or ti-chart-bar">
+            </div>
+            <div class="form-group mb-3" id="meAdd_url_row" style="display:none;">
+              <label class="small font-weight-bold mb-1">URL suffix <span class="text-danger">*</span></label>
+              <input type="text" class="form-control form-control-sm" id="meAdd_url" placeholder="e.g. /my-page (relative to app url)">
+              <small class="text-muted">Path appended to the app's base URL.</small>
+            </div>
+            <div class="form-group mb-0" id="meAdd_parent_row" style="display:none;">
+              <label class="small font-weight-bold mb-1">Parent (optional)</label>
+              <select class="form-control form-control-sm" id="meAdd_parent"></select>
+            </div>
+          </div>
+          <div style="padding:14px 20px;border-top:1px solid #eee;display:flex;gap:8px;">
+            <button class="btn btn-primary btn-sm flex-fill" onclick="ME.submitAdd()">Create</button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="ME.closeAddModal()">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <style>
+        /* ── depth palette: each level gets its own accent color ── */
+        :root {
+          --me-d0: #4e73df; --me-d0-bg: #f0f4ff; --me-d0-border: #c5d0f0;
+          --me-d1: #1cc88a; --me-d1-bg: #f0fdf8; --me-d1-border: #9de8cb;
+          --me-d2: #f6c23e; --me-d2-bg: #fffbf0; --me-d2-border: #f5dfa0;
+          --me-d3: #e74a3b; --me-d3-bg: #fff5f5; --me-d3-border: #f5b8b3;
         }
 
-        var panel = document.getElementById(panelId);
-        if (panel) panel.classList.remove("d-none");
-        window.location.hash = panelId;
-    }
+        #menuEditorRoot { user-select:none; }
 
-    document
-        .querySelectorAll(".settings-nav-item, .settings-tab-link")
-        .forEach(function (item) {
-            item.addEventListener("click", function (e) {
-                e.preventDefault();
-                activatePanel(item.getAttribute("data-panel"));
+        /* ── app block ── */
+        .me-app {
+          background:#f4f6fb; border:1px solid #dde3ef;
+          border-radius:8px; margin-bottom:10px;
+          box-shadow:0 1px 3px rgba(0,0,0,.04);
+        }
+        .me-app-header {
+          display:flex; align-items:center; gap:8px; padding:9px 12px;
+          border-bottom:1px solid #dde3ef; font-weight:600; font-size:13px;
+          cursor:pointer; border-radius:8px 8px 0 0; transition:background .15s;
+        }
+        .me-app-header:hover { background:#e8edf8; }
+        .me-app-body { padding:6px 8px; }
+
+        /* ── root-level item row (depth 0) ── */
+        .me-item-wrap { position:relative; }
+
+        .me-row {
+          display:flex; align-items:center; gap:6px;
+          padding:6px 10px 6px 8px;
+          border:1px solid transparent; border-radius:6px;
+          margin-bottom:3px; cursor:pointer;
+          transition:background .12s, border-color .12s;
+          background:#fff; min-height:36px; position:relative;
+          font-size:13px;
+        }
+        .me-row:hover        { background:#f0f4ff; border-color:var(--me-d0-border); }
+        .me-row.me-selected  { background:var(--me-d0-bg); border-color:var(--me-d0); }
+        .me-row.drag-over-before { border-top:2px solid var(--me-d0) !important; }
+        .me-row.drag-over-child  { background:#dde8ff !important; border:1px dashed var(--me-d0) !important; }
+        .me-row.drag-over-after  { border-bottom:2px solid var(--me-d0) !important; }
+
+        /* ── children nest block ── */
+        .me-nest {
+          margin: 2px 0 4px 22px;
+          border-left: 3px solid var(--me-d0);
+          border-radius: 0 6px 6px 0;
+          background: var(--me-d0-bg);
+          padding: 4px 6px 4px 8px;
+        }
+        .me-nest .me-row { background:#fff; }
+        .me-nest .me-row:hover { background:#e8f0ff; border-color:var(--me-d1-border); }
+        .me-nest .me-row.me-selected { background:var(--me-d1-bg); border-color:var(--me-d1); }
+
+        /* depth 2 nest (grandchildren) */
+        .me-nest .me-nest {
+          margin-left:20px;
+          border-left-color: var(--me-d1);
+          background: var(--me-d1-bg);
+        }
+        .me-nest .me-nest .me-row:hover { background:#e6faf3; border-color:var(--me-d2-border); }
+        .me-nest .me-nest .me-row.me-selected { background:var(--me-d2-bg); border-color:var(--me-d2); }
+
+        /* depth 3 nest */
+        .me-nest .me-nest .me-nest {
+          border-left-color: var(--me-d2);
+          background: var(--me-d2-bg);
+        }
+        .me-nest .me-nest .me-nest .me-row:hover { background:#fff0ee; border-color:var(--me-d3-border); }
+        .me-nest .me-nest .me-nest .me-row.me-selected { background:var(--me-d3-bg); border-color:var(--me-d3); }
+
+        /* ── nest header label (shows parent title above children) ── */
+        .me-nest-label {
+          font-size:10px; font-weight:700; letter-spacing:.05em;
+          color:var(--me-d0); text-transform:uppercase;
+          margin-bottom:4px; padding: 0 2px;
+          display:flex; align-items:center; gap:5px;
+        }
+        .me-nest .me-nest > .me-nest-label { color:var(--me-d1); }
+        .me-nest .me-nest .me-nest > .me-nest-label { color:var(--me-d2); }
+
+        /* ── shared row internals ── */
+        .me-handle { color:#bbc5d8; cursor:grab; flex-shrink:0; font-size:11px; }
+        .me-handle:active { cursor:grabbing; }
+        .me-icon { font-size:13px; width:16px; text-align:center; flex-shrink:0; color:#6c757d; }
+        .me-label { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .me-badge { font-size:10px; padding:1px 6px; border-radius:10px; flex-shrink:0; }
+        .me-toggle {
+          font-size:11px; color:#adb5bd; flex-shrink:0;
+          width:16px; text-align:center; transition:transform .15s;
+          cursor:pointer;
+        }
+        .me-toggle.open { transform:rotate(90deg); }
+        .me-app.drag-over-app { outline:2px dashed var(--me-d0); border-radius:8px; }
+        .me-app-chevron { font-size:11px; color:#8a9bb0; transition:transform .2s; margin-left:auto; }
+        .me-app-chevron.open { transform:rotate(90deg); }
+        .me-opacity-50 { opacity:.45; }
+
+        /* ── group header (manifest MenuGroup, no DB id) ── */
+        .me-group-block { margin-bottom:2px; }
+        .me-group-hdr {
+          display:flex; align-items:center; gap:6px;
+          padding:5px 10px 5px 8px; border-radius:5px;
+          background:linear-gradient(90deg,#f0f4ff 0,#f8faff 100%);
+          border:1px solid #dde3ef; margin-bottom:3px;
+          font-size:12px; font-weight:700; color:#4e73df;
+          cursor:default;
+        }
+        .me-group-label { flex:1; }
+        .me-group-pill {
+          font-size:9px; font-weight:600; letter-spacing:.06em;
+          text-transform:uppercase; background:#dde8ff;
+          color:#4e73df; padding:1px 6px; border-radius:10px;
+        }
+        .me-grp-tog {
+          font-size:11px; color:#7b9ef0; cursor:pointer;
+          width:16px; text-align:center; flex-shrink:0;
+          transition:transform .15s; display:inline-block;
+        }
+        .me-grp-tog.open { transform:rotate(90deg); }
+
+        /* ── row actions (delete button) ── */
+        .me-row-actions { margin-left:auto; display:flex; gap:4px; flex-shrink:0; }
+        .me-del-btn {
+          background:none; border:none; cursor:pointer;
+          color:#c5c5c5; padding:2px 4px; border-radius:4px;
+          font-size:12px; line-height:1; transition:color .15s,background .15s;
+          display:none;
+        }
+        .me-row:hover .me-del-btn,
+        .me-group-hdr:hover .me-del-btn { display:inline-flex; }
+        .me-del-btn:hover { color:#e74a3b; background:#fff0ee; }
+      </style>
+
+      <script>
+      var ME = (function(){
+        var _data = null;       // [{id, name, title, icon, in_sidebar, menu_order, tables:[...nested...]}]
+        var _drag = null;       // {nodeId, appId, type:'app'|'table'}
+        var _editId = null;
+        var _editType = null;
+
+        /* ── helpers ─────────────────────────────────────────────────────────── */
+        function esc(s){ var d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+        function iconCls(ic){ if(!ic) return 'fa fa-circle'; return ic.startsWith('ti-') ? ic : 'fa '+ic; }
+        function iconEl(ic){ return '<i class="'+iconCls(ic)+' me-icon"></i>'; }
+
+        function flatten(nodes, out){
+          out = out||[];
+          (nodes||[]).forEach(function(n){ out.push(n); flatten(n.children,out); });
+          return out;
+        }
+        function findNode(nodes, id){
+          for(var i=0;i<nodes.length;i++){
+            if(nodes[i].id===id) return nodes[i];
+            var r=findNode(nodes[i].children,id);
+            if(r) return r;
+          }
+          return null;
+        }
+        function removeNode(nodes, id){
+          for(var i=0;i<nodes.length;i++){
+            if(nodes[i].id===id){ return nodes.splice(i,1)[0]; }
+            var r=removeNode(nodes[i].children,id);
+            if(r) return r;
+          }
+          return null;
+        }
+        function findParentList(nodes, id){
+          for(var i=0;i<nodes.length;i++){
+            if(nodes[i].id===id) return nodes;
+            var r=findParentList(nodes[i].children,id);
+            if(r) return r;
+          }
+          return null;
+        }
+        function reindex(nodes, parentId){
+          (nodes||[]).forEach(function(n,i){
+            n.menu_order=i; n.parent_table_id=parentId||null;
+            reindex(n.children, n.id);
+          });
+        }
+        function appOf(tableId){
+          for(var i=0;i<_data.length;i++){
+            if(findNode(_data[i].tables, tableId)) return _data[i];
+          }
+          return null;
+        }
+
+        /* ── render ───────────────────────────────────────────────────────────── */
+        /* renderNode — groups (db_backed=false) render as section headers with
+           a coloured nest block; DB-backed items render as editable rows.       */
+        function renderNode(node, appId){
+          var isGroup  = node.is_group || !node.db_backed;
+          var hidden   = !node.show_in_menu;
+          var hasKids  = node.children && node.children.length > 0;
+          var kidId    = 'kids_' + node.id + '_' + appId; // unique even if synthetic ids clash
+
+          /* ── children block ─────────────────────────────────────── */
+          var kidsHtml = '';
+          if(hasKids){
+            var inner = node.children.map(function(c){ return renderNode(c, appId); }).join('');
+            kidsHtml =
+              '<div class="me-nest" id="'+kidId+'">' +
+                inner +
+              '</div>';
+          }
+
+          /* ── group header (manifest MenuGroup — no DB record) ───── */
+          if(isGroup){
+            var togBtn = hasKids
+              ? '<span class="me-grp-tog" id="tog_'+kidId+'" ' +
+                'onclick="ME.toggleKids(event,\''+kidId+'\')"><i class="ti-angle-right"></i></span>'
+              : '';
+            var isCustomGrp = node.db_backed && node.id > 0;
+            return (
+              '<div class="me-group-block" data-nid="'+node.id+'" data-app="'+appId+'">' +
+                '<div class="me-group-hdr" style="cursor:pointer;" onclick="ME.rowClick(event,\'table\','+node.id+')">' +
+                  togBtn +
+                  iconEl(node.icon) +
+                  '<span class="me-group-label">'+esc(node.title)+'</span>' +
+                  '<span class="me-group-pill">group</span>' +
+                  '<span class="me-row-actions">' +
+                    (isCustomGrp ? '<button class="me-del-btn" title="Delete group" onclick="ME.deleteItem(event,'+node.id+')"><i class="ti-trash"></i></button>' : '') +
+                  '</span>' +
+                '</div>' +
+                kidsHtml +
+              '</div>'
+            );
+          }
+
+          /* ── leaf item row (DB-backed) ──────────────────────────── */
+          var isCustom = node.is_group || (node.name && (node.name+'').startsWith('_grp_')) || (node.name && (node.name+'').startsWith('_page_'));
+          return (
+            '<div class="me-item-wrap" data-nid="'+node.id+'" data-app="'+appId+'">' +
+              '<div class="me-row'+(hidden?' me-opacity-50':'')+'" data-row="'+node.id+'" ' +
+                   'draggable="true" ' +
+                   'onclick="ME.rowClick(event,\'table\','+node.id+')" ' +
+                   'ondragstart="ME.dragStart(event,\'table\','+node.id+','+appId+')" ' +
+                   'ondragend="ME.dragEnd(event)" ' +
+                   'ondragover="ME.dragOverRow(event,\''+node.id+'\')" ' +
+                   'ondragleave="ME.dragLeaveRow(event)" ' +
+                   'ondrop="ME.dropRow(event,\'table\',\''+node.id+'\',\''+appId+'\')">' +
+                '<span class="me-handle" onclick="event.stopPropagation()"><i class="ti-menu-alt"></i></span>' +
+                (hasKids
+                  ? '<span class="me-toggle open" id="tog_'+kidId+'" ' +
+                    'onclick="ME.toggleKids(event,\''+kidId+'\')"><i class="ti-angle-right"></i></span>'
+                  : '<span style="width:16px;flex-shrink:0"></span>') +
+                iconEl(node.icon) +
+                '<span class="me-label">'+esc(node.title)+'</span>' +
+                (hidden ? '<span class="badge badge-secondary me-badge">hidden</span>' : '') +
+                '<span class="me-row-actions">' +
+                  (isCustom ? '<button class="me-del-btn" title="Delete" onclick="ME.deleteItem(event,'+node.id+')"><i class="ti-trash"></i></button>' : '') +
+                '</span>' +
+              '</div>' +
+              kidsHtml +
+            '</div>'
+          );
+        }
+
+        function renderApp(app){
+          var hasKids  = app.tables && app.tables.length > 0;
+          var nodesHtml = (app.tables||[]).map(function(t){ return renderNode(t, app.id); }).join('');
+          var isDbApp  = app.db_backed !== false;
+          return (
+            '<div class="me-app" data-app-id="'+app.id+'">' +
+              '<div class="me-app-header" ' +
+                   (isDbApp ? 'draggable="true" ' : '') +
+                   'onclick="'+(isDbApp ? 'ME.rowClick(event,\'app\','+app.id+')' : 'ME.toggleApp(event,'+app.id+')')+'" ' +
+                   (isDbApp ? 'ondragstart="ME.dragStart(event,\'app\','+app.id+',null)" ' +
+                              'ondragend="ME.dragEnd(event)" ' +
+                              'ondragover="ME.dragOverApp(event,'+app.id+')" ' +
+                              'ondragleave="ME.dragLeaveApp(event)" ' +
+                              'ondrop="ME.dropApp(event,'+app.id+')"' : '') + '>' +
+                (isDbApp ? '<i class="ti-menu-alt me-handle" onclick="event.stopPropagation()" style="font-size:12px;color:#8a9bb0"></i>' : '') +
+                iconEl(app.icon) +
+                '<span style="flex:1;font-size:13px;font-weight:600">'+esc(app.title)+'</span>' +
+                (!app.in_sidebar ? '<span class="badge badge-secondary me-badge">hidden</span>' : '') +
+                (hasKids ? '<i class="ti-angle-right me-app-chevron open" id="appchev_'+app.id+'"></i>' : '') +
+              '</div>' +
+              '<div class="me-app-body" id="appbody_'+app.id+'">' + nodesHtml + '</div>' +
+            '</div>'
+          );
+        }
+
+        function render(){
+          if(!_data) return;
+          document.getElementById('menuEditorRoot').innerHTML = (_data||[]).map(renderApp).join('');
+        }
+
+        /* ── collapse — id is the full element id of the nest block ── */
+        function toggleKids(e, kidId){
+          e.stopPropagation();
+          var kids = document.getElementById(kidId);
+          var tog  = document.getElementById('tog_'+kidId);
+          if(!kids) return;
+          var hidden = kids.style.display==='none';
+          kids.style.display = hidden ? '' : 'none';
+          if(tog){ tog.classList.toggle('open', hidden); }
+        }
+
+        function toggleApp(e, appId){
+          e.stopPropagation();
+          var body = document.getElementById('appbody_'+appId);
+          var chev = document.getElementById('appchev_'+appId);
+          if(!body) return;
+          var hidden = body.style.display==='none';
+          body.style.display = hidden ? '' : 'none';
+          if(chev) chev.classList.toggle('open', hidden);
+        }
+
+        /* ── edit drawer ──────────────────────────────────────────────────────── */
+        function drawerOpen(type, id){
+          _editType = type; _editId = id;
+          document.getElementById('medit_type').value = type;
+          document.getElementById('medit_id').value = id;
+          var prow  = document.getElementById('medit_parent_row');
+          var srow  = document.getElementById('medit_show_row');
+          var sbrow = document.getElementById('medit_sidebar_row');
+
+          if(type==='app'){
+            var app = _data.find(function(a){ return a.id===id; });
+            document.getElementById('meDrawer_title').textContent = 'Edit App: '+app.title;
+            document.getElementById('medit_title').value = app.title;
+            document.getElementById('medit_icon').value  = app.icon||'';
+            document.getElementById('medit_in_sidebar').checked = app.in_sidebar!==false;
+            prow.style.display='none'; srow.style.display='none'; sbrow.style.display='';
+          } else {
+            var foundApp=null, found=null;
+            _data.forEach(function(a){
+              var f=findNode(a.tables,id);
+              if(f){ found=f; foundApp=a; }
             });
+            if(!found) return;
+            document.getElementById('meDrawer_title').textContent = 'Edit: '+found.title;
+            document.getElementById('medit_title').value = found.title;
+            document.getElementById('medit_icon').value  = found.icon||'';
+            document.getElementById('medit_show').checked = found.show_in_menu!==false;
+            // parent select — all tables in same app excluding self and descendants
+            var excluded = flatten([found]).map(function(n){ return n.id; });
+            var sel = document.getElementById('medit_parent');
+            sel.innerHTML = '<option value="">— top level —</option>';
+            function addOpts(nodes, depth){
+              (nodes||[]).forEach(function(n){
+                if(excluded.indexOf(n.id)>=0) return;
+                var prefix = '    '.repeat(depth);
+                var opt=document.createElement('option');
+                opt.value=n.id; opt.text=prefix+n.title;
+                if(n.id===found.parent_table_id) opt.selected=true;
+                sel.appendChild(opt);
+                addOpts(n.children, depth+1);
+              });
+            }
+            addOpts(foundApp.tables, 0);
+            prow.style.display=''; srow.style.display=''; sbrow.style.display='none';
+          }
+          _updateIconPreview();
+          document.getElementById('medit_icon').oninput = _updateIconPreview;
+          document.getElementById('meDrawer').style.display='flex';
+          document.getElementById('meOverlay').style.display='';
+          // highlight selected row
+          document.querySelectorAll('.me-row.me-selected,.me-app-header.me-selected').forEach(function(r){ r.classList.remove('me-selected'); });
+          var row = document.querySelector('[data-row="'+id+'"]') || document.querySelector('[data-app-id="'+id+'"] .me-app-header');
+          if(row) row.classList.add('me-selected');
+        }
+
+        function _updateIconPreview(){
+          var ic = document.getElementById('medit_icon').value.trim();
+          var prev = document.getElementById('medit_icon_preview');
+          prev.innerHTML = ic ? '<i class="'+iconCls(ic)+'" style="margin-right:6px"></i><span class="text-muted small">'+esc(ic)+'</span>' : '';
+        }
+
+        function drawerClose(){
+          document.getElementById('meDrawer').style.display='none';
+          document.getElementById('meOverlay').style.display='none';
+          document.querySelectorAll('.me-row.me-selected,.me-app-header.me-selected').forEach(function(r){ r.classList.remove('me-selected'); });
+        }
+
+        function drawerApply(){
+          var type  = document.getElementById('medit_type').value;
+          var id    = parseInt(document.getElementById('medit_id').value);
+          var title = document.getElementById('medit_title').value.trim();
+          var icon  = document.getElementById('medit_icon').value.trim();
+
+          if(type==='app'){
+            var app = _data.find(function(a){ return a.id===id; });
+            if(app){
+              if(title) app.title = title;
+              if(icon)  app.icon  = icon;
+              app.in_sidebar = document.getElementById('medit_in_sidebar').checked;
+            }
+          } else {
+            var newParent = parseInt(document.getElementById('medit_parent').value)||null;
+            var show = document.getElementById('medit_show').checked;
+            _data.forEach(function(a){
+              var f = findNode(a.tables, id);
+              if(!f) return;
+              if(title) f.title = title;
+              if(icon)  f.icon  = icon;
+              f.show_in_menu = show;
+              if(newParent !== f.parent_table_id){
+                var node = removeNode(a.tables, id);
+                if(!node) return;
+                node.parent_table_id = newParent||null;
+                if(newParent){
+                  var pn = findNode(a.tables, newParent);
+                  if(pn){ pn.children.push(node); }
+                  else { a.tables.push(node); node.parent_table_id=null; }
+                } else {
+                  a.tables.push(node);
+                }
+                reindex(a.tables, null);
+              }
+            });
+          }
+          drawerClose();
+          render();
+        }
+
+        /* ── drag & drop ─────────────────────────────────────────────────────── */
+        function dragStart(e, type, id, appId){
+          _drag = {type:type, id:id, appId:appId};
+          e.dataTransfer.effectAllowed='move';
+          e.dataTransfer.setData('text/plain', id);
+          e.stopPropagation();
+          setTimeout(function(){
+            var el = type==='app'
+              ? document.querySelector('.me-app[data-app-id="'+id+'"]')
+              : document.querySelector('.me-row[data-row="'+id+'"]');
+            if(el) el.style.opacity='0.4';
+          },0);
+        }
+        function dragEnd(e){
+          document.querySelectorAll('.me-app').forEach(function(el){ el.style.opacity=''; el.classList.remove('drag-over-app'); });
+          document.querySelectorAll('.me-row').forEach(function(el){ el.style.opacity=''; el.classList.remove('drag-over-before','drag-over-child','drag-over-after'); });
+          document.querySelectorAll('.me-drop-zone').forEach(function(el){ el.classList.remove('active'); });
+          _drag=null;
+        }
+
+        // app-level: drag apps over apps
+        function dragOverApp(e, targetAppId){
+          if(!_drag || _drag.type!=='app' || _drag.id===targetAppId) return;
+          e.preventDefault(); e.stopPropagation();
+          document.querySelectorAll('.me-app').forEach(function(el){ el.classList.remove('drag-over-app'); });
+          var el = document.querySelector('.me-app[data-app-id="'+targetAppId+'"]');
+          if(el) el.classList.add('drag-over-app');
+        }
+        function dragLeaveApp(e){
+          var el = e.currentTarget.closest('.me-app');
+          if(el) el.classList.remove('drag-over-app');
+        }
+        function dropApp(e, targetAppId){
+          e.preventDefault(); e.stopPropagation();
+          document.querySelectorAll('.me-app').forEach(function(el){ el.classList.remove('drag-over-app'); });
+          if(!_drag || _drag.type!=='app' || _drag.id===targetAppId) return;
+          var from = _data.findIndex(function(a){ return a.id===_drag.id; });
+          var to   = _data.findIndex(function(a){ return a.id===targetAppId; });
+          if(from<0||to<0) return;
+          var moved = _data.splice(from,1)[0];
+          _data.splice(to,0,moved);
+          _data.forEach(function(a,i){ a.menu_order=i; });
+          render();
+        }
+
+        // row-level: three zones — top 25% = before, middle 50% = child, bottom 25% = after
+        var _lastDragZone = null;
+        function dragOverRow(e, targetId){
+          if(!_drag || _drag.type!=='table') return;
+          if(parseInt(targetId)===_drag.id) return;
+          e.preventDefault(); e.stopPropagation();
+          var row = e.currentTarget;
+          var rect = row.getBoundingClientRect();
+          var pct  = (e.clientY - rect.top) / rect.height;
+          row.classList.remove('drag-over-before','drag-over-child','drag-over-after');
+          if(pct < 0.28)       row.classList.add('drag-over-before');
+          else if(pct < 0.72)  row.classList.add('drag-over-child');
+          else                  row.classList.add('drag-over-after');
+        }
+        function dragLeaveRow(e){
+          var row = e.currentTarget;
+          row.classList.remove('drag-over-before','drag-over-child','drag-over-after');
+        }
+        function dropRow(e, type, targetId, targetAppId){
+          e.preventDefault(); e.stopPropagation();
+          if(!_drag || _drag.type!=='table') return;
+          targetId = parseInt(targetId); targetAppId = parseInt(targetAppId);
+          var row  = e.currentTarget;
+          var rect = row.getBoundingClientRect();
+          var pct  = (e.clientY - rect.top) / rect.height;
+          row.classList.remove('drag-over-before','drag-over-child','drag-over-after');
+          if(parseInt(targetId)===_drag.id) return;
+
+          var srcApp = appOf(_drag.id);
+          var dstApp = _data.find(function(a){ return a.id===targetAppId; });
+          if(!srcApp||!dstApp) return;
+
+          // check target is not a descendant of dragged
+          var dragNode = findNode(srcApp.tables, _drag.id);
+          if(!dragNode) return;
+          if(findNode([dragNode], targetId)) return; // can't drop into own child
+
+          removeNode(srcApp.tables, _drag.id);
+          var targetParentList = findParentList(dstApp.tables, targetId) || dstApp.tables;
+          var ti = targetParentList.findIndex(function(n){ return n.id===targetId; });
+
+          if(pct < 0.28){
+            // before target — same parent as target
+            dragNode.parent_table_id = _listParentId(dstApp.tables, targetParentList);
+            targetParentList.splice(ti, 0, dragNode);
+          } else if(pct < 0.72){
+            // as child of target
+            var targetNode = findNode(dstApp.tables, targetId);
+            dragNode.parent_table_id = targetId;
+            targetNode.children.push(dragNode);
+          } else {
+            // after target
+            dragNode.parent_table_id = _listParentId(dstApp.tables, targetParentList);
+            targetParentList.splice(ti+1, 0, dragNode);
+          }
+          reindex(dstApp.tables, null);
+          render();
+        }
+
+        function _listParentId(allTables, list){
+          // returns the id of the node whose .children === list, or null if it's a root list
+          if(list === allTables) return null;
+          var result = null;
+          function search(nodes){
+            for(var i=0;i<nodes.length;i++){
+              if(nodes[i].children===list){ result=nodes[i].id; return true; }
+              if(search(nodes[i].children)) return true;
+            }
+          }
+          search(allTables);
+          return result;
+        }
+
+        /* ── save ─────────────────────────────────────────────────────────────── */
+        function save(){
+          var btn = document.getElementById('menuSaveBtn');
+          btn.disabled=true; btn.innerHTML='<i class="ti-reload mr-1"></i>Saving…';
+          var csrfToken = document.querySelector('meta[name="csrf-token"]');
+          var csrf = csrfToken ? csrfToken.getAttribute('content') : '';
+          fetch('/admin/settings/menu/save',{
+            method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrf},
+            body: JSON.stringify({apps:_data})
+          }).then(function(r){ return r.json(); }).then(function(d){
+            btn.disabled=false;
+            if(d.ok){
+              btn.innerHTML='<i class="ti-check mr-1"></i>Saved!';
+              setTimeout(function(){ btn.innerHTML='<i class="ti-save mr-1"></i>Save Changes'; },2000);
+            } else {
+              btn.innerHTML='<i class="ti-save mr-1"></i>Save Changes';
+              var msg = typeof d.error==='string' ? d.error : JSON.stringify(d.error||d);
+              alert('Save error: '+msg);
+            }
+          }).catch(function(err){
+            btn.disabled=false; btn.innerHTML='<i class="ti-save mr-1"></i>Save Changes';
+            alert('Save failed: '+String(err));
+          });
+        }
+
+        /* ── load ─────────────────────────────────────────────────────────────── */
+        function load(){
+          document.getElementById('menuEditorRoot').innerHTML='<div class="text-muted p-3"><i class="ti-reload mr-1"></i>Loading…</div>';
+          fetch('/admin/settings/menu/data').then(function(r){ return r.json(); }).then(function(d){
+            _data=d; render();
+          }).catch(function(){
+            document.getElementById('menuEditorRoot').innerHTML='<div class="text-danger p-3">Failed to load menu data.</div>';
+          });
+        }
+
+        /* ── add group / page ────────────────────────────────────────────────── */
+        var _addType = null;
+        function openAddModal(type){
+          _addType = type;
+          var modal = document.getElementById('meAddModal');
+          var urlRow = document.getElementById('meAdd_url_row');
+          var parentRow = document.getElementById('meAdd_parent_row');
+          document.getElementById('meAddModal_title').textContent = type === 'group' ? 'Add Menu Group' : 'Add Menu Page';
+          document.getElementById('meAdd_type').value = type;
+          document.getElementById('meAdd_title').value = '';
+          document.getElementById('meAdd_icon').value = type === 'group' ? 'fa-folder' : 'fa-file';
+          document.getElementById('meAdd_url').value = '';
+          urlRow.style.display    = type === 'page' ? '' : 'none';
+          parentRow.style.display = type === 'page' ? '' : 'none';
+          // populate app select
+          var appSel = document.getElementById('meAdd_app');
+          appSel.innerHTML = '';
+          (_data||[]).forEach(function(a){
+            var opt = document.createElement('option');
+            opt.value = a.id; opt.text = a.title;
+            appSel.appendChild(opt);
+          });
+          // populate parent select for page
+          if(type === 'page'){
+            var parSel = document.getElementById('meAdd_parent');
+            parSel.innerHTML = '<option value="">— top level —</option>';
+            function addParentOpts(nodes, depth){
+              (nodes||[]).forEach(function(n){
+                if(!n.is_group) return; // only groups can be parents
+                var opt = document.createElement('option');
+                opt.value = n.id; opt.text = '    '.repeat(depth) + n.title;
+                parSel.appendChild(opt);
+                addParentOpts(n.children, depth+1);
+              });
+            }
+            (_data||[]).forEach(function(a){ addParentOpts(a.tables, 0); });
+          }
+          modal.style.display = 'flex';
+        }
+        function closeAddModal(){
+          document.getElementById('meAddModal').style.display = 'none';
+        }
+        function submitAdd(){
+          var type    = document.getElementById('meAdd_type').value;
+          var app_id  = parseInt(document.getElementById('meAdd_app').value) || 0;
+          var title   = document.getElementById('meAdd_title').value.trim();
+          var icon    = document.getElementById('meAdd_icon').value.trim();
+          var url     = document.getElementById('meAdd_url').value.trim();
+          var parent  = type === 'page' ? (parseInt(document.getElementById('meAdd_parent').value)||null) : null;
+
+          if(!title){ alert('Title is required.'); return; }
+          if(type === 'page' && !url){ alert('URL suffix is required for a page.'); return; }
+          if(!app_id){ alert('Select an app.'); return; }
+
+          var endpoint = type === 'group' ? '/admin/settings/menu/add-group' : '/admin/settings/menu/add-page';
+          var body = {app_id: app_id, title: title, icon: icon};
+          if(type === 'page'){ body.url_suffix = url; body.parent_id = parent; }
+
+          var csrf = (document.querySelector('meta[name="csrf-token"]')||{getAttribute:function(){return '';}}).getAttribute('content');
+          fetch(endpoint, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json','X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(function(r){ return r.json(); }).then(function(d){
+            if(d.ok){
+              closeAddModal();
+              load(); // reload from server so new row is properly positioned
+            } else {
+              alert('Error: '+(d.error||'unknown'));
+            }
+          }).catch(function(err){ alert('Request failed: '+String(err)); });
+        }
+
+        /* ── delete item ─────────────────────────────────────────────────────── */
+        function deleteItem(e, id){
+          e.stopPropagation();
+          if(!confirm('Delete this menu item? Children will be moved up to its parent.')) return;
+          var csrf = (document.querySelector('meta[name="csrf-token"]')||{getAttribute:function(){return '';}}).getAttribute('content');
+          fetch('/admin/settings/menu/delete/'+id, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrf}
+          }).then(function(r){ return r.json(); }).then(function(d){
+            if(d.ok){
+              load();
+            } else {
+              alert('Error: '+(d.error||'unknown'));
+            }
+          }).catch(function(err){ alert('Request failed: '+String(err)); });
+        }
+
+        /* ── init ─────────────────────────────────────────────────────────────── */
+        document.addEventListener('DOMContentLoaded', function(){
+          document.querySelectorAll('.settings-nav-item, .settings-tab-link').forEach(function(el){
+            el.addEventListener('click', function(){
+              var pid = (el.dataset.panel || el.getAttribute('href')||'').replace('#','');
+              if(pid==='panel-menu' && !_data) load();
+            });
+          });
+          if(location.hash==='#panel-menu') load();
         });
 
-    // Restore from hash or default
-    var hash = window.location.hash.replace("#", "");
-    activatePanel(hash || "panel-general");
+        return {
+          load: load, save: save, render: render,
+          rowClick: function(e, type, id){ e.stopPropagation(); drawerOpen(type, id); },
+          toggleKids: toggleKids, toggleApp: toggleApp,
+          drawerClose: drawerClose, drawerApply: drawerApply,
+          dragStart: dragStart, dragEnd: dragEnd,
+          dragOverApp: dragOverApp, dragLeaveApp: dragLeaveApp, dropApp: dropApp,
+          dragOverRow: dragOverRow, dragLeaveRow: dragLeaveRow, dropRow: dropRow,
+          openAddModal: openAddModal, closeAddModal: closeAddModal, submitAdd: submitAdd,
+          deleteItem: deleteItem,
+        };
+      })();
+      </script>
+    </div>
 
-    function toggleRoleDetail(roleId) {
-        var row = document.getElementById("role-detail-" + roleId);
-        if (row) row.classList.toggle("d-none");
-    }
+    {# ── Dev ── #}
+    <div class="settings-panel d-none" id="panel-dev">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h5 class="mb-1"><i class="ti-dashboard mr-2"></i>Developer Tools</h5>
+              <p class="text-muted small mb-0">Framework internals, registered routes, loaded modules</p>
+            </div>
+            <a href="{{ url_for('admin.dev') }}" class="aras-btn aras-btn--sm aras-btn--accent-outline">
+              Open Dev Page →
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>{# end col-md-10 #}
+</div>{# end row #}
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script>
+function activatePanel(panelId) {
+  document.querySelectorAll('.settings-nav-item').forEach(function(i) { i.classList.remove('active'); });
+  document.querySelectorAll('.settings-tab-link').forEach(function(i) { i.classList.remove('active'); });
+  document.querySelectorAll('.settings-panel').forEach(function(p) { p.classList.add('d-none'); });
+
+  var sideItem = document.querySelector('.settings-nav-item[data-panel="' + panelId + '"]');
+  if (sideItem) sideItem.classList.add('active');
+  var tabLink = document.querySelector('.settings-tab-link[data-panel="' + panelId + '"]');
+  if (tabLink) tabLink.classList.add('active');
+  var panel = document.getElementById(panelId);
+  if (panel) panel.classList.remove('d-none');
+  window.location.hash = panelId;
+}
+
+document.querySelectorAll('.settings-nav-item, .settings-tab-link').forEach(function(item) {
+  item.addEventListener('click', function(e) {
+    e.preventDefault();
+    activatePanel(item.getAttribute('data-panel'));
+  });
+});
+
+var urlParams = new URLSearchParams(window.location.search);
+var panelParam = urlParams.get('panel');
+var hash = window.location.hash.replace('#', '');
+activatePanel(panelParam || hash || 'panel-general');
+
+
 </script>
 {% endblock %}

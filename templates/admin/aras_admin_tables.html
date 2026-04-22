@@ -1,6 +1,6 @@
 {% extends extends_layout if extends_layout else 'admin/adm_base.html' %}
 
-{% block submenu %}{% include 'admin/_admin_submenu.html' %}{% endblock %}
+{% block submenu %}{% include 'admin/base_admin_submenu.html' %}{% endblock %}
 
 {% block page_content %}
 <div class="row mt-4">
@@ -23,6 +23,9 @@
             {% else %}
               <span class="badge badge-success mr-2" style="font-size:.85rem;padding:6px 10px;">Active</span>
             {% endif %}
+            <a href="{{ url_for('admin.apps_migrations', app_id=app_def.id) }}" class="btn btn-sm btn-outline-secondary mr-1" title="Schema Migrations">
+              <i class="fa fa-database mr-1"></i>Migrations
+            </a>
             <a href="{{ url_for('admin.apps_table_new', app_id=app_def.id) }}" class="btn btn-primary btn-sm">
               <i class="fa fa-plus mr-1"></i>Add Table
             </a>

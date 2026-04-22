@@ -2,21 +2,29 @@
 """
 arasCore/arasAdmin/settings_service.py
 ======================================
-Per-app settings: get/set/upsert + auto-mount `/admin/<app>/settings/` untuk
-code-based apps (AppHelper) dan dynamic apps (AppManagerApp).
+Per-app settings: get/set/upsert + two-level UI:
 
-Kontrak schema (dipakai code-based apps via AppHelper.settings_schema):
+  /admin/<app>/settings/            — card-grid home (one card per section)
+  /admin/<app>/settings/<section>/  — form for that section's keys
+
+Schema contract (AppHelper.settings_schema):
 
     [
         {"key": "retention_days", "label": "Retention (days)",
          "value_type": "integer", "default": 30,
+         "section": "cleanup",          # groups into a card
+         "section_label": "Cleanup",    # card title (first item wins)
+         "section_icon":  "fa-trash",   # card icon  (first item wins)
          "help_text": "Auto-purge older than N days"},
-        {"key": "enable_email",   "label": "Email Notifications",
-         "value_type": "boolean", "default": False},
     ]
 
-Dynamic apps (dari AppManagerApp) dapat halaman setting default — user bisa
-tambah key/value lewat form di UI admin.
+Items without "section" fall into a default "general" card.
+
+Dynamic apps (AppManagerApp) get one "Custom Settings" section where
+users can add/delete free-form key/value rows.
+
+Framework injects a "General" card automatically with app metadata
+(title, icon, description) editable from the UI.
 """
 import logging
 from flask import render_template, request, redirect, flash
@@ -26,11 +34,11 @@ from arasCore.lib.extensions import db
 
 logger = logging.getLogger(__name__)
 
+_VALUE_TYPES = ("string", "text", "integer", "float", "boolean", "json")
 
 # ── CRUD helpers ──────────────────────────────────────────────────────────────
 
 def get_all_settings(app_id: int) -> list:
-    """Return list of AppManagerSetting for an app, ordered."""
     from arasCore.arasAdmin.models import AppManagerSetting
     return (
         AppManagerSetting.query
@@ -47,28 +55,26 @@ def get_setting(app_id: int, key: str, default=None):
 
 
 def set_setting(app_id: int, key: str, value, value_type="string",
-                label=None, help_text=None, order=0):
-    """Upsert one setting row. Commits."""
+                label=None, help_text=None, order=0, section=None):
     from arasCore.arasAdmin.models import AppManagerSetting
     row = AppManagerSetting.query.filter_by(app_id=app_id, key=key).first()
     if not row:
         row = AppManagerSetting(app_id=app_id, key=key, value_type=value_type,
-                                label=label or key, help_text=help_text, order=order)
+                                label=label or key, help_text=help_text,
+                                order=order)
         db.session.add(row)
     else:
         row.value_type = value_type or row.value_type
         if label:     row.label = label
         if help_text: row.help_text = help_text
+    if section is not None and hasattr(row, "section"):
+        row.section = section
     row.set_value(value)
     db.session.commit()
     return row
 
 
 def ensure_schema(app_id: int, schema: list):
-    """
-    Given a list of {key, label, value_type, default, help_text, order},
-    create missing rows with default value. Doesn't overwrite existing values.
-    """
     from arasCore.arasAdmin.models import AppManagerSetting
     existing = {s.key for s in get_all_settings(app_id)}
     created = 0
@@ -84,6 +90,8 @@ def ensure_schema(app_id: int, schema: list):
             help_text=item.get("help_text"),
             order=item.get("order", i),
         )
+        if hasattr(row, "section"):
+            row.section = item.get("section") or "general"
         row.set_value(item.get("default"))
         db.session.add(row)
         created += 1
@@ -93,111 +101,360 @@ def ensure_schema(app_id: int, schema: list):
 
 
 def resolve_app_id_by_name(name: str):
-    """Find AppManagerApp.id by slug. Returns None if not found (e.g. code-based apps)."""
     from arasCore.arasAdmin.models import AppManagerApp
     row = AppManagerApp.query.filter_by(name=name).first()
     return row.id if row else None
 
 
-# ── Route factory ─────────────────────────────────────────────────────────────
+# ── Section helpers ───────────────────────────────────────────────────────────
 
-def make_settings_view(app_name: str, app_title: str, schema: list = None,
-                       is_dynamic: bool = False):
+def _build_section_cards(schema: list, is_dynamic: bool, app_name: str) -> list:
     """
-    Return a Flask view function for `/admin/<app_name>/settings/`.
+    Return list of card dicts for the settings home page.
 
-    - Code-based app: schema provided, app_id resolved via mgr_app name OR stored
-      under a synthetic row (created on first access).
-    - Dynamic app: schema is empty; UI allows free-form key/value additions.
+    Always includes a "General" framework card. Schema items are grouped by
+    their "section" key (default "general"). Dynamic apps get an extra card.
     """
+    base_url = f"/admin/{app_name}/settings"
+
+    # Framework-injected General card (app metadata)
+    cards = [
+        {
+            "slug":        "general",
+            "label":       "General",
+            "icon":        "fa-info-circle",
+            "description": "App title, icon, description, and status.",
+            "url":         f"{base_url}/general/",
+            "framework":   True,
+        }
+    ]
+
+    # Build cards from schema sections
+    seen = {}
+    for item in (schema or []):
+        sec  = item.get("section") or "app"
+        if sec == "general":
+            sec = "app"  # avoid collision with framework General card
+        if sec not in seen:
+            seen[sec] = {
+                "slug":        sec,
+                "label":       item.get("section_label") or sec.replace("-", " ").title(),
+                "icon":        item.get("section_icon") or "fa-sliders-h",
+                "description": item.get("section_description") or "",
+                "url":         f"{base_url}/{sec}/",
+                "framework":   False,
+            }
+        # propagate label/icon from first item that sets them
+        if item.get("section_label") and seen[sec]["label"] == sec.replace("-", " ").title():
+            seen[sec]["label"] = item["section_label"]
+        if item.get("section_icon") and seen[sec]["icon"] == "fa-sliders-h":
+            seen[sec]["icon"] = item["section_icon"]
+        if item.get("section_description") and not seen[sec]["description"]:
+            seen[sec]["description"] = item["section_description"]
+
+    cards.extend(seen.values())
+
+    if is_dynamic:
+        cards.append({
+            "slug":        "custom",
+            "label":       "Custom Settings",
+            "icon":        "fa-plus-circle",
+            "description": "Free-form key/value settings added via the UI.",
+            "url":         f"{base_url}/custom/",
+            "framework":   False,
+        })
+
+    return cards
+
+
+def _settings_for_section(app_id: int, section: str, schema: list) -> list:
+    """Return AppManagerSetting rows belonging to a section slug."""
+    all_rows = get_all_settings(app_id)
+    schema_keys = {}
+    for item in (schema or []):
+        key = item.get("key")
+        if not key:
+            continue
+        sec = item.get("section") or "app"
+        if sec == "general":
+            sec = "app"
+        schema_keys[key] = sec
+
+    result = []
+    for row in all_rows:
+        row_sec = getattr(row, "section", None) or schema_keys.get(row.key, "app")
+        if row_sec == section:
+            result.append(row)
+    return result
+
+
+# ── Framework General section (app metadata) ──────────────────────────────────
+
+def _handle_general_post(app_row):
+    """Save app-level metadata fields posted from the General section form."""
+    title = (request.form.get("app_title") or "").strip()
+    icon  = (request.form.get("app_icon") or "").strip()
+    desc  = (request.form.get("app_description") or "").strip()
+    order = request.form.get("app_menu_order", "")
+    if title:
+        app_row.title      = title
+        app_row.main_title = title
+    if icon is not None:
+        app_row.icon = icon
+    app_row.description = desc
+    try:
+        if order.strip():
+            app_row.menu_order = int(order)
+    except (ValueError, AttributeError):
+        pass
+    db.session.commit()
+    flash("General settings saved.", "success")
+
+
+# ── View factories ────────────────────────────────────────────────────────────
+
+def make_settings_home_view(app_name: str, app_title: str,
+                            schema: list = None, is_dynamic: bool = False,
+                            registry_key: str = None):
+    """
+    View for `/admin/<app_name>/settings/` — card-grid index of all sections.
+    """
+    _db_key = registry_key or app_name
+
     @login_required
     def view():
-        from arasCore.arasAdmin.models import AppManagerApp, AppManagerSetting
-
-        app_row = AppManagerApp.query.filter_by(name=app_name).first()
+        from arasCore.arasAdmin.models import AppManagerApp
+        app_row = AppManagerApp.query.filter_by(name=_db_key).first()
         if not app_row:
-            # For code-based apps: create a shell row so settings have a home.
-            app_row = AppManagerApp(
-                name=app_name,
-                title=app_title,
-                main_title=app_title,
-                url=f"/{app_name}",
-                endpoint=app_name,
-                is_active=False,
-                in_sidebar=False,
-            )
-            db.session.add(app_row)
-            db.session.commit()
+            app_row = _ensure_app_row(_db_key, app_name, app_title)
 
         if schema:
             ensure_schema(app_row.id, schema)
 
-        if request.method == "POST":
-            action = request.form.get("_action", "save")
-            if action == "add" and is_dynamic:
-                new_key   = (request.form.get("new_key") or "").strip()
-                new_type  = request.form.get("new_type") or "string"
-                new_label = request.form.get("new_label") or new_key
-                if new_key:
-                    set_setting(app_row.id, new_key, "", value_type=new_type, label=new_label)
-                    flash(f"Setting '{new_key}' added.", "success")
-            elif action == "delete":
-                del_key = request.form.get("delete_key")
-                row = AppManagerSetting.query.filter_by(app_id=app_row.id, key=del_key).first()
-                if row:
-                    db.session.delete(row)
-                    db.session.commit()
-                    flash(f"Setting '{del_key}' deleted.", "warning")
-            else:
-                # Save all fields posted as setting_<key>
-                for field, raw in request.form.items():
-                    if not field.startswith("setting_"):
-                        continue
-                    key = field[len("setting_"):]
-                    row = AppManagerSetting.query.filter_by(app_id=app_row.id, key=key).first()
-                    if row:
-                        row.set_value(raw)
-                # Boolean checkboxes: any row not in form => false
-                bool_rows = AppManagerSetting.query.filter_by(
-                    app_id=app_row.id, value_type="boolean"
-                ).all()
-                for r in bool_rows:
-                    if f"setting_{r.key}" not in request.form:
-                        r.set_value(False)
-                db.session.commit()
-                flash("Settings saved.", "success")
-            return redirect(request.path)
+        cards = _build_section_cards(schema or [], is_dynamic, app_name)
 
-        settings = get_all_settings(app_row.id)
         return render_template(
-            "admin/ab_settings.html",
+            "admin/aras_admin_settings.html",
             title=f"{app_title} — Settings",
-            main_title=f"{app_title} Settings",
+            main_title=f"{app_title} — Settings",
             app_name=app_name,
             app_title=app_title,
-            settings=settings,
-            is_dynamic=is_dynamic,
-            value_types=("string", "text", "integer", "float", "boolean", "json"),
+            app_row=app_row,
+            cards=cards,
+            home_url=f"/admin/{app_name}/",
+        )
+    return view
+
+
+def make_settings_section_view(app_name: str, app_title: str, section: str,
+                               schema: list = None, is_dynamic: bool = False,
+                               registry_key: str = None):
+    """
+    View for `/admin/<app_name>/settings/<section>/` — form for one section.
+    """
+    _db_key = registry_key or app_name
+    settings_home = f"/admin/{app_name}/settings/"
+
+    @login_required
+    def view():
+        from arasCore.arasAdmin.models import AppManagerApp, AppManagerSetting
+
+        app_row = AppManagerApp.query.filter_by(name=_db_key).first()
+        if not app_row:
+            app_row = _ensure_app_row(_db_key, app_name, app_title)
+
+        if schema:
+            ensure_schema(app_row.id, schema)
+
+        # ── POST handling ──────────────────────────────────────────────────
+        if request.method == "POST":
+            action = request.form.get("_action", "save")
+
+            if section == "general":
+                _handle_general_post(app_row)
+
+            elif section == "custom" and is_dynamic:
+                if action == "add":
+                    new_key   = (request.form.get("new_key") or "").strip()
+                    new_type  = request.form.get("new_type") or "string"
+                    new_label = request.form.get("new_label") or new_key
+                    if new_key:
+                        set_setting(app_row.id, new_key, "",
+                                    value_type=new_type, label=new_label,
+                                    section="custom")
+                        flash(f"Setting '{new_key}' added.", "success")
+                elif action == "delete":
+                    del_key = request.form.get("delete_key")
+                    row = AppManagerSetting.query.filter_by(
+                        app_id=app_row.id, key=del_key).first()
+                    if row:
+                        db.session.delete(row)
+                        db.session.commit()
+                        flash(f"Setting '{del_key}' deleted.", "warning")
+                else:
+                    _save_section_settings(app_row.id, section, schema)
+
+            else:
+                _save_section_settings(app_row.id, section, schema)
+
+            return redirect(request.path)
+
+        # ── GET: build context ────────────────────────────────────────────
+        if section == "general":
+            section_settings = []  # rendered inline from app_row fields
+        else:
+            section_settings = _settings_for_section(app_row.id, section, schema)
+
+        # Resolve section meta from cards list
+        cards = _build_section_cards(schema or [], is_dynamic, app_name)
+        card  = next((c for c in cards if c["slug"] == section), None)
+        section_label = card["label"] if card else section.replace("-", " ").title()
+        section_icon  = card["icon"]  if card else "fa-cog"
+
+        return render_template(
+            "admin/aras_admin_settings_section.html",
+            title=f"{app_title} — {section_label}",
+            main_title=section_label,
+            app_name=app_name,
+            app_title=app_title,
+            app_row=app_row,
+            section=section,
+            section_label=section_label,
+            section_icon=section_icon,
+            settings=section_settings,
+            is_dynamic=is_dynamic and section == "custom",
+            is_general=section == "general",
+            value_types=_VALUE_TYPES,
+            settings_home=settings_home,
         )
     view.methods = ["GET", "POST"]
     return view
 
 
+# ── Internal helpers ──────────────────────────────────────────────────────────
+
+def _ensure_app_row(db_key, app_name, app_title):
+    from arasCore.arasAdmin.models import AppManagerApp
+    app_row = AppManagerApp(
+        name=db_key, title=app_title, main_title=app_title,
+        url=f"/{app_name}", endpoint=app_name,
+        is_active=False, in_sidebar=False,
+    )
+    db.session.add(app_row)
+    db.session.commit()
+    return app_row
+
+
+def _save_section_settings(app_id: int, section: str, schema: list):
+    from arasCore.arasAdmin.models import AppManagerSetting
+    # Determine keys belonging to this section
+    schema_keys_in_section = set()
+    for item in (schema or []):
+        key = item.get("key")
+        if not key:
+            continue
+        sec = item.get("section") or "app"
+        if sec == "general":
+            sec = "app"
+        if sec == section:
+            schema_keys_in_section.add(key)
+
+    for field, raw in request.form.items():
+        if not field.startswith("setting_"):
+            continue
+        key = field[len("setting_"):]
+        if schema_keys_in_section and key not in schema_keys_in_section:
+            continue
+        row = AppManagerSetting.query.filter_by(app_id=app_id, key=key).first()
+        if row:
+            row.set_value(raw)
+
+    # Boolean checkboxes for this section
+    all_rows = get_all_settings(app_id)
+    schema_keys_map = {}
+    for item in (schema or []):
+        k = item.get("key")
+        if k:
+            sec = item.get("section") or "app"
+            if sec == "general":
+                sec = "app"
+            schema_keys_map[k] = sec
+
+    for r in all_rows:
+        if r.value_type != "boolean":
+            continue
+        row_sec = getattr(r, "section", None) or schema_keys_map.get(r.key, "app")
+        if row_sec == section and f"setting_{r.key}" not in request.form:
+            r.set_value(False)
+
+    db.session.commit()
+    flash("Settings saved.", "success")
+
+
+# ── Mount helper ──────────────────────────────────────────────────────────────
+
 def mount_settings_route(flask_app_or_bp, app_name: str, app_title: str,
                          schema: list = None, is_dynamic: bool = False,
-                         endpoint: str = None):
+                         endpoint: str = None, registry_key: str = None):
     """
-    Register `/admin/<app_name>/settings/` on a Flask app or blueprint.
-    Safe to call multiple times — duplicate endpoint is tolerated.
+    Register settings home + wildcard section route on a Flask app or blueprint.
+
+      GET  /admin/<app_name>/settings/            → card-grid index
+      GET  /admin/<app_name>/settings/<section>/  → section form
+      POST /admin/<app_name>/settings/<section>/  → save
     """
-    url = f"/admin/{app_name}/settings/"
-    ep  = endpoint or f"settings_{app_name}"
+    home_url = f"/admin/{app_name}/settings/"
+    sec_url  = f"/admin/{app_name}/settings/<section>/"
+    ep_home  = endpoint or f"settings_{app_name}"
+    ep_sec   = f"{ep_home}_section"
+
     try:
-        view = make_settings_view(app_name, app_title, schema=schema, is_dynamic=is_dynamic)
-        flask_app_or_bp.add_url_rule(url, endpoint=ep, view_func=view, methods=["GET", "POST"])
-        logger.debug(f"[settings] mounted {url} (ep={ep})")
+        home_view = make_settings_home_view(
+            app_name, app_title, schema=schema,
+            is_dynamic=is_dynamic, registry_key=registry_key,
+        )
+        flask_app_or_bp.add_url_rule(
+            home_url, endpoint=ep_home, view_func=home_view, methods=["GET"],
+        )
+        logger.debug(f"[settings] mounted {home_url} (ep={ep_home})")
     except AssertionError:
-        # Endpoint already registered — ignore
-        logger.debug(f"[settings] {ep} already registered; skip")
+        logger.debug(f"[settings] {ep_home} already registered; skip")
     except Exception as e:
-        logger.warning(f"[settings] failed to mount {url}: {e}")
+        logger.warning(f"[settings] home mount failed for {home_url}: {e}")
+
+    try:
+        # We need a real closure that reads section from the URL arg
+        _schema     = schema
+        _is_dyn     = is_dynamic
+        _reg_key    = registry_key
+        _app_name   = app_name
+        _app_title  = app_title
+
+        @login_required
+        def section_dispatcher(section):
+            return make_settings_section_view(
+                _app_name, _app_title, section=section,
+                schema=_schema, is_dynamic=_is_dyn, registry_key=_reg_key,
+            )()
+        section_dispatcher.methods = ["GET", "POST"]
+
+        flask_app_or_bp.add_url_rule(
+            sec_url, endpoint=ep_sec,
+            view_func=section_dispatcher, methods=["GET", "POST"],
+        )
+        logger.debug(f"[settings] mounted {sec_url} (ep={ep_sec})")
+    except AssertionError:
+        logger.debug(f"[settings] {ep_sec} already registered; skip")
+    except Exception as e:
+        logger.warning(f"[settings] section mount failed for {sec_url}: {e}")
+
+
+# ── Legacy shim — keep old make_settings_view callable ───────────────────────
+
+def make_settings_view(app_name: str, app_title: str, schema: list = None,
+                       is_dynamic: bool = False, registry_key: str = None):
+    """Backward-compat alias → make_settings_home_view."""
+    return make_settings_home_view(
+        app_name, app_title, schema=schema,
+        is_dynamic=is_dynamic, registry_key=registry_key,
+    )

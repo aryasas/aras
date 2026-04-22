@@ -1,8 +1,8 @@
 {
-    "total_reads": 91,
-    "cache_hits": 26,
-    "first_reads": 57,
-    "changed_files": 8,
-    "tokens_saved": 121743,
-    "total_tokens": 243482
+    "total_reads": 134,
+    "cache_hits": 29,
+    "first_reads": 80,
+    "changed_files": 25,
+    "tokens_saved": 171599,
+    "total_tokens": 385680
 }

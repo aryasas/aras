@@ -8,6 +8,11 @@ from flask_login import login_required, current_user
 from . import arasAdmin_bp
 from .models import UserActivity
 from .forms import AppManagerAppForm, CreateUserForm
+
+
+def _slug_from_url(url: str) -> str:
+    """Derive admin URL segment from url prefix. '/todo-test' → 'todo-test'."""
+    return url.strip("/") or "app"
 from .services import get_dashboard_widgets, build_sidebar_menu
 from arasCore.lib.extensions import db
 from arasCore.auth import User
@@ -267,12 +272,13 @@ def db_generate_view():
 
     slug  = table_name.replace("-", "_")
     title = slug.replace("_", " ").title()
+    _url  = f"/{slug.replace('_', '-')}"
     app_obj = AppManagerApp(
         name=slug,
         title=title,
         main_title=title,
-        url=f"/{slug.replace('_', '-')}",
-        endpoint=slug,
+        url=_url,
+        endpoint=_slug_from_url(_url),
         is_active=False,
         in_sidebar=True,
     )
@@ -398,12 +404,13 @@ def apps_new():
     from .models import AppManagerApp
     form = AppManagerAppForm()
     if form.validate_on_submit():
+        _url = form.url.data.strip()
         app_obj = AppManagerApp(
             name=form.name.data.strip().lower().replace(" ", "_"),
             title=form.title.data,
             main_title=form.main_title.data,
-            url=form.url.data.strip(),
-            endpoint=form.endpoint.data.strip().lower().replace(" ", "_"),
+            url=_url,
+            endpoint=_slug_from_url(_url),
             description=form.description.data or None,
             icon=form.icon.data,
             color_theme=form.color_theme.data or None,
@@ -438,11 +445,12 @@ def apps_edit(app_id):
     app_obj = AppManagerApp.query.get_or_404(app_id)
     form = AppManagerAppForm(obj=app_obj)
     if form.validate_on_submit():
+        _url = form.url.data.strip()
         app_obj.name          = form.name.data.strip().lower().replace(" ", "_")
         app_obj.title         = form.title.data
         app_obj.main_title    = form.main_title.data
-        app_obj.url           = form.url.data.strip()
-        app_obj.endpoint      = form.endpoint.data.strip().lower().replace(" ", "_")
+        app_obj.url           = _url
+        app_obj.endpoint      = _slug_from_url(_url)
         app_obj.description   = form.description.data or None
         app_obj.icon          = form.icon.data
         app_obj.color_theme   = form.color_theme.data or None
@@ -457,6 +465,11 @@ def apps_edit(app_id):
         app_obj.audit_log     = form.audit_log.data
         current_user.log_activity("app_updated", module="app_manager", payload={"app": app_obj.name})
         db.session.commit()
+        try:
+            from arasCore.lib.extensions import cache as _cache
+            _cache.delete("_sidebar_raw")
+        except Exception:
+            pass
         # Re-register routes with updated name/url
         if app_obj.is_active:
             from arasCore.arasAdmin.services import _register_built_app, clear_cache
@@ -487,6 +500,11 @@ def apps_activate(app_id):
     app_obj = AppManagerApp.query.get_or_404(app_id)
     app_obj.is_active = True
     db.session.commit()
+    try:
+        from arasCore.lib.extensions import cache as _cache
+        _cache.delete("_sidebar_raw")
+    except Exception:
+        pass
     # Attempt live registration
     from arasCore.arasAdmin.services import _register_built_app, clear_cache
     from arasCore.arasAdmin.models import AppManagerTable
@@ -516,6 +534,11 @@ def apps_deactivate(app_id):
     app_obj.is_active = False
     db.session.commit()
     clear_cache(app_obj.name)
+    try:
+        from arasCore.lib.extensions import cache as _cache
+        _cache.delete("_sidebar_raw")
+    except Exception:
+        pass
     flash(f"App '{app_obj.title}' deactivated. Restart server for full effect.", "info")
     return redirect(url_for("admin.apps"))
 
@@ -529,6 +552,11 @@ def apps_delete(app_id):
     name = app_obj.title
     app_slug = app_obj.name
     clear_cache(app_slug)
+    try:
+        from arasCore.lib.extensions import cache as _cache
+        _cache.delete("_sidebar_raw")
+    except Exception:
+        pass
     current_user.log_activity("app_deleted", module="app_manager", payload={"app": name})
     AppManagerField.query.filter_by(app_id=app_id).delete()
     db.session.delete(app_obj)
@@ -552,7 +580,7 @@ def apps_tables(app_id):
     app_obj = AppManagerApp.query.get_or_404(app_id)
     tables  = AppManagerTable.query.filter_by(app_id=app_id).order_by(AppManagerTable.menu_order).all()
     return render_template(
-        "admin/ab_tables.html",
+        "admin/aras_admin_tables.html",
         title=f"Tables — {app_obj.title}",
         main_title=app_obj.main_title,
         app_def=app_obj,
@@ -595,7 +623,7 @@ def apps_table_new(app_id):
         flash(f"Table '{tbl.title}' created. Add columns now.", "success")
         return redirect(url_for("admin.apps_columns", app_id=app_id, table_id=tbl.id))
     return render_template(
-        "admin/ab_table_form.html",
+        "admin/aras_admin_table_form.html",
         title="New Table",
         main_title=app_obj.main_title,
         app_def=app_obj,
@@ -637,7 +665,7 @@ def apps_table_edit(app_id, table_id):
         flash(f"Table '{tbl.title}' updated.", "success")
         return redirect(url_for("admin.apps_tables", app_id=app_id))
     return render_template(
-        "admin/ab_table_form.html",
+        "admin/aras_admin_table_form.html",
         title=f"Edit Table — {tbl.title}",
         main_title=app_obj.main_title,
         app_def=app_obj,
@@ -711,7 +739,7 @@ def apps_columns(app_id, table_id):
     columns = AppManagerColumn.query.filter_by(table_id=table_id).order_by(AppManagerColumn.order).all()
     all_tables = AppManagerTable.query.filter_by(app_id=app_id).all()
     return render_template(
-        "admin/ab_columns.html",
+        "admin/aras_admin_columns.html",
         title=f"Columns — {tbl.title}",
         main_title=app_obj.main_title,
         app_def=app_obj,

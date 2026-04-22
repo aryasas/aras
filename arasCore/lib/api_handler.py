@@ -20,7 +20,7 @@ from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 from sqlalchemy.exc import SQLAlchemyError
 
-from arasCore.lib.db import db
+from arasCore.lib.extensions import db
 
 logger = logging.getLogger(__name__)
 
@@ -34,13 +34,16 @@ _api_registry: dict = {}
 _custom_route_registry: dict = {}
 
 
-def register_api_model(url_key: str, model_cls, serializer=None, readonly: bool = False, handler=None):
+def register_api_model(url_key: str, model_cls, serializer=None, readonly: bool = False, handler=None,
+                       searchable: list = None, filters: list = None):
     """
     Daftarkan satu model ke universal API registry.
     url_key:    URL path tanpa leading/trailing slash, e.g. "erp/acc/journal"
     serializer: optional callable(obj) -> dict
     readonly:   jika True, hanya GET yang diizinkan
     handler:    optional SubHandler instance — override CRUD logic per resource
+    searchable: column names for ?q= full-text search
+    filters:    column names allowed in ?filter[field]=
     """
     key = url_key.strip("/")
     if key not in _api_registry:
@@ -49,6 +52,8 @@ def register_api_model(url_key: str, model_cls, serializer=None, readonly: bool 
             "serializer": serializer,
             "readonly":   readonly,
             "handler":    handler,
+            "searchable": searchable or [],
+            "filters":    filters or [],
         }
         logger.debug(f"[api_handler] registered: /api/{key}/")
 
@@ -133,6 +138,47 @@ def _build_api_blueprint() -> Blueprint:
             "total":       len(endpoints),
         }), 200
 
+    @api_bp.route("/api/<path:resource_path>/_schema/", methods=["GET"])
+    @login_required
+    def api_schema(resource_path):
+        """GET /api/<app>/<resource>/_schema/ → column/field descriptions."""
+        key = resource_path.rstrip("/")
+        entry = _api_registry.get(key)
+        if entry is None:
+            return jsonify({"error": f"Resource '{key}' not found."}), 404
+        model = entry["model"]
+        cols = []
+        for col in model.__table__.columns:
+            col_type = str(col.type.__class__.__name__).upper()
+            info = {
+                "name":     col.name,
+                "type":     col_type,
+                "required": not col.nullable and col.default is None and not col.primary_key,
+                "primary_key": col.primary_key,
+            }
+            if hasattr(col.type, "length") and col.type.length:
+                info["max_length"] = col.type.length
+            if col.foreign_keys:
+                fk = next(iter(col.foreign_keys))
+                info["relation"] = str(fk.target_fullname)
+            cols.append(info)
+        return jsonify({"resource": key, "columns": cols}), 200
+
+    @api_bp.route("/api/_search/", methods=["GET"])
+    @login_required
+    def api_global_search():
+        """GET /api/_search/?q=foo — global search across all searchable resources."""
+        from flask_login import current_user
+        q = request.args.get("q", "").strip()
+        if not q:
+            return jsonify({"results": [], "query": q}), 200
+        try:
+            from arasCore.lib.search import global_search
+            results = global_search(q, user=current_user)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        return jsonify({"results": results, "query": q, "total": len(results)}), 200
+
     @api_bp.route("/api/<path:resource_path>/", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
     @login_required
     def api_collection(resource_path):
@@ -173,10 +219,26 @@ def _build_api_blueprint() -> Blueprint:
             return fn(obj) if fn else _row_to_dict(obj)
 
         if request.method == "GET":
-            q = model.query
+            from arasCore.lib.query import ArasQuery
+            base_q = model.query
             if h:
-                q = h.list(q)
-            return jsonify([_serialize(i) for i in q.all()]), 200
+                base_q = h.list(base_q)
+            searchable = entry.get("searchable") or []
+            filters_allowed = entry.get("filters") or []
+            aq = ArasQuery(model, request.args, searchable=searchable, filters=filters_allowed)
+            # Run query only for pagination/filter — serialize via handler chain
+            q = aq._apply_filters_and_sort(base_q)
+            page = max(1, request.args.get("page", 1, type=int))
+            per_page = min(max(1, request.args.get("per_page", 50, type=int)), 500)
+            pag = q.paginate(page=page, per_page=per_page, error_out=False)
+            return jsonify({
+                "data": [_serialize(item) for item in pag.items],
+                "meta": {
+                    "page": pag.page, "per_page": pag.per_page,
+                    "total": pag.total, "total_pages": pag.pages,
+                    "has_next": pag.has_next, "has_prev": pag.has_prev,
+                },
+            }), 200
 
         if readonly:
             return jsonify({"error": "This resource is read-only."}), 405
@@ -217,6 +279,11 @@ def _build_api_blueprint() -> Blueprint:
                 if h:
                     h.after_create(obj)
                     db.session.commit()
+            try:
+                from arasCore.lib.events import emit_crud
+                emit_crud(_app_slug, _res_slug, "created", obj=obj)
+            except Exception:
+                pass
             return jsonify(_serialize(obj)), 201
         except (SQLAlchemyError, ValueError, Exception) as ex:
             db.session.rollback()
@@ -277,6 +344,11 @@ def _build_api_blueprint() -> Blueprint:
                 if h:
                     h.after_update(obj)
                     db.session.commit()
+                try:
+                    from arasCore.lib.events import emit_crud
+                    emit_crud(_app_slug, _res_slug, "updated", obj=obj)
+                except Exception:
+                    pass
                 return jsonify(_serialize(obj)), 200
             except (SQLAlchemyError, ValueError, Exception) as ex:
                 db.session.rollback()
@@ -292,6 +364,11 @@ def _build_api_blueprint() -> Blueprint:
             else:
                 db.session.delete(obj)
                 db.session.commit()
+            try:
+                from arasCore.lib.events import emit_crud
+                emit_crud(_app_slug, _res_slug, "deleted", obj=obj)
+            except Exception:
+                pass
             return jsonify({"message": "Deleted."}), 200
         except (SQLAlchemyError, ValueError, Exception) as ex:
             db.session.rollback()

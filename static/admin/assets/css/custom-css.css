@@ -848,3 +848,83 @@
   .aras-form-row { grid-template-columns: 1fr; gap: 4px; }
   .aras-form-label { padding-top: 0; }
 }
+
+/* ─── Column visibility toggle popover (4.2) ─────────── */
+.aras-col-toggle-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.1);
+  z-index: 500;
+  padding: 8px 0;
+}
+.aras-col-toggle-title {
+  padding: 4px 12px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted, #9ca3af);
+  letter-spacing: .05em;
+}
+.aras-col-toggle-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.aras-col-toggle-item:hover { background: var(--hover, #f9fafb); }
+.aras-inline-input {
+  border: 1px solid var(--primary, #6366f1);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 13px;
+  outline: none;
+}
+
+/* ─── Layout tabs (4.1) ──────────────────────────────── */
+.aras-layout-tabs { margin-bottom: 16px; }
+.aras-layout-tab-nav {
+  display: flex;
+  gap: 4px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-bottom: 2px solid var(--border, #e5e7eb);
+}
+.aras-layout-tab-link {
+  padding: 8px 16px;
+  border-radius: 6px 6px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted, #6b7280);
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-bottom: none;
+  cursor: pointer;
+  transition: background .15s;
+}
+.aras-layout-tab-link:hover { background: var(--hover, #f9fafb); }
+.aras-layout-tab-link.active {
+  color: var(--primary, #6366f1);
+  background: var(--surface, #fff);
+  border-color: var(--border, #e5e7eb);
+  margin-bottom: -2px;
+}
+.aras-layout-pane { display: none; }
+.aras-layout-pane.active { display: block; }
+.aras-layout-section-header {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted, #9ca3af);
+  letter-spacing: .06em;
+  margin: 16px 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}

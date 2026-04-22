@@ -1,0 +1,38 @@
+{# ─────────────────────────────────────────────────────────────────────────────
+   base_form_fields.html — generic WTForms field renderer
+   Include this inside any <form> to render all visible fields.
+   Variables (inherited from parent context):
+     form   WTForms  — form object (required)
+   ─────────────────────────────────────────────────────────────────────────── #}
+<div class="aras-form-fields">
+  {% for field in form %}
+    {% if field.type not in ['HiddenField', 'CSRFTokenField'] %}
+      <div class="aras-form-row {% if field.type == 'BooleanField' %}is-bool{% endif %}">
+        <label class="aras-form-label">{{ field.label }}</label>
+        <div>
+          {% if field.type == 'BooleanField' %}
+            <label class="aras-toggle">
+              {{ field() }}
+              <span class="aras-toggle-track"><span class="aras-toggle-thumb"></span></span>
+              <span class="aras-toggle-label">{{ field.label.text }}</span>
+            </label>
+          {% elif field.type == 'TextAreaField' %}
+            {{ field(class_="aras-form-textarea") }}
+          {% elif field.type == 'SelectField' %}
+            {{ field(class_="aras-form-select") }}
+          {% else %}
+            {{ field(class_="aras-form-input") }}
+          {% endif %}
+          {% if field.errors %}
+            {% for err in field.errors %}
+              <span class="aras-form-error">{{ err }}</span>
+            {% endfor %}
+          {% endif %}
+          {% if field.description %}
+            <small class="aras-form-help">{{ field.description }}</small>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  {% endfor %}
+</div>

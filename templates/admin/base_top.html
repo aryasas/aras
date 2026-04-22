@@ -109,6 +109,31 @@
                 "
             >
                 <li
+                    style="display: flex; align-items: center; padding: 0 8px;"
+                >
+                    <button
+                        onclick="if(window.openArasSearch)openArasSearch()"
+                        title="Global Search (⌘K)"
+                        style="
+                            background: #f4f6f8;
+                            border: 1px solid #dde3e7;
+                            border-radius: 6px;
+                            color: #6c757d;
+                            padding: 4px 10px;
+                            cursor: pointer;
+                            font-size: 13px;
+                            display: flex;
+                            align-items: center;
+                            gap: 6px;
+                            white-space: nowrap;
+                        "
+                    >
+                        <i class="fa fa-search" style="font-size:13px;"></i>
+                        <span style="font-size:12px;color:#9aacb8;">⌘K</span>
+                    </button>
+                </li>
+
+                <li
                     id="full-view"
                     style="
                         display: flex;

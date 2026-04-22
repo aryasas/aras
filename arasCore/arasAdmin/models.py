@@ -2,33 +2,29 @@
 """
 arasCore/arasAdmin/models.py
 Admin + Builder models.
-Migrated from app_manager/models.py and app_admin/models.py.
 """
 from datetime import datetime
 from time import time
 import json
 from arasCore.lib.extensions import db
+from arasCore.lib.base_model import ArasModel
 
 
 # ── App Manager ───────────────────────────────────────────────────────────────
 
-class AppManagerApp(db.Model):
+class AppManagerApp(ArasModel):
     """
     Defines a dynamically-built application.
     Replaces physical app_* folders — everything stored in DB.
     """
     __tablename__ = "mgr_app"
 
-    id         = db.Column(db.Integer, primary_key=True)
-    name       = db.Column(db.String(100), unique=True, nullable=False)   # internal slug
-    title      = db.Column(db.String(200), nullable=False)                # display title
-    main_title = db.Column(db.String(200), nullable=False)                # nav/sidebar title
-    url        = db.Column(db.String(200), nullable=False)                # URL prefix e.g. /notes
-    endpoint   = db.Column(db.String(100), nullable=False)                # blueprint endpoint
-    is_active  = db.Column(db.Boolean, default=True, nullable=False)
+    name       = db.Column(db.String(100), unique=True, nullable=False)
+    title      = db.Column(db.String(200), nullable=False)
+    main_title = db.Column(db.String(200), nullable=False)
+    url        = db.Column(db.String(200), nullable=False)
+    endpoint   = db.Column(db.String(100), nullable=False)
     in_sidebar = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     icon       = db.Column(db.String(50),  default="fa-cubes")
     menu_order = db.Column(db.Integer, default=0)
@@ -82,30 +78,22 @@ class AppManagerApp(db.Model):
         return f"<AppManagerApp {self.name}>"
 
 
-class AppManagerTable(db.Model):
-    """
-    One table/page within an AppManagerApp.
-    Each table generates: 1 DB table + 1 set of CRUD pages + 1 menu entry.
-    """
+class AppManagerTable(ArasModel):
+    """One table/page within an AppManagerApp."""
     __tablename__ = "mgr_table"
 
-    id              = db.Column(db.Integer, primary_key=True)
     app_id          = db.Column(db.Integer, db.ForeignKey("mgr_app.id"), nullable=False)
     parent_table_id = db.Column(db.Integer, db.ForeignKey("mgr_table.id"), nullable=True)
 
-    name            = db.Column(db.String(100), nullable=False)   # slug, e.g. "products"
-    title           = db.Column(db.String(200), nullable=False)   # display, e.g. "Products"
-    url_suffix      = db.Column(db.String(200), nullable=False, default="")  # e.g. "/products"
-    db_table_name   = db.Column(db.String(200), nullable=True)    # override; default ab_{app}_{name}
+    name            = db.Column(db.String(100), nullable=False)
+    title           = db.Column(db.String(200), nullable=False)
+    url_suffix      = db.Column(db.String(200), nullable=False, default="")
+    db_table_name   = db.Column(db.String(200), nullable=True)
 
-    # Menu settings
-    menu_title      = db.Column(db.String(200), nullable=True)    # defaults to title
+    menu_title      = db.Column(db.String(200), nullable=True)
     menu_icon       = db.Column(db.String(50),  default="fa-table")
     show_in_menu    = db.Column(db.Boolean, default=True)
     menu_order      = db.Column(db.Integer, default=0)
-
-    is_active       = db.Column(db.Boolean, default=True)
-    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Table-level settings
     search_enabled  = db.Column(db.Boolean, default=True)
@@ -156,14 +144,29 @@ class AppManagerTable(db.Model):
         foreign_keys="AppManagerTable.parent_table_id",
     )
 
+    @property
+    def app_name(self):
+        try:
+            return self.app.name
+        except Exception:
+            return ""
+
     def get_columns(self):
         return self.columns.order_by(AppManagerColumn.order).all()
 
     def get_db_table_name(self, app_name):
-        return self.db_table_name or f"ab_{app_name}_{self.name}"
+        # Use explicit override first; otherwise derive from app_name (hyphens → underscores)
+        if self.db_table_name:
+            return self.db_table_name
+        safe = app_name.replace("-", "_")
+        return f"{safe}_{self.name}"
 
     def get_full_url(self, app_url):
         return f"{app_url}{self.url_suffix}"
+
+    @property
+    def edit_url(self):
+        return f"/admin/apps/{self.app_id}/tables/{self.id}/edit"
 
     def get_menu_title(self):
         return self.menu_title or self.title
@@ -187,7 +190,7 @@ class AppManagerTable(db.Model):
         return f"<AppManagerTable {self.name}>"
 
 
-class AppManagerColumn(db.Model):
+class AppManagerColumn(ArasModel):
     """A column/field within an AppManagerTable."""
     __tablename__ = "mgr_column"
 
@@ -197,7 +200,6 @@ class AppManagerColumn(db.Model):
         "file", "image", "json", "uuid", "relation",
     ]
 
-    id         = db.Column(db.Integer, primary_key=True)
     table_id   = db.Column(db.Integer, db.ForeignKey("mgr_table.id"), nullable=False)
     name       = db.Column(db.String(100), nullable=False)
     label      = db.Column(db.String(200), nullable=False)
@@ -236,8 +238,6 @@ class AppManagerColumn(db.Model):
         lazy="select",
     )
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
     def to_dict(self):
         return {
             "id":                    self.id,
@@ -270,18 +270,13 @@ class AppManagerColumn(db.Model):
         return f"<AppManagerColumn {self.name}:{self.field_type}>"
 
 
-class AppManagerPageAction(db.Model):
-    """
-    Custom action button bound to a page type (AppManagerTable).
-    Framework renders buttons on list/form views and dispatches to `handler_name`
-    resolved via a registry (see arasCore/arasAdmin/page_actions.py).
-    """
+class AppManagerPageAction(ArasModel):
+    """Custom action button bound to a page type."""
     __tablename__ = "mgr_page_action"
 
     VISIBILITY = ("list", "form", "both")
     STYLES     = ("primary", "secondary", "success", "warning", "danger", "info", "light", "dark")
 
-    id           = db.Column(db.Integer, primary_key=True)
     table_id     = db.Column(db.Integer, db.ForeignKey("mgr_table.id"), nullable=False)
     name         = db.Column(db.String(100), nullable=False)     # slug, stable id
     label        = db.Column(db.String(200), nullable=False)     # button label
@@ -291,8 +286,6 @@ class AppManagerPageAction(db.Model):
     style        = db.Column(db.String(20),  default="secondary")
     confirm_msg  = db.Column(db.String(300), nullable=True)      # if set, UI asks to confirm
     order        = db.Column(db.Integer, default=0)
-    is_active    = db.Column(db.Boolean, default=True)
-    created_at   = db.Column(db.DateTime, default=datetime.utcnow)
 
     table = db.relationship(
         "AppManagerTable",
@@ -313,25 +306,20 @@ class AppManagerPageAction(db.Model):
         return f"<AppManagerPageAction {self.name}>"
 
 
-class AppManagerPageView(db.Model):
-    """
-    Saved view (filter + sort + columns preset) for a page type.
-    Analogous to ERPNext "List View" saved filters.
-    """
+class AppManagerPageView(ArasModel):
+    """Saved view (filter + sort + columns preset) for a page type."""
     __tablename__ = "mgr_page_view"
 
-    id          = db.Column(db.Integer, primary_key=True)
     table_id    = db.Column(db.Integer, db.ForeignKey("mgr_table.id"), nullable=False)
     name        = db.Column(db.String(100), nullable=False)
     label       = db.Column(db.String(200), nullable=False)
     owner_id    = db.Column(db.Integer, db.ForeignKey("auth_users.id"), nullable=True)
     is_default  = db.Column(db.Boolean, default=False)
     is_shared   = db.Column(db.Boolean, default=False)
-    filter_json = db.Column(db.Text, nullable=True)  # [{"field":"x","op":"=","value":"y"}]
-    sort_json   = db.Column(db.Text, nullable=True)  # [{"field":"x","dir":"desc"}]
-    columns_csv = db.Column(db.String(500), nullable=True)  # "id,name,created_at"
+    filter_json = db.Column(db.Text, nullable=True)
+    sort_json   = db.Column(db.Text, nullable=True)
+    columns_csv = db.Column(db.String(500), nullable=True)
     order       = db.Column(db.Integer, default=0)
-    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
 
     table = db.relationship(
         "AppManagerTable",
@@ -343,30 +331,23 @@ class AppManagerPageView(db.Model):
         return f"<AppManagerPageView {self.name}>"
 
 
-class AppManagerDashboard(db.Model):
-    """
-    Dashboard widget configured per app (displayed on /admin/<app>/ home page).
-    `data_source` resolves to a callable via registry (see arasCore/arasAdmin/widgets.py).
-    """
+class AppManagerDashboard(ArasModel):
+    """Dashboard widget per app (displayed on /admin/<app>/ home page)."""
     __tablename__ = "mgr_dashboard"
 
     WIDGET_TYPES = ("count", "sum", "chart", "list", "html")
 
-    id          = db.Column(db.Integer, primary_key=True)
     app_id      = db.Column(db.Integer, db.ForeignKey("mgr_app.id"), nullable=False)
     name        = db.Column(db.String(100), nullable=False)
     label       = db.Column(db.String(200), nullable=False)
     widget_type = db.Column(db.String(20),  default="count")
     icon        = db.Column(db.String(50),  nullable=True)
     color       = db.Column(db.String(20),  default="primary")
-    # data_source: registry key OR "model:<ab_app_table>" (framework auto-counts rows)
     data_source = db.Column(db.String(200), nullable=False)
-    config_json = db.Column(db.Text, nullable=True)  # widget-type-specific config
+    config_json = db.Column(db.Text, nullable=True)
     link_url    = db.Column(db.String(300), nullable=True)
-    width       = db.Column(db.Integer, default=3)   # bootstrap col span (1-12)
+    width       = db.Column(db.Integer, default=3)
     order       = db.Column(db.Integer, default=0)
-    is_active   = db.Column(db.Boolean, default=True)
-    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
 
     app = db.relationship(
         "AppManagerApp",
@@ -379,18 +360,18 @@ class AppManagerDashboard(db.Model):
 
 
 class AppManagerSetting(db.Model):
-    """
-    Per-app key/value settings. One row per (app_id, key).
-    `value_type` drives how `value` gets serialized back to Python.
-    """
+    """Per-app key/value settings. One row per (app_id, key)."""
     __tablename__ = "mgr_app_setting"
+
+    id         = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     __table_args__ = (
         db.UniqueConstraint("app_id", "key", name="uq_mgr_app_setting_app_key"),
     )
 
     VALUE_TYPES = ("string", "text", "integer", "float", "boolean", "json")
 
-    id         = db.Column(db.Integer, primary_key=True)
     app_id     = db.Column(db.Integer, db.ForeignKey("mgr_app.id"), nullable=False)
     key        = db.Column(db.String(100), nullable=False)
     label      = db.Column(db.String(200), nullable=True)
@@ -398,8 +379,6 @@ class AppManagerSetting(db.Model):
     value_type = db.Column(db.String(20), nullable=False, default="string")
     help_text  = db.Column(db.String(500), nullable=True)
     order      = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     app = db.relationship(
         "AppManagerApp",
@@ -450,18 +429,16 @@ class AppManagerSetting(db.Model):
 
 
 # Keep for backward compat — routes/services may still reference this
-class AppManagerField(db.Model):
+class AppManagerField(ArasModel):
     """Deprecated — use AppManagerColumn via AppManagerTable instead."""
     __tablename__ = "mgr_field"
 
-    id         = db.Column(db.Integer, primary_key=True)
     app_id     = db.Column(db.Integer, db.ForeignKey("mgr_app.id"), nullable=False)
     name       = db.Column(db.String(100), nullable=False)
     label      = db.Column(db.String(200), nullable=False)
     field_type = db.Column(db.String(50),  nullable=False, default="string")
     required   = db.Column(db.Boolean, default=False)
     order      = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
         return {
@@ -476,18 +453,16 @@ class AppManagerField(db.Model):
 
 # ── Menu Definition (DB-driven nav) ──────────────────────────────────────────
 
-class MenuDefinition(db.Model):
+class MenuDefinition(ArasModel):
     """Top navbar menu entries, generated from active apps + roles."""
     __tablename__ = "mgr_menu"
 
-    id         = db.Column(db.Integer, primary_key=True)
     app_id     = db.Column(db.Integer, db.ForeignKey("mgr_app.id"), nullable=True)
     title      = db.Column(db.String(100), nullable=False)
     url        = db.Column(db.String(200))
     icon       = db.Column(db.String(50))
     order      = db.Column(db.Integer, default=0)
-    role_slug  = db.Column(db.String(64), nullable=True)   # null = visible to all
-    is_active  = db.Column(db.Boolean, default=True)
+    role_slug  = db.Column(db.String(64), nullable=True)
 
     def __repr__(self):
         return f"<MenuDefinition {self.title}>"
@@ -516,18 +491,17 @@ class MenuDefinition(db.Model):
 
 # ── Notifications ─────────────────────────────────────────────────────────────
 
-class Notification(db.Model):
+class Notification(ArasModel):
     """User notifications (badge counts, alerts)."""
     __tablename__ = "adm_notification"
 
-    id           = db.Column(db.Integer, primary_key=True)
     name         = db.Column(db.String(128), index=True)
     user_id      = db.Column(db.Integer, db.ForeignKey("auth_users.id"), nullable=False)
     timestamp    = db.Column(db.Float, index=True, default=time)
     payload_json = db.Column(db.Text)
     category     = db.Column(db.String(128))
 
-    user = db.relationship("User", backref=db.backref("notifications", lazy="dynamic"))
+    user = db.relationship("User", foreign_keys=[user_id], backref=db.backref("notifications", lazy="dynamic"))
 
     def get_data(self):
         return json.loads(str(self.payload_json))
@@ -548,14 +522,46 @@ class UserActivity(db.Model):
     module       = db.Column(db.String(128))
     payload_json = db.Column(db.Text)
     created_at   = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by_id  = db.Column(db.Integer, db.ForeignKey("auth_users.id"), nullable=True)
+    updated_by_id  = db.Column(db.Integer, db.ForeignKey("auth_users.id"), nullable=True)
 
-    user = db.relationship("User", backref=db.backref("activities", lazy="dynamic"))
+    user = db.relationship("User", foreign_keys=[user_id], backref=db.backref("activities", lazy="dynamic"))
+
+    @property
+    def edit_url(self):
+        return f"/admin/users/{self.user_id}/"
 
     def get_data(self):
         return json.loads(str(self.payload_json)) if self.payload_json else {}
 
     def __repr__(self):
         return f"<UserActivity {self.name}>"
+
+
+# ── Framework Audit Log ───────────────────────────────────────────────────────
+
+class ArasCoreAuditLog(db.Model):
+    """
+    Framework-level audit trail for tables with track_changes=True.
+    Activated per-table via AppManagerTable.track_changes or model.__track_changes__ = True.
+    """
+    __tablename__ = "aras_audit_log"
+    __table_args__ = (
+        db.Index("idx_aras_audit", "model_name", "record_id"),
+    )
+
+    id          = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    ts          = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)  # noqa: DTZ
+    user_id     = db.Column(db.Integer, db.ForeignKey("auth_users.id"), nullable=True)
+    model_name  = db.Column(db.String(100), nullable=False)
+    record_id   = db.Column(db.Integer, nullable=True)
+    action      = db.Column(db.String(20), nullable=False)   # create / update / delete
+    before_json = db.Column(db.JSON, nullable=True)
+    after_json  = db.Column(db.JSON, nullable=True)
+    ip          = db.Column(db.String(45), nullable=True)
+
+    def __repr__(self):
+        return f"<AuditLog {self.action} {self.model_name}#{self.record_id}>"
 
 
 # ── Post ──────────────────────────────────────────────────────────────────────

@@ -608,8 +608,8 @@ def sync_helper_to_db(helper, db, flask_app=None) -> "object":
             name=helper.name,
             title=helper.title,
             main_title=helper.title,
-            url=f"/{helper.name}",
-            endpoint=helper.name,
+            url=f"/{getattr(helper, 'api_slug', None) or helper.name}",
+            endpoint=getattr(helper, "admin_slug", None) or helper.name,
             icon=helper.admin_icon,
             menu_order=helper.admin_order,
             is_active=False,
@@ -622,11 +622,11 @@ def sync_helper_to_db(helper, db, flask_app=None) -> "object":
 
     stats = {"tables_new": 0, "tables_existing": 0, "cols_new": 0, "cols_skipped": 0}
 
-    # ── 2. mgr_table + mgr_column per resource ───────────────────────────────
-    for res in helper.resources:
-        model = res.model
-        tbl_name = model.__tablename__
-
+    def _sync_resource(res, parent_id, order):
+        """Upsert one ResourceDef into mgr_table + sync columns. Returns the record."""
+        if not res.model:
+            return None
+        tbl_name = res.model.__tablename__
         tbl_rec = AppManagerTable.query.filter_by(app_id=app_rec.id, name=res.name).first()
         if not tbl_rec:
             tbl_rec = AppManagerTable(
@@ -638,6 +638,8 @@ def sync_helper_to_db(helper, db, flask_app=None) -> "object":
                 menu_title=res.menu_title or res.get_menu_title(),
                 menu_icon=res.menu_icon,
                 show_in_menu=res.admin_list,
+                menu_order=order,
+                parent_table_id=parent_id,
                 allow_create=not res.readonly,
                 allow_edit=not res.readonly,
                 allow_delete=not res.readonly,
@@ -647,17 +649,74 @@ def sync_helper_to_db(helper, db, flask_app=None) -> "object":
             stats["tables_new"] += 1
             logger.info(f"[sync]   table: {res.name} ({tbl_name})")
         else:
+            # Always update structural fields so re-sync fixes parent/order
+            tbl_rec.parent_table_id = parent_id
+            tbl_rec.menu_order      = order
             stats["tables_existing"] += 1
 
         existing_col_names = {c.name for c in AppManagerColumn.query.filter_by(table_id=tbl_rec.id).all()}
-
-        for order, col in enumerate(model.__table__.columns):
+        for col_order, col in enumerate(res.model.__table__.columns):
             if col.primary_key or col.name in existing_col_names:
                 stats["cols_skipped"] += 1
                 continue
-            col_def = _sa_column_to_def(col, order)
+            col_def = _sa_column_to_def(col, col_order)
             db.session.add(AppManagerColumn(table_id=tbl_rec.id, **col_def))
             stats["cols_new"] += 1
+        return tbl_rec
+
+    # ── 2. Sync resources — grouped (MenuGroup) or flat ──────────────────────
+    num_groups = len(helper.menu_groups) if helper.menu_groups else 0
+    if helper.menu_groups:
+        for grp_order, grp in enumerate(sorted(helper.menu_groups, key=lambda g: g.order)):
+            grp_name = f"_group_{grp.title.lower().replace(' ', '_')}"
+            grp_slug = grp.title.lower().replace(" ", "-")
+            grp_rec = AppManagerTable.query.filter_by(app_id=app_rec.id, name=grp_name).first()
+            if not grp_rec:
+                grp_rec = AppManagerTable(
+                    app_id=app_rec.id,
+                    name=grp_name,
+                    title=grp.title,
+                    url_suffix=f"/{grp_slug}",
+                    db_table_name=None,
+                    menu_title=grp.title,
+                    menu_icon=grp.icon,
+                    show_in_menu=True,
+                    menu_order=grp_order,
+                    parent_table_id=None,
+                    page_type="group",
+                )
+                db.session.add(grp_rec)
+                db.session.flush()
+                stats["tables_new"] += 1
+                logger.info(f"[sync]   group: {grp.title}")
+
+            for res_order, res in enumerate(grp.resources):
+                _sync_resource(res, grp_rec.id, res_order)
+    else:
+        for res_order, res in enumerate(helper.resources):
+            _sync_resource(res, None, res_order)
+
+    # ── 3. Settings link — always a top-level node in every app ──────────────
+    adm_slug = getattr(helper, "admin_slug", None) or helper.name
+    settings_rec = AppManagerTable.query.filter_by(app_id=app_rec.id, name="_settings").first()
+    if not settings_rec:
+        settings_rec = AppManagerTable(
+            app_id=app_rec.id,
+            name="_settings",
+            title="Settings",
+            url_suffix="/settings",
+            db_table_name=None,
+            menu_title="Settings",
+            menu_icon="fa-cog",
+            show_in_menu=True,
+            menu_order=num_groups + 100,
+            parent_table_id=None,
+            page_type="settings",
+        )
+        db.session.add(settings_rec)
+        db.session.flush()
+        stats["tables_new"] += 1
+        logger.info(f"[sync]   settings link added")
 
     db.session.commit()
     logger.info(f"[sync] done: {stats}")

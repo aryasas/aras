@@ -122,7 +122,7 @@ class ResourceDef:
         menu_icon:    Icon FA untuk item ini di sidebar.
     """
     name: str
-    model: Type
+    model: Optional[Type] = None
     serializer: Optional[Callable] = None
     handler: Optional[SubHandler] = None
     readonly: bool = False
@@ -131,6 +131,8 @@ class ResourceDef:
     list_columns: list = field(default_factory=list)
     menu_title: Optional[str] = None
     menu_icon: str = "fa-table"
+    required_permissions: list = field(default_factory=list)
+    url: Optional[str] = None  # custom URL override; skips auto-generated CRUD route
 
     def get_menu_title(self) -> str:
         if self.menu_title:
@@ -211,6 +213,10 @@ class AppHelper:
         admin_icon: str = "fa-cubes",
         admin_order: int = 99,
         home_url: str = None,
+        settings_schema: list = None,
+        admin_slug: str = None,
+        api_slug: str = None,
+        template: str = None,
     ):
         self.name = name
         self.title = title
@@ -218,10 +224,14 @@ class AppHelper:
         self.custom_routes = custom_routes or []
         self.admin_icon = admin_icon
         self.admin_order = admin_order
-        # home_url: URL kustom untuk item app di sidebar.
-        # Jika None, framework pakai resource admin_list pertama sebagai landing.
-        # Contoh: home_url="/erp/dashboard" untuk halaman kustom.
+        self.settings_schema = settings_schema or []
         self.home_url = home_url
+        # admin_slug: overrides /admin/<name>/ URL prefix (e.g. admin_slug="social" → /admin/social/)
+        self.admin_slug = admin_slug or name
+        # api_slug: overrides /api/<name>/ URL prefix (e.g. api_slug="social" → /api/social/)
+        self.api_slug = api_slug or name
+        # template: base Jinja2 template for app's public (non-admin) pages
+        self.template = template
 
         # Flat resources: ambil dari menu_groups jika tidak diisi eksplisit
         if resources:
@@ -232,10 +242,10 @@ class AppHelper:
             self.resources = []
 
     def get_api_prefix(self) -> str:
-        return f"/api/{self.name}"
+        return f"/api/{self.api_slug}"
 
     def get_admin_prefix(self) -> str:
-        return f"/admin/{self.name}"
+        return f"/admin/{self.admin_slug}"
 
     def to_menu_dict(self) -> dict:
         """
@@ -252,15 +262,17 @@ class AppHelper:
                     {
                         "title": res.get_menu_title(),
                         "icon":  res.menu_icon,
-                        "url":   f"{adm}/{res.name}/",
+                        "url":   res.url if res.url else f"{adm}/{res.name}/",
                     }
                     for res in grp.resources if res.admin_list
                 ]
                 if grp_children:
+                    # Group URL points to the group home page (tiles view)
+                    grp_slug = grp.title.lower().replace(" ", "-")
                     children.append({
                         "title":    grp.title,
                         "icon":     grp.icon,
-                        "url":      grp_children[0]["url"],
+                        "url":      f"{adm}/{grp_slug}/",
                         "children": grp_children,
                     })
         else:
@@ -268,17 +280,24 @@ class AppHelper:
                 {
                     "title":    res.get_menu_title(),
                     "icon":     res.menu_icon,
-                    "url":      f"{adm}/{res.name}/",
+                    "url":      res.url if res.url else f"{adm}/{res.name}/",
                     "children": [],
                 }
                 for res in self.resources if res.admin_list
             ]
 
-        # Tentukan URL untuk item top-level app di sidebar:
-        # - Jika home_url diisi → pakai itu (custom landing page)
-        # - Jika tidak → pakai URL child pertama (default behaviour)
-        first_child_url = children[0]["url"] if children else f"{adm}/"
-        top_url = self.home_url or first_child_url
+        # Append Settings link as last child (framework auto-mounts this route)
+        children.append({
+            "title":    "Settings",
+            "icon":     "fa-cog",
+            "url":      f"{adm}/settings/",
+            "children": [],
+        })
+
+        # Top-level app link di sidebar: default ke /admin/<app>/ home page
+        # (framework auto-mounts a standard home page). `home_url` still wins
+        # if explicitly set by the app for a fully custom landing page.
+        top_url = self.home_url or f"{adm}/"
 
         return {
             "title":    self.title,
@@ -287,6 +306,7 @@ class AppHelper:
             "url":      top_url,
             "children": children,
             "source":   "manifest",
+            "app_slug": self.name,
         }
 
     def __repr__(self):

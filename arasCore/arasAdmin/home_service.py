@@ -165,9 +165,10 @@ def _get_page_tiles(app_name: str, registry_key: str = None):
     app_row = AppManagerApp.query.filter_by(name=db_key).first()
     if not app_row:
         return []
+    # Only top-level rows (no parent) for the home page tiles
     rows = (
         AppManagerTable.query
-        .filter_by(app_id=app_row.id, is_active=True)
+        .filter_by(app_id=app_row.id, is_active=True, parent_table_id=None)
         .order_by(AppManagerTable.menu_order)
         .all()
     )
@@ -175,63 +176,27 @@ def _get_page_tiles(app_name: str, registry_key: str = None):
     for t in rows:
         if getattr(t, "show_in_home", True) is False:
             continue
+        page_type = getattr(t, "page_type", "list") or "list"
+        if page_type in ("settings",):
+            continue  # settings link shown separately
+        child_count = (AppManagerTable.query
+                       .filter_by(app_id=app_row.id, parent_table_id=t.id, is_active=True)
+                       .count())
         tiles.append({
             "title":       t.get_menu_title(),
             "icon":        t.icon or t.menu_icon or "fa-table",
             "url":         f"/admin{t.get_full_url(app_row.url)}/",
-            "description": getattr(t, "description", None) or "",
-            "page_type":   getattr(t, "page_type", "list") or "list",
-            "count":       _count_rows(t.get_db_table_name(db_key)),
+            "description": getattr(t, "description", None) or (f"{child_count} pages" if page_type == "group" else ""),
+            "page_type":   page_type,
+            "count":       _count_rows(t.get_db_table_name(db_key)) if page_type == "list" else None,
         })
     return tiles
 
 
 def _get_helper_tiles(app_name: str, registry_key: str = None):
-    """Tiles for code-based app (from AppHelper resources/menu_groups).
-
-    app_name    — URL slug used to build tile hrefs (e.g. "social")
-    registry_key — helper.name used to look up the registry (defaults to app_name)
-    """
-    try:
-        from arasCore.lib.blueprints import get_helper_registry
-    except Exception:
-        return []
-
-    key = registry_key or app_name
-    helper = get_helper_registry().get(key)
-    if not helper:
-        return []
-
-    tiles = []
-    if helper.menu_groups:
-        for grp in sorted(helper.menu_groups, key=lambda g: g.order):
-            grp_resources = [r for r in grp.resources if r.admin_list]
-            if not grp_resources:
-                continue
-            grp_slug = grp.title.lower().replace(" ", "-")
-            tiles.append({
-                "title":       grp.title,
-                "icon":        grp.icon or "fa-folder",
-                "url":         f"/admin/{app_name}/{grp_slug}/",
-                "description": f"{len(grp_resources)} menu{'s' if len(grp_resources) != 1 else ''}",
-                "page_type":   "group",
-                "count":       None,
-                "group":       None,
-            })
-    else:
-        for res in helper.resources:
-            if not res.admin_list:
-                continue
-            tiles.append({
-                "title":       res.get_menu_title(),
-                "icon":        res.menu_icon or "fa-table",
-                "url":         f"/admin/{app_name}/{res.name}/",
-                "description": "",
-                "page_type":   "list",
-                "count":       None,
-                "group":       None,
-            })
-    return tiles
+    """Tiles for code-based app — reads from DB so Menu Editor changes are live."""
+    # Delegate to the same DB-driven function used by dynamic apps
+    return _get_page_tiles(app_name, registry_key=registry_key or app_name)
 
 
 def _get_dashboard_widgets(app_row):
@@ -304,49 +269,55 @@ def mount_home_route(flask_app_or_bp, app_name: str, app_title: str,
 
 def make_group_view(app_name: str, app_title: str, registry_key: str = None):
     """Factory for `/admin/<app_name>/<group_slug>/`. Renders tiles for all resources in that MenuGroup."""
-    from arasCore.lib.blueprints import get_helper_registry
     _registry_key = registry_key or app_name
 
     @login_required
     def view(group_slug: str):
-        helper = get_helper_registry().get(_registry_key)
-        if not helper:
-            from flask import abort
+        from flask import abort
+        from arasCore.arasAdmin.models import AppManagerApp, AppManagerTable
+
+        app_rec = AppManagerApp.query.filter_by(name=_registry_key).first()
+        if not app_rec:
             abort(404)
 
-        # Find the matching group by slug
-        target_group = None
-        for grp in (helper.menu_groups or []):
-            slug = grp.title.lower().replace(" ", "-")
+        # Find the group row by matching url_suffix to the slug
+        grp_rec = None
+        for t in AppManagerTable.query.filter_by(app_id=app_rec.id, page_type="group", is_active=True).all():
+            slug = (t.url_suffix or "").strip("/").split("/")[-1]
             if slug == group_slug:
-                target_group = grp
+                grp_rec = t
                 break
 
-        if not target_group:
-            from flask import abort
+        if not grp_rec:
             abort(404)
 
-        tiles = [
-            {
-                "title":       res.get_menu_title(),
-                "icon":        res.menu_icon or "fa-table",
-                "url":         f"/admin/{app_name}/{res.name}/",
-                "description": "",
-                "page_type":   "list",
-                "count":       None,
-                "group":       None,
-            }
-            for res in target_group.resources if res.admin_list
-        ]
+        children = (
+            AppManagerTable.query
+            .filter_by(app_id=app_rec.id, parent_table_id=grp_rec.id, is_active=True, show_in_menu=True)
+            .order_by(AppManagerTable.menu_order)
+            .all()
+        )
+
+        tiles = []
+        for t in children:
+            page_type = getattr(t, "page_type", "list") or "list"
+            tiles.append({
+                "title":       t.get_menu_title(),
+                "icon":        t.icon or t.menu_icon or "fa-table",
+                "url":         f"/admin{t.get_full_url(app_rec.url)}/",
+                "description": getattr(t, "description", None) or "",
+                "page_type":   page_type,
+                "count":       _count_rows(t.get_db_table_name(_registry_key)) if page_type == "list" else None,
+            })
 
         return render_template(
             "admin/adm_app_home.html",
-            title=f"{target_group.title} — {app_title}",
+            title=f"{grp_rec.get_menu_title()} — {app_title}",
             main_title=app_title,
             app_name=app_name,
             app_title=app_title,
-            group_title=target_group.title,
-            group_icon=target_group.icon,
+            group_title=grp_rec.get_menu_title(),
+            group_icon=grp_rec.menu_icon or "fa-folder",
             tiles=tiles,
             back_url=f"/admin/{app_name}/",
         )

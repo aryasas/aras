@@ -8,6 +8,11 @@ from flask_login import login_required, current_user
 from . import arasAdmin_bp
 from .models import UserActivity
 from .forms import AppManagerAppForm, CreateUserForm
+
+
+def _slug_from_url(url: str) -> str:
+    """Derive admin URL segment from url prefix. '/todo-test' → 'todo-test'."""
+    return url.strip("/") or "app"
 from .services import get_dashboard_widgets, build_sidebar_menu
 from arasCore.lib.extensions import db
 from arasCore.auth import User
@@ -66,6 +71,7 @@ def dashboard():
 @login_required
 def dev():
     return render_template("admin/dev.html", main_title="Dev Page", user=current_user)
+
 
 
 # ── Messages ──────────────────────────────────────────────────────────────────
@@ -160,16 +166,26 @@ def user_log():
 @arasAdmin_bp.route("/settings")
 @login_required
 def settings():
-    from .models import AppManagerApp
+    from .models import AppManagerApp, AppManagerTable
     from arasCore.lib.extensions import db
+    from arasCore.permissions import Role, Permission, UserRole
     from sqlalchemy import inspect as sa_inspect
 
     all_apps  = AppManagerApp.query.order_by(AppManagerApp.id).all()
     all_users = User.query.order_by(User.created_at.desc()).all()
+    all_roles = Role.query.order_by(Role.name).all()
+    all_permissions = Permission.query.order_by(Permission.app_slug, Permission.slug).all()
+
+    # DocTypes — all page types grouped by app
+    all_tables = (
+        AppManagerTable.query
+        .join(AppManagerApp, AppManagerTable.app_id == AppManagerApp.id)
+        .order_by(AppManagerApp.name, AppManagerTable.menu_order)
+        .all()
+    )
 
     # DB info
     db_uri = current_app.config.get("SQLALCHEMY_DATABASE_URI", "")
-    # Mask password in URI
     try:
         from urllib.parse import urlparse, urlunparse
         parsed = urlparse(db_uri)
@@ -188,14 +204,53 @@ def settings():
     except Exception as e:
         current_app.logger.warning(f"DB inspect error: {e}")
 
+    # Server info + config
+    import sys
+    from datetime import datetime as _dt
+    from arasCore.lib.server_config import load as load_server_cfg
+
+    _start = current_app.config.get("_SERVER_START_TIME")
+    if _start:
+        delta = _dt.utcnow() - _start
+        h, rem = divmod(int(delta.total_seconds()), 3600)
+        m, s   = divmod(rem, 60)
+        uptime_str = f"{h}h {m}m {s}s"
+    else:
+        uptime_str = "—"
+
+    server_info = {
+        "env":            current_app.config.get("ENV", "production"),
+        "debug":          current_app.debug,
+        "python_version": sys.version.split()[0],
+        "host":           request.host,
+        "server_time":    _dt.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "uptime":         uptime_str,
+    }
+    server_cfg = load_server_cfg(current_app._get_current_object())
+
+    # Upload folder config
+    upload_folders = {
+        "UPLOAD_FOLDER":       current_app.config.get("UPLOAD_FOLDER", ""),
+        "UPLOAD_IMAGE_FOLDER": current_app.config.get("UPLOAD_IMAGE_FOLDER", ""),
+        "UPLOAD_DOC_FOLDER":   current_app.config.get("UPLOAD_DOC_FOLDER", ""),
+        "UPLOAD_PDF_FOLDER":   current_app.config.get("UPLOAD_PDF_FOLDER", ""),
+        "UPLOAD_AUDIO_FOLDER": current_app.config.get("UPLOAD_AUDIO_FOLDER", ""),
+    }
+
     return render_template(
         "admin/settings.html",
         title="Settings",
         main_title="Settings",
         apps=all_apps,
         users=all_users,
+        all_tables=all_tables,
         db_uri=db_uri_display,
         db_tables=db_tables,
+        server_info=server_info,
+        server_cfg=server_cfg,
+        upload_folders=upload_folders,
+        all_roles=all_roles,
+        all_permissions=all_permissions,
     )
 
 
@@ -217,12 +272,13 @@ def db_generate_view():
 
     slug  = table_name.replace("-", "_")
     title = slug.replace("_", " ").title()
+    _url  = f"/{slug.replace('_', '-')}"
     app_obj = AppManagerApp(
         name=slug,
         title=title,
         main_title=title,
-        url=f"/{slug.replace('_', '-')}",
-        endpoint=slug,
+        url=_url,
+        endpoint=_slug_from_url(_url),
         is_active=False,
         in_sidebar=True,
     )
@@ -231,6 +287,98 @@ def db_generate_view():
     db.session.commit()
     flash(f"App '{title}' created from table '{table_name}'. Activate it in App Manager.", "success")
     return redirect(url_for("admin.settings") + "#panel-apps")
+
+
+@arasAdmin_bp.route("/settings/uploads/save", methods=["POST"])
+@login_required
+def settings_upload_save():
+    """Save upload folder paths to instance/server.json."""
+    import json as _json
+    import os
+    instance_dir = os.path.join(current_app.root_path, "..", "instance")
+    cfg_path     = os.path.join(instance_dir, "server.json")
+    try:
+        with open(cfg_path) as f:
+            cfg = _json.load(f)
+    except (FileNotFoundError, ValueError):
+        cfg = {}
+
+    keys = [
+        "UPLOAD_FOLDER", "UPLOAD_IMAGE_FOLDER", "UPLOAD_DOC_FOLDER",
+        "UPLOAD_PDF_FOLDER", "UPLOAD_AUDIO_FOLDER",
+    ]
+    for key in keys:
+        val = request.form.get(key, "").strip()
+        if val:
+            cfg[key] = val
+
+    os.makedirs(instance_dir, exist_ok=True)
+    with open(cfg_path, "w") as f:
+        _json.dump(cfg, f, indent=2)
+
+    flash("Upload paths saved. Restart server to apply.", "success")
+    return redirect(url_for("admin.settings") + "#panel-uploads")
+
+
+@arasAdmin_bp.route("/settings/uploads/test", methods=["POST"])
+@login_required
+def settings_upload_test():
+    """Upload a test file to the selected upload folder."""
+    import os
+    from werkzeug.utils import secure_filename
+
+    folder_key = request.form.get("folder_key", "UPLOAD_FOLDER")
+    folder     = current_app.config.get(folder_key, "")
+    f          = request.files.get("test_file")
+
+    if not f or not f.filename:
+        flash("No file selected.", "warning")
+        return redirect(url_for("admin.settings") + "#panel-uploads")
+    if not folder:
+        flash(f"{folder_key} is not configured.", "danger")
+        return redirect(url_for("admin.settings") + "#panel-uploads")
+
+    os.makedirs(folder, exist_ok=True)
+    filename = secure_filename(f.filename)
+    dest = os.path.join(folder, filename)
+    f.save(dest)
+    flash(f"File saved: {dest}", "success")
+    return redirect(url_for("admin.settings") + "#panel-uploads")
+
+
+@arasAdmin_bp.route("/settings/server/save", methods=["POST"])
+@login_required
+def server_settings_save():
+    from arasCore.lib.server_config import save as save_server_cfg
+    data = {
+        "wsgi_server":  request.form.get("wsgi_server", "gunicorn"),
+        "host":         request.form.get("host", "0.0.0.0"),
+        "port":         request.form.get("port", 8080),
+        "workers":      request.form.get("workers", 2),
+        "threads":      request.form.get("threads", 2),
+        "worker_class": request.form.get("worker_class", "sync"),
+        "timeout":      request.form.get("timeout", 30),
+        "keepalive":    request.form.get("keepalive", 2),
+        "max_requests": request.form.get("max_requests", 1000),
+        "ssl_enabled":  request.form.get("ssl_enabled") == "1",
+        "ssl_certfile": request.form.get("ssl_certfile", ""),
+        "ssl_keyfile":  request.form.get("ssl_keyfile", ""),
+        "loglevel":     request.form.get("loglevel", "info"),
+        "accesslog":    request.form.get("accesslog", "-"),
+        "errorlog":     request.form.get("errorlog", "-"),
+    }
+    save_server_cfg(current_app._get_current_object(), data)
+    flash("Server settings saved. Restart to apply.", "success")
+    return redirect(url_for("admin.settings") + "#panel-server")
+
+
+@arasAdmin_bp.route("/settings/server/restart", methods=["POST"])
+@login_required
+def server_restart():
+    from arasCore.lib.server_config import restart_server
+    flash("Server restart initiated.", "info")
+    restart_server()
+    return redirect(url_for("admin.settings") + "#panel-server")
 
 
 # ── Apps (App Manager) ────────────────────────────────────────────────────────
@@ -256,12 +404,13 @@ def apps_new():
     from .models import AppManagerApp
     form = AppManagerAppForm()
     if form.validate_on_submit():
+        _url = form.url.data.strip()
         app_obj = AppManagerApp(
             name=form.name.data.strip().lower().replace(" ", "_"),
             title=form.title.data,
             main_title=form.main_title.data,
-            url=form.url.data.strip(),
-            endpoint=form.endpoint.data.strip().lower().replace(" ", "_"),
+            url=_url,
+            endpoint=_slug_from_url(_url),
             description=form.description.data or None,
             icon=form.icon.data,
             color_theme=form.color_theme.data or None,
@@ -296,11 +445,12 @@ def apps_edit(app_id):
     app_obj = AppManagerApp.query.get_or_404(app_id)
     form = AppManagerAppForm(obj=app_obj)
     if form.validate_on_submit():
+        _url = form.url.data.strip()
         app_obj.name          = form.name.data.strip().lower().replace(" ", "_")
         app_obj.title         = form.title.data
         app_obj.main_title    = form.main_title.data
-        app_obj.url           = form.url.data.strip()
-        app_obj.endpoint      = form.endpoint.data.strip().lower().replace(" ", "_")
+        app_obj.url           = _url
+        app_obj.endpoint      = _slug_from_url(_url)
         app_obj.description   = form.description.data or None
         app_obj.icon          = form.icon.data
         app_obj.color_theme   = form.color_theme.data or None
@@ -315,7 +465,22 @@ def apps_edit(app_id):
         app_obj.audit_log     = form.audit_log.data
         current_user.log_activity("app_updated", module="app_manager", payload={"app": app_obj.name})
         db.session.commit()
-        flash(f"App '{app_obj.name}' updated.", "success")
+        try:
+            from arasCore.lib.extensions import cache as _cache
+            _cache.delete("_sidebar_raw")
+        except Exception:
+            pass
+        # Re-register routes with updated name/url
+        if app_obj.is_active:
+            from arasCore.arasAdmin.services import _register_built_app, clear_cache
+            clear_cache(app_obj.name)
+            ok = _register_built_app(app_obj.id, current_app._get_current_object())
+            if ok:
+                flash(f"App '{app_obj.name}' updated and routes re-registered. Restart server if old routes still appear.", "success")
+            else:
+                flash(f"App '{app_obj.name}' updated. Route re-registration failed — restart server to apply.", "warning")
+        else:
+            flash(f"App '{app_obj.name}' updated.", "success")
         return redirect(url_for("admin.apps"))
     return render_template(
         "admin/app_form.html",
@@ -335,10 +500,24 @@ def apps_activate(app_id):
     app_obj = AppManagerApp.query.get_or_404(app_id)
     app_obj.is_active = True
     db.session.commit()
+    try:
+        from arasCore.lib.extensions import cache as _cache
+        _cache.delete("_sidebar_raw")
+    except Exception:
+        pass
     # Attempt live registration
     from arasCore.arasAdmin.services import _register_built_app, clear_cache
+    from arasCore.arasAdmin.models import AppManagerTable
     clear_cache(app_obj.name)
     ok = _register_built_app(app_obj.id, current_app._get_current_object())
+    # Seed RBAC permissions for this app's tables
+    try:
+        from arasCore.rbac import seed_app_permissions
+        resource_slugs = [t.name for t in AppManagerTable.query.filter_by(app_id=app_obj.id, is_active=True).all()]
+        if resource_slugs:
+            seed_app_permissions(app_obj.name, resource_slugs, db)
+    except Exception as _re:
+        current_app.logger.warning(f"[routes] RBAC seed failed on activate for {app_obj.name}: {_re}")
     if ok:
         flash(f"App '{app_obj.title}' activated and routes registered.", "success")
     else:
@@ -355,6 +534,11 @@ def apps_deactivate(app_id):
     app_obj.is_active = False
     db.session.commit()
     clear_cache(app_obj.name)
+    try:
+        from arasCore.lib.extensions import cache as _cache
+        _cache.delete("_sidebar_raw")
+    except Exception:
+        pass
     flash(f"App '{app_obj.title}' deactivated. Restart server for full effect.", "info")
     return redirect(url_for("admin.apps"))
 
@@ -366,11 +550,23 @@ def apps_delete(app_id):
     from arasCore.arasAdmin.services import clear_cache
     app_obj = AppManagerApp.query.get_or_404(app_id)
     name = app_obj.title
-    clear_cache(app_obj.name)
+    app_slug = app_obj.name
+    clear_cache(app_slug)
+    try:
+        from arasCore.lib.extensions import cache as _cache
+        _cache.delete("_sidebar_raw")
+    except Exception:
+        pass
     current_user.log_activity("app_deleted", module="app_manager", payload={"app": name})
     AppManagerField.query.filter_by(app_id=app_id).delete()
     db.session.delete(app_obj)
     db.session.commit()
+    # Remove RBAC permissions for the deleted app
+    try:
+        from arasCore.rbac import unseed_app_permissions
+        unseed_app_permissions(app_slug, db)
+    except Exception as _re:
+        current_app.logger.warning(f"[routes] RBAC unseed failed for {app_slug}: {_re}")
     flash(f"App '{name}' deleted.", "danger")
     return redirect(url_for("admin.apps"))
 
@@ -384,7 +580,7 @@ def apps_tables(app_id):
     app_obj = AppManagerApp.query.get_or_404(app_id)
     tables  = AppManagerTable.query.filter_by(app_id=app_id).order_by(AppManagerTable.menu_order).all()
     return render_template(
-        "admin/ab_tables.html",
+        "admin/aras_admin_tables.html",
         title=f"Tables — {app_obj.title}",
         main_title=app_obj.main_title,
         app_def=app_obj,
@@ -416,6 +612,7 @@ def apps_table_new(app_id):
             sort_field      = form.sort_field.data or None,
             sort_direction  = form.sort_direction.data,
             list_columns    = form.list_columns.data or None,
+            per_page        = form.per_page.data or 20,
             allow_create    = form.allow_create.data,
             allow_edit      = form.allow_edit.data,
             allow_delete    = form.allow_delete.data,
@@ -426,7 +623,7 @@ def apps_table_new(app_id):
         flash(f"Table '{tbl.title}' created. Add columns now.", "success")
         return redirect(url_for("admin.apps_columns", app_id=app_id, table_id=tbl.id))
     return render_template(
-        "admin/ab_table_form.html",
+        "admin/aras_admin_table_form.html",
         title="New Table",
         main_title=app_obj.main_title,
         app_def=app_obj,
@@ -457,6 +654,7 @@ def apps_table_edit(app_id, table_id):
         tbl.sort_field       = form.sort_field.data or None
         tbl.sort_direction   = form.sort_direction.data
         tbl.list_columns     = form.list_columns.data or None
+        tbl.per_page         = form.per_page.data or 20
         tbl.allow_create     = form.allow_create.data
         tbl.allow_edit       = form.allow_edit.data
         tbl.allow_delete     = form.allow_delete.data
@@ -467,7 +665,7 @@ def apps_table_edit(app_id, table_id):
         flash(f"Table '{tbl.title}' updated.", "success")
         return redirect(url_for("admin.apps_tables", app_id=app_id))
     return render_template(
-        "admin/ab_table_form.html",
+        "admin/aras_admin_table_form.html",
         title=f"Edit Table — {tbl.title}",
         main_title=app_obj.main_title,
         app_def=app_obj,
@@ -532,13 +730,16 @@ def apps_columns(app_id, table_id):
         db.session.add(col)
         db.session.commit()
         clear_cache(app_obj.name)
+        from arasCore.arasAdmin.services import make_table_model, sync_table_columns
+        new_model = make_table_model(tbl, app_obj.name, AppManagerTable.query.filter_by(app_id=app_id).all())
+        sync_table_columns(new_model)
         flash(f"Column '{col.label}' added.", "success")
         return redirect(url_for("admin.apps_columns", app_id=app_id, table_id=table_id))
 
     columns = AppManagerColumn.query.filter_by(table_id=table_id).order_by(AppManagerColumn.order).all()
     all_tables = AppManagerTable.query.filter_by(app_id=app_id).all()
     return render_template(
-        "admin/ab_columns.html",
+        "admin/aras_admin_columns.html",
         title=f"Columns — {tbl.title}",
         main_title=app_obj.main_title,
         app_def=app_obj,
@@ -606,6 +807,74 @@ def apps_fields(app_id):
 @login_required
 def apps_field_delete(app_id, field_id):
     return redirect(url_for("admin.apps_tables", app_id=app_id))
+
+
+# ── Roles & Permissions ───────────────────────────────────────────────────────
+
+@arasAdmin_bp.route("/roles/new", methods=["POST"])
+@login_required
+def role_new():
+    from arasCore.permissions import Role
+    name = (request.form.get("name") or "").strip()
+    slug = (request.form.get("slug") or name.lower().replace(" ", "_")).strip()
+    desc = request.form.get("description") or None
+    if not name or not slug:
+        flash("Name and slug are required.", "warning")
+    elif Role.query.filter_by(slug=slug).first():
+        flash(f"Role '{slug}' already exists.", "warning")
+    else:
+        db.session.add(Role(name=name, slug=slug, description=desc))
+        db.session.commit()
+        flash(f"Role '{name}' created.", "success")
+    return redirect(url_for("admin.settings") + "#panel-roles")
+
+
+@arasAdmin_bp.route("/roles/<int:role_id>/delete", methods=["POST"])
+@login_required
+def role_delete(role_id):
+    from arasCore.permissions import Role
+    role = Role.query.get_or_404(role_id)
+    db.session.delete(role)
+    db.session.commit()
+    flash(f"Role '{role.name}' deleted.", "warning")
+    return redirect(url_for("admin.settings") + "#panel-roles")
+
+
+@arasAdmin_bp.route("/roles/<int:role_id>/toggle", methods=["POST"])
+@login_required
+def role_toggle(role_id):
+    from arasCore.permissions import Role
+    role = Role.query.get_or_404(role_id)
+    role.is_active = not role.is_active
+    db.session.commit()
+    return redirect(url_for("admin.settings") + "#panel-roles")
+
+
+@arasAdmin_bp.route("/roles/<int:role_id>/permissions", methods=["POST"])
+@login_required
+def role_permissions_save(role_id):
+    from arasCore.permissions import Role, Permission
+    role = Role.query.get_or_404(role_id)
+    perm_ids = [int(x) for x in request.form.getlist("perm_ids")]
+    role.permissions = Permission.query.filter(Permission.id.in_(perm_ids)).all()
+    db.session.commit()
+    flash("Permissions updated.", "success")
+    return redirect(url_for("admin.settings") + "#panel-roles")
+
+
+@arasAdmin_bp.route("/roles/<int:role_id>/users", methods=["POST"])
+@login_required
+def role_users_save(role_id):
+    from arasCore.permissions import Role, UserRole
+    role = Role.query.get_or_404(role_id)
+    user_ids = [int(x) for x in request.form.getlist("user_ids")]
+    app_slug = request.form.get("app_slug") or None
+    UserRole.query.filter_by(role_id=role_id, app_slug=app_slug).delete()
+    for uid in user_ids:
+        db.session.add(UserRole(user_id=uid, role_id=role_id, app_slug=app_slug))
+    db.session.commit()
+    flash("User assignments updated.", "success")
+    return redirect(url_for("admin.settings") + "#panel-roles")
 
 
 # ── Users list ───────────────────────────────────────────────────────────────
@@ -807,6 +1076,84 @@ def apps_install():
         title="Install App",
         main_title="Install App",
     )
+
+
+@arasAdmin_bp.route("/apps/install-manifest/<app_name>", methods=["POST"])
+@login_required
+def apps_install_manifest(app_name):
+    """Sync a code-based app (Python manifest/AppHelper) into mgr_app/mgr_table/mgr_column."""
+    import importlib
+    from arasCore.lib.installer import sync_helper_to_db
+    from arasCore.lib.app_helper import AppHelper
+
+    app_slug = app_name[len("app_"):] if app_name.startswith("app_") else app_name
+    pkg_name = f"aras.app_{app_slug}"
+
+    try:
+        mod = importlib.import_module(f"{pkg_name}.manifest")
+        helper = getattr(mod, "helper", None)
+    except ModuleNotFoundError:
+        flash(f"No manifest found for '{pkg_name}'.", "danger")
+        return redirect(url_for("admin.apps"))
+
+    if not isinstance(helper, AppHelper):
+        flash(f"'{pkg_name}.manifest' has no AppHelper instance.", "danger")
+        return redirect(url_for("admin.apps"))
+
+    try:
+        app_obj, stats = sync_helper_to_db(helper, db, current_app._get_current_object())
+        flash(
+            f"Synced '{app_obj.name}': {stats['tables_new']} new tables, "
+            f"{stats['cols_new']} new columns.",
+            "success",
+        )
+        return redirect(url_for("admin.apps_tables", app_id=app_obj.id))
+    except Exception as e:
+        current_app.logger.error(f"install-manifest error: {e}", exc_info=True)
+        flash(f"Sync failed: {e}", "danger")
+        return redirect(url_for("admin.apps"))
+
+
+@arasAdmin_bp.route("/apps/<int:app_id>/sync", methods=["POST"])
+@login_required
+def apps_sync(app_id):
+    """Re-sync a code-based app: diff SA model vs mgr_column, insert new columns."""
+    import importlib
+    from arasCore.lib.installer import sync_helper_to_db
+    from arasCore.lib.app_helper import AppHelper
+    from arasCore.arasAdmin.models import AppManagerApp
+
+    app_obj = AppManagerApp.query.get_or_404(app_id)
+
+    # Try helper_registry first, then import manifest directly
+    from arasCore.lib.blueprints import get_helper_registry
+    helper = get_helper_registry().get(app_obj.name)
+
+    if helper is None:
+        pkg_name = f"aras.app_{app_obj.name}"
+        try:
+            mod = importlib.import_module(f"{pkg_name}.manifest")
+            helper = getattr(mod, "helper", None)
+        except ModuleNotFoundError:
+            flash(f"No Python manifest found for '{app_obj.name}'.", "warning")
+            return redirect(url_for("admin.apps_tables", app_id=app_id))
+
+    if not isinstance(helper, AppHelper):
+        flash("App has no AppHelper manifest — nothing to sync.", "warning")
+        return redirect(url_for("admin.apps_tables", app_id=app_id))
+
+    try:
+        _, stats = sync_helper_to_db(helper, db, current_app._get_current_object())
+        flash(
+            f"Sync complete: {stats['tables_new']} new tables, {stats['cols_new']} new columns "
+            f"({stats['cols_skipped']} already existed).",
+            "success",
+        )
+    except Exception as e:
+        current_app.logger.error(f"sync error: {e}", exc_info=True)
+        flash(f"Sync failed: {e}", "danger")
+
+    return redirect(url_for("admin.apps_tables", app_id=app_id))
 
 
 @arasAdmin_bp.route("/apps/template/yaml")

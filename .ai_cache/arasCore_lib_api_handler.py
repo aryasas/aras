@@ -17,10 +17,10 @@ Cara pakai (di create_app, setelah semua blueprint terdaftar):
 """
 import logging
 from flask import Blueprint, jsonify, request
-from flask_login import login_required
+from flask_login import login_required, current_user
 from sqlalchemy.exc import SQLAlchemyError
 
-from arasCore.lib.db import db
+from arasCore.lib.extensions import db
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,30 @@ def get_api_registry() -> dict:
 
 
 def _row_to_dict(obj) -> dict:
+    # Prefer model's own to_dict() (ArasModel subclasses define this)
+    if hasattr(obj, "to_dict") and callable(obj.to_dict):
+        return obj.to_dict()
     return {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
+
+
+def _match_custom_route(pattern: str, key: str) -> dict | None:
+    """Match a URL key against a custom route pattern with <int:name> or <name> segments.
+    Returns a dict of captured kwargs if matched, or None."""
+    import re
+    int_params = set(re.findall(r"<int:(\w+)>", pattern))
+    # Replace all segments in one pass to avoid double-substitution
+    def _seg(m):
+        name = m.group(2) or m.group(3)
+        digits_only = m.group(1) == "int:"
+        return f"(?P<{name}>{'[0-9]+' if digits_only else '[^/]+'})"
+    regex = re.sub(r"<(int:)?(\w+)>", _seg, pattern)
+    match = re.fullmatch(regex, key)
+    if match is None:
+        return None
+    result = {}
+    for k, v in match.groupdict().items():
+        result[k] = int(v) if k in int_params else v
+    return result
 
 
 def _build_api_blueprint() -> Blueprint:
@@ -110,14 +133,31 @@ def _build_api_blueprint() -> Blueprint:
             "total":       len(endpoints),
         }), 200
 
-    @api_bp.route("/api/<path:resource_path>/", methods=["GET", "POST"])
+    @api_bp.route("/api/<path:resource_path>/", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
     @login_required
     def api_collection(resource_path):
-        """GET /api/<app>/<resource>/ → list | POST → create"""
+        """GET /api/<app>/<resource>/ → list | POST → create; also dispatches custom routes"""
         key = resource_path.rstrip("/")
+
+        # Dispatch custom routes first (they may contain path params like session/<id>/products)
+        for pattern, creg in _custom_route_registry.items():
+            matched = _match_custom_route(pattern, key)
+            if matched is not None:
+                if request.method not in creg["methods"]:
+                    return jsonify({"error": "Method not allowed"}), 405
+                return creg["handler"](**matched)
+
         entry = _api_registry.get(key)
         if entry is None:
             return jsonify({"error": f"Resource '{key}' not found."}), 404
+
+        # RBAC enforcement
+        _app_slug, _res_slug = (key.split("/", 1) + [None])[:2]
+        _action_map = {"GET": "view", "POST": "create"}
+        _action = _action_map.get(request.method, "view")
+        from arasCore.rbac import check_permission
+        if not check_permission(current_user, _app_slug, _res_slug, _action):
+            return jsonify({"error": "Forbidden"}), 403
 
         model    = entry["model"]
         h        = entry.get("handler")
@@ -136,7 +176,18 @@ def _build_api_blueprint() -> Blueprint:
             q = model.query
             if h:
                 q = h.list(q)
-            return jsonify([_serialize(i) for i in q.all()]), 200
+            from arasCore.arasAdmin.services import apply_search_and_filters
+            search_cols = [c.name for c in model.__table__.columns if hasattr(c.type, "length")][:5]
+            q, _filters, _sq = apply_search_and_filters(q, model, search_cols, request)
+            page     = request.args.get("page", 1, type=int)
+            per_page = min(request.args.get("per_page", 20, type=int), 500)
+            pag      = q.paginate(page=page, per_page=per_page, error_out=False)
+            return jsonify({
+                "data":     [_serialize(i) for i in pag.items],
+                "page":     pag.page,     "per_page": pag.per_page,
+                "total":    pag.total,    "pages":    pag.pages,
+                "has_next": pag.has_next, "has_prev": pag.has_prev,
+            }), 200
 
         if readonly:
             return jsonify({"error": "This resource is read-only."}), 405
@@ -144,18 +195,39 @@ def _build_api_blueprint() -> Blueprint:
         data = request.get_json(force=True, silent=True) or {}
         if not data:
             return jsonify({"error": "No JSON body provided."}), 400
-        obj = model()
-        for col in obj.__table__.columns:
-            if col.name != "id" and col.name in data:
-                setattr(obj, col.name, data[col.name])
         try:
-            if h:
-                h.before_create(data, obj)
-            db.session.add(obj)
-            db.session.commit()
-            if h:
-                h.after_create(obj)
+            user_id = getattr(current_user, "id", None)
+            if hasattr(model, "create") and callable(model.create):
+                # ArasModel path: handler hooks invoked inside create()
+                obj = model()
+                _SKIP = {"id", "created_at", "updated_at", "created_by_id", "updated_by_id", "deleted_at"}
+                for col in obj.__table__.columns:
+                    if col.name not in _SKIP and col.name in data:
+                        setattr(obj, col.name, data[col.name])
+                if h:
+                    h.before_create(data, obj)
+                if user_id:
+                    obj.created_by_id = user_id
+                    obj.updated_by_id = user_id
+                obj.before_save(is_new=True)
+                db.session.add(obj)
                 db.session.commit()
+                obj.after_save(is_new=True)
+                if h:
+                    h.after_create(obj)
+                    db.session.commit()
+            else:
+                obj = model()
+                for col in obj.__table__.columns:
+                    if col.name != "id" and col.name in data:
+                        setattr(obj, col.name, data[col.name])
+                if h:
+                    h.before_create(data, obj)
+                db.session.add(obj)
+                db.session.commit()
+                if h:
+                    h.after_create(obj)
+                    db.session.commit()
             return jsonify(_serialize(obj)), 201
         except (SQLAlchemyError, ValueError, Exception) as ex:
             db.session.rollback()
@@ -170,6 +242,14 @@ def _build_api_blueprint() -> Blueprint:
         entry = _api_registry.get(key)
         if entry is None:
             return jsonify({"error": f"Resource '{key}' not found."}), 404
+
+        # RBAC enforcement
+        _app_slug, _res_slug = (key.split("/", 1) + [None])[:2]
+        _action_map = {"GET": "view", "PUT": "edit", "DELETE": "delete"}
+        _action = _action_map.get(request.method, "view")
+        from arasCore.rbac import check_permission
+        if not check_permission(current_user, _app_slug, _res_slug, _action):
+            return jsonify({"error": "Forbidden"}), 403
 
         model    = entry["model"]
         h        = entry.get("handler")
@@ -195,12 +275,16 @@ def _build_api_blueprint() -> Blueprint:
             if not data:
                 return jsonify({"error": "No JSON body provided."}), 400
             try:
+                user_id = getattr(current_user, "id", None)
                 if h:
                     h.before_update(data, obj)
-                for col in obj.__table__.columns:
-                    if col.name != "id" and col.name in data:
-                        setattr(obj, col.name, data[col.name])
-                db.session.commit()
+                if hasattr(obj, "update_self") and callable(obj.update_self):
+                    obj.update_self(data, user_id=user_id)
+                else:
+                    for col in obj.__table__.columns:
+                        if col.name != "id" and col.name in data:
+                            setattr(obj, col.name, data[col.name])
+                    db.session.commit()
                 if h:
                     h.after_update(obj)
                     db.session.commit()
@@ -213,8 +297,12 @@ def _build_api_blueprint() -> Blueprint:
         try:
             if h:
                 h.before_delete(obj)
-            db.session.delete(obj)
-            db.session.commit()
+            if hasattr(obj, "delete_self") and callable(obj.delete_self):
+                user_id = getattr(current_user, "id", None)
+                obj.delete_self(user_id=user_id)
+            else:
+                db.session.delete(obj)
+                db.session.commit()
             return jsonify({"message": "Deleted."}), 200
         except (SQLAlchemyError, ValueError, Exception) as ex:
             db.session.rollback()

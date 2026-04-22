@@ -2,7 +2,8 @@ import os
 import sys
 import click
 import mariadb
-from arasCore.lib.db import db_init, db_createall, db
+from arasCore.lib.database import db_init, db_createall
+from arasCore.lib.extensions import db
 
 
 def db_conn():
@@ -100,9 +101,11 @@ def register_cli(app):
     @aras.command("migrate", help="Run arasCore idempotent migrations (page type, settings, etc.)")
     def migrate():
         import flask
-        from arasCore.lib.migrations import m001_page_type
+        from arasCore.lib.migrations import m001_page_type, m002_rbac, m004_arasmodel_audit_cols
         _app = flask.current_app._get_current_object()
         m001_page_type.run(_app)
+        m002_rbac.run(_app)
+        m004_arasmodel_audit_cols.run(_app)
         click.echo("[migrate] done.")
 
     @aras.command("remigrate", help="Drop & recreate all tables, run all migrations, sync all manifests, seed ERP")
@@ -125,9 +128,10 @@ def register_cli(app):
 
         # 2. arasCore migrations
         click.echo("[remigrate] 2/4  arasCore migrations ...")
-        from arasCore.lib.migrations import m001_page_type, m002_rbac
+        from arasCore.lib.migrations import m001_page_type, m002_rbac, m004_arasmodel_audit_cols
         m001_page_type.run(_app)
         m002_rbac.run(_app)
+        m004_arasmodel_audit_cols.run(_app)
 
         # 3. Sync all code-based manifests → mgr_table/mgr_column
         click.echo("[remigrate] 3/4  sync all manifests ...")
@@ -330,7 +334,7 @@ def register_cli(app):
     @aras.command("uninstall-app", help="Uninstall an app (removes metadata; optionally drops tables)")
     @click.argument("name")
     @click.option("--drop-tables", is_flag=True, default=False,
-                  help="Also DROP the physical ab_<app>_* tables")
+                  help="Also DROP the physical {app}_* tables")
     @click.confirmation_option(prompt="Are you sure you want to uninstall this app?")
     def uninstall_app(name, drop_tables):
         from arasCore.arasAdmin.models import AppManagerApp

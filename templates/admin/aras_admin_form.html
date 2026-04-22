@@ -1,0 +1,146 @@
+{% extends extends_layout if extends_layout else 'admin/adm_base.html' %}
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   aras_admin_form.html — generic admin add/edit form
+   Variables:
+     title           string   — form title
+     form            WTForms  — form object
+     action          string   — POST URL
+     list_url        string   — "Back to list" URL
+     app_title       string   — (optional) breadcrumb label
+     app_id, table_id int     — (optional) customize-columns link
+     sibling_tabs    list     — (optional) [(title, url), ...]
+     current_tab_url string   — (optional)
+     child_tables    list     — (optional) [{title, vcols, adm_url, fk_col, rows, parent_id}]
+   ─────────────────────────────────────────────────────────────────────────── #}
+
+{% set _has_tabs = sibling_tabs is defined and sibling_tabs %}
+{% set _has_customize = app_id is defined and app_id and table_id is defined and table_id %}
+
+{% block submenu %}
+{% if _has_tabs %}
+<div class="aras-tab-bar">
+  <nav class="aras-tab-nav">
+    {% if app_title %}<span class="aras-crumb">{{ app_title }}</span>
+    <i class="fa fa-chevron-right aras-crumb-sep"></i>{% endif %}
+    {% for tab_title, tab_url in sibling_tabs %}
+      <a href="{{ tab_url }}/" class="aras-tab {% if tab_url == current_tab_url %}active{% endif %}">
+        {{ tab_title }}
+      </a>
+    {% endfor %}
+    <span class="aras-tab-bar-actions">
+      {% if _has_customize %}
+      <a href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}"
+         class="aras-btn aras-btn--sm" title="Customize Form">
+        <i class="fa fa-sliders"></i> Customize
+      </a>
+      {% endif %}
+      <a href="{{ list_url }}" class="aras-btn aras-btn--sm">
+        <i class="fa fa-arrow-left"></i> Back to List
+      </a>
+    </span>
+  </nav>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block page_content %}
+<div class="main-content-inner">
+  <div class="mt-4" style="max-width:860px;display:flex;flex-direction:column;gap:20px;">
+
+    <div class="aras-form-card">
+      <div class="aras-form-card-header">
+        <h2 class="aras-form-title">{{ title }}</h2>
+        <div style="display:flex;gap:8px;align-items:center;">
+          {% if _has_customize %}
+          <a href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}"
+             class="aras-btn aras-btn--sm" title="Customize Form">
+            <i class="fa fa-sliders"></i> Customize
+          </a>
+          {% endif %}
+          <a href="{{ list_url }}" class="aras-btn aras-btn--sm">
+            <i class="fa fa-arrow-left"></i> Back
+          </a>
+        </div>
+      </div>
+
+      <div class="aras-form-body">
+        <form method="POST" action="{{ action }}" id="mainForm">
+          {{ form.hidden_tag() }}
+          {% if layout_tabs is defined and layout_tabs %}
+            {% include 'admin/base_form_layout.html' %}
+          {% else %}
+            {% include 'admin/base_form_fields.html' %}
+          {% endif %}
+          <div class="aras-form-footer">
+            {% if show_save_btn is not defined or show_save_btn %}
+            <button type="submit" class="aras-btn aras-btn--primary">
+              <i class="fa fa-check"></i> Save
+            </button>
+            {% endif %}
+            <a href="{{ list_url }}" class="aras-btn">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {# ── Child tables ── #}
+    {% if child_tables is defined and child_tables %}
+      {% for ct in child_tables %}
+      <div class="aras-child-card">
+        <div class="aras-child-header">
+          <div class="aras-child-title-wrap">
+            <span class="aras-child-indicator"></span>
+            <h3 class="aras-child-title">{{ ct.title }}</h3>
+            <span class="aras-child-count">{{ ct.rows|length }}</span>
+          </div>
+          {% if ct.adm_url %}
+          <a href="{{ ct.adm_url }}/add/?{{ ct.fk_col }}={{ ct.parent_id }}"
+             class="aras-btn aras-btn--sm aras-btn--accent-outline">
+            <i class="fa fa-plus"></i> Add {{ ct.title }}
+          </a>
+          {% endif %}
+        </div>
+        {% if ct.rows %}
+        <div class="aras-child-table-wrap">
+          <table class="aras-child-table">
+            <thead>
+              <tr>
+                {% for label, _ in ct.vcols %}<th>{{ label }}</th>{% endfor %}
+                <th class="th-arrow"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in ct.rows %}
+              <tr {% if ct.adm_url %}class="is-clickable"
+                  onclick="window.location='{{ ct.adm_url }}/{{ row.id }}/';"{% endif %}>
+                {% for _, field_name in ct.vcols %}
+                <td>{{ row|attr(field_name) if row|attr(field_name) is defined else '—' }}</td>
+                {% endfor %}
+                <td class="td-arrow">
+                  {% if ct.adm_url %}<i class="fa fa-chevron-right row-arrow"></i>{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="aras-child-empty">
+          <i class="fa fa-inbox"></i>
+          <span>No {{ ct.title }} records yet</span>
+          {% if ct.adm_url %}
+          <a href="{{ ct.adm_url }}/add/?{{ ct.fk_col }}={{ ct.parent_id }}"
+             class="aras-btn aras-btn--sm aras-btn--accent-outline" style="margin-left:4px;">
+            Add first record
+          </a>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

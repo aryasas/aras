@@ -1,94 +1,139 @@
-#!/bin/bash
-# smart_read.sh - Prevents AI from reading same file twice, returns diffs, tracks stats.
+#!/usr/bin/env python3
+"""
+smart_read.py - Advanced Token & Context Manager for AI Coding Assistants
+Prevents redundant file reads, returns unified diffs, and tracks token efficiency.
+"""
 
-CACHE_DIR="../.claude_cache"
-STATS_FILE="$CACHE_DIR/stats.env"
-mkdir -p "$CACHE_DIR"
+import sys
+import os
+import json
+import difflib
+import argparse
 
-# Initialize or load stats
-if [ -f "$STATS_FILE" ]; then
-    source "$STATS_FILE"
-else
-    TOTAL_READS=0; CACHE_HITS=0; FIRST_READS=0; CHANGED_FILES=0; TOKENS_SAVED=0; TOTAL_TOKENS=0
-fi
+CACHE_DIR = ".ai_cache"
+STATS_FILE = os.path.join(CACHE_DIR, "stats.json")
 
-# ---------------------------------------------------------
-# Handle the 'stats' command
-# ---------------------------------------------------------
-if [ "$1" == "stats" ]; then
-    SAVINGS=0
-    if [ "$TOTAL_TOKENS" -gt 0 ]; then
-        SAVINGS=$(( (TOKENS_SAVED * 100) / TOTAL_TOKENS ))
-    fi
+def init_env():
+    if not os.path.exists(CACHE_DIR):
+        os.makedirs(CACHE_DIR)
 
-    echo "smart_read — file read deduplication & tracking"
-    echo ""
-    echo "  Total file reads:    $TOTAL_READS"
-    echo "  Cache hits:          $CACHE_HITS (blocked re-reads)"
-    echo "  First reads:         $FIRST_READS"
-    echo "  Changed files:       $CHANGED_FILES (diffs returned after modification)"
-    echo ""
-    echo "  Tokens saved:        ~$TOKENS_SAVED"
-    echo "  Read token total:    ~$TOTAL_TOKENS"
-    echo "  Savings:             $SAVINGS%"
-    echo ""
-    exit 0
-fi
+def load_stats():
+    if os.path.exists(STATS_FILE):
+        try:
+            with open(STATS_FILE, 'r') as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            pass
+    return {
+        "total_reads": 0, "cache_hits": 0, "first_reads": 0,
+        "changed_files": 0, "tokens_saved": 0, "total_tokens": 0
+    }
 
-# ---------------------------------------------------------
-# Handle normal file reading logic
-# ---------------------------------------------------------
-if [ -z "$1" ]; then
-    echo "Usage: ./smart_read.sh <filepath> OR ./smart_read.sh stats"
-    exit 1
-fi
+def save_stats(stats):
+    with open(STATS_FILE, 'w') as f:
+        json.dump(stats, f, indent=4)
 
-FILE="$1"
-if [ ! -f "$FILE" ]; then
-    echo "Error: File '$FILE' not found."
-    exit 1
-fi
+def estimate_tokens(text):
+    # Standard heuristic: ~4 characters per token
+    return len(text) // 4
 
-CACHE_FILE="$CACHE_DIR/$(echo "$FILE" | sed 's/\//_/g')"
-TOTAL_READS=$((TOTAL_READS + 1))
+def get_cache_path(filepath):
+    # Flatten the filepath to create a safe cache filename
+    safe_name = filepath.replace("/", "_").replace("\\", "_")
+    return os.path.join(CACHE_DIR, safe_name)
 
-# Estimate tokens (roughly 1 token per 4 characters in code)
-TOKENS=$(wc -c < "$FILE" | awk '{print int($1/4)}')
-TOTAL_TOKENS=$((TOTAL_TOKENS + TOKENS))
+def read_file(filepath):
+    if not os.path.isfile(filepath):
+        print(f"Error: File '{filepath}' not found.")
+        sys.exit(1)
 
-if [ ! -f "$CACHE_FILE" ]; then
-    FIRST_READS=$((FIRST_READS + 1))
-    cat "$FILE"
-    cp "$FILE" "$CACHE_FILE"
-else
-    DIFF_OUTPUT=$(diff -U 3 "$CACHE_FILE" "$FILE" || true)
+    init_env()
+    stats = load_stats()
+    stats["total_reads"] += 1
 
-    if [ -z "$DIFF_OUTPUT" ]; then
-        CACHE_HITS=$((CACHE_HITS + 1))
-        TOKENS_SAVED=$((TOKENS_SAVED + TOKENS))
-        echo "⚠️ FILE ALREADY IN CONTEXT. NO CHANGES DETECTED."
-    else
-        CHANGED_FILES=$((CHANGED_FILES + 1))
-        # Calculate tokens of the diff to find accurate savings
-        DIFF_TOKENS=$(echo "$DIFF_OUTPUT" | wc -c | awk '{print int($1/4)}')
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            current_content = f.read()
+    except UnicodeDecodeError:
+        print(f"Error: '{filepath}' appears to be a binary file. Skipping.")
+        sys.exit(1)
 
-        # Prevent negative savings if diff is somehow larger than original file
-        if [ "$DIFF_TOKENS" -lt "$TOKENS" ]; then
-            TOKENS_SAVED=$((TOKENS_SAVED + (TOKENS - DIFF_TOKENS)))
-        fi
+    current_tokens = estimate_tokens(current_content)
+    stats["total_tokens"] += current_tokens
+    cache_path = get_cache_path(filepath)
 
-        echo "⚠️ FILE ALREADY IN CONTEXT. SHOWING ONLY NEW CHANGES:"
-        echo "$DIFF_OUTPUT"
-        cp "$FILE" "$CACHE_FILE"
-    fi
-fi
+    # 1. FIRST READ LOGIC
+    if not os.path.exists(cache_path):
+        stats["first_reads"] += 1
+        with open(cache_path, 'w', encoding='utf-8') as f:
+            f.write(current_content)
+        save_stats(stats)
+        print(f"--- FIRST READ: {filepath} ({current_tokens} tokens) ---")
+        print(current_content)
+        return
 
-# Save stats back to the environment file
-cat > "$STATS_FILE" <<EOF
-TOTAL_READS=$TOTAL_READS
-CACHE_HITS=$CACHE_HITS
-FIRST_READS=$FIRST_READS
-CHANGED_FILES=$CHANGED_FILES
-TOKENS_SAVED=$TOKENS_SAVED
-TOTAL_TOKENS=$TOTAL_TOKENS
-EOF
+    # 2. SUBSEQUENT READ LOGIC
+    with open(cache_path, 'r', encoding='utf-8') as f:
+        cached_content = f.read()
+
+    if current_content == cached_content:
+        stats["cache_hits"] += 1
+        stats["tokens_saved"] += current_tokens
+        save_stats(stats)
+        print(f"⚠️ FILE ALREADY IN CONTEXT. NO CHANGES DETECTED IN '{filepath}'.")
+        return
+
+    # 3. DIFF LOGIC
+    stats["changed_files"] += 1
+
+    cached_lines = cached_content.splitlines(keepends=True)
+    current_lines = current_content.splitlines(keepends=True)
+
+    diff = list(difflib.unified_diff(
+        cached_lines, current_lines,
+        fromfile=f"cached_{filepath}", tofile=filepath, n=3
+    ))
+
+    diff_text = "".join(diff)
+    diff_tokens = estimate_tokens(diff_text)
+
+    if diff_tokens < current_tokens:
+        stats["tokens_saved"] += (current_tokens - diff_tokens)
+
+    with open(cache_path, 'w', encoding='utf-8') as f:
+        f.write(current_content)
+
+    save_stats(stats)
+    print(f"⚠️ FILE ALREADY IN CONTEXT. SHOWING ONLY NEW CHANGES FOR '{filepath}':")
+    print(diff_text)
+
+def print_stats():
+    stats = load_stats()
+    savings_pct = 0
+    if stats["total_tokens"] > 0:
+        savings_pct = (stats["tokens_saved"] * 100) / stats["total_tokens"]
+
+    print("=== Smart Read Token Optimization Stats ===")
+    print(f"Total file reads:    {stats['total_reads']}")
+    print(f"Cache hits (Blocked):{stats['cache_hits']}")
+    print(f"First reads:         {stats['first_reads']}")
+    print(f"Changed files (Diff):{stats['changed_files']}")
+    print("-" * 40)
+    print(f"Total read tokens:   ~{stats['total_tokens']}")
+    print(f"Tokens saved:        ~{stats['tokens_saved']}")
+    print(f"Efficiency Savings:  {savings_pct:.2f}%")
+    print("===========================================")
+
+def main():
+    parser = argparse.ArgumentParser(description="AI Token Manager & Smart Reader")
+    parser.add_argument("target", help="Filepath to read, or 'stats' to view metrics")
+
+    args = parser.parse_args()
+
+    if args.target.lower() == "stats":
+        print_stats()
+    else:
+        read_file(args.target)
+
+if __name__ == "__main__":
+    main()

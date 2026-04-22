@@ -78,6 +78,12 @@ def create_app(config_type=None):
         except Exception as _me:
             app.logger.warning(f"[arasCore] migration m002 skipped: {_me}")
 
+        try:
+            from .lib.migrations import m004_arasmodel_audit_cols
+            m004_arasmodel_audit_cols.run(app)
+        except Exception as _me:
+            app.logger.warning(f"[arasCore] migration m004 skipped: {_me}")
+
         # App modules from aras/ gated by DB install status + arasAdmin last
         from .lib.blueprints import register_app_modules
         register_app_modules(app)
@@ -93,9 +99,25 @@ def create_app(config_type=None):
         from .lib.api_handler import register_universal_api
         register_universal_api(app)
 
+        from .arasAdmin.page_actions import register_actions_blueprint
+        register_actions_blueprint(app)
+
         # Error handlers
         from .lib.error_handler import register_errorhandlers
         register_errorhandlers(app)
+
+        # Health check endpoint + startup validation
+        from .lib.health import register_health_endpoint, run_startup_checks
+        register_health_endpoint(app)
+        try:
+            result = run_startup_checks(app)
+            if result["errors"]:
+                app.logger.warning(f"[health] {len(result['errors'])} resource(s) failed build: "
+                                   f"{[e['resource'] for e in result['errors']]}")
+            else:
+                app.logger.info(f"[health] {len(result['ok'])} resource(s) OK.")
+        except Exception as _he:
+            app.logger.warning(f"[health] startup check skipped: {_he}")
 
         # CLI commands (aras install-app, list-apps, etc.)
         from .lib.cli import register_cli

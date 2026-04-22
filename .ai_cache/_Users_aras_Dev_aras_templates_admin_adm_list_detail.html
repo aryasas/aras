@@ -1,0 +1,123 @@
+{% from "_macros.html" import render_label,
+pagination_widget,
+paginate,
+render_pagination %}
+
+{% for child_data in param_view_child %}
+
+  <div class="row">
+    <div class="col-12 mt-5">
+      <div class="card">
+        <div class="card-body">
+
+          <h4 class="header-title">Detail
+            {{ child_data['title'] }}
+
+            <a href="{{ url_for(child_data['child_view_name'] + '_add', main_id=main_id) }}">
+              <span class="float-right btn btn-primary mb-3" style=" vertical-align: middle;">
+                <i class="fa fa-plus" aria-hidden="true"></i>
+                Add
+                {{ child_data['title'] }}
+              </span>
+            </a>
+
+          </h4>
+
+          <div class="single-table">
+            <div class="table-responsive">
+              <table class="table progress-table text-center">
+                <thead class="text-uppercase">
+                  <tr>
+                    {% if data_list[child_data['backref']] %}
+
+                      {% for field_label in child_data['columns'] %}
+                        <td>
+                          <b>{{ field_label["alias"] | striptags | string }}</b>
+                          {# <b></b> #}
+                        </td>
+                      {% endfor %}
+
+                      {% if current_user.is_authenticated %}
+                        <td id="action">
+                          <b>Action</b>
+                        </td>
+                      {% endif %}
+
+                    {% endif %}
+
+                  </tr>
+                </thead>
+                <tbody>
+
+                  {% for datalist in data_list[child_data['backref']] %}
+                    <tr>
+
+                      {% for col in child_data['columns'] %}
+
+                        <a href="{{ url_for('%s%s' % (child_data['child_view_name'], '_edit'),
+                                                              main_id=main_id,
+                                                              child_id=datalist.id) }}">
+                          <td>
+
+                            {% if datalist[col['name']] is not none %}
+
+                              {{ datalist[col['name']] | striptags }}
+
+                            {% endif %}
+                          </td>
+                        </a>
+
+                      {% endfor %}
+
+                      {% if current_user.is_authenticated %}
+                        <td>
+                          <div class="btn-group">
+
+                            <a href="{{ url_for('%s%s' % (child_data['child_view_name'], '_edit'),
+                                                              main_id=main_id,
+                                                              child_id=datalist.id) }}" class="text-secondary">
+                              <i class="fa fa-edit fa-lg"></i>
+                            </a>
+
+                            &ensp; | &ensp;
+
+                            <a href="{{ url_for('%s%s' % (child_data['child_view_name'], '_delete'),
+                                                              main_id=main_id,
+                                                              child_id=datalist.id) }}" class="text-danger">
+                              <i class="fas ti-trash fa-lg"></i>
+                            </a>
+
+                          </div>
+                        </td>
+                      {% endif %}
+
+                    </tr>
+                  {% endfor %}
+
+                </tbody>
+
+                <tfoot></tfoot>
+
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <div class="header-title"></div>
+              <nav aria-label="">
+                <ul class="pagination justify-content-end">
+                  {% if pagination %}
+                    {{ pagination_widget(pagination, endpoint, filtered=filtered) }}
+                  {% endif %}
+                </ul>
+              </nav>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endfor %}

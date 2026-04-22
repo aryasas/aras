@@ -133,6 +133,9 @@ class ResourceDef:
     menu_icon: str = "fa-table"
     required_permissions: list = field(default_factory=list)
     url: Optional[str] = None  # custom URL override; skips auto-generated CRUD route
+    searchable: list = field(default_factory=list)   # column names searched by ?q=
+    filters: list = field(default_factory=list)       # column names usable in ?filter[field]=
+    show_save_btn: bool = True  # show Save button in form view; set False for read-only/custom-save resources
 
     def get_menu_title(self) -> str:
         if self.menu_title:
@@ -214,6 +217,9 @@ class AppHelper:
         admin_order: int = 99,
         home_url: str = None,
         settings_schema: list = None,
+        admin_slug: str = None,
+        api_slug: str = None,
+        template: str = None,
     ):
         self.name = name
         self.title = title
@@ -221,14 +227,14 @@ class AppHelper:
         self.custom_routes = custom_routes or []
         self.admin_icon = admin_icon
         self.admin_order = admin_order
-        # settings_schema: list of dicts for per-app settings page (§3.4 MAIN.md).
-        # Format: {"key", "label", "value_type", "default", "help_text", "order"}.
-        # Framework mounts /admin/<name>/settings/ automatically when provided.
         self.settings_schema = settings_schema or []
-        # home_url: URL kustom untuk item app di sidebar.
-        # Jika None, framework pakai resource admin_list pertama sebagai landing.
-        # Contoh: home_url="/erp/dashboard" untuk halaman kustom.
         self.home_url = home_url
+        # admin_slug: overrides /admin/<name>/ URL prefix (e.g. admin_slug="social" → /admin/social/)
+        self.admin_slug = admin_slug or name
+        # api_slug: overrides /api/<name>/ URL prefix (e.g. api_slug="social" → /api/social/)
+        self.api_slug = api_slug or name
+        # template: base Jinja2 template for app's public (non-admin) pages
+        self.template = template
 
         # Flat resources: ambil dari menu_groups jika tidak diisi eksplisit
         if resources:
@@ -239,10 +245,10 @@ class AppHelper:
             self.resources = []
 
     def get_api_prefix(self) -> str:
-        return f"/api/{self.name}"
+        return f"/api/{self.api_slug}"
 
     def get_admin_prefix(self) -> str:
-        return f"/admin/{self.name}"
+        return f"/admin/{self.admin_slug}"
 
     def to_menu_dict(self) -> dict:
         """
