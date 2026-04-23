@@ -130,6 +130,44 @@ def settings():
         )
     activities = act_q.limit(200).all()
 
+    # Audit log
+    q_audit = request.args.get("q_audit", "").strip()
+    from arasCore.arasAdmin.models import ArasCoreAuditLog
+    audit_q = ArasCoreAuditLog.query.order_by(ArasCoreAuditLog.ts.desc())
+    if q_audit:
+        like = f"%{q_audit}%"
+        audit_q = audit_q.filter(
+            db.or_(ArasCoreAuditLog.model_name.ilike(like), ArasCoreAuditLog.action.ilike(like))
+        )
+    audit_logs = audit_q.limit(200).all()
+    # Attach username for display
+    user_cache = {}
+    for entry in audit_logs:
+        if entry.user_id and entry.user_id not in user_cache:
+            u = User.query.get(entry.user_id)
+            user_cache[entry.user_id] = u.username if u else f"#{entry.user_id}"
+    for entry in audit_logs:
+        entry._username = user_cache.get(entry.user_id, "system") if entry.user_id else "system"
+
+    # Health check data (cached from startup)
+    from arasCore.lib import health as _health_mod
+    health_data = _health_mod._last_result or {}
+
+    # Dev panel — registered routes + loaded modules
+    dev_routes = []
+    try:
+        for rule in sorted(current_app.url_map.iter_rules(), key=lambda r: r.rule):
+            dev_routes.append({
+                "rule":     rule.rule,
+                "endpoint": rule.endpoint,
+                "methods":  ", ".join(sorted(m for m in rule.methods if m not in ("HEAD", "OPTIONS"))),
+            })
+    except Exception:
+        pass
+
+    import sys as _sys
+    dev_modules = sorted(k for k in _sys.modules if k.startswith("arasCore") or k.startswith("aras."))
+
     return render_template(
         "admin/adm_cfg_settings.html",
         title="Settings",
@@ -151,6 +189,11 @@ def settings():
         q_userlog=q_userlog,
         q_database=q_database,
         q_roles=q_roles,
+        audit_logs=audit_logs,
+        q_audit=q_audit,
+        health_data=health_data,
+        dev_routes=dev_routes,
+        dev_modules=dev_modules,
     )
 
 

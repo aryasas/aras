@@ -14,6 +14,8 @@
       ('panel-database', 'ti-server',       'Database'),
       ('panel-roles',    'ti-shield',       'Roles'),
       ('panel-menu',     'ti-menu',         'Menu Editor'),
+      ('panel-audit',    'ti-eye',          'Audit Log'),
+      ('panel-health',   'ti-pulse',        'Health'),
       ('panel-dev',      'ti-dashboard',    'Dev'),
     ] %}
     <a href="#{{ panel_id }}"
@@ -45,6 +47,8 @@
             ('panel-database', 'ti-server',       'Database'),
             ('panel-roles',    'ti-shield',       'Roles'),
             ('panel-menu',     'ti-menu',         'Menu Editor'),
+            ('panel-audit',    'ti-eye',          'Audit Log'),
+            ('panel-health',   'ti-pulse',        'Health'),
             ('panel-dev',      'ti-dashboard',    'Dev'),
           ] %}
           <li class="list-group-item list-group-item-action settings-nav-item {% if loop.first %}active{% endif %}"
@@ -1232,17 +1236,140 @@
     </div>
 
     {# ── Dev ── #}
-    <div class="settings-panel d-none" id="panel-dev">
+    {# ── Audit Log ── #}
+    <div class="settings-panel d-none" id="panel-audit">
+      {% set view_columns = [('Time','_ts'),('User','_username'),('Model','model_name'),('Record','record_id'),('Action','action')] %}
+      {% set items = audit_logs %}
+      {% set search_enabled = true %}
+      {% set search_q = q_audit %}
+      {% set add_url = '' %}
+      {% set edit_url_base = '' %}
+      {% set delete_url_base = '' %}
+      {% set _list_id = 'audit' %}
+      {% set main_title = 'Audit Log' %}
+      {# Build display items as dicts for _list_partial #}
       <div class="card">
+        <div class="card-body p-0">
+          <div class="d-flex align-items-center px-3 pt-3 pb-2" style="gap:8px;">
+            <h5 class="mb-0"><i class="ti-eye mr-2"></i>Audit Log</h5>
+            <span class="badge badge-secondary ml-2">{{ audit_logs|length }}</span>
+            <form method="GET" action="{{ url_for('admin.settings') }}" class="ml-auto d-flex" style="gap:6px;">
+              <input type="hidden" name="panel" value="panel-audit">
+              <input type="text" name="q_audit" value="{{ q_audit }}" placeholder="Search model / action…"
+                     class="form-control form-control-sm" style="width:220px;">
+              <button type="submit" class="aras-btn aras-btn--sm">Search</button>
+            </form>
+          </div>
+          {% if audit_logs %}
+          <div class="table-responsive">
+            <table class="aras-table">
+              <thead><tr>
+                <th>Time</th><th>User</th><th>Model</th><th>Record</th><th>Action</th>
+              </tr></thead>
+              <tbody>
+              {% for e in audit_logs %}
+              <tr>
+                <td style="white-space:nowrap;font-size:12px;">{{ e.ts.strftime('%Y-%m-%d %H:%M:%S') if e.ts else '—' }}</td>
+                <td>{{ e._username }}</td>
+                <td><code>{{ e.model_name }}</code></td>
+                <td>{{ e.record_id or '—' }}</td>
+                <td>
+                  <span class="badge badge-{{ 'success' if e.action=='create' else ('warning' if e.action=='update' else 'danger') }}">
+                    {{ e.action }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="aras-empty-state py-4"><i class="ti-eye"></i><p>No audit entries yet.</p></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# ── Health ── #}
+    <div class="settings-panel d-none" id="panel-health">
+      <div class="card mb-3">
         <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-              <h5 class="mb-1"><i class="ti-dashboard mr-2"></i>Developer Tools</h5>
-              <p class="text-muted small mb-0">Framework internals, registered routes, loaded modules</p>
+          <div class="d-flex align-items-center mb-3" style="gap:10px;">
+            <h5 class="mb-0"><i class="ti-pulse mr-2"></i>Framework Health</h5>
+            {% if health_data %}
+              {% if health_data.errors %}
+              <span class="badge badge-danger">{{ health_data.errors|length }} error(s)</span>
+              {% else %}
+              <span class="badge badge-success">All OK — {{ health_data.ok|length }} resource(s)</span>
+              {% endif %}
+              <small class="text-muted ml-auto">Checked at startup · {{ health_data.checked_at or '—' }}</small>
+            {% else %}
+              <span class="badge badge-secondary">No data — restart server to run checks</span>
+            {% endif %}
+          </div>
+          {% if health_data.errors %}
+          <div class="mb-3">
+            <h6 class="text-danger">Errors</h6>
+            <table class="aras-table">
+              <thead><tr><th>Resource</th><th>Error</th></tr></thead>
+              <tbody>
+              {% for err in health_data.errors %}
+              <tr>
+                <td><code>{{ err.resource }}</code></td>
+                <td class="text-danger small">{{ err.error }}</td>
+              </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+          {% if health_data.ok %}
+          <details>
+            <summary class="text-muted small" style="cursor:pointer;">
+              {{ health_data.ok|length }} resource(s) passing
+            </summary>
+            <div class="mt-2" style="columns:3;font-size:12px;">
+              {% for r in health_data.ok %}
+              <div><code>{{ r }}</code></div>
+              {% endfor %}
             </div>
-            <a href="{{ url_for('admin.dev') }}" class="aras-btn aras-btn--sm aras-btn--accent-outline">
-              Open Dev Page →
-            </a>
+          </details>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# ── Dev ── #}
+    <div class="settings-panel d-none" id="panel-dev">
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5 class="mb-3"><i class="ti-dashboard mr-2"></i>Developer Tools</h5>
+
+          <div class="mb-4">
+            <h6>Registered Routes <span class="badge badge-secondary">{{ dev_routes|length }}</span></h6>
+            <div style="max-height:400px;overflow-y:auto;">
+              <table class="aras-table" style="font-size:12px;">
+                <thead><tr><th>Rule</th><th>Methods</th><th>Endpoint</th></tr></thead>
+                <tbody>
+                {% for r in dev_routes %}
+                <tr>
+                  <td><code>{{ r.rule }}</code></td>
+                  <td><span class="text-muted">{{ r.methods }}</span></td>
+                  <td style="font-size:11px;color:#6c757d;">{{ r.endpoint }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div>
+            <h6>Loaded aras Modules <span class="badge badge-secondary">{{ dev_modules|length }}</span></h6>
+            <div style="columns:3;font-size:11px;max-height:300px;overflow-y:auto;">
+              {% for m in dev_modules %}
+              <div><code>{{ m }}</code></div>
+              {% endfor %}
+            </div>
           </div>
         </div>
       </div>
