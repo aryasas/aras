@@ -14,7 +14,7 @@ from arasCore.lib.extensions import db
 def dashboard():
     widgets = get_dashboard_widgets(current_user)
     return render_template(
-        "admin/dashboard.html",
+        "admin/adm_dashboard.html",
         title="Dashboard",
         main_title="Admin Dashboard",
         user=current_user,
@@ -72,7 +72,7 @@ def user_log():
     activities = query.all()
     cols = [("Action", "name"), ("Module", "module"), ("Date", "created_at")]
     return render_template(
-        "admin/aras_list.html",
+        "admin/adm_list.html",
         title="User Log",
         main_title="User Log",
         items=activities,

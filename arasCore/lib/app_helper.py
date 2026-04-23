@@ -136,6 +136,7 @@ class ResourceDef:
     searchable: list = field(default_factory=list)   # column names searched by ?q=
     filters: list = field(default_factory=list)       # column names usable in ?filter[field]=
     show_save_btn: bool = True  # show Save button in form view; set False for read-only/custom-save resources
+    extra_buttons: list = field(default_factory=list)  # [{"label","url","icon"(opt),"style"(opt),"onclick"(opt)}]
 
     def get_menu_title(self) -> str:
         if self.menu_title:

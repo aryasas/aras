@@ -175,8 +175,22 @@ class AdminResourceMounter:
             items = q_obj.all()
             rel_maps = _build_fk_maps(cols, model)
 
+            # Load per-user saved columns
+            saved_columns = None
+            try:
+                from flask_login import current_user as _cu
+                from arasCore.arasAdmin.models import ListViewSetting
+                _doctype_key = f"{helper.name}/{res.name}"
+                s = ListViewSetting.query.filter_by(
+                    user_id=_cu.id, doctype=_doctype_key
+                ).first()
+                if s:
+                    saved_columns = s.columns_json
+            except Exception:
+                pass
+
             return render_template(
-                "admin/aras_list.html",
+                "admin/adm_list.html",
                 title=res_title,
                 main_title=res_title,
                 items=items,
@@ -191,6 +205,9 @@ class AdminResourceMounter:
                 search_q=search_q,
                 filter_cols=cols,
                 active_filters=active_filters,
+                extra_buttons=res.extra_buttons or [],
+                saved_columns=saved_columns,
+                doctype_key=f"{helper.name}/{res.name}",
             )
         return view
 
@@ -224,7 +241,7 @@ class AdminResourceMounter:
                     db.session.rollback()
                     flash(str(ex), "danger")
             return render_template(
-                "admin/aras_admin_form.html",
+                "admin/adm_form.html",
                 title=f"Add {res_title}",
                 main_title=app_title,
                 form=form,
@@ -281,7 +298,7 @@ class AdminResourceMounter:
                     pass
 
             return render_template(
-                "admin/aras_admin_form.html",
+                "admin/adm_form.html",
                 title=f"Edit {res_title}",
                 main_title=app_title,
                 form=form,

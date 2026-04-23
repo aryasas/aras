@@ -131,7 +131,7 @@ def settings():
     activities = act_q.limit(200).all()
 
     return render_template(
-        "admin/settings.html",
+        "admin/adm_cfg_settings.html",
         title="Settings",
         main_title="Settings",
         apps=all_apps,
@@ -166,7 +166,7 @@ def db_table_detail(table_name):
     pk_cols = {c for c in inspector.get_pk_constraint(table_name).get("constrained_columns", [])}
     indexes = inspector.get_indexes(table_name)
     return render_template(
-        "admin/db_table_detail.html",
+        "admin/adm_cfg_db_detail.html",
         title=table_name,
         main_title=table_name,
         table_name=table_name,
@@ -403,7 +403,7 @@ def role_edit(role_id):
         grouped_perms.setdefault(p.app_slug, []).append(p)
 
     return render_template(
-        "admin/role_edit.html",
+        "admin/adm_auth_role_edit.html",
         title=f"Edit Role — {role.name}",
         main_title="Roles",
         role=role,
@@ -414,6 +414,32 @@ def role_edit(role_id):
         assigned_user_ids=assigned_user_ids,
         list_url=url_for("admin.settings") + "?panel=panel-roles",
     )
+
+
+@arasAdmin_bp.route("/api/list-pref/", methods=["POST"])
+@login_required
+def list_pref_save():
+    from arasCore.arasAdmin.models import ListViewSetting
+    data = request.get_json(force=True) or {}
+    doctype = (data.get("doctype") or "").strip()
+    columns = data.get("columns")
+    if not doctype:
+        return jsonify({"ok": False, "error": "doctype required"}), 400
+    try:
+        import json as _json
+        setting = ListViewSetting.query.filter_by(
+            user_id=current_user.id, doctype=doctype
+        ).first()
+        if setting is None:
+            setting = ListViewSetting(user_id=current_user.id, doctype=doctype)
+            db.session.add(setting)
+        if columns is not None:
+            setting.columns_json = _json.dumps(columns)
+        db.session.commit()
+        return jsonify({"ok": True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @arasAdmin_bp.route("/settings/menu/data")

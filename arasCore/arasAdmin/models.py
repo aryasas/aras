@@ -577,6 +577,23 @@ class ArasCoreAuditLog(db.Model):
         return f"<AuditLog {self.action} {self.model_name}#{self.record_id}>"
 
 
+# ── Per-user list view preferences ───────────────────────────────────────────
+
+class ListViewSetting(ArasModel):
+    """Persists column visibility, page size, and view mode per user per doctype."""
+    __tablename__ = "adm_list_view_setting"
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "doctype", name="uq_adm_list_view"),
+    )
+
+    user_id      = db.Column(db.Integer, db.ForeignKey("auth_users.id"), nullable=False)
+    doctype      = db.Column(db.String(120), nullable=False)
+    columns_json = db.Column(db.Text, nullable=True)
+    page_size    = db.Column(db.Integer, default=20, nullable=False)
+    view_mode    = db.Column(db.String(10), default="list", nullable=False)
+    show_totals  = db.Column(db.Boolean, default=False, nullable=False)
+
+
 # ── Post ──────────────────────────────────────────────────────────────────────
 
 # class Post(db.Model):

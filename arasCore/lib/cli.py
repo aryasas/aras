@@ -101,11 +101,12 @@ def register_cli(app):
     @aras.command("migrate", help="Run arasCore idempotent migrations (page type, settings, etc.)")
     def migrate():
         import flask
-        from arasCore.lib.migrations import m001_page_type, m002_rbac, m004_arasmodel_audit_cols
+        from arasCore.lib.migrations import m001_page_type, m002_rbac, m004_arasmodel_audit_cols, m005_list_view_setting
         _app = flask.current_app._get_current_object()
         m001_page_type.run(_app)
         m002_rbac.run(_app)
         m004_arasmodel_audit_cols.run(_app)
+        m005_list_view_setting.run(_app)
         click.echo("[migrate] done.")
 
     @aras.command("remigrate", help="Drop & recreate all tables, run all migrations, sync all manifests, seed ERP")
@@ -128,10 +129,11 @@ def register_cli(app):
 
         # 2. arasCore migrations
         click.echo("[remigrate] 2/4  arasCore migrations ...")
-        from arasCore.lib.migrations import m001_page_type, m002_rbac, m004_arasmodel_audit_cols
+        from arasCore.lib.migrations import m001_page_type, m002_rbac, m004_arasmodel_audit_cols, m005_list_view_setting
         m001_page_type.run(_app)
         m002_rbac.run(_app)
         m004_arasmodel_audit_cols.run(_app)
+        m005_list_view_setting.run(_app)
 
         # 3. Sync all code-based manifests → mgr_table/mgr_column
         click.echo("[remigrate] 3/4  sync all manifests ...")

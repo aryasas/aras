@@ -745,14 +745,16 @@ def _register_table_routes(bp, snap, all_snaps):
             if not check_permission(current_user, app_slug, tname, "view"):
                 abort(403)
 
-            # Load per-user list view setting (per_page, view_mode, show_totals)
+            # Load per-user list view setting (per_page, view_mode, show_totals, columns)
             effective_per_page = per_page
             view_mode = "list"
             show_totals = False
+            saved_columns = None
             user_setting = None
             try:
-                from aras.app_erp.erp_core.models.list_view import ErpListViewSetting
-                user_setting = ErpListViewSetting.query.filter_by(
+                from arasCore.arasAdmin.models import ListViewSetting
+                from arasCore.lib.extensions import db as _db
+                user_setting = ListViewSetting.query.filter_by(
                     user_id=current_user.id, doctype=_doctype_key
                 ).first()
                 if user_setting:
@@ -760,6 +762,7 @@ def _register_table_routes(bp, snap, all_snaps):
                         effective_per_page = user_setting.page_size
                     view_mode = user_setting.view_mode or "list"
                     show_totals = bool(user_setting.show_totals)
+                    saved_columns = user_setting.columns_json
             except Exception:
                 pass
 
@@ -767,19 +770,17 @@ def _register_table_routes(bp, snap, all_snaps):
             req_per_page = request.args.get("per_page", type=int)
             if req_per_page and req_per_page > 0:
                 effective_per_page = req_per_page
-                # Persist change to DB
                 try:
-                    from aras.app_erp.erp_core.models.list_view import ErpListViewSetting
+                    from arasCore.arasAdmin.models import ListViewSetting
+                    from arasCore.lib.extensions import db as _db
                     if user_setting is None:
-                        from arasCore.lib.extensions import db as _db
-                        user_setting = ErpListViewSetting(
+                        user_setting = ListViewSetting(
                             user_id=current_user.id, doctype=_doctype_key,
                             page_size=req_per_page
                         )
                         _db.session.add(user_setting)
                     else:
                         user_setting.page_size = req_per_page
-                    from arasCore.lib.extensions import db as _db
                     _db.session.commit()
                 except Exception:
                     pass
@@ -858,7 +859,7 @@ def _register_table_routes(bp, snap, all_snaps):
                 pass
 
             return render_template(
-                "admin/aras_list.html",
+                "admin/adm_list.html",
                 title=title, main_title=main_t,
                 items=pagination.items, view_columns=vcols,
                 pagination=pagination, per_page=effective_per_page,
@@ -876,6 +877,7 @@ def _register_table_routes(bp, snap, all_snaps):
                 show_totals=show_totals,
                 linked_report_url=linked_report_url,
                 doctype_key=_doctype_key,
+                saved_columns=saved_columns,
             )
         return view
 
@@ -918,7 +920,7 @@ def _register_table_routes(bp, snap, all_snaps):
                 except Exception:
                     pass
             return render_template(
-                "admin/aras_admin_form.html",
+                "admin/adm_form.html",
                 title=f"Add — {title}", main_title=main_t,
                 form=form, action=f"{adm_burl}/add/", list_url=f"{adm_burl}/",
                 app_title=app_title, app_id=app_id, table_id=table_id,
@@ -983,7 +985,7 @@ def _register_table_routes(bp, snap, all_snaps):
                 except Exception:
                     pass
             return render_template(
-                "admin/aras_admin_form.html",
+                "admin/adm_form.html",
                 title=f"Edit — {title}", main_title=main_t,
                 form=form, action=f"{adm_burl}/{item_id}/", list_url=f"{adm_burl}/",
                 app_title=app_title, app_id=app_id, table_id=table_id,
@@ -1059,7 +1061,7 @@ def _register_table_routes(bp, snap, all_snaps):
         def view():
             items = model.query.all()
             return render_template(
-                "admin/aras_list.html",
+                "admin/adm_list.html",
                 title=title, main_title=main_t,
                 items=items, view_columns=vcols,
                 add_url=f"{burl}/add/",
@@ -1089,7 +1091,7 @@ def _register_table_routes(bp, snap, all_snaps):
                 flash("Record added.", "success")
                 return redirect(f"{burl}/")
             return render_template(
-                "admin/aras_admin_form.html",
+                "admin/adm_form.html",
                 title=f"Add — {title}", main_title=f"Add {main_t}",
                 form=form, action=f"{burl}/add/", list_url=f"{burl}/",
                 app_title=app_title,
@@ -1115,7 +1117,7 @@ def _register_table_routes(bp, snap, all_snaps):
                 flash("Record updated.", "success")
                 return redirect(f"{burl}/")
             return render_template(
-                "admin/aras_admin_form.html",
+                "admin/adm_form.html",
                 title=f"Edit — {title}", main_title=f"Edit {main_t}",
                 form=form, action=f"{burl}/{item_id}/", list_url=f"{burl}/",
                 app_title=app_title,

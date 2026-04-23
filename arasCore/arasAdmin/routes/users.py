@@ -55,7 +55,7 @@ def users_new():
             db.session.commit()
             flash(f"User '{u.username}' created.", "success")
             return redirect(url_for("admin.users"))
-    return render_template("admin/user_form.html", title="New User", main_title="Create User", form=form)
+    return render_template("admin/adm_auth_user_form.html", title="New User", main_title="Create User", form=form)
 
 
 @arasAdmin_bp.route("/users/<int:user_id>/", methods=["GET"])
@@ -65,7 +65,7 @@ def user_detail(user_id):
     from arasCore.arasAdmin.models import UserActivity
     recent_activities = u.activities.order_by(UserActivity.created_at.desc()).limit(20).all()
     return render_template(
-        "admin/user_profile.html",
+        "admin/adm_auth_user_profile.html",
         title=u.username,
         main_title=u.username,
         user=u,

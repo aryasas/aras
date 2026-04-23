@@ -234,7 +234,7 @@ def make_settings_home_view(app_name: str, app_title: str,
         cards = _build_section_cards(schema or [], is_dynamic, app_name)
 
         return render_template(
-            "admin/aras_admin_settings.html",
+            "admin/adm_cfg_app_settings.html",
             title=f"{app_title} — Settings",
             main_title=f"{app_title} — Settings",
             app_name=app_name,
@@ -312,7 +312,7 @@ def make_settings_section_view(app_name: str, app_title: str, section: str,
         section_icon  = card["icon"]  if card else "fa-cog"
 
         return render_template(
-            "admin/aras_admin_settings_section.html",
+            "admin/adm_cfg_settings_section.html",
             title=f"{app_title} — {section_label}",
             main_title=section_label,
             app_name=app_name,

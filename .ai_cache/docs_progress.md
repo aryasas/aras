@@ -1,5 +1,60 @@
 # Aras Progress
 
+## Session: 2026-04-23 — Planned (not yet executed)
+
+### Template rename + ListViewSetting promotion (next task)
+
+**Template naming convention adopted:**
+- `adm_` — general admin page (list, form, dashboard, messages)
+- `adm_cfg_` — framework config/settings (App Manager, tables, columns, migrations, DB inspector)
+- `adm_auth_` — user/role management
+- `adm_dev_` — developer tools
+- `_list_partial.html`, `base_*` — keep as-is (partials / layout primitives)
+
+**Rename map (23 files):**
+- `aras_list.html` → `adm_list.html`
+- `aras_admin_form.html` → `adm_form.html`
+- `dashboard.html` → `adm_dashboard.html`
+- `messages.html` → `adm_messages.html`
+- `send_message.html` → `adm_send_message.html`
+- `apps.html` → `adm_cfg_apps.html`
+- `app_form.html` → `adm_cfg_app_form.html`
+- `app_install.html` → `adm_cfg_app_install.html`
+- `app_migrations.html` → `adm_cfg_migrations.html`
+- `settings.html` → `adm_cfg_settings.html`
+- `aras_admin_settings.html` → `adm_cfg_app_settings.html`
+- `aras_admin_settings_section.html` → `adm_cfg_settings_section.html`
+- `aras_admin_tables.html` → `adm_cfg_tables.html`
+- `aras_admin_table_form.html` → `adm_cfg_table_form.html`
+- `aras_admin_columns.html` → `adm_cfg_columns.html`
+- `db_table_detail.html` → `adm_cfg_db_detail.html`
+- `users.html` → `adm_auth_users.html`
+- `user_form.html` → `adm_auth_user_form.html`
+- `user_profile.html` → `adm_auth_user_profile.html`
+- `user_log.html` → `adm_auth_user_log.html`
+- `role_edit.html` → `adm_auth_role_edit.html`
+- `dev.html` → `adm_dev.html`
+- `dev_msg.html` → `adm_dev_msg.html`
+
+**Delete:** `templates/app_manager/` — entire folder, confirmed zero Python references.
+
+**App-level custom templates:** use `templates/admin/app_<name>/` subfolder when app needs many files.
+
+**ListViewSetting (framework-level):**
+- Add `ListViewSetting` model to `arasCore/arasAdmin/models.py` (table: `adm_list_view_setting`)
+- Migration `m005_list_view_setting.py`
+- Replace `ErpListViewSetting` imports in `services.py` with `ListViewSetting`; persist `columns_json`
+- `aras/app_erp/erp_core/models/list_view.py` → alias `ErpListViewSetting = ListViewSetting`
+- API endpoint `POST /admin/api/list-pref/` for JS to save column visibility
+- `_list_partial.html` JS: POST on column toggle, restore on page load
+
+**`ResourceDef.extra_buttons`:**
+- Add `extra_buttons: list` field to `ResourceDef` in `arasCore/lib/app_helper.py`
+- `admin_mount.py:make_list()` passes `extra_buttons` to template
+- Settings route declares `apps_extra_buttons` (Install App + New App) for the Apps panel
+
+---
+
 ## Session: 2026-04-22
 
 ### Template Cleanup

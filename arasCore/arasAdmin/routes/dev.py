@@ -8,4 +8,4 @@ from arasCore.arasAdmin import arasAdmin_bp
 @arasAdmin_bp.route("/dev")
 @login_required
 def dev():
-    return render_template("admin/dev.html", main_title="Dev Page", user=current_user)
+    return render_template("admin/adm_dev.html", main_title="Dev Page", user=current_user)
