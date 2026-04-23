@@ -346,11 +346,16 @@ def install_from_definition(definition: dict, db, flask_app=None) -> "AppManager
     tables_data = definition["tables"]
 
     # Check for existing app
-    existing = AppManagerApp.query.filter_by(name=app_data["name"]).first()
+    _slug = app_data.get("url", app_data.get("name", "")).strip().strip("/")
+    existing = AppManagerApp.query.filter_by(url=_slug).first()
     if existing:
-        raise ValueError(f"App '{app_data['name']}' already exists.")
+        raise ValueError(f"App '{_slug}' already exists.")
 
-    app_obj = AppManagerApp(**{k: v for k, v in app_data.items()})
+    _allowed = {"url", "title", "icon", "description", "color_theme", "in_sidebar",
+                "require_login", "api_enabled", "items_per_page", "export_csv",
+                "export_excel", "soft_delete", "audit_log", "menu_order"}
+    app_obj = AppManagerApp(**{k: v for k, v in app_data.items() if k in _allowed})
+    app_obj.url = _slug
     app_obj.is_active = False  # not active until explicitly activated
     db.session.add(app_obj)
     db.session.flush()  # get id
@@ -602,14 +607,12 @@ def sync_helper_to_db(helper, db, flask_app=None) -> "object":
     from arasCore.arasAdmin.models import AppManagerApp, AppManagerTable, AppManagerColumn
 
     # ── 1. mgr_app upsert ────────────────────────────────────────────────────
-    app_rec = AppManagerApp.query.filter_by(name=helper.name).first()
+    _slug = (getattr(helper, "admin_slug", None) or helper.name).strip("/")
+    app_rec = AppManagerApp.query.filter_by(url=_slug).first()
     if not app_rec:
         app_rec = AppManagerApp(
-            name=helper.name,
+            url=_slug,
             title=helper.title,
-            main_title=helper.title,
-            url=f"/{getattr(helper, 'api_slug', None) or helper.name}",
-            endpoint=getattr(helper, "admin_slug", None) or helper.name,
             icon=helper.admin_icon,
             menu_order=helper.admin_order,
             is_active=False,

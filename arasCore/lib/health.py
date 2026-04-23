@@ -21,9 +21,9 @@ def run_startup_checks(flask_app) -> dict:
             for app_obj in active_apps:
                 tables = AppManagerTable.query.filter_by(app_id=app_obj.id, is_active=True).all()
                 for tbl in tables:
-                    label = f"{app_obj.name}/{tbl.name}"
+                    label = f"{app_obj.slug}/{tbl.name}"
                     try:
-                        model_cls = make_table_model(tbl, app_obj.name)
+                        model_cls = make_table_model(tbl, app_obj.slug)
                         make_table_form(tbl, model_cls, app_obj.id)
                         results["ok"].append(label)
                     except Exception as ex:

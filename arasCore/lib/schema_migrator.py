@@ -82,7 +82,7 @@ def diff_app(app_id: int, flask_app=None):
     records = []
 
     for tbl in AppManagerTable.query.filter_by(app_id=app_id, is_active=True).all():
-        tbl_name = tbl.db_table_name or f"ab_{app_obj.name}_{tbl.name}"
+        tbl_name = tbl.db_table_name or f"ab_{app_obj.slug}_{tbl.name}"
 
         # Get live columns
         try:
@@ -95,13 +95,13 @@ def diff_app(app_id: int, flask_app=None):
                 continue
 
             # Check not already recorded
-            existing = _get_migration_record(app_obj.name, tbl_name, col.name)
+            existing = _get_migration_record(app_obj.slug, tbl_name, col.name)
             if existing:
                 continue
 
             sql_stmt = f"ALTER TABLE `{tbl_name}` ADD COLUMN `{col.name}` {_col_sql(col.__dict__)}"
             rec = _create_migration_record(
-                app_name=app_obj.name,
+                app_name=app_obj.slug,
                 table_name=tbl_name,
                 column_name=col.name,
                 action="add_column",
@@ -134,7 +134,7 @@ def apply_pending(app_id: int, flask_app=None, safe_only: bool = True):
     if not app_obj:
         return [], []
 
-    pending = _list_pending(app_obj.name, db)
+    pending = _list_pending(app_obj.slug, db)
     applied, skipped = [], []
 
     for row in pending:
@@ -165,7 +165,7 @@ def get_pending(app_id: int):
     app_obj = AppManagerApp.query.get(app_id)
     if not app_obj:
         return []
-    return _list_pending(app_obj.name, db)
+    return _list_pending(app_obj.slug, db)
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────

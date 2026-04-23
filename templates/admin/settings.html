@@ -253,7 +253,7 @@
     <div class="settings-panel d-none" id="panel-apps">
       {% set main_title      = "App Manager" %}
       {% set items           = apps %}
-      {% set view_columns    = [("Name","name"),("Title","title"),("URL","url"),("Active","is_active")] %}
+      {% set view_columns    = [("Title","title"),("Slug","slug"),("Active","is_active")] %}
       {% set edit_url_base   = "/admin/apps" %}
       {% set delete_url_base = "/admin/apps" %}
       {% set add_url         = url_for('admin.apps_new') %}

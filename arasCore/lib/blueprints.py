@@ -193,7 +193,7 @@ def _is_app_enabled(entry: str, aras_pkg: str) -> bool:
     app_name = entry[len("app_"):]  # strip "app_" prefix → "soc", "erp", etc.
     try:
         from arasCore.arasAdmin.models import AppManagerApp
-        rec = AppManagerApp.query.filter_by(name=app_name, is_active=True).first()
+        rec = AppManagerApp.query.filter_by(url=app_name, is_active=True).first()
         if rec:
             return True
     except Exception:

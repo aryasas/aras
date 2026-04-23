@@ -210,7 +210,7 @@ def register_cli(app):
             try:
                 definition = parse_app_definition(data)
                 app_obj    = install_from_definition(definition, db, _app)
-                click.echo(f"[install-app] installed '{app_obj.name}' (id={app_obj.id}, inactive)")
+                click.echo(f"[install-app] installed '{app_obj.slug}' (id={app_obj.id}, inactive)")
             except ValueError as e:
                 click.echo(f"[install-app] error: {e}")
                 return
@@ -244,7 +244,7 @@ def register_cli(app):
             click.echo(f"[install-app] sync error: {e}")
             return
 
-        click.echo(f"[install-app] synced '{app_obj.name}': "
+        click.echo(f"[install-app] synced '{app_obj.slug}': "
                    f"{stats['tables_new']} new tables, {stats['cols_new']} new columns "
                    f"({stats['tables_existing']} tables already existed, {stats['cols_skipped']} cols skipped)")
 
@@ -299,7 +299,7 @@ def register_cli(app):
     @aras.command("list-apps", help="List all installed (dynamic) apps")
     def list_apps():
         from arasCore.arasAdmin.models import AppManagerApp
-        apps = AppManagerApp.query.order_by(AppManagerApp.menu_order, AppManagerApp.name).all()
+        apps = AppManagerApp.query.order_by(AppManagerApp.menu_order, AppManagerApp.url).all()
         if not apps:
             click.echo("(no apps installed)")
             return
@@ -313,7 +313,7 @@ def register_cli(app):
     def activate_app(name):
         import flask
         from arasCore.arasAdmin.models import AppManagerApp
-        row = AppManagerApp.query.filter_by(name=name).first()
+        row = AppManagerApp.query.filter_by(url=name).first()
         if not row:
             click.echo(f"[activate-app] '{name}' not found")
             return
@@ -323,7 +323,7 @@ def register_cli(app):
     @click.argument("name")
     def deactivate_app(name):
         from arasCore.arasAdmin.models import AppManagerApp
-        row = AppManagerApp.query.filter_by(name=name).first()
+        row = AppManagerApp.query.filter_by(url=name).first()
         if not row:
             click.echo(f"[deactivate-app] '{name}' not found")
             return
@@ -339,13 +339,13 @@ def register_cli(app):
     def uninstall_app(name, drop_tables):
         from arasCore.arasAdmin.models import AppManagerApp
         from arasCore.arasAdmin.services import clear_cache
-        row = AppManagerApp.query.filter_by(name=name).first()
+        row = AppManagerApp.query.filter_by(url=name).first()
         if not row:
             click.echo(f"[uninstall-app] '{name}' not found")
             return
         if drop_tables:
             for tbl in row.get_tables():
-                db_name = tbl.get_db_table_name(row.name)
+                db_name = tbl.get_db_table_name(row.slug)
                 try:
                     db.engine.execute(f"DROP TABLE IF EXISTS `{db_name}`")
                     click.echo(f"  dropped {db_name}")
@@ -365,7 +365,7 @@ def register_cli(app):
         from arasCore.arasAdmin.models import AppManagerApp
         from arasCore.arasAdmin.routes import _build_export_definition
 
-        row = AppManagerApp.query.filter_by(name=name).first()
+        row = AppManagerApp.query.filter_by(url=name).first()
         if not row:
             click.echo(f"[export-app] '{name}' not found")
             return

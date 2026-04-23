@@ -29,7 +29,7 @@
 
       {% if g.gmenu %}
         {% for app in g.gmenu %}
-        <li class="sidebar-item sidebar-app">
+        <li class="sidebar-item">
           <a href="{{ app.url or '#' }}" class="sidebar-link sidebar-app-link">
             <i class="fa {{ app.icon or 'fa-cubes' }} sidebar-icon"></i>
             <span class="sidebar-label">{{ app.title }}</span>
@@ -83,6 +83,10 @@
   color: #fff;
   text-decoration: none;
 }
+.sidebar-app-link {
+  color: rgba(255,255,255,.9);
+  font-weight: 500;
+}
 .sidebar-icon {
   font-size: 14px;
   width: 16px;
@@ -93,24 +97,6 @@
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.sidebar-arrow {
-  font-size: 11px;
-  transition: transform .2s;
-  flex-shrink: 0;
-}
-.sidebar-toggle.open > .sidebar-arrow,
-.sidebar-toggle.open .sidebar-arrow {
-  transform: rotate(90deg);
-}
-.sidebar-app-link {
-  color: rgba(255,255,255,.9);
-  font-weight: 500;
-}
-.sidebar-group-link {
-  padding-left: 32px;
-  font-size: 12.5px;
-  color: rgba(255,255,255,.7);
 }
 .sidebar-divider {
   display: block;

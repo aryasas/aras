@@ -19,11 +19,8 @@ class AppManagerApp(ArasModel):
     """
     __tablename__ = "mgr_app"
 
-    name       = db.Column(db.String(100), unique=True, nullable=False)
+    url        = db.Column(db.String(200), unique=True, nullable=False)
     title      = db.Column(db.String(200), nullable=False)
-    main_title = db.Column(db.String(200), nullable=False)
-    url        = db.Column(db.String(200), nullable=False)
-    endpoint   = db.Column(db.String(100), nullable=False)
     in_sidebar = db.Column(db.Boolean, default=True, nullable=False)
 
     icon       = db.Column(db.String(50),  default="fa-cubes")
@@ -55,6 +52,24 @@ class AppManagerApp(ArasModel):
         cascade="all, delete-orphan",
     )
 
+    @property
+    def slug(self) -> str:
+        return (self.url or "").strip().strip("/")
+
+    @property
+    def url_prefix(self) -> str:
+        return f"/{self.slug}"
+
+    @property
+    def endpoint(self) -> str:
+        return self.slug
+
+    def admin_url(self, table: "AppManagerTable" = None) -> str:
+        """Return /admin/<slug>/ or /admin/<slug>/<table.url_suffix>/."""
+        if table is None:
+            return f"/admin{self.url_prefix}/"
+        return f"/admin{table.get_full_url(self.url_prefix)}/"
+
     def get_tables(self):
         return self.tables.order_by(AppManagerTable.menu_order).all()
 
@@ -64,18 +79,15 @@ class AppManagerApp(ArasModel):
     def to_dict(self):
         return {
             "id":         self.id,
-            "name":       self.name,
-            "title":      self.title,
-            "main_title": self.main_title,
             "url":        self.url,
-            "endpoint":   self.endpoint,
+            "title":      self.title,
             "is_active":  self.is_active,
             "in_sidebar": self.in_sidebar,
             "fields":     [f.to_dict() for f in self.get_fields()],
         }
 
     def __repr__(self):
-        return f"<AppManagerApp {self.name}>"
+        return f"<AppManagerApp {self.slug}>"
 
 
 class AppManagerTable(ArasModel):
@@ -147,7 +159,7 @@ class AppManagerTable(ArasModel):
     @property
     def app_name(self):
         try:
-            return self.app.name
+            return self.app.slug
         except Exception:
             return ""
 
@@ -491,10 +503,11 @@ class MenuDefinition(ArasModel):
 
 # ── Notifications ─────────────────────────────────────────────────────────────
 
-class Notification(ArasModel):
+class Notification(db.Model):
     """User notifications (badge counts, alerts)."""
     __tablename__ = "adm_notification"
 
+    id           = db.Column(db.Integer, primary_key=True)
     name         = db.Column(db.String(128), index=True)
     user_id      = db.Column(db.Integer, db.ForeignKey("auth_users.id"), nullable=False)
     timestamp    = db.Column(db.Float, index=True, default=time)

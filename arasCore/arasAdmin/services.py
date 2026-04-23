@@ -424,7 +424,8 @@ def _build_raw_menu() -> list:
                 .order_by(AppManagerTable.menu_order)
                 .all()
             )
-            tbl_map = {t.id: {"tbl": t, "node": _node_to_dict(t, app.url)} for t in tables}
+            app_url = app.url_prefix
+            tbl_map = {t.id: {"tbl": t, "node": _node_to_dict(t, app_url)} for t in tables}
             roots = []
             for t in tables:
                 entry = tbl_map[t.id]
@@ -433,10 +434,10 @@ def _build_raw_menu() -> list:
                 else:
                     roots.append(entry["node"])
 
-            adm_slug = _slug_from_url(app.url)
+            adm_slug = _slug_from_url(app_url)
             children = list(roots)
             result.append({
-                "title":    app.main_title,
+                "title":    app.title,
                 "icon":     app.icon or "fa-cubes",
                 "order":    app.menu_order or 99,
                 "url":      f"/admin/{adm_slug}/",
@@ -559,16 +560,15 @@ def _register_built_app(app_def_id, flask_app):
             # Build models (parents first so FK refs resolve)
             table_models = {}
             for tbl in ordered:
-                model = make_table_model(tbl, app_def.name, all_tbls)
+                model = make_table_model(tbl, app_def.slug, all_tbls)
                 model.__table__.create(db.engine, checkfirst=True)
                 sync_table_columns(model)
                 table_models[tbl.id] = model
 
             # Snapshot everything needed outside DB session
-            app_name       = app_def.name
-            app_url        = app_def.url
-            app_main_title = app_def.main_title
-            # admin_slug is derived from url so /admin/<slug>/ always matches the app's url
+            app_name       = app_def.slug
+            app_url        = app_def.url_prefix
+            app_main_title = app_def.title
             admin_slug     = _slug_from_url(app_url)
 
             table_snapshots = []
@@ -1244,7 +1244,7 @@ def load_all_built_apps(flask_app):
         with flask_app.app_context():
             db.create_all()
             apps = AppManagerApp.query.filter_by(is_active=True).all()
-            app_ids = [(a.id, a.name) for a in apps]
+            app_ids = [(a.id, a.slug) for a in apps]
             logger.info(f"[services] Found {len(app_ids)} active built app(s).")
 
         helper_registry = get_helper_registry()

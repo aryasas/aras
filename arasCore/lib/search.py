@@ -75,7 +75,7 @@ def _search_dynamic_apps(q, user, max_per_resource):
                 if not conditions:
                     continue
                 rows = model.query.filter(_sa.or_(*conditions)).limit(max_per_resource).all()
-                adm_url = f"/admin{tbl.get_full_url(app.url)}"
+                adm_url = app.admin_url(tbl)
                 for row in rows:
                     match_val = _extract_match(row, search_cols, q)
                     results.append({

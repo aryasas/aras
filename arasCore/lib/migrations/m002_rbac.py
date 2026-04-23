@@ -165,7 +165,7 @@ def _seed_permissions(flask_app):
                 tables = AppManagerTable.query.filter_by(app_id=app.id, is_active=True).all()
                 resource_slugs = [t.name for t in tables]
                 if resource_slugs:
-                    seed_app_permissions(app.name, resource_slugs, db)
-                    logger.info(f"[m002] seeded permissions for dynamic app: {app.name}")
+                    seed_app_permissions(app.slug, resource_slugs, db)
+                    logger.info(f"[m002] seeded permissions for dynamic app: {app.slug}")
         except Exception as e:
             logger.warning(f"[m002] dynamic app seed failed: {e}")

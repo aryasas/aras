@@ -25,9 +25,8 @@
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Name</th>
                   <th>Title</th>
-                  <th>URL</th>
+                  <th>Slug</th>
                   <th>Tables</th>
                   <th>Active</th>
                   <th>Sidebar</th>
@@ -39,9 +38,8 @@
                 {% for app in apps %}
                 <tr>
                   <td>{{ app.id }}</td>
-                  <td><code>{{ app.name }}</code></td>
                   <td>{{ app.title }}</td>
-                  <td><code>{{ app.url }}</code></td>
+                  <td><code>{{ app.slug }}</code></td>
                   <td>
                     <a href="{{ url_for('admin.apps_tables', app_id=app.id) }}" class="badge badge-info">
                       {{ app.tables.count() }} table(s)
@@ -108,7 +106,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                  <td colspan="9" class="text-center text-muted">No apps defined yet.</td>
+                  <td colspan="8" class="text-center text-muted">No apps defined yet.</td>
                 </tr>
                 {% endfor %}
               </tbody>

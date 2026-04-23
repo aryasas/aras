@@ -30,7 +30,7 @@ def settings():
     if q_apps:
         like = f"%{q_apps}%"
         apps_q = apps_q.filter(
-            db.or_(AppManagerApp.name.ilike(like), AppManagerApp.title.ilike(like))
+            db.or_(AppManagerApp.url.ilike(like), AppManagerApp.title.ilike(like))
         )
     all_apps = apps_q.all()
 
@@ -54,12 +54,12 @@ def settings():
     tables_q = (
         AppManagerTable.query
         .join(AppManagerApp, AppManagerTable.app_id == AppManagerApp.id)
-        .order_by(AppManagerApp.name, AppManagerTable.menu_order)
+        .order_by(AppManagerApp.url, AppManagerTable.menu_order)
     )
     if q_doctypes:
         like = f"%{q_doctypes}%"
         tables_q = tables_q.filter(
-            db.or_(AppManagerTable.name.ilike(like), AppManagerApp.name.ilike(like))
+            db.or_(AppManagerTable.name.ilike(like), AppManagerApp.url.ilike(like))
         )
     all_tables = tables_q.all()
 
@@ -181,25 +181,20 @@ def db_table_detail(table_name):
 def db_generate_view():
     from arasCore.arasAdmin.models import AppManagerApp
 
-    def _slug_from_url(url: str) -> str:
-        return url.strip("/") or "app"
-
     table_name = request.form.get("table_name", "").strip()
     if not table_name:
         flash("No table selected.", "warning")
         return redirect(url_for("admin.settings") + "?panel=panel-database")
 
-    existing = AppManagerApp.query.filter_by(name=table_name).first()
+    existing = AppManagerApp.query.filter_by(url=table_name).first()
     if existing:
         flash(f"App for table '{table_name}' already exists.", "info")
         return redirect(url_for("admin.settings") + "?panel=panel-database")
 
     slug   = table_name.replace("-", "_")
     title  = slug.replace("_", " ").title()
-    _url   = f"/{slug.replace('_', '-')}"
     app_obj = AppManagerApp(
-        name=slug, title=title, main_title=title,
-        url=_url, endpoint=_slug_from_url(_url),
+        url=slug, title=title,
         is_active=False, in_sidebar=True,
     )
     db.session.add(app_obj)

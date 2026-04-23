@@ -60,7 +60,7 @@ def _resolve_search_cols(helper, res, model):
     search_cols = []
     try:
         from arasCore.arasAdmin.models import AppManagerApp, AppManagerTable, AppManagerColumn
-        app_rec = AppManagerApp.query.filter_by(name=helper.name).first()
+        app_rec = AppManagerApp.query.filter_by(url=getattr(helper, "admin_slug", helper.name)).first()
         if app_rec:
             tbl_rec = AppManagerTable.query.filter_by(
                 app_id=app_rec.id, db_table_name=model.__tablename__
@@ -130,7 +130,7 @@ class AdminResourceMounter:
     def _resolve_app_table_ids(self):
         try:
             from arasCore.arasAdmin.models import AppManagerApp, AppManagerTable
-            app_rec = AppManagerApp.query.filter_by(name=self.helper.name).first()
+            app_rec = AppManagerApp.query.filter_by(url=getattr(self.helper, "admin_slug", self.helper.name)).first()
             if app_rec:
                 tbl_rec = AppManagerTable.query.filter_by(
                     app_id=app_rec.id, db_table_name=self.model.__tablename__

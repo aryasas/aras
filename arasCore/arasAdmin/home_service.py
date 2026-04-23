@@ -151,7 +151,7 @@ def _count_rows(db_table_name: str) -> int:
 def _get_app_record(app_name: str):
     """Resolve app metadata. Falls back to code-based AppHelper registry."""
     from arasCore.arasAdmin.models import AppManagerApp
-    return AppManagerApp.query.filter_by(name=app_name).first()
+    return AppManagerApp.query.filter_by(url=app_name).first()
 
 
 def _get_page_tiles(app_name: str, registry_key: str = None):
@@ -162,7 +162,7 @@ def _get_page_tiles(app_name: str, registry_key: str = None):
     """
     from arasCore.arasAdmin.models import AppManagerApp, AppManagerTable
     db_key = registry_key or app_name
-    app_row = AppManagerApp.query.filter_by(name=db_key).first()
+    app_row = AppManagerApp.query.filter_by(url=db_key).first()
     if not app_row:
         return []
     # Only top-level rows (no parent) for the home page tiles
@@ -185,7 +185,7 @@ def _get_page_tiles(app_name: str, registry_key: str = None):
         tiles.append({
             "title":       t.get_menu_title(),
             "icon":        t.icon or t.menu_icon or "fa-table",
-            "url":         f"/admin{t.get_full_url(app_row.url)}/",
+            "url":         app_row.admin_url(t),
             "description": getattr(t, "description", None) or (f"{child_count} pages" if page_type == "group" else ""),
             "page_type":   page_type,
             "count":       _count_rows(t.get_db_table_name(db_key)) if page_type == "list" else None,
@@ -276,7 +276,7 @@ def make_group_view(app_name: str, app_title: str, registry_key: str = None):
         from flask import abort
         from arasCore.arasAdmin.models import AppManagerApp, AppManagerTable
 
-        app_rec = AppManagerApp.query.filter_by(name=_registry_key).first()
+        app_rec = AppManagerApp.query.filter_by(url=_registry_key).first()
         if not app_rec:
             abort(404)
 
@@ -304,7 +304,7 @@ def make_group_view(app_name: str, app_title: str, registry_key: str = None):
             tiles.append({
                 "title":       t.get_menu_title(),
                 "icon":        t.icon or t.menu_icon or "fa-table",
-                "url":         f"/admin{t.get_full_url(app_rec.url)}/",
+                "url":         app_rec.admin_url(t),
                 "description": getattr(t, "description", None) or "",
                 "page_type":   page_type,
                 "count":       _count_rows(t.get_db_table_name(_registry_key)) if page_type == "list" else None,

@@ -67,12 +67,10 @@ FIELD_TYPE_CHOICES = [
 
 
 class AppManagerAppForm(ArasForm):
-    name       = StringField("Name (slug)", validators=[DataRequired(), Length(max=100)])
-    title      = StringField("Title", validators=[DataRequired(), Length(max=200)])
-    main_title = StringField("Main Title (sidebar label)", validators=[DataRequired(), Length(max=200)])
-    url        = StringField("URL prefix (e.g. /notes)", validators=[DataRequired(), Length(max=200)])
+    title      = StringField("Title (sidebar label)", validators=[DataRequired(), Length(max=200)])
+    url        = StringField("URL / Slug (e.g. erp)", validators=[DataRequired(), Length(max=200)])
     description   = StringField("Description", validators=[Optional(), Length(max=500)])
-    icon          = SelectField("Icon", choices=ICON_CHOICES, default="fa-cubes")
+    icon          = StringField("Icon (e.g. fa-cubes)", validators=[Optional(), Length(max=50)], default="fa-cubes")
     color_theme   = StringField("Color Theme (hex)", validators=[Optional(), Length(max=20)],
                                 description="e.g. #3498db")
     is_active     = BooleanField("Active")
@@ -94,7 +92,7 @@ class AppManagerTableForm(ArasForm):
     url_suffix   = StringField("URL suffix (e.g. /products)", validators=[DataRequired(), Length(max=200)])
     menu_title   = StringField("Menu Label", validators=[Optional(), Length(max=200)],
                                description="Defaults to Title if empty.")
-    menu_icon    = SelectField("Menu Icon", choices=ICON_CHOICES, default="fa-table")
+    menu_icon    = StringField("Menu Icon (e.g. fa-table)", validators=[Optional(), Length(max=50)], default="fa-table")
     show_in_menu = BooleanField("Show in sidebar menu", default=True)
     menu_order   = IntegerField("Menu Order", validators=[Optional()], default=0)
     parent_table_id = SelectField("Parent Table (child page)", coerce=int, validators=[Optional()])

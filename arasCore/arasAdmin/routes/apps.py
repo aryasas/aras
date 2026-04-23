@@ -35,7 +35,7 @@ def apps_list():
     if q:
         like = f"%{q}%"
         query = query.filter(
-            db.or_(AppManagerApp.name.ilike(like), AppManagerApp.title.ilike(like))
+            db.or_(AppManagerApp.url.ilike(like), AppManagerApp.title.ilike(like))
         )
     all_apps = query.all()
     cols = [("Name", "name"), ("Title", "title"), ("URL", "url"), ("Active", "is_active")]
@@ -65,7 +65,7 @@ def apps_doctypes():
     query = (
         AppManagerTable.query
         .join(AppManagerApp, AppManagerTable.app_id == AppManagerApp.id)
-        .order_by(AppManagerApp.name, AppManagerTable.menu_order)
+        .order_by(AppManagerApp.url, AppManagerTable.menu_order)
     )
     if q:
         like = f"%{q}%"
@@ -93,13 +93,10 @@ def apps_new():
     from arasCore.arasAdmin.models import AppManagerApp
     form = AppManagerAppForm()
     if form.validate_on_submit():
-        _url    = form.url.data.strip()
+        _slug   = form.url.data.strip().strip("/").lower().replace(" ", "_")
         app_obj = AppManagerApp(
-            name=form.name.data.strip().lower().replace(" ", "_"),
+            url=_slug,
             title=form.title.data,
-            main_title=form.main_title.data,
-            url=_url,
-            endpoint=_slug_from_url(_url),
             description=form.description.data or None,
             icon=form.icon.data,
             color_theme=form.color_theme.data or None,
@@ -115,9 +112,9 @@ def apps_new():
         )
         db.session.add(app_obj)
         db.session.flush()
-        current_user.log_activity("app_created", module="app_manager", payload={"app": app_obj.name})
+        current_user.log_activity("app_created", module="app_manager", payload={"app": app_obj.slug})
         db.session.commit()
-        flash(f"App '{app_obj.name}' created.", "success")
+        flash(f"App '{app_obj.slug}' created.", "success")
         return redirect(url_for("admin.apps"))
     return render_template("admin/app_form.html", title="New App", main_title="New App", form=form)
 
@@ -135,12 +132,9 @@ def apps_edit(app_id):
     app_obj = AppManagerApp.query.get_or_404(app_id)
     form    = AppManagerAppForm(obj=app_obj)
     if form.validate_on_submit():
-        _url = form.url.data.strip()
-        app_obj.name           = form.name.data.strip().lower().replace(" ", "_")
+        _slug = form.url.data.strip().strip("/").lower().replace(" ", "_")
         app_obj.title          = form.title.data
-        app_obj.main_title     = form.main_title.data
-        app_obj.url            = _url
-        app_obj.endpoint       = _slug_from_url(_url)
+        app_obj.url            = _slug
         app_obj.description    = form.description.data or None
         app_obj.icon           = form.icon.data
         app_obj.color_theme    = form.color_theme.data or None
@@ -153,7 +147,7 @@ def apps_edit(app_id):
         app_obj.export_excel   = form.export_excel.data
         app_obj.soft_delete    = form.soft_delete.data
         app_obj.audit_log      = form.audit_log.data
-        current_user.log_activity("app_updated", module="app_manager", payload={"app": app_obj.name})
+        current_user.log_activity("app_updated", module="app_manager", payload={"app": app_obj.slug})
         db.session.commit()
         try:
             from arasCore.lib.extensions import cache as _cache
@@ -162,19 +156,19 @@ def apps_edit(app_id):
             pass
         if app_obj.is_active:
             from arasCore.arasAdmin.services import _register_built_app, clear_cache
-            clear_cache(app_obj.name)
+            clear_cache(app_obj.slug)
             ok = _register_built_app(app_obj.id, current_app._get_current_object())
             if ok:
-                flash(f"App '{app_obj.name}' updated and routes re-registered. Restart server if old routes still appear.", "success")
+                flash(f"App '{app_obj.slug}' updated and routes re-registered. Restart server if old routes still appear.", "success")
             else:
-                flash(f"App '{app_obj.name}' updated. Route re-registration failed — restart server to apply.", "warning")
+                flash(f"App '{app_obj.slug}' updated. Route re-registration failed — restart server to apply.", "warning")
         else:
-            flash(f"App '{app_obj.name}' updated.", "success")
+            flash(f"App '{app_obj.slug}' updated.", "success")
         return redirect(url_for("admin.apps"))
     return render_template(
         "admin/app_form.html",
-        title=f"Edit — {app_obj.name}",
-        main_title=f"Edit App: {app_obj.name}",
+        title=f"Edit — {app_obj.slug}",
+        main_title=f"Edit App: {app_obj.slug}",
         form=form,
         app=app_obj,
     )
@@ -193,15 +187,15 @@ def apps_activate(app_id):
     except Exception:
         pass
     from arasCore.arasAdmin.services import _register_built_app, clear_cache
-    clear_cache(app_obj.name)
+    clear_cache(app_obj.slug)
     ok = _register_built_app(app_obj.id, current_app._get_current_object())
     try:
         from arasCore.rbac import seed_app_permissions
         resource_slugs = [t.name for t in AppManagerTable.query.filter_by(app_id=app_obj.id, is_active=True).all()]
         if resource_slugs:
-            seed_app_permissions(app_obj.name, resource_slugs, db)
+            seed_app_permissions(app_obj.slug, resource_slugs, db)
     except Exception as _re:
-        current_app.logger.warning(f"[routes] RBAC seed failed on activate for {app_obj.name}: {_re}")
+        current_app.logger.warning(f"[routes] RBAC seed failed on activate for {app_obj.slug}: {_re}")
     if ok:
         flash(f"App '{app_obj.title}' activated and routes registered.", "success")
     else:
@@ -217,7 +211,7 @@ def apps_deactivate(app_id):
     app_obj = AppManagerApp.query.get_or_404(app_id)
     app_obj.is_active = False
     db.session.commit()
-    clear_cache(app_obj.name)
+    clear_cache(app_obj.slug)
     try:
         from arasCore.lib.extensions import cache as _cache
         _cache.delete("_sidebar_raw")
@@ -234,7 +228,7 @@ def apps_delete(app_id):
     from arasCore.arasAdmin.services import clear_cache
     app_obj  = AppManagerApp.query.get_or_404(app_id)
     name     = app_obj.title
-    app_slug = app_obj.name
+    app_slug = app_obj.slug
     clear_cache(app_slug)
     try:
         from arasCore.lib.extensions import cache as _cache
@@ -266,7 +260,7 @@ def apps_bulk_delete():
         app_obj = AppManagerApp.query.get(app_id)
         if not app_obj:
             continue
-        clear_cache(app_obj.name)
+        clear_cache(app_obj.slug)
         AppManagerField.query.filter_by(app_id=app_id).delete()
         db.session.delete(app_obj)
         deleted += 1
@@ -385,7 +379,7 @@ def apps_table_edit(app_id, table_id):
         tbl.detail_view     = form.detail_view.data
         db.session.commit()
         from arasCore.arasAdmin.services import clear_cache
-        clear_cache(app_obj.name)
+        clear_cache(app_obj.slug)
         flash(f"Table '{tbl.title}' updated.", "success")
         return redirect(url_for("admin.apps_tables", app_id=app_id))
     return render_template(
@@ -408,7 +402,7 @@ def apps_table_delete(app_id, table_id):
     title   = tbl.title
     db.session.delete(tbl)
     db.session.commit()
-    clear_cache(app_obj.name)
+    clear_cache(app_obj.slug)
     flash(f"Table '{title}' deleted.", "danger")
     return redirect(url_for("admin.apps_tables", app_id=app_id))
 
@@ -453,8 +447,8 @@ def apps_columns(app_id, table_id):
         )
         db.session.add(col)
         db.session.commit()
-        clear_cache(app_obj.name)
-        new_model = make_table_model(tbl, app_obj.name, AppManagerTable.query.filter_by(app_id=app_id).all())
+        clear_cache(app_obj.slug)
+        new_model = make_table_model(tbl, app_obj.slug, AppManagerTable.query.filter_by(app_id=app_id).all())
         sync_table_columns(new_model)
         # Queue schema migration record for audit
         try:
@@ -499,7 +493,7 @@ def apps_column_delete(app_id, table_id, col_id):
     label   = col.label
     db.session.delete(col)
     db.session.commit()
-    clear_cache(app_obj.name)
+    clear_cache(app_obj.slug)
     flash(f"Column '{label}' deleted.", "warning")
     return redirect(url_for("admin.apps_columns", app_id=app_id, table_id=table_id))
 
@@ -530,7 +524,7 @@ def apps_column_edit(app_id, table_id, col_id):
     col.min_value     = request.form.get("min_value") or None
     col.max_value     = request.form.get("max_value") or None
     db.session.commit()
-    clear_cache(app_obj.name)
+    clear_cache(app_obj.slug)
     flash(f"Column '{col.label}' updated.", "success")
     return redirect(url_for("admin.apps_columns", app_id=app_id, table_id=table_id))
 
@@ -625,7 +619,7 @@ def apps_install():
                 from arasCore.lib.installer import load_definition_from_file, install_from_definition
                 definition = load_definition_from_file(f)
                 app_obj    = install_from_definition(definition, db, current_app._get_current_object())
-                flash(f"App '{app_obj.name}' installed. Add tables/columns and activate when ready.", "success")
+                flash(f"App '{app_obj.slug}' installed. Add tables/columns and activate when ready.", "success")
                 return redirect(url_for("admin.apps_tables", app_id=app_obj.id))
             except ValueError as e:
                 flash(str(e), "danger")
@@ -660,7 +654,7 @@ def apps_install_manifest(app_name):
     try:
         app_obj, stats = sync_helper_to_db(helper, db, current_app._get_current_object())
         flash(
-            f"Synced '{app_obj.name}': {stats['tables_new']} new tables, {stats['cols_new']} new columns.",
+            f"Synced '{app_obj.slug}': {stats['tables_new']} new tables, {stats['cols_new']} new columns.",
             "success",
         )
         return redirect(url_for("admin.apps_tables", app_id=app_obj.id))
@@ -680,15 +674,15 @@ def apps_sync(app_id):
 
     app_obj = AppManagerApp.query.get_or_404(app_id)
     from arasCore.lib.blueprints import get_helper_registry
-    helper = get_helper_registry().get(app_obj.name)
+    helper = get_helper_registry().get(app_obj.slug)
 
     if helper is None:
-        pkg_name = f"aras.app_{app_obj.name}"
+        pkg_name = f"aras.app_{app_obj.slug}"
         try:
             mod    = importlib.import_module(f"{pkg_name}.manifest")
             helper = getattr(mod, "helper", None)
         except ModuleNotFoundError:
-            flash(f"No Python manifest found for '{app_obj.name}'.", "warning")
+            flash(f"No Python manifest found for '{app_obj.slug}'.", "warning")
             return redirect(url_for("admin.apps_tables", app_id=app_id))
 
     if not isinstance(helper, AppHelper):
@@ -741,7 +735,7 @@ def apps_export_yaml(app_id):
     definition = _build_export_definition(app_obj)
     content    = yaml.dump(definition, allow_unicode=True, default_flow_style=False, sort_keys=False)
     return Response(content.encode("utf-8"), mimetype="text/yaml",
-                    headers={"Content-Disposition": f"attachment;filename={app_obj.name}.yaml"})
+                    headers={"Content-Disposition": f"attachment;filename={app_obj.slug}.yaml"})
 
 
 @arasAdmin_bp.route("/apps/<int:app_id>/export/json")
@@ -754,7 +748,7 @@ def apps_export_json(app_id):
     definition = _build_export_definition(app_obj)
     content    = json.dumps(definition, indent=2, ensure_ascii=False)
     return Response(content.encode("utf-8"), mimetype="application/json",
-                    headers={"Content-Disposition": f"attachment;filename={app_obj.name}.json"})
+                    headers={"Content-Disposition": f"attachment;filename={app_obj.slug}.json"})
 
 
 def _build_export_definition(app_obj) -> dict:
@@ -804,11 +798,8 @@ def _build_export_definition(app_obj) -> dict:
         })
     return {
         "app": {
-            "name":           app_obj.name,
-            "title":          app_obj.title,
-            "main_title":     app_obj.main_title,
             "url":            app_obj.url,
-            "endpoint":       app_obj.endpoint,
+            "title":          app_obj.title,
             "description":    app_obj.description,
             "icon":           app_obj.icon,
             "is_active":      app_obj.is_active,

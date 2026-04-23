@@ -102,7 +102,7 @@ def ensure_schema(app_id: int, schema: list):
 
 def resolve_app_id_by_name(name: str):
     from arasCore.arasAdmin.models import AppManagerApp
-    row = AppManagerApp.query.filter_by(name=name).first()
+    row = AppManagerApp.query.filter_by(url=name).first()
     return row.id if row else None
 
 
@@ -224,7 +224,7 @@ def make_settings_home_view(app_name: str, app_title: str,
     @login_required
     def view():
         from arasCore.arasAdmin.models import AppManagerApp
-        app_row = AppManagerApp.query.filter_by(name=_db_key).first()
+        app_row = AppManagerApp.query.filter_by(url=_db_key).first()
         if not app_row:
             app_row = _ensure_app_row(_db_key, app_name, app_title)
 
@@ -259,7 +259,7 @@ def make_settings_section_view(app_name: str, app_title: str, section: str,
     def view():
         from arasCore.arasAdmin.models import AppManagerApp, AppManagerSetting
 
-        app_row = AppManagerApp.query.filter_by(name=_db_key).first()
+        app_row = AppManagerApp.query.filter_by(url=_db_key).first()
         if not app_row:
             app_row = _ensure_app_row(_db_key, app_name, app_title)
 
