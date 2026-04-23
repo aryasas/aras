@@ -450,8 +450,8 @@ def menu_data():
                 roots.append(node)
         result.append({
             "id":         app.id,
-            "name":       app.name,
-            "title":      app.main_title,
+            "name":       app.slug,
+            "title":      app.title,
             "icon":       app.icon or "fa-cubes",
             "menu_order": app.menu_order or 0,
             "in_sidebar": app.in_sidebar,
@@ -476,7 +476,7 @@ def menu_save():
             if not app:
                 continue
             app.menu_order = int(app_node.get("menu_order") or 0)
-            app.main_title = app_node.get("title") or app.main_title
+            app.title = app_node.get("title") or app.title
             app.icon       = app_node.get("icon") or app.icon
             app.in_sidebar = bool(app_node.get("in_sidebar", True))
 
