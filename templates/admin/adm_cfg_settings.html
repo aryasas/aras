@@ -72,7 +72,7 @@
               <p><b>App Name:</b> {{ config.get('APP_NAME', 'Aras') if config is defined else 'Aras' }}</p>
             </div>
             <div class="col-6">
-              <p><b>Environment:</b> {{ config.get('ENV', 'production') if config is defined else '—' }}</p>
+              <p><b>Environment:</b> {{ server_info.env if server_info is defined else '—' }}</p>
             </div>
           </div>
         </div>

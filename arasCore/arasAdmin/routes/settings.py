@@ -103,7 +103,7 @@ def settings():
         uptime_str = "—"
 
     server_info = {
-        "env":            current_app.config.get("ENV", "production"),
+        "env":            __import__("os").environ.get("FLASK_ENV", "development" if current_app.debug else "production"),
         "debug":          current_app.debug,
         "python_version": sys.version.split()[0],
         "host":           request.host,
