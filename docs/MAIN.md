@@ -233,9 +233,31 @@ helper = AppHelper(
 
 ---
 
-## 9. Referensi Lanjutan
+## 9. Template Naming Convention (`templates/admin/`)
+
+All admin templates use a scoped prefix. No exceptions.
+
+| Prefix | Scope | Examples |
+|--------|-------|---------|
+| `adm_` | General admin page (list, form, dashboard) | `adm_list.html`, `adm_form.html`, `adm_dashboard.html` |
+| `adm_cfg_` | Framework config / App Manager / settings | `adm_cfg_apps.html`, `adm_cfg_tables.html`, `adm_cfg_columns.html` |
+| `adm_auth_` | User and role management | `adm_auth_users.html`, `adm_auth_role_edit.html` |
+| `adm_dev_` | Developer tools | `adm_dev.html` |
+| `base_*` | Layout primitives (partials, head, sidebar) | `base_sidebar.html`, `base_head.html` — **no rename** |
+| `_list_partial.html` | Includeable list UI partial | **no rename** |
+
+**App-level custom templates:** if an app needs multiple custom admin templates, use a subfolder:
+`templates/admin/app_<name>/` e.g. `templates/admin/app_erp/`.
+App settings pages stay at `/admin/<app>/settings/` (framework-generated) — no separate route scope.
+
+**`templates/app_manager/`** — deleted (was dead code, zero Python references).
+
+---
+
+## 10. Referensi Lanjutan
 
 - Peta file terkini: jalankan `ls arasCore/lib/` dan `ls arasCore/arasAdmin/` — jangan hafalkan nama file di dokumen ini, struktur arasCore masih berkembang.
 - Status implementasi & TODO aktif → `docs/progress.md`.
 - Contoh format installer → `app_install.yaml`.
 - Jangan buat dokumen baru tanpa persetujuan user. Update file yang sudah ada.
+- **Template naming:** lihat §9 di atas — semua template `templates/admin/` harus pakai prefix `adm_`, `adm_cfg_`, `adm_auth_`, atau `adm_dev_`.
