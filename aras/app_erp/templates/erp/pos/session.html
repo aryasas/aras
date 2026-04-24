@@ -919,6 +919,10 @@
 
     <div class="cmd-spacer"></div>
 
+    <button onclick="openCashEntry()" style="background:none;border:none;color:var(--text-mute);cursor:pointer;display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:6px;font-size:12px;font-family:var(--sans)" title="Cash In / Out">
+      <i class="fa fa-exchange"></i><span>Cash</span>
+    </button>
+
     <a id="btn-close-session" href="{{ url_for('erp_views.pos_close_session', session_id=session.id) }}">
       <i class="fa fa-power-off"></i>
       <span>Tutup Sesi</span>
@@ -1067,10 +1071,46 @@
       <button class="btn-receipt btn-new-order" onclick="newOrder()">
         <i class="fa fa-plus"></i>Order Baru
       </button>
-      <button class="btn-receipt btn-print" onclick="window.print()">
+      <button class="btn-receipt btn-print" id="btn-receipt-print" onclick="printReceipt()">
         <i class="fa fa-print"></i>Print
       </button>
+      <button class="btn-receipt" style="background:var(--red)" id="btn-receipt-pdf" onclick="downloadReceipt('pdf')">
+        <i class="fa fa-file-pdf-o"></i>PDF
+      </button>
+      <button class="btn-receipt" style="background:var(--indigo)" id="btn-receipt-jpg" onclick="downloadReceipt('jpg')">
+        <i class="fa fa-image"></i>JPG
+      </button>
     </div>
+  </div>
+</div>
+
+<!-- ── Cash In/Out Modal ── -->
+<div id="cash-entry-modal" class="modal-backdrop">
+  <div id="cash-entry-box" style="background:var(--navy-mid);border-radius:12px;padding:24px;min-width:300px;max-width:380px;width:100%">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <span style="font-weight:700;color:var(--text-inv);font-size:15px"><i class="fa fa-exchange" style="margin-right:8px;color:var(--teal)"></i>Cash In / Out</span>
+      <button class="pay-close-btn" onclick="closeCashEntry()">×</button>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:11px;color:var(--text-mute);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:block">Type</label>
+      <div style="display:flex;gap:8px">
+        <button class="method-btn active" id="ce-btn-in"  onclick="setCashEntryType('cash_in')"  style="flex:1">Cash In</button>
+        <button class="method-btn"        id="ce-btn-out" onclick="setCashEntryType('cash_out')" style="flex:1">Cash Out</button>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:11px;color:var(--text-mute);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:block">Amount</label>
+      <input id="ce-amount" type="number" min="0" step="1000"
+             style="width:100%;background:var(--slate);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text-inv);font-size:15px;font-family:var(--mono)">
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="font-size:11px;color:var(--text-mute);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:block">Note</label>
+      <input id="ce-note" type="text" placeholder="Reason..."
+             style="width:100%;background:var(--slate);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text-inv);font-size:13px">
+    </div>
+    <button onclick="submitCashEntry()" style="width:100%;background:var(--teal);color:#0f1b35;font-weight:700;padding:12px;border:none;border-radius:8px;font-size:14px;cursor:pointer">
+      <i class="fa fa-check"></i> Submit
+    </button>
   </div>
 </div>
 
@@ -1487,6 +1527,7 @@ async function submitOrder() {
     const data = await r.json();
     if (data.ok) {
       closePayment();
+      currentOrderId = data.order_id;
       document.getElementById("receipt-order-name").textContent = data.name || "";
       document.getElementById("receipt-change").textContent = fmt(data.change || 0);
       document.getElementById("receipt-modal").classList.add("show");
@@ -1502,15 +1543,73 @@ async function submitOrder() {
   }
 }
 
+let currentOrderId = null;
+
+function printReceipt() {
+  if (!currentOrderId) return;
+  const w = window.open(`/admin/erp/pos/order/${currentOrderId}/receipt`, "_blank");
+  if (w) w.onload = () => w.print();
+}
+
+function downloadReceipt(fmt) {
+  if (!currentOrderId) return;
+  window.location.href = `/admin/erp/pos/order/${currentOrderId}/receipt.${fmt}`;
+}
+
 function newOrder() {
   document.getElementById("receipt-modal").classList.remove("show");
   clearCart();
   custInput.value = "";
   selectedCustomerId = null;
+  currentOrderId = null;
+}
+
+// ── Cash In / Out ─────────────────────────────────────────────────────────────
+let cashEntryType = "cash_in";
+
+function openCashEntry() {
+  cashEntryType = "cash_in";
+  document.getElementById("ce-btn-in").classList.add("active");
+  document.getElementById("ce-btn-out").classList.remove("active");
+  document.getElementById("ce-amount").value = "";
+  document.getElementById("ce-note").value = "";
+  document.getElementById("cash-entry-modal").classList.add("show");
+}
+
+function closeCashEntry() {
+  document.getElementById("cash-entry-modal").classList.remove("show");
+}
+
+function setCashEntryType(type) {
+  cashEntryType = type;
+  document.getElementById("ce-btn-in").classList.toggle("active", type === "cash_in");
+  document.getElementById("ce-btn-out").classList.toggle("active", type === "cash_out");
+}
+
+async function submitCashEntry() {
+  const amount = parseFloat(document.getElementById("ce-amount").value) || 0;
+  const note   = document.getElementById("ce-note").value.trim();
+  if (!amount || amount <= 0) { alert("Enter a valid amount"); return; }
+
+  try {
+    const r = await fetch(`/admin/erp/pos/session/${SESSION_ID}/cash-entry`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+      body: JSON.stringify({ type: cashEntryType, amount, note }),
+    });
+    const d = await r.json();
+    if (d.ok) {
+      closeCashEntry();
+      alert(`${cashEntryType === "cash_in" ? "Cash In" : "Cash Out"} recorded: ${fmt(amount)}`);
+    } else {
+      alert("Error: " + (d.error || "Failed"));
+    }
+  } catch(e) {
+    alert("Error: " + e.message);
+  }
 }
 
 // ── Init ────────────────────────────────────────────────────────────────────
-// Set initial mode toggle state
 document.querySelector('[data-mode="income"]').classList.add("active-income");
 
 loadProducts();

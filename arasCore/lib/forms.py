@@ -17,10 +17,13 @@ class ArasForm(FlaskForm):
         from wtforms import SelectField as SF
         from wtforms.validators import Optional as Opt
 
+        from arasCore.lib.label_utils import humanize
         form_attrs = {}
         for col in columns:
+            lbl = col.label if col.label and col.label != col.name else humanize(col.name)
             if col.field_type == "relation" and col.relation_table_id:
-                form_attrs[f"{col.name}_id"] = SF(col.label, coerce=int, validators=[Opt()])
+                form_attrs[f"{col.name}_id"] = SF(lbl, coerce=int, validators=[Opt()],
+                                                   validate_choice=False)
             else:
                 form_attrs[col.name] = _make_wtf_field(col)
 
@@ -61,6 +64,10 @@ class BasicForm(ArasForm):
                 read_only(field)
 
 
+_FORM_HIDDEN = {"id", "created_at", "updated_at", "deleted_at", "created_by", "updated_by",
+                "created_by_id", "updated_by_id"}
+
+
 def build_form_from_table(tbl, extra_columns=None) -> type:
     """
     Build an ArasForm subclass from AppManagerTable + optional extra AppManagerColumn list.
@@ -68,12 +75,12 @@ def build_form_from_table(tbl, extra_columns=None) -> type:
     ordered by the column's `order` attribute.
     Returns a Form class ready to be instantiated in a route.
     """
-    columns = list(tbl.get_columns())
+    columns = [c for c in tbl.get_columns() if c.name not in _FORM_HIDDEN]
 
     if extra_columns:
         existing_names = {c.name for c in columns}
         for ec in extra_columns:
-            if ec.name not in existing_names:
+            if ec.name not in existing_names and ec.name not in _FORM_HIDDEN:
                 columns.append(ec)
         columns.sort(key=lambda c: getattr(c, "order", 0) or 0)
 

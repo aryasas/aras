@@ -95,6 +95,7 @@ class AccPurchaseInvoice(ArasModel):
     payment_term_days = db.Column(db.Integer, default=0)
     notes            = db.Column(db.Text, nullable=True)
     journal_entry_id = db.Column(db.BigInteger, db.ForeignKey("acc_journal_entry.id"), nullable=True)
+    pos_order_id     = db.Column(db.BigInteger, db.ForeignKey("pos_order.id"), nullable=True)
 
     company       = db.relationship("CoreCompany")
     currency      = db.relationship("CoreCurrency")

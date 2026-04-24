@@ -330,6 +330,7 @@ def apps_table_new(app_id):
             sort_field=form.sort_field.data or None,
             sort_direction=form.sort_direction.data,
             list_columns=form.list_columns.data or None,
+            display_columns=form.display_columns.data or None,
             per_page=form.per_page.data or 20,
             allow_create=form.allow_create.data,
             allow_edit=form.allow_edit.data,
@@ -372,6 +373,7 @@ def apps_table_edit(app_id, table_id):
         tbl.sort_field      = form.sort_field.data or None
         tbl.sort_direction  = form.sort_direction.data
         tbl.list_columns    = form.list_columns.data or None
+        tbl.display_columns = form.display_columns.data or None
         tbl.per_page        = form.per_page.data or 20
         tbl.allow_create    = form.allow_create.data
         tbl.allow_edit      = form.allow_edit.data
@@ -379,7 +381,10 @@ def apps_table_edit(app_id, table_id):
         tbl.detail_view     = form.detail_view.data
         db.session.commit()
         from arasCore.arasAdmin.services import clear_cache
+        from arasCore.lib.label_utils import invalidate_display_cache
         clear_cache(app_obj.slug)
+        if tbl.db_table_name:
+            invalidate_display_cache(tbl.db_table_name)
         flash(f"Table '{tbl.title}' updated.", "success")
         return redirect(url_for("admin.apps_tables", app_id=app_id))
     return render_template(

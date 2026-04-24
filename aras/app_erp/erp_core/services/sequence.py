@@ -43,3 +43,28 @@ def next_number(code: str, company_id: int) -> str:
         .replace("{seq}", padded)
     )
     return result.strip("/")
+
+
+def next_number_for_seq(seq: "CoreSequence") -> str:
+    """Atomically increment using a pre-loaded (locked) CoreSequence instance."""
+    today = date.today()
+    current_period = today.strftime("%Y-%m") if seq.reset_period == "monthly" else str(today.year)
+
+    if seq.reset_period != "never" and seq.last_period != current_period:
+        seq.next_value = 1
+        seq.last_period = current_period
+
+    num = seq.next_value
+    seq.next_value += 1
+    db.session.flush()
+
+    padded = str(num).zfill(seq.padding or 5)
+    fmt = seq.format or "{prefix}/{YYYY}/{MM}/{seq}"
+    return (
+        fmt
+        .replace("{prefix}", seq.prefix or "")
+        .replace("{suffix}", seq.suffix or "")
+        .replace("{YYYY}", str(today.year))
+        .replace("{MM}", today.strftime("%m"))
+        .replace("{seq}", padded)
+    ).strip("/")

@@ -158,13 +158,15 @@ def pay_order(order_id: int, payments: list, tx_mode: str = "income") -> PosOrde
     order.state       = "paid"
     db.session.flush()
 
-    from aras.app_erp.erp_pos.services.pos_invoice import create_invoice_from_pos
+    from aras.app_erp.erp_pos.services.pos_invoice import (
+        create_invoice_from_pos, create_purchase_invoice_from_pos,
+    )
     from aras.app_erp.erp_pos.services.pos_stock import deduct_stock_from_order, receive_stock_from_order
     if tx_mode in ("income", "both"):
         create_invoice_from_pos(order.id)
         deduct_stock_from_order(order.id)
     elif tx_mode == "outcome":
-        # Outcome = purchase/receive: stok masuk, buat purchase posting
+        create_purchase_invoice_from_pos(order.id)
         receive_stock_from_order(order.id)
 
     db.session.commit()

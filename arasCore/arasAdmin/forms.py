@@ -102,8 +102,10 @@ class AppManagerTableForm(ArasForm):
     search_enabled = BooleanField("Search bar", default=True)
     sort_field     = StringField("Default sort column", validators=[Optional(), Length(max=100)])
     sort_direction = SelectField("Sort direction", choices=[("asc","Ascending"),("desc","Descending")], default="asc")
-    list_columns   = StringField("List columns (comma-separated)", validators=[Optional(), Length(max=500)],
-                                 description="Leave blank to show all columns. Order matters.")
+    list_columns     = StringField("List columns (comma-separated)", validators=[Optional(), Length(max=500)],
+                                   description="Leave blank to show all columns. Order matters.")
+    display_columns  = StringField("Display columns when referenced (comma-separated)", validators=[Optional(), Length(max=200)],
+                                   description="Fields shown when another table links to this one. E.g. 'code,name' → '1100 — Cash'. Leave blank to auto-detect.")
     per_page       = IntegerField("Rows per page", validators=[Optional()], default=20)
     allow_create   = BooleanField("Allow create", default=True)
     allow_edit     = BooleanField("Allow edit", default=True)

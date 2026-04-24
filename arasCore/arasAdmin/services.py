@@ -20,6 +20,12 @@ def _slug_from_url(url: str) -> str:
     return url.strip("/") or "app"
 
 
+from arasCore.lib.label_utils import humanize as _humanize_label, row_display, find_ref_model as _find_ref_model
+
+_SYSTEM_COLS = {"id", "created_at", "updated_at", "deleted_at",
+                "created_by", "updated_by", "created_by_id", "updated_by_id"}
+
+
 # ── Column type map ───────────────────────────────────────────────────────────
 
 def _make_sa_column(col):
@@ -66,6 +72,7 @@ def _make_sa_column(col):
 def _make_wtf_field(col):
     """Build a WTForms field from an AppManagerColumn instance."""
     from wtforms.validators import DataRequired, Optional as Opt, Email, URL, Length, NumberRange
+    label = col.label if col.label and col.label != col.name else _humanize_label(col.name)
     validators = [DataRequired()] if col.required else [Opt()]
 
     max_len = getattr(col, "max_length", None)
@@ -92,49 +99,50 @@ def _make_wtf_field(col):
 
     ft = col.field_type
     if ft == "text":
-        return TextAreaField(col.label, validators=validators,
+        return TextAreaField(label, validators=validators,
                              render_kw=render_kw, description=description)
     if ft == "integer":
-        return IntegerField(col.label, validators=validators,
+        return IntegerField(label, validators=validators,
                             render_kw=render_kw, description=description)
     if ft in ("float", "decimal"):
         from wtforms import DecimalField
-        return DecimalField(col.label, validators=validators,
+        return DecimalField(label, validators=validators,
                             render_kw=render_kw, description=description)
     if ft == "boolean":
-        return BooleanField(col.label, description=description)
+        return BooleanField(label, description=description)
     if ft == "date":
-        return DateField(col.label, validators=validators,
+        return DateField(label, validators=validators,
                          render_kw=render_kw, description=description)
     if ft == "datetime":
         from wtforms.fields import DateTimeLocalField
-        return DateTimeLocalField(col.label, validators=validators,
+        return DateTimeLocalField(label, validators=validators,
                                   render_kw=render_kw, description=description)
     if ft == "email":
         from wtforms.fields import EmailField
         validators.append(Email())
-        return EmailField(col.label, validators=validators,
+        return EmailField(label, validators=validators,
                           render_kw=render_kw, description=description)
     if ft == "url":
         from wtforms.fields import URLField
         validators.append(URL())
-        return URLField(col.label, validators=validators,
+        return URLField(label, validators=validators,
                         render_kw=render_kw, description=description)
     if ft == "select":
         choices_str = getattr(col, "choices", "") or ""
         opts = [(c.strip(), c.strip()) for c in choices_str.split(",") if c.strip()]
         from wtforms import SelectField as SF
-        return SF(col.label, choices=opts, validators=validators, description=description)
+        return SF(label, choices=opts, validators=validators, description=description)
     if ft == "relation":
         from wtforms import SelectField as SF
-        return SF(col.label, coerce=int, validators=validators, description=description)
+        return SF(label, coerce=int, validators=validators,
+                  validate_choice=False, description=description)
     if ft in ("file", "image"):
         from wtforms import FileField as FF
-        return FF(col.label, description=description)
+        return FF(label, description=description)
     if ft == "json":
-        return TextAreaField(col.label, validators=validators,
+        return TextAreaField(label, validators=validators,
                              render_kw=render_kw, description=description)
-    return StringField(col.label, validators=validators,
+    return StringField(label, validators=validators,
                        render_kw=render_kw, description=description)
 
 
@@ -369,11 +377,17 @@ def get_view_columns(tbl):
     """[('Label', 'col_name'), ...] — respects list_columns order and show_in_list flag."""
     all_cols = tbl.get_columns()
 
+    def _col_label(col):
+        lbl = col.label or ""
+        return lbl if lbl and lbl != col.name else _humanize_label(col.name)
+
     # Build lookup by name
     col_map = {}
     for col in all_cols:
+        if col.name in _SYSTEM_COLS:
+            continue
         key = f"{col.name}_id" if (col.field_type == "relation" and col.relation_table_id) else col.name
-        col_map[col.name] = (col.label, key, col)
+        col_map[col.name] = (_col_label(col), key, col)
 
     # If list_columns CSV is set, use that order and selection
     if tbl.list_columns:
@@ -386,15 +400,16 @@ def get_view_columns(tbl):
         return vcols
 
     # Otherwise fall back to show_in_list flag (or all if none explicitly set)
-    visible = [c for c in all_cols if c.show_in_list]
+    visible = [c for c in all_cols if c.show_in_list and c.name not in _SYSTEM_COLS]
     if not visible:
-        visible = all_cols
+        visible = [c for c in all_cols if c.name not in _SYSTEM_COLS]
     vcols = []
     for col in visible:
+        lbl = _col_label(col)
         if col.field_type == "relation" and col.relation_table_id:
-            vcols.append((col.label, f"{col.name}_id"))
+            vcols.append((lbl, f"{col.name}_id"))
         else:
-            vcols.append((col.label, col.name))
+            vcols.append((lbl, col.name))
     return vcols
 
 
@@ -816,20 +831,11 @@ def _register_table_routes(bp, snap, all_snaps):
                 try:
                     fk = list(col_c.foreign_keys)[0]
                     ref_table = fk.column.table
-                    ref_model = None
-                    for mapper in db.Model.registry.mappers:
-                        if mapper.local_table.name == ref_table.name:
-                            ref_model = mapper.class_
-                            break
+                    ref_model = _find_ref_model(ref_table.name)
                     if ref_model:
                         rows = ref_model.query.all()
                         rel_maps[fname] = {
-                            row.id: (
-                                getattr(row, "name", None)
-                                or getattr(row, "title", None)
-                                or getattr(row, "username", None)
-                                or str(row.id)
-                            )
+                            row.id: row_display(row)
                             for row in rows
                         }
                 except Exception:
@@ -965,13 +971,32 @@ def _register_table_routes(bp, snap, all_snaps):
                     rows = cd["model"].query.filter(
                         getattr(cd["model"], cd["fk_col"]) == item_id
                     ).all()
+                    # Build FK display maps for child table columns
+                    child_rel_maps = {}
+                    for _, fname in cd["vcols"]:
+                        if fname not in cd["model"].__table__.c:
+                            continue
+                        col_c = cd["model"].__table__.c[fname]
+                        if not col_c.foreign_keys:
+                            continue
+                        try:
+                            fk = list(col_c.foreign_keys)[0]
+                            ref_tname = fk.column.table.name
+                            ref_model = _find_ref_model(ref_tname)
+                            if ref_model:
+                                child_rel_maps[fname] = {
+                                    r.id: row_display(r) for r in ref_model.query.all()
+                                }
+                        except Exception:
+                            pass
                     child_tables.append({
-                        "title":   cd["title"],
-                        "vcols":   cd["vcols"],
-                        "adm_url": cd["adm_url"],
-                        "fk_col":  cd["fk_col"],
-                        "rows":    rows,
+                        "title":    cd["title"],
+                        "vcols":    cd["vcols"],
+                        "adm_url":  cd["adm_url"],
+                        "fk_col":   cd["fk_col"],
+                        "rows":     rows,
                         "parent_id": item_id,
+                        "rel_maps": child_rel_maps,
                     })
                 except Exception:
                     pass
@@ -984,6 +1009,7 @@ def _register_table_routes(bp, snap, all_snaps):
                     _layout_tabs = parse_layout(_ft, form)
                 except Exception:
                     pass
+            activity_log = _load_activity_log(model.__tablename__, item_id)
             return render_template(
                 "admin/adm_form.html",
                 title=f"Edit — {title}", main_title=main_t,
@@ -992,6 +1018,7 @@ def _register_table_routes(bp, snap, all_snaps):
                 sibling_tabs=adm_sibling_tabs, current_tab_url=cur_burl,
                 child_tables=child_tables,
                 layout_tabs=_layout_tabs,
+                activity_log=activity_log,
             )
         return view
 
@@ -1167,12 +1194,25 @@ def _register_table_routes(bp, snap, all_snaps):
 
 def _detect_parent_fk(child_model, parent_model):
     """Return the FK column name on child_model that references parent_model's table."""
+    parent_table = parent_model.__tablename__
+    # 1. SA column FK metadata (may be empty if extend_existing stripped FK info)
     try:
-        parent_table = parent_model.__tablename__
         for col in child_model.__table__.columns:
             for fk in col.foreign_keys:
                 if fk.column.table.name == parent_table:
                     return col.name
+    except Exception:
+        pass
+    # 2. Fallback via SA relationship mapper on parent — find the local key pointing here
+    try:
+        from sqlalchemy import inspect as sa_inspect
+        parent_mapper = sa_inspect(parent_model)
+        child_table   = child_model.__tablename__
+        for rel in parent_mapper.relationships:
+            if rel.uselist and rel.mapper.class_.__tablename__ == child_table:
+                # rel.synchronize_pairs gives [(parent_col, child_col)]
+                for _, child_col in rel.synchronize_pairs:
+                    return child_col.name
     except Exception:
         pass
     return None
@@ -1195,7 +1235,9 @@ def _get_child_tables_for_model(model):
                 if not fk_col:
                     continue
                 child_title = child_cls.__tablename__.replace("_", " ").title()
-                vcols = [(c.name, c.name) for c in child_cls.__table__.columns if c.name not in ("id",)][:5]
+                vcols = [(_humanize_label(c.name), c.name)
+                         for c in child_cls.__table__.columns
+                         if c.name not in _SYSTEM_COLS][:5]
                 result.append({
                     "title":   child_title,
                     "model":   child_cls,
@@ -1208,6 +1250,39 @@ def _get_child_tables_for_model(model):
     return result
 
 
+def _load_activity_log(model_name: str, record_id: int) -> list:
+    """Return audit log entries for one record, newest first. Empty list if none."""
+    try:
+        from arasCore.arasAdmin.models import ArasCoreAuditLog
+        from arasCore.auth import User
+        entries = (
+            ArasCoreAuditLog.query
+            .filter_by(model_name=model_name, record_id=record_id)
+            .order_by(ArasCoreAuditLog.ts.desc())
+            .limit(50)
+            .all()
+        )
+        result = []
+        user_cache = {}
+        for e in entries:
+            if e.user_id not in user_cache:
+                try:
+                    u = User.query.get(e.user_id)
+                    user_cache[e.user_id] = getattr(u, "full_name", None) or getattr(u, "username", None) or "Unknown" if u else "Unknown"
+                except Exception:
+                    user_cache[e.user_id] = "Unknown"
+            result.append({
+                "ts":     e.ts,
+                "user":   user_cache[e.user_id],
+                "action": e.action,
+                "before": e.before_json,
+                "after":  e.after_json,
+            })
+        return result
+    except Exception:
+        return []
+
+
 def _populate_relation_choices(form, model):
     """Fill SelectField choices for FK relation fields at request time."""
     from sqlalchemy import inspect as sa_inspect
@@ -1217,16 +1292,12 @@ def _populate_relation_choices(form, model):
             try:
                 fk = list(model.__table__.c[field.name].foreign_keys)[0]
                 ref_table = fk.column.table
-                ref_model = None
-                for mapper in db.Model.registry.mappers:
-                    if mapper.local_table.name == ref_table.name:
-                        ref_model = mapper.class_
-                        break
+                ref_model = _find_ref_model(ref_table.name)
                 if ref_model:
                     rows = ref_model.query.all()
                     choices = [(0, "— Select —")]
                     for row in rows:
-                        label = getattr(row, "name", None) or getattr(row, "title", None) or getattr(row, "username", None) or str(row.id)
+                        label = row_display(row)
                         choices.append((row.id, label))
                     field.choices = choices
             except Exception:

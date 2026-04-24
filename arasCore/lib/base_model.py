@@ -10,6 +10,7 @@ class ArasModel(db.Model):
     __abstract__ = True
     __soft_delete__: bool = False
     __serialize_relations__: dict = {}
+    __display_fields__: tuple = ()   # e.g. ("code", "name") → "1100 — Cash" in FK dropdowns/lists
 
     id            = db.Column(db.Integer, primary_key=True, autoincrement=True)
     is_active     = db.Column(db.Boolean, default=True, nullable=False)
@@ -52,6 +53,28 @@ class ArasModel(db.Model):
     # ── Write ─────────────────────────────────────────────────────────────────
 
     _SKIP = frozenset({"id", "created_at", "updated_at", "created_by_id", "updated_by_id", "deleted_at"})
+    _SYSTEM = frozenset({"id", "created_at", "updated_at", "deleted_at",
+                         "created_by_id", "updated_by_id", "is_active"})
+
+    @classmethod
+    def form_columns(cls):
+        """Return [(label, col_name, sa_col), ...] for non-system columns, auto-humanized.
+
+        Uses mapper column attrs so FK metadata is preserved even when DynModel
+        re-maps the same table and corrupts __table__.columns FK info.
+        """
+        from arasCore.lib.label_utils import humanize
+        from sqlalchemy import inspect as _sa_inspect
+        try:
+            mapper = _sa_inspect(cls).mapper
+            cols = [attr.columns[0] for attr in mapper.column_attrs]
+        except Exception:
+            cols = list(cls.__table__.columns)
+        return [
+            (humanize(c.name), c.name, c)
+            for c in cols
+            if c.name not in cls._SYSTEM and not c.primary_key
+        ]
 
     @classmethod
     def create(cls, data: dict, user_id: int = None):

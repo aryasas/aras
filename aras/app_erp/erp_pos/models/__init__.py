@@ -1,7 +1,7 @@
-from .terminal import PosTerminal, PosSession
+from .terminal import PosTerminal, PosSession, PosShiftEntry
 from .order import PosOrder, PosOrderLine, PosPayment
 
 __all__ = [
-    "PosTerminal", "PosSession",
+    "PosTerminal", "PosSession", "PosShiftEntry",
     "PosOrder", "PosOrderLine", "PosPayment",
 ]

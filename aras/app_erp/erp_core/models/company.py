@@ -3,6 +3,7 @@ from arasCore.lib.base_model import ArasModel, db
 
 class CoreCompany(ArasModel):
     __tablename__ = "core_company"
+    __display_fields__ = ("code", "legal_name")
 
     code                    = db.Column(db.String(20), unique=True, nullable=False)
     legal_name              = db.Column(db.String(255), nullable=False)

@@ -24,7 +24,7 @@ from aras.app_erp.erp_crm.models import (
     CrmLead, CrmPipeline, CrmStage, CrmActivity,
 )
 from aras.app_erp.erp_pos.models import (
-    PosTerminal, PosSession,
+    PosTerminal, PosSession, PosShiftEntry,
     PosOrder, PosOrderLine, PosPayment,
 )
 from aras.app_erp.erp_stock.models import (
@@ -351,16 +351,18 @@ helper = AppHelper(
         ]),
 
         MenuGroup("arasPos", "fa-shopping-cart", order=3, resources=[
-            ResourceDef("pos/open",       url="/admin/erp/pos",
+            ResourceDef("pos/open",         url="/admin/erp/pos",
                         menu_title="Open POS", menu_icon="fa-cash-register"),
-            ResourceDef("pos/terminal",   PosTerminal,  admin_list=True,
+            ResourceDef("pos/terminal",     PosTerminal,    admin_list=True,
                         menu_title="Terminals", menu_icon="fa-desktop"),
-            ResourceDef("pos/session",    PosSession,   admin_list=True,
+            ResourceDef("pos/session",      PosSession,     admin_list=True,
                         menu_title="Sessions", menu_icon="fa-clock-o"),
-            ResourceDef("pos/order",      PosOrder,     admin_list=True,
+            ResourceDef("pos/shift-entry",  PosShiftEntry,  admin_list=True,
+                        menu_title="Shift Entries", menu_icon="fa-exchange"),
+            ResourceDef("pos/order",        PosOrder,       admin_list=True,
                         menu_title="Orders", menu_icon="fa-list"),
-            ResourceDef("pos/order-line", PosOrderLine, admin_list=False),
-            ResourceDef("pos/payment",    PosPayment,   admin_list=False),
+            ResourceDef("pos/order-line",   PosOrderLine,   admin_list=False),
+            ResourceDef("pos/payment",      PosPayment,     admin_list=False),
         ]),
 
         MenuGroup("Reports", "fa-bar-chart", order=4, resources=[
@@ -407,6 +409,7 @@ helper = AppHelper(
         CustomRoute("/pos/session/<int:session_id>/order",      _handle_pos_order,       methods=["POST"], require_auth=True),
     ],
     settings_schema=[
+        # General
         {"key": "company_name",      "label": "Company Name",          "value_type": "string",  "default": "",     "order": 1},
         {"key": "default_currency",  "label": "Default Currency",      "value_type": "string",  "default": "IDR",  "order": 2},
         {"key": "fiscal_year_start", "label": "Fiscal Year Start (MM-DD)", "value_type": "string", "default": "01-01", "order": 3},
@@ -414,5 +417,18 @@ helper = AppHelper(
         {"key": "enable_multi_currency", "label": "Enable Multi-Currency", "value_type": "boolean", "default": False, "order": 5},
         {"key": "low_stock_alert",   "label": "Low Stock Alert Threshold", "value_type": "integer", "default": 10,  "order": 6},
         {"key": "report_footer",     "label": "Report Footer Text",    "value_type": "text",    "default": "",     "order": 7},
+        # Global accounting defaults (overridable per product/category)
+        {"key": "account_revenue_default",  "label": "Default Revenue Account (ID)",  "value_type": "integer", "default": None, "order": 8},
+        {"key": "account_purchase_default", "label": "Default Purchase Account (ID)", "value_type": "integer", "default": None, "order": 9},
+        {"key": "account_cogs_default",     "label": "Default COGS Account (ID)",     "value_type": "integer", "default": None, "order": 9},
+        {"key": "accounting_mode_hpp",      "label": "Use COGS (HPP) Accounting Mode","value_type": "boolean", "default": False, "order": 9},
+        # POS settings
+        {"key": "pos_invoice_prefix",   "label": "POS Invoice Prefix",       "value_type": "string",  "default": "POS",   "order": 10},
+        {"key": "pos_allow_discount",   "label": "POS Allow Discount",       "value_type": "boolean", "default": True,    "order": 11},
+        {"key": "pos_print_paper",      "label": "POS Receipt Paper Size",   "value_type": "string",  "default": "A5",    "order": 12},
+        {"key": "pos_receipt_width_px", "label": "POS Receipt Width (px, for JPG)", "value_type": "integer", "default": 400, "order": 13},
+        {"key": "pos_cash_journal",     "label": "POS Cash Journal Code",    "value_type": "string",  "default": "CASH",  "order": 14},
+        {"key": "pos_enable_shift_journal", "label": "Post Shift Entries to Journal", "value_type": "boolean", "default": True, "order": 15},
+        {"key": "pos_shift_report_footer",  "label": "Shift Report Footer Text",     "value_type": "text",    "default": "",  "order": 16},
     ],
 )

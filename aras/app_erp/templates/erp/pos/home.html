@@ -3,12 +3,12 @@
 <div class="row mt-4">
   <div class="col-12 mb-3 d-flex justify-content-between align-items-center">
     <h4>arasPos</h4>
-    <a href="{{ url_for('erp_views.pos_terminal_list') }}" class="btn btn-sm btn-outline-secondary"><i class="fa fa-cog mr-1"></i>Setup Terminal</a>
+    <a href="/admin/erp/pos/terminal/" class="btn btn-sm btn-outline-secondary"><i class="fa fa-cog mr-1"></i>Setup Terminal</a>
   </div>
 
   {% if not terminals %}
   <div class="col-12">
-    <div class="alert alert-warning">Belum ada terminal aktif. <a href="{{ url_for('erp_views.pos_terminal_edit') }}">Tambah Terminal</a></div>
+    <div class="alert alert-warning">Belum ada terminal aktif. <a href="/admin/erp/pos/terminal/add/">Tambah Terminal</a></div>
   </div>
   {% endif %}
 

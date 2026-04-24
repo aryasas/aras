@@ -111,7 +111,8 @@ class AppManagerTable(ArasModel):
     search_enabled  = db.Column(db.Boolean, default=True)
     sort_field      = db.Column(db.String(100), nullable=True)
     sort_direction  = db.Column(db.String(4), default="asc")
-    list_columns    = db.Column(db.Text, nullable=True)   # comma-separated column names
+    list_columns     = db.Column(db.Text, nullable=True)   # comma-separated column names for list view
+    display_columns  = db.Column(db.String(200), nullable=True)  # CSV cols used when this table is a FK target, e.g. "code,name"
     per_page        = db.Column(db.Integer, default=20)
     allow_create    = db.Column(db.Boolean, default=True)
     allow_edit      = db.Column(db.Boolean, default=True)

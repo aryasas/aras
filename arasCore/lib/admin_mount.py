@@ -12,47 +12,70 @@ from flask_login import login_required
 logger = logging.getLogger(__name__)
 
 
-def _col_label(name: str) -> str:
-    s = name[:-3] if name.endswith("_id") else name
-    return s.replace("_", " ").title()
+from arasCore.lib.label_utils import humanize, row_display, find_ref_model as _find_ref_model
 
 
-def _build_model_form(model):
-    """Build a WTForms form class from a SQLAlchemy model."""
+def _fk_coerce(x):
+    try:
+        v = int(x)
+        return v if v != 0 else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _fk_choices(col):
+    """Resolve FK choices from the referenced table at request time."""
+    try:
+        fk = list(col.foreign_keys)[0]
+        ref_tname = fk.column.table.name
+        ref_model = _find_ref_model(ref_tname)
+        if ref_model:
+            rows = ref_model.query.order_by(ref_model.id).all()
+            return [(0, "— Select —")] + [(r.id, row_display(r)) for r in rows]
+    except Exception as _e:
+        logger.warning(f"[admin_mount] _fk_choices failed for {col}: {_e}")
+    return [(0, "— Select —")]
+
+
+def _build_model_form(model, obj=None):
+    """Build a WTForms form from model.form_columns() with FK choices pre-loaded."""
     import sqlalchemy as _sa
-    from flask_wtf import FlaskForm
-    from wtforms import SelectField
-    from wtforms.validators import Optional as _Opt
-    from wtforms_alchemy import model_form_factory
-    from arasCore.lib.extensions import db
+    from wtforms import StringField, TextAreaField, IntegerField, BooleanField, DateField, SelectField
+    from wtforms.validators import Optional as _Opt, DataRequired
 
-    BaseModelForm = model_form_factory(FlaskForm)
-    _skip = {"created_at", "updated_at", "created_by_id", "updated_by_id"}
-    _only = [
-        c.name for c in model.__table__.columns
-        if c.name not in _skip
-        and not c.primary_key
-        and not c.foreign_keys
-        and not (isinstance(c.type, (_sa.DateTime, _sa.Date)) and c.default is not None)
-    ]
-    _fk_cols = [
-        c for c in model.__table__.columns
-        if c.foreign_keys and c.name not in _skip and not c.primary_key
-    ]
-    fk_fields = {}
-    for col in _fk_cols:
-        lbl = col.name[:-3].replace("_", " ").title() if col.name.endswith("_id") else col.name.replace("_", " ").title()
-        fk_fields[col.name] = SelectField(
-            lbl,
-            coerce=lambda x: int(x) if x and str(x) != "0" else None,
-            choices=[(0, "— Select —")],
-            validators=[_Opt()],
-        )
+    attrs = {}
+    for lbl, col_name, col in model.form_columns():
+        req = not col.nullable and col.default is None and not col.server_default
+        v = [DataRequired()] if req else [_Opt()]
 
-    class_attrs = {"get_session": classmethod(lambda cls: db.session)}
-    class_attrs.update(fk_fields)
-    class_attrs["Meta"] = type("Meta", (), {"model": model, "only": _only if _only else None})
-    return type(f"ModelForm_{model.__tablename__}", (BaseModelForm,), class_attrs)
+        if col.foreign_keys:
+            # Resolve choices now (inside request) so SelectField data matches on init
+            choices = _fk_choices(col)
+            attrs[col_name] = SelectField(lbl, coerce=_fk_coerce,
+                                          choices=choices, validators=[_Opt()])
+        elif isinstance(col.type, _sa.Boolean):
+            attrs[col_name] = BooleanField(lbl)
+        elif isinstance(col.type, (_sa.Integer, _sa.BigInteger, _sa.SmallInteger)):
+            attrs[col_name] = IntegerField(lbl, validators=v)
+        elif isinstance(col.type, (_sa.Numeric, _sa.Float)):
+            from wtforms import DecimalField
+            attrs[col_name] = DecimalField(lbl, validators=v, places=2)
+        elif isinstance(col.type, _sa.Text):
+            attrs[col_name] = TextAreaField(lbl, validators=v)
+        elif isinstance(col.type, _sa.Date):
+            attrs[col_name] = DateField(lbl, validators=v)
+        elif isinstance(col.type, _sa.DateTime):
+            from wtforms.fields import DateTimeLocalField
+            attrs[col_name] = DateTimeLocalField(lbl, validators=v)
+        elif isinstance(col.type, _sa.Enum):
+            choices = [(e, e) for e in col.type.enums]
+            attrs[col_name] = SelectField(lbl, choices=choices, validators=v)
+        else:
+            attrs[col_name] = StringField(lbl, validators=v)
+
+    from arasCore.lib.forms import ArasForm
+    FormCls = type(f"ModelForm_{model.__tablename__}", (ArasForm,), attrs)
+    return FormCls(obj=obj) if obj is not None else FormCls()
 
 
 def _resolve_search_cols(helper, res, model):
@@ -78,35 +101,22 @@ def _resolve_search_cols(helper, res, model):
 
 def _build_fk_maps(cols, model):
     """Build FK → display name maps for list view columns."""
-    from arasCore.lib.extensions import db
+    # Use form_columns() to get mapper-derived columns with FK metadata intact
+    fc_map = {cname: col for _, cname, col in model.form_columns()} if hasattr(model, "form_columns") else {}
     rel_maps = {}
     for _, fname in cols:
-        if fname not in model.__table__.c:
-            continue
-        col_c = model.__table__.c[fname]
-        if not col_c.foreign_keys:
+        col_c = fc_map.get(fname)
+        if col_c is None or not col_c.foreign_keys:
             continue
         try:
             fk = list(col_c.foreign_keys)[0]
-            ref_table = fk.column.table
-            ref_model = None
-            for mapper in db.Model.registry.mappers:
-                if mapper.local_table.name == ref_table.name:
-                    ref_model = mapper.class_
-                    break
+            ref_tname = fk.column.table.name
+            ref_model = _find_ref_model(ref_tname)
             if ref_model:
                 rows = ref_model.query.all()
-                rel_maps[fname] = {
-                    row.id: (
-                        getattr(row, "name", None)
-                        or getattr(row, "title", None)
-                        or getattr(row, "username", None)
-                        or str(row.id)
-                    )
-                    for row in rows
-                }
-        except Exception:
-            pass
+                rel_maps[fname] = {row.id: row_display(row) for row in rows}
+        except Exception as _e:
+            logger.warning(f"[admin_mount] _build_fk_maps failed for {fname}: {_e}")
     return rel_maps
 
 
@@ -153,11 +163,7 @@ class AdminResourceMounter:
             if not self._rbac("view"):
                 abort(403)
 
-            cols = res.list_columns or [
-                (_col_label(c.name), c.name)
-                for c in model.__table__.columns
-                if c.name not in ("id", "created_by_id", "updated_by_id", "created_at", "updated_at", "deleted_at")
-            ][:6]
+            cols = res.list_columns or [(lbl, cname) for lbl, cname, _ in model.form_columns()][:6]
 
             _app_id, _table_id = self._resolve_app_table_ids()
             search_cols = _resolve_search_cols(helper, res, model)
@@ -223,9 +229,8 @@ class AdminResourceMounter:
         def view():
             if not self._rbac("create"):
                 abort(403)
-            form = _build_model_form(model)()
-            from arasCore.arasAdmin.services import _populate_relation_choices, _invoke_hooks
-            _populate_relation_choices(form, model)
+            form = _build_model_form(model)
+            from arasCore.arasAdmin.services import _invoke_hooks
             if form.validate_on_submit():
                 try:
                     obj = model()
@@ -258,15 +263,16 @@ class AdminResourceMounter:
         app_title     = self.app_title
         res_title     = self.res_title
         show_save_btn = getattr(self.res, "show_save_btn", True)
+        _helper       = self.helper
+        _adm_prefix   = base_url.rsplit("/", 1)[0]  # strip resource segment → adm_prefix
 
         @login_required
         def view(item_id):
             if not self._rbac("edit"):
                 abort(403)
             obj  = model.query.get_or_404(item_id)
-            form = _build_model_form(model)(obj=obj)
-            from arasCore.arasAdmin.services import _populate_relation_choices, _invoke_hooks, _get_child_tables_for_model
-            _populate_relation_choices(form, model)
+            form = _build_model_form(model, obj=obj)
+            from arasCore.arasAdmin.services import _invoke_hooks, _get_child_tables_for_model
             if form.validate_on_submit():
                 try:
                     before_hook, after_hook = _invoke_hooks(obj, is_new=False)
@@ -283,20 +289,56 @@ class AdminResourceMounter:
             child_tables = []
             for cd in _get_child_tables_for_model(model):
                 try:
+                    # Resolve adm_url from helper resources if not set
+                    adm_url = cd.get("adm_url")
+                    if not adm_url and _helper:
+                        all_res = []
+                        for g in (getattr(_helper, "menu_groups", None) or []):
+                            all_res.extend(getattr(g, "resources", []))
+                        all_res.extend(getattr(_helper, "resources", []) or [])
+                        for r in all_res:
+                            if getattr(r, "model", None) is cd["model"]:
+                                adm_url = f"{_adm_prefix}/{r.name}"
+                                break
+
                     rows = cd["model"].query.filter(
                         getattr(cd["model"], cd["fk_col"]) == item_id
                     ).all()
+                    child_rel_maps = {}
+                    for _, fname in cd["vcols"]:
+                        if fname not in cd["model"].__table__.c:
+                            continue
+                        col_c = cd["model"].__table__.c[fname]
+                        if not col_c.foreign_keys:
+                            continue
+                        try:
+                            fk = list(col_c.foreign_keys)[0]
+                            ref_tname = fk.column.table.name
+                            from arasCore.lib.extensions import db as _db2
+                            ref_model = next(
+                                (m.class_ for m in _db2.Model.registry.mappers
+                                 if m.local_table.name == ref_tname), None
+                            )
+                            if ref_model:
+                                child_rel_maps[fname] = {
+                                    r.id: row_display(r) for r in ref_model.query.all()
+                                }
+                        except Exception:
+                            pass
                     child_tables.append({
                         "title":     cd["title"],
                         "vcols":     cd["vcols"],
-                        "adm_url":   cd["adm_url"],
+                        "adm_url":   adm_url,
                         "fk_col":    cd["fk_col"],
                         "rows":      rows,
                         "parent_id": item_id,
+                        "rel_maps":  child_rel_maps,
                     })
                 except Exception:
                     pass
 
+            from arasCore.arasAdmin.services import _load_activity_log
+            activity_log = _load_activity_log(model.__tablename__, item_id)
             return render_template(
                 "admin/adm_form.html",
                 title=f"Edit {res_title}",
@@ -306,6 +348,7 @@ class AdminResourceMounter:
                 list_url=f"{base_url}/",
                 child_tables=child_tables,
                 show_save_btn=show_save_btn,
+                activity_log=activity_log,
             )
         return view
 

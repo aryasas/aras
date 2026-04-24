@@ -828,6 +828,33 @@
   font-size: 13px;
 }
 
+/* ─── Activity log ──────────────────────────────────── */
+.aras-activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 12px 20px 16px;
+}
+.aras-activity-item {
+  position: relative;
+  padding: 6px 0 6px 18px;
+  font-size: 13px;
+  color: var(--aras-text);
+  border-bottom: 1px solid var(--aras-border);
+}
+.aras-activity-item:last-child { border-bottom: none; }
+.aras-activity-item::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 14px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--aras-accent);
+}
+.aras-activity-user { font-weight: 600; margin-right: 4px; }
+.aras-activity-ts   { color: var(--aras-muted); font-size: 12px; margin-left: 6px; }
+
 /* ─── Column editor (aras_admin_columns) ────────────── */
 #relation-options,
 #length-option,

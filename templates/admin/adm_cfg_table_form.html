@@ -99,6 +99,13 @@
               {{ form.list_columns(class_="form-control form-control-sm", placeholder="e.g. name,price,status") }}
               <small class="text-muted">{{ form.list_columns.description }}</small>
             </div>
+          </div>
+          <div class="row">
+            <div class="col-md-8 form-group">
+              {{ form.display_columns.label(class_="form-label") }}
+              {{ form.display_columns(class_="form-control form-control-sm", placeholder="e.g. code,name") }}
+              <small class="text-muted">{{ form.display_columns.description }}</small>
+            </div>
             <div class="col-md-4 form-group">
               {{ form.per_page.label(class_="form-label") }}
               {{ form.per_page(class_="form-control form-control-sm") }}

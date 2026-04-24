@@ -111,11 +111,17 @@
               </tr>
             </thead>
             <tbody>
+              {% set _ct_rel = ct.rel_maps if ct.rel_maps is defined else {} %}
               {% for row in ct.rows %}
               <tr {% if ct.adm_url %}class="is-clickable"
                   onclick="window.location='{{ ct.adm_url }}/{{ row.id }}/';"{% endif %}>
                 {% for _, field_name in ct.vcols %}
-                <td>{{ row|attr(field_name) if row|attr(field_name) is defined else '—' }}</td>
+                  {% set raw = row|attr(field_name) if row|attr(field_name) is defined else none %}
+                  {% if field_name in _ct_rel and raw is not none %}
+                <td>{{ _ct_rel[field_name][raw] if raw in _ct_rel[field_name] else raw }}</td>
+                  {% else %}
+                <td>{{ raw if raw is not none else '—' }}</td>
+                  {% endif %}
                 {% endfor %}
                 <td class="td-arrow">
                   {% if ct.adm_url %}<i class="fa fa-chevron-right row-arrow"></i>{% endif %}
@@ -141,6 +147,69 @@
       {% endfor %}
     {% endif %}
 
+    {# ── Activity log (audit trail) ── #}
+    {% if activity_log is defined and activity_log %}
+    <div class="aras-child-card">
+      <div class="aras-child-header">
+        <div class="aras-child-title-wrap">
+          <span class="aras-child-indicator"></span>
+          <h3 class="aras-child-title">Activity</h3>
+        </div>
+      </div>
+      <ul class="aras-activity-list">
+        {% for entry in activity_log %}
+        <li class="aras-activity-item">
+          <span class="aras-activity-user">{{ entry.user }}</span>
+          {% if entry.action == 'create' %}
+            created this
+          {% elif entry.action == 'delete' %}
+            deleted this
+          {% else %}
+            {% if entry.before and entry.after %}
+              {# show changed fields #}
+              changed
+              {% set ns = namespace(changes=[]) %}
+              {% for key, new_val in entry.after.items() %}
+                {% if key in entry.before and entry.before[key] != new_val %}
+                  {% set ns.changes = ns.changes + [key.replace('_id','').replace('_',' ').title() ~ ' from <strong>' ~ (entry.before[key]|string) ~ '</strong> to <strong>' ~ (new_val|string) ~ '</strong>'] %}
+                {% endif %}
+              {% endfor %}
+              {% if ns.changes %}
+                the value of {{ ns.changes | join(', ') | safe }}
+              {% else %}
+                this document
+              {% endif %}
+            {% else %}
+              updated this
+            {% endif %}
+          {% endif %}
+          <span class="aras-activity-ts" data-ts="{{ entry.ts.isoformat() if entry.ts else '' }}">· {{ entry.ts.strftime('%d %b %Y %H:%M') if entry.ts else '' }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
   </div>
 </div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script>
+(function () {
+  function timeago(iso) {
+    if (!iso) return '';
+    var d = new Date(iso), diff = Math.round((Date.now() - d) / 1000);
+    if (diff < 60)    return diff + ' seconds ago';
+    if (diff < 3600)  return Math.round(diff/60) + ' minutes ago';
+    if (diff < 86400) return Math.round(diff/3600) + ' hours ago';
+    return Math.round(diff/86400) + ' days ago';
+  }
+  document.querySelectorAll('.aras-activity-ts[data-ts]').forEach(function(el) {
+    var t = el.dataset.ts;
+    if (t) el.textContent = '· ' + timeago(t);
+  });
+})();
+</script>
 {% endblock %}
