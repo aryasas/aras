@@ -36,8 +36,16 @@
 ### The golden rule: framework must know EVERY URL and endpoint
 - **CRUD resource**: `ResourceDef(name, model)` → framework auto-generates `/api/<app>/<name>/` + `/admin/<app>/<name>/`
 - **Non-CRUD API endpoint**: `CustomRoute(path, handler)` → mounted at `/api/<app>/<path>/`
-- **Menu link to existing route (no new CRUD)**: `ResourceDef(name, url="/existing/route", menu_title="...", menu_icon="...")` with no `model` — framework skips route gen, shows link in menu only
+- **Menu link to existing route (no new CRUD)**: `ResourceDef(name, url="/existing/route", menu_title="...", menu_icon="...")` with no `model` — framework skips route gen, **but does NOT add it to the sidebar** (sidebar is DB-only, see below)
 - **Never** add `@app.route()` or `blueprint.add_url_rule()` outside the framework primitives (ResourceDef / CustomRoute).
+
+### CRITICAL: Sidebar shows only top-level apps — sub-pages are tiles on the app home
+- The global sidebar shows: Dashboard, each `AppManagerApp` entry (top-level app links), Settings. Nothing else.
+- `ResourceDef(url=...)` in `manifest.py` does NOT add anything to the sidebar or home page tiles. It is ignored.
+- `_build_raw_menu()` in `services.py` reads **only** `mgr_app` (top-level apps) — no children, no table entries.
+- Sub-pages (e.g. Reports, Customers) appear as **tiles on the app home page** (`/admin/<app>/`), driven by `AppManagerTable` rows in the DB.
+- To add a custom link as a tile on an app's home page: insert an `AppManagerTable` row with `app_id=<app.id>`, `url_suffix='/your-path'`, `page_type='list'`, `show_in_menu=True`. The framework will NOT generate routes for it if the app is manifest-based (skipped by `load_all_built_apps`).
+- `build_sidebar_menu()` L253 description in CLAUDE.md was wrong — it only builds top-level app links from DB, not child pages.
 
 ### What arasCore auto-generates — write ZERO app code for these:
 - REST API: `GET/POST /api/<app>/<resource>/` and `GET/PUT/DELETE /api/<app>/<resource>/<id>/`
@@ -147,7 +155,7 @@ Snapshots `layout_json` per table and passes `layout_tabs` to form views (4.1).
 | `make_table_model(tbl, app_name, all_tables_in_app=None)` | L150 | generate SQLAlchemy model from AppManagerTable + Column |
 | `make_table_form(tbl, model_cls, app_id)` | L212 | generate WTForm from metadata |
 | `get_view_columns(tbl)` | L242 | columns shown in list view |
-| `build_sidebar_menu()` | L253 | merge code-based (`_helper_registry`) + DB-based (`AppManagerApp`) menus |
+| `build_sidebar_menu()` | L253 | build sidebar from DB only (`AppManagerApp`/`AppManagerTable`); manifest `_helper_registry` is NOT used |
 | `_register_built_app(app_def_id, flask_app)` | L316 | mount blueprint + route for 1 dynamic app |
 | `_register_table_routes(bp, snap, all_snaps)` | L401 | create CRUD routes for 1 page type |
 | `_populate_relation_choices` | L604 | internal helper |

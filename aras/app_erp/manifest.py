@@ -320,20 +320,20 @@ helper = AppHelper(
                         menu_title="Journals", menu_icon="fa-book"),
             ResourceDef("acc/entry",        AccJournalEntry,        handler=JournalEntryHandler(), admin_list=True,
                         menu_title="Journal Entries", menu_icon="fa-pencil-square-o"),
-            ResourceDef("acc/line",         AccJournalLine,         admin_list=False),
+            ResourceDef("acc/line",         AccJournalLine,         admin_list=False, is_child_table=True),
             ResourceDef("acc/default",      AccDefaultAccount,      admin_list=True,
                         menu_title="Default Accounts", menu_icon="fa-link"),
             ResourceDef("acc/analytic-tag", AccAnalyticTag,         admin_list=True,
                         menu_title="Analytic Tags", menu_icon="fa-tag"),
             ResourceDef("acc/bank",         AccBankStatement,       admin_list=True,
                         menu_title="Bank Statements", menu_icon="fa-bank"),
-            ResourceDef("acc/bank-line",    AccBankStatementLine,   admin_list=False),
+            ResourceDef("acc/bank-line",    AccBankStatementLine,   admin_list=False, is_child_table=True),
             ResourceDef("acc/sales-invoice",       AccSalesInvoice,       admin_list=True,
                         menu_title="Sales Invoices", menu_icon="fa-file-text-o"),
-            ResourceDef("acc/sales-invoice-line",  AccSalesInvoiceLine,   admin_list=False),
+            ResourceDef("acc/sales-invoice-line",  AccSalesInvoiceLine,   admin_list=False, is_child_table=True),
             ResourceDef("acc/purchase-invoice",    AccPurchaseInvoice,    admin_list=True,
                         menu_title="Purchase Invoices", menu_icon="fa-file-o"),
-            ResourceDef("acc/purchase-invoice-line", AccPurchaseInvoiceLine, admin_list=False),
+            ResourceDef("acc/purchase-invoice-line", AccPurchaseInvoiceLine, admin_list=False, is_child_table=True),
         ]),
 
         MenuGroup("CRM", "fa-handshake-o", order=2, resources=[
@@ -347,7 +347,7 @@ helper = AppHelper(
                         menu_title="Pipelines", menu_icon="fa-random"),
             ResourceDef("crm/stage",     CrmStage,     admin_list=True,
                         menu_title="Stages", menu_icon="fa-flag"),
-            ResourceDef("crm/activity",  CrmActivity,  admin_list=False),
+            ResourceDef("crm/activity",  CrmActivity,  admin_list=False, is_child_table=True),
         ]),
 
         MenuGroup("arasPos", "fa-shopping-cart", order=3, resources=[
@@ -361,8 +361,8 @@ helper = AppHelper(
                         menu_title="Shift Entries", menu_icon="fa-exchange"),
             ResourceDef("pos/order",        PosOrder,       admin_list=True,
                         menu_title="Orders", menu_icon="fa-list"),
-            ResourceDef("pos/order-line",   PosOrderLine,   admin_list=False),
-            ResourceDef("pos/payment",      PosPayment,     admin_list=False),
+            ResourceDef("pos/order-line",   PosOrderLine,   admin_list=False, is_child_table=True),
+            ResourceDef("pos/payment",      PosPayment,     admin_list=False, is_child_table=True),
         ]),
 
         MenuGroup("Reports", "fa-bar-chart", order=4, resources=[

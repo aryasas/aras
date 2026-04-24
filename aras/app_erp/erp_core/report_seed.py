@@ -650,13 +650,14 @@ def run_seed(app=None):
         for r in REPORTS:
             existing = ErpReport.query.filter_by(name=r["name"]).first()
             if not existing:
-                db.session.add(ErpReport(**r))
+                db.session.add(ErpReport(**{**r, "is_active": True}))
             else:
                 existing.title       = r.get("title", existing.title)
                 existing.script      = r.get("script", existing.script)
                 existing.render_mode = r.get("render_mode", "list")
                 existing.columns_json = r.get("columns_json", existing.columns_json)
                 existing.filters_json = r.get("filters_json", existing.filters_json)
+                existing.is_active   = True
         db.session.commit()
         print("[seed] report data seeded.")
 
