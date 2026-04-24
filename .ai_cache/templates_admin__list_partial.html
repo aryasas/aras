@@ -14,7 +14,8 @@
    ─────────────────────────────────────────────────────────────────────────── #}
 
 {# ── capability flags ── #}
-{% set _has_edit   = edit_url_base is defined and edit_url_base %}
+{% set _use_item_url  = use_item_edit_url is defined and use_item_edit_url %}
+{% set _has_edit   = (edit_url_base is defined and edit_url_base) or _use_item_url %}
 {% set _has_delete = delete_url_base is defined and delete_url_base %}
 {% set _has_add    = add_url is defined and add_url %}
 {% set _has_search = search_enabled is defined and search_enabled %}
@@ -102,7 +103,7 @@
         <div class="aras-col-toggle-title">Columns</div>
         {% for label, field in view_columns %}
         <label class="aras-col-toggle-item">
-          <input type="checkbox" class="js-col-vis{{ _lid }}" data-col="{{ loop.index0 + (1 if _has_bulk else 0) }}" checked>
+          <input type="checkbox" class="js-col-vis{{ _lid }}" data-col="{{ loop.index0 + (1 if _has_bulk else 0) }}" data-field="{{ field }}" checked>
           {{ label }}
         </label>
         {% endfor %}
@@ -218,9 +219,18 @@
     <tbody>
       {% set _rel = rel_maps if rel_maps is defined else {} %}
       {% for item in items %}
-      <tr {% if _has_edit %}
+      {% if _has_edit %}
+        {% if edit_url_base is defined and edit_url_base %}
+          {% set _row_edit_url = edit_url_base ~ '/' ~ item.id ~ '/' %}
+        {% elif _use_item_url %}
+          {% set _row_edit_url = item.edit_url %}
+        {% else %}
+          {% set _row_edit_url = '' %}
+        {% endif %}
+      {% endif %}
+      <tr {% if _has_edit and _row_edit_url %}
           class="is-clickable"
-          data-edit-url="{{ edit_url_base }}/{{ item.id }}/"{% endif %}>
+          data-edit-url="{{ _row_edit_url }}"{% endif %}>
         {% if _has_bulk %}
         <td class="td-check" onclick="event.stopPropagation();">
           <label class="aras-checkbox">
@@ -307,7 +317,8 @@
   var HAS_PAG    = {{ 'true' if _has_pag else 'false' }};
   var HAS_TOTALS = {{ 'true' if _has_totals else 'false' }};
   var showTotals = {{ 'true' if (show_totals is defined and show_totals) else 'false' }};
-  var doctypeKey = {{ (doctype_key if doctype_key is defined else '') | tojson }};
+  var doctypeKey   = {{ (doctype_key if doctype_key is defined else '') | tojson }};
+  var savedColumns = {{ (saved_columns if saved_columns is defined and saved_columns) | tojson if (saved_columns is defined and saved_columns) else 'null' }};
   var filterCols = {{ (filter_cols if filter_cols is defined else []) | tojson }};
   var opOptions  = [
     ['equals','='],['not_equals','≠'],
@@ -452,6 +463,42 @@
     var btn     = $id('colToggleBtn');
     var popover = $id('colTogglePopover');
     if (!btn || !popover) return;
+
+    function applyColVisibility(fieldName, visible) {
+      var table = $id('mainListTable');
+      if (!table) return;
+      popover.querySelectorAll('.js-col-vis' + LID).forEach(function (cb) {
+        if (cb.dataset.field === fieldName) {
+          var colIdx = parseInt(cb.dataset.col);
+          table.querySelectorAll('tr').forEach(function (row) {
+            var cell = row.cells[colIdx];
+            if (cell) cell.style.display = visible ? '' : 'none';
+          });
+          cb.checked = visible;
+        }
+      });
+    }
+
+    function persistColumns() {
+      if (!doctypeKey) return;
+      var visible = [];
+      popover.querySelectorAll('.js-col-vis' + LID).forEach(function (cb) {
+        if (cb.checked && cb.dataset.field) visible.push(cb.dataset.field);
+      });
+      fetch('/admin/api/list-pref/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({doctype: doctypeKey, columns: visible})
+      });
+    }
+
+    // Restore saved columns on load
+    if (savedColumns && Array.isArray(savedColumns)) {
+      popover.querySelectorAll('.js-col-vis' + LID).forEach(function (cb) {
+        if (cb.dataset.field) applyColVisibility(cb.dataset.field, savedColumns.indexOf(cb.dataset.field) !== -1);
+      });
+    }
+
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
       popover.style.display = popover.style.display === 'none' ? 'block' : 'none';
@@ -460,13 +507,8 @@
     popover.addEventListener('click', function (e) { e.stopPropagation(); });
     popover.querySelectorAll('.js-col-vis' + LID).forEach(function (cb) {
       cb.addEventListener('change', function () {
-        var colIdx = parseInt(this.dataset.col);
-        var table  = $id('mainListTable');
-        if (!table) return;
-        table.querySelectorAll('tr').forEach(function (row) {
-          var cell = row.cells[colIdx];
-          if (cell) cell.style.display = cb.checked ? '' : 'none';
-        });
+        applyColVisibility(cb.dataset.field, cb.checked);
+        persistColumns();
       });
     });
   })();

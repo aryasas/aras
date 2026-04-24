@@ -118,6 +118,8 @@ class ArasModel(db.Model):
     def to_dict(self) -> dict:
         result = {}
         for col in self.__table__.columns:
+            if not hasattr(self, col.name):
+                continue
             val = getattr(self, col.name)
             result[col.name] = val.isoformat() if isinstance(val, datetime) else val
         for out_key, (rel_attr, rel_field) in (self.__serialize_relations__ or {}).items():

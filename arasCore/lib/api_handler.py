@@ -78,6 +78,14 @@ def get_api_registry() -> dict:
     return dict(_api_registry)
 
 
+def get_api_url_for_model(model_cls) -> str | None:
+    """Return /api/<key>/ URL string for a registered model class, or None."""
+    for key, entry in _api_registry.items():
+        if entry.get("model") is model_cls:
+            return f"/api/{key}/"
+    return None
+
+
 def _row_to_dict(obj) -> dict:
     # Prefer model's own to_dict() (ArasModel subclasses define this)
     if hasattr(obj, "to_dict") and callable(obj.to_dict):

@@ -732,12 +732,15 @@ def _register_table_routes(bp, snap, all_snaps):
     for cs in child_snaps:
         fk_col = _detect_parent_fk(cs["model"], model)
         if fk_col:
+            from arasCore.lib.api_handler import get_api_url_for_model
             child_defs.append({
-                "title":   cs["title"],
-                "model":   cs["model"],
-                "vcols":   cs["vcols"],
-                "adm_url": f"/admin{cs['url']}",
-                "fk_col":  fk_col,
+                "title":          cs["title"],
+                "model":          cs["model"],
+                "vcols":          cs["vcols"],
+                "adm_url":        f"/admin{cs['url']}",
+                "fk_col":         fk_col,
+                "api_url":        get_api_url_for_model(cs["model"]),
+                "inline_columns": _get_inline_columns(cs["model"], fk_col),
             })
 
     # ── helpers ──────────────────────────────────────────────────────────────
@@ -990,13 +993,15 @@ def _register_table_routes(bp, snap, all_snaps):
                         except Exception:
                             pass
                     child_tables.append({
-                        "title":    cd["title"],
-                        "vcols":    cd["vcols"],
-                        "adm_url":  cd["adm_url"],
-                        "fk_col":   cd["fk_col"],
-                        "rows":     rows,
-                        "parent_id": item_id,
-                        "rel_maps": child_rel_maps,
+                        "title":          cd["title"],
+                        "vcols":          cd["vcols"],
+                        "adm_url":        cd["adm_url"],
+                        "fk_col":         cd["fk_col"],
+                        "rows":           rows,
+                        "parent_id":      item_id,
+                        "rel_maps":       child_rel_maps,
+                        "api_url":        cd.get("api_url"),
+                        "inline_columns": cd.get("inline_columns", []),
                     })
                 except Exception:
                     pass
@@ -1238,16 +1243,86 @@ def _get_child_tables_for_model(model):
                 vcols = [(_humanize_label(c.name), c.name)
                          for c in child_cls.__table__.columns
                          if c.name not in _SYSTEM_COLS][:5]
+                from arasCore.lib.api_handler import get_api_url_for_model
                 result.append({
-                    "title":   child_title,
-                    "model":   child_cls,
-                    "vcols":   vcols,
-                    "adm_url": None,
-                    "fk_col":  fk_col,
+                    "title":          child_title,
+                    "model":          child_cls,
+                    "vcols":          vcols,
+                    "adm_url":        None,
+                    "fk_col":         fk_col,
+                    "api_url":        get_api_url_for_model(child_cls),
+                    "inline_columns": _get_inline_columns(child_cls, fk_col),
                 })
     except Exception:
         pass
     return result
+
+
+def _get_inline_columns(child_model, fk_col: str) -> list:
+    """
+    Return column metadata for inline child table editor.
+    Each item: {name, label, type, required, fk_table, fk_api_url, fk_options}
+    fk_options is a list of {id, label} for FK fields (loaded eagerly).
+    """
+    from arasCore.lib.api_handler import get_api_url_for_model
+    from sqlalchemy import inspect as sa_inspect
+
+    # Build col_name -> ref_table_name map via SA relationships (many-to-one)
+    rel_fk_map: dict[str, str] = {}
+    try:
+        mapper = sa_inspect(child_model)
+        for rel in mapper.relationships:
+            if not rel.uselist:  # many-to-one; pairs = (remote_pk, local_fk)
+                for _, local_col in rel.synchronize_pairs:
+                    rel_fk_map[local_col.name] = rel.mapper.class_.__tablename__
+    except Exception:
+        pass
+
+    cols = []
+    for col in child_model.__table__.columns:
+        if col.primary_key or col.name in _SYSTEM_COLS:
+            continue
+        if col.name == fk_col:
+            continue  # parent FK — set automatically
+        col_type = str(col.type.__class__.__name__).lower()
+        _type_map = {
+            "integer": "number", "float": "number", "numeric": "number",
+            "boolean": "checkbox", "text": "textarea", "date": "date",
+            "datetime": "datetime-local",
+        }
+        input_type = _type_map.get(col_type, "text")
+        fk_table = None
+        fk_api_url = None
+        fk_options = []
+
+        # FK detection: SA column metadata first, then relationship map fallback
+        raw_fk = None
+        if col.foreign_keys:
+            raw_fk = list(col.foreign_keys)[0].column.table.name
+        elif col.name in rel_fk_map:
+            raw_fk = rel_fk_map[col.name]
+
+        if raw_fk and raw_fk != "auth_users":
+            fk_table = raw_fk
+            try:
+                ref_model = _find_ref_model(fk_table)
+                if ref_model:
+                    fk_api_url = get_api_url_for_model(ref_model)
+                    fk_options = [{"id": r.id, "label": row_display(r)} for r in ref_model.query.all()]
+            except Exception:
+                pass
+            input_type = "select"
+
+        cols.append({
+            "name":       col.name,
+            "label":      _humanize_label(col.name),
+            "type":       input_type,
+            "required":   not col.nullable and col.default is None,
+            "fk_table":   fk_table,
+            "fk_api_url": fk_api_url,
+            "fk_options": fk_options,
+        })
+    return cols
 
 
 def _load_activity_log(model_name: str, record_id: int) -> list:

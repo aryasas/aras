@@ -399,6 +399,168 @@ def register_cli(app):
             f.write(content)
         click.echo(f"[new-app] wrote {out}. Edit, then: aras install-app {out} --activate")
 
+    @aras.command("dev-mode", help="Switch between development and production mode")
+    @click.option("--set", "mode_val", type=click.Choice(["0", "1"]),
+                  required=True, help="1 = development, 0 = production")
+    def dev_mode(mode_val):
+        import json as _json
+        import flask
+        _app = flask.current_app._get_current_object()
+        instance_dir = _app.instance_path
+        os.makedirs(instance_dir, exist_ok=True)
+        mode_file = os.path.join(instance_dir, "mode.json")
+        is_dev = mode_val == "1"
+        data = {"mode": "development" if is_dev else "production"}
+        with open(mode_file, "w") as f:
+            _json.dump(data, f)
+        label = "DEVELOPMENT" if is_dev else "PRODUCTION"
+        click.echo(f"[dev-mode] switched to {label}. Restart server to apply.")
+
+    @aras.command("fix-db", help="Fix DB/model mismatches: drop orphaned columns, add missing columns")
+    def fix_db():
+        import flask
+        _app = flask.current_app._get_current_object()
+        with _app.app_context():
+            conn = db.engine.connect()
+            results = []
+
+            # Drop orphaned created_by INT columns (duplicate of created_by_id FK)
+            orphaned_cb = [
+                "acc_journal_entry", "acc_purchase_invoice", "acc_sales_invoice",
+                "core_fx_rate", "core_print_template_version", "crm_activity",
+                "crm_customer", "crm_lead", "erp_report", "soc_conversation",
+                "soc_post_media", "stock_movement",
+            ]
+            for tbl in orphaned_cb:
+                try:
+                    cols = {r[0] for r in conn.execute(db.text(f"SHOW COLUMNS FROM `{tbl}`")).fetchall()}
+                    if "created_by" in cols and "created_by_id" in cols:
+                        conn.execute(db.text(f"ALTER TABLE `{tbl}` DROP COLUMN `created_by`"))
+                        results.append(f"  DROPPED created_by from {tbl}")
+                    else:
+                        results.append(f"  SKIP    {tbl} (already clean)")
+                except Exception as e:
+                    results.append(f"  ERROR   {tbl}: {e}")
+
+            # Add acc_purchase_invoice.pos_order_id if missing
+            try:
+                cols = {r[0] for r in conn.execute(db.text("SHOW COLUMNS FROM acc_purchase_invoice")).fetchall()}
+                if "pos_order_id" not in cols:
+                    conn.execute(db.text(
+                        "ALTER TABLE acc_purchase_invoice "
+                        "ADD COLUMN pos_order_id BIGINT NULL, "
+                        "ADD CONSTRAINT fk_acc_pi_pos_order FOREIGN KEY (pos_order_id) REFERENCES pos_order(id)"
+                    ))
+                    results.append("  ADDED   acc_purchase_invoice.pos_order_id")
+                else:
+                    results.append("  SKIP    acc_purchase_invoice.pos_order_id (exists)")
+            except Exception as e:
+                results.append(f"  ERROR   acc_purchase_invoice.pos_order_id: {e}")
+
+            # Add mgr_field.is_active if missing
+            try:
+                cols = {r[0] for r in conn.execute(db.text("SHOW COLUMNS FROM mgr_field")).fetchall()}
+                if "is_active" not in cols:
+                    conn.execute(db.text(
+                        "ALTER TABLE mgr_field ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1"
+                    ))
+                    results.append("  ADDED   mgr_field.is_active")
+                else:
+                    results.append("  SKIP    mgr_field.is_active (exists)")
+            except Exception as e:
+                results.append(f"  ERROR   mgr_field.is_active: {e}")
+
+            conn.close()
+
+        click.echo("[fix-db]")
+        for r in results:
+            click.echo(r)
+        click.echo("[fix-db] done.")
+
+    # ── Test commands ─────────────────────────────────────────────────────────
+
+    @aras.group("test", help="Run automated tests against the running app")
+    def test_group():
+        pass
+
+    def _make_test_client_with_admin(flask_app):
+        from arasCore.auth import User
+        client = flask_app.test_client()
+        with flask_app.app_context():
+            user = User.query.filter_by(is_admin=True).first()
+        if not user:
+            return client, False
+        with client.session_transaction() as sess:
+            sess["_user_id"] = str(user.id)
+            sess["_fresh"] = True
+        return client, True
+
+    @test_group.command("api", help="Test all registered API endpoints (GET /api/<resource>/)")
+    @click.option("--verbose", "-v", is_flag=True, default=False)
+    @click.option("--only-errors", "-e", is_flag=True, default=False)
+    def test_api(verbose, only_errors):
+        import flask
+        _app = flask.current_app._get_current_object()
+        _app.config["TESTING"] = True
+        with _app.app_context():
+            from arasCore.lib.api_handler import _api_registry
+            client, ok = _make_test_client_with_admin(_app)
+            if not ok:
+                click.echo("[test api] WARNING: no admin user found")
+
+            passed, failed = 0, []
+            for key in sorted(_api_registry.keys()):
+                url = f"/api/{key}/"
+                resp = client.get(url)
+                if resp.status_code in (200, 403):
+                    passed += 1
+                    if verbose and not only_errors:
+                        click.echo(f"  PASS {resp.status_code}  {url}")
+                else:
+                    failed.append((url, resp.status_code))
+                    click.echo(f"  FAIL {resp.status_code}  {url}")
+
+            click.echo(f"\n[test api] {passed} passed, {len(failed)} failed out of {passed + len(failed)}")
+            if failed:
+                raise SystemExit(1)
+
+    @test_group.command("url", help="Test all non-parameterized GET routes")
+    @click.option("--verbose", "-v", is_flag=True, default=False)
+    @click.option("--only-errors", "-e", is_flag=True, default=False)
+    def test_url(verbose, only_errors):
+        import flask
+        _app = flask.current_app._get_current_object()
+        _app.config["TESTING"] = True
+        with _app.app_context():
+            client, ok = _make_test_client_with_admin(_app)
+            if not ok:
+                click.echo("[test url] WARNING: no admin user found")
+
+            skip_prefixes = ("/static/", "/_debug_toolbar/")
+            rules = sorted(
+                (r for r in _app.url_map.iter_rules()
+                if "GET" in r.methods
+                and "<" not in r.rule
+                and not any(r.rule.startswith(p) for p in skip_prefixes)),
+                key=lambda r: r.rule,
+            )
+
+            passed, failed = 0, []
+            for rule in rules:
+                url = rule.rule
+                resp = client.get(url)
+                if resp.status_code in (200, 302, 403, 404, 405):
+                    passed += 1
+                    if verbose and not only_errors:
+                        click.echo(f"  PASS {resp.status_code}  {url}")
+                else:
+                    failed.append((url, resp.status_code))
+                    click.echo(f"  FAIL {resp.status_code}  {url}")
+
+            click.echo(f"\n[test url] {passed} passed, {len(failed)} failed out of {passed + len(failed)}")
+            if failed:
+                raise SystemExit(1)
+
 
 # ── Helpers (module-level) ────────────────────────────────────────────────────
 
@@ -435,24 +597,6 @@ def _resolve_install_path(name_or_file: str, flask_app) -> str:
         if os.path.isfile(c):
             return c
     return ""
-
-
-    @aras.command("dev-mode", help="Switch between development and production mode")
-    @click.option("--set", "mode_val", type=click.Choice(["0", "1"]),
-                  required=True, help="1 = development, 0 = production")
-    def dev_mode(mode_val):
-        import json as _json
-        import flask
-        _app = flask.current_app._get_current_object()
-        instance_dir = _app.instance_path
-        os.makedirs(instance_dir, exist_ok=True)
-        mode_file = os.path.join(instance_dir, "mode.json")
-        is_dev = mode_val == "1"
-        data = {"mode": "development" if is_dev else "production"}
-        with open(mode_file, "w") as f:
-            _json.dump(data, f)
-        label = "DEVELOPMENT" if is_dev else "PRODUCTION"
-        click.echo(f"[dev-mode] switched to {label}. Restart server to apply.")
 
 
 def _activate_app_by_id(app_id: int, flask_app):

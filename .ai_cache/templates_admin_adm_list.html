@@ -1,0 +1,67 @@
+{% extends extends_layout if extends_layout else 'admin/adm_base.html' %}
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   aras_list.html — universal list page (extends adm_base, delegates to _list_partial)
+
+   Variables — see _list_partial.html for full docs.
+   Extra (page-level only):
+     sibling_tabs    list — [(title, url), ...]
+     current_tab_url string
+     app_title       string
+   ─────────────────────────────────────────────────────────────────────────── #}
+
+{# ── Sibling tab bar ── #}
+{% block submenu %}
+{% set _has_tabs = sibling_tabs is defined and sibling_tabs %}
+{% set _has_add  = add_url is defined and add_url %}
+{% set _has_bulk = delete_url_base is defined and delete_url_base %}
+{% set _has_extra = extra_buttons is defined and extra_buttons %}
+{% if _has_tabs %}
+<div class="aras-tab-bar">
+  <nav class="aras-tab-nav">
+    {% if app_title %}<span class="aras-crumb">{{ app_title }}</span>
+    <i class="fa fa-chevron-right aras-crumb-sep"></i>{% endif %}
+    {% for tab_title, tab_url in sibling_tabs %}
+      <a href="{{ tab_url }}/"
+         class="aras-tab {% if tab_url == current_tab_url %}active{% endif %}">
+        {{ tab_title }}
+      </a>
+    {% endfor %}
+    <span class="aras-tab-bar-actions">
+      {% if _has_bulk %}
+      <div class="aras-bulk-wrap" id="bulkWrapTop" style="display:none;">
+        <div class="aras-bulk-pill">
+          <span class="aras-bulk-count" id="bulkCountTop">0</span> selected
+        </div>
+        <button class="aras-btn aras-btn--sm aras-btn--danger js-bulk-delete" type="button">
+          <i class="fa fa-trash-o"></i> Delete
+        </button>
+      </div>
+      {% endif %}
+      {% if _has_add %}
+      <a href="{{ add_url }}" class="aras-btn aras-btn--sm aras-btn--primary">
+        <i class="fa fa-plus"></i> Add New
+      </a>
+      {% endif %}
+      {% if _has_extra %}
+        {% for btn in extra_buttons %}
+        <a href="{{ btn.url }}" class="aras-btn aras-btn--sm {% if btn.style == 'outline' %}aras-btn--accent-outline{% else %}aras-btn--primary{% endif %}">
+          {% if btn.icon %}<i class="fa {{ btn.icon }}"></i> {% endif %}{{ btn.label }}
+        </a>
+        {% endfor %}
+      {% endif %}
+    </span>
+  </nav>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block page_content %}
+<div class="main-content-inner">
+  {% include 'admin/_list_partial.html' %}
+</div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+{% endblock %}

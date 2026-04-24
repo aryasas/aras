@@ -955,3 +955,52 @@
   padding-bottom: 4px;
   border-bottom: 1px solid var(--border, #e5e7eb);
 }
+
+/* ─── List-Detail layout ──────────────────────────────── */
+.aras-list-detail-layout {
+  display: flex;
+  gap: 0;
+  height: calc(100vh - 120px);
+  overflow: hidden;
+}
+.aras-list-detail-list {
+  width: 380px;
+  min-width: 260px;
+  max-width: 480px;
+  border-right: 1px solid var(--border, #e5e7eb);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+.aras-list-detail-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background: var(--surface, #fff);
+}
+.aras-list-detail-panel-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+.aras-list-detail-panel-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text, #111827);
+}
+.aras-list-detail-panel-body { }
+.aras-list-detail-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted, #9ca3af);
+  gap: 12px;
+}
+.aras-list-detail-empty-icon {
+  font-size: 32px;
+}
+#mainListTable tbody tr.is-selected {
+  background: var(--primary-light, #eff0fe);
+}

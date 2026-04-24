@@ -84,64 +84,111 @@
       </div>
     </div>
 
-    {# ── Child tables ── #}
+    {# ── Child tables (inline) ── #}
     {% if child_tables is defined and child_tables %}
       {% for ct in child_tables %}
-      <div class="aras-child-card">
+      {% set ct_id = loop.index %}
+      {% set _ct_rel = ct.rel_maps if ct.rel_maps is defined else {} %}
+      <div class="aras-child-card" id="ct-card-{{ ct_id }}">
         <div class="aras-child-header">
           <div class="aras-child-title-wrap">
             <span class="aras-child-indicator"></span>
             <h3 class="aras-child-title">{{ ct.title }}</h3>
-            <span class="aras-child-count">{{ ct.rows|length }}</span>
+            <span class="aras-child-count" id="ct-count-{{ ct_id }}">{{ ct.rows|length }}</span>
           </div>
-          {% if ct.adm_url %}
+          {% if ct.api_url %}
+          <button type="button" class="aras-btn aras-btn--sm aras-btn--accent-outline"
+                  onclick="ctAddRow({{ ct_id }})">
+            <i class="fa fa-plus"></i> Add Row
+          </button>
+          {% elif ct.adm_url %}
           <a href="{{ ct.adm_url }}/add/?{{ ct.fk_col }}={{ ct.parent_id }}"
              class="aras-btn aras-btn--sm aras-btn--accent-outline">
             <i class="fa fa-plus"></i> Add {{ ct.title }}
           </a>
           {% endif %}
         </div>
-        {% if ct.rows %}
+
         <div class="aras-child-table-wrap">
-          <table class="aras-child-table">
+          <table class="aras-child-table" id="ct-table-{{ ct_id }}">
             <thead>
               <tr>
                 {% for label, _ in ct.vcols %}<th>{{ label }}</th>{% endfor %}
-                <th class="th-arrow"></th>
+                {% if ct.api_url %}<th style="width:60px;"></th>{% else %}<th class="th-arrow"></th>{% endif %}
               </tr>
             </thead>
-            <tbody>
-              {% set _ct_rel = ct.rel_maps if ct.rel_maps is defined else {} %}
+            <tbody id="ct-tbody-{{ ct_id }}">
               {% for row in ct.rows %}
-              <tr {% if ct.adm_url %}class="is-clickable"
-                  onclick="window.location='{{ ct.adm_url }}/{{ row.id }}/';"{% endif %}>
+              <tr data-id="{{ row.id }}" class="ct-row{% if ct.adm_url and not ct.api_url %} is-clickable{% endif %}"
+                  {% if ct.adm_url and not ct.api_url %}onclick="window.location='{{ ct.adm_url }}/{{ row.id }}/';"{% endif %}>
                 {% for _, field_name in ct.vcols %}
                   {% set raw = row|attr(field_name) if row|attr(field_name) is defined else none %}
                   {% if field_name in _ct_rel and raw is not none %}
-                <td>{{ _ct_rel[field_name][raw] if raw in _ct_rel[field_name] else raw }}</td>
+                <td data-raw="{{ raw }}">{{ _ct_rel[field_name][raw] if raw in _ct_rel[field_name] else raw }}</td>
                   {% else %}
-                <td>{{ raw if raw is not none else '—' }}</td>
+                <td data-raw="{{ raw if raw is not none else '' }}">{{ raw if raw is not none else '—' }}</td>
                   {% endif %}
                 {% endfor %}
-                <td class="td-arrow">
-                  {% if ct.adm_url %}<i class="fa fa-chevron-right row-arrow"></i>{% endif %}
+                {% if ct.api_url %}
+                <td class="ct-actions">
+                  <button type="button" class="ct-btn-edit" title="Edit" onclick="ctEditRow({{ ct_id }}, this)"><i class="fa fa-pencil"></i></button>
+                  <button type="button" class="ct-btn-del" title="Delete" onclick="ctDeleteRow({{ ct_id }}, this)"><i class="fa fa-trash"></i></button>
                 </td>
+                {% else %}
+                <td class="td-arrow">{% if ct.adm_url %}<i class="fa fa-chevron-right row-arrow"></i>{% endif %}</td>
+                {% endif %}
               </tr>
               {% endfor %}
             </tbody>
           </table>
-        </div>
-        {% else %}
-        <div class="aras-child-empty">
-          <i class="fa fa-inbox"></i>
-          <span>No {{ ct.title }} records yet</span>
-          {% if ct.adm_url %}
-          <a href="{{ ct.adm_url }}/add/?{{ ct.fk_col }}={{ ct.parent_id }}"
-             class="aras-btn aras-btn--sm aras-btn--accent-outline" style="margin-left:4px;">
-            Add first record
-          </a>
+          {% if not ct.rows %}
+          <div class="aras-child-empty" id="ct-empty-{{ ct_id }}">
+            <i class="fa fa-inbox"></i>
+            <span>No {{ ct.title }} records yet</span>
+          </div>
           {% endif %}
         </div>
+
+        {# Inline add/edit form — hidden until activated #}
+        {% if ct.api_url %}
+        <div class="ct-inline-form" id="ct-form-{{ ct_id }}" data-api-url="{{ ct.api_url }}" style="display:none;">
+          <div class="ct-inline-form-inner">
+            <input type="hidden" id="ct-editing-id-{{ ct_id }}" value="">
+            {% if ct.inline_columns %}
+            {% for col in ct.inline_columns %}
+            <div class="ct-field">
+              <label class="ct-field-label">{{ col.label }}{% if col.required %} <span style="color:#e53">*</span>{% endif %}</label>
+              {% if col.type == 'select' %}
+              <select class="ct-input" name="{{ col.name }}" id="ct-{{ ct_id }}-{{ col.name }}">
+                <option value="">— select —</option>
+                {% for opt in col.fk_options %}
+                <option value="{{ opt.id }}">{{ opt.label }}</option>
+                {% endfor %}
+              </select>
+              {% elif col.type == 'checkbox' %}
+              <input type="checkbox" class="ct-input" name="{{ col.name }}" id="ct-{{ ct_id }}-{{ col.name }}">
+              {% elif col.type == 'textarea' %}
+              <textarea class="ct-input" name="{{ col.name }}" id="ct-{{ ct_id }}-{{ col.name }}" rows="2"></textarea>
+              {% else %}
+              <input type="{{ col.type }}" class="ct-input" name="{{ col.name }}" id="ct-{{ ct_id }}-{{ col.name }}">
+              {% endif %}
+            </div>
+            {% endfor %}
+            {% endif %}
+            <div class="ct-form-actions">
+              <button type="button" class="aras-btn aras-btn--primary aras-btn--sm" onclick="ctSaveRow({{ ct_id }}, '{{ ct.api_url }}', '{{ ct.fk_col }}', {{ ct.parent_id }})">
+                <i class="fa fa-check"></i> Save
+              </button>
+              <button type="button" class="aras-btn aras-btn--sm" onclick="ctCancelRow({{ ct_id }})">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        {# Store vcol names for JS row refresh #}
+        <script type="application/json" id="ct-meta-{{ ct_id }}">
+          {"vcols": [{% for _, fname in ct.vcols %}"{{ fname }}"{% if not loop.last %},{% endif %}{% endfor %}],
+           "rel_maps": { {% for fname, rmap in _ct_rel.items() %}"{{ fname }}": { {% for k, v in rmap.items() %}"{{ k }}": "{{ v }}"{% if not loop.last %},{% endif %}{% endfor %} }{% if not loop.last %},{% endif %}{% endfor %} }}
+        </script>
         {% endif %}
       </div>
       {% endfor %}
@@ -198,6 +245,7 @@
 {{ super() }}
 <script>
 (function () {
+  /* ── activity timeago ─────────────────────────────────────────────────── */
   function timeago(iso) {
     if (!iso) return '';
     var d = new Date(iso), diff = Math.round((Date.now() - d) / 1000);
@@ -211,5 +259,141 @@
     if (t) el.textContent = '· ' + timeago(t);
   });
 })();
+
+/* ── inline child table ───────────────────────────────────────────────────── */
+function ctGetMeta(ctId) {
+  try { return JSON.parse(document.getElementById('ct-meta-' + ctId).textContent); }
+  catch(e) { return {vcols: [], rel_maps: {}}; }
+}
+
+function ctUpdateCount(ctId) {
+  var tbody = document.getElementById('ct-tbody-' + ctId);
+  var count = tbody ? tbody.querySelectorAll('tr.ct-row').length : 0;
+  var el = document.getElementById('ct-count-' + ctId);
+  if (el) el.textContent = count;
+  var empty = document.getElementById('ct-empty-' + ctId);
+  if (empty) empty.style.display = count === 0 ? '' : 'none';
+}
+
+function ctAddRow(ctId) {
+  document.getElementById('ct-editing-id-' + ctId).value = '';
+  var form = document.getElementById('ct-form-' + ctId);
+  form.querySelectorAll('.ct-input').forEach(function(el) {
+    if (el.type === 'checkbox') el.checked = false;
+    else el.value = '';
+  });
+  form.style.display = '';
+  form.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+}
+
+function ctEditRow(ctId, btn) {
+  var row = btn.closest('tr');
+  var rowId = row.dataset.id;
+  document.getElementById('ct-editing-id-' + ctId).value = rowId;
+  var meta = ctGetMeta(ctId);
+  var cells = row.querySelectorAll('td:not(.ct-actions)');
+  meta.vcols.forEach(function(fname, i) {
+    var inp = document.getElementById('ct-' + ctId + '-' + fname);
+    if (!inp) return;
+    var raw = cells[i] ? (cells[i].dataset.raw !== undefined ? cells[i].dataset.raw : cells[i].textContent.trim()) : '';
+    if (raw === '—') raw = '';
+    if (inp.type === 'checkbox') inp.checked = raw === 'True' || raw === 'true' || raw === '1';
+    else inp.value = raw;
+  });
+  var form = document.getElementById('ct-form-' + ctId);
+  form.style.display = '';
+  form.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+}
+
+function ctCancelRow(ctId) {
+  document.getElementById('ct-form-' + ctId).style.display = 'none';
+  document.getElementById('ct-editing-id-' + ctId).value = '';
+}
+
+function ctSaveRow(ctId, apiUrl, fkCol, parentId) {
+  var editingId = document.getElementById('ct-editing-id-' + ctId).value;
+  var form = document.getElementById('ct-form-' + ctId);
+  var data = {};
+  data[fkCol] = parentId;
+  form.querySelectorAll('.ct-input').forEach(function(el) {
+    var name = el.name;
+    if (!name) return;
+    if (el.type === 'checkbox') data[name] = el.checked;
+    else if (el.value !== '') data[name] = el.value;
+  });
+  var method = editingId ? 'PUT' : 'POST';
+  var url = editingId ? apiUrl.replace(/\/$/, '') + '/' + editingId + '/' : apiUrl;
+  fetch(url, {
+    method: method,
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': ctGetCsrf()},
+    body: JSON.stringify(data)
+  }).then(function(r) {
+    if (!r.ok) return r.json().then(function(e) { alert('Error: ' + (e.error || r.status)); });
+    return r.json().then(function(obj) {
+      ctRenderRow(ctId, obj, editingId);
+      ctCancelRow(ctId);
+      ctUpdateCount(ctId);
+    });
+  }).catch(function(e) { alert('Network error: ' + e); });
+}
+
+function ctRenderRow(ctId, obj, editingId) {
+  var meta = ctGetMeta(ctId);
+  var tbody = document.getElementById('ct-tbody-' + ctId);
+  var cells = meta.vcols.map(function(fname) {
+    var raw = obj[fname];
+    if (raw === null || raw === undefined) raw = '';
+    var rel = meta.rel_maps[fname];
+    var display = rel ? (rel[String(raw)] || raw) : raw;
+    return '<td data-raw="' + String(raw).replace(/"/g, '&quot;') + '">' + String(display === '' ? '—' : display) + '</td>';
+  });
+  var actCell = '<td class="ct-actions">' +
+    '<button type="button" class="ct-btn-edit" title="Edit" onclick="ctEditRow(' + ctId + ', this)"><i class="fa fa-pencil"></i></button>' +
+    '<button type="button" class="ct-btn-del" title="Delete" onclick="ctDeleteRow(' + ctId + ', this)"><i class="fa fa-trash"></i></button>' +
+    '</td>';
+  var rowHtml = '<tr data-id="' + obj.id + '" class="ct-row">' + cells.join('') + actCell + '</tr>';
+  if (editingId) {
+    var existing = tbody.querySelector('tr[data-id="' + editingId + '"]');
+    if (existing) { existing.outerHTML = rowHtml; return; }
+  }
+  tbody.insertAdjacentHTML('beforeend', rowHtml);
+}
+
+function ctDeleteRow(ctId, btn) {
+  if (!confirm('Delete this row?')) return;
+  var row = btn.closest('tr');
+  var rowId = row.dataset.id;
+  var form = document.getElementById('ct-form-' + ctId);
+  var apiUrl = form ? form.dataset.apiUrl : null;
+  if (!apiUrl) { alert('Cannot determine API URL'); return; }
+  fetch(apiUrl.replace(/\/$/, '') + '/' + rowId + '/', {
+    method: 'DELETE',
+    headers: {'X-CSRFToken': ctGetCsrf()}
+  }).then(function(r) {
+    if (!r.ok) return r.json().then(function(e) { alert('Error: ' + (e.error || r.status)); });
+    row.remove();
+    ctUpdateCount(ctId);
+  }).catch(function(e) { alert('Network error: ' + e); });
+}
+
+function ctGetCsrf() {
+  var m = document.cookie.match(/csrf_token=([^;]+)/);
+  if (m) return decodeURIComponent(m[1]);
+  var tag = document.querySelector('input[name="csrf_token"]');
+  return tag ? tag.value : '';
+}
 </script>
+<style>
+.ct-inline-form { border-top: 1px solid var(--border-color, #e5e7eb); padding: 16px 20px; background: #fafafa; }
+.ct-inline-form-inner { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.ct-field { display: flex; flex-direction: column; gap: 4px; min-width: 140px; flex: 1 1 160px; }
+.ct-field-label { font-size: 12px; font-weight: 500; color: #666; }
+.ct-input { border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 10px; font-size: 13px; background: #fff; outline: none; }
+.ct-input:focus { border-color: var(--primary, #2563eb); box-shadow: 0 0 0 2px rgba(37,99,235,.15); }
+.ct-form-actions { display: flex; gap: 8px; align-items: center; flex-basis: 100%; padding-top: 4px; }
+.ct-actions { white-space: nowrap; width: 64px; }
+.ct-btn-edit, .ct-btn-del { background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 4px; font-size: 13px; }
+.ct-btn-edit { color: #6b7280; } .ct-btn-edit:hover { color: #2563eb; background: #eff6ff; }
+.ct-btn-del  { color: #6b7280; } .ct-btn-del:hover  { color: #dc2626; background: #fef2f2; }
+</style>
 {% endblock %}

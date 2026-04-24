@@ -325,14 +325,18 @@ class AdminResourceMounter:
                                 }
                         except Exception:
                             pass
+                    from arasCore.lib.api_handler import get_api_url_for_model
+                    from arasCore.arasAdmin.services import _get_inline_columns
                     child_tables.append({
-                        "title":     cd["title"],
-                        "vcols":     cd["vcols"],
-                        "adm_url":   adm_url,
-                        "fk_col":    cd["fk_col"],
-                        "rows":      rows,
-                        "parent_id": item_id,
-                        "rel_maps":  child_rel_maps,
+                        "title":          cd["title"],
+                        "vcols":          cd["vcols"],
+                        "adm_url":        adm_url,
+                        "fk_col":         cd["fk_col"],
+                        "rows":           rows,
+                        "parent_id":      item_id,
+                        "rel_maps":       child_rel_maps,
+                        "api_url":        get_api_url_for_model(cd["model"]),
+                        "inline_columns": _get_inline_columns(cd["model"], cd["fk_col"]),
                     })
                 except Exception:
                     pass

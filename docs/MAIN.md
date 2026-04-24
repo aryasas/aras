@@ -254,7 +254,24 @@ App settings pages stay at `/admin/<app>/settings/` (framework-generated) — no
 
 ---
 
-## 10. Referensi Lanjutan
+## 10. Terminology: Dua Jenis Relasi
+
+Aras membedakan dua jenis relasi antar tabel:
+
+| Istilah | Nama dalam ResourceDef | Contoh | Ciri |
+|---------|----------------------|--------|------|
+| **Link Table** | `is_child_table=False` (default) | Currency, Tax, Gender, UoM, Warehouse | Bisa diakses & dibuat langsung; muncul di sidebar; dropdown biasa di form parent |
+| **Child Table** | `is_child_table=True` | InvoiceLine, OrderLine, JournalLine | **Tidak bisa dibuat tanpa parent**; muncul inline di form parent (tombol + tambah baris); tidak muncul di sidebar sebagai menu tersendiri |
+
+**Aturan:**
+- Child table selalu punya FK yang wajib (not null) ke parent.
+- Tambah baris child table hanya bisa dari form parent — via tombol inline `+`.
+- Link table adalah master data / opsi referensi — bisa dibuka langsung.
+- Dalam `manifest.py`: tandai `ResourceDef(..., is_child_table=True, admin_list=False)` untuk child tables.
+
+---
+
+## 11. Referensi Lanjutan
 
 - Peta file terkini: jalankan `ls arasCore/lib/` dan `ls arasCore/arasAdmin/` — jangan hafalkan nama file di dokumen ini, struktur arasCore masih berkembang.
 - Status implementasi & TODO aktif → `docs/progress.md`.

@@ -249,10 +249,16 @@ def sync_table_columns(model):
 
 
 def clear_cache(app_name=None):
-    """Clear cached models/forms + SA mapper entries so models rebuild on next request."""
+    """Clear cached models/forms, sidebar menu, and SA mapper entries."""
     try:
         from arasCore.lib.audit import invalidate_cache as _audit_invalidate
         _audit_invalidate()
+    except Exception:
+        pass
+    # Always bust the sidebar menu cache so top-bar reflects changes immediately
+    try:
+        from arasCore.lib.extensions import cache as _cache
+        _cache.delete("_sidebar_raw")
     except Exception:
         pass
     if app_name:
@@ -393,73 +399,54 @@ def get_view_columns(tbl):
 
 
 def _build_raw_menu() -> list:
-    """Build the raw sidebar menu tree (no RBAC filter). Suitable for caching."""
-    result = []
+    """
+    Build the raw sidebar menu tree entirely from DB (no RBAC filter).
+    Both manifest and dynamic apps read from mgr_app / mgr_table so the
+    Menu Editor controls the live menu without any Python restarts.
+    """
+    from arasCore.arasAdmin.models import AppManagerApp, AppManagerTable
 
-    # ── 1. Code-based apps dari manifest registry ─────────────────────────────
-    try:
-        from arasCore.lib.blueprints import get_helper_registry
-        for helper in sorted(get_helper_registry().values(), key=lambda h: h.admin_order):
-            result.append(helper.to_menu_dict())
-    except Exception as e:
-        logger.warning(f"[services] manifest menu error: {e}")
-
-    # ── 2. Dynamic apps dari DB ───────────────────────────────────────────────
-    def _node_to_dict(node, app_url, app_name):
-        t = node["tbl"]
-        full_url = t.get_full_url(app_url)
+    def _node_to_dict(t, app_url):
         return {
             "title":    t.get_menu_title(),
             "icon":     t.menu_icon or "fa-table",
-            "url":      f"/admin{full_url}/",
-            "children": [_node_to_dict(c, app_url, app_name) for c in node["children"]],
+            "url":      f"/admin{t.get_full_url(app_url)}/",
+            "children": [],   # filled in below via parent map
         }
 
+    result = []
     try:
-        from arasCore.lib.blueprints import get_helper_registry
-        manifest_names = set(get_helper_registry().keys())
-    except Exception:
-        manifest_names = set()
-
-    try:
-        from arasCore.arasAdmin.models import AppManagerApp, AppManagerTable
         apps = AppManagerApp.query.filter_by(is_active=True).order_by(AppManagerApp.menu_order).all()
         for app in apps:
-            if app.name in manifest_names:
-                continue
             tables = (
                 AppManagerTable.query
-                .filter_by(app_id=app.id, is_active=True, show_in_menu=True)
+                .filter_by(app_id=app.id, show_in_menu=True)
                 .order_by(AppManagerTable.menu_order)
                 .all()
             )
-            tbl_map = {t.id: {"tbl": t, "children": []} for t in tables}
+            app_url = app.url_prefix
+            tbl_map = {t.id: {"tbl": t, "node": _node_to_dict(t, app_url)} for t in tables}
             roots = []
             for t in tables:
-                node = tbl_map[t.id]
+                entry = tbl_map[t.id]
                 if t.parent_table_id and t.parent_table_id in tbl_map:
-                    tbl_map[t.parent_table_id]["children"].append(node)
+                    tbl_map[t.parent_table_id]["node"]["children"].append(entry["node"])
                 else:
-                    roots.append(node)
-            adm_slug = _slug_from_url(app.url)
-            children = [_node_to_dict(n, app.url, app.name) for n in roots]
-            children.append({
-                "title":    "Settings",
-                "icon":     "fa-cog",
-                "url":      f"/admin/{adm_slug}/settings/",
-                "children": [],
-            })
+                    roots.append(entry["node"])
+
+            adm_slug = _slug_from_url(app_url)
+            children = list(roots)
             result.append({
-                "title":    app.main_title,
+                "title":    app.title,
                 "icon":     app.icon or "fa-cubes",
                 "order":    app.menu_order or 99,
                 "url":      f"/admin/{adm_slug}/",
                 "children": children,
-                "source":   "dynamic",
+                "source":   "db",
                 "app_slug": adm_slug,
             })
     except Exception as e:
-        logger.warning(f"[services] dynamic menu error: {e}")
+        logger.warning(f"[services] menu build error: {e}")
 
     return sorted(result, key=lambda x: x.get("order", 99))
 
@@ -573,16 +560,15 @@ def _register_built_app(app_def_id, flask_app):
             # Build models (parents first so FK refs resolve)
             table_models = {}
             for tbl in ordered:
-                model = make_table_model(tbl, app_def.name, all_tbls)
+                model = make_table_model(tbl, app_def.slug, all_tbls)
                 model.__table__.create(db.engine, checkfirst=True)
                 sync_table_columns(model)
                 table_models[tbl.id] = model
 
             # Snapshot everything needed outside DB session
-            app_name       = app_def.name
-            app_url        = app_def.url
-            app_main_title = app_def.main_title
-            # admin_slug is derived from url so /admin/<slug>/ always matches the app's url
+            app_name       = app_def.slug
+            app_url        = app_def.url_prefix
+            app_main_title = app_def.title
             admin_slug     = _slug_from_url(app_url)
 
             table_snapshots = []
@@ -609,6 +595,7 @@ def _register_built_app(app_def_id, flask_app):
                     "app_slug":           admin_slug,
                     "required_role_slug": tbl.required_role_slug,
                     "per_page":           tbl.per_page or 20,
+                    "layout_json":        tbl.layout_json if hasattr(tbl, "layout_json") else None,
                 })
 
         except Exception as e:
@@ -713,8 +700,9 @@ def _register_table_routes(bp, snap, all_snaps):
     app_title = snap["app_title"]
     app_id    = snap["app_id"]
     table_id  = snap["table_id"]
-    app_slug  = snap.get("app_slug", "")
-    req_role  = snap.get("required_role_slug")
+    app_slug    = snap.get("app_slug", "")
+    req_role    = snap.get("required_role_slug")
+    layout_json = snap.get("layout_json")
     # Sibling table links for submenu: [(title, url), ...]
     sibling_tabs = [(s["title"], s["url"]) for s in all_snaps]
 
@@ -757,14 +745,16 @@ def _register_table_routes(bp, snap, all_snaps):
             if not check_permission(current_user, app_slug, tname, "view"):
                 abort(403)
 
-            # Load per-user list view setting (per_page, view_mode, show_totals)
+            # Load per-user list view setting (per_page, view_mode, show_totals, columns)
             effective_per_page = per_page
             view_mode = "list"
             show_totals = False
+            saved_columns = None
             user_setting = None
             try:
-                from aras.app_erp.erp_core.models.list_view import ErpListViewSetting
-                user_setting = ErpListViewSetting.query.filter_by(
+                from arasCore.arasAdmin.models import ListViewSetting
+                from arasCore.lib.extensions import db as _db
+                user_setting = ListViewSetting.query.filter_by(
                     user_id=current_user.id, doctype=_doctype_key
                 ).first()
                 if user_setting:
@@ -772,6 +762,7 @@ def _register_table_routes(bp, snap, all_snaps):
                         effective_per_page = user_setting.page_size
                     view_mode = user_setting.view_mode or "list"
                     show_totals = bool(user_setting.show_totals)
+                    saved_columns = user_setting.columns_json
             except Exception:
                 pass
 
@@ -779,19 +770,17 @@ def _register_table_routes(bp, snap, all_snaps):
             req_per_page = request.args.get("per_page", type=int)
             if req_per_page and req_per_page > 0:
                 effective_per_page = req_per_page
-                # Persist change to DB
                 try:
-                    from aras.app_erp.erp_core.models.list_view import ErpListViewSetting
+                    from arasCore.arasAdmin.models import ListViewSetting
+                    from arasCore.lib.extensions import db as _db
                     if user_setting is None:
-                        from arasCore.lib.extensions import db as _db
-                        user_setting = ErpListViewSetting(
+                        user_setting = ListViewSetting(
                             user_id=current_user.id, doctype=_doctype_key,
                             page_size=req_per_page
                         )
                         _db.session.add(user_setting)
                     else:
                         user_setting.page_size = req_per_page
-                    from arasCore.lib.extensions import db as _db
                     _db.session.commit()
                 except Exception:
                     pass
@@ -870,7 +859,7 @@ def _register_table_routes(bp, snap, all_snaps):
                 pass
 
             return render_template(
-                "admin/aras_list.html",
+                "admin/adm_list.html",
                 title=title, main_title=main_t,
                 items=pagination.items, view_columns=vcols,
                 pagination=pagination, per_page=effective_per_page,
@@ -888,6 +877,7 @@ def _register_table_routes(bp, snap, all_snaps):
                 show_totals=show_totals,
                 linked_report_url=linked_report_url,
                 doctype_key=_doctype_key,
+                saved_columns=saved_columns,
             )
         return view
 
@@ -913,14 +903,29 @@ def _register_table_routes(bp, snap, all_snaps):
                 db.session.add(obj)
                 db.session.commit()
                 after_hook()
+                try:
+                    from arasCore.lib.events import emit_crud
+                    emit_crud(app_slug, tname, "created", obj=obj)
+                except Exception:
+                    pass
                 flash("Record added.", "success")
                 return redirect(f"{adm_burl}/")
+            _layout_tabs = None
+            if layout_json:
+                try:
+                    from arasCore.lib.layout import parse_layout
+                    class _FakeTbl: pass
+                    _ft = _FakeTbl(); _ft.name = tname; _ft.layout_json = layout_json
+                    _layout_tabs = parse_layout(_ft, form)
+                except Exception:
+                    pass
             return render_template(
-                "admin/aras_admin_form.html",
+                "admin/adm_form.html",
                 title=f"Add — {title}", main_title=main_t,
                 form=form, action=f"{adm_burl}/add/", list_url=f"{adm_burl}/",
                 app_title=app_title, app_id=app_id, table_id=table_id,
                 sibling_tabs=adm_sibling_tabs, current_tab_url=cur_burl,
+                layout_tabs=_layout_tabs,
             )
         return view
 
@@ -946,6 +951,11 @@ def _register_table_routes(bp, snap, all_snaps):
                 form.populate_obj(obj)
                 db.session.commit()
                 after_hook()
+                try:
+                    from arasCore.lib.events import emit_crud
+                    emit_crud(app_slug, tname, "updated", obj=obj)
+                except Exception:
+                    pass
                 flash("Record updated.", "success")
                 return redirect(f"{adm_burl}/")
             # Build child table data: query each child filtered by parent FK
@@ -965,13 +975,23 @@ def _register_table_routes(bp, snap, all_snaps):
                     })
                 except Exception:
                     pass
+            _layout_tabs = None
+            if layout_json:
+                try:
+                    from arasCore.lib.layout import parse_layout
+                    class _FakeTbl: pass
+                    _ft = _FakeTbl(); _ft.name = tname; _ft.layout_json = layout_json
+                    _layout_tabs = parse_layout(_ft, form)
+                except Exception:
+                    pass
             return render_template(
-                "admin/aras_admin_form.html",
+                "admin/adm_form.html",
                 title=f"Edit — {title}", main_title=main_t,
                 form=form, action=f"{adm_burl}/{item_id}/", list_url=f"{adm_burl}/",
                 app_title=app_title, app_id=app_id, table_id=table_id,
                 sibling_tabs=adm_sibling_tabs, current_tab_url=cur_burl,
                 child_tables=child_tables,
+                layout_tabs=_layout_tabs,
             )
         return view
 
@@ -991,6 +1011,11 @@ def _register_table_routes(bp, snap, all_snaps):
             maybe_log(obj, action="delete", before=_snapshot(obj))
             db.session.delete(obj)
             db.session.commit()
+            try:
+                from arasCore.lib.events import emit_crud
+                emit_crud(app_slug, tname, "deleted", obj=obj)
+            except Exception:
+                pass
             flash("Record deleted.", "warning")
             return redirect(f"{adm_burl}/")
         return view
@@ -1036,7 +1061,7 @@ def _register_table_routes(bp, snap, all_snaps):
         def view():
             items = model.query.all()
             return render_template(
-                "admin/aras_list.html",
+                "admin/adm_list.html",
                 title=title, main_title=main_t,
                 items=items, view_columns=vcols,
                 add_url=f"{burl}/add/",
@@ -1066,7 +1091,7 @@ def _register_table_routes(bp, snap, all_snaps):
                 flash("Record added.", "success")
                 return redirect(f"{burl}/")
             return render_template(
-                "admin/aras_admin_form.html",
+                "admin/adm_form.html",
                 title=f"Add — {title}", main_title=f"Add {main_t}",
                 form=form, action=f"{burl}/add/", list_url=f"{burl}/",
                 app_title=app_title,
@@ -1092,7 +1117,7 @@ def _register_table_routes(bp, snap, all_snaps):
                 flash("Record updated.", "success")
                 return redirect(f"{burl}/")
             return render_template(
-                "admin/aras_admin_form.html",
+                "admin/adm_form.html",
                 title=f"Edit — {title}", main_title=f"Edit {main_t}",
                 form=form, action=f"{burl}/{item_id}/", list_url=f"{burl}/",
                 app_title=app_title,
@@ -1142,12 +1167,25 @@ def _register_table_routes(bp, snap, all_snaps):
 
 def _detect_parent_fk(child_model, parent_model):
     """Return the FK column name on child_model that references parent_model's table."""
+    parent_table = parent_model.__tablename__
+    # 1. SA column FK metadata (may be empty if extend_existing stripped FK info)
     try:
-        parent_table = parent_model.__tablename__
         for col in child_model.__table__.columns:
             for fk in col.foreign_keys:
                 if fk.column.table.name == parent_table:
                     return col.name
+    except Exception:
+        pass
+    # 2. Fallback via SA relationship mapper on parent — find the local key pointing here
+    try:
+        from sqlalchemy import inspect as sa_inspect
+        parent_mapper = sa_inspect(parent_model)
+        child_table   = child_model.__tablename__
+        for rel in parent_mapper.relationships:
+            if rel.uselist and rel.mapper.class_.__tablename__ == child_table:
+                # rel.synchronize_pairs gives [(parent_col, child_col)]
+                for _, child_col in rel.synchronize_pairs:
+                    return child_col.name
     except Exception:
         pass
     return None
@@ -1221,7 +1259,7 @@ def load_all_built_apps(flask_app):
         with flask_app.app_context():
             db.create_all()
             apps = AppManagerApp.query.filter_by(is_active=True).all()
-            app_ids = [(a.id, a.name) for a in apps]
+            app_ids = [(a.id, a.slug) for a in apps]
             logger.info(f"[services] Found {len(app_ids)} active built app(s).")
 
         helper_registry = get_helper_registry()
