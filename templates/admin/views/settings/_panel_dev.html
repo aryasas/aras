@@ -1,0 +1,35 @@
+<div class="settings-panel d-none" id="panel-dev">
+  <div class="panel-header">
+    <h3 style="font-family: 'Libre Baskerville', serif; font-style: italic; font-weight: 700;"><i class="ti-dashboard mr-2 text-primary"></i>Developer Tools</h3>
+    <p class="text-muted">Low-level framework inspection, routes, and loaded modules.</p>
+  </div>
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="mb-4">
+        <h6>Registered Routes <span class="badge badge-secondary">{{ dev_routes|length }}</span></h6>
+        <div style="max-height:400px;overflow-y:auto;">
+          <table class="aras-table" style="font-size:12px;">
+            <thead><tr><th>Rule</th><th>Methods</th><th>Endpoint</th></tr></thead>
+            <tbody>
+            {% for r in dev_routes %}
+            <tr>
+              <td><code>{{ r.rule }}</code></td>
+              <td><span class="text-muted">{{ r.methods }}</span></td>
+              <td style="font-size:11px;color:#6c757d;">{{ r.endpoint }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <h6>Loaded aras Modules <span class="badge badge-secondary">{{ dev_modules|length }}</span></h6>
+        <div style="columns:3;font-size:11px;max-height:300px;overflow-y:auto;">
+          {% for m in dev_modules %}
+          <div><code>{{ m }}</code></div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

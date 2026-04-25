@@ -1,0 +1,167 @@
+{% extends extends_layout if extends_layout else 'admin/layouts/base_admin.html' %}
+
+{% block submenu %}
+<div class="page-title-area py-3 px-4 border-bottom bg-white">
+    <div class="row align-items-center">
+        <div class="col-sm-6">
+            <div class="breadcrumbs-area clearfix">
+                <h4 class="page-title pull-left" style="font-family: 'Libre Baskerville', serif; font-style: italic; font-weight: 700;">Settings</h4>
+                <ul class="breadcrumbs pull-left">
+                    <li><a href="{{ url_for('admin.dashboard') }}">Home</a></li>
+                    <li><span>Framework Settings</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_content %}
+<div class="row mt-4 px-3">
+
+  {# ── Sidebar nav ── #}
+  <div class="col-md-3">
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-white border-bottom py-3">
+        <h6 class="mb-0 text-uppercase font-weight-bold small text-muted"><i class="ti-panel mr-2"></i>Administration</h6>
+      </div>
+      <div class="card-body p-0">
+        <div class="list-group list-group-flush" id="settings-nav">
+          {% for panel_id, icon, label in [
+            ('panel-general',  'ti-settings',     'General'),
+            ('panel-server',   'ti-desktop',      'Server'),
+            ('panel-apps',     'ti-layout-grid2', 'App Manager'),
+            ('panel-doctypes', 'ti-files',        'DocTypes'),
+            ('panel-uploads',  'ti-folder',       'Uploads'),
+            ('panel-users',    'ti-user',         'Users'),
+            ('panel-userlog',  'ti-time',         'User Log'),
+            ('panel-database', 'ti-server',       'Database'),
+            ('panel-roles',    'ti-shield',       'Roles'),
+            ('panel-menu',     'ti-menu',         'Menu Editor'),
+            ('panel-audit',    'ti-eye',          'Audit Log'),
+            ('panel-health',   'ti-pulse',        'Health'),
+            ('panel-system',   'ti-control-knob', 'System'),
+            ('panel-webhooks', 'ti-link',         'Webhooks'),
+            ('panel-scripts',  'ti-code',         'Scripts'),
+            ('panel-dev',      'ti-dashboard',    'Dev'),
+          ] %}
+          <a href="#{{ panel_id }}"
+             class="list-group-item list-group-item-action border-0 settings-nav-item {% if loop.first %}active{% endif %}"
+             data-panel="{{ panel_id }}"
+             style="padding: 12px 20px; font-size: 14px; display: flex; align-items: center; gap: 12px;">
+            <i class="{{ icon }}" style="font-size: 16px;"></i>
+            <span>{{ label }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Panels ── #}
+  <div class="col-md-9">
+    {% include 'admin/views/settings/_panel_general.html' %}
+    {% include 'admin/views/settings/_panel_server.html' %}
+    {% include 'admin/views/settings/_panel_apps.html' %}
+    {% include 'admin/views/settings/_panel_doctypes.html' %}
+    {% include 'admin/views/settings/_panel_uploads.html' %}
+    {% include 'admin/views/settings/_panel_users.html' %}
+    {% include 'admin/views/settings/_panel_userlog.html' %}
+    {% include 'admin/views/settings/_panel_database.html' %}
+    {% include 'admin/views/settings/_panel_roles.html' %}
+
+    {# Menu Editor is complex, keep it here or also partial? Let's keep it here for now as it has a script #}
+    <div class="settings-panel d-none" id="panel-menu">
+      <div class="panel-header">
+        <h3 style="font-family: 'Libre Baskerville', serif; font-style: italic; font-weight: 700;"><i class="ti-menu mr-2 text-primary"></i>Navigation Menu Editor</h3>
+        <p class="text-muted">Customize the sidebar navigation structure for all applications.</p>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <p class="text-muted mb-0" style="font-size:13px;">
+                Drag <i class="ti-menu-alt"></i> to reorder. Click a row to edit. Drop onto a row's <strong>indent zone</strong> to nest it as a child.
+              </p>
+            </div>
+            <div class="d-flex gap-2" style="gap:8px;">
+              <button class="btn btn-outline-secondary btn-sm" onclick="ME.openAddModal('group')" title="Add a new menu group">
+                <i class="ti-folder mr-1"></i>Add Group
+              </button>
+              <button class="btn btn-outline-secondary btn-sm" onclick="ME.openAddModal('page')" title="Add a new menu page">
+                <i class="ti-file mr-1"></i>Add Page
+              </button>
+              <button class="btn btn-primary btn-sm" id="menuSaveBtn" onclick="ME.save()">
+                <i class="ti-save mr-1"></i>Save Changes
+              </button>
+            </div>
+          </div>
+          <div id="menuEditorRoot"></div>
+        </div>
+      </div>
+      {% include 'admin/views/settings/_modal_menu_editor.html' %}
+    </div>
+
+    {% include 'admin/views/settings/_panel_audit.html' %}
+    {% include 'admin/views/settings/_panel_health.html' %}
+    {% include 'admin/views/settings/_panel_system.html' %}
+    {% include 'admin/views/settings/_panel_webhooks.html' %}
+    {% include 'admin/views/settings/_panel_scripts.html' %}
+    {% include 'admin/views/settings/_panel_dev.html' %}
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script>
+function activatePanel(panelId) {
+  document.querySelectorAll('.settings-nav-item').forEach(function(el) {
+    el.classList.toggle('active', el.getAttribute('data-panel') === panelId);
+  });
+  document.querySelectorAll('.settings-panel').forEach(function(p) {
+    p.classList.add('d-none');
+  });
+  var panel = document.getElementById(panelId);
+  if (panel) {
+    panel.classList.remove('d-none');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  if (history.pushState) {
+    history.pushState(null, null, '#' + panelId);
+  } else {
+    window.location.hash = panelId;
+  }
+}
+
+document.querySelectorAll('.settings-nav-item').forEach(function(item) {
+  item.addEventListener('click', function(e) {
+    e.preventDefault();
+    var panelId = item.getAttribute('data-panel');
+    activatePanel(panelId);
+    if (panelId === 'panel-menu' && typeof ME !== 'undefined' && !ME._data) {
+      ME.load();
+    }
+  });
+});
+
+var urlParams = new URLSearchParams(window.location.search);
+var panelParam = urlParams.get('panel');
+var hash = window.location.hash.replace('#', '');
+activatePanel(panelParam || hash || 'panel-general');
+
+document.addEventListener('change', function(e) {
+  var el = e.target;
+  if (el.classList.contains('system-setting-toggle') || el.classList.contains('system-setting-input')) {
+    var key = el.dataset.key;
+    var value = el.type === 'checkbox' ? el.checked : el.value;
+    fetch('{{ url_for("admin.system_settings_save") }}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrf_token]')?.value || ''},
+      body: JSON.stringify({[key]: value})
+    }).then(function(r){ if(!r.ok) console.warn('System setting save failed'); });
+  }
+});
+</script>
+{% include 'admin/views/settings/_js_menu_editor.html' %}
+{% endblock %}

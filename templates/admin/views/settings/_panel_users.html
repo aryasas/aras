@@ -1,0 +1,22 @@
+<div class="settings-panel d-none" id="panel-users">
+  <div class="panel-header">
+    <h3 style="font-family: 'Libre Baskerville', serif; font-style: italic; font-weight: 700;"><i class="ti-user mr-2 text-primary"></i>Users</h3>
+    <p class="text-muted">Manage user accounts, administrative privileges, and authentication states.</p>
+  </div>
+  {% set main_title      = "Users" %}
+  {% set items           = users %}
+  {% set view_columns    = [("Username","username"),("Email","email"),("Admin","is_admin"),("Active","is_active"),("Joined","created_at")] %}
+  {% set edit_url_base   = "/admin/users" %}
+  {% set add_url         = url_for('admin.users_new') %}
+  {% set delete_url_base = "/admin/users" %}
+  {% set search_enabled  = true %}
+  {% set search_q        = q_users %}
+  {% set search_param    = "q_users" %}
+  {% set filter_cols     = view_columns %}
+  {% set active_filters  = [] %}
+  {% set extra_buttons   = [
+       {"label":"Export CSV","url":url_for('admin.users_export_csv'),"icon":"fa-download","style":"outline"},
+  ] %}
+  {% set _list_id = "users" %}
+  {% include 'admin/partials/com_list_view.html' %}
+</div>

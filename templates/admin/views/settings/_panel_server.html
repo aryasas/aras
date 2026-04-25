@@ -1,0 +1,170 @@
+<div class="settings-panel d-none" id="panel-server">
+  <div class="panel-header">
+    <h3 style="font-family: 'Libre Baskerville', serif; font-style: italic; font-weight: 700;"><i class="ti-desktop mr-2 text-primary"></i>Server Management</h3>
+    <p class="text-muted">Monitor server status and configure production WSGI settings.</p>
+  </div>
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4">
+          <small class="text-muted d-block">Environment</small>
+          <code>{{ server_info.env }}</code>
+        </div>
+        <div class="col-md-4">
+          <small class="text-muted d-block">Debug Mode</small>
+          {% if server_info.debug %}<span class="badge badge-warning">ON</span>
+          {% else %}<span class="badge badge-success">OFF</span>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <small class="text-muted d-block">Python</small>
+          <code>{{ server_info.python_version }}</code>
+        </div>
+      </div>
+      <div class="row mt-3">
+        <div class="col-md-4">
+          <small class="text-muted d-block">Host</small>
+          <code>{{ server_info.host }}</code>
+        </div>
+        <div class="col-md-4">
+          <small class="text-muted d-block">Server Time</small>
+          <code>{{ server_info.server_time }}</code>
+        </div>
+        <div class="col-md-4">
+          <small class="text-muted d-block">Uptime</small>
+          <code>{{ server_info.uptime }}</code>
+        </div>
+      </div>
+      <hr>
+      <form method="POST" action="{{ url_for('admin.server_restart') }}"
+            onsubmit="return confirm('Restart server? Active connections will be dropped.')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-danger btn-sm">
+          <i class="fa fa-refresh mr-1"></i> Restart Server
+        </button>
+        <small class="text-muted ml-2">Gunicorn: graceful reload. Dev server: process exit.</small>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <p class="text-muted small">Settings saved to <code>instance/server.json</code> and auto-generates <code>gunicorn.conf.py</code>.</p>
+      <div class="mt-3">
+      <form method="POST" action="{{ url_for('admin.server_settings_save') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label font-weight-bold">WSGI Server</label>
+          <div class="col-sm-9">
+            <select name="wsgi_server" class="form-control form-control-sm">
+              {% for opt in ['gunicorn','uwsgi','flask'] %}
+              <option value="{{ opt }}" {% if server_cfg.wsgi_server == opt %}selected{% endif %}>{{ opt }}</option>
+              {% endfor %}
+            </select>
+            <small class="text-muted">Use <code>gunicorn</code> or <code>uwsgi</code> for production.</small>
+          </div>
+        </div>
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label font-weight-bold">Bind Host</label>
+          <div class="col-sm-5">
+            <input type="text" name="host" class="form-control form-control-sm" value="{{ server_cfg.host }}" placeholder="0.0.0.0">
+          </div>
+          <label class="col-sm-1 col-form-label text-right">Port</label>
+          <div class="col-sm-3">
+            <input type="number" name="port" class="form-control form-control-sm" value="{{ server_cfg.port }}" min="1" max="65535">
+          </div>
+        </div>
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label font-weight-bold">Workers</label>
+          <div class="col-sm-3">
+            <input type="number" name="workers" class="form-control form-control-sm" value="{{ server_cfg.workers }}" min="1" max="32">
+            <small class="text-muted">Recommended: (2×CPU)+1</small>
+          </div>
+          <label class="col-sm-2 col-form-label text-right">Threads</label>
+          <div class="col-sm-4">
+            <input type="number" name="threads" class="form-control form-control-sm" value="{{ server_cfg.threads }}" min="1" max="32">
+          </div>
+        </div>
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label font-weight-bold">Worker Class</label>
+          <div class="col-sm-9">
+            <select name="worker_class" class="form-control form-control-sm">
+              {% for opt in ['sync','gthread','gevent','eventlet'] %}
+              <option value="{{ opt }}" {% if server_cfg.worker_class == opt %}selected{% endif %}>{{ opt }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label font-weight-bold">Timeout (s)</label>
+          <div class="col-sm-3">
+            <input type="number" name="timeout" class="form-control form-control-sm" value="{{ server_cfg.timeout }}" min="1">
+          </div>
+          <label class="col-sm-2 col-form-label text-right">Keepalive (s)</label>
+          <div class="col-sm-4">
+            <input type="number" name="keepalive" class="form-control form-control-sm" value="{{ server_cfg.keepalive }}" min="0">
+          </div>
+        </div>
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label font-weight-bold">Max Requests</label>
+          <div class="col-sm-4">
+            <input type="number" name="max_requests" class="form-control form-control-sm" value="{{ server_cfg.max_requests }}" min="0">
+            <small class="text-muted">0 = unlimited.</small>
+          </div>
+        </div>
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label font-weight-bold">Log Level</label>
+          <div class="col-sm-4">
+            <select name="loglevel" class="form-control form-control-sm">
+              {% for opt in ['debug','info','warning','error','critical'] %}
+              <option value="{{ opt }}" {% if server_cfg.loglevel == opt %}selected{% endif %}>{{ opt }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label font-weight-bold">Access Log</label>
+          <div class="col-sm-9">
+            <input type="text" name="accesslog" class="form-control form-control-sm" value="{{ server_cfg.accesslog }}" placeholder="- (stdout) or /path/to/access.log">
+          </div>
+        </div>
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label font-weight-bold">Error Log</label>
+          <div class="col-sm-9">
+            <input type="text" name="errorlog" class="form-control form-control-sm" value="{{ server_cfg.errorlog }}" placeholder="- (stderr) or /path/to/error.log">
+          </div>
+        </div>
+        <hr>
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label font-weight-bold">SSL / TLS</label>
+          <div class="col-sm-9 pt-1">
+            <div class="custom-control custom-switch">
+              <input type="checkbox" class="custom-control-input" id="ssl_enabled" name="ssl_enabled" value="1"
+                     {% if server_cfg.ssl_enabled %}checked{% endif %}
+                     onchange="document.getElementById('ssl-fields').classList.toggle('d-none', !this.checked)">
+              <label class="custom-control-label" for="ssl_enabled">Enable HTTPS</label>
+            </div>
+          </div>
+        </div>
+        <div id="ssl-fields" {% if not server_cfg.ssl_enabled %}class="d-none"{% endif %}>
+          <div class="form-group row">
+            <label class="col-sm-3 col-form-label">Cert File</label>
+            <div class="col-sm-9">
+              <input type="text" name="ssl_certfile" class="form-control form-control-sm" value="{{ server_cfg.ssl_certfile }}" placeholder="/path/to/cert.pem">
+            </div>
+          </div>
+          <div class="form-group row">
+            <label class="col-sm-3 col-form-label">Key File</label>
+            <div class="col-sm-9">
+              <input type="text" name="ssl_keyfile" class="form-control form-control-sm" value="{{ server_cfg.ssl_keyfile }}" placeholder="/path/to/key.pem">
+            </div>
+          </div>
+        </div>
+        <hr>
+        <button type="submit" class="aras-btn aras-btn--primary">
+          <i class="fa fa-save mr-1"></i> Save Settings
+        </button>
+      </form>
+      </div>
+    </div>
+  </div>
+</div>

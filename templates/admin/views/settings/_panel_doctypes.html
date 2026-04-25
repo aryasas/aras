@@ -1,0 +1,20 @@
+<div class="settings-panel d-none" id="panel-doctypes">
+  <div class="panel-header">
+    <h3 style="font-family: 'Libre Baskerville', serif; font-style: italic; font-weight: 700;"><i class="ti-files mr-2 text-primary"></i>DocTypes</h3>
+    <p class="text-muted">Manage data models, physical tables, and resource configurations.</p>
+  </div>
+  {% set main_title         = "DocTypes" %}
+  {% set items              = all_tables %}
+  {% set view_columns       = [("App","app_name"),("Name","name"),("DB Table","db_table_name"),("Type","page_type"),("Active","is_active")] %}
+  {% set edit_url_base      = false %}
+  {% set use_item_edit_url  = true %}
+  {% set delete_url_base    = "/admin/apps/tables" %}
+  {% set add_url            = false %}
+  {% set search_enabled     = true %}
+  {% set search_q           = q_doctypes %}
+  {% set search_param       = "q_doctypes" %}
+  {% set filter_cols        = view_columns %}
+  {% set active_filters     = [] %}
+  {% set _list_id = "doctypes" %}
+  {% include 'admin/partials/com_list_view.html' %}
+</div>
