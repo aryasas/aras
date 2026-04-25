@@ -4,7 +4,7 @@ from aras.app_erp.erp_core.models.report import ErpReport
 
 
 def run_report(report_id: int, filters: dict, company_id: int = None) -> dict:
-    report = ErpReport.query.get_or_404(report_id)
+    report = ErpReport.get_or_404(report_id)
     if not report.is_active:
         return {"columns": [], "data": [], "error": "Report is inactive"}
 

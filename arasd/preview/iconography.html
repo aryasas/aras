@@ -1,0 +1,151 @@
+<!doctype html><meta charset="utf-8">
+<link rel="stylesheet" href="_base.css">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@icon/themify-icons/themify-icons.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  body {
+    padding: 28px 32px; background: #fff;
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-variation-settings: "opsz" 14;
+    color: #0f1b2d;
+  }
+
+  /* Eyebrow */
+  .eyebrow { display: flex; align-items: baseline; gap: 12px; margin: 0 0 14px; }
+  .eyebrow:not(:first-of-type) { margin-top: 26px; }
+  .eyebrow .caps {
+    font: 600 9.5px/1.2 SFMono-Regular, Menlo, Consolas, monospace;
+    text-transform: uppercase; letter-spacing: 1.4px; color: #9aacb8;
+  }
+  .eyebrow .title {
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-weight: 700; font-size: 13.5px; color: #0f1b2d;
+    letter-spacing: -0.005em;
+  }
+  .eyebrow .dot { flex: 1; height: 1px; background: #eef0f2; align-self: center; }
+  .eyebrow .serif {
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic; font-size: 11px; color: #9aacb8;
+  }
+  .eyebrow.secondary .title { font-size: 12px; color: #6c757d; font-weight: 400; font-style: italic; }
+
+  /* Icon grid */
+  .grid {
+    display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px;
+    border-top: 1px solid #eef0f2;
+    border-left: 1px solid #eef0f2;
+  }
+  .ic {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px;
+    aspect-ratio: 1 / 1;
+    background: #fff;
+    color: #0f1b2d;
+    border-right: 1px solid #eef0f2;
+    border-bottom: 1px solid #eef0f2;
+    transition: background .15s ease;
+    padding: 6px;
+  }
+  .ic:hover { background: #fbfcfd; }
+  .ic svg { width: 18px; height: 18px; stroke: #0f1b2d; stroke-width: 1.5; }
+  .ic i { font-size: 17px; color: #0f1b2d; }
+  .ic span {
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 9.5px;
+    color: #9aacb8;
+    letter-spacing: .1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+  }
+
+  /* Showcase row — larger, to demonstrate weight */
+  .showcase {
+    display: flex; align-items: center; gap: 28px;
+    padding: 20px 22px;
+    background: #f4f6f8;
+    border-radius: 4px;
+    margin-bottom: 14px;
+  }
+  .showcase svg { width: 26px; height: 26px; stroke: #0f1b2d; stroke-width: 1.5; }
+  .showcase .label {
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-weight: 700; font-size: 16px;
+    color: #0f1b2d; letter-spacing: -0.005em;
+  }
+  .showcase .meta {
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic; font-size: 12px; color: #6c757d;
+    margin-left: auto;
+  }
+</style>
+
+<div class="eyebrow">
+  <span class="caps">Primary</span>
+  <span class="title">Lucide · 1.5 px stroke</span>
+  <span class="dot"></span>
+  <span class="serif">new default · 1,500+ icons</span>
+</div>
+
+<div class="showcase">
+  <i data-lucide="feather"></i>
+  <div class="label">Lucide</div>
+  <i data-lucide="arrow-right"></i>
+  <i data-lucide="users"></i>
+  <i data-lucide="database"></i>
+  <i data-lucide="settings-2"></i>
+  <span class="meta">consistent weight · open source</span>
+</div>
+
+<div class="grid">
+  <div class="ic"><i data-lucide="home"></i><span>home</span></div>
+  <div class="ic"><i data-lucide="users"></i><span>users</span></div>
+  <div class="ic"><i data-lucide="user"></i><span>user</span></div>
+  <div class="ic"><i data-lucide="mail"></i><span>mail</span></div>
+  <div class="ic"><i data-lucide="lock"></i><span>lock</span></div>
+  <div class="ic"><i data-lucide="bell"></i><span>bell</span></div>
+  <div class="ic"><i data-lucide="database"></i><span>database</span></div>
+  <div class="ic"><i data-lucide="shield"></i><span>shield</span></div>
+  <div class="ic"><i data-lucide="layout-grid"></i><span>grid</span></div>
+  <div class="ic"><i data-lucide="settings-2"></i><span>settings</span></div>
+  <div class="ic"><i data-lucide="search"></i><span>search</span></div>
+  <div class="ic"><i data-lucide="arrow-right"></i><span>arrow-r</span></div>
+
+  <div class="ic"><i data-lucide="plus"></i><span>plus</span></div>
+  <div class="ic"><i data-lucide="pencil"></i><span>edit</span></div>
+  <div class="ic"><i data-lucide="trash-2"></i><span>trash</span></div>
+  <div class="ic"><i data-lucide="download"></i><span>download</span></div>
+  <div class="ic"><i data-lucide="upload"></i><span>upload</span></div>
+  <div class="ic"><i data-lucide="play"></i><span>play</span></div>
+  <div class="ic"><i data-lucide="pause"></i><span>pause</span></div>
+  <div class="ic"><i data-lucide="columns-3"></i><span>columns</span></div>
+  <div class="ic"><i data-lucide="wand-sparkles"></i><span>magic</span></div>
+  <div class="ic"><i data-lucide="check"></i><span>check</span></div>
+  <div class="ic"><i data-lucide="chevron-down"></i><span>caret</span></div>
+  <div class="ic"><i data-lucide="more-horizontal"></i><span>more</span></div>
+</div>
+
+<div class="eyebrow secondary">
+  <span class="caps">Legacy</span>
+  <span class="title">Font Awesome 4 &amp; Themify — retained for admin pages</span>
+  <span class="dot"></span>
+  <span class="serif">until migration</span>
+</div>
+
+<div class="grid">
+  <div class="ic"><i class="fa fa-user"></i><span>fa-user</span></div>
+  <div class="ic"><i class="fa fa-cog"></i><span>fa-cog</span></div>
+  <div class="ic"><i class="fa fa-envelope-o"></i><span>envelope</span></div>
+  <div class="ic"><i class="fa fa-trash-o"></i><span>trash</span></div>
+  <div class="ic"><i class="fa fa-plus"></i><span>plus</span></div>
+  <div class="ic"><i class="fa fa-pencil"></i><span>pencil</span></div>
+  <div class="ic"><i class="ti-home"></i><span>ti-home</span></div>
+  <div class="ic"><i class="ti-settings"></i><span>settings</span></div>
+  <div class="ic"><i class="ti-server"></i><span>server</span></div>
+  <div class="ic"><i class="ti-layout-grid2"></i><span>grid2</span></div>
+  <div class="ic"><i class="ti-arrow-right"></i><span>arrow-r</span></div>
+  <div class="ic"><i class="ti-shield"></i><span>shield</span></div>
+</div>
+
+<script>lucide.createIcons();</script>

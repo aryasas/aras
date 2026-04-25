@@ -1,0 +1,59 @@
+{#
+================================================================================
+  aras/templates/admin/_list_toolbar.html
+  The toolbar for the list view.
+================================================================================
+#}
+<div class="aras-toolbar mt-2" id="listToolbar{{ _lid }}">
+  <div>
+    <h2 class="aras-page-title" style="font-size:15px;margin:0;">
+      {{ main_title }}
+      <span class="aras-count-badge">
+        {% if _has_pag %}{{ pagination.total }}{% else %}{{ items|length }}{% endif %}
+      </span>
+    </h2>
+  </div>
+  <div class="aras-toolbar-right">
+
+    {% if _has_search %}
+    <form method="GET" id="searchForm{{ _lid }}">
+      {% if per_page is defined and per_page != 20 %}<input type="hidden" name="per_page" value="{{ per_page }}">{% endif %}
+      <div class="aras-search-wrap">
+        <i class="fa fa-search aras-search-icon"></i>
+        <input type="text" name="{{ _qparam }}" class="aras-search-input"
+               placeholder="Search…" value="{{ search_q or '' }}">
+        {% if search_q %}
+        <a href="?" class="aras-search-clear" title="Clear"><i class="fa fa-times"></i></a>
+        {% endif %}
+      </div>
+    </form>
+    {% endif %}
+
+    {% if _has_bulk %}
+    <div class="aras-bulk-wrap" id="bulkWrapInline{{ _lid }}" style="display:none;">
+      <div class="aras-bulk-pill">
+        <span class="aras-bulk-count" id="bulkCountInline{{ _lid }}">0</span> selected
+      </div>
+      <button class="aras-btn aras-btn--sm aras-btn--danger js-bulk-delete{{ _lid }}" type="button">
+        <i class="fa fa-trash-o"></i> Delete
+      </button>
+    </div>
+    {% endif %}
+
+    {% if _has_filter %}
+    <button type="button"
+            class="aras-btn {% if active_filters %}aras-btn--active{% endif %}"
+            id="filterToggleBtn{{ _lid }}">
+      <i class="fa fa-sliders"></i> Filter
+      {% if active_filters %}<span class="aras-filter-badge">{{ active_filters|length }}</span>{% endif %}
+    </button>
+    {% endif %}
+
+    {% if _has_add %}
+    <a href="{{ add_url }}" class="aras-btn aras-btn--primary">
+      <i class="fa fa-plus"></i> Add New
+    </a>
+    {% endif %}
+
+  </div>
+</div>

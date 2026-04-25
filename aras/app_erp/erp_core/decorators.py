@@ -1,4 +1,4 @@
-"""@require_perm — check CorePermission via CoreUserCompany."""
+"""@require_perm — check ErpPermission via ErpUserCompany."""
 from functools import wraps
 from flask import abort, g
 from flask_login import current_user
@@ -21,19 +21,19 @@ def require_perm(perm_code: str):
 
 
 def _user_has_perm(user_id: int, perm_code: str, company_id: int = None) -> bool:
-    from aras.app_erp.erp_core.models.acl import CoreUserCompany, CoreRolePermission, CorePermission
-    memberships = CoreUserCompany.query.filter_by(user_id=user_id)
+    from aras.app_erp.erp_core.models.acl import ErpUserCompany, ErpRolePermission, ErpPermission
+    memberships = ErpUserCompany.query.filter_by(user_id=user_id)
     if company_id:
         memberships = memberships.filter_by(company_id=company_id)
     for uc in memberships:
         if not uc.role_id:
             continue
         has = (
-            CoreRolePermission.query
-            .join(CorePermission, CorePermission.id == CoreRolePermission.permission_id)
+            ErpRolePermission.query
+            .join(ErpPermission, ErpPermission.id == ErpRolePermission.permission_id)
             .filter(
-                CoreRolePermission.role_id == uc.role_id,
-                CorePermission.code == perm_code,
+                ErpRolePermission.role_id == uc.role_id,
+                ErpPermission.code == perm_code,
             ).first()
         )
         if has:

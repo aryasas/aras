@@ -2,7 +2,8 @@ import os
 import sys
 import click
 import mariadb
-from arasCore.lib.db import db_init, db_createall, db
+from arasCore.lib.database import db_init, db_createall
+from arasCore.lib.extensions import db
 
 
 def db_conn():
@@ -100,10 +101,69 @@ def register_cli(app):
     @aras.command("migrate", help="Run arasCore idempotent migrations (page type, settings, etc.)")
     def migrate():
         import flask
-        from arasCore.lib.migrations import m001_page_type
+        from arasCore.lib.migrations import m001_page_type, m002_rbac, m004_arasmodel_audit_cols, m005_list_view_setting
         _app = flask.current_app._get_current_object()
         m001_page_type.run(_app)
+        m002_rbac.run(_app)
+        m004_arasmodel_audit_cols.run(_app)
+        m005_list_view_setting.run(_app)
         click.echo("[migrate] done.")
+
+    @aras.command("remigrate", help="Drop & recreate all tables, run all migrations, sync all manifests, seed ERP")
+    @click.option("--yes", is_flag=True, default=False, help="Skip confirmation prompt")
+    def remigrate(yes):
+        """Full remigrate: db_createall → all arasCore migrations → sync all manifests → ERP seed."""
+        import flask
+        _app = flask.current_app._get_current_object()
+
+        if not yes:
+            click.confirm(
+                "This will run db.create_all() and all migrations. Continue?",
+                abort=True,
+            )
+
+        # 1. Create all tables (idempotent — skips existing)
+        click.echo("[remigrate] 1/4  db.create_all() ...")
+        with _app.app_context():
+            db.create_all()
+
+        # 2. arasCore migrations
+        click.echo("[remigrate] 2/4  arasCore migrations ...")
+        from arasCore.lib.migrations import m001_page_type, m002_rbac, m004_arasmodel_audit_cols, m005_list_view_setting
+        m001_page_type.run(_app)
+        m002_rbac.run(_app)
+        m004_arasmodel_audit_cols.run(_app)
+        m005_list_view_setting.run(_app)
+
+        # 3. Sync all code-based manifests → mgr_table/mgr_column
+        click.echo("[remigrate] 3/4  sync all manifests ...")
+        from arasCore.lib.blueprints import get_helper_registry
+        from arasCore.lib.installer import sync_helper_to_db
+        registry = get_helper_registry()
+        for slug, helper in registry.items():
+            try:
+                _, stats = sync_helper_to_db(helper, db, _app)
+                click.echo(f"          synced '{slug}': "
+                           f"+{stats['tables_new']} tables, +{stats['cols_new']} cols")
+            except Exception as e:
+                click.echo(f"          ERROR syncing '{slug}': {e}")
+
+        # 4. ERP migrations + seed (if app_erp is present)
+        click.echo("[remigrate] 4/4  ERP migrations + seed (if installed) ...")
+        try:
+            from aras.app_erp.erp_core.migrate_task4 import run as mt4
+            from aras.app_erp.erp_core.migrate_task5 import run as mt5
+            from aras.app_erp.erp_core.migrate_task6 import run as mt6
+            from aras.app_erp.erp_core.seed import run_seed
+            mt4(_app)
+            mt5(_app)
+            mt6(_app)
+            run_seed(_app)
+            click.echo("          ERP done.")
+        except ModuleNotFoundError:
+            click.echo("          app_erp not installed — skipped.")
+
+        click.echo("[remigrate] all done.")
 
     @aras.command("erp-init", help="Run ERP seed + migrate (idempotent)")
     def erp_init():
@@ -122,51 +182,126 @@ def register_cli(app):
 
     # ── App lifecycle commands (ERPNext-style) ────────────────────────────────
 
-    @aras.command("install-app", help="Install an app from YAML/JSON definition")
+    @aras.command("install-app", help="Install an app from YAML/JSON or Python manifest")
     @click.argument("app_name_or_file")
     @click.option("--activate", is_flag=True, default=False,
                   help="Activate immediately after install (creates DB tables)")
     def install_app(app_name_or_file, activate):
         """
-        Install an app from a YAML/JSON file.
+        Install an app from a YAML/JSON file OR a Python manifest (AppHelper).
 
         `app_name_or_file` can be:
           - path to a definition file: `aras install-app ./my_app.yaml`
-          - app name (resolved from common locations):
-              ./<name>.yaml | ./<name>.json
-              ./app_install.yaml (if it matches)
-              ./aras/app_<name>/install.yaml
+          - app name — tries YAML first, then Python manifest:
+              ./<name>.yaml | aras/app_<name>/manifest.yaml
+              aras/app_<name>/manifest.py  (AppHelper)
         """
         import yaml, json as _json
         import flask
-        from arasCore.lib.installer import install_from_definition, parse_app_definition
+        from arasCore.lib.installer import install_from_definition, parse_app_definition, sync_helper_to_db
 
         _app = flask.current_app._get_current_object()
+
+        # ── Try YAML/JSON path first ──────────────────────────────────────────
         path = _resolve_install_path(app_name_or_file, _app)
-        if not path:
-            click.echo(f"[install-app] file not found for '{app_name_or_file}'")
+        if path:
+            click.echo(f"[install-app] source: {path}")
+            with open(path, "r", encoding="utf-8") as f:
+                raw = f.read()
+            data = yaml.safe_load(raw) if path.lower().endswith((".yaml", ".yml")) else _json.loads(raw)
+            try:
+                definition = parse_app_definition(data)
+                app_obj    = install_from_definition(definition, db, _app)
+                click.echo(f"[install-app] installed '{app_obj.slug}' (id={app_obj.id}, inactive)")
+            except ValueError as e:
+                click.echo(f"[install-app] error: {e}")
+                return
+            if activate:
+                _activate_app_by_id(app_obj.id, _app)
             return
 
-        click.echo(f"[install-app] source: {path}")
-        with open(path, "r", encoding="utf-8") as f:
-            raw = f.read()
-        data = yaml.safe_load(raw) if path.lower().endswith((".yaml", ".yml")) else _json.loads(raw)
+        # ── Fallback: Python manifest (AppHelper) ─────────────────────────────
+        # Normalize: "app_soc" or "soc" → pkg "aras.app_soc"
+        raw_name = app_name_or_file
+        app_slug = raw_name[len("app_"):] if raw_name.startswith("app_") else raw_name
+        pkg_name = f"aras.app_{app_slug}"
 
         try:
-            definition = parse_app_definition(data)
-            app_obj    = install_from_definition(definition, db, _app)
-            click.echo(f"[install-app] installed '{app_obj.name}' (id={app_obj.id}, inactive)")
-        except ValueError as e:
-            click.echo(f"[install-app] error: {e}")
+            import importlib
+            manifest_mod = importlib.import_module(f"{pkg_name}.manifest")
+            helper = getattr(manifest_mod, "helper", None)
+        except ModuleNotFoundError:
+            click.echo(f"[install-app] not found: no YAML file and no Python manifest at '{pkg_name}.manifest'")
             return
+
+        from arasCore.lib.app_helper import AppHelper
+        if not isinstance(helper, AppHelper):
+            click.echo(f"[install-app] '{pkg_name}.manifest' has no AppHelper instance named 'helper'")
+            return
+
+        click.echo(f"[install-app] Python manifest: {pkg_name} ({len(helper.resources)} resources)")
+        try:
+            app_obj, stats = sync_helper_to_db(helper, db, _app)
+        except Exception as e:
+            click.echo(f"[install-app] sync error: {e}")
+            return
+
+        click.echo(f"[install-app] synced '{app_obj.slug}': "
+                   f"{stats['tables_new']} new tables, {stats['cols_new']} new columns "
+                   f"({stats['tables_existing']} tables already existed, {stats['cols_skipped']} cols skipped)")
 
         if activate:
             _activate_app_by_id(app_obj.id, _app)
 
+    @aras.command("sync-app", help="Re-sync a code-based app manifest → mgr_table/mgr_column (adds new columns)")
+    @click.argument("app_name")
+    def sync_app(app_name):
+        """
+        Diff the Python manifest (AppHelper) against mgr_table/mgr_column and
+        insert any new tables or columns found in the SA models.
+        Existing records are never deleted.
+        """
+        import importlib
+        import flask
+        from arasCore.lib.installer import sync_helper_to_db
+        from arasCore.lib.app_helper import AppHelper
+
+        _app = flask.current_app._get_current_object()
+
+        app_slug = app_name[len("app_"):] if app_name.startswith("app_") else app_name
+        pkg_name = f"aras.app_{app_slug}"
+
+        # Try _helper_registry first (app already loaded at startup)
+        from arasCore.lib.blueprints import get_helper_registry
+        registry = get_helper_registry()
+        helper = registry.get(app_slug)
+
+        if helper is None:
+            try:
+                mod = importlib.import_module(f"{pkg_name}.manifest")
+                helper = getattr(mod, "helper", None)
+            except ModuleNotFoundError:
+                click.echo(f"[sync-app] no manifest found for '{pkg_name}'")
+                return
+
+        if not isinstance(helper, AppHelper):
+            click.echo(f"[sync-app] '{pkg_name}.manifest' has no AppHelper instance named 'helper'")
+            return
+
+        click.echo(f"[sync-app] syncing '{helper.name}' ({len(helper.resources)} resources)...")
+        try:
+            _, stats = sync_helper_to_db(helper, db, _app)
+        except Exception as e:
+            click.echo(f"[sync-app] error: {e}")
+            return
+
+        click.echo(f"[sync-app] done: {stats['tables_new']} new tables, {stats['cols_new']} new columns "
+                   f"({stats['cols_skipped']} cols already existed)")
+
     @aras.command("list-apps", help="List all installed (dynamic) apps")
     def list_apps():
         from arasCore.arasAdmin.models import AppManagerApp
-        apps = AppManagerApp.query.order_by(AppManagerApp.menu_order, AppManagerApp.name).all()
+        apps = AppManagerApp.query.order_by(AppManagerApp.menu_order, AppManagerApp.url).all()
         if not apps:
             click.echo("(no apps installed)")
             return
@@ -180,7 +315,7 @@ def register_cli(app):
     def activate_app(name):
         import flask
         from arasCore.arasAdmin.models import AppManagerApp
-        row = AppManagerApp.query.filter_by(name=name).first()
+        row = AppManagerApp.query.filter_by(url=name).first()
         if not row:
             click.echo(f"[activate-app] '{name}' not found")
             return
@@ -190,7 +325,7 @@ def register_cli(app):
     @click.argument("name")
     def deactivate_app(name):
         from arasCore.arasAdmin.models import AppManagerApp
-        row = AppManagerApp.query.filter_by(name=name).first()
+        row = AppManagerApp.query.filter_by(url=name).first()
         if not row:
             click.echo(f"[deactivate-app] '{name}' not found")
             return
@@ -201,18 +336,18 @@ def register_cli(app):
     @aras.command("uninstall-app", help="Uninstall an app (removes metadata; optionally drops tables)")
     @click.argument("name")
     @click.option("--drop-tables", is_flag=True, default=False,
-                  help="Also DROP the physical ab_<app>_* tables")
+                  help="Also DROP the physical {app}_* tables")
     @click.confirmation_option(prompt="Are you sure you want to uninstall this app?")
     def uninstall_app(name, drop_tables):
         from arasCore.arasAdmin.models import AppManagerApp
         from arasCore.arasAdmin.services import clear_cache
-        row = AppManagerApp.query.filter_by(name=name).first()
+        row = AppManagerApp.query.filter_by(url=name).first()
         if not row:
             click.echo(f"[uninstall-app] '{name}' not found")
             return
         if drop_tables:
             for tbl in row.get_tables():
-                db_name = tbl.get_db_table_name(row.name)
+                db_name = tbl.get_db_table_name(row.slug)
                 try:
                     db.engine.execute(f"DROP TABLE IF EXISTS `{db_name}`")
                     click.echo(f"  dropped {db_name}")
@@ -232,7 +367,7 @@ def register_cli(app):
         from arasCore.arasAdmin.models import AppManagerApp
         from arasCore.arasAdmin.routes import _build_export_definition
 
-        row = AppManagerApp.query.filter_by(name=name).first()
+        row = AppManagerApp.query.filter_by(url=name).first()
         if not row:
             click.echo(f"[export-app] '{name}' not found")
             return
@@ -263,6 +398,204 @@ def register_cli(app):
         with open(out, "wb") as f:
             f.write(content)
         click.echo(f"[new-app] wrote {out}. Edit, then: aras install-app {out} --activate")
+
+    @aras.command("dev-mode", help="Switch between development and production mode")
+    @click.option("--set", "mode_val", type=click.Choice(["0", "1"]),
+                  required=True, help="1 = development, 0 = production")
+    def dev_mode(mode_val):
+        import json as _json
+        import flask
+        _app = flask.current_app._get_current_object()
+        instance_dir = _app.instance_path
+        os.makedirs(instance_dir, exist_ok=True)
+        mode_file = os.path.join(instance_dir, "mode.json")
+        is_dev = mode_val == "1"
+        data = {"mode": "development" if is_dev else "production"}
+        with open(mode_file, "w") as f:
+            _json.dump(data, f)
+        label = "DEVELOPMENT" if is_dev else "PRODUCTION"
+        click.echo(f"[dev-mode] switched to {label}. Restart server to apply.")
+
+    @aras.command("fix-db", help="Auto-discover all models and add missing columns to live DB")
+    @click.option("--dry-run", is_flag=True, help="Print what would change without applying")
+    def fix_db(dry_run):
+        import flask
+        import sqlalchemy as sa
+        from sqlalchemy import inspect as sa_inspect
+
+        _app = flask.current_app._get_current_object()
+        with _app.app_context():
+            inspector = sa_inspect(db.engine)
+            existing_tables = set(inspector.get_table_names())
+
+            # Collect unique mapped model classes (deduplicate by tablename — take first)
+            seen: dict = {}
+            for mapper in db.Model.registry.mappers:
+                cls = mapper.class_
+                tbl = getattr(cls, "__tablename__", None)
+                if tbl and tbl not in seen:
+                    seen[tbl] = cls
+            models = seen.values()
+
+            added = dropped = skipped = errors = 0
+
+            with db.engine.connect() as conn:
+                for model in sorted(models, key=lambda m: m.__tablename__):
+                    tbl_name = model.__tablename__
+                    if tbl_name not in existing_tables:
+                        click.echo(f"  MISSING TABLE  {tbl_name} (run db create or migrate)")
+                        continue
+
+                    live_cols = {c["name"] for c in inspector.get_columns(tbl_name)}
+                    sa_table = model.__table__
+
+                    for col in sa_table.columns:
+                        if col.name in live_cols:
+                            continue
+                        # Build a minimal DDL type string from the SA column type
+                        try:
+                            col_ddl = col.type.compile(dialect=db.engine.dialect)
+                        except Exception:
+                            col_ddl = str(col.type)
+
+                        nullable  = col.nullable
+                        default   = col.default
+                        server_def = col.server_default
+
+                        parts = [f"`{col.name}`", col_ddl]
+                        if not nullable:
+                            parts.append("NOT NULL")
+                        if server_def is not None:
+                            # server_default is a FetchedValue or text clause
+                            clause = getattr(server_def, "arg", None)
+                            if clause is not None:
+                                parts.append(f"DEFAULT {clause}")
+                        elif default is not None and hasattr(default, "arg"):
+                            arg = default.arg
+                            if callable(arg):
+                                pass  # skip Python-side callables
+                            else:
+                                parts.append(f"DEFAULT {arg!r}")
+                        elif nullable:
+                            parts.append("DEFAULT NULL")
+
+                        ddl = f"ALTER TABLE `{tbl_name}` ADD COLUMN {' '.join(parts)}"
+                        label = f"{tbl_name}.{col.name}"
+                        if dry_run:
+                            click.echo(f"  WOULD ADD  {label}  →  {' '.join(parts[1:])}")
+                            added += 1
+                        else:
+                            try:
+                                conn.execute(db.text(ddl))
+                                click.echo(f"  ADDED      {label}")
+                                added += 1
+                            except Exception as e:
+                                click.echo(f"  ERROR      {label}: {e}")
+                                errors += 1
+
+                    # Drop orphan `created_by` (plain INT) when `created_by_id` FK exists
+                    if "created_by" in live_cols and "created_by_id" in live_cols:
+                        if dry_run:
+                            click.echo(f"  WOULD DROP {tbl_name}.created_by (orphaned duplicate)")
+                            dropped += 1
+                        else:
+                            try:
+                                conn.execute(db.text(f"ALTER TABLE `{tbl_name}` DROP COLUMN `created_by`"))
+                                click.echo(f"  DROPPED    {tbl_name}.created_by")
+                                dropped += 1
+                            except Exception as e:
+                                click.echo(f"  ERROR      {tbl_name}.created_by drop: {e}")
+                                errors += 1
+
+                if not dry_run:
+                    conn.commit()
+
+        tag = "[fix-db dry-run]" if dry_run else "[fix-db]"
+        click.echo(f"{tag} added={added} dropped={dropped} errors={errors}")
+
+    # ── Test commands ─────────────────────────────────────────────────────────
+
+    @aras.group("test", help="Run automated tests against the running app")
+    def test_group():
+        pass
+
+    def _make_test_client_with_admin(flask_app):
+        from arasCore.auth import User
+        client = flask_app.test_client()
+        with flask_app.app_context():
+            user = User.query.filter_by(is_admin=True).first()
+        if not user:
+            return client, False
+        with client.session_transaction() as sess:
+            sess["_user_id"] = str(user.id)
+            sess["_fresh"] = True
+        return client, True
+
+    @test_group.command("api", help="Test all registered API endpoints (GET /api/<resource>/)")
+    @click.option("--verbose", "-v", is_flag=True, default=False)
+    @click.option("--only-errors", "-e", is_flag=True, default=False)
+    def test_api(verbose, only_errors):
+        import flask
+        _app = flask.current_app._get_current_object()
+        _app.config["TESTING"] = True
+        with _app.app_context():
+            from arasCore.lib.api_handler import _api_registry
+            client, ok = _make_test_client_with_admin(_app)
+            if not ok:
+                click.echo("[test api] WARNING: no admin user found")
+
+            passed, failed = 0, []
+            for key in sorted(_api_registry.keys()):
+                url = f"/api/{key}/"
+                resp = client.get(url)
+                if resp.status_code in (200, 403):
+                    passed += 1
+                    if verbose and not only_errors:
+                        click.echo(f"  PASS {resp.status_code}  {url}")
+                else:
+                    failed.append((url, resp.status_code))
+                    click.echo(f"  FAIL {resp.status_code}  {url}")
+
+            click.echo(f"\n[test api] {passed} passed, {len(failed)} failed out of {passed + len(failed)}")
+            if failed:
+                raise SystemExit(1)
+
+    @test_group.command("url", help="Test all non-parameterized GET routes")
+    @click.option("--verbose", "-v", is_flag=True, default=False)
+    @click.option("--only-errors", "-e", is_flag=True, default=False)
+    def test_url(verbose, only_errors):
+        import flask
+        _app = flask.current_app._get_current_object()
+        _app.config["TESTING"] = True
+        with _app.app_context():
+            client, ok = _make_test_client_with_admin(_app)
+            if not ok:
+                click.echo("[test url] WARNING: no admin user found")
+
+            skip_prefixes = ("/static/", "/_debug_toolbar/")
+            rules = sorted(
+                (r for r in _app.url_map.iter_rules()
+                if "GET" in r.methods
+                and "<" not in r.rule
+                and not any(r.rule.startswith(p) for p in skip_prefixes)),
+                key=lambda r: r.rule,
+            )
+
+            passed, failed = 0, []
+            for rule in rules:
+                url = rule.rule
+                resp = client.get(url)
+                if resp.status_code in (200, 302, 403, 404, 405):
+                    passed += 1
+                    if verbose and not only_errors:
+                        click.echo(f"  PASS {resp.status_code}  {url}")
+                else:
+                    failed.append((url, resp.status_code))
+                    click.echo(f"  FAIL {resp.status_code}  {url}")
+
+            click.echo(f"\n[test url] {passed} passed, {len(failed)} failed out of {passed + len(failed)}")
+            if failed:
+                raise SystemExit(1)
 
 
 # ── Helpers (module-level) ────────────────────────────────────────────────────

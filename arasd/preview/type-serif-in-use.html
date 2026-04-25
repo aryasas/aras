@@ -1,0 +1,27 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="_base.css">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 20px; }
+  .wrap { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; align-items: center; }
+  .quote { font-family: "Libre Baskerville", Georgia, serif; font-weight: 400; font-style: italic; font-size: 22px; line-height: 1.35; color: #1f2a44; letter-spacing: -0.005em; }
+  .quote::before { content: '“'; font-size: 36px; color: #5a6fd6; line-height: 0; vertical-align: -0.15em; margin-right: 2px; }
+  .quote::after  { content: '”'; color: #5a6fd6; }
+  .attr { font: 11px SFMono-Regular, Menlo, Consolas, monospace; color: #9aacb8; text-transform: uppercase; letter-spacing: .6px; margin-top: 14px; }
+  .pair { background: #f4f6f8; border-radius: 6px; padding: 18px 20px; }
+  .serif-label { font-family: "Libre Baskerville", Georgia, serif; font-weight: 700; font-size: 16px; color: #1f2a44; margin-bottom: 2px; }
+  .sans-label  { font-size: 12px; color: #6c757d; line-height: 1.5; }
+  hr { border: 0; border-top: 1px solid #eef0f2; margin: 10px 0; }
+</style>
+<div class="wrap">
+  <div>
+    <p class="quote">Aras turns your database into apps — no front-end gymnastics, no framework churn.</p>
+    <div class="attr">Serif pull-quote · Libre Baskerville italic 400</div>
+  </div>
+  <div class="pair">
+    <div class="serif-label">Inventory</div>
+    <div class="sans-label">Move goods across warehouses and reconcile stock at close-of-day.</div>
+    <hr>
+    <div class="serif-label">Sales pipeline</div>
+    <div class="sans-label">Track leads through eight stages — from prospect to invoice.</div>
+  </div>
+</div>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Aras Admin — UI Kit</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@icon/themify-icons/themify-icons.css">
+<link rel="stylesheet" href="../../colors_and_type.css">
+<style>
+  html, body, #root { height: 100%; margin: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8f9fa; color: #313b3d; }
+  .shell { display: flex; height: 100vh; overflow: hidden; }
+  .main { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+  .scroll { flex: 1; overflow: auto; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="Chrome.jsx"></script>
+<script type="text/babel" src="Primitives.jsx"></script>
+<script type="text/babel" src="DataTable.jsx"></script>
+<script type="text/babel" src="DashboardWidgets.jsx"></script>
+<script type="text/babel" src="LoginCard.jsx"></script>
+<script type="text/babel" src="Pages.jsx"></script>
+
+<script type="text/babel">
+function App() {
+  const [authed, setAuthed] = React.useState(false);
+  const [page, setPage] = React.useState('dashboard');
+  const [users, setUsers] = React.useState([
+    { id: 1, username: 'jdoe', email: 'jdoe@aras.co', admin: true, active: true, joined: '12 Apr 2025' },
+    { id: 2, username: 'ayu.h', email: 'ayu.hapsari@aras.co', admin: false, active: true, joined: '09 Mar 2025' },
+    { id: 3, username: 'rashed', email: 'rashed@aras.co', admin: false, active: true, joined: '02 Jan 2025' },
+    { id: 4, username: 'maya', email: 'maya@aras.co', admin: false, active: false, joined: '18 Feb 2025' },
+  ]);
+  const [apps, setApps] = React.useState([
+    { id: 1, name: 'hr', title: 'Human Resources', url: '/hr', tables: 4, active: true, sidebar: true, created: '04 Jan 2026' },
+    { id: 2, name: 'inventory', title: 'Inventory', url: '/inv', tables: 6, active: true, sidebar: true, created: '22 Jan 2026' },
+    { id: 3, name: 'sales', title: 'Sales Pipeline', url: '/sales', tables: 3, active: false, sidebar: false, created: '07 Feb 2026' },
+    { id: 4, name: 'support', title: 'Support Tickets', url: '/support', tables: 2, active: true, sidebar: false, created: '18 Mar 2026' },
+  ]);
+
+  const titles = {
+    dashboard: { title: 'Dashboard', crumb: null },
+    users: { title: 'All Users', crumb: 'Users' },
+    apps: { title: 'App Manager', crumb: 'Apps' },
+    database: { title: 'Settings', crumb: 'Database' },
+    settings: { title: 'Settings', crumb: null },
+    notes: { title: 'Notes', crumb: 'Notes' },
+  };
+
+  if (!authed) return <LoginCard onLogin={() => setAuthed(true)} />;
+
+  return (
+    <div className="shell">
+      <Sidebar active={page} onNav={setPage} />
+      <div className="main">
+        <TopBar title={titles[page].title} crumb={titles[page].crumb} onLogout={() => setAuthed(false)} />
+        <MenuBar onNav={setPage} />
+        <div className="scroll">
+          {page === 'dashboard' && <PageDashboard onNav={setPage} />}
+          {page === 'users' && <PageUsers users={users} onToggle={(id) => setUsers(us => us.map(u => u.id === id ? { ...u, active: !u.active } : u))} />}
+          {page === 'apps' && <PageApps apps={apps}
+            onToggle={(id) => setApps(a => a.map(x => x.id === id ? { ...x, active: !x.active } : x))}
+            onDelete={(id) => setApps(a => a.filter(x => x.id !== id))} />}
+          {page === 'database' && <PageSettings />}
+          {page === 'settings' && <PageSettings />}
+          {page === 'notes' && <PageNotes />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

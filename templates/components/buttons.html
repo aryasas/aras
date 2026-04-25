@@ -1,0 +1,12 @@
+{#
+--------------------------------------------------------------------------------
+  render_button(label, url='#', icon=None, style='', onclick=None)
+  Renders a single action button/link.
+--------------------------------------------------------------------------------
+#}
+{% macro render_button(label, url='#', icon=None, style='', onclick=None) %}
+  <a href="{{ url }}" class="aras-btn {% if style %}aras-btn--{{ style }}{% endif %}"
+     {% if onclick %}onclick="{{ onclick }}"{% endif %}>
+    {% if icon %}<i class="fa {{ icon }}"></i> {% endif %}{{ label }}
+  </a>
+{% endmacro %}

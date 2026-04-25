@@ -1,0 +1,104 @@
+<!doctype html><meta charset="utf-8">
+<link rel="stylesheet" href="_base.css">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 28px 32px; background: #fff; }
+  .wrap {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    column-gap: 14px;
+    row-gap: 0;
+  }
+  .swatch { display: flex; flex-direction: column; }
+  .tile {
+    height: 120px;
+    border-radius: 3px;
+    position: relative;
+  }
+  .tile.hairline { box-shadow: inset 0 0 0 1px #eef0f2; }
+  /* Ornamental role badge — tiny serif italic on darker tiles */
+  .tile .role {
+    position: absolute;
+    left: 12px; top: 12px;
+    font-family: "Libre Baskerville", "Iowan Old Style", Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 12px;
+    letter-spacing: .2px;
+  }
+  .tile.dark .role  { color: rgba(255,255,255,.55); }
+  .tile.light .role { color: rgba(15,27,45,.48); }
+
+  .meta { padding: 12px 2px 0; }
+  .name {
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: #0f1b2d;
+    line-height: 1.2;
+    letter-spacing: -0.005em;
+  }
+  .hex {
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10.5px;
+    color: #6c757d;
+    margin-top: 4px;
+    letter-spacing: .2px;
+  }
+
+  /* Eyebrow + rule */
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+  .eyebrow .caps {
+    font: 600 9.5px/1.2 SFMono-Regular, Menlo, Consolas, monospace;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: #9aacb8;
+  }
+  .eyebrow .dot {
+    flex: 1; height: 1px; background: #eef0f2;
+  }
+  .eyebrow .serif {
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic;
+    font-size: 11px;
+    color: #9aacb8;
+  }
+</style>
+
+<div class="eyebrow">
+  <span class="caps">Brand</span>
+  <span class="dot"></span>
+  <span class="serif">Six notes, restrained</span>
+</div>
+
+<div class="wrap">
+  <div class="swatch">
+    <div class="tile dark" style="background:#0f1b2d"><span class="role">midnight</span></div>
+    <div class="meta"><div class="name">Brand</div><div class="hex">#0F1B2D</div></div>
+  </div>
+  <div class="swatch">
+    <div class="tile dark" style="background:#091221"><span class="role">hover</span></div>
+    <div class="meta"><div class="name">Brand · Deep</div><div class="hex">#091221</div></div>
+  </div>
+  <div class="swatch">
+    <div class="tile dark" style="background:#2d4a6b"><span class="role">slate</span></div>
+    <div class="meta"><div class="name">Primary</div><div class="hex">#2D4A6B</div></div>
+  </div>
+  <div class="swatch">
+    <div class="tile dark" style="background:#23395a"><span class="role">press</span></div>
+    <div class="meta"><div class="name">Primary · 600</div><div class="hex">#23395A</div></div>
+  </div>
+  <div class="swatch">
+    <div class="tile light hairline" style="background:#eef2f7"><span class="role">tint</span></div>
+    <div class="meta"><div class="name">Primary · 50</div><div class="hex">#EEF2F7</div></div>
+  </div>
+  <div class="swatch">
+    <div class="tile" style="background:#b08968"><span class="role" style="color:rgba(255,255,255,.75)">accent</span></div>
+    <div class="meta"><div class="name">Ochre</div><div class="hex">#B08968</div></div>
+  </div>
+</div>

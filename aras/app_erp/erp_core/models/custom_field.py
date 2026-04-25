@@ -7,7 +7,7 @@ class CoreCustomField(ArasModel):
         db.UniqueConstraint("company_id", "target_model", "field_key", name="uq_custom_field"),
     )
 
-    company_id    = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=True)
+    company_id    = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=True)
     target_model  = db.Column(db.String(100), nullable=False)  # 'inv.product', 'sal.customer'
     field_key     = db.Column(db.String(50), nullable=False)
     label         = db.Column(db.String(150), nullable=False)

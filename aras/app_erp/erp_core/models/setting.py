@@ -1,8 +1,8 @@
 from arasCore.lib.base_model import ArasModel, db
 
 
-class CoreSetting(ArasModel):
-    __tablename__ = "core_setting"
+class Setting(ArasModel):
+    __tablename__ = "setting"
     __table_args__ = (
         db.UniqueConstraint("scope", "scope_id", "key", name="uq_setting"),
     )
@@ -16,4 +16,4 @@ class CoreSetting(ArasModel):
     is_secret   = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
-        return f"<CoreSetting {self.scope}:{self.key}>"
+        return f"<Setting {self.scope}:{self.key}>"

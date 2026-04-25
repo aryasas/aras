@@ -29,7 +29,7 @@ def render_receipt_html(order_id: int, template_html: str = None, css: str = Non
     """Return rendered HTML string for a POS order receipt."""
     from aras.app_erp.erp_pos.models.order import PosOrder
 
-    order = PosOrder.query.get_or_404(order_id)
+    order = PosOrder.get_or_404(order_id)
     session = order.session
     terminal = session.terminal
     company = terminal.company if terminal else None
@@ -62,7 +62,7 @@ def render_invoice_html(invoice_id: int, template_html: str = None, css: str = N
     """Return rendered HTML string for a Sales Invoice (for print format)."""
     from aras.app_erp.erp_acc.models.invoice import AccSalesInvoice
 
-    inv = AccSalesInvoice.query.get_or_404(invoice_id)
+    inv = AccSalesInvoice.get_or_404(invoice_id)
     company = inv.company
     customer = inv.customer
 
@@ -149,11 +149,9 @@ def html_to_jpg(html: str, width: int = 400) -> bytes:
 
 
 def _get_print_template(doc_type: str, company_id: int):
-    """Return default CorePrintTemplate for doc_type/company, or None."""
-    from aras.app_erp.erp_core.models.print_template import CorePrintTemplate
-    return CorePrintTemplate.query.filter_by(
-        company_id=company_id, doc_type=doc_type, is_default=True
-    ).first()
+    """Return default PrintTemplate for doc_type/company, or None."""
+    from aras.app_erp.erp_core.models.print_template import PrintTemplate
+    return PrintTemplate.find(company_id=company_id, doc_type=doc_type, is_default=True)
 
 
 def _default_receipt_template() -> str:

@@ -1,0 +1,72 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block page_content %}
+<div class="main-content-inner mt-4">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+    <h2 class="aras-page-title">Schema Migrations — {{ app_def.title }}</h2>
+    <div style="display:flex;gap:8px;">
+      <a href="{{ url_for('admin.apps_tables', app_id=app_def.id) }}" class="aras-btn">
+        <i class="fa fa-arrow-left"></i> Back to Tables
+      </a>
+      {% if pending %}
+      <form method="POST" action="{{ url_for('admin.apps_migrations_apply', app_id=app_def.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="aras-btn aras-btn--primary"
+                onclick="return confirm('Apply {{ pending|length }} safe migration(s)?')">
+          <i class="fa fa-play"></i> Apply Safe Migrations
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }} mb-3">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  {% if pending %}
+  <div class="aras-form-card">
+    <div class="aras-form-card-header">
+      <h3 style="font-size:14px;font-weight:600;">Pending Migrations ({{ pending|length }})</h3>
+    </div>
+    <div class="aras-table-wrap">
+      <table class="aras-table">
+        <thead>
+          <tr>
+            <th>Table</th>
+            <th>Column</th>
+            <th>Action</th>
+            <th>SQL</th>
+            <th>Safe?</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in pending %}
+          <tr>
+            <td>{{ m.table_name }}</td>
+            <td><code>{{ m.column_name }}</code></td>
+            <td><span class="aras-badge aras-badge--info">{{ m.action }}</span></td>
+            <td style="font-size:12px;font-family:monospace;color:var(--text-muted);">{{ m.sql_stmt }}</td>
+            <td>
+              {% if m.action == 'add_column' %}
+              <span class="aras-badge aras-badge--success"><i class="fa fa-check"></i> Safe</span>
+              {% else %}
+              <span class="aras-badge aras-badge--warning"><i class="fa fa-exclamation-triangle"></i> Manual</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="aras-empty-state" style="padding:48px;text-align:center;">
+    <div class="aras-empty-icon"><i class="fa fa-check-circle" style="color:var(--success,#22c55e);font-size:40px;"></i></div>
+    <p class="aras-empty-text">Schema is up to date — no pending migrations.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

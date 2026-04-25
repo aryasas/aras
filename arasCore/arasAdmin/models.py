@@ -210,7 +210,7 @@ class AppManagerColumn(ArasModel):
     FIELD_TYPES = [
         "string", "text", "integer", "float", "decimal", "boolean",
         "date", "datetime", "email", "url", "phone", "select",
-        "file", "image", "json", "uuid", "relation",
+        "file", "image", "json", "uuid", "relation", "formula",
     ]
 
     table_id   = db.Column(db.Integer, db.ForeignKey("mgr_table.id"), nullable=False)
@@ -235,6 +235,12 @@ class AppManagerColumn(ArasModel):
     max_length = db.Column(db.Integer, nullable=True)
     unique     = db.Column(db.Boolean, default=False)
     searchable = db.Column(db.Boolean, default=False)
+
+    # Formula / computed
+    formula = db.Column(db.Text, nullable=True)   # Python expr e.g. "qty * unit_price"
+
+    # Validation
+    regex_pattern = db.Column(db.String(300), nullable=True)
 
     # Select / choices
     choices = db.Column(db.Text, nullable=True)  # comma-separated option values
@@ -273,6 +279,8 @@ class AppManagerColumn(ArasModel):
             "unique":                self.unique,
             "searchable":            self.searchable,
             "choices":               self.choices,
+            "formula":               self.formula,
+            "regex_pattern":         self.regex_pattern,
             "relation_table_id":     self.relation_table_id,
             "relation_system_table": self.relation_system_table,
             "relation_display_col":  self.relation_display_col,
@@ -345,7 +353,7 @@ class AppManagerPageView(ArasModel):
 
 
 class AppManagerDashboard(ArasModel):
-    """Dashboard widget per app (displayed on /admin/<app>/ home page)."""
+    """Dashboard widget per app. Can be user/role-scoped when builder is enabled."""
     __tablename__ = "mgr_dashboard"
 
     WIDGET_TYPES = ("count", "sum", "chart", "list", "html")
@@ -361,6 +369,11 @@ class AppManagerDashboard(ArasModel):
     link_url    = db.Column(db.String(300), nullable=True)
     width       = db.Column(db.Integer, default=3)
     order       = db.Column(db.Integer, default=0)
+    # User/role scoping (NULL = shown to all users with app access)
+    user_id     = db.Column(db.Integer, db.ForeignKey("auth_users.id"), nullable=True)
+    role_id     = db.Column(db.Integer, db.ForeignKey("auth_roles.id"), nullable=True)
+    # Layout position override (JSON: {row, col})
+    layout_json = db.Column(db.Text, nullable=True)
 
     app = db.relationship(
         "AppManagerApp",
@@ -372,7 +385,7 @@ class AppManagerDashboard(ArasModel):
         return f"<AppManagerDashboard {self.name}>"
 
 
-class AppManagerSetting(db.Model):
+class AppManagerSetting(ArasModel):
     """Per-app key/value settings. One row per (app_id, key)."""
     __tablename__ = "mgr_app_setting"
 
@@ -504,7 +517,7 @@ class MenuDefinition(ArasModel):
 
 # ── Notifications ─────────────────────────────────────────────────────────────
 
-class Notification(db.Model):
+class Notification(ArasModel):
     """User notifications (badge counts, alerts)."""
     __tablename__ = "adm_notification"
 
@@ -526,7 +539,7 @@ class Notification(db.Model):
 
 # ── User Activity ─────────────────────────────────────────────────────────────
 
-class UserActivity(db.Model):
+class UserActivity(ArasModel):
     """Audit log of user actions."""
     __tablename__ = "adm_user_activity"
 
@@ -554,7 +567,7 @@ class UserActivity(db.Model):
 
 # ── Framework Audit Log ───────────────────────────────────────────────────────
 
-class ArasCoreAuditLog(db.Model):
+class ArasCoreAuditLog(ArasModel):
     """
     Framework-level audit trail for tables with track_changes=True.
     Activated per-table via AppManagerTable.track_changes or model.__track_changes__ = True.
@@ -611,3 +624,69 @@ class ListViewSetting(ArasModel):
 
 #     def __repr__(self):
 #         return f"<Post {self.body[:30]}>"
+
+
+# ── Framework-level system settings ───────────────────────────────────────────
+
+class ArasSystemSetting(ArasModel):
+    """
+    Framework-level key/value settings (not scoped to any app).
+    Used for global toggles like script sandbox mode and dashboard builder.
+    """
+    __tablename__ = "aras_system_setting"
+    __table_args__ = (
+        db.UniqueConstraint("key", name="uq_aras_system_setting_key"),
+    )
+
+    key        = db.Column(db.String(100), nullable=False)
+    label      = db.Column(db.String(200), nullable=True)
+    value      = db.Column(db.Text, nullable=True)
+    value_type = db.Column(db.String(20), nullable=False, default="string")
+    help_text  = db.Column(db.String(500), nullable=True)
+    section    = db.Column(db.String(100), nullable=True, default="general")
+
+    def get_value(self):
+        v, vt = self.value, self.value_type or "string"
+        if v is None:
+            return None
+        try:
+            if vt == "boolean": return str(v).lower() in ("1", "true", "yes", "on")
+            if vt == "integer": return int(v)
+            if vt == "float":   return float(v)
+            if vt == "json":
+                return json.loads(v)
+        except (ValueError, TypeError, json.JSONDecodeError):
+            pass
+        return v
+
+    def set_value(self, raw):
+        vt = self.value_type or "string"
+        if raw is None:
+            self.value = None
+            return
+        if vt == "boolean":
+            self.value = "true" if (raw is True or str(raw).lower() in ("1", "true", "yes", "on")) else "false"
+        elif vt == "json":
+            self.value = raw if isinstance(raw, str) else json.dumps(raw)
+        else:
+            self.value = str(raw)
+
+    @classmethod
+    def get(cls, key: str, default=None):
+        row = cls.query.filter_by(key=key).first()
+        return row.get_value() if row else default
+
+    @classmethod
+    def set(cls, key: str, value, value_type="string", label=None, help_text=None, section="general"):
+        from arasCore.lib.extensions import db as _db
+        row = cls.query.filter_by(key=key).first()
+        if not row:
+            row = cls(key=key, value_type=value_type,
+                      label=label or key, help_text=help_text, section=section)
+            _db.session.add(row)
+        row.set_value(value)
+        _db.session.commit()
+        return row
+
+    def __repr__(self):
+        return f"<ArasSystemSetting {self.key}={self.value}>"

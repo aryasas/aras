@@ -6,8 +6,8 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>{% block title %}Aras Social{% endblock %}</title>
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin/assets/css/bootstrap.min.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin/assets/css/font-awesome.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('soc.static', filename='soc/css/social.css') }}">
   {% block head %}{% endblock %}
 </head>
@@ -92,7 +92,7 @@
 </div>
 {% endblock %}
 
-<script src="{{ url_for('static', filename='admin/assets/js/vendor/jquery-2.2.4.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/vendor/jquery-2.2.4.min.js') }}"></script>
 <script src="{{ url_for('soc.static', filename='soc/js/social.js') }}"></script>
 <script>
 // Load contacts sidebar

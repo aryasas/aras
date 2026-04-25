@@ -1,0 +1,27 @@
+{#
+--------------------------------------------------------------------------------
+  render_card(title, actions=[])
+  Renders a card with optional header action buttons. Use as a caller block.
+  actions: list of dicts with keys: label, url, icon (optional), style (optional), onclick (optional)
+--------------------------------------------------------------------------------
+#}
+{% macro render_card(title, actions=[]) %}
+<div class="aras-card">
+  <div class="aras-card-header">
+    <h3 class="aras-card-title">{{ title }}</h3>
+    {% if actions %}
+      <div class="aras-card-actions">
+        {% for btn in actions %}
+          <a href="{{ btn.url }}" class="aras-btn {% if btn.style is defined and btn.style %}aras-btn--{{ btn.style }}{% endif %}"
+             {% if btn.onclick is defined and btn.onclick %}onclick="{{ btn.onclick }}"{% endif %}>
+            {% if btn.icon is defined and btn.icon %}<i class="fa {{ btn.icon }}"></i> {% endif %}{{ btn.label }}
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+  <div class="aras-card-body">
+    {{ caller() }}
+  </div>
+</div>
+{% endmacro %}

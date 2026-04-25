@@ -1,0 +1,64 @@
+{#
+--------------------------------------------------------------------------------
+  show_errors(form)
+  Renders all form-level validation errors as a summary block.
+--------------------------------------------------------------------------------
+#}
+{% macro show_errors(form) %}
+  {% set all_errors = [] %}
+  {% for field in form %}
+    {% for err in field.errors %}
+      {% if all_errors.append(field.label.text ~ ': ' ~ err) %}{% endif %}
+    {% endfor %}
+  {% endfor %}
+  {% if all_errors %}
+    <div class="alert alert-danger" role="alert">
+      <ul class="mb-0" style="padding-left:1.2em;">
+        {% for msg in all_errors %}
+          <li>{{ msg }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+{% endmacro %}
+
+{#
+--------------------------------------------------------------------------------
+  render_form_fields(form)
+  Renders all visible WTForms fields using the standard aras field style.
+--------------------------------------------------------------------------------
+#}
+{% macro render_form_fields(form) %}
+<div class="aras-form-fields">
+  {% for field in form %}
+    {% if field.type not in ['HiddenField', 'CSRFTokenField', 'SubmitField'] %}
+      <div class="aras-form-row {% if field.type == 'BooleanField' %}is-bool{% endif %}">
+        <label class="aras-form-label">{{ field.label }}</label>
+        <div>
+          {% if field.type == 'BooleanField' %}
+            <label class="aras-toggle">
+              {{ field() }}
+              <span class="aras-toggle-track"><span class="aras-toggle-thumb"></span></span>
+              <span class="aras-toggle-label">{{ field.label.text }}</span>
+            </label>
+          {% elif field.type == 'TextAreaField' %}
+            {{ field(class_="aras-form-textarea") }}
+          {% elif field.type == 'SelectField' %}
+            {{ field(class_="aras-form-select") }}
+          {% else %}
+            {{ field(class_="aras-form-input") }}
+          {% endif %}
+          {% if field.errors %}
+            {% for err in field.errors %}
+              <span class="aras-form-error">{{ err }}</span>
+            {% endfor %}
+          {% endif %}
+          {% if field.description %}
+            <small class="aras-form-help">{{ field.description }}</small>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endmacro %}

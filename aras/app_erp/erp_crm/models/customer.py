@@ -8,7 +8,7 @@ class CrmCustomer(ArasSoftModel):
         db.Index("idx_crm_customer_name", "company_id", "name"),
     )
 
-    company_id        = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=False)
+    company_id        = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
     code              = db.Column(db.String(30), nullable=False)
     name              = db.Column(db.String(200), nullable=False)
     type              = db.Column(db.Enum("individual", "company"), default="individual", nullable=False)
@@ -19,7 +19,7 @@ class CrmCustomer(ArasSoftModel):
     city              = db.Column(db.String(100), nullable=True)
     country           = db.Column(db.String(100), nullable=True)
     tax_id            = db.Column(db.String(50), nullable=True)
-    currency_id       = db.Column(db.Integer, db.ForeignKey("core_currency.id"), nullable=True)
+    currency_id       = db.Column(db.Integer, db.ForeignKey("currency.id"), nullable=True)
     credit_limit      = db.Column(db.Numeric(18, 4), default=0)
     payment_term_days = db.Column(db.Integer, default=30)
     salesperson_id    = db.Column(db.Integer, db.ForeignKey("auth_users.id"), nullable=True)

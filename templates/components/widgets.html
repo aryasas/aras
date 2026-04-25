@@ -1,0 +1,36 @@
+{#
+--------------------------------------------------------------------------------
+  render_stat_box(title, value, icon=None, url=None)
+  Renders a statistic box for dashboards.
+--------------------------------------------------------------------------------
+#}
+{% macro render_stat_box(title, value, icon=None, url=None) %}
+  <div class="stat-box">
+    {% if icon %}<div class="stat-box-icon"><i class="fa {{ icon }}"></i></div>{% endif %}
+    <div class="stat-box-content">
+      <span class="stat-box-title">{{ title }}</span>
+      <span class="stat-box-value">{{ value }}</span>
+    </div>
+    {% if url %}<a href="{{ url }}" class="stat-box-link">View</a>{% endif %}
+  </div>
+{% endmacro %}
+
+{#
+--------------------------------------------------------------------------------
+  render_modal(id, title)
+  Renders the basic structure for a modal dialog.
+--------------------------------------------------------------------------------
+#}
+{% macro render_modal(id, title) %}
+  <div class="modal" id="{{ id }}" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">{{ title }}</h3>
+        <button class="modal-close" onclick="document.getElementById('{{ id }}').style.display='none'">&times;</button>
+      </div>
+      <div class="modal-body">
+        {{ caller() }}
+      </div>
+    </div>
+  </div>
+{% endmacro %}

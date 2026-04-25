@@ -50,7 +50,7 @@ def register_errorhandlers(app):
             msg = getattr(error, "description", str(error))
             return api_error(error_code, "HTTP_ERROR", msg)
         try:
-            return render_template("page_error.html", error_code=error_code), error_code
+            return render_template("layouts/error.html", error_code=error_code), error_code
         except Exception:
             return f"<h1>{error_code}</h1>", error_code
 
@@ -67,6 +67,6 @@ def register_errorhandlers(app):
         if current_app.config.get("DEBUG"):
             raise e
         try:
-            return render_template("page_error.html", error_code=500), 500
+            return render_template("layouts/error.html", error_code=500), 500
         except Exception:
             return "<h1>500 Internal Server Error</h1>", 500

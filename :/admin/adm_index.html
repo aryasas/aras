@@ -1,0 +1,67 @@
+{% extends 'admin/base_admin.html' %}
+{% from "com_macros.html" import render_fields,
+render_field %}
+
+{% block head %}
+  {{ super() }}
+{% endblock %}
+
+{% block page_content %}
+
+  <div class="row">
+    <div class="col-12 mt-5">
+      <div class="card">
+        <div class="card-body">
+          {# <div class="col-12 mt-5"> #}
+          <div class="container">
+            <div class="row justify-content-center">
+              <div class="col-md-9">
+                <div class="card">
+                  <div class="card-body">
+                    <h2>{{ title }}</h2>
+
+                    <hr>
+
+                    {# <h1>{{ 'Hi, %(username)s!', username=current_user.username }}</h1> #}
+                    {% if form %}
+                      <form role="form" class="form-horizontal" action="{{ action }}" method="POST">
+
+                        <div class="card-body">
+                          {{ render_fields(form, render_field) }}
+                        </div>
+
+                        <hr>
+
+                        <div>
+                          <button type="submit" value="Submit" class="btn btn-primary pull-right">Submit</button>
+                        </div>
+
+                        <br><br>
+                        <hr>
+
+                      </form>
+                      <br>
+                    {% endif %}
+
+                    {% for post in posts %}
+                      {% include 'admin/base_post.html' %}
+                    {% endfor %}
+
+                    {% include 'admin/base_pagination.html' %}
+
+                  </nav>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block script %}
+  {{ super() }}
+{% endblock %}

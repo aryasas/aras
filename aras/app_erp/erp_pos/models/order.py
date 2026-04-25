@@ -48,7 +48,7 @@ class PosOrderLine(ArasModel):
     qty_base     = db.Column(db.Numeric(12, 6), default=0, nullable=False)
     unit_price   = db.Column(db.Numeric(18, 4), nullable=False)
     discount_pct = db.Column(db.Numeric(5, 2), default=0)
-    tax_id       = db.Column(db.Integer, db.ForeignKey("core_tax.id"), nullable=True)
+    tax_id       = db.Column(db.Integer, db.ForeignKey("charge.id"), nullable=True)
     tax_amt      = db.Column(db.Numeric(18, 4), default=0)
     subtotal     = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     note         = db.Column(db.String(255), nullable=True)

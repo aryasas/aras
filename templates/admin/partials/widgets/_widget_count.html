@@ -1,0 +1,31 @@
+{# Count widget — redesigned for Aras Design System #}
+<div class="col-md-{{ widget.width|default(3) }}">
+  <div class="aras-w" data-widget-id="{{ widget.id }}">
+    <span class="aras-w__cap">{{ widget.title }}</span>
+    
+    <div class="aras-w__figrow">
+      <span class="aras-w__val">{{ widget.value|default(0)|int }}</span>
+      {% if widget.delta is defined %}
+        <span class="aras-w__delta aras-w__delta--{{ widget.delta_type|default('up') }}">
+          {% if widget.delta_type == 'up' %}▲{% elif widget.delta_type == 'down' %}▼{% else %}—{% endif %} 
+          {{ widget.delta }}
+        </span>
+      {% endif %}
+    </div>
+
+    {# Simple trend line if value history exists, otherwise just a placeholder or blank #}
+    <svg class="aras-w__trend" viewBox="0 0 120 36" preserveAspectRatio="none">
+       <path class="aras-w__trend-area" fill="var(--aras-primary)" d="M0,30 L20,25 40,28 60,20 80,22 100,15 120,18 L120,36 L0,36 Z" style="opacity:0.08"/>
+       <path class="aras-w__trend-line" fill="none" stroke="var(--aras-primary)" stroke-width="1.5" d="M0,30 L20,25 40,28 60,20 80,22 100,15 120,18"/>
+    </svg>
+
+    <hr class="aras-w__rule">
+    
+    <div class="aras-w__foot">
+      <span class="aras-w__note">{{ widget.note|default('Current total') }}</span>
+      {% if widget.link %}
+        <a href="{{ widget.link }}" class="aras-w__lnk">View</a>
+      {% endif %}
+    </div>
+  </div>
+</div>

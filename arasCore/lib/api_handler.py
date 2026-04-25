@@ -86,6 +86,22 @@ def get_api_url_for_model(model_cls) -> str | None:
     return None
 
 
+def _run_column_validation(model, data: dict, existing_obj=None) -> dict:
+    """Fetch AppManagerColumn rules for this model's table and validate data."""
+    try:
+        from arasCore.arasAdmin.models import AppManagerTable, AppManagerColumn
+        from arasCore.lib.validator import validate_row
+        tbl = AppManagerTable.query.filter_by(
+            db_table_name=getattr(model, "__tablename__", None)
+        ).first()
+        if not tbl:
+            return {}
+        cols = AppManagerColumn.query.filter_by(table_id=tbl.id).all()
+        return validate_row(cols, data, existing_obj=existing_obj)
+    except Exception:
+        return {}
+
+
 def _row_to_dict(obj) -> dict:
     # Prefer model's own to_dict() (ArasModel subclasses define this)
     if hasattr(obj, "to_dict") and callable(obj.to_dict):
@@ -254,8 +270,13 @@ def _build_api_blueprint() -> Blueprint:
         data = request.get_json(force=True, silent=True) or {}
         if not data:
             return jsonify({"error": "No JSON body provided."}), 400
+        # Validate against dynamic column rules
+        _val_errors = _run_column_validation(model, data)
+        if _val_errors:
+            return jsonify({"error": "Validation failed", "fields": _val_errors}), 422
         try:
             user_id = getattr(current_user, "id", None)
+            from arasCore.lib.script_runner import run_scripts_for_event as _rse
             if hasattr(model, "create") and callable(model.create):
                 # ArasModel path: handler hooks invoked inside create()
                 obj = model()
@@ -265,6 +286,7 @@ def _build_api_blueprint() -> Blueprint:
                         setattr(obj, col.name, data[col.name])
                 if h:
                     h.before_create(data, obj)
+                _rse(_app_slug, _res_slug, "before_insert", obj)
                 if user_id:
                     obj.created_by_id = user_id
                     obj.updated_by_id = user_id
@@ -272,6 +294,7 @@ def _build_api_blueprint() -> Blueprint:
                 db.session.add(obj)
                 db.session.commit()
                 obj.after_save(is_new=True)
+                _rse(_app_slug, _res_slug, "after_insert", obj)
                 if h:
                     h.after_create(obj)
                     db.session.commit()
@@ -282,8 +305,10 @@ def _build_api_blueprint() -> Blueprint:
                         setattr(obj, col.name, data[col.name])
                 if h:
                     h.before_create(data, obj)
+                _rse(_app_slug, _res_slug, "before_insert", obj)
                 db.session.add(obj)
                 db.session.commit()
+                _rse(_app_slug, _res_slug, "after_insert", obj)
                 if h:
                     h.after_create(obj)
                     db.session.commit()
@@ -338,10 +363,17 @@ def _build_api_blueprint() -> Blueprint:
             data = request.get_json(force=True, silent=True) or {}
             if not data:
                 return jsonify({"error": "No JSON body provided."}), 400
+            _val_errors = _run_column_validation(model, data, existing_obj=obj)
+            if _val_errors:
+                return jsonify({"error": "Validation failed", "fields": _val_errors}), 422
             try:
                 user_id = getattr(current_user, "id", None)
+                from arasCore.lib.audit import _snapshot, record_field_diff
+                from arasCore.lib.script_runner import run_scripts_for_event as _rse
+                _before = _snapshot(obj)
                 if h:
                     h.before_update(data, obj)
+                _rse(_app_slug, _res_slug, "before_update", obj)
                 if hasattr(obj, "update_self") and callable(obj.update_self):
                     obj.update_self(data, user_id=user_id)
                 else:
@@ -349,6 +381,8 @@ def _build_api_blueprint() -> Blueprint:
                         if col.name != "id" and col.name in data:
                             setattr(obj, col.name, data[col.name])
                     db.session.commit()
+                record_field_diff(obj, _before, _snapshot(obj))
+                _rse(_app_slug, _res_slug, "after_update", obj)
                 if h:
                     h.after_update(obj)
                     db.session.commit()
@@ -364,14 +398,17 @@ def _build_api_blueprint() -> Blueprint:
 
         # DELETE
         try:
+            from arasCore.lib.script_runner import run_scripts_for_event as _rse
             if h:
                 h.before_delete(obj)
+            _rse(_app_slug, _res_slug, "before_delete", obj)
             if hasattr(obj, "delete_self") and callable(obj.delete_self):
                 user_id = getattr(current_user, "id", None)
                 obj.delete_self(user_id=user_id)
             else:
                 db.session.delete(obj)
                 db.session.commit()
+            _rse(_app_slug, _res_slug, "after_delete", obj)
             try:
                 from arasCore.lib.events import emit_crud
                 emit_crud(_app_slug, _res_slug, "deleted", obj=obj)
@@ -381,6 +418,60 @@ def _build_api_blueprint() -> Blueprint:
         except (SQLAlchemyError, ValueError, Exception) as ex:
             db.session.rollback()
             return jsonify({"error": str(ex)}), 500
+
+    # ── Workflow transition endpoint ───────────────────────────────────────────
+    @api_bp.route("/api/workflow/transition/", methods=["POST"])
+    @login_required
+    def workflow_transition():
+        """
+        POST /api/workflow/transition/
+        Body: {resource_key, object_id, action, note}
+        """
+        data = request.get_json(force=True, silent=True) or {}
+        resource_key = data.get("resource_key", "")
+        object_id    = data.get("object_id")
+        action       = data.get("action", "")
+        note         = data.get("note", "")
+
+        if not resource_key or not object_id or not action:
+            return jsonify({"error": "resource_key, object_id, and action are required"}), 400
+
+        from arasCore.lib.workflow import get_workflow, apply_transition, get_available_actions
+        wf = get_workflow(resource_key)
+        if not wf:
+            return jsonify({"error": f"No workflow registered for '{resource_key}'"}), 404
+
+        key = resource_key.strip("/")
+        entry = _api_registry.get(key)
+        if not entry:
+            return jsonify({"error": f"Resource '{resource_key}' not registered in API"}), 404
+
+        obj = entry["model"].query.get_or_404(object_id)
+        try:
+            result = apply_transition(current_user, obj, action, wf, note=note)
+            return jsonify(result), 200
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 403
+
+    @api_bp.route("/api/workflow/actions/", methods=["GET"])
+    @login_required
+    def workflow_actions():
+        """GET /api/workflow/actions/?resource_key=X&object_id=Y"""
+        resource_key = request.args.get("resource_key", "")
+        object_id    = request.args.get("object_id", type=int)
+
+        from arasCore.lib.workflow import get_workflow, get_available_actions
+        wf = get_workflow(resource_key)
+        if not wf:
+            return jsonify({"error": f"No workflow for '{resource_key}'"}), 404
+
+        key = resource_key.strip("/")
+        entry = _api_registry.get(key)
+        if not entry:
+            return jsonify({"error": "Resource not found"}), 404
+
+        obj = entry["model"].query.get_or_404(object_id)
+        return jsonify(get_available_actions(current_user, obj, wf)), 200
 
     return api_bp
 
@@ -392,7 +483,13 @@ def _auto_register_core_models():
     from arasCore.arasAdmin.models import (
         Notification, UserActivity,
         AppManagerApp, AppManagerTable, AppManagerColumn,
+        ArasSystemSetting,
     )
+    from arasCore.lib.webhook_models import WebhookEndpoint
+    from arasCore.lib.script_models import SrvScript
+    from arasCore.lib.workflow_models import WfState, WfHistory
+    from arasCore.lib.audit_models import AuditFieldLog
+
     _CORE = [
         ("admin/users",               User),
         ("admin/notifications",       Notification),
@@ -402,6 +499,12 @@ def _auto_register_core_models():
         ("admin/apps/tables/columns", AppManagerColumn),
         ("admin/roles",               Role),
         ("admin/permissions",         Permission),
+        ("admin/system-settings",     ArasSystemSetting),
+        ("admin/webhooks",            WebhookEndpoint),
+        ("admin/scripts",             SrvScript),
+        ("admin/workflow/states",     WfState),
+        ("admin/workflow/history",    WfHistory),
+        ("admin/audit/fields",        AuditFieldLog),
     ]
     for key, model in _CORE:
         try:

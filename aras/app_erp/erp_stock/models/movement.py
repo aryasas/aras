@@ -17,7 +17,7 @@ class StockMovement(ArasModel):
     )
 
     id               = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    company_id       = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=False)
+    company_id       = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
     name             = db.Column(db.String(50), nullable=False)   # sequence: SM/2024/0001
     move_type        = db.Column(db.Enum(*MOVE_TYPES), nullable=False)
     state            = db.Column(db.Enum("draft", "confirmed", "posted", "cancelled"),
@@ -30,7 +30,7 @@ class StockMovement(ArasModel):
     journal_entry_id = db.Column(db.BigInteger, db.ForeignKey("acc_journal_entry.id"), nullable=True)
     origin_model     = db.Column(db.String(50))
     origin_id        = db.Column(db.BigInteger)
-    fiscal_period_id = db.Column(db.Integer, db.ForeignKey("core_fiscal_period.id"), nullable=True)
+    fiscal_period_id = db.Column(db.Integer, db.ForeignKey("fiscal_period.id"), nullable=True)
 
     lines         = db.relationship("StockMovementLine", backref="movement", cascade="all, delete-orphan")
     src_location  = db.relationship("StockLocation", foreign_keys=[src_location_id])
@@ -69,7 +69,7 @@ class StockValuation(ArasModel):
     )
 
     id          = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    company_id  = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=False)
+    company_id  = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
     product_id  = db.Column(db.Integer, db.ForeignKey("stock_product.id"), nullable=False)
     location_id = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=False)
     qty_on_hand = db.Column(db.Numeric(18, 4), default=0, nullable=False)

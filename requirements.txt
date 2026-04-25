@@ -35,6 +35,7 @@ rq
 Flask-Moment
 PyYAML
 blinker
+requests
 
 # Dev only
 Flask-DebugToolbar

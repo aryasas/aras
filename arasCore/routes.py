@@ -130,7 +130,7 @@ def user(username):
         .limit(10)
         .all()
     )
-    return render_template("admin/adm_auth_user_profile.html",
+    return render_template("admin/views/adm_auth_user_profile.html",
                            title=u.username,
                            main_title="User Profile",
                            user=u,

@@ -7,7 +7,7 @@
 - Before hitting limit, stop and update `docs/progress.md`.
 - Use English for all comments in code.
 - DONT answering in every task. Just do task and report in the end.
-- KEEP code SHORT, SIMPLE, CLEAN, PROFESSIONAL, BEAUTY, and easy to understand
+- KEEP code SHORT, SIMPLE, CLEAN, PROFESSIONAL, BEAUTY, and easy to understand. MUST DRY (Don't Repeat Yourself) principles
 
 ## Agent Rules
 - READ DIFF ONLY
@@ -256,6 +256,105 @@ on("erp/acc_journal.created", lambda obj: ...)
 ```
 
 
+### arasCore/lib/base_model.py — NEVER read in full
+
+`ArasModel` is the base for all models. `ArasSoftModel` extends it with `deleted_at`.
+
+**Class-level config:**
+
+| Attribute | Purpose |
+|---|---|
+| `__soft_delete__` | enable soft delete (default False) |
+| `__serialize_relations__` | dict mapping output key → `(rel_attr, rel_field)` for `to_dict()` |
+| `__display_fields__` | tuple of field names used by `search()` and `as_choices()` |
+
+**Hooks (override in subclass):**
+
+| Method | Signature | Purpose |
+|---|---|---|
+| `before_save` | `(is_new)` | called before every `save()` |
+| `after_save` | `(is_new)` | called after every `save()` |
+
+**Single-row fetchers:**
+
+| Method | Signature | Returns |
+|---|---|---|
+| `fetch` | `(id=None, *, active_only, or_404)` | single obj or list |
+| `get` | `(id)` | obj or None |
+| `get_or_404` | `(id)` | obj or 404 |
+| `find` | `(**kwargs)` | first matching row or None |
+| `find_or_404` | `(**kwargs)` | first matching row or 404 |
+| `find_all` | `(**kwargs)` | all matching rows |
+| `get_by` | `(field, value)` | first row where field==value |
+| `latest` | `(active_only)` | newest row (by id) |
+| `oldest` | `(active_only)` | oldest row (by id) |
+
+**List / pagination:**
+
+| Method | Signature | Returns |
+|---|---|---|
+| `list_all` | `(active_only)` | all rows |
+| `paginate` | `(page, per_page, active_only, **filters)` | SQLAlchemy Pagination |
+| `first_n` | `(n, active_only, **filters)` | list of n rows |
+| `search` | `(term, fields=[])` | ILIKE search across fields |
+| `order_by_field` | `(field, desc, active_only)` | sorted list |
+| `between` | `(field, start, end, active_only)` | rows in range |
+| `ids` | `(**filters)` | flat list of PKs |
+| `pluck` | `(field, **filters)` | flat list of one field's values |
+| `as_choices` | `(value_field, label_field, active_only)` | `[(val, label), ...]` for selects |
+
+**Existence / counts:**
+
+| Method | Signature | Returns |
+|---|---|---|
+| `exists` | `(**kwargs)` | bool |
+| `count` | `(**kwargs)` | int |
+
+**Write:**
+
+| Method | Signature | Purpose |
+|---|---|---|
+| `save` | `(data, *, user_id, is_new)` | unified create/update + hooks |
+| `create` | `(data, user_id)` | classmethod — new row |
+| `get_or_create` | `(defaults, user_id, **lookup)` | fetch or create; returns `(obj, created)` |
+| `update_self` | `(data, user_id)` | update this row |
+| `set_field` | `(field, value, user_id)` | update one field |
+| `toggle` | `(field, user_id)` | flip a boolean field |
+| `delete_self` | `(user_id)` | hard or soft delete |
+| `restore` | `(user_id)` | undo soft delete |
+| `bulk_create` | `(rows, user_id)` | insert list of dicts in one commit |
+| `bulk_delete` | `(ids, user_id)` | delete/soft-delete list of PKs |
+| `bulk_update` | `(ids, data, user_id)` | apply same changes to multiple rows |
+
+**Serialization:**
+
+| Method | Signature | Purpose |
+|---|---|---|
+| `to_dict` | `(include=[], exclude=[])` | dict of all columns + relations |
+| `to_json` | `()` | alias for `to_dict()` |
+| `to_json_str` | `()` | JSON string |
+| `list_to_dict` | `(rows, include, exclude)` | classmethod — list of dicts |
+| `diff` | `(data)` | `{field: (old, new)}` for changed fields |
+
+**Aggregates:**
+
+| Method | Signature | Returns |
+|---|---|---|
+| `sum` | `(field, **filters)` | numeric sum |
+| `avg` | `(field, **filters)` | numeric avg |
+| `max_val` | `(field, **filters)` | max value |
+| `min_val` | `(field, **filters)` | min value |
+
+**Metadata:**
+
+| Method | Purpose |
+|---|---|
+| `form_columns()` | `[(label, name, col)]` for all non-system columns |
+| `column_names()` | list of all column name strings |
+| `column_names_public()` | column names excluding system fields |
+
+---
+
 ### aras/app_soc/manifest.py — NEVER read in full
 
 | Function | Line | Purpose |
@@ -309,7 +408,7 @@ on("erp/acc_journal.created", lambda obj: ...)
 - `arasCore/auth.py` — use function table above
 - `aras/app_soc/manifest.py` — use function table above
 - `arasCore/lib/blueprints.py` — use function table above
-- `arasCore/lib/base_model.py` — ArasModel + ArasSoftModel only
+- `arasCore/lib/base_model.py` — use function table below, do not re-read
 - `arasCore/__init__.py` — use function table above
 - `arasCore/arasAdmin/models.py` — use class table above
 - `aras/app_erp/views/__init__.py` — empty file

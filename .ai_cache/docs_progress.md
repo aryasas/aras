@@ -1,5 +1,67 @@
 # Aras Progress
 
+## Session: 2026-04-24 — ERP Rename + Charge Refactor
+
+### Remove `Core` prefix — model classes and DB tables
+
+All `Core*` class names and `core_*` table names removed from app-level ERP code.
+
+**Class renames:**
+| Old | New | Table |
+|-----|-----|-------|
+| `CoreCompany` | `Company` | `company` |
+| `CoreCurrency` | `Currency` | `currency` |
+| `CoreFxRate` | `FxRate` | `fx_rate` |
+| `CoreFiscalYear` | `FiscalYear` | `fiscal_year` |
+| `CoreFiscalPeriod` | `FiscalPeriod` | `fiscal_period` |
+| `CoreSequence` | `Sequence` | `sequence` |
+| `CoreSetting` | `Setting` | `setting` |
+| `CorePrintTemplate` | `PrintTemplate` | `print_template` |
+| `CoreAttachment` | `Attachment` | `attachment` |
+| `CoreAuditLog` | `AuditLog` | `audit_log` |
+| `CoreNotification` | `ErpNotification` | `notification` |
+| `CoreEmailTemplate` | `EmailTemplate` | `email_template` |
+| `CoreRole` | `ErpRole` | `erp_role` |
+| `CorePermission` | `ErpPermission` | `erp_permission` |
+| `CoreRolePermission` | `ErpRolePermission` | `erp_role_permission` |
+| `CoreUserCompany` | `ErpUserCompany` | `erp_user_company` |
+| `CoreTax` | `Charge` | `charge` |
+| `CoreTaxGroup` | deleted | — |
+| *(new)* | `ChargeCategory` | `charge_category` |
+
+Note: `ErpRole`/`ErpPermission` use `erp_` prefix because arasCore already has `Role`/`Permission` classes. All other names are clean (no prefix conflicts).
+
+### Tax → Charge refactor
+
+- `core_tax` table → `charge` table; class `CoreTax` → `Charge`
+- `core_tax_group` / `core_tax_group_line` dropped
+- New `ChargeCategory` reference table (replaces tax group)
+- `CoreCharge.tax_type` → `Charge.charge_type`
+- Invoice lines: removed single `tax_id`/`tax_amt` per line
+- Added child tables `AccSalesInvoiceCharge` / `AccPurchaseInvoiceCharge` — invoices can now have **multiple charges**
+- Invoice header: `tax_amt` → `charge_amt`
+- `AccJournalLine.tax_id` → `charge_id`
+- `AccAccount.tax_id_default` → `charge_id_default`
+
+### Menu restructure
+
+- "Core" MenuGroup → renamed to **"Settings"**
+- `Company` moved into Settings (it's configuration, not a transaction entity)
+- `FxRate`, `FiscalPeriod`, `CrmContact`, `CrmStage`, `CrmActivity`, `PosShiftEntry`, all stock sub-tables, all invoice line/charge tables → `admin_list=False, is_child_table=True` (hidden from menu)
+- `Charge` and `ChargeCategory` added to Settings group as Reference tables
+- New manifest imports: `AccSalesInvoiceCharge`, `AccPurchaseInvoiceCharge`
+- Removed: `CoreCustomField` import (unused), `CoreTaxGroup` ResourceDef
+
+### Migration 005 (`migrations/005_rename_core_tables.py`)
+
+Idempotent. Renames 18 tables, creates `charge_category`, `acc_sales_invoice_charge`, `acc_purchase_invoice_charge`, drops `core_tax_group`/`core_tax_group_line`. Ran successfully.
+
+### Files changed (28 + models)
+
+`manifest.py`, all `erp_core/models/*.py`, `erp_acc/models/*.py`, `erp_crm/models/*.py`, `erp_pos/models/terminal.py`, `erp_stock/models/*.py`, `erp_core/seed.py`, `erp_core/decorators.py`, `erp_core/services/*.py`, `erp_acc/services/posting.py`, `erp_pos/services/pos_invoice.py`, `erp_pos/services/print_service.py`, `erp_stock/seed.py`, `views/core.py`, `views/pos.py`
+
+---
+
 ## Session: 2026-04-23 — Planned (not yet executed)
 
 ### Template rename + ListViewSetting promotion (next task)

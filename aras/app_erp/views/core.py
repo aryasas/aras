@@ -8,10 +8,10 @@ from arasCore.lib.extensions import db
 
 
 def _get_company_id():
-    from aras.app_erp.erp_core.models.company import CoreCompany
+    from aras.app_erp.erp_core.models.company import Company
     cid = getattr(current_user, "company_id", None)
     if not cid:
-        company = CoreCompany.query.filter_by(is_active=True).order_by(CoreCompany.id).first()
+        company = Company.query.filter_by(is_active=True).order_by(Company.id).first()  # needs order_by
         cid = company.id if company else None
     return cid
 
@@ -328,20 +328,15 @@ def api_save_list_setting():
     if not doctype:
         return jsonify({"ok": False, "error": "doctype required"}), 400
 
-    setting = ErpListViewSetting.query.filter_by(
-        user_id=current_user.id, doctype=doctype
-    ).first()
-    if not setting:
-        setting = ErpListViewSetting(user_id=current_user.id, doctype=doctype)
-        db.session.add(setting)
-
-    if "page_size" in data:
-        setting.page_size = int(data["page_size"])
-    if "view_mode" in data:
-        setting.view_mode = data["view_mode"]
-    if "show_totals" in data:
-        setting.show_totals = bool(data["show_totals"])
-    db.session.commit()
+    setting, _ = ErpListViewSetting.get_or_create(
+        {}, user_id=current_user.id, doctype=doctype
+    )
+    updates = {}
+    if "page_size"   in data: updates["page_size"]   = int(data["page_size"])
+    if "view_mode"   in data: updates["view_mode"]   = data["view_mode"]
+    if "show_totals" in data: updates["show_totals"] = bool(data["show_totals"])
+    if updates:
+        setting.update_self(updates)
     return jsonify({"ok": True})
 
 
@@ -352,33 +347,23 @@ def api_save_list_setting():
 def api_report_setting(report_id):
     from aras.app_erp.erp_core.models.list_view import ErpReportSetting
     if request.method == "GET":
-        s = ErpReportSetting.query.filter_by(
-            user_id=current_user.id, report_id=report_id
-        ).first()
+        s = ErpReportSetting.find(user_id=current_user.id, report_id=report_id)
         if not s:
             return jsonify({"date_preset": "this_month", "date_from": None, "date_to": None,
                             "params_json": None, "per_page": 50})
-        return jsonify({
-            "date_preset": s.date_preset,
-            "date_from": s.date_from,
-            "date_to": s.date_to,
-            "params_json": s.params_json,
-            "per_page": s.per_page,
-        })
+        return jsonify({"date_preset": s.date_preset, "date_from": s.date_from,
+                        "date_to": s.date_to, "params_json": s.params_json, "per_page": s.per_page})
 
     data = request.get_json() or {}
-    s = ErpReportSetting.query.filter_by(
-        user_id=current_user.id, report_id=report_id
-    ).first()
-    if not s:
-        s = ErpReportSetting(user_id=current_user.id, report_id=report_id)
-        db.session.add(s)
-    if "date_preset" in data:   s.date_preset  = data["date_preset"]
-    if "date_from"   in data:   s.date_from    = data["date_from"]
-    if "date_to"     in data:   s.date_to      = data["date_to"]
-    if "params_json" in data:   s.params_json  = json.dumps(data["params_json"])
-    if "per_page"    in data:   s.per_page     = int(data["per_page"])
-    db.session.commit()
+    s, _ = ErpReportSetting.get_or_create({}, user_id=current_user.id, report_id=report_id)
+    updates = {}
+    if "date_preset" in data: updates["date_preset"] = data["date_preset"]
+    if "date_from"   in data: updates["date_from"]   = data["date_from"]
+    if "date_to"     in data: updates["date_to"]     = data["date_to"]
+    if "params_json" in data: updates["params_json"] = json.dumps(data["params_json"])
+    if "per_page"    in data: updates["per_page"]    = int(data["per_page"])
+    if updates:
+        s.update_self(updates)
     return jsonify({"ok": True})
 
 
@@ -399,17 +384,17 @@ def reports_index():
 
     # Load user's saved settings for all reports
     settings_map = {}
-    saved = ErpReportSetting.query.filter_by(user_id=current_user.id).all()
+    saved = ErpReportSetting.find_all(user_id=current_user.id)
     for s in saved:
         settings_map[s.report_id] = s
 
     # Companies for the company selector
-    from aras.app_erp.erp_core.models.company import CoreCompany
-    companies = CoreCompany.query.filter_by(is_active=True).order_by(CoreCompany.id).all()
+    from aras.app_erp.erp_core.models.company import Company
+    companies = Company.query.filter_by(is_active=True).order_by(Company.id).all()
     default_company_id = _get_company_id()
 
     return render_template(
-        "erp/reports/index.html",
+        "erp/erp_report_index.html",
         grouped=grouped,
         settings_map=settings_map,
         companies=companies,
@@ -424,7 +409,7 @@ def report_run(report_id):
     from aras.app_erp.erp_core.models.report import ErpReport
     from aras.app_erp.erp_core.services.report_runner import run_report
 
-    report = ErpReport.query.get_or_404(report_id)
+    report = ErpReport.get_or_404(report_id)
     filters_def = json.loads(report.filters_json) if report.filters_json else []
 
     if report.render_mode == "list":
@@ -511,7 +496,7 @@ def report_run(report_id):
         result = run_report(report_id, filters, _get_company_id())
 
     return render_template(
-        "erp/reports/run.html",
+        "erp/erp_report_run.html",
         report=report,
         filters_def=filters_def,
         filters=filters,
@@ -527,7 +512,7 @@ def report_run_custom(report_id):
     from aras.app_erp.erp_core.models.report import ErpReport
     from aras.app_erp.erp_core.services.report_runner import run_report
 
-    report = ErpReport.query.get_or_404(report_id)
+    report = ErpReport.get_or_404(report_id)
     filters_def = json.loads(report.filters_json) if report.filters_json else []
 
     filters = {}
@@ -540,7 +525,7 @@ def report_run_custom(report_id):
         result = run_report(report_id, filters, _get_company_id())
 
     return render_template(
-        "erp/reports/run.html",
+        "erp/erp_report_run.html",
         report=report,
         filters_def=filters_def,
         filters=filters,
@@ -554,7 +539,7 @@ def report_run_custom(report_id):
 def report_meta_json(report_id):
     """Return report metadata (title, filters_def, columns, render_mode) for the index panel."""
     from aras.app_erp.erp_core.models.report import ErpReport
-    report = ErpReport.query.get_or_404(report_id)
+    report = ErpReport.get_or_404(report_id)
     filters_def = json.loads(report.filters_json) if report.filters_json else []
     columns = json.loads(report.columns_json) if report.columns_json else []
     return jsonify({
@@ -590,7 +575,7 @@ def report_export_csv(report_id):
     from aras.app_erp.erp_core.models.report import ErpReport
     from aras.app_erp.erp_core.services.report_runner import run_report
 
-    report = ErpReport.query.get_or_404(report_id)
+    report = ErpReport.get_or_404(report_id)
     filters = {}
     for k, v in request.args.items():
         filters[k] = v if v else None

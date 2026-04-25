@@ -17,6 +17,11 @@ ArasBase = declarative_base(metadata=meta)
 
 def configure_database(app):
     with app.app_context():
+        # Import new model modules so SQLAlchemy registers their tables
+        from arasCore.lib import (  # noqa: F401
+            workflow_models, audit_models, webhook_models, script_models,
+        )
+        from arasCore.arasAdmin import models as _adm_models  # noqa: F401
         db.create_all()
 
 

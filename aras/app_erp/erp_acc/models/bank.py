@@ -4,7 +4,7 @@ from arasCore.lib.base_model import ArasModel, db
 class AccBankStatement(ArasModel):
     __tablename__ = "acc_bank_statement"
 
-    company_id    = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=False)
+    company_id    = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
     journal_id    = db.Column(db.Integer, db.ForeignKey("acc_journal.id"), nullable=False)
     date_start    = db.Column(db.Date, nullable=False)
     date_end      = db.Column(db.Date, nullable=False)

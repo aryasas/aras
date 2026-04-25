@@ -4,7 +4,7 @@ from arasCore.lib.base_model import ArasModel, db
 class ErpReport(ArasModel):
     __tablename__ = "erp_report"
 
-    company_id   = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=True)
+    company_id   = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=True)
     name         = db.Column(db.String(100), nullable=False, unique=True)
     title        = db.Column(db.String(200), nullable=False)
     module       = db.Column(db.String(50), nullable=False, default="general")

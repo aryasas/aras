@@ -1,0 +1,16 @@
+{% extends extends_layout if extends_layout else 'admin/layouts/base_admin.html' %}
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   adm_list.html — universal list page (Refactored)
+   Delegates rendering to the self-contained _list_partial.html
+   ─────────────────────────────────────────────────────────────────────────── #}
+
+{% block page_content %}
+<div class="main-content-inner">
+  {% include 'admin/partials/com_list_view.html' %}
+</div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+{% endblock %}

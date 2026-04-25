@@ -1,30 +1,30 @@
 from arasCore.lib.base_model import ArasModel, db
 
 
-class CoreNotification(ArasModel):
-    __tablename__ = "core_notification"
+class ErpNotification(ArasModel):
+    __tablename__ = "notification"
     __table_args__ = (
         db.Index("idx_notif_user", "user_id", "is_read"),
     )
 
     user_id    = db.Column(db.Integer, db.ForeignKey("auth_users.id"), nullable=False)
-    company_id = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=True)
+    company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=True)
     type       = db.Column(db.String(50), nullable=False)
     title      = db.Column(db.String(200), nullable=False)
     body       = db.Column(db.Text, nullable=True)
     url        = db.Column(db.String(500), nullable=True)
     is_read    = db.Column(db.Boolean, default=False)
 
-    user = db.relationship("User", foreign_keys=[user_id], backref=db.backref("core_notifications", lazy="dynamic"))
+    user = db.relationship("User", foreign_keys=[user_id], backref=db.backref("erp_notifications", lazy="dynamic"))
 
     def __repr__(self):
-        return f"<CoreNotification {self.type} user={self.user_id}>"
+        return f"<ErpNotification {self.type} user={self.user_id}>"
 
 
-class CoreEmailTemplate(ArasModel):
-    __tablename__ = "core_email_template"
+class EmailTemplate(ArasModel):
+    __tablename__ = "email_template"
 
-    company_id = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=True)
+    company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=True)
     code       = db.Column(db.String(100), nullable=False)
     name       = db.Column(db.String(150), nullable=False)
     subject    = db.Column(db.String(255), nullable=False)
@@ -35,4 +35,4 @@ class CoreEmailTemplate(ArasModel):
     bcc_expr   = db.Column(db.String(500), nullable=True)
 
     def __repr__(self):
-        return f"<CoreEmailTemplate {self.code}>"
+        return f"<EmailTemplate {self.code}>"

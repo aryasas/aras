@@ -196,7 +196,7 @@ class AdminResourceMounter:
                 pass
 
             return render_template(
-                "admin/adm_list.html",
+                "admin/views/adm_list.html",
                 title=res_title,
                 main_title=res_title,
                 items=items,
@@ -246,7 +246,7 @@ class AdminResourceMounter:
                     db.session.rollback()
                     flash(str(ex), "danger")
             return render_template(
-                "admin/adm_form.html",
+                "admin/views/adm_form.html",
                 title=f"Add {res_title}",
                 main_title=app_title,
                 form=form,
@@ -344,7 +344,7 @@ class AdminResourceMounter:
             from arasCore.arasAdmin.services import _load_activity_log
             activity_log = _load_activity_log(model.__tablename__, item_id)
             return render_template(
-                "admin/adm_form.html",
+                "admin/views/adm_form.html",
                 title=f"Edit {res_title}",
                 main_title=app_title,
                 form=form,

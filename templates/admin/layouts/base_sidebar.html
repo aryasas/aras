@@ -1,0 +1,132 @@
+<!-- sidebar menu area start -->
+<div class="sidebar-menu" id="sidebar-menu">
+    <div class="sidebar-header" style="position: relative">
+        <div class="logo">
+            <a
+                href="{{ url_for('admin.dashboard') }}"
+                class="aras-brand-lockup"
+                >aras</a
+            >
+        </div>
+    </div>
+
+    <nav id="sidebar-nav" style="padding: 8px 0; overflow-y: auto; flex: 1">
+        <ul class="sidebar-menu-list">
+            <!-- Dashboard -->
+            <li class="sidebar-item">
+                <a href="{{ url_for('admin.dashboard') }}" class="sidebar-link">
+                    <i class="ti-home sidebar-icon"></i>
+                    <span class="sidebar-label">Dashboard</span>
+                </a>
+            </li>
+
+            {% if g.gmenu %} {% for app in g.gmenu %}
+            <li class="sidebar-item">
+                <a
+                    href="{{ app.url or '#' }}"
+                    class="sidebar-link sidebar-app-link"
+                >
+                    <i class="fa {{ app.icon or 'fa-cubes' }} sidebar-icon"></i>
+                    <span class="sidebar-label">{{ app.title }}</span>
+                </a>
+            </li>
+            {% endfor %} {% endif %}
+
+            <!-- Divider -->
+            <li class="sidebar-divider"></li>
+
+            <!-- Settings -->
+            <li class="sidebar-item">
+                <a href="{{ url_for('admin.settings') }}" class="sidebar-link">
+                    <i class="ti-settings sidebar-icon"></i>
+                    <span class="sidebar-label">Settings</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</div>
+<!-- sidebar menu area end -->
+
+<style>
+    .sidebar-menu-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .sidebar-item {
+        display: block;
+        width: 100%;
+    }
+    .sidebar-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 20px;
+        color: rgba(255, 255, 255, 0.75);
+        text-decoration: none;
+        font-size: 13px;
+        white-space: nowrap;
+        transition:
+            background 0.15s,
+            color 0.15s;
+        cursor: pointer;
+        position: relative;
+    }
+    .sidebar-link:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        text-decoration: none;
+    }
+    .sidebar-app-link {
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 500;
+    }
+    .sidebar-icon {
+        font-size: 14px;
+        width: 16px;
+        text-align: center;
+        flex-shrink: 0;
+        color: var(--studio-accent);
+        opacity: 0.85;
+    }
+    .sidebar-label {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .sidebar-divider {
+        display: block;
+        margin: 8px 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    /* Active state: highlight current page */
+    .sidebar-link.active {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        border-left: 3px solid var(--studio-ochre);
+        padding-left: 17px;
+    }
+    .sidebar-link.active .sidebar-icon {
+        color: var(--studio-ochre);
+        opacity: 1;
+    }
+</style>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var path = window.location.pathname;
+        document
+            .querySelectorAll("#sidebar-nav .sidebar-link")
+            .forEach(function (link) {
+                var href = link.getAttribute("href");
+                if (
+                    href &&
+                    href !== "#" &&
+                    path.startsWith(href) &&
+                    href.length > 1
+                ) {
+                    link.classList.add("active");
+                }
+            });
+    });
+</script>

@@ -1,0 +1,322 @@
+<!doctype html><meta charset="utf-8">
+<link rel="stylesheet" href="_base.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400;1,700&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&display=swap">
+<style>
+  :root {
+    --ink:    #0f1b2d;
+    --cream:  #f4f2ee;
+    --paper:  #faf8f3;
+    --ochre:  #c9a568;
+    --oxblood:#6b2c2c;      /* uncommon button colour */
+    --oxblood-ink: #4d1e1e;
+    --slate:  #6c757d;
+    --mist:   #9aacb8;
+    --hair:   #e6e1d6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 40px 28px;
+    min-height: 620px;
+    background:
+      radial-gradient(ellipse at top left, #1a2740 0%, #0f1b2d 70%);
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-variation-settings: "opsz" 14;
+    color: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ------- Wordmark helper ------- */
+  .wm {
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic; font-weight: 700;
+    letter-spacing: -0.02em;
+    display: inline-flex; align-items: baseline;
+  }
+  .wm .dot {
+    width: .12em; height: .12em; border-radius: 50%;
+    background: var(--ochre);
+    margin-left: .06em; transform: translateY(-.04em);
+    display: inline-block;
+  }
+
+  /* ------- Card ------- */
+  .card {
+    width: 680px;
+    background: var(--paper);
+    display: grid; grid-template-columns: 260px 1fr;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,.06),
+      0 24px 60px -20px rgba(0,0,0,.55),
+      0 2px 6px rgba(0,0,0,.25);
+    position: relative;
+  }
+  /* a hair-thin outer frame */
+  .card::before {
+    content: ""; position: absolute; inset: 8px;
+    border: 1px solid rgba(15,27,45,.08);
+    pointer-events: none;
+  }
+
+  /* ------- Left: marginalia panel ------- */
+  .margin {
+    background: var(--cream);
+    padding: 36px 28px 28px;
+    border-right: 1px solid var(--hair);
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .margin .wm { font-size: 34px; color: var(--ink); }
+  .margin .caps {
+    margin-top: 4px;
+    font: 600 9px/1 SFMono-Regular, Menlo, Consolas, monospace;
+    text-transform: uppercase; letter-spacing: 1.6px; color: var(--mist);
+  }
+
+  .quote {
+    margin: auto 0 0;
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic; font-size: 14px; line-height: 1.55;
+    color: var(--ink);
+    position: relative;
+    padding-left: 14px;
+  }
+  .quote::before {
+    content: "";
+    position: absolute; left: 0; top: 6px; bottom: 6px;
+    width: 1px; background: var(--ochre);
+  }
+  .quote cite {
+    display: block; margin-top: 10px;
+    font-family: "Bricolage Grotesque", sans-serif; font-style: normal;
+    font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase;
+    color: var(--slate);
+  }
+
+  /* ------- Right: form panel ------- */
+  .form {
+    padding: 36px 36px 28px;
+  }
+
+  .eyebrow {
+    display: flex; align-items: baseline; gap: 10px;
+    margin-bottom: 4px;
+  }
+  .eyebrow .caps {
+    font: 600 9px/1 SFMono-Regular, Menlo, Consolas, monospace;
+    text-transform: uppercase; letter-spacing: 1.6px; color: var(--mist);
+  }
+  .eyebrow .line { flex: 1; height: 1px; background: var(--hair); align-self: center; }
+  .eyebrow .n {
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic; font-size: 11px; color: var(--slate);
+  }
+
+  h1.title {
+    margin: 2px 0 2px;
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-weight: 400; font-size: 30px; line-height: 1.15;
+    color: var(--ink); letter-spacing: -0.015em;
+  }
+  h1.title em { font-style: italic; color: var(--oxblood); font-weight: 700; }
+
+  .lede {
+    margin: 0 0 24px;
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic; font-size: 12px; color: var(--slate);
+  }
+
+  /* underline-only fields (no boxes) */
+  .fld { position: relative; margin-bottom: 18px; }
+  .fld label {
+    display: block;
+    font: 600 9px/1 SFMono-Regular, Menlo, Consolas, monospace;
+    text-transform: uppercase; letter-spacing: 1.4px;
+    color: var(--mist);
+    margin-bottom: 6px;
+  }
+  .fld input {
+    width: 100%;
+    border: 0; background: transparent;
+    border-bottom: 1px solid var(--hair);
+    padding: 6px 0 8px;
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-size: 15px; color: var(--ink);
+    outline: none;
+    transition: border-color .15s ease;
+  }
+  .fld input:focus { border-bottom-color: var(--oxblood); }
+  .fld .hint {
+    position: absolute; right: 0; top: 0;
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic; font-size: 11px; color: var(--mist);
+    cursor: pointer;
+  }
+  .fld .hint:hover { color: var(--oxblood); }
+
+  /* remember row */
+  .rmber {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 6px 0 22px;
+    font-size: 12px; color: var(--slate);
+  }
+  .rmber .chk {
+    display: inline-flex; align-items: center; gap: 8px;
+    cursor: pointer;
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic; font-size: 12px;
+  }
+  .rmber .chk .box {
+    width: 14px; height: 14px; border: 1px solid var(--hair);
+    background: #fff; display: inline-flex; align-items: center; justify-content: center;
+    transition: all .15s ease;
+  }
+  .rmber .chk input { display: none; }
+  .rmber .chk input:checked + .box { background: var(--oxblood); border-color: var(--oxblood); }
+  .rmber .chk input:checked + .box::after {
+    content: ""; width: 7px; height: 3px;
+    border-left: 1.5px solid #fff; border-bottom: 1.5px solid #fff;
+    transform: rotate(-45deg) translate(1px,-1px);
+  }
+
+  /* ------- Button: oxblood, italic small-caps serif label ------- */
+  .btn {
+    width: 100%;
+    height: 48px;
+    background: var(--oxblood);
+    color: #f4eeea;
+    border: 0;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 14px;
+    transition: background .18s ease, transform .18s ease;
+    box-shadow: 0 1px 0 var(--oxblood-ink);
+  }
+  .btn:hover { background: var(--oxblood-ink); }
+  .btn:active { transform: translateY(1px); }
+  .btn .lbl {
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic; font-weight: 700;
+    font-size: 16px; letter-spacing: 0.04em;
+    /* small-caps feel via tracking + case */
+  }
+  .btn .arrow {
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic; font-size: 18px;
+    transition: transform .2s ease;
+  }
+  .btn:hover .arrow { transform: translateX(4px); }
+  .btn .rule {
+    position: absolute; left: 18px; right: 18px; bottom: 10px;
+    height: 1px; background: rgba(244,238,234,.25);
+  }
+
+  /* footer */
+  .foot {
+    margin-top: 18px;
+    text-align: center;
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic; font-size: 12px; color: var(--slate);
+  }
+  .foot a {
+    color: var(--oxblood);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(107,44,44,.35);
+    padding-bottom: 1px;
+  }
+  .foot a:hover { border-bottom-color: var(--oxblood); }
+
+  /* divider with "or" */
+  .or {
+    display: flex; align-items: center; gap: 10px;
+    margin: 18px 0 14px;
+    color: var(--mist);
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic; font-size: 11px;
+  }
+  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--hair); }
+
+  .sso {
+    width: 100%;
+    height: 38px;
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--hair);
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-size: 12.5px; font-weight: 500; letter-spacing: .01em;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .sso:hover { border-color: var(--ink); background: #fff; }
+  .sso .g {
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic; font-weight: 700; font-size: 13px;
+    color: var(--oxblood);
+  }
+</style>
+
+<div class="card">
+  <!-- Left marginalia -->
+  <aside class="margin">
+    <span class="wm">aras<span class="dot"></span></span>
+    <span class="caps">est. 2020 · london</span>
+
+    <blockquote class="quote">
+      The craftsman's hand knows the rhythm of a task long before the ledger records it.
+      <cite>— House manual, iv.</cite>
+    </blockquote>
+  </aside>
+
+  <!-- Right form -->
+  <section class="form">
+    <div class="eyebrow">
+      <span class="caps">Entry</span>
+      <span class="line"></span>
+      <span class="n">№ 001</span>
+    </div>
+
+    <h1 class="title">Welcome <em>back</em>.</h1>
+    <p class="lede">Sign in to continue to the studio.</p>
+
+    <div class="fld">
+      <label>Email or username</label>
+      <input value="jane.doe@aras.co" spellcheck="false">
+    </div>
+
+    <div class="fld">
+      <label>Password</label>
+      <span class="hint">show</span>
+      <input type="password" value="••••••••••••">
+    </div>
+
+    <div class="rmber">
+      <label class="chk">
+        <input type="checkbox" checked>
+        <span class="box"></span>
+        <span>Remember this browser</span>
+      </label>
+      <a class="hint" style="position:static;" onclick="event.preventDefault()"
+         style="font-family:'Libre Baskerville',serif;font-style:italic;font-size:12px;color:var(--slate);cursor:pointer">Forgot?</a>
+    </div>
+
+    <button class="btn">
+      <span class="lbl">Sign in</span>
+      <span class="arrow">→</span>
+      <span class="rule"></span>
+    </button>
+
+    <div class="or">or</div>
+
+    <button class="sso">
+      <span class="g">G</span>
+      <span>Continue with Google workspace</span>
+    </button>
+
+    <p class="foot">
+      New here? <a href="#">Request an account</a>
+    </p>
+  </section>
+</div>

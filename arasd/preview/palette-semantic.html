@@ -1,0 +1,116 @@
+<!doctype html><meta charset="utf-8">
+<link rel="stylesheet" href="_base.css">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 28px 32px; background: #fff; }
+  .wrap {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+  }
+  .pair { display: flex; flex-direction: column; }
+  .tiles {
+    display: flex;
+    height: 96px;
+    border-radius: 3px;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(15,27,45,.04);
+  }
+  .tiles > div {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    padding: 10px 12px;
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 11px;
+  }
+  .tiles .solid { color: rgba(255,255,255,.7); }
+  .tiles .tint  { color: rgba(15,27,45,.42); }
+
+  .meta { padding-top: 12px; }
+  .name {
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: #0f1b2d;
+    letter-spacing: -0.005em;
+  }
+  .hex {
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10.5px;
+    color: #6c757d;
+    margin-top: 4px;
+    letter-spacing: .2px;
+  }
+
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+  .eyebrow .caps {
+    font: 600 9.5px/1.2 SFMono-Regular, Menlo, Consolas, monospace;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: #9aacb8;
+  }
+  .eyebrow .dot { flex: 1; height: 1px; background: #eef0f2; }
+  .eyebrow .serif {
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic;
+    font-size: 11px;
+    color: #9aacb8;
+  }
+</style>
+
+<div class="eyebrow">
+  <span class="caps">Semantic</span>
+  <span class="dot"></span>
+  <span class="serif">Dusty · never shouted</span>
+</div>
+
+<div class="wrap">
+  <div class="pair">
+    <div class="tiles">
+      <div class="solid" style="background:#6b8e6f">sage</div>
+      <div class="tint"  style="background:#eef3ee">tint</div>
+    </div>
+    <div class="meta">
+      <div class="name">Success</div>
+      <div class="hex">#6B8E6F · #EEF3EE</div>
+    </div>
+  </div>
+  <div class="pair">
+    <div class="tiles">
+      <div class="solid" style="background:#b08968">honey</div>
+      <div class="tint"  style="background:#f6efe7">tint</div>
+    </div>
+    <div class="meta">
+      <div class="name">Warning</div>
+      <div class="hex">#B08968 · #F6EFE7</div>
+    </div>
+  </div>
+  <div class="pair">
+    <div class="tiles">
+      <div class="solid" style="background:#a05a5a">clay</div>
+      <div class="tint"  style="background:#f4eaea">tint</div>
+    </div>
+    <div class="meta">
+      <div class="name">Danger</div>
+      <div class="hex">#A05A5A · #F4EAEA</div>
+    </div>
+  </div>
+  <div class="pair">
+    <div class="tiles">
+      <div class="solid" style="background:#6e849a">mist</div>
+      <div class="tint"  style="background:#eef1f5">tint</div>
+    </div>
+    <div class="meta">
+      <div class="name">Info</div>
+      <div class="hex">#6E849A · #EEF1F5</div>
+    </div>
+  </div>
+</div>

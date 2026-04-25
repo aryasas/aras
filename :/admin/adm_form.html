@@ -1,0 +1,387 @@
+{% extends extends_layout if extends_layout else 'admin/base_admin.html' %}
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   aras_admin_form.html — generic admin add/edit form
+   Variables:
+     title           string   — form title
+     form            WTForms  — form object
+     action          string   — POST URL
+     list_url        string   — "Back to list" URL
+     app_title       string   — (optional) breadcrumb label
+     app_id, table_id int     — (optional) customize-columns link
+     sibling_tabs    list     — (optional) [(title, url), ...]
+     current_tab_url string   — (optional)
+     child_tables    list     — (optional) [{title, vcols, adm_url, fk_col, rows, parent_id}]
+   ─────────────────────────────────────────────────────────────────────────── #}
+
+{% set _has_tabs = sibling_tabs is defined and sibling_tabs %}
+{% set _has_customize = app_id is defined and app_id and table_id is defined and table_id %}
+
+{% block submenu %}
+{% if _has_tabs %}
+<div class="aras-tab-bar">
+  <nav class="aras-tab-nav">
+    {% if app_title %}<span class="aras-crumb">{{ app_title }}</span>
+    <i class="fa fa-chevron-right aras-crumb-sep"></i>{% endif %}
+    {% for tab_title, tab_url in sibling_tabs %}
+      <a href="{{ tab_url }}/" class="aras-tab {% if tab_url == current_tab_url %}active{% endif %}">
+        {{ tab_title }}
+      </a>
+    {% endfor %}
+    <span class="aras-tab-bar-actions">
+      {% if _has_customize %}
+      <a href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}"
+         class="aras-btn aras-btn--sm" title="Customize Form">
+        <i class="fa fa-sliders"></i> Customize
+      </a>
+      {% endif %}
+      <a href="{{ list_url }}" class="aras-btn aras-btn--sm">
+        <i class="fa fa-arrow-left"></i> Back to List
+      </a>
+    </span>
+  </nav>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block page_content %}
+<div class="main-content-inner">
+
+  {# ── Stunning Sticky Action Header ── #}
+  <div class="aras-header-sticky">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <a href="{{ list_url }}" class="aras-btn aras-btn--sm aras-btn--outline" style="border-radius:50%;width:32px;height:32px;padding:0;justify-content:center;">
+        <i class="fa fa-arrow-left"></i>
+      </a>
+      <h2 class="aras-card-title" style="font-size:20px;">{{ title }}</h2>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;">
+      {% if _has_customize %}
+      <a href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}"
+         class="aras-btn aras-btn--sm aras-btn--outline">
+        <i class="fa fa-sliders"></i> Customize
+      </a>
+      {% endif %}
+      <a href="{{ list_url }}" class="aras-btn aras-btn--sm aras-btn--outline">Cancel</a>
+      {% if show_save_btn is not defined or show_save_btn %}
+      <button type="submit" form="mainForm" class="aras-btn aras-btn--primary aras-btn--sm" style="background:var(--studio-accent);">
+        <i class="fa fa-check"></i> Save Changes
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="aras-form-layout">
+    {# ── Left Column: Main Form ── #}
+    <div style="display:flex;flex-direction:column;gap:32px;">
+      <div class="aras-card" style="margin-bottom:0;">
+        <div class="aras-card-header">
+          <h3 class="aras-card-title">Primary Information</h3>
+        </div>
+        <div class="aras-card-body">
+          <form method="POST" action="{{ action }}" id="mainForm">
+            {{ form.hidden_tag() }}
+            {% if layout_tabs is defined and layout_tabs %}
+              {% include 'admin/base_form_layout.html' %}
+            {% else %}
+              {% include 'admin/base_form_fields.html' %}
+            {% endif %}
+          </form>
+        </div>
+      </div>
+
+      {# ── Child tables (inline) ── #}
+      {% if child_tables is defined and child_tables %}
+        {% for ct in child_tables %}
+        {% set ct_id = loop.index %}
+        {% set _ct_rel = ct.rel_maps if ct.rel_maps is defined else {} %}
+        <div class="aras-card" id="ct-card-{{ ct_id }}" style="margin-bottom:0;">
+          <div class="aras-card-header">
+            <h3 class="aras-card-title">{{ ct.title }} <span class="aras-badge aras-badge--info" id="ct-count-{{ ct_id }}" style="margin-left:8px;font-style:normal;">{{ ct.rows|length }}</span></h3>
+            {% if ct.api_url %}
+            <button type="button" class="aras-btn aras-btn--sm aras-btn--outline"
+                    onclick="ctAddRow({{ ct_id }})">
+              <i class="fa fa-plus"></i> Add Row
+            </button>
+            {% elif ct.adm_url %}
+            <a href="{{ ct.adm_url }}/add/?{{ ct.fk_col }}={{ ct.parent_id }}"
+               class="aras-btn aras-btn--sm aras-btn--outline">
+              <i class="fa fa-plus"></i> Add {{ ct.title }}
+            </a>
+            {% endif %}
+          </div>
+          <div class="aras-child-table-wrap">
+            <table class="aras-table" id="ct-table-{{ ct_id }}">
+              <thead>
+                <tr>
+                  {% for label, _ in ct.vcols %}<th>{{ label }}</th>{% endfor %}
+                  {% if ct.api_url %}<th style="width:60px;"></th>{% else %}<th style="width:40px;"></th>{% endif %}
+                </tr>
+              </thead>
+              <tbody id="ct-tbody-{{ ct_id }}">
+                {% for row in ct.rows %}
+                <tr data-id="{{ row.id }}" class="ct-row{% if ct.adm_url and not ct.api_url %} is-clickable{% endif %}"
+                    {% if ct.adm_url and not ct.api_url %}onclick="window.location='{{ ct.adm_url }}/{{ row.id }}/';"{% endif %}>
+                  {% for _, field_name in ct.vcols %}
+                    {% set raw = row|attr(field_name) if row|attr(field_name) is defined else none %}
+                    {% if field_name in _ct_rel and raw is not none %}
+                  <td data-raw="{{ raw }}">{{ _ct_rel[field_name][raw] if raw in _ct_rel[field_name] else raw }}</td>
+                    {% else %}
+                  <td data-raw="{{ raw if raw is not none else '' }}">{{ raw if raw is not none else '—' }}</td>
+                    {% endif %}
+                  {% endfor %}
+                  {% if ct.api_url %}
+                  <td class="ct-actions">
+                    <button type="button" class="ct-btn-edit" title="Edit" onclick="ctEditRow({{ ct_id }}, this)"><i class="fa fa-pencil"></i></button>
+                    <button type="button" class="ct-btn-del" title="Delete" onclick="ctDeleteRow({{ ct_id }}, this)"><i class="fa fa-trash"></i></button>
+                  </td>
+                  {% else %}
+                  <td style="text-align:right;">{% if ct.adm_url %}<i class="fa fa-chevron-right aras-ink-3" style="font-size:10px;"></i>{% endif %}</td>
+                  {% endif %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% if not ct.rows %}
+            <div class="aras-empty-state" id="ct-empty-{{ ct_id }}" style="padding:40px 20px;">
+              <div class="aras-empty-icon" style="width:40px;height:40px;font-size:16px;"><i class="fa fa-inbox"></i></div>
+              <p class="aras-empty-text">No {{ ct.title }} records yet</p>
+            </div>
+            {% endif %}
+          </div>
+          {% if ct.api_url %}{# Inline form here as before ... #}{% endif %}
+        </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+
+    {# ── Right Column: Sidebar (Sticky) ── #}
+    <div class="aras-sidebar-sticky">
+      
+      {# Metadata Card #}
+      <div class="aras-card" style="margin-bottom:0;">
+        <div class="aras-card-header">
+          <h3 class="aras-card-title">Metadata</h3>
+        </div>
+        <div class="aras-card-body" style="padding:16px 20px;">
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <label class="aras-caps" style="display:block;margin-bottom:4px;">ID</label>
+              <code style="font-size:11px;">#{{ form.id.data if form.id else 'New' }}</code>
+            </div>
+            {% if form.status %}
+            <div>
+              <label class="aras-caps" style="display:block;margin-bottom:4px;">Status</label>
+              <span class="aras-badge aras-badge--info">{{ form.status.data }}</span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {# Activity Timeline #}
+      {% if activity_log is defined and activity_log %}
+      <div class="aras-card" style="margin-bottom:0;">
+        <div class="aras-card-header">
+          <h3 class="aras-card-title">Activity</h3>
+        </div>
+        <div class="aras-card-body" style="padding:24px 20px;">
+          <div class="aras-timeline">
+            {% for entry in activity_log %}
+            <div class="aras-timeline-item">
+              <div class="aras-timeline-content">
+                <strong>{{ entry.user }}</strong>
+                {% if entry.action == 'create' %}
+                  created this
+                {% elif entry.action == 'delete' %}
+                  deleted this
+                {% else %}
+                  {% if entry.before and entry.after %}
+                    updated 
+                    {% set ns = namespace(changes=[]) %}
+                    {% for key, new_val in entry.after.items() %}
+                      {% if key in entry.before and entry.before[key] != new_val %}
+                        {% set ns.changes = ns.changes + [key.replace('_id','').replace('_',' ').title()] %}
+                      {% endif %}
+                    {% endfor %}
+                    {% if ns.changes %}
+                      {{ ns.changes | join(', ') }}
+                    {% else %}
+                      this record
+                    {% endif %}
+                  {% else %}
+                    updated this
+                  {% endif %}
+                {% endif %}
+              </div>
+              <div class="aras-timeline-meta" data-ts="{{ entry.ts.isoformat() if entry.ts else '' }}">
+                {{ entry.ts.strftime('%d %b %Y %H:%M') if entry.ts else '' }}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script>
+(function () {
+  /* ── activity timeago ─────────────────────────────────────────────────── */
+  function timeago(iso) {
+    if (!iso) return '';
+    var d = new Date(iso), diff = Math.round((Date.now() - d) / 1000);
+    if (diff < 60)    return diff + ' seconds ago';
+    if (diff < 3600)  return Math.round(diff/60) + ' minutes ago';
+    if (diff < 86400) return Math.round(diff/3600) + ' hours ago';
+    return Math.round(diff/86400) + ' days ago';
+  }
+  document.querySelectorAll('.aras-activity-ts[data-ts]').forEach(function(el) {
+    var t = el.dataset.ts;
+    if (t) el.textContent = '· ' + timeago(t);
+  });
+})();
+
+/* ── inline child table ───────────────────────────────────────────────────── */
+function ctGetMeta(ctId) {
+  try { return JSON.parse(document.getElementById('ct-meta-' + ctId).textContent); }
+  catch(e) { return {vcols: [], rel_maps: {}}; }
+}
+
+function ctUpdateCount(ctId) {
+  var tbody = document.getElementById('ct-tbody-' + ctId);
+  var count = tbody ? tbody.querySelectorAll('tr.ct-row').length : 0;
+  var el = document.getElementById('ct-count-' + ctId);
+  if (el) el.textContent = count;
+  var empty = document.getElementById('ct-empty-' + ctId);
+  if (empty) empty.style.display = count === 0 ? '' : 'none';
+}
+
+function ctAddRow(ctId) {
+  document.getElementById('ct-editing-id-' + ctId).value = '';
+  var form = document.getElementById('ct-form-' + ctId);
+  form.querySelectorAll('.ct-input').forEach(function(el) {
+    if (el.type === 'checkbox') el.checked = false;
+    else el.value = '';
+  });
+  form.style.display = '';
+  form.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+}
+
+function ctEditRow(ctId, btn) {
+  var row = btn.closest('tr');
+  var rowId = row.dataset.id;
+  document.getElementById('ct-editing-id-' + ctId).value = rowId;
+  var meta = ctGetMeta(ctId);
+  var cells = row.querySelectorAll('td:not(.ct-actions)');
+  meta.vcols.forEach(function(fname, i) {
+    var inp = document.getElementById('ct-' + ctId + '-' + fname);
+    if (!inp) return;
+    var raw = cells[i] ? (cells[i].dataset.raw !== undefined ? cells[i].dataset.raw : cells[i].textContent.trim()) : '';
+    if (raw === '—') raw = '';
+    if (inp.type === 'checkbox') inp.checked = raw === 'True' || raw === 'true' || raw === '1';
+    else inp.value = raw;
+  });
+  var form = document.getElementById('ct-form-' + ctId);
+  form.style.display = '';
+  form.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+}
+
+function ctCancelRow(ctId) {
+  document.getElementById('ct-form-' + ctId).style.display = 'none';
+  document.getElementById('ct-editing-id-' + ctId).value = '';
+}
+
+function ctSaveRow(ctId, apiUrl, fkCol, parentId) {
+  var editingId = document.getElementById('ct-editing-id-' + ctId).value;
+  var form = document.getElementById('ct-form-' + ctId);
+  var data = {};
+  data[fkCol] = parentId;
+  form.querySelectorAll('.ct-input').forEach(function(el) {
+    var name = el.name;
+    if (!name) return;
+    if (el.type === 'checkbox') data[name] = el.checked;
+    else if (el.value !== '') data[name] = el.value;
+  });
+  var method = editingId ? 'PUT' : 'POST';
+  var url = editingId ? apiUrl.replace(/\/$/, '') + '/' + editingId + '/' : apiUrl;
+  fetch(url, {
+    method: method,
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': ctGetCsrf()},
+    body: JSON.stringify(data)
+  }).then(function(r) {
+    if (!r.ok) return r.json().then(function(e) { alert('Error: ' + (e.error || r.status)); });
+    return r.json().then(function(obj) {
+      ctRenderRow(ctId, obj, editingId);
+      ctCancelRow(ctId);
+      ctUpdateCount(ctId);
+    });
+  }).catch(function(e) { alert('Network error: ' + e); });
+}
+
+function ctRenderRow(ctId, obj, editingId) {
+  var meta = ctGetMeta(ctId);
+  var tbody = document.getElementById('ct-tbody-' + ctId);
+  var cells = meta.vcols.map(function(fname) {
+    var raw = obj[fname];
+    if (raw === null || raw === undefined) raw = '';
+    var rel = meta.rel_maps[fname];
+    var display = rel ? (rel[String(raw)] || raw) : raw;
+    return '<td data-raw="' + String(raw).replace(/"/g, '&quot;') + '">' + String(display === '' ? '—' : display) + '</td>';
+  });
+  var actCell = '<td class="ct-actions">' +
+    '<button type="button" class="ct-btn-edit" title="Edit" onclick="ctEditRow(' + ctId + ', this)"><i class="fa fa-pencil"></i></button>' +
+    '<button type="button" class="ct-btn-del" title="Delete" onclick="ctDeleteRow(' + ctId + ', this)"><i class="fa fa-trash"></i></button>' +
+    '</td>';
+  var rowHtml = '<tr data-id="' + obj.id + '" class="ct-row">' + cells.join('') + actCell + '</tr>';
+  if (editingId) {
+    var existing = tbody.querySelector('tr[data-id="' + editingId + '"]');
+    if (existing) { existing.outerHTML = rowHtml; return; }
+  }
+  tbody.insertAdjacentHTML('beforeend', rowHtml);
+}
+
+function ctDeleteRow(ctId, btn) {
+  if (!confirm('Delete this row?')) return;
+  var row = btn.closest('tr');
+  var rowId = row.dataset.id;
+  var form = document.getElementById('ct-form-' + ctId);
+  var apiUrl = form ? form.dataset.apiUrl : null;
+  if (!apiUrl) { alert('Cannot determine API URL'); return; }
+  fetch(apiUrl.replace(/\/$/, '') + '/' + rowId + '/', {
+    method: 'DELETE',
+    headers: {'X-CSRFToken': ctGetCsrf()}
+  }).then(function(r) {
+    if (!r.ok) return r.json().then(function(e) { alert('Error: ' + (e.error || r.status)); });
+    row.remove();
+    ctUpdateCount(ctId);
+  }).catch(function(e) { alert('Network error: ' + e); });
+}
+
+function ctGetCsrf() {
+  var m = document.cookie.match(/csrf_token=([^;]+)/);
+  if (m) return decodeURIComponent(m[1]);
+  var tag = document.querySelector('input[name="csrf_token"]');
+  return tag ? tag.value : '';
+}
+</script>
+<style>
+.ct-inline-form { border-top: 1px solid var(--border-color, #e5e7eb); padding: 16px 20px; background: #fafafa; }
+.ct-inline-form-inner { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.ct-field { display: flex; flex-direction: column; gap: 4px; min-width: 140px; flex: 1 1 160px; }
+.ct-field-label { font-size: 12px; font-weight: 500; color: #666; }
+.ct-input { border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 10px; font-size: 13px; background: #fff; outline: none; }
+.ct-input:focus { border-color: var(--primary, #2563eb); box-shadow: 0 0 0 2px rgba(37,99,235,.15); }
+.ct-form-actions { display: flex; gap: 8px; align-items: center; flex-basis: 100%; padding-top: 4px; }
+.ct-actions { white-space: nowrap; width: 64px; }
+.ct-btn-edit, .ct-btn-del { background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 4px; font-size: 13px; }
+.ct-btn-edit { color: #6b7280; } .ct-btn-edit:hover { color: #2563eb; background: #eff6ff; }
+.ct-btn-del  { color: #6b7280; } .ct-btn-del:hover  { color: #dc2626; background: #fef2f2; }
+</style>
+{% endblock %}

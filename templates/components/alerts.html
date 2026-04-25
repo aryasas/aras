@@ -1,0 +1,35 @@
+{#
+--------------------------------------------------------------------------------
+  render_alert(category, message)
+  Renders an alert message using Studio theme variables.
+--------------------------------------------------------------------------------
+#}
+{% macro render_alert(category, message) %}
+  <div class="aras-badge aras-badge--{{ category if category != 'danger' else 'danger' }}" style="display:block; padding: 12px 18px; border-radius: 4px; font-size: 13px; font-weight: 400; text-transform: none; letter-spacing: 0; line-height: 1.5; margin-bottom: 16px; border: 1px solid currentColor; background: #fff;">
+    <i class="fa {% if category == 'success' %}fa-check-circle{% elif category == 'danger' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}" style="margin-right:8px;"></i>
+    {{ message }}
+  </div>
+{% endmacro %}
+
+{#
+--------------------------------------------------------------------------------
+  show_message()
+  Renders Flask flash messages (used in auth layout and other non-admin pages).
+--------------------------------------------------------------------------------
+#}
+{% macro show_message() %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-messages" style="position:fixed;top:80px;right:24px;z-index:9999;width:100%;max-width:320px;">
+        {% for category, message in messages %}
+          <div class="aras-badge aras-badge--{{ category if category != 'danger' else 'danger' }}" 
+               style="display:flex; align-items:start; gap:12px; padding: 14px 18px; border-radius: 4px; font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: 0; line-height: 1.4; margin-bottom: 12px; border: 1px solid currentColor; background: #fff; box-shadow: var(--aras-shadow-drop);">
+            <i class="fa {% if category == 'success' %}fa-check-circle{% elif category == 'danger' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}" style="margin-top:2px;"></i>
+            <span style="flex:1;">{{ message }}</span>
+            <button type="button" style="background:none; border:none; padding:0; cursor:pointer; color:inherit; opacity:0.5;" onclick="this.parentElement.remove()">&times;</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+{% endmacro %}

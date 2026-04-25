@@ -1,0 +1,114 @@
+{% extends 'admin/layouts/base_admin.html' %}
+
+{% block page_content %}
+<div class="aras-studio-theme">
+  
+  {# ── App Hero Section ── #}
+  <header class="aras-app-hero">
+    <div class="aras-app-hero__icon">
+      <i class="fa {{ group_icon if back_url else app_icon }}"></i>
+    </div>
+    <div class="aras-app-hero__content">
+      <h1 class="aras-app-hero__title">{{ group_title if back_url else app_title }}</h1>
+      
+      {% if back_url %}
+        <p class="aras-app-hero__desc">
+          Part of <a href="{{ back_url }}" style="color: var(--studio-accent); border-bottom: 1px solid var(--studio-accent-50);">{{ app_title }}</a>
+        </p>
+      {% elif app_description %}
+        <p class="aras-app-hero__desc">{{ app_description }}</p>
+      {% else %}
+        <p class="aras-app-hero__desc">Studio Module — {{ app_name }}</p>
+      {% endif %}
+    </div>
+    
+    <div style="margin-left: auto;">
+      {% if not back_url %}
+        <a href="{{ settings_url }}" class="aras-btn aras-btn--outline" style="border-radius: 4px;">
+          <i class="ti-settings"></i> Config
+        </a>
+      {% else %}
+        <a href="{{ back_url }}" class="aras-btn aras-btn--outline" style="border-radius: 4px;">
+          <i class="ti-arrow-left"></i> Back
+        </a>
+      {% endif %}
+    </div>
+  </header>
+
+  {# ── Dashboard Widgets (Studio style) ── #}
+  {% if widgets %}
+    <div class="aras-grid-dashboard mb-5">
+      {% for w in widgets %}
+        {% set widget = w %}
+        {% include 'admin/layouts/widgets/_widget_count.html' %}
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# ── Pages / Tiles Grid ── #}
+  <div class="aras-pages-section">
+    {% if not back_url %}
+      <h6 class="aras-caps mb-4" style="color: var(--studio-ochre);">Available Resources</h6>
+    {% endif %}
+
+    {% if not tiles %}
+      <div class="aras-empty-state" style="background: #fff; border-radius: 4px; border: 1px dashed var(--studio-cream);">
+        <i class="ti-package"></i>
+        <p class="aras-empty-text">This module is currently empty.</p>
+        {% if is_dynamic %}<a href="/admin/apps" class="aras-btn aras-btn--primary">Open App Manager</a>{% endif %}
+      </div>
+    {% else %}
+      
+      {% macro render_studio_tile(t) %}
+        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+          <a href="{{ t.url }}" class="aras-studio-tile">
+            <div class="aras-studio-tile__icon">
+              <i class="fa {{ t.icon }}"></i>
+            </div>
+            <div class="aras-studio-tile__title">{{ t.title }}</div>
+            
+            {% if t.description %}
+              <div class="aras-studio-tile__meta" style="font-size: 11px; margin-bottom: 4px;">{{ t.description }}</div>
+            {% endif %}
+
+            <div class="aras-studio-tile__meta">
+              {% if t.page_type == 'group' %}
+                {{ t.tile_count|default('Collection') }}
+              {% else %}
+                {{ t.count|default(0) }} record{{ '' if t.count == 1 else 's' }}
+              {% endif %}
+            </div>
+          </a>
+        </div>
+      {% endmacro %}
+
+      {% if back_url %}
+        <div class="row">
+          {% for t in tiles %}{{ render_studio_tile(t) }}{% endfor %}
+        </div>
+      {% else %}
+        {% set grouped = {} %}
+        {% set ungrouped = [] %}
+        {% for t in tiles %}
+          {% if t.group %}
+            {% if t.group not in grouped %}{% set _ = grouped.update({t.group: []}) %}{% endif %}
+            {% set _ = grouped[t.group].append(t) %}
+          {% else %}
+            {% set _ = ungrouped.append(t) %}
+          {% endif %}
+        {% endfor %}
+
+        {% if ungrouped %}
+          <div class="row">{% for t in ungrouped %}{{ render_studio_tile(t) }}{% endfor %}</div>
+        {% endif %}
+
+        {% for grp_name, grp_tiles in grouped.items() %}
+          <h6 class="aras-caps mt-2 mb-4" style="color: var(--studio-ochre); opacity: 0.8;">{{ grp_name }}</h6>
+          <div class="row">{% for t in grp_tiles %}{{ render_studio_tile(t) }}{% endfor %}</div>
+        {% endfor %}
+      {% endif %}
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

@@ -11,7 +11,7 @@ setup(
         'flask_mail',
         'flask_celery',
         'redis',
-        'mariadb+mariadbconnector',
+        'mariadb',
         'python-dotenv',
         'logging',
     ],

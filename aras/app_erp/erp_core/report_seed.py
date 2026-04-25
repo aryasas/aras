@@ -14,7 +14,7 @@ REPORTS = [
   cu.name as customer,
   si.invoice_date as date,
   si.subtotal,
-  si.tax_amt,
+  si.charge_amt,
   si.total,
   si.state
 FROM acc_sales_invoice si
@@ -27,10 +27,11 @@ ORDER BY si.invoice_date DESC""",
         "columns_json": json.dumps([
             {"field": "invoice_no", "label": "Invoice No", "type": "string"},
             {"field": "customer",   "label": "Customer",   "type": "string"},
-            {"field": "date",       "label": "Date",       "type": "date"},
-            {"field": "subtotal",   "label": "Subtotal",   "type": "currency"},
-            {"field": "tax_amt",    "label": "Tax",        "type": "currency"},
-            {"field": "total",      "label": "Total",      "type": "currency"},
+            {"field": "date",       "label": "Date",     "type": "date"},
+            {"field": "subtotal",   "label": "Subtotal", "type": "currency"},
+            {"field": "charge_amt", "label": "Tax",      "type": "currency"},
+            {"field": "total",      "label": "Total",    "type": "currency"},
+
             {"field": "state",      "label": "State",      "type": "string"},
         ]),
         "filters_json": json.dumps([
@@ -52,7 +53,7 @@ ORDER BY si.invoice_date DESC""",
   pi.vendor_name as vendor,
   pi.invoice_date as date,
   pi.subtotal,
-  pi.tax_amt,
+  pi.charge_amt,
   pi.total,
   pi.state
 FROM acc_purchase_invoice pi
@@ -66,7 +67,7 @@ ORDER BY pi.invoice_date DESC""",
             {"field": "vendor",     "label": "Vendor",   "type": "string"},
             {"field": "date",       "label": "Date",     "type": "date"},
             {"field": "subtotal",   "label": "Subtotal", "type": "currency"},
-            {"field": "tax_amt",    "label": "Tax",      "type": "currency"},
+            {"field": "charge_amt", "label": "Tax",      "type": "currency"},
             {"field": "total",      "label": "Total",    "type": "currency"},
             {"field": "state",      "label": "State",    "type": "string"},
         ]),
@@ -648,17 +649,18 @@ result["data"] = rows
 def run_seed(app=None):
     def _do():
         for r in REPORTS:
-            existing = ErpReport.query.filter_by(name=r["name"]).first()
+            existing = ErpReport.find(name=r["name"])
             if not existing:
-                db.session.add(ErpReport(**{**r, "is_active": True}))
+                ErpReport.create({**r, "is_active": True})
             else:
-                existing.title       = r.get("title", existing.title)
-                existing.script      = r.get("script", existing.script)
-                existing.render_mode = r.get("render_mode", "list")
-                existing.columns_json = r.get("columns_json", existing.columns_json)
-                existing.filters_json = r.get("filters_json", existing.filters_json)
-                existing.is_active   = True
-        db.session.commit()
+                existing.update_self({
+                    "title": r.get("title", existing.title),
+                    "script": r.get("script", existing.script),
+                    "render_mode": r.get("render_mode", "list"),
+                    "columns_json": r.get("columns_json", existing.columns_json),
+                    "filters_json": r.get("filters_json", existing.filters_json),
+                    "is_active": True,
+                })
         print("[seed] report data seeded.")
 
     if app:

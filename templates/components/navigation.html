@@ -1,0 +1,51 @@
+{#
+--------------------------------------------------------------------------------
+  render_tabs(tabs, active_tab)
+  Renders a tab navigation component.
+  - tabs: A list of tuples (id, label, url).
+  - active_tab: The id of the currently active tab.
+--------------------------------------------------------------------------------
+#}
+{% macro render_tabs(tabs, active_tab) %}
+  <nav class="aras-tab-nav">
+    {% for id, label, url in tabs %}
+      <a href="{{ url }}" class="aras-tab {% if id == active_tab %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+{% endmacro %}
+
+{#
+--------------------------------------------------------------------------------
+  pagination_widget(pagination, _lid, per_page, search_q, active_filters, qparam)
+  Renders pagination controls.
+--------------------------------------------------------------------------------
+#}
+{% macro pagination_widget(pagination, _lid='', per_page=20, search_q='', active_filters=None, qparam='q') %}
+{% if pagination and pagination.pages is defined and pagination.pages > 1 %}
+{% set _bqs = [] %}
+{% if search_q %}{% set _bqs = _bqs + [qparam + '=' + search_q] %}{% endif %}
+{% if per_page != 20 %}{% set _bqs = _bqs + ['per_page=' + per_page|string] %}{% endif %}
+{% for f in (active_filters or []) %}{% set _bqs = _bqs + ['f_col[]=' + f.col, 'f_op[]=' + f.op, 'f_val[]=' + f.val] %}{% endfor %}
+{% set _qs = (_bqs|join('&') + '&') if _bqs else '' %}
+<div class="aras-pagination">
+  <span class="aras-pag-info">
+    {{ ((pagination.page - 1) * per_page) + 1 }}–{{ [pagination.page * per_page, pagination.total]|min }}
+    of {{ pagination.total }}
+  </span>
+  <nav class="aras-pag-nav">
+    <a class="aras-pag-btn {% if not pagination.has_prev %}disabled{% endif %}"
+       href="?{{ _qs }}page={{ pagination.prev_num }}">‹</a>
+    {% for p in pagination.iter_pages(left_edge=1, left_current=2, right_current=2, right_edge=1) %}
+      {% if p %}
+        <a class="aras-pag-btn {% if p == pagination.page %}active{% endif %}"
+           href="?{{ _qs }}page={{ p }}">{{ p }}</a>
+      {% else %}
+        <span class="aras-pag-ellipsis">…</span>
+      {% endif %}
+    {% endfor %}
+    <a class="aras-pag-btn {% if not pagination.has_next %}disabled{% endif %}"
+       href="?{{ _qs }}page={{ pagination.next_num }}">›</a>
+  </nav>
+</div>
+{% endif %}
+{% endmacro %}

@@ -19,7 +19,7 @@ def apps():
     from arasCore.arasAdmin.models import AppManagerApp
     all_apps = AppManagerApp.query.order_by(AppManagerApp.id).all()
     return render_template(
-        "admin/adm_cfg_apps.html",
+        "admin/views/adm_cfg_apps.html",
         title="App Manager",
         main_title="App Manager",
         apps=all_apps,
@@ -40,7 +40,7 @@ def apps_list():
     all_apps = query.all()
     cols = [("Name", "name"), ("Title", "title"), ("URL", "url"), ("Active", "is_active")]
     return render_template(
-        "admin/adm_list.html",
+        "admin/views/adm_list.html",
         title="App Manager",
         main_title="App Manager",
         items=all_apps,
@@ -75,7 +75,7 @@ def apps_doctypes():
     all_tables = query.all()
     cols = [("Name", "name"), ("DB Table", "db_table_name"), ("Type", "page_type"), ("Active", "is_active")]
     return render_template(
-        "admin/adm_list.html",
+        "admin/views/adm_list.html",
         title="DocTypes",
         main_title="DocTypes",
         items=all_tables,
@@ -116,7 +116,7 @@ def apps_new():
         db.session.commit()
         flash(f"App '{app_obj.slug}' created.", "success")
         return redirect(url_for("admin.apps"))
-    return render_template("admin/adm_cfg_app_form.html", title="New App", main_title="New App", form=form)
+    return render_template("admin/views/adm_cfg_app_form.html", title="New App", main_title="New App", form=form)
 
 
 @arasAdmin_bp.route("/apps/<int:app_id>/", methods=["GET"])
@@ -166,7 +166,7 @@ def apps_edit(app_id):
             flash(f"App '{app_obj.slug}' updated.", "success")
         return redirect(url_for("admin.apps"))
     return render_template(
-        "admin/adm_cfg_app_form.html",
+        "admin/views/adm_cfg_app_form.html",
         title=f"Edit — {app_obj.slug}",
         main_title=f"Edit App: {app_obj.slug}",
         form=form,
@@ -298,7 +298,7 @@ def apps_tables(app_id):
     app_obj = AppManagerApp.query.get_or_404(app_id)
     tables  = AppManagerTable.query.filter_by(app_id=app_id).order_by(AppManagerTable.menu_order).all()
     return render_template(
-        "admin/adm_cfg_tables.html",
+        "admin/views/adm_cfg_tables.html",
         title=f"Tables — {app_obj.title}",
         main_title=app_obj.main_title,
         app_def=app_obj,
@@ -342,7 +342,7 @@ def apps_table_new(app_id):
         flash(f"Table '{tbl.title}' created. Add columns now.", "success")
         return redirect(url_for("admin.apps_columns", app_id=app_id, table_id=tbl.id))
     return render_template(
-        "admin/adm_cfg_table_form.html",
+        "admin/views/adm_cfg_table_form.html",
         title="New Table",
         main_title=app_obj.main_title,
         app_def=app_obj,
@@ -388,7 +388,7 @@ def apps_table_edit(app_id, table_id):
         flash(f"Table '{tbl.title}' updated.", "success")
         return redirect(url_for("admin.apps_tables", app_id=app_id))
     return render_template(
-        "admin/adm_cfg_table_form.html",
+        "admin/views/adm_cfg_table_form.html",
         title=f"Edit Table — {tbl.title}",
         main_title=app_obj.main_title,
         app_def=app_obj,
@@ -476,7 +476,7 @@ def apps_columns(app_id, table_id):
         pass
 
     return render_template(
-        "admin/adm_cfg_columns.html",
+        "admin/views/adm_cfg_columns.html",
         title=f"Columns — {tbl.title}",
         main_title=app_obj.main_title,
         app_def=app_obj,
@@ -545,7 +545,7 @@ def apps_migrations(app_id):
     diff_app(app_id)
     pending = get_pending(app_id)
     return render_template(
-        "admin/adm_cfg_migrations.html",
+        "admin/views/adm_cfg_migrations.html",
         title=f"Migrations — {app_obj.title}",
         main_title=app_obj.main_title,
         app_def=app_obj,
@@ -632,7 +632,7 @@ def apps_install():
                 current_app.logger.error(f"Install error: {e}", exc_info=True)
                 flash(f"Install failed: {e}", "danger")
 
-    return render_template("admin/adm_cfg_app_install.html", title="Install App", main_title="Install App")
+    return render_template("admin/views/adm_cfg_app_install.html", title="Install App", main_title="Install App")
 
 
 @arasAdmin_bp.route("/apps/install-manifest/<app_name>", methods=["POST"])

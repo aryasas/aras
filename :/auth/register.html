@@ -1,0 +1,82 @@
+{% extends 'auth/_auth_layout.html' %}
+{% from "com_macros.html" import show_errors %}
+
+{% block page_content %}
+
+<!-- login area start -->
+
+<div class="login-box ptb--100">
+	<form action="{{ url_for('auth.register_view') }}" method="POST">
+		{{ form.csrf_token }}
+		{{ form.hidden_tag() }}
+
+		<div class="login-form-head">
+			<h5 class="text-muted">
+				<a href="#">Aras Dashboard</a>
+			</h5>
+			<p>Sign Up</p>
+			<br>
+			<p>{{ show_message() }}</p>
+			<p>	{{ show_errors(form) }}</p>
+		</div>
+		
+		<div class="login-form-body">
+			<div class="form-gp">
+				<label for="username">Username</label>
+				{{ form.username }}
+				<i class="ti-name"></i>
+				<div class="text-danger"></div>
+			</div>
+			<div class="form-gp">
+				<label for="email">Email</label>
+				{{ form.email }}
+				<i class="ti-email"></i>
+				<div class="text-danger"></div>
+			</div>
+			<div class="form-gp">
+				<label for="password">Password</label>
+				{{ form.password }}
+				<i class="ti-lock"></i>
+				<div class="text-danger"></div>
+			</div>
+			<div class="form-gp">
+				<label for="confirm_password">Confirm Password</label>
+				{{ form.password2 }}
+				<i class="ti-lock"></i>
+				<div class="text-danger"></div>
+			</div>
+			<div class="submit-btn-area">
+
+				<button id="form_submit" type="submit">
+					Submit
+					<i class="ti-arrow-right"></i>
+				</button>
+
+				<div class="login-other row mt-4">
+					<div class="col-6">
+						<a class="fb-login" href="#">Sign up with
+							<i class="fa fa-facebook"></i>
+						</a>
+					</div>
+					<div class="col-6">
+						<a class="google-login" href="#">Sign up with
+							<i class="fa fa-google"></i>
+						</a>
+					</div>
+				</div>
+			</div>
+			<div class="form-footer text-center mt-5">
+				<p class="text-muted">
+					Already a member ?
+					<a href="{{ url_for('auth.login_view') }}{% if 'next' in request.args %}?next={{ request.args.next|urlencode }}{% endif %}">
+						Log in
+					</a>
+				</p>
+			</div>
+		</div>
+	</form>
+</div>
+
+<!-- login area end -->
+
+{% endblock %}

@@ -1,0 +1,231 @@
+<!doctype html><meta charset="utf-8">
+<link rel="stylesheet" href="_base.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400;1,700&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600&display=swap">
+<style>
+  :root {
+    --ink: #0f1b2d;
+    --cream: #f4f2ee;
+    --ochre: #c9a568;
+    --slate: #6c757d;
+    --mist: #9aacb8;
+    --hair: #eef0f2;
+  }
+  body {
+    margin: 0; padding: 0;
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-variation-settings: "opsz" 14;
+    color: var(--ink);
+    background: #fff;
+  }
+
+  /* --------- Wordmark (inline SVG so it always renders) --------- */
+  .wm {
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic; font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    display: inline-flex; align-items: baseline;
+  }
+  .wm .dot {
+    display: inline-block;
+    width: .12em; height: .12em;
+    border-radius: 50%;
+    background: var(--ochre);
+    margin-left: .08em;
+    transform: translateY(-.05em);
+  }
+
+  /* --------- Eyebrow --------- */
+  .eyebrow {
+    display: flex; align-items: baseline; gap: 12px;
+    padding: 22px 28px 10px;
+  }
+  .eyebrow .caps {
+    font: 600 9.5px/1.2 SFMono-Regular, Menlo, Consolas, monospace;
+    text-transform: uppercase; letter-spacing: 1.4px; color: var(--mist);
+  }
+  .eyebrow .title {
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-weight: 700; font-size: 13.5px; letter-spacing: -0.005em;
+  }
+  .eyebrow .dots { flex: 1; height: 1px; background: var(--hair); align-self: center; }
+  .eyebrow .note {
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic; font-size: 11.5px; color: var(--mist);
+  }
+
+  /* --------- Hero row: three surfaces --------- */
+  .row {
+    display: grid; grid-template-columns: 1.3fr 1fr 1fr;
+    gap: 1px; background: var(--hair);
+    margin: 0 28px;
+    border: 1px solid var(--hair);
+  }
+  .cell {
+    aspect-ratio: 16 / 10;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 24px;
+    position: relative;
+  }
+  .cell .wm { font-size: 88px; }
+  .cell.primary .wm      { color: var(--cream); }
+  .cell.secondary .wm    { color: var(--ink); }
+  .cell.alt .wm          { color: var(--ink); }
+  .cell.primary   { background: var(--ink); }
+  .cell.secondary { background: var(--cream); }
+  .cell.alt       { background: #fff; }
+  .cell .tag {
+    position: absolute; bottom: 12px; left: 16px;
+    font: 600 9px/1 SFMono-Regular, Menlo, Consolas, monospace;
+    text-transform: uppercase; letter-spacing: 1.4px;
+    color: currentColor; opacity: .5;
+  }
+  .cell.primary .tag   { color: var(--cream); }
+  .cell.secondary .tag,
+  .cell.alt .tag       { color: var(--slate); }
+
+  /* --------- Scale --------- */
+  .scale-wrap {
+    margin: 0 28px;
+    border: 1px solid var(--hair);
+    padding: 28px 24px;
+    display: flex; align-items: baseline; gap: 38px;
+    flex-wrap: wrap;
+  }
+  .scale-item { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+  .scale-item .wm { color: var(--ink); }
+  .scale-item .meta {
+    font: 500 9.5px/1 SFMono-Regular, Menlo, Consolas, monospace;
+    text-transform: uppercase; letter-spacing: 1.2px; color: var(--mist);
+  }
+  .s-xl .wm { font-size: 96px; }
+  .s-lg .wm { font-size: 56px; }
+  .s-md .wm { font-size: 32px; }
+  .s-sm .wm { font-size: 20px; }
+  .s-xs .wm { font-size: 13px; }
+
+  /* --------- Construction note --------- */
+  .construction {
+    margin: 0 28px;
+    padding: 20px 24px;
+    background: var(--cream);
+    display: grid; grid-template-columns: auto 1fr; gap: 22px;
+    align-items: center;
+  }
+  .construction .demo {
+    display: flex; align-items: baseline; gap: 18px;
+    padding: 18px 22px; background: #fff; border: 1px solid var(--hair);
+  }
+  .construction .demo .wm { font-size: 54px; color: var(--ink); }
+  .construction .demo .callout {
+    position: relative;
+    font: 500 10px/1.4 SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--slate); padding-left: 16px;
+    border-left: 1px solid var(--hair);
+  }
+  .construction .demo .callout b { color: var(--ochre); font-weight: 600; }
+  .construction p {
+    margin: 0;
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic;
+    font-size: 12.5px; line-height: 1.55; color: var(--ink);
+    max-width: 44ch;
+  }
+  .construction p span {
+    font-family: "Bricolage Grotesque", sans-serif; font-style: normal;
+    font-size: 10.5px; color: var(--slate);
+    display: block; margin-top: 6px;
+  }
+
+  /* --------- Footer caption --------- */
+  .caption {
+    padding: 18px 28px 26px;
+    font-family: "Libre Baskerville", Georgia, serif;
+    font-style: italic;
+    font-size: 11.5px; color: var(--mist);
+    border-top: 1px solid var(--hair);
+    margin-top: 18px;
+  }
+</style>
+
+<!-- Primary -->
+<div class="eyebrow">
+  <span class="caps">Wordmark</span>
+  <span class="title">aras</span>
+  <span class="dots"></span>
+  <span class="note">Libre Baskerville · italic 700 · with ochre punctum</span>
+</div>
+
+<div class="row">
+  <div class="cell primary">
+    <span class="wm">aras<span class="dot"></span></span>
+    <span class="tag">primary · ink</span>
+  </div>
+  <div class="cell secondary">
+    <span class="wm">aras<span class="dot"></span></span>
+    <span class="tag">secondary · cream</span>
+  </div>
+  <div class="cell alt">
+    <span class="wm">aras<span class="dot"></span></span>
+    <span class="tag">alt · paper</span>
+  </div>
+</div>
+
+<!-- Scale -->
+<div class="eyebrow" style="padding-top:30px">
+  <span class="caps">Scale</span>
+  <span class="title">Size ladder</span>
+  <span class="dots"></span>
+  <span class="note">96 · 56 · 32 · 20 · 13 px</span>
+</div>
+
+<div class="scale-wrap">
+  <div class="scale-item s-xl">
+    <span class="wm">aras<span class="dot"></span></span>
+    <span class="meta">96 · display</span>
+  </div>
+  <div class="scale-item s-lg">
+    <span class="wm">aras<span class="dot"></span></span>
+    <span class="meta">56 · header</span>
+  </div>
+  <div class="scale-item s-md">
+    <span class="wm">aras<span class="dot"></span></span>
+    <span class="meta">32 · page</span>
+  </div>
+  <div class="scale-item s-sm">
+    <span class="wm">aras<span class="dot"></span></span>
+    <span class="meta">20 · nav</span>
+  </div>
+  <div class="scale-item s-xs">
+    <span class="wm">aras<span class="dot"></span></span>
+    <span class="meta">13 · inline</span>
+  </div>
+</div>
+
+<!-- Construction -->
+<div class="eyebrow" style="padding-top:30px">
+  <span class="caps">Construction</span>
+  <span class="title">The punctum</span>
+  <span class="dots"></span>
+  <span class="note">a single deliberate mark</span>
+</div>
+
+<div class="construction">
+  <div class="demo">
+    <span class="wm">aras<span class="dot"></span></span>
+    <div class="callout">
+      ochre punctum<br/>
+      <b>12% of cap-height</b><br/>
+      set at x-height baseline
+    </div>
+  </div>
+  <p>
+    A lowercase italic serif — unhurried, editorial. The single ochre dot reads as a full stop, a period of certainty after the word.
+    <span>Never italicise elsewhere. Never remove the dot.</span>
+  </p>
+</div>
+
+<p class="caption">
+  Wordmark only — no icon. Minimum clear-space = one full cap-height on all sides. Do not stretch, re-colour, or pair with gradients.
+</p>

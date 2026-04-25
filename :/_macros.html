@@ -1,0 +1,189 @@
+{#
+================================================================================
+  aras/templates/com_macros.html
+  Jinja2 macros for rendering common UI components in the Aras framework.
+================================================================================
+#}
+
+{#
+--------------------------------------------------------------------------------
+  render_form_fields(form)
+  Renders all visible fields in a WTForms form object with consistent styling.
+  - form: The WTForms form object.
+--------------------------------------------------------------------------------
+#}
+{% macro render_form_fields(form) %}
+<div class="aras-form-fields">
+  {% for field in form %}
+    {% if field.type not in ['HiddenField', 'CSRFTokenField', 'SubmitField'] %}
+      <div class="aras-form-row {% if field.type == 'BooleanField' %}is-bool{% endif %}">
+        <label class="aras-form-label" for="{{ field.id }}">{{ field.label.text }}</label>
+        <div>
+          {% if field.type == 'BooleanField' %}
+            <label class="aras-toggle">
+              {{ field() }}
+              <span class="aras-toggle-track"><span class="aras-toggle-thumb"></span></span>
+              <span class="aras-toggle-label">{{ field.label.text }}</span>
+            </label>
+          {% elif field.type == 'TextAreaField' %}
+            {{ field(class_="aras-form-textarea", **kwargs) }}
+          {% elif field.type == 'SelectField' %}
+            {{ field(class_="aras-form-select", **kwargs) }}
+          {% else %}
+            {{ field(class_="aras-form-input", **kwargs) }}
+          {% endif %}
+          {% if field.errors %}
+            {% for err in field.errors %}
+              <span class="aras-form-error">{{ err }}</span>
+            {% endfor %}
+          {% endif %}
+          {% if field.description %}
+            <small class="aras-form-help">{{ field.description }}</small>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endmacro %}
+
+
+{#
+--------------------------------------------------------------------------------
+  render_list_toolbar(main_title, total_items, buttons=[])
+  Renders the toolbar for a list view.
+  - main_title: The title of the list.
+  - total_items: The total number of items in the list.
+  - buttons: A list of dictionaries for buttons, e.g.,
+             [{'label': 'Add New', 'url': '/add', 'icon': 'fa-plus', 'style': 'primary'}]
+--------------------------------------------------------------------------------
+#}
+{% macro render_list_toolbar(main_title, total_items, buttons=[]) %}
+<div class="aras-toolbar mt-2">
+  <div>
+    <h2 class="aras-page-title" style="font-size:15px;margin:0;">
+      {{ main_title }}
+      <span class="aras-count-badge">{{ total_items }}</span>
+    </h2>
+  </div>
+  <div class="aras-toolbar-right">
+    {% for btn in buttons %}
+    <a href="{{ btn.url }}"
+       class="aras-btn {% if btn.style == 'primary' %}aras-btn--primary{% elif btn.style == 'outline' %}aras-btn--accent-outline{% endif %}">
+      {% if btn.icon %}<i class="fa {{ btn.icon }}"></i> {% endif %}{{ btn.label }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endmacro %}
+
+
+{#
+--------------------------------------------------------------------------------
+  render_data_table(columns, items, rel_maps={}, edit_url_base=None)
+  Renders a data table.
+  - columns: A list of tuples (label, field_name).
+  - items: The list of data items to render.
+  - rel_maps: A dictionary for mapping related field values to their display values.
+  - edit_url_base: The base URL for the edit view.
+--------------------------------------------------------------------------------
+#}
+{% macro render_data_table(columns, items, rel_maps={}, edit_url_base=None) %}
+<div class="aras-table-wrap">
+  <table class="aras-table">
+    <thead>
+      <tr>
+        {% for label, field in columns %}
+        <th>{{ label }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr class="is-clickable" data-edit-url="{{ edit_url_base ~ '/' ~ item.id ~ '/' if edit_url_base else '' }}">
+        {% for label, field in columns %}
+          {% set raw = item|attr(field) if item|attr(field) is defined else none %}
+          {% if field in rel_maps and raw is not none %}
+            <td>{{ rel_maps[field][raw] if raw in rel_maps[field] else raw }}</td>
+          {% else %}
+            <td>{{ raw if raw is not none else '' }}</td>
+          {% endif %}
+        {% endfor %}
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="{{ columns|length }}">
+          <div class="aras-empty-state">
+            <p class="aras-empty-text">No records yet</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+{#
+--------------------------------------------------------------------------------
+  render_child_table(ct)
+  Renders an inline child table.
+  - ct: A dictionary containing child table data.
+--------------------------------------------------------------------------------
+#}
+{% macro render_child_table(ct) %}
+{% set ct_id = loop.index %}
+<div class="aras-child-card" id="ct-card-{{ ct_id }}">
+  <div class="aras-child-header">
+    <h3 class="aras-child-title">{{ ct.title }}</h3>
+    <button type="button" class="aras-btn aras-btn--sm aras-btn--accent-outline" onclick="ctAddRow({{ ct_id }})">
+      <i class="fa fa-plus"></i> Add Row
+    </button>
+  </div>
+  <div class="aras-child-table-wrap">
+    <table class="aras-child-table" id="ct-table-{{ ct_id }}">
+      <thead>
+        <tr>
+          {% for label, _ in ct.vcols %}<th>{{ label }}</th>{% endfor %}
+          <th style="width:60px;"></th>
+        </tr>
+      </thead>
+      <tbody id="ct-tbody-{{ ct_id }}">
+        {# Rows will be rendered by JavaScript #}
+      </tbody>
+    </table>
+    <div class="aras-child-empty" id="ct-empty-{{ ct_id }}">
+      <i class="fa fa-inbox"></i>
+      <span>No {{ ct.title }} records yet</span>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+
+{#
+--------------------------------------------------------------------------------
+  pagination_widget(pagination, endpoint)
+  Renders a pagination control.
+  - pagination: The pagination object from Flask-SQLAlchemy.
+  - endpoint: The endpoint for the links.
+--------------------------------------------------------------------------------
+#}
+{% macro pagination_widget(pagination, endpoint, **kwargs) %}
+{% if pagination and pagination.pages > 1 %}
+<nav class="aras-pag-nav">
+  <a class="aras-pag-btn {% if not pagination.has_prev %}disabled{% endif %}"
+     href="{{ url_for(endpoint, page=pagination.prev_num, **kwargs) }}">‹</a>
+  {% for p in pagination.iter_pages(left_edge=1, left_current=2, right_current=2, right_edge=1) %}
+    {% if p %}
+      <a class="aras-pag-btn {% if p == pagination.page %}active{% endif %}"
+         href="{{ url_for(endpoint, page=p, **kwargs) }}">{{ p }}</a>
+    {% else %}
+      <span class="aras-pag-ellipsis">…</span>
+    {% endif %}
+  {% endfor %}
+  <a class="aras-pag-btn {% if not pagination.has_next %}disabled{% endif %}"
+     href="{{ url_for(endpoint, page=pagination.next_num, **kwargs) }}">›</a>
+</nav>
+{% endif %}
+{% endmacro %}

@@ -1,0 +1,80 @@
+{#
+================================================================================
+  aras/templates/admin/com_list_toolbar.html
+  The toolbar for the list view (Stunning Refactor).
+================================================================================
+#}
+
+{# ── Stunning Sticky Header ── #}
+<div class="aras-header-sticky">
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div class="aras-breadcrumb" style="font-size:13px;font-style:normal;">
+      <a href="{{ url_for('admin.dashboard') }}">Home</a>
+      <span class="app-menu-divider">/</span>
+      <span class="aras-breadcrumb__current">{{ main_title }}</span>
+    </div>
+
+    {% if _has_search %}
+    <form method="GET" id="searchForm{{ _lid }}" style="margin:0;">
+      {% if per_page is defined and per_page != 20 %}<input type="hidden" name="per_page" value="{{ per_page }}">{% endif %}
+      <div class="aras-top-search-input-wrap" style="width:240px;height:32px;">
+        <i class="fa fa-search" style="font-size:12px;"></i>
+        <input type="text" name="{{ _qparam }}" placeholder="Search…" value="{{ search_q or '' }}" style="padding:6px 12px 6px 32px;font-size:12px;">
+      </div>
+    </form>
+    {% endif %}
+  </div>
+
+  <div class="aras-toolbar-right" style="gap:12px;">
+    {% if _has_bulk %}
+    <div class="aras-bulk-wrap" id="bulkWrapInline{{ _lid }}" style="display:none;align-items:center;gap:8px;">
+      <span class="aras-badge aras-badge--info" style="text-transform:none;"><span id="bulkCountInline{{ _lid }}">0</span> selected</span>
+      <button class="aras-btn aras-btn--primary aras-btn--sm js-bulk-delete{{ _lid }}" style="background:var(--studio-accent);" type="button">
+        <i class="fa fa-trash-o"></i> Delete
+      </button>
+    </div>
+    {% endif %}
+
+    {% if _has_filter %}
+    <button type="button" class="aras-btn aras-btn--outline aras-btn--sm {% if active_filters %}active{% endif %}" id="filterToggleBtn{{ _lid }}">
+      <i class="fa fa-sliders"></i> Filter
+    </button>
+    {% endif %}
+
+    {% if _has_customize %}
+    <div class="aras-col-toggle-wrap" style="position:relative;">
+      <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" id="colToggleBtn{{ _lid }}" title="Show/hide columns">
+        <i class="fa fa-columns"></i>
+      </button>
+      <div id="colTogglePopover{{ _lid }}" class="aras-col-toggle-popover" style="display:none;">
+        <div class="aras-col-toggle-title">Columns</div>
+        {% for label, field in view_columns %}
+        <label class="aras-col-toggle-item">
+          <input type="checkbox" class="js-col-vis{{ _lid }}"
+                 data-field="{{ field }}"
+                 data-col="{{ loop.index - 1 + (1 if _has_bulk else 0) }}"
+                 checked>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if _has_add %}
+    <a href="{{ add_url }}" class="aras-btn aras-btn--primary aras-btn--sm">
+      <i class="fa fa-plus"></i> Add New
+    </a>
+    {% endif %}
+
+    {% if _has_extra %}
+      {% for btn in extra_buttons %}
+      <a href="{{ btn.url }}" class="aras-btn aras-btn--sm {% if btn.style == 'outline' %}aras-btn--outline{% else %}aras-btn--primary{% endif %}"
+         {% if btn.onclick is defined and btn.onclick %}onclick="{{ btn.onclick }}"{% endif %}>
+        {% if btn.icon %}<i class="fa {{ btn.icon }}"></i> {% endif %}{{ btn.label }}
+      </a>
+      {% endfor %}
+    {% endif %}
+
+  </div>
+</div>

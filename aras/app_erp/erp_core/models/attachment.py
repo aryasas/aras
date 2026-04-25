@@ -1,13 +1,13 @@
 from arasCore.lib.base_model import ArasModel, db
 
 
-class CoreAttachment(ArasModel):
-    __tablename__ = "core_attachment"
+class Attachment(ArasModel):
+    __tablename__ = "attachment"
     __table_args__ = (
         db.Index("idx_attachment_target", "target_model", "target_id"),
     )
 
-    company_id   = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=True)
+    company_id   = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=True)
     target_model = db.Column(db.String(100), nullable=True)
     target_id    = db.Column(db.Integer, nullable=True)
     filename     = db.Column(db.String(255), nullable=False)
@@ -22,4 +22,4 @@ class CoreAttachment(ArasModel):
     uploader = db.relationship("User", foreign_keys=[uploaded_by])
 
     def __repr__(self):
-        return f"<CoreAttachment {self.filename}>"
+        return f"<Attachment {self.filename}>"

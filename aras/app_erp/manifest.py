@@ -2,22 +2,21 @@
 from arasCore.lib.app_helper import AppHelper, MenuGroup, ResourceDef, SubHandler, CustomRoute
 
 from aras.app_erp.erp_core.models import (
-    CoreCompany, CoreCompanyBranch,
-    CoreCurrency, CoreFxRate,
-    CoreTax, CoreTaxGroup,
-    CoreSetting, CoreSequence,
-    CoreFiscalYear, CoreFiscalPeriod,
-    CoreRole, CorePermission,
-    CoreAttachment, CorePrintTemplate, CoreCustomField,
+    Company,
+    Currency, FxRate,
+    Charge, ChargeCategory,
+    Setting, Sequence,
+    FiscalYear, FiscalPeriod,
+    ErpRole, ErpPermission,
+    Attachment, PrintTemplate,
     ErpReport,
 )
 from aras.app_erp.erp_acc.models import (
-    AccAccount, AccDefaultAccount,
-    AccJournal, AccJournalEntry, AccJournalLine,
+    AccAccount,
+    AccJournalEntry, AccJournalLine,
     AccAnalyticTag,
-    AccBankStatement, AccBankStatementLine,
-    AccSalesInvoice, AccSalesInvoiceLine,
-    AccPurchaseInvoice, AccPurchaseInvoiceLine,
+    AccSalesInvoice, AccSalesInvoiceLine, AccSalesInvoiceCharge,
+    AccPurchaseInvoice, AccPurchaseInvoiceLine, AccPurchaseInvoiceCharge,
 )
 from aras.app_erp.erp_crm.models import (
     CrmCustomer, CrmContact,
@@ -25,7 +24,6 @@ from aras.app_erp.erp_crm.models import (
 )
 from aras.app_erp.erp_pos.models import (
     PosTerminal, PosSession, PosShiftEntry,
-    PosOrder, PosOrderLine, PosPayment,
 )
 from aras.app_erp.erp_stock.models import (
     StockUomCategory, StockUom, StockUomConversion,
@@ -46,11 +44,6 @@ class JournalEntryHandler(SubHandler):
             raise ValueError("Journal entry yang sudah diposting tidak bisa dihapus.")
 
 
-class CompanyHandler(SubHandler):
-    def list(self, query):
-        return query.filter_by(is_active=True)
-
-
 def _handle_post_journal():
     from flask import request, jsonify
     from arasCore.lib.extensions import db
@@ -58,11 +51,10 @@ def _handle_post_journal():
     entry_id = data.get("entry_id")
     if not entry_id:
         return jsonify({"ok": False, "error": "entry_id required"}), 400
-    obj = AccJournalEntry.query.get_or_404(entry_id)
+    obj = AccJournalEntry.get_or_404(entry_id)
     if getattr(obj, "state", "draft") == "posted":
         return jsonify({"ok": False, "error": "Already posted"}), 400
-    obj.state = "posted"
-    db.session.commit()
+    obj.set_field("state", "posted")
     return jsonify({"ok": True, "data": {"id": obj.id, "state": obj.state}})
 
 
@@ -80,20 +72,17 @@ def _pos_products(session_id: int):
     from aras.app_erp.erp_stock.services.price_service import get_price
     from arasCore.lib.extensions import db
 
-    session = PosSession.query.get_or_404(session_id)
-    terminal = PosTerminal.query.get(session.terminal_id)
+    session      = PosSession.get_or_404(session_id)
+    terminal     = PosTerminal.get(session.terminal_id)
     pricelist_id = terminal.pricelist_id if terminal else None
     warehouse_id = terminal.warehouse_id if terminal else None
     tx_mode      = terminal.transaction_mode if terminal else "income"
 
     loc_ids = []
     if warehouse_id:
-        locs = StockLocation.query.filter_by(
+        loc_ids = [l.id for l in StockLocation.find_all(
             warehouse_id=warehouse_id, location_type="internal", is_active=True
-        ).all()
-        loc_ids = [l.id for l in locs]
-
-    tx_mode = terminal.transaction_mode if terminal else "income"
+        )]
 
     q = StockProduct.query.filter_by(is_active=True)
     if tx_mode == "income":
@@ -177,19 +166,17 @@ def _pos_stock_check(session_id: int, product_id: int):
     from aras.app_erp.erp_stock.models.warehouse import StockLocation
     from arasCore.lib.extensions import db
 
-    session = PosSession.query.get_or_404(session_id)
-    terminal = PosTerminal.query.get(session.terminal_id)
+    session      = PosSession.get_or_404(session_id)
+    terminal     = PosTerminal.get(session.terminal_id)
     warehouse_id = terminal.warehouse_id if terminal else None
 
-    product = StockProduct.query.get_or_404(product_id)
+    product = StockProduct.get_or_404(product_id)
     if product.product_type != "storable":
         return jsonify({"qty_on_hand": None, "storable": False})
     if not warehouse_id:
         return jsonify({"qty_on_hand": None, "storable": True, "warning": "Warehouse belum dikonfigurasi"})
 
-    locs = StockLocation.query.filter_by(
-        warehouse_id=warehouse_id, location_type="internal", is_active=True
-    ).all()
+    locs    = StockLocation.find_all(warehouse_id=warehouse_id, location_type="internal", is_active=True)
     loc_ids = tuple(l.id for l in locs) or (0,)
     qty = db.session.execute(
         db.text("SELECT COALESCE(SUM(qty_on_hand),0) FROM stock_valuation WHERE product_id=:pid AND location_id IN :lids"),
@@ -210,7 +197,7 @@ def _pos_create_order(session_id: int):
     if not current_user.is_authenticated:
         return jsonify({"error": "Unauthorized"}), 401
 
-    session = PosSession.query.get_or_404(session_id)
+    session = PosSession.get_or_404(session_id)
     if session.state != "open":
         return jsonify({"ok": False, "error": "Session closed"}), 400
 
@@ -222,19 +209,18 @@ def _pos_create_order(session_id: int):
     if not lines_data:
         return jsonify({"ok": False, "error": "No items"}), 400
 
-    # Stock check — storable only
-    terminal     = PosTerminal.query.get(session.terminal_id)
+    terminal     = PosTerminal.get(session.terminal_id)
     warehouse_id = terminal.warehouse_id if terminal else None
 
     if warehouse_id:
         from aras.app_erp.erp_stock.models.warehouse import StockLocation
-        locs    = StockLocation.query.filter_by(warehouse_id=warehouse_id, location_type="internal", is_active=True).all()
+        locs    = StockLocation.find_all(warehouse_id=warehouse_id, location_type="internal", is_active=True)
         loc_ids = tuple(l.id for l in locs) or (0,)
         for l in lines_data:
             pid = l.get("product_id")
             if not pid:
                 continue
-            p = StockProduct.query.get(pid)
+            p = StockProduct.get(pid)
             if not p or p.product_type != "storable":
                 continue
             qty_base = float(l.get("qty_base") or l.get("qty", 1))
@@ -281,123 +267,106 @@ helper = AppHelper(
     admin_icon="fa-building",
     admin_order=5,
     menu_groups=[
-        MenuGroup("Core", "fa-cogs", order=0, resources=[
-            ResourceDef("company",        CoreCompany,       handler=CompanyHandler(), admin_list=True,
+        # ── Settings ────────────────────────────────────────────────────────────
+        MenuGroup("Settings", "fa-cogs", order=0, resources=[
+            ResourceDef("company",        Company,       admin_list=True,
                         menu_title="Company", menu_icon="fa-building-o"),
-            ResourceDef("company-branch", CoreCompanyBranch, admin_list=True,
-                        menu_title="Branch", menu_icon="fa-code-fork"),
-            ResourceDef("currency",       CoreCurrency,      admin_list=True,
+            ResourceDef("currency",       Currency,      admin_list=True,
                         menu_title="Currency", menu_icon="fa-dollar"),
-            ResourceDef("fx-rate",        CoreFxRate,        admin_list=True,
-                        menu_title="FX Rate", menu_icon="fa-exchange"),
-            ResourceDef("tax",            CoreTax,           admin_list=True,
-                        menu_title="Tax", menu_icon="fa-percent"),
-            ResourceDef("tax-group",      CoreTaxGroup,      admin_list=True,
-                        menu_title="Tax Group", menu_icon="fa-tags"),
-            ResourceDef("fiscal-year",    CoreFiscalYear,    admin_list=True,
+            ResourceDef("fx-rate",        FxRate,        admin_list=False, is_child_table=True),
+            ResourceDef("fiscal-year",    FiscalYear,    admin_list=True,
                         menu_title="Fiscal Year", menu_icon="fa-calendar"),
-            ResourceDef("fiscal-period",  CoreFiscalPeriod,  admin_list=True,
-                        menu_title="Fiscal Period", menu_icon="fa-calendar-o"),
-            ResourceDef("sequence",       CoreSequence,      admin_list=True,
-                        menu_title="Sequence", menu_icon="fa-sort-numeric-asc"),
-            # CoreSetting exposed via API only; UI is handled by /admin/erp/settings/
-            ResourceDef("setting",        CoreSetting,       admin_list=False),
-            ResourceDef("custom-field",   CoreCustomField,   admin_list=True,
-                        menu_title="Custom Fields", menu_icon="fa-list-alt"),
-            ResourceDef("print-template", CorePrintTemplate, admin_list=True,
+            ResourceDef("fiscal-period",  FiscalPeriod,  admin_list=False, is_child_table=True),
+            ResourceDef("sequence",       Sequence,      admin_list=True,
+                        menu_title="Sequences", menu_icon="fa-sort-numeric-asc"),
+            ResourceDef("print-template", PrintTemplate, admin_list=True,
                         menu_title="Print Templates", menu_icon="fa-print"),
-            ResourceDef("role",           CoreRole,          admin_list=True,
+            ResourceDef("role",           ErpRole,          admin_list=True,
                         menu_title="Roles", menu_icon="fa-shield"),
-            ResourceDef("permission",     CorePermission,    admin_list=True,
+            ResourceDef("permission",     ErpPermission,    admin_list=True,
                         menu_title="Permissions", menu_icon="fa-key"),
-            ResourceDef("attachment",     CoreAttachment,    admin_list=False),
+            ResourceDef("setting",        Setting,       admin_list=False),
+            ResourceDef("attachment",     Attachment,    admin_list=False),
+            # ── Reference ───────────────────────────────────────────────────────
+            ResourceDef("charge",         Charge,          admin_list=True,
+                        menu_title="Charges", menu_icon="fa-percent"),
+            ResourceDef("charge-category", ChargeCategory, admin_list=True,
+                        menu_title="Charge Categories", menu_icon="fa-tags"),
         ]),
 
+        # ── Accounting ──────────────────────────────────────────────────────────
         MenuGroup("Accounting", "fa-calculator", order=1, resources=[
-            ResourceDef("acc/account",      AccAccount,             admin_list=True,
+            ResourceDef("acc/account",      AccAccount,       admin_list=True,
                         menu_title="Chart of Accounts", menu_icon="fa-sitemap"),
-            ResourceDef("acc/journal",      AccJournal,             admin_list=True,
-                        menu_title="Journals", menu_icon="fa-book"),
-            ResourceDef("acc/entry",        AccJournalEntry,        handler=JournalEntryHandler(), admin_list=True,
+            ResourceDef("acc/entry",        AccJournalEntry,  handler=JournalEntryHandler(), admin_list=True,
                         menu_title="Journal Entries", menu_icon="fa-pencil-square-o"),
-            ResourceDef("acc/line",         AccJournalLine,         admin_list=False, is_child_table=True),
-            ResourceDef("acc/default",      AccDefaultAccount,      admin_list=True,
-                        menu_title="Default Accounts", menu_icon="fa-link"),
-            ResourceDef("acc/analytic-tag", AccAnalyticTag,         admin_list=True,
+            ResourceDef("acc/line",         AccJournalLine,   admin_list=False, is_child_table=True),
+            ResourceDef("acc/analytic-tag", AccAnalyticTag,   admin_list=True,
                         menu_title="Analytic Tags", menu_icon="fa-tag"),
-            ResourceDef("acc/bank",         AccBankStatement,       admin_list=True,
-                        menu_title="Bank Statements", menu_icon="fa-bank"),
-            ResourceDef("acc/bank-line",    AccBankStatementLine,   admin_list=False, is_child_table=True),
-            ResourceDef("acc/sales-invoice",       AccSalesInvoice,       admin_list=True,
+            ResourceDef("acc/sales-invoice",          AccSalesInvoice,        admin_list=True,
                         menu_title="Sales Invoices", menu_icon="fa-file-text-o"),
-            ResourceDef("acc/sales-invoice-line",  AccSalesInvoiceLine,   admin_list=False, is_child_table=True),
-            ResourceDef("acc/purchase-invoice",    AccPurchaseInvoice,    admin_list=True,
+            ResourceDef("acc/sales-invoice-line",     AccSalesInvoiceLine,    admin_list=False, is_child_table=True),
+            ResourceDef("acc/sales-invoice-charge",   AccSalesInvoiceCharge,  admin_list=False, is_child_table=True),
+            ResourceDef("acc/purchase-invoice",       AccPurchaseInvoice,     admin_list=True,
                         menu_title="Purchase Invoices", menu_icon="fa-file-o"),
-            ResourceDef("acc/purchase-invoice-line", AccPurchaseInvoiceLine, admin_list=False, is_child_table=True),
+            ResourceDef("acc/purchase-invoice-line",  AccPurchaseInvoiceLine, admin_list=False, is_child_table=True),
+            ResourceDef("acc/purchase-invoice-charge",AccPurchaseInvoiceCharge,admin_list=False, is_child_table=True),
         ]),
 
+        # ── CRM ─────────────────────────────────────────────────────────────────
         MenuGroup("CRM", "fa-handshake-o", order=2, resources=[
             ResourceDef("crm/customer",  CrmCustomer,  admin_list=True,
                         menu_title="Customers", menu_icon="fa-user-circle"),
-            ResourceDef("crm/contact",   CrmContact,   admin_list=True,
-                        menu_title="Contacts", menu_icon="fa-address-book"),
+            ResourceDef("crm/contact",   CrmContact,   admin_list=False, is_child_table=True),
             ResourceDef("crm/lead",      CrmLead,      admin_list=True,
                         menu_title="Leads", menu_icon="fa-filter"),
             ResourceDef("crm/pipeline",  CrmPipeline,  admin_list=True,
                         menu_title="Pipelines", menu_icon="fa-random"),
-            ResourceDef("crm/stage",     CrmStage,     admin_list=True,
-                        menu_title="Stages", menu_icon="fa-flag"),
+            ResourceDef("crm/stage",     CrmStage,     admin_list=False, is_child_table=True),
             ResourceDef("crm/activity",  CrmActivity,  admin_list=False, is_child_table=True),
         ]),
 
+        # ── POS ─────────────────────────────────────────────────────────────────
         MenuGroup("arasPos", "fa-shopping-cart", order=3, resources=[
-            ResourceDef("pos/open",         url="/admin/erp/pos",
+            ResourceDef("pos/open",        url="/admin/erp/pos",
                         menu_title="Open POS", menu_icon="fa-cash-register"),
-            ResourceDef("pos/terminal",     PosTerminal,    admin_list=True,
+            ResourceDef("pos/terminal",    PosTerminal,   admin_list=True,
                         menu_title="Terminals", menu_icon="fa-desktop"),
-            ResourceDef("pos/session",      PosSession,     admin_list=True,
+            ResourceDef("pos/session",     PosSession,    admin_list=True,
                         menu_title="Sessions", menu_icon="fa-clock-o"),
-            ResourceDef("pos/shift-entry",  PosShiftEntry,  admin_list=True,
-                        menu_title="Shift Entries", menu_icon="fa-exchange"),
-            ResourceDef("pos/order",        PosOrder,       admin_list=True,
-                        menu_title="Orders", menu_icon="fa-list"),
-            ResourceDef("pos/order-line",   PosOrderLine,   admin_list=False, is_child_table=True),
-            ResourceDef("pos/payment",      PosPayment,     admin_list=False, is_child_table=True),
+            ResourceDef("pos/shift-entry", PosShiftEntry, admin_list=False, is_child_table=True),
         ]),
 
+        # ── Reports ─────────────────────────────────────────────────────────────
         MenuGroup("Reports", "fa-bar-chart", order=4, resources=[
             ResourceDef("report", ErpReport, admin_list=True,
                         menu_title="Report Templates", menu_icon="fa-file-text-o"),
         ]),
 
+        # ── Stock ───────────────────────────────────────────────────────────────
         MenuGroup("Stock", "fa-cubes", order=5, resources=[
-            ResourceDef("stock/uom-category",     StockUomCategory,     admin_list=True,
-                        menu_title="UOM Categories", menu_icon="fa-th-large"),
+            ResourceDef("stock/uom-category",     StockUomCategory,     admin_list=False),
             ResourceDef("stock/uom",              StockUom,             admin_list=True,
                         menu_title="Units of Measure", menu_icon="fa-balance-scale"),
-            ResourceDef("stock/uom-conversion",   StockUomConversion,   admin_list=True,
-                        menu_title="UOM Conversions", menu_icon="fa-exchange"),
+            ResourceDef("stock/uom-conversion",   StockUomConversion,   admin_list=False, is_child_table=True),
             ResourceDef("stock/product-category", StockProductCategory, admin_list=True,
                         menu_title="Product Categories", menu_icon="fa-folder-o"),
             ResourceDef("stock/product",          StockProduct,         admin_list=True,
                         menu_title="Products", menu_icon="fa-cube"),
-            ResourceDef("stock/product-uom",      StockProductUom,      admin_list=False),
-            ResourceDef("stock/product-price",    StockProductPrice,    admin_list=True,
-                        menu_title="Product Prices", menu_icon="fa-money"),
+            ResourceDef("stock/product-uom",      StockProductUom,      admin_list=False, is_child_table=True),
+            ResourceDef("stock/product-price",    StockProductPrice,    admin_list=False, is_child_table=True),
             ResourceDef("stock/product-bundle",   StockProductBundle,   admin_list=True,
                         menu_title="Product Bundles", menu_icon="fa-cubes"),
-            ResourceDef("stock/product-account",  StockProductAccountLink, admin_list=True,
-                        menu_title="Product Accounts", menu_icon="fa-link"),
+            ResourceDef("stock/product-account",  StockProductAccountLink, admin_list=False, is_child_table=True),
             ResourceDef("stock/pricelist",        StockPriceList,       admin_list=True,
                         menu_title="Price Lists", menu_icon="fa-tag"),
-            ResourceDef("stock/pricelist-item",   StockPriceListItem,   admin_list=False),
+            ResourceDef("stock/pricelist-item",   StockPriceListItem,   admin_list=False, is_child_table=True),
             ResourceDef("stock/warehouse",        StockWarehouse,       admin_list=True,
                         menu_title="Warehouses", menu_icon="fa-building-o"),
-            ResourceDef("stock/location",         StockLocation,        admin_list=True,
-                        menu_title="Locations", menu_icon="fa-map-marker"),
+            ResourceDef("stock/location",         StockLocation,        admin_list=False, is_child_table=True),
             ResourceDef("stock/movement",         StockMovement,        admin_list=True,
                         menu_title="Stock Movements", menu_icon="fa-exchange"),
-            ResourceDef("stock/movement-line",    StockMovementLine,    admin_list=False),
+            ResourceDef("stock/movement-line",    StockMovementLine,    admin_list=False, is_child_table=True),
             ResourceDef("stock/valuation",        StockValuation,       admin_list=True,
                         menu_title="Stock Valuation", menu_icon="fa-bar-chart"),
         ]),

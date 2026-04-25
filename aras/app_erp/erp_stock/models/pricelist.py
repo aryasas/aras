@@ -8,15 +8,15 @@ class StockPriceList(ArasModel):
         db.UniqueConstraint("company_id", "name", name="uq_price_list_company_name"),
     )
 
-    company_id  = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=False)
+    company_id  = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
     name        = db.Column(db.String(100), nullable=False)
-    currency_id = db.Column(db.Integer, db.ForeignKey("core_currency.id"), nullable=False)
+    currency_id = db.Column(db.Integer, db.ForeignKey("currency.id"), nullable=False)
     price_type  = db.Column(db.Enum("sales", "purchase"), nullable=False, default="sales")
     valid_from  = db.Column(db.Date, nullable=True)
     valid_to    = db.Column(db.Date, nullable=True)
     description = db.Column(db.Text)
 
-    currency = db.relationship("CoreCurrency")
+    currency = db.relationship("Currency")
     items    = db.relationship("StockPriceListItem", backref="price_list", cascade="all, delete-orphan")
 
 

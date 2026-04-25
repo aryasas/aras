@@ -16,7 +16,7 @@ def pos_home():
         s.terminal_id: s
         for s in PosSession.query.filter_by(cashier_id=current_user.id, state="open").all()
     }
-    return render_template("erp/pos/home.html", terminals=terminals, open_sessions=open_sessions, main_title="arasPos")
+    return render_template("erp/erp_pos_home.html", terminals=terminals, open_sessions=open_sessions, main_title="arasPos")
 
 
 @app_bp.route("/pos/open/<int:terminal_id>", methods=["GET", "POST"])
@@ -41,7 +41,7 @@ def pos_open_session(terminal_id):
         db.session.commit()
         return redirect(url_for("erp_views.pos_session", session_id=session.id))
 
-    return render_template("erp/pos/open_session.html", terminal=terminal, main_title="Open Session")
+    return render_template("erp/erp_pos_open_session.html", terminal=terminal, main_title="Open Session")
 
 
 @app_bp.route("/pos/session/<int:session_id>")
@@ -61,7 +61,7 @@ def pos_session(session_id):
     customers = CrmCustomer.query.filter_by(is_active=True).order_by(CrmCustomer.name).all()
 
     return render_template(
-        "erp/pos/session.html",
+        "erp/erp_pos_session.html",
         session=session,
         terminal=session.terminal,
         products=products,
@@ -86,7 +86,7 @@ def pos_close_session(session_id):
         db.session.commit()
         flash("Sesi POS ditutup.", "success")
         return redirect(url_for("erp_views.pos_session_shift_report", session_id=session.id))
-    return render_template("erp/pos/close_session.html", session=session, main_title="Close Session")
+    return render_template("erp/erp_pos_close_session.html", session=session, main_title="Close Session")
 
 
 # ── Cash In / Out ─────────────────────────────────────────────────────────────
@@ -125,7 +125,7 @@ def pos_cash_entry(session_id):
 def pos_session_shift_report(session_id):
     from aras.app_erp.erp_pos.services.shift_service import get_shift_report
     data = get_shift_report(session_id)
-    return render_template("erp/pos/shift_report.html", main_title="Shift Report", **data)
+    return render_template("erp/erp_pos_shift_report.html", main_title="Shift Report", **data)
 
 
 # ── Print / Export ────────────────────────────────────────────────────────────
@@ -234,9 +234,9 @@ def pos_invoice_pdf(invoice_id):
 @app_bp.route("/pos/print-template/<int:tpl_id>/preview", methods=["GET"])
 @login_required
 def pos_print_template_preview(tpl_id):
-    """Preview a CorePrintTemplate rendered with dummy data."""
-    from aras.app_erp.erp_core.models.print_template import CorePrintTemplate
-    tpl = CorePrintTemplate.query.get_or_404(tpl_id)
+    """Preview a PrintTemplate rendered with dummy data."""
+    from aras.app_erp.erp_core.models.print_template import PrintTemplate
+    tpl = PrintTemplate.query.get_or_404(tpl_id)
     # Render with dummy/empty context so designer can see layout
     from jinja2 import Environment
     env = Environment(autoescape=True)

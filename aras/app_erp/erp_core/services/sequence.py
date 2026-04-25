@@ -1,7 +1,7 @@
 """core.sequence — thread-safe document numbering via SELECT FOR UPDATE."""
 from datetime import date
 from arasCore.lib.extensions import db
-from aras.app_erp.erp_core.models.sequence import CoreSequence
+from aras.app_erp.erp_core.models.sequence import Sequence
 
 
 def next_number(code: str, company_id: int) -> str:
@@ -10,7 +10,7 @@ def next_number(code: str, company_id: int) -> str:
     Uses SELECT FOR UPDATE to prevent duplicates under concurrency.
     """
     seq = (
-        CoreSequence.query
+        Sequence.query
         .filter_by(code=code, company_id=company_id)
         .with_for_update()
         .first()
@@ -45,8 +45,8 @@ def next_number(code: str, company_id: int) -> str:
     return result.strip("/")
 
 
-def next_number_for_seq(seq: "CoreSequence") -> str:
-    """Atomically increment using a pre-loaded (locked) CoreSequence instance."""
+def next_number_for_seq(seq: "Sequence") -> str:
+    """Atomically increment using a pre-loaded (locked) Sequence instance."""
     today = date.today()
     current_period = today.strftime("%Y-%m") if seq.reset_period == "monthly" else str(today.year)
 

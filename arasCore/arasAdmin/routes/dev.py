@@ -19,7 +19,7 @@ def dev():
         })
     modules = sorted(k for k in _sys.modules if k.startswith("arasCore") or k.startswith("aras."))
     return render_template(
-        "admin/adm_dev.html",
+        "admin/views/adm_dev.html",
         main_title="Dev Page",
         routes=routes,
         modules=modules,

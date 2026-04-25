@@ -234,7 +234,7 @@ def make_home_view(app_name: str, app_title: str, is_dynamic: bool = False, regi
         icon        = (app_row.icon if app_row else None) or "fa-cubes"
 
         return render_template(
-            "admin/adm_app_home.html",
+            "admin/views/adm_app_home.html",
             title=app_title,
             main_title=app_title,
             app_name=app_name,
@@ -311,7 +311,7 @@ def make_group_view(app_name: str, app_title: str, registry_key: str = None):
             })
 
         return render_template(
-            "admin/adm_app_home.html",
+            "admin/views/adm_app_home.html",
             title=f"{grp_rec.get_menu_title()} — {app_title}",
             main_title=app_title,
             app_name=app_name,

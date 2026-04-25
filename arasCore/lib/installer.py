@@ -437,13 +437,14 @@ def scaffold_python_app(app_name: str, tables: list) -> dict:
     model_lines = [
         "from datetime import datetime",
         "from arasCore.lib.extensions import db",
+        "from arasCore.lib.base_model import ArasModel",
         "",
     ]
     for tbl in tables:
         class_name = tbl["name"].replace("_", " ").title().replace(" ", "")
         table_name = f"{app_name}_{tbl['name']}"
         model_lines += [
-            f"class {class_name}(db.Model):",
+            f"class {class_name}(ArasModel):",
             f'    __tablename__ = "{table_name}"',
             "    id         = db.Column(db.Integer, primary_key=True)",
             "    created_at = db.Column(db.DateTime, default=datetime.utcnow)",
@@ -623,7 +624,30 @@ def sync_helper_to_db(helper, db, flask_app=None) -> "object":
     else:
         logger.info(f"[sync] mgr_app already exists: {helper.name}")
 
-    stats = {"tables_new": 0, "tables_existing": 0, "cols_new": 0, "cols_skipped": 0}
+    stats = {"tables_new": 0, "tables_existing": 0, "cols_new": 0, "cols_skipped": 0, "tables_removed": 0}
+
+    # Build set of canonical names from the current manifest
+    def _canonical_names(h):
+        names = {"_settings"}
+        for grp in (h.menu_groups or []):
+            names.add(f"_group_{grp.title.lower().replace(' ', '_')}")
+            for r in grp.resources:
+                names.add(r.name)
+        for r in (h.resources or []):
+            names.add(r.name)
+        return names
+
+    canonical = _canonical_names(helper)
+    # Remove stale mgr_table rows that are no longer in the manifest
+    stale = AppManagerTable.query.filter_by(app_id=app_rec.id).filter(
+        ~AppManagerTable.name.in_(canonical)
+    ).all()
+    for s in stale:
+        db.session.delete(s)
+        stats["tables_removed"] += 1
+        logger.info(f"[sync]   removed stale table: {s.name}")
+    if stale:
+        db.session.flush()
 
     def _sync_resource(res, parent_id, order):
         """Upsert one ResourceDef into mgr_table + sync columns. Returns the record."""
@@ -652,9 +676,10 @@ def sync_helper_to_db(helper, db, flask_app=None) -> "object":
             stats["tables_new"] += 1
             logger.info(f"[sync]   table: {res.name} ({tbl_name})")
         else:
-            # Always update structural fields so re-sync fixes parent/order
+            # Always update structural fields so re-sync fixes parent/order/visibility
             tbl_rec.parent_table_id = parent_id
             tbl_rec.menu_order      = order
+            tbl_rec.show_in_menu    = res.admin_list
             stats["tables_existing"] += 1
 
         existing_col_names = {c.name for c in AppManagerColumn.query.filter_by(table_id=tbl_rec.id).all()}
@@ -692,6 +717,11 @@ def sync_helper_to_db(helper, db, flask_app=None) -> "object":
                 db.session.flush()
                 stats["tables_new"] += 1
                 logger.info(f"[sync]   group: {grp.title}")
+            else:
+                grp_rec.title      = grp.title
+                grp_rec.menu_title = grp.title
+                grp_rec.menu_icon  = grp.icon
+                grp_rec.menu_order = grp_order
 
             for res_order, res in enumerate(grp.resources):
                 _sync_resource(res, grp_rec.id, res_order)
@@ -699,27 +729,30 @@ def sync_helper_to_db(helper, db, flask_app=None) -> "object":
         for res_order, res in enumerate(helper.resources):
             _sync_resource(res, None, res_order)
 
-    # ── 3. Settings link — always a top-level node in every app ──────────────
-    adm_slug = getattr(helper, "admin_slug", None) or helper.name
-    settings_rec = AppManagerTable.query.filter_by(app_id=app_rec.id, name="_settings").first()
-    if not settings_rec:
-        settings_rec = AppManagerTable(
-            app_id=app_rec.id,
-            name="_settings",
-            title="Settings",
-            url_suffix="/settings",
-            db_table_name=None,
-            menu_title="Settings",
-            menu_icon="fa-cog",
-            show_in_menu=True,
-            menu_order=num_groups + 100,
-            parent_table_id=None,
-            page_type="settings",
-        )
-        db.session.add(settings_rec)
-        db.session.flush()
-        stats["tables_new"] += 1
-        logger.info(f"[sync]   settings link added")
+    # ── 3. Settings link — skip if a MenuGroup named "Settings" already covers it
+    has_settings_group = helper.menu_groups and any(
+        g.title.lower() == "settings" for g in helper.menu_groups
+    )
+    if not has_settings_group:
+        settings_rec = AppManagerTable.query.filter_by(app_id=app_rec.id, name="_settings").first()
+        if not settings_rec:
+            settings_rec = AppManagerTable(
+                app_id=app_rec.id,
+                name="_settings",
+                title="Settings",
+                url_suffix="/settings",
+                db_table_name=None,
+                menu_title="Settings",
+                menu_icon="fa-cog",
+                show_in_menu=True,
+                menu_order=num_groups + 100,
+                parent_table_id=None,
+                page_type="settings",
+            )
+            db.session.add(settings_rec)
+            db.session.flush()
+            stats["tables_new"] += 1
+            logger.info(f"[sync]   settings link added")
 
     db.session.commit()
     logger.info(f"[sync] done: {stats}")

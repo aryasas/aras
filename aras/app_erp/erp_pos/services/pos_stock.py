@@ -15,20 +15,12 @@ from aras.app_erp.erp_core.services import sequence as seq_svc
 
 def _get_output_location(warehouse_id: int) -> StockLocation | None:
     """Return the output/internal location for a warehouse."""
-    loc = StockLocation.query.filter_by(
-        warehouse_id=warehouse_id, location_type="internal", is_active=True
-    ).first()
-    if not loc:
-        loc = StockLocation.query.filter_by(
-            warehouse_id=warehouse_id, is_active=True
-        ).first()
-    return loc
+    return (StockLocation.find(warehouse_id=warehouse_id, location_type="internal", is_active=True)
+            or StockLocation.find(warehouse_id=warehouse_id, is_active=True))
 
 
 def _get_customer_location(company_id: int) -> StockLocation | None:
-    return StockLocation.query.filter_by(
-        warehouse_id=None, location_type="customer", is_active=True
-    ).first()
+    return StockLocation.find(warehouse_id=None, location_type="customer", is_active=True)
 
 
 def deduct_stock_from_order(order_id: int) -> StockMovement | None:
@@ -37,16 +29,14 @@ def deduct_stock_from_order(order_id: int) -> StockMovement | None:
     Idempotent — if movement already exists (origin), skip.
     Returns None if no storable lines.
     """
-    order = PosOrder.query.get_or_404(order_id)
+    order = PosOrder.get_or_404(order_id)
 
-    existing = StockMovement.query.filter_by(
-        origin_model="pos_order", origin_id=order.id
-    ).first()
+    existing = StockMovement.find(origin_model="pos_order", origin_id=order.id)
     if existing:
         return existing
 
     from aras.app_erp.erp_pos.models.terminal import PosTerminal
-    terminal = PosTerminal.query.get(order.session.terminal_id)
+    terminal = PosTerminal.get(order.session.terminal_id)
     if not terminal:
         return None
 
@@ -114,16 +104,14 @@ def receive_stock_from_order(order_id: int) -> StockMovement | None:
     Idempotent via origin_model=pos_order_outcome.
     Hanya storable products.
     """
-    order = PosOrder.query.get_or_404(order_id)
+    order = PosOrder.get_or_404(order_id)
 
-    existing = StockMovement.query.filter_by(
-        origin_model="pos_order_outcome", origin_id=order.id
-    ).first()
+    existing = StockMovement.find(origin_model="pos_order_outcome", origin_id=order.id)
     if existing:
         return existing
 
     from aras.app_erp.erp_pos.models.terminal import PosTerminal
-    terminal = PosTerminal.query.get(order.session.terminal_id)
+    terminal = PosTerminal.get(order.session.terminal_id)
     if not terminal:
         return None
 
@@ -137,11 +125,8 @@ def receive_stock_from_order(order_id: int) -> StockMovement | None:
         return None
 
     # vendor/virtual location as source
-    src_loc = StockLocation.query.filter_by(
-        warehouse_id=None, location_type="vendor", is_active=True
-    ).first() or StockLocation.query.filter_by(
-        warehouse_id=None, location_type="virtual", is_active=True
-    ).first()
+    src_loc = (StockLocation.find(warehouse_id=None, location_type="vendor", is_active=True)
+               or StockLocation.find(warehouse_id=None, location_type="virtual", is_active=True))
 
     storable_lines = [
         l for l in order.lines

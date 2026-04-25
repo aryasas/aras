@@ -16,36 +16,23 @@ class AccAccount(ArasModel):
     )
 
     id              = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    company_id      = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=False)
+    company_id      = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
     code            = db.Column(db.String(20), nullable=False)
     name            = db.Column(db.String(200), nullable=False)
     account_type    = db.Column(db.Enum(*ACCOUNT_TYPES), nullable=False)
     parent_id       = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
     is_reconcilable = db.Column(db.Boolean, default=False, nullable=False)
-    currency_id     = db.Column(db.Integer, db.ForeignKey("core_currency.id"), nullable=True)
-    tax_id_default  = db.Column(db.Integer, db.ForeignKey("core_tax.id"), nullable=True)
+    currency_id     = db.Column(db.Integer, db.ForeignKey("currency.id"), nullable=True)
+    charge_id_default = db.Column(db.Integer, db.ForeignKey("charge.id"), nullable=True)
     allow_manual    = db.Column(db.Boolean, default=True, nullable=False)
 
     children = db.relationship("AccAccount", backref=db.backref("parent", remote_side=[id]))
 
 
-class AccDefaultAccount(ArasModel):
-    __tablename__ = "acc_default_account"
-    __table_args__ = (
-        db.UniqueConstraint("company_id", "key", name="uq_acc_default_account"),
-    )
-
-    company_id = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=False)
-    key        = db.Column(db.String(50), nullable=False)
-    account_id = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=False)
-
-    account = db.relationship("AccAccount")
-
-
 class AccAnalyticTag(ArasModel):
     __tablename__ = "acc_analytic_tag"
 
-    company_id = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
     code       = db.Column(db.String(20), nullable=False)
     name       = db.Column(db.String(100), nullable=False)
     parent_id  = db.Column(db.Integer, db.ForeignKey("acc_analytic_tag.id"), nullable=True)

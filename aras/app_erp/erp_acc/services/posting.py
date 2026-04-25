@@ -3,21 +3,21 @@ from decimal import Decimal
 from datetime import date as date_type, datetime
 from flask_login import current_user
 from arasCore.lib.extensions import db
-from aras.app_erp.erp_acc.models.journal import AccJournal, AccJournalEntry, AccJournalLine
-from aras.app_erp.erp_core.models.fiscal import CoreFiscalPeriod
+from aras.app_erp.erp_acc.models.journal import AccJournalEntry, AccJournalLine
+from aras.app_erp.erp_core.models.fiscal import FiscalPeriod
 from aras.app_erp.erp_core.services import sequence as seq_svc
 from aras.app_erp.erp_core.services import audit as audit_svc
 
 
 def post_journal(
     company_id: int,
-    journal_code: str,
     date: date_type,
     lines: list,
     reference: str = "",
     narrative: str = "",
     origin: tuple = None,
-    sequence_code: str = None,
+    sequence_code: str = "accounting.journal",
+    journal_code: str = None,  # kept for backwards compat, unused
 ) -> AccJournalEntry:
     """
     Atomically create and post a balanced journal entry.
@@ -26,21 +26,16 @@ def post_journal(
            amount_currency, fx_rate, tax_id, tax_base_amount,
            analytic_tag_id, description
     """
-    journal = AccJournal.query.filter_by(company_id=company_id, code=journal_code, is_active=True).first()
-    if not journal:
-        raise ValueError(f"Journal '{journal_code}' not found for company {company_id}")
-
     period = _resolve_period(company_id, date)
     if period and period.state == "closed":
-        raise ValueError(f"Fiscal period '{period.name}' is closed")
+        raise ValueError(f"Fiscal period '{period.code}' is closed")
 
     total_debit  = sum(Decimal(str(l.get("debit",  0))) for l in lines)
     total_credit = sum(Decimal(str(l.get("credit", 0))) for l in lines)
     if abs(total_debit - total_credit) > Decimal("0.01"):
         raise ValueError(f"Journal not balanced: debit={total_debit} credit={total_credit}")
 
-    seq_code = sequence_code or f"accounting.journal"
-    entry_name = seq_svc.next_number(seq_code, company_id)
+    entry_name = seq_svc.next_number(sequence_code, company_id)
 
     user_id = None
     try:
@@ -51,7 +46,6 @@ def post_journal(
 
     entry = AccJournalEntry(
         company_id=company_id,
-        journal_id=journal.id,
         name=entry_name,
         date_entry=date,
         reference=reference,
@@ -92,7 +86,7 @@ def post_journal(
 
 def reverse_entry(entry_id: int, date: date_type, narrative: str = "") -> AccJournalEntry:
     """Create a mirror entry with debit/credit swapped."""
-    orig = AccJournalEntry.query.get(entry_id)
+    orig = AccJournalEntry.get(entry_id)
     if not orig or orig.state != "posted":
         raise ValueError("Can only reverse a posted entry")
 
@@ -116,7 +110,6 @@ def reverse_entry(entry_id: int, date: date_type, narrative: str = "") -> AccJou
 
     return post_journal(
         company_id=orig.company_id,
-        journal_code=orig.journal.code,
         date=date,
         lines=rev_lines,
         reference=f"REV:{orig.name}",
@@ -125,23 +118,28 @@ def reverse_entry(entry_id: int, date: date_type, narrative: str = "") -> AccJou
     )
 
 
+def get_default_account(company_id: int, key: str) -> int:
+    """Resolve a default account ID from Company fields (e.g. key='cash_default' → acc_cash_default_id)."""
+    from aras.app_erp.erp_core.models.company import Company
+    company = Company.get(company_id)
+    if not company:
+        raise ValueError(f"Company {company_id} not found")
+    field = f"acc_{key}_id"
+    acc_id = getattr(company, field, None)
+    if not acc_id:
+        raise ValueError(f"Default account '{key}' not configured for company {company_id}")
+    return acc_id
+
+
 def _resolve_period(company_id: int, d: date_type):
-    from aras.app_erp.erp_core.models.fiscal import CoreFiscalYear
+    from aras.app_erp.erp_core.models.fiscal import FiscalYear
     return (
-        CoreFiscalPeriod.query
-        .join(CoreFiscalYear, CoreFiscalYear.id == CoreFiscalPeriod.fiscal_year_id)
+        FiscalPeriod.query
+        .join(FiscalYear, FiscalYear.id == FiscalPeriod.fiscal_year_id)
         .filter(
-            CoreFiscalYear.company_id == company_id,
-            CoreFiscalPeriod.date_start <= d,
-            CoreFiscalPeriod.date_end >= d,
+            FiscalYear.company_id == company_id,
+            FiscalPeriod.date_start <= d,
+            FiscalPeriod.date_end >= d,
         )
         .first()
     )
-
-
-def get_default_account(company_id: int, key: str):
-    from aras.app_erp.erp_acc.models.account import AccDefaultAccount
-    row = AccDefaultAccount.query.filter_by(company_id=company_id, key=key).first()
-    if not row:
-        raise ValueError(f"No default account configured for '{key}' in company {company_id}")
-    return row.account_id

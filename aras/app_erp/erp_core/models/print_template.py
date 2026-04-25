@@ -1,13 +1,13 @@
 from arasCore.lib.base_model import ArasModel, db
 
 
-class CorePrintTemplate(ArasModel):
-    __tablename__ = "core_print_template"
+class PrintTemplate(ArasModel):
+    __tablename__ = "print_template"
     __table_args__ = (
         db.UniqueConstraint("company_id", "doc_type", "code", name="uq_print_template"),
     )
 
-    company_id    = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=False)
+    company_id    = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
     doc_type      = db.Column(db.String(50), nullable=False)   # 'sales.invoice', 'hr.payslip'
     code          = db.Column(db.String(50), nullable=False)
     name          = db.Column(db.String(150), nullable=False)
@@ -24,17 +24,17 @@ class CorePrintTemplate(ArasModel):
     css           = db.Column(db.Text, nullable=True)
     is_default    = db.Column(db.Boolean, default=False)
 
-    versions = db.relationship("CorePrintTemplateVersion", backref="template", lazy="dynamic",
+    versions = db.relationship("PrintTemplateVersion", backref="template", lazy="dynamic",
                                cascade="all, delete-orphan")
 
     def __repr__(self):
-        return f"<CorePrintTemplate {self.doc_type}/{self.code}>"
+        return f"<PrintTemplate {self.doc_type}/{self.code}>"
 
 
-class CorePrintTemplateVersion(ArasModel):
-    __tablename__ = "core_print_template_version"
+class PrintTemplateVersion(ArasModel):
+    __tablename__ = "print_template_version"
 
-    template_id = db.Column(db.Integer, db.ForeignKey("core_print_template.id"), nullable=False)
+    template_id = db.Column(db.Integer, db.ForeignKey("print_template.id"), nullable=False)
     version_no  = db.Column(db.Integer, nullable=False)
     body_html   = db.Column(db.Text, nullable=False)
     css         = db.Column(db.Text, nullable=True)

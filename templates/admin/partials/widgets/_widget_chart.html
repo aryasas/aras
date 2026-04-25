@@ -1,0 +1,60 @@
+{# Chart widget — bar chart via Chart.js (redesigned for Studio) #}
+<div class="col-md-{{ widget.width|default(6) }}">
+  <div class="aras-card">
+    <div class="aras-card-header">
+      <h3 class="aras-card-title">
+        <i class="{{ widget.icon|default('fa fa-chart-bar') }}" style="color: var(--studio-accent); margin-right: 8px;"></i>
+        {{ widget.title }}
+      </h3>
+    </div>
+    <div class="aras-card-body" style="padding: 16px;">
+      <canvas id="chart-{{ widget.id }}" height="120"></canvas>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var ctx = document.getElementById('chart-{{ widget.id }}');
+  if (!ctx || typeof Chart === 'undefined') return;
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: {{ widget.labels|tojson }},
+      datasets: [{
+        label: {{ widget.title|tojson }},
+        data: {{ widget.data|tojson }},
+        backgroundColor: '#6b2c2c', // Studio Oxblood
+        hoverBackgroundColor: '#4d1e1e',
+        borderRadius: 2,
+        barThickness: 'flex',
+        maxBarThickness: 30
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { 
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f1b2d',
+          titleFont: { family: 'Bricolage Grotesque', size: 12 },
+          bodyFont: { family: 'Bricolage Grotesque', size: 12 },
+          padding: 10,
+          cornerRadius: 4
+        }
+      },
+      scales: { 
+        y: { 
+          beginAtZero: true,
+          grid: { color: '#eef0f2' },
+          ticks: { font: { family: 'ui-monospace', size: 10 }, color: '#9aacb8' }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { family: 'Bricolage Grotesque', size: 11 }, color: '#6c757d' }
+        }
+      }
+    }
+  });
+})();
+</script>

@@ -2,7 +2,7 @@
 import json
 from decimal import Decimal
 from arasCore.lib.extensions import db
-from aras.app_erp.erp_core.models.setting import CoreSetting
+from aras.app_erp.erp_core.models.setting import Setting
 
 _cache: dict = {}
 
@@ -15,7 +15,7 @@ def get(key: str, company_id: int = None, user_id: int = None, default=None):
         cache_key = f"{scope}:{scope_id}:{key}"
         if cache_key in _cache:
             return _cache[cache_key]
-        row = CoreSetting.query.filter_by(scope=scope, scope_id=scope_id, key=key).first()
+        row = Setting.find(scope=scope, scope_id=scope_id, key=key)
         if row:
             val = _cast(row.value, row.value_type)
             _cache[cache_key] = val
@@ -25,16 +25,15 @@ def get(key: str, company_id: int = None, user_id: int = None, default=None):
 
 def set_value(key: str, value, scope="global", scope_id=None,
               value_type="string", description=None):
-    row = CoreSetting.query.filter_by(scope=scope, scope_id=scope_id, key=key).first()
+    row = Setting.find(scope=scope, scope_id=scope_id, key=key)
     str_val = json.dumps(value) if value_type == "json" else str(value)
     if row:
         row.value = str_val
+        db.session.commit()
     else:
-        row = CoreSetting(scope=scope, scope_id=scope_id, key=key,
-                          value_type=value_type, value=str_val, description=description)
-        db.session.add(row)
+        Setting.create({"scope": scope, "scope_id": scope_id, "key": key,
+                        "value_type": value_type, "value": str_val, "description": description})
     _cache.pop(f"{scope}:{scope_id}:{key}", None)
-    db.session.commit()
 
 
 def clear_cache():

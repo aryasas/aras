@@ -7,7 +7,7 @@ class StockWarehouse(ArasModel):
         db.UniqueConstraint("company_id", "code", name="uq_stock_warehouse_code"),
     )
 
-    company_id = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
     code       = db.Column(db.String(10), nullable=False)
     name       = db.Column(db.String(100), nullable=False)
     address    = db.Column(db.Text)

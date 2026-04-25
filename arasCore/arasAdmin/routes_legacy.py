@@ -52,7 +52,7 @@ def dashboard():
     widgets = get_dashboard_widgets(current_user)
 
     return render_template(
-        "admin/dashboard.html",
+        "admin/views/dashboard.html",
         title="Dashboard",
         main_title="Admin Dashboard",
         # form=form,
@@ -70,7 +70,7 @@ def dashboard():
 @arasAdmin_bp.route("/dev")
 @login_required
 def dev():
-    return render_template("admin/dev.html", main_title="Dev Page", user=current_user)
+    return render_template("admin/views/dev.html", main_title="Dev Page", user=current_user)
 
 
 
@@ -89,7 +89,7 @@ def dev():
 #         flash("Your message has been sent.", "success")
 #         return redirect(url_for("admin.messages"))
 #     return render_template(
-#         "admin/send_message.html",
+#         "admin/views/send_message.html",
 #         title="Send Message",
 #         main_title="Message",
 #         form=form,
@@ -113,7 +113,7 @@ def dev():
 #     prev_url = url_for("admin.messages", page=messages.prev_num) if messages.has_prev else None
 
 #     return render_template(
-#         "admin/messages.html",
+#         "admin/views/messages.html",
 #         title="Messages",
 #         main_title="Messages",
 #         messages=messages.items,
@@ -154,7 +154,7 @@ def user_log():
     db.session.commit()
     activities = current_user.activities.order_by(UserActivity.created_at.desc()).all()
     return render_template(
-        "admin/user_log.html",
+        "admin/views/user_log.html",
         title="User Log",
         main_title="User Log",
         activities=activities,
@@ -238,7 +238,7 @@ def settings():
     }
 
     return render_template(
-        "admin/settings.html",
+        "admin/views/settings.html",
         title="Settings",
         main_title="Settings",
         apps=all_apps,
@@ -389,7 +389,7 @@ def apps():
     from .models import AppManagerApp
     all_apps = AppManagerApp.query.order_by(AppManagerApp.id).all()
     return render_template(
-        "admin/apps.html",
+        "admin/views/apps.html",
         title="App Manager",
         main_title="App Manager",
         apps=all_apps,
@@ -431,7 +431,7 @@ def apps_new():
         flash(f"App '{app_obj.name}' created.", "success")
         return redirect(url_for("admin.apps"))
     return render_template(
-        "admin/app_form.html",
+        "admin/views/app_form.html",
         title="New App",
         main_title="New App",
         form=form,
@@ -483,7 +483,7 @@ def apps_edit(app_id):
             flash(f"App '{app_obj.name}' updated.", "success")
         return redirect(url_for("admin.apps"))
     return render_template(
-        "admin/app_form.html",
+        "admin/views/app_form.html",
         title=f"Edit — {app_obj.name}",
         main_title=f"Edit App: {app_obj.name}",
         form=form,
@@ -580,7 +580,7 @@ def apps_tables(app_id):
     app_obj = AppManagerApp.query.get_or_404(app_id)
     tables  = AppManagerTable.query.filter_by(app_id=app_id).order_by(AppManagerTable.menu_order).all()
     return render_template(
-        "admin/aras_admin_tables.html",
+        "admin/views/aras_admin_tables.html",
         title=f"Tables — {app_obj.title}",
         main_title=app_obj.main_title,
         app_def=app_obj,
@@ -623,7 +623,7 @@ def apps_table_new(app_id):
         flash(f"Table '{tbl.title}' created. Add columns now.", "success")
         return redirect(url_for("admin.apps_columns", app_id=app_id, table_id=tbl.id))
     return render_template(
-        "admin/aras_admin_table_form.html",
+        "admin/views/aras_admin_table_form.html",
         title="New Table",
         main_title=app_obj.main_title,
         app_def=app_obj,
@@ -665,7 +665,7 @@ def apps_table_edit(app_id, table_id):
         flash(f"Table '{tbl.title}' updated.", "success")
         return redirect(url_for("admin.apps_tables", app_id=app_id))
     return render_template(
-        "admin/aras_admin_table_form.html",
+        "admin/views/aras_admin_table_form.html",
         title=f"Edit Table — {tbl.title}",
         main_title=app_obj.main_title,
         app_def=app_obj,
@@ -739,7 +739,7 @@ def apps_columns(app_id, table_id):
     columns = AppManagerColumn.query.filter_by(table_id=table_id).order_by(AppManagerColumn.order).all()
     all_tables = AppManagerTable.query.filter_by(app_id=app_id).all()
     return render_template(
-        "admin/aras_admin_columns.html",
+        "admin/views/aras_admin_columns.html",
         title=f"Columns — {tbl.title}",
         main_title=app_obj.main_title,
         app_def=app_obj,
@@ -884,7 +884,7 @@ def role_users_save(role_id):
 def users():
     all_users = User.query.order_by(User.created_at.desc()).all()
     return render_template(
-        "admin/users.html",
+        "admin/views/users.html",
         title="Users",
         main_title="All Users",
         users=all_users,
@@ -907,7 +907,7 @@ def users_new():
             db.session.commit()
             flash(f"User '{u.username}' created.", "success")
             return redirect(url_for("admin.users"))
-    return render_template("admin/user_form.html", title="New User", main_title="Create User", form=form)
+    return render_template("admin/views/user_form.html", title="New User", main_title="Create User", form=form)
 
 
 @arasAdmin_bp.route("/users/<int:user_id>/activate", methods=["POST"])
@@ -993,7 +993,7 @@ def users_export_csv():
 #     next_url = url_for("admin.post", page=posts.next_num) if posts.has_next else None
 #     prev_url = url_for("admin.post", page=posts.prev_num) if posts.has_prev else None
 #     return render_template(
-#         "admin/adm_index.html",
+#         "admin/views/adm_index.html",
 #         main_title="Post",
 #         title="Post",
 #         form=form,
@@ -1012,7 +1012,7 @@ def users_export_csv():
 #     next_url = url_for("admin.explore", page=posts.next_num) if posts.has_next else None
 #     prev_url = url_for("admin.explore", page=posts.prev_num) if posts.has_prev else None
 #     return render_template(
-#         "admin/adm_index.html",
+#         "admin/views/adm_index.html",
 #         title="Explore",
 #         main_title="Explore",
 #         posts=posts.items,
@@ -1072,7 +1072,7 @@ def apps_install():
                 flash(f"Install failed: {e}", "danger")
 
     return render_template(
-        "admin/app_install.html",
+        "admin/views/app_install.html",
         title="Install App",
         main_title="Install App",
     )

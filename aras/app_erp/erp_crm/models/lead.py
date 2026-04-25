@@ -9,7 +9,7 @@ class CrmLead(ArasSoftModel):
         db.Index("idx_crm_lead_salesperson", "salesperson_id", "company_id"),
     )
 
-    company_id       = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=False)
+    company_id       = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
     type             = db.Column(db.Enum("lead", "opportunity"), default="lead", nullable=False)
     name             = db.Column(db.String(255), nullable=False)
     customer_id      = db.Column(db.Integer, db.ForeignKey("crm_customer.id"), nullable=True)

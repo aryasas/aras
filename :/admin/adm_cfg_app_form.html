@@ -1,0 +1,28 @@
+{% extends 'admin/base_admin.html' %}
+
+{# app_manager/app_form.html — create/edit AppManagerApp #}
+
+{% block page_content %}
+<div class="main-content-inner">
+  <div class="mt-4" style="max-width:860px;">
+    <div class="aras-form-card">
+      <div class="aras-form-card-header">
+        <h2 class="aras-form-title">{{ main_title }}</h2>
+        <a href="{{ url_for('admin.apps') }}" class="aras-btn aras-btn--sm">
+          <i class="fa fa-arrow-left"></i> Back
+        </a>
+      </div>
+      <div class="aras-form-body">
+        <form method="POST" id="mainForm">
+          {{ form.hidden_tag() }}
+          {% include 'admin/base_form_fields.html' %}
+          <div class="aras-form-footer">
+            {{ form.submit(class_="aras-btn aras-btn--primary") }}
+            <a href="{{ url_for('admin.apps') }}" class="aras-btn">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

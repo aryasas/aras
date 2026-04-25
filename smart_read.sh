@@ -43,9 +43,11 @@ def get_cache_path(filepath):
     return os.path.join(CACHE_DIR, safe_name)
 
 def read_file(filepath):
-    if not os.path.isfile(filepath):
-        print(f"Error: File '{filepath}' not found.")
-        sys.exit(1)
+    # Normalize to relative path for consistent cache keys
+    project_root = os.path.abspath(".")
+    abs_path = os.path.abspath(filepath)
+    if abs_path.startswith(project_root):
+        filepath = os.path.relpath(abs_path, project_root)
 
     init_env()
     stats = load_stats()

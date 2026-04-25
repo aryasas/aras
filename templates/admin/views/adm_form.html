@@ -1,0 +1,339 @@
+{% extends extends_layout if extends_layout else 'admin/layouts/base_admin.html' %}
+{% from 'macros.html' import render_card, render_button, render_form_fields %}
+
+{#
+================================================================================
+   adm_form.html — Stunning Redesign for Aras Admin
+   A clean, modern, and responsive form view with timeline activity
+   and optimized child-table interactions.
+================================================================================
+#}
+
+{% set _has_customize = app_id is defined and app_id and table_id is defined and table_id %}
+
+{% block page_content %}
+<div class="aras-form-view">
+  <div class="container-fluid px-0">
+
+    {# ── Action Header ── #}
+    <div class="aras-header-sticky">
+      <div class="aras-header-left">
+        <a href="{{ list_url }}" class="aras-back-link" title="Back to list">
+          <i class="fa fa-arrow-left"></i>
+        </a>
+        <h2 class="aras-page-title">{{ title }}</h2>
+      </div>
+      <div class="aras-header-right">
+        {% if _has_customize %}
+          <a href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}" class="aras-btn aras-btn--outline" title="Customize Columns">
+            <i class="fa fa-sliders"></i> <span class="d-none d-md-inline">Customize</span>
+          </a>
+        {% endif %}
+        <a href="{{ list_url }}" class="aras-btn">Cancel</a>
+        {% if show_save_btn is not defined or show_save_btn %}
+          <button type="submit" form="mainForm" class="aras-btn aras-btn--primary">
+            <i class="fa fa-check"></i> Save
+          </button>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="aras-form-layout">
+      <div class="aras-main-column">
+        {# ── Main Form Card ── #}
+        <div class="aras-card shadow-sm">
+          <div class="aras-card-body">
+            <form method="POST" action="{{ action }}" id="mainForm">
+              {{ form.hidden_tag() if form.hidden_tag is defined }}
+              {{ render_form_fields(form) }}
+            </form>
+          </div>
+        </div>
+
+        {# ── Child Tables ── #}
+        {% if child_tables is defined and child_tables %}
+          <div class="aras-child-tables-section mt-5">
+            {% for ct in child_tables %}
+              <div class="aras-card shadow-sm">
+                <div class="aras-card-header d-flex justify-content-between align-items-center">
+                  <h3 class="aras-card-title m-0">{{ ct.title }}</h3>
+                  <div class="aras-card-actions">
+                    {% if ct.api_url %}
+                      <button type="button" class="aras-btn aras-btn--sm aras-btn--outline" onclick="ctAddRow({{ loop.index }})">
+                        <i class="fa fa-plus"></i> Add Row
+                      </button>
+                    {% elif ct.adm_url %}
+                      <a href="{{ ct.adm_url }}/add/?{{ ct.fk_col }}={{ ct.parent_id }}" class="aras-btn aras-btn--sm aras-btn--outline">
+                        <i class="fa fa-plus"></i> Add {{ ct.title }}
+                      </a>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="aras-card-body p-0">
+                  {% include 'admin/partials/com_child_table.html' %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="aras-sidebar-sticky">
+        {# ── Meta Info ── #}
+        <div class="aras-card shadow-sm">
+          <div class="aras-card-header">
+            <h3 class="aras-card-title m-0">Details</h3>
+          </div>
+          <div class="aras-card-body py-3">
+            <div class="aras-meta-list" style="display:flex; flex-direction:column; gap:12px;">
+              <div class="aras-meta-item" style="display:flex; justify-content:space-between; font-size:12.5px;">
+                <span class="label" style="color:var(--aras-ink-3);">Status</span>
+                <span class="value"><span class="badge badge-pill badge-info">Draft</span></span>
+              </div>
+              {% if table_id %}
+              <div class="aras-meta-item" style="display:flex; justify-content:space-between; font-size:12.5px;">
+                <span class="label" style="color:var(--aras-ink-3);">Resource</span>
+                <span class="value"><code>{{ table_id }}</code></span>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        {# ── Activity Timeline ── #}
+        {% if activity_log is defined and activity_log %}
+          <div class="aras-card shadow-sm">
+            <div class="aras-card-header">
+              <h3 class="aras-card-title m-0">Activity</h3>
+            </div>
+            <div class="aras-card-body">
+              <div class="aras-timeline">
+                {% for entry in activity_log %}
+                  <div class="aras-timeline-item">
+                    <div class="aras-timeline-dot {{ entry.action }}"></div>
+                    <div class="aras-timeline-content">
+                      <div class="aras-timeline-header">
+                        <span class="aras-timeline-user">{{ entry.user }}</span>
+                        <span class="aras-timeline-time" data-ts="{{ entry.ts.isoformat() if entry.ts else '' }}">
+                          {{ entry.ts.strftime('%H:%M') if entry.ts else '' }}
+                        </span>
+                      </div>
+                      <div class="aras-timeline-body">
+                        {% if entry.action == 'create' %}
+                          Created this record.
+                        {% elif entry.action == 'delete' %}
+                          Deleted this record.
+                        {% elif entry.action == 'update' %}
+                          Updated this record.
+                          {% if entry.changes %}
+                            <div class="aras-timeline-changes">
+                              {% for field, change in entry.changes.items() %}
+                                <span>{{ field }}: <code>{{ change.old }}</code> → <code>{{ change.new }}</code></span>
+                              {% endfor %}
+                            </div>
+                          {% endif %}
+                        {% else %}
+                          {{ entry.action|capitalize }}
+                        {% endif %}
+                      </div>
+                      <div class="aras-timeline-date">
+                        {{ entry.ts.strftime('%d %b %Y') if entry.ts else '' }}
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script>
+/**
+ * Aras Form JS Core
+ */
+(function () {
+  /* ── Time formatting ─────────────────────────────────────────────────── */
+  function formatRelativeTime(iso) {
+    if (!iso) return '';
+    var d = new Date(iso), diff = Math.round((Date.now() - d) / 1000);
+    if (diff < 30) return 'Just now';
+    if (diff < 60) return diff + 's ago';
+    if (diff < 3600) return Math.round(diff/60) + 'm ago';
+    if (diff < 86400) return Math.round(diff/3600) + 'h ago';
+    if (diff < 172800) return 'Yesterday';
+    return Math.round(diff/86400) + 'd ago';
+  }
+
+  document.querySelectorAll('.aras-timeline-time[data-ts]').forEach(function(el) {
+    var t = el.dataset.ts;
+    if (t) {
+      var rel = formatRelativeTime(t);
+      if (rel.indexOf('d ago') === -1 && rel !== 'Yesterday') {
+         el.textContent = rel;
+      }
+    }
+  });
+
+  /* ── Form Dirty Check ────────────────────────────────────────────────── */
+  var mainForm = document.getElementById('mainForm');
+  if (mainForm) {
+    var isDirty = false;
+    mainForm.addEventListener('change', function() { isDirty = true; });
+    window.addEventListener('beforeunload', function(e) {
+      if (isDirty) {
+        var msg = 'You have unsaved changes.';
+        e.returnValue = msg;
+        return msg;
+      }
+    });
+    mainForm.addEventListener('submit', function() { isDirty = false; });
+  }
+})();
+
+/* ── Inline Child Table Actions (Optimized) ────────────────────────────────── */
+function ctGetMeta(ctId) {
+  try { return JSON.parse(document.getElementById('ct-meta-' + ctId).textContent); }
+  catch(e) { return {vcols: [], rel_maps: {}}; }
+}
+
+function ctUpdateCount(ctId) {
+  var tbody = document.getElementById('ct-tbody-' + ctId);
+  var count = tbody ? tbody.querySelectorAll('tr.ct-row').length : 0;
+  var empty = document.getElementById('ct-empty-' + ctId);
+  if (empty) empty.style.display = count === 0 ? '' : 'none';
+}
+
+function ctAddRow(ctId) {
+  document.getElementById('ct-editing-id-' + ctId).value = '';
+  var form = document.getElementById('ct-form-' + ctId);
+  form.querySelectorAll('.ct-input').forEach(function(el) {
+    if (el.type === 'checkbox') el.checked = false;
+    else el.value = '';
+  });
+  form.style.display = 'block';
+  form.scrollIntoView({behavior: 'smooth', block: 'center'});
+}
+
+function ctEditRow(ctId, btn) {
+  var row = btn.closest('tr');
+  var rowId = row.dataset.id;
+  document.getElementById('ct-editing-id-' + ctId).value = rowId;
+  var meta = ctGetMeta(ctId);
+  var cells = row.querySelectorAll('td:not(.ct-actions)');
+
+  meta.vcols.forEach(function(fname, i) {
+    var inp = document.getElementById('ct-' + ctId + '-' + fname);
+    if (!inp) return;
+    var raw = cells[i] ? (cells[i].dataset.raw !== undefined ? cells[i].dataset.raw : cells[i].textContent.trim()) : '';
+    if (raw === '—') raw = '';
+    if (inp.type === 'checkbox') inp.checked = raw === 'True' || raw === 'true' || raw === '1';
+    else inp.value = raw;
+  });
+
+  var form = document.getElementById('ct-form-' + ctId);
+  form.style.display = 'block';
+  form.scrollIntoView({behavior: 'smooth', block: 'center'});
+}
+
+function ctCancelRow(ctId) {
+  document.getElementById('ct-form-' + ctId).style.display = 'none';
+  document.getElementById('ct-editing-id-' + ctId).value = '';
+}
+
+function ctSaveRow(ctId, apiUrl, fkCol, parentId) {
+  var editingId = document.getElementById('ct-editing-id-' + ctId).value;
+  var form = document.getElementById('ct-form-' + ctId);
+  var data = {};
+  data[fkCol] = parentId;
+
+  form.querySelectorAll('.ct-input').forEach(function(el) {
+    var name = el.name;
+    if (!name) return;
+    if (el.type === 'checkbox') data[name] = el.checked;
+    else if (el.value !== '') data[name] = el.value;
+  });
+
+  var method = editingId ? 'PUT' : 'POST';
+  var url = editingId ? apiUrl.replace(/\/$/, '') + '/' + editingId + '/' : apiUrl;
+
+  var saveBtn = form.querySelector('.aras-btn--primary');
+  var oldHtml = saveBtn.innerHTML;
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving...';
+
+  fetch(url, {
+    method: method,
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': ctGetCsrf()},
+    body: JSON.stringify(data)
+  }).then(function(r) {
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = oldHtml;
+    if (!r.ok) return r.json().then(function(e) { alert('Error: ' + (e.error || r.status)); });
+    return r.json().then(function(obj) {
+      ctRenderRow(ctId, obj, editingId);
+      ctCancelRow(ctId);
+      ctUpdateCount(ctId);
+    });
+  }).catch(function(e) {
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = oldHtml;
+    alert('Network error: ' + e);
+  });
+}
+
+function ctRenderRow(ctId, obj, editingId) {
+  var meta = ctGetMeta(ctId);
+  var tbody = document.getElementById('ct-tbody-' + ctId);
+  var cells = meta.vcols.map(function(fname) {
+    var raw = obj[fname];
+    if (raw === null || raw === undefined) raw = '';
+    var rel = meta.rel_maps[fname];
+    var display = rel ? (rel[String(raw)] || raw) : raw;
+    return '<td data-raw="' + String(raw).replace(/"/g, '&quot;') + '">' + String(display === '' ? '—' : display) + '</td>';
+  });
+  var actCell = '<td class="ct-actions" style="text-align:right;">' +
+    '<button type="button" class="ct-btn-edit" title="Edit" onclick="ctEditRow(' + ctId + ', this)"><i class="fa fa-pencil"></i></button>' +
+    '<button type="button" class="ct-btn-del" title="Delete" onclick="ctDeleteRow(' + ctId + ', this)"><i class="fa fa-trash"></i></button>' +
+    '</td>';
+  var rowHtml = '<tr data-id="' + obj.id + '" class="ct-row">' + cells.join('') + actCell + '</tr>';
+  if (editingId) {
+    var existing = tbody.querySelector('tr[data-id="' + editingId + '"]');
+    if (existing) { existing.outerHTML = rowHtml; return; }
+  }
+  tbody.insertAdjacentHTML('beforeend', rowHtml);
+}
+
+function ctDeleteRow(ctId, btn) {
+  if (!confirm('Delete this row?')) return;
+  var row = btn.closest('tr');
+  var rowId = row.dataset.id;
+  var form = document.getElementById('ct-form-' + ctId);
+  var apiUrl = form ? form.dataset.apiUrl : null;
+  if (!apiUrl) { alert('Cannot determine API URL'); return; }
+
+  fetch(apiUrl.replace(/\/$/, '') + '/' + rowId + '/', {
+    method: 'DELETE',
+    headers: {'X-CSRFToken': ctGetCsrf()}
+  }).then(function(r) {
+    if (!r.ok) return r.json().then(function(e) { alert('Error: ' + (e.error || r.status)); });
+    row.remove();
+    ctUpdateCount(ctId);
+  }).catch(function(e) { alert('Network error: ' + e); });
+}
+
+function ctGetCsrf() {
+  var m = document.cookie.match(/csrf_token=([^;]+)/);
+  if (m) return decodeURIComponent(m[1]);
+  var tag = document.querySelector('input[name="csrf_token"]');
+  return tag ? tag.value : '';
+}
+</script>
+
+{% endblock %}

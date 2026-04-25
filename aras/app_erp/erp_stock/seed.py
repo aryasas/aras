@@ -53,7 +53,6 @@ def run_seed(app, company_id: int):
         _seed_product_categories(company_id)
         db.session.flush()
         _seed_products(company_id)
-        _seed_default_cash_account(company_id)
         db.session.commit()
         print("[seed] stock & product data seeded.")
 
@@ -61,100 +60,61 @@ def run_seed(app, company_id: int):
 def _seed_uom_categories():
     from aras.app_erp.erp_stock.models.uom import StockUomCategory
     for name in UOM_CATEGORIES:
-        if not StockUomCategory.query.filter_by(name=name).first():
-            db.session.add(StockUomCategory(name=name, is_active=True))
+        StockUomCategory.get_or_create({"is_active": True}, name=name)
 
 
 def _seed_uoms():
     from aras.app_erp.erp_stock.models.uom import StockUom, StockUomCategory
     for name, code, cat_name, uom_type, ratio in UOMS:
-        if StockUom.query.filter_by(code=code).first():
-            continue
-        cat = StockUomCategory.query.filter_by(name=cat_name).first()
+        cat = StockUomCategory.find(name=cat_name)
         if not cat:
             continue
-        db.session.add(StockUom(
-            name=name, code=code, category_id=cat.id,
-            uom_type=uom_type, ratio=ratio, rounding=0.01, is_active=True,
-        ))
+        StockUom.get_or_create(
+            {"name": name, "category_id": cat.id, "uom_type": uom_type,
+             "ratio": ratio, "rounding": 0.01, "is_active": True},
+            code=code,
+        )
 
 
 def _seed_product_categories(company_id: int):
     from aras.app_erp.erp_stock.models.product import StockProductCategory
-    from aras.app_erp.erp_acc.models.account import AccDefaultAccount, AccAccount
+    from aras.app_erp.erp_acc.services.posting import get_default_account
 
-    income_acc_id = _get_default_account(company_id, "income_default")
-    cogs_acc_id   = _get_default_account(company_id, "cogs_default")
-    stock_acc_id  = _get_default_account(company_id, "suspense")
+    try:
+        income_acc_id = get_default_account(company_id, "income_default")
+        cogs_acc_id   = get_default_account(company_id, "cogs_default")
+        stock_acc_id  = get_default_account(company_id, "inventory_default")
+    except ValueError:
+        income_acc_id = cogs_acc_id = stock_acc_id = None
 
     parent_map = {}
     for name, parent_name in PRODUCT_CATEGORIES:
-        existing = StockProductCategory.query.filter_by(name=name).first()
-        if existing:
-            parent_map[name] = existing
-            continue
         parent = parent_map.get(parent_name) if parent_name else None
-        cat = StockProductCategory(
+        cat, _ = StockProductCategory.get_or_create(
+            {"parent_id": parent.id if parent else None,
+             "account_revenue_id": income_acc_id, "account_cogs_id": cogs_acc_id,
+             "account_stock_id": stock_acc_id, "valuation_method": "average", "is_active": True},
             name=name,
-            parent_id=parent.id if parent else None,
-            account_revenue_id=income_acc_id,
-            account_cogs_id=cogs_acc_id,
-            account_stock_id=stock_acc_id,
-            valuation_method="average",
-            is_active=True,
         )
-        db.session.add(cat)
-        db.session.flush()
         parent_map[name] = cat
 
 
 def _seed_products(company_id: int):
     from aras.app_erp.erp_stock.models.product import StockProduct, StockProductCategory
     from aras.app_erp.erp_stock.models.uom import StockUom
-    from aras.app_erp.erp_core.models.currency import CoreCurrency
-
-    currency = CoreCurrency.query.filter_by(code="IDR").first()
+    from aras.app_erp.erp_core.models.currency import Currency
 
     for code, name, cat_name, uom_code, ptype, cost, price in SAMPLE_PRODUCTS:
-        if StockProduct.query.filter_by(company_id=company_id, code=code).first():
+        if StockProduct.exists(company_id=company_id, code=code):
             continue
-        cat = StockProductCategory.query.filter_by(name=cat_name).first()
-        uom = StockUom.query.filter_by(code=uom_code).first()
+        cat = StockProductCategory.find(name=cat_name)
+        uom = StockUom.find(code=uom_code)
         if not uom:
             continue
-        db.session.add(StockProduct(
-            company_id=company_id,
-            code=code,
-            name=name,
-            category_id=cat.id if cat else None,
-            uom_id=uom.id,
-            uom_sales_id=uom.id,
-            uom_purchase_id=uom.id,
-            product_type=ptype,
-            cost_price=cost,
-            standard_price=price,
-            for_sales=True,
-            for_purchase=(ptype != "service"),
-            is_active=True,
-        ))
-
-
-def _seed_default_cash_account(company_id: int):
-    """Pastikan cash_default account ada untuk POS journal posting."""
-    from aras.app_erp.erp_acc.models.account import AccDefaultAccount
-    if AccDefaultAccount.query.filter_by(company_id=company_id, key="cash_default").first():
-        return
-    kas_id = _get_default_account(company_id, "suspense")
-    db.session.add(AccDefaultAccount(
-        company_id=company_id,
-        key="cash_default",
-        account_id=kas_id,
-    ))
-
-
-def _get_default_account(company_id: int, key: str):
-    from aras.app_erp.erp_acc.models.account import AccDefaultAccount
-    row = AccDefaultAccount.query.filter_by(company_id=company_id, key=key).first()
-    if not row:
-        raise ValueError(f"Default account '{key}' not found for company {company_id}")
-    return row.account_id
+        StockProduct.create({
+            "company_id": company_id, "code": code, "name": name,
+            "category_id": cat.id if cat else None,
+            "uom_id": uom.id, "uom_sales_id": uom.id, "uom_purchase_id": uom.id,
+            "product_type": ptype, "cost_price": cost, "standard_price": price,
+            "for_sales": True, "for_purchase": (ptype != "service"), "is_active": True,
+        })

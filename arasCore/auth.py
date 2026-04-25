@@ -9,12 +9,13 @@ from flask import redirect, url_for, flash, abort, current_app
 from flask_login import current_user, login_user, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from .lib.extensions import db, login_manager
+from .lib.base_model import ArasModel
 import json
 
 
 # ── User Model ────────────────────────────────────────────────────────────────
 
-class User(db.Model):
+class User(ArasModel):
     __tablename__ = "auth_users"
 
     id            = db.Column(db.Integer, primary_key=True)
@@ -30,7 +31,7 @@ class User(db.Model):
     # last_message_read_time  = db.Column(db.DateTime)
     last_activity_read_time = db.Column(db.DateTime)
 
-    roles = db.relationship("UserRole", back_populates="user", lazy="dynamic")
+    roles = db.relationship("UserRole", foreign_keys="UserRole.user_id", back_populates="user", lazy="dynamic")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -227,4 +228,4 @@ def require_admin(f):
 def _setup_user_roles_relationship():
     from .permissions import UserRole  # noqa: F401
     if not hasattr(User, 'roles') or User.roles is None:
-        User.roles = db.relationship("UserRole", back_populates="user", lazy="dynamic")
+        User.roles = db.relationship("UserRole", foreign_keys="UserRole.user_id", back_populates="user", lazy="dynamic")

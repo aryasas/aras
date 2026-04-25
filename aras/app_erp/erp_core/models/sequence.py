@@ -1,13 +1,13 @@
 from arasCore.lib.base_model import ArasModel, db
 
 
-class CoreSequence(ArasModel):
-    __tablename__ = "core_sequence"
+class Sequence(ArasModel):
+    __tablename__ = "sequence"
     __table_args__ = (
         db.UniqueConstraint("company_id", "code", name="uq_sequence"),
     )
 
-    company_id   = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=False)
+    company_id   = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
     code         = db.Column(db.String(50), nullable=False)
     prefix       = db.Column(db.String(20), nullable=True)
     suffix       = db.Column(db.String(20), default="")
@@ -18,4 +18,4 @@ class CoreSequence(ArasModel):
     format       = db.Column(db.String(100), default="{prefix}/{YYYY}/{MM}/{seq}")
 
     def __repr__(self):
-        return f"<CoreSequence {self.code}>"
+        return f"<Sequence {self.code}>"

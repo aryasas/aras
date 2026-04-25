@@ -1,0 +1,193 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block page_content %}
+<div class="row mt-3">
+  <div class="col-12">
+
+    <!-- Header card -->
+    <div class="card mb-3">
+      <div class="card-body d-flex align-items-center">
+        <div style="font-size:2.5rem;color:#5a6fd6;margin-right:18px;">
+          <i class="fa {{ group_icon if back_url else app_icon }}"></i>
+        </div>
+        <div style="flex:1;">
+          <h4 class="mb-1">{{ group_title if back_url else app_title }}</h4>
+          {% if back_url %}
+            <p class="mb-0 text-muted" style="font-size:13px;">
+              <a href="{{ back_url }}">{{ app_title }}</a> &rsaquo; {{ group_title }}
+            </p>
+          {% elif app_description %}
+            <p class="mb-0 text-muted" style="font-size:13px;">{{ app_description }}</p>
+          {% else %}
+            <p class="mb-0 text-muted" style="font-size:13px;">
+              <code>{{ app_name }}</code> &mdash; {{ app_url }}
+            </p>
+          {% endif %}
+        </div>
+        <div>
+          {% if back_url %}
+            <a href="{{ back_url }}" class="btn btn-sm btn-outline-secondary">
+              <i class="fa fa-arrow-left mr-1"></i>Back
+            </a>
+          {% else %}
+            <a href="{{ settings_url }}" class="btn btn-sm btn-outline-secondary">
+              <i class="fa fa-cog mr-1"></i>Settings
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard widgets (app home only) -->
+    {% if widgets %}
+    <div class="row mb-3">
+      {% for w in widgets %}
+        <div class="col-md-{{ w.width }} mb-3">
+          {% if w.type == "list" %}
+            <div class="card border-{{ w.color }}">
+              <div class="card-header py-2 d-flex align-items-center">
+                <i class="fa {{ w.icon }} text-{{ w.color }} mr-2"></i>
+                <strong style="font-size:13px;">{{ w.label }}</strong>
+                {% if w.link %}<a href="{{ w.link }}" class="ml-auto" style="font-size:12px;">View all &rarr;</a>{% endif %}
+              </div>
+              <div class="card-body p-0">
+                {% if w.extra.rows %}
+                  <table class="table table-sm table-hover mb-0" style="font-size:12px;">
+                    <thead class="thead-light">
+                      <tr>{% for col in w.extra.cols %}<th>{{ col }}</th>{% endfor %}</tr>
+                    </thead>
+                    <tbody>
+                      {% for row in w.extra.rows %}
+                        <tr>{% for col in w.extra.cols %}<td>{{ row[col] }}</td>{% endfor %}</tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                {% else %}
+                  <p class="text-muted p-3 mb-0" style="font-size:12px;">No data.</p>
+                {% endif %}
+              </div>
+            </div>
+          {% elif w.type == "chart" %}
+            <div class="card border-{{ w.color }}">
+              <div class="card-header py-2 d-flex align-items-center">
+                <i class="fa {{ w.icon }} text-{{ w.color }} mr-2"></i>
+                <strong style="font-size:13px;">{{ w.label }}</strong>
+                {% if w.link %}<a href="{{ w.link }}" class="ml-auto" style="font-size:12px;">View all &rarr;</a>{% endif %}
+              </div>
+              <div class="card-body" style="font-size:12px;">
+                {% if w.extra.bars %}
+                  {% for bar in w.extra.bars %}
+                    <div class="mb-1">
+                      <div class="d-flex justify-content-between mb-1">
+                        <span>{{ bar.label }}</span><span>{{ bar.count }}</span>
+                      </div>
+                      <div class="progress" style="height:8px;">
+                        <div class="progress-bar bg-{{ w.color }}" style="width:{{ bar.pct }}%;"></div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <p class="text-muted mb-0">No data.</p>
+                {% endif %}
+              </div>
+            </div>
+          {% else %}
+            <div class="card border-{{ w.color }}">
+              <div class="card-body d-flex align-items-center">
+                <div class="text-{{ w.color }}" style="font-size:1.8rem;margin-right:14px;">
+                  <i class="fa {{ w.icon }}"></i>
+                </div>
+                <div style="flex:1;">
+                  <div class="text-muted" style="font-size:12px;text-transform:uppercase;">{{ w.label }}</div>
+                  <div style="font-size:1.5rem;font-weight:600;">{{ w.value }}</div>
+                  {% if w.link %}<a href="{{ w.link }}" style="font-size:12px;">View &rarr;</a>{% endif %}
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Tiles -->
+    <div class="card">
+      <div class="card-body">
+        {% if not back_url %}
+          <h6 class="text-muted mb-3"><i class="fa fa-th-large mr-1"></i>Pages</h6>
+        {% endif %}
+
+        {% if not tiles %}
+          <p class="text-muted mb-0">
+            {% if back_url %}No pages in this group.
+            {% else %}No pages in this app yet.
+              {% if is_dynamic %}<a href="/admin/apps">Add one in App Manager &rarr;</a>{% endif %}
+            {% endif %}
+          </p>
+        {% else %}
+          {% macro render_tile(t) %}
+            <div class="col-md-3 col-sm-6 mb-3">
+              <a href="{{ t.url }}" class="text-dark" style="text-decoration:none;">
+                <div class="card h-100 tile-card" style="transition:transform .1s,box-shadow .1s;">
+                  <div class="card-body text-center py-4">
+                    <div style="font-size:2rem;color:#5a6fd6;"><i class="fa {{ t.icon }}"></i></div>
+                    <div class="mt-2" style="font-weight:600;">{{ t.title }}</div>
+                    {% if not back_url %}
+                      {% if t.count is not none %}
+                        <div class="text-muted" style="font-size:12px;">
+                          {{ t.count }} record{{ '' if t.count == 1 else 's' }}
+                        </div>
+                      {% endif %}
+                      {% if t.description %}
+                        <div class="text-muted mt-1" style="font-size:11px;">{{ t.description }}</div>
+                      {% endif %}
+                      {% if t.page_type == 'group' %}
+                        <span class="badge badge-secondary mt-2" style="font-size:10px;">
+                          <i class="fa fa-angle-double-right"></i> open
+                        </span>
+                      {% elif t.page_type and t.page_type != 'list' %}
+                        <span class="badge badge-light mt-2">{{ t.page_type }}</span>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                </div>
+              </a>
+            </div>
+          {% endmacro %}
+
+          {% if back_url %}
+            <div class="row">
+              {% for t in tiles %}{{ render_tile(t) }}{% endfor %}
+            </div>
+          {% else %}
+            {% set grouped = {} %}
+            {% set ungrouped = [] %}
+            {% for t in tiles %}
+              {% if t.group %}
+                {% if t.group not in grouped %}{% set _ = grouped.update({t.group: []}) %}{% endif %}
+                {% set _ = grouped[t.group].append(t) %}
+              {% else %}
+                {% set _ = ungrouped.append(t) %}
+              {% endif %}
+            {% endfor %}
+
+            {% if ungrouped %}
+              <div class="row">{% for t in ungrouped %}{{ render_tile(t) }}{% endfor %}</div>
+            {% endif %}
+
+            {% for grp_name, grp_tiles in grouped.items() %}
+              <h6 class="text-muted mt-4 mb-2">{{ grp_name }}</h6>
+              <div class="row">{% for t in grp_tiles %}{{ render_tile(t) }}{% endfor %}</div>
+            {% endfor %}
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+  .tile-card:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,.08); }
+</style>
+{% endblock %}

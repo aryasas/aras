@@ -203,14 +203,15 @@ helper = AppHelper(
 
 | Prefix | Untuk |
 |--------|-------|
-| `auth_` | User, Role, Permission (contoh: `auth_users`) |
+| `auth_` | User (contoh: `auth_users`) |
 | `mgr_` | Metadata App Manager (`mgr_app`, `mgr_table`, `mgr_column`) |
-| `adm_` | Admin built-in (message, notification, activity, post) |
-| `core_` | Core app (company, setting, currency, tax) |
+| `adm_` | Admin built-in (notification, activity: `adm_notification`, `adm_user_activity`) |
+| `erp_` | ERP ACL domain objects (`erp_role`, `erp_permission`, `erp_user_company`) |
 | `ab_` | Tabel dinamis buatan user via App Manager. Format: `ab_<app>_<table>` |
-| `<app>_` | Built-in app dengan kode Python (`todo_`, `soc_`, `erp_acc_`) |
+| `<app>_` | Built-in app dengan kode Python (`todo_`, `soc_`, `acc_`, `pos_`, `crm_`, `stock_`) |
+| *(no prefix)* | ERP core domain tables — short, clean names: `company`, `currency`, `charge`, `sequence`, `setting`, `fiscal_year`, `fiscal_period`, `attachment`, `print_template`, `audit_log` |
 
-**DO NOT** pakai tablename tanpa prefix — ini wajib untuk isolasi antar app.
+**DO NOT** pakai tablename tanpa prefix kecuali untuk ERP core domain tables yang sudah terdaftar di atas.
 
 ---
 
@@ -258,20 +259,54 @@ App settings pages stay at `/admin/<app>/settings/` (framework-generated) — no
 
 Aras membedakan dua jenis relasi antar tabel:
 
-| Istilah | Nama dalam ResourceDef | Contoh | Ciri |
-|---------|----------------------|--------|------|
-| **Link Table** | `is_child_table=False` (default) | Currency, Tax, Gender, UoM, Warehouse | Bisa diakses & dibuat langsung; muncul di sidebar; dropdown biasa di form parent |
-| **Child Table** | `is_child_table=True` | InvoiceLine, OrderLine, JournalLine | **Tidak bisa dibuat tanpa parent**; muncul inline di form parent (tombol + tambah baris); tidak muncul di sidebar sebagai menu tersendiri |
+| Istilah | `ResourceDef` | Contoh | Ciri |
+|---------|--------------|--------|------|
+| **Link Table** | `is_child_table=False` (default), `admin_list=True` | Currency, Charge, UoM, Warehouse | Master data / referensi — bisa dibuka langsung; muncul sebagai tile di app home |
+| **Child Table** | `is_child_table=True`, `admin_list=False` | InvoiceLine, JournalLine, FiscalPeriod, FxRate | Tidak bisa dibuat tanpa parent; ditampilkan inline di form parent; **tidak muncul di menu** |
 
 **Aturan:**
-- Child table selalu punya FK yang wajib (not null) ke parent.
-- Tambah baris child table hanya bisa dari form parent — via tombol inline `+`.
-- Link table adalah master data / opsi referensi — bisa dibuka langsung.
-- Dalam `manifest.py`: tandai `ResourceDef(..., is_child_table=True, admin_list=False)` untuk child tables.
+- Child table selalu punya FK not-null ke parent.
+- Baris child hanya bisa ditambah dari form parent — via inline `+`.
+- Link table adalah master data — bisa dibuka & dibuat langsung dari menu.
+- Dalam `manifest.py`: tandai `ResourceDef(..., is_child_table=True, admin_list=False)` untuk semua child tables.
+- **Reference tables** (gender, uom-category, charge-category): tetap `admin_list=True` agar bisa dikelola dari Settings, tapi tidak perlu muncul sebagai tile utama — letakkan di group Settings.
+
+## 11. ERP App Structure
+
+ERP (`aras/app_erp/`) menggunakan Python manifest dengan beberapa sub-modul:
+
+```
+app_erp/
+├── manifest.py              ← AppHelper, semua ResourceDef + MenuGroup
+├── erp_core/models/         ← Company, Currency, FxRate, Charge, ChargeCategory,
+│                               FiscalYear, FiscalPeriod, Sequence, Setting,
+│                               PrintTemplate, Attachment, AuditLog, ErpRole, ErpPermission
+├── erp_acc/models/          ← AccAccount, AccJournalEntry/Line, AccSalesInvoice/Line/Charge,
+│                               AccPurchaseInvoice/Line/Charge, AccAnalyticTag, AccReconciliation
+├── erp_crm/models/          ← CrmCustomer, CrmContact, CrmLead, CrmPipeline, CrmStage, CrmActivity
+├── erp_pos/models/          ← PosTerminal, PosSession, PosShiftEntry, PosOrder
+├── erp_stock/models/        ← StockProduct, StockUom, StockWarehouse, StockMovement, StockValuation, …
+└── migrations/              ← 001…005 idempotent SQL migrations
+```
+
+**Menu groups** (dalam `manifest.py`):
+| Group | Isi |
+|-------|-----|
+| Settings | Company, Currency, FiscalYear, Sequence, PrintTemplate, Roles, Permissions, **Charge**, **ChargeCategory** |
+| Accounting | Chart of Accounts, Journal Entries, Sales Invoices, Purchase Invoices, Analytic Tags |
+| CRM | Customers, Leads, Pipelines |
+| arasPos | Terminals, Sessions, Open POS |
+| Reports | Report Templates |
+| Stock | Products, Warehouses, Movements, Pricelists, Valuation |
+
+**Prinsip menu:**
+- Child tables (`*Line`, `*Charge`, `FiscalPeriod`, `FxRate`, `CrmStage`, `CrmActivity`, dll.) → `admin_list=False, is_child_table=True` — tidak muncul di menu.
+- Reference tables (Charge, ChargeCategory) → ada di Settings group.
+- `Company` ada di Settings (bukan group terpisah "Core") — karena ini konfigurasi, bukan transaksi.
 
 ---
 
-## 11. Referensi Lanjutan
+## 12. Referensi Lanjutan
 
 - Peta file terkini: jalankan `ls arasCore/lib/` dan `ls arasCore/arasAdmin/` — jangan hafalkan nama file di dokumen ini, struktur arasCore masih berkembang.
 - Status implementasi & TODO aktif → `docs/progress.md`.

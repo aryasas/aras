@@ -1,0 +1,510 @@
+{# ─────────────────────────────────────────────────────────────────────────────
+   _list_partial.html — includeable list UI (toolbar + filter + table + pagination + JS)
+
+   Include this partial inside any template. Set these variables before including:
+     main_title, items, view_columns  (required)
+     edit_url_base, delete_url_base, add_url
+     search_enabled, search_q
+     filter_cols, active_filters
+     pagination, per_page
+     rel_maps, show_totals, doctype_key
+     app_id, table_id, linked_report_url
+     extra_buttons  — [{"label","url","icon"(opt),"style"(opt:"outline")}]
+     _list_id       — unique suffix when multiple lists on same page (default "")
+   ─────────────────────────────────────────────────────────────────────────── #}
+
+{# ── capability flags ── #}
+{% set _use_item_url  = use_item_edit_url is defined and use_item_edit_url %}
+{% set _has_edit   = (edit_url_base is defined and edit_url_base) or _use_item_url %}
+{% set _has_delete = delete_url_base is defined and delete_url_base %}
+{% set _has_add    = add_url is defined and add_url %}
+{% set _has_search = search_enabled is defined and search_enabled %}
+{% set _has_filter = filter_cols is defined and filter_cols %}
+{% set _has_pag    = pagination is defined and pagination and pagination.pages is defined %}
+{% set _has_bulk   = _has_delete %}
+{% set _has_totals = show_totals is defined %}
+{% set _has_customize = app_id is defined and app_id and table_id is defined and table_id %}
+{% set _has_report = linked_report_url is defined and linked_report_url %}
+{% set _has_extra  = extra_buttons is defined and extra_buttons %}
+{% set _col_count  = view_columns|length + (1 if _has_bulk else 0) %}
+{% set _lid        = _list_id if _list_id is defined else '' %}
+{% set _qparam     = search_param if search_param is defined else 'q' %}
+
+{# ── Stunning Sticky Header ── #}
+<div class="aras-header-sticky">
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div class="aras-breadcrumb" style="font-size:13px;font-style:normal;">
+      <a href="{{ url_for('admin.dashboard') }}">Home</a>
+      <span class="app-menu-divider">/</span>
+      <span class="aras-breadcrumb__current">{{ main_title }}</span>
+    </div>
+
+    {% if _has_search %}
+    <form method="GET" id="searchForm{{ _lid }}" style="margin:0;">
+      <div class="aras-top-search-input-wrap" style="width:240px;height:32px;">
+        <i class="fa fa-search" style="font-size:12px;"></i>
+        <input type="text" name="{{ _qparam }}" placeholder="Search…" value="{{ search_q or '' }}" style="padding:6px 12px 6px 32px;font-size:12px;">
+      </div>
+    </form>
+    {% endif %}
+  </div>
+
+  <div class="aras-toolbar-right" style="gap:12px;">
+    {% if _has_bulk %}
+    <div class="aras-bulk-wrap" id="bulkWrapInline{{ _lid }}" style="display:none;align-items:center;gap:8px;">
+      <span class="aras-badge aras-badge--info" style="text-transform:none;"><span id="bulkCountInline{{ _lid }}">0</span> selected</span>
+      <button class="aras-btn aras-btn--primary aras-btn--sm js-bulk-delete{{ _lid }}" style="background:var(--studio-accent);" type="button">
+        <i class="fa fa-trash-o"></i> Delete
+      </button>
+    </div>
+    {% endif %}
+
+    {% if _has_filter %}
+    <button type="button" class="aras-btn aras-btn--outline aras-btn--sm {% if active_filters %}active{% endif %}" id="filterToggleBtn{{ _lid }}">
+      <i class="fa fa-sliders"></i> Filter
+    </button>
+    {% endif %}
+
+    {% if _has_add %}
+    <a href="{{ add_url }}" class="aras-btn aras-btn--primary aras-btn--sm">
+      <i class="fa fa-plus"></i> Add New
+    </a>
+    {% endif %}
+
+    {% if _has_extra %}
+      {% for btn in extra_buttons %}
+      <a href="{{ btn.url }}" class="aras-btn aras-btn--sm {% if btn.style == 'outline' %}aras-btn--outline{% else %}aras-btn--primary{% endif %}">
+        {% if btn.icon %}<i class="fa {{ btn.icon }}"></i> {% endif %}{{ btn.label }}
+      </a>
+      {% endfor %}
+    {% endif %}
+  </div>
+</div>
+
+{# ── Filter panel (Floating/Stunning) ── #}
+{% if _has_filter %}
+<form method="GET" id="listFilterForm{{ _lid }}">
+  <div id="filterPanel{{ _lid }}" class="aras-filter-panel {% if active_filters %}is-open{% endif %}" style="margin-top:-24px;margin-bottom:24px;">
+    <div class="aras-filter-header">
+      <span class="aras-filter-title"><i class="fa fa-filter"></i> Filters</span>
+      <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" id="filterCloseBtn{{ _lid }}" style="padding:4px 8px;">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+    <div id="filterRows{{ _lid }}" class="aras-filter-rows">
+      {% for f in (active_filters or []) %}
+      <div class="aras-filter-row">
+        <select name="f_col[]" class="aras-fsel">
+          {% for lbl, fname in filter_cols %}
+          <option value="{{ fname }}" {% if fname == f.col %}selected{% endif %}>{{ lbl }}</option>
+          {% endfor %}
+        </select>
+        <select name="f_op[]" class="aras-fsel aras-fsel--op js-op-select{{ _lid }}">
+          {% for op_val, op_lbl in [('equals','='),('not_equals','≠'),('like','contains'),('not_like','not contains'),('in','in'),('not_in','not in'),('is','is null')] %}
+          <option value="{{ op_val }}" {% if op_val == f.op %}selected{% endif %}>{{ op_lbl }}</option>
+          {% endfor %}
+        </select>
+        <input type="text" name="f_val[]" class="aras-finput js-val-input{{ _lid }}"
+               style="{% if f.op == 'is' %}display:none;{% endif %}"
+               value="{{ f.val }}" placeholder="value…">
+        <button type="button" class="aras-btn aras-btn--sm js-remove-filter-row{{ _lid }}">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="aras-filter-footer">
+      <button type="button" class="aras-filter-add-row" id="addFilterRowBtn{{ _lid }}">
+        <i class="fa fa-plus"></i> Add condition
+      </button>
+      <button type="submit" class="aras-btn aras-btn--primary aras-btn--sm">Apply</button>
+      {% if active_filters %}
+      <a href="?" class="aras-btn aras-btn--outline aras-btn--sm">Clear all</a>
+      {% endif %}
+    </div>
+  </div>
+</form>
+{% endif %}
+
+{# ── Refined Table ── #}
+<div class="aras-table-wrap">
+  <div class="aras-table-toolbar">
+    <div>
+      <h4>{{ main_title }}</h4>
+      <span class="meta">
+        {% if _has_pag %}{{ pagination.total }}{% else %}{{ items|length }}{% endif %} records
+      </span>
+    </div>
+  </div>
+
+  <table class="aras-table" id="mainListTable{{ _lid }}">
+    <thead>
+      <tr>
+        {% if _has_bulk %}
+        <th class="th-check">
+          <label class="aras-checkbox">
+            <input type="checkbox" id="checkAll{{ _lid }}">
+            <span class="aras-checkmark"></span>
+          </label>
+        </th>
+        {% endif %}
+        {% for label, field in view_columns %}
+        <th>{{ label }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% set _rel = rel_maps if rel_maps is defined else {} %}
+      {% for item in items %}
+      {% if _has_edit %}
+        {% if edit_url_base is defined and edit_url_base %}
+          {% set _row_edit_url = edit_url_base ~ '/' ~ item.id ~ '/' %}
+        {% elif _use_item_url %}
+          {% set _row_edit_url = item.edit_url %}
+        {% else %}
+          {% set _row_edit_url = '' %}
+        {% endif %}
+      {% endif %}
+      <tr {% if _has_edit and _row_edit_url %}
+          class="is-clickable"
+          data-edit-url="{{ _row_edit_url }}"{% endif %}>
+        {% if _has_bulk %}
+        <td class="td-check" onclick="event.stopPropagation();">
+          <label class="aras-checkbox">
+            <input type="checkbox" class="js-row-check{{ _lid }}" value="{{ item.id }}">
+            <span class="aras-checkmark"></span>
+          </label>
+        </td>
+        {% endif %}
+        {% for label, field in view_columns %}
+          {% set raw = item|attr(field) if item|attr(field) is defined else none %}
+          {% if field in _rel and raw is not none %}
+            <td data-field="{{ field }}" data-id="{{ item.id }}" data-rel="1">
+              {% if loop.first %}<span class="hash">{{ raw }}</span>{% else %}{{ _rel[field][raw] if raw in _rel[field] else raw }}{% endif %}
+            </td>
+          {% else %}
+            <td data-field="{{ field }}" data-id="{{ item.id }}" class="js-inline-cell{{ _lid }}">
+              {% if loop.first %}<span class="hash">{{ raw if raw is not none else '' }}</span>{% else %}{{ raw if raw is not none else '' }}{% endif %}
+            </td>
+          {% endif %}
+        {% endfor %}
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="{{ _col_count }}">
+          <div class="aras-empty-state">
+            <div class="aras-empty-icon"><i class="fa fa-inbox"></i></div>
+            <p class="aras-empty-text">No records yet</p>
+            {% if _has_add %}
+            <a href="{{ add_url }}" class="aras-btn aras-btn--primary">
+              <i class="fa fa-plus"></i> Add First Record
+            </a>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+
+    {% if _has_totals %}
+    <tfoot id="totalsRow{{ _lid }}" style="{{ '' if show_totals else 'display:none;' }}">
+      <tr>
+        {% if _has_bulk %}<td></td>{% endif %}
+        {% for label, field in view_columns %}
+        <td class="js-col-total{{ _lid }}" data-field="{{ field }}">—</td>
+        {% endfor %}
+      </tr>
+    </tfoot>
+    {% endif %}
+  </table>
+</div>
+
+{# ── Pagination ── #}
+{% if _has_pag and pagination.pages > 1 %}
+{% set _bqs = [] %}
+{% if search_q %}{% set _bqs = _bqs + [_qparam + '=' + search_q] %}{% endif %}
+{% if per_page != 20 %}{% set _bqs = _bqs + ['per_page=' + per_page|string] %}{% endif %}
+{% for f in (active_filters or []) %}{% set _bqs = _bqs + ['f_col[]=' + f.col, 'f_op[]=' + f.op, 'f_val[]=' + f.val] %}{% endfor %}
+{% set _qs = (_bqs|join('&') + '&') if _bqs else '' %}
+<div class="aras-pagination">
+  <span class="aras-pag-info">
+    {{ ((pagination.page - 1) * per_page) + 1 }}–{{ [pagination.page * per_page, pagination.total]|min }}
+    of {{ pagination.total }}
+  </span>
+  <nav class="aras-pag-nav">
+    <a class="aras-pag-btn {% if not pagination.has_prev %}disabled{% endif %}"
+       href="?{{ _qs }}page={{ pagination.prev_num }}">‹</a>
+    {% for p in pagination.iter_pages(left_edge=1, left_current=2, right_current=2, right_edge=1) %}
+      {% if p %}
+        <a class="aras-pag-btn {% if p == pagination.page %}active{% endif %}"
+           href="?{{ _qs }}page={{ p }}">{{ p }}</a>
+      {% else %}
+        <span class="aras-pag-ellipsis">…</span>
+      {% endif %}
+    {% endfor %}
+    <a class="aras-pag-btn {% if not pagination.has_next %}disabled{% endif %}"
+       href="?{{ _qs }}page={{ pagination.next_num }}">›</a>
+  </nav>
+</div>
+{% endif %}
+
+{# ── JS ── #}
+<script>
+(function () {
+  var LID        = {{ _lid | tojson }};
+  var HAS_EDIT   = {{ 'true' if _has_edit else 'false' }};
+  var HAS_BULK   = {{ 'true' if _has_bulk else 'false' }};
+  var HAS_FILTER = {{ 'true' if _has_filter else 'false' }};
+  var HAS_PAG    = {{ 'true' if _has_pag else 'false' }};
+  var HAS_TOTALS = {{ 'true' if _has_totals else 'false' }};
+  var showTotals = {{ 'true' if (show_totals is defined and show_totals) else 'false' }};
+  var doctypeKey   = {{ (doctype_key if doctype_key is defined else '') | tojson }};
+  var savedColumns = {{ (saved_columns if saved_columns is defined and saved_columns) | tojson if (saved_columns is defined and saved_columns) else 'null' }};
+  var filterCols = {{ (filter_cols if filter_cols is defined else []) | tojson }};
+  var opOptions  = [
+    ['equals','='],['not_equals','≠'],
+    ['like','contains'],['not_like','not contains'],
+    ['in','in'],['not_in','not in'],['is','is null']
+  ];
+
+  function $id(id) { return document.getElementById(id + LID); }
+  function $q(sel) { return document.querySelectorAll(sel.replace(/\{\{L\}\}/g, LID)); }
+
+  /* ── clickable rows ── */
+  if (HAS_EDIT) {
+    $q('tr.is-clickable').forEach(function (row) {
+      row.addEventListener('click', function (e) {
+        if (e.target.type === 'checkbox' ||
+            e.target.classList.contains('aras-checkmark') ||
+            e.target.closest('.aras-checkbox')) return;
+        window.location.href = row.dataset.editUrl;
+      });
+    });
+  }
+
+  /* ── checkbox selection ── */
+  if (HAS_BULK) {
+    var checkAll = $id('checkAll');
+    function getChecked() { return Array.from(document.querySelectorAll('.js-row-check' + LID + ':checked')); }
+    function updateSelectionUI() {
+      var n   = getChecked().length;
+      var all = document.querySelectorAll('.js-row-check' + LID).length;
+      var bw  = $id('bulkWrapInline');
+      if (bw) bw.style.display = n > 0 ? 'flex' : 'none';
+      var bc  = $id('bulkCountInline');
+      if (bc) bc.textContent = n;
+      document.querySelectorAll('tr.is-clickable').forEach(function (tr) {
+        var cb = tr.querySelector('.js-row-check' + LID);
+        if (cb) tr.classList.toggle('is-selected', cb.checked);
+      });
+      if (checkAll) {
+        checkAll.indeterminate = n > 0 && n < all;
+        checkAll.checked = all > 0 && n === all;
+      }
+    }
+    if (checkAll) {
+      checkAll.addEventListener('change', function () {
+        document.querySelectorAll('.js-row-check' + LID).forEach(function (cb) { cb.checked = checkAll.checked; });
+        updateSelectionUI();
+      });
+    }
+    document.querySelectorAll('.js-row-check' + LID).forEach(function (cb) {
+      cb.addEventListener('change', updateSelectionUI);
+    });
+    function triggerBulkDelete() {
+      var checked = getChecked();
+      if (!checked.length) return;
+      if (!confirm('Delete ' + checked.length + ' record(s)?')) return;
+      $id('bulkDeleteIds').value = checked.map(function (c) { return c.value; }).join(',');
+      $id('bulkDeleteForm').submit();
+    }
+    document.querySelectorAll('.js-bulk-delete' + LID).forEach(function (el) {
+      el.addEventListener('click', function (e) { e.preventDefault(); triggerBulkDelete(); });
+    });
+  }
+
+  /* ── filter panel ── */
+  if (HAS_FILTER) {
+    var filterPanel  = $id('filterPanel');
+    var filterToggle = $id('filterToggleBtn');
+    var filterClose  = $id('filterCloseBtn');
+    var addRowBtn    = $id('addFilterRowBtn');
+    if (filterToggle) filterToggle.addEventListener('click', function () { filterPanel.classList.toggle('is-open'); });
+    if (filterClose)  filterClose.addEventListener('click',  function () { filterPanel.classList.remove('is-open'); });
+    if (addRowBtn)    addRowBtn.addEventListener('click', function () { $id('filterRows').appendChild(buildFilterRow()); });
+    document.querySelectorAll('.js-remove-filter-row' + LID).forEach(bindRemoveFilter);
+    document.querySelectorAll('.js-op-select' + LID).forEach(bindOpSelect);
+
+    function buildFilterRow() {
+      var row = document.createElement('div');
+      row.className = 'aras-filter-row';
+      var colSel = el('select', { name: 'f_col[]', className: 'aras-fsel' });
+      filterCols.forEach(function (fc) { colSel.appendChild(el('option', { value: fc[1], textContent: fc[0] })); });
+      var opSel = el('select', { name: 'f_op[]', className: 'aras-fsel aras-fsel--op js-op-select' + LID });
+      opOptions.forEach(function (op) { opSel.appendChild(el('option', { value: op[0], textContent: op[1] })); });
+      var valIn = el('input', { type: 'text', name: 'f_val[]', className: 'aras-finput js-val-input' + LID, placeholder: 'value…' });
+      var rm    = el('button', { type: 'button', className: 'aras-btn aras-btn--sm js-remove-filter-row' + LID, innerHTML: '<i class="fa fa-times"></i>' });
+      bindOpSelect(opSel); bindRemoveFilter(rm);
+      row.appendChild(colSel); row.appendChild(opSel); row.appendChild(valIn); row.appendChild(rm);
+      return row;
+    }
+    function bindOpSelect(sel) {
+      sel.addEventListener('change', function () {
+        var vi = this.closest('.aras-filter-row').querySelector('.js-val-input' + LID);
+        if (vi) vi.style.display = this.value === 'is' ? 'none' : '';
+      });
+    }
+    function bindRemoveFilter(btn) {
+      btn.addEventListener('click', function () { btn.closest('.aras-filter-row').remove(); });
+    }
+  }
+
+  /* ── per-page selector ── */
+  if (HAS_PAG) {
+    var ppSel = $id('perPageSelect');
+    if (ppSel) ppSel.addEventListener('change', function () {
+      var url = new URL(window.location.href);
+      url.searchParams.set('per_page', this.value);
+      url.searchParams.delete('page');
+      window.location = url.toString();
+    });
+  }
+
+  /* ── column totals ── */
+  if (HAS_TOTALS) {
+    var totalsBtn = $id('totalsToggleBtn');
+    var totalsRow = $id('totalsRow');
+    function computeTotals() {
+      if (!totalsRow) return;
+      var cells  = totalsRow.querySelectorAll('.js-col-total' + LID);
+      var rows   = Array.from(document.querySelectorAll('#mainListTable' + LID + ' tbody tr'));
+      var offset = HAS_BULK ? 1 : 0;
+      cells.forEach(function (cell, idx) {
+        var ci = idx + offset; var sum = 0; var isNum = false;
+        rows.forEach(function (r) {
+          var td = r.cells[ci]; if (!td) return;
+          var v = parseFloat(td.textContent.trim().replace(/,/g, ''));
+          if (!isNaN(v)) { sum += v; isNum = true; }
+        });
+        cell.textContent = isNum ? sum.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
+      });
+      totalsRow.style.display = '';
+    }
+    if (showTotals) computeTotals();
+    if (totalsBtn) totalsBtn.addEventListener('click', function () {
+      var active = this.dataset.active === 'true'; active = !active;
+      this.dataset.active = String(active);
+      this.classList.toggle('aras-btn--active', active);
+      if (active) { computeTotals(); } else if (totalsRow) { totalsRow.style.display = 'none'; }
+    });
+  }
+
+  /* ── column visibility toggle ── */
+  (function () {
+    var btn     = $id('colToggleBtn');
+    var popover = $id('colTogglePopover');
+    if (!btn || !popover) return;
+
+    function applyColVisibility(fieldName, visible) {
+      var table = $id('mainListTable');
+      if (!table) return;
+      popover.querySelectorAll('.js-col-vis' + LID).forEach(function (cb) {
+        if (cb.dataset.field === fieldName) {
+          var colIdx = parseInt(cb.dataset.col);
+          table.querySelectorAll('tr').forEach(function (row) {
+            var cell = row.cells[colIdx];
+            if (cell) cell.style.display = visible ? '' : 'none';
+          });
+          cb.checked = visible;
+        }
+      });
+    }
+
+    function persistColumns() {
+      if (!doctypeKey) return;
+      var visible = [];
+      popover.querySelectorAll('.js-col-vis' + LID).forEach(function (cb) {
+        if (cb.checked && cb.dataset.field) visible.push(cb.dataset.field);
+      });
+      fetch('/admin/api/list-pref/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({doctype: doctypeKey, columns: visible})
+      });
+    }
+
+    // Restore saved columns on load
+    if (savedColumns && Array.isArray(savedColumns)) {
+      popover.querySelectorAll('.js-col-vis' + LID).forEach(function (cb) {
+        if (cb.dataset.field) applyColVisibility(cb.dataset.field, savedColumns.indexOf(cb.dataset.field) !== -1);
+      });
+    }
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      popover.style.display = popover.style.display === 'none' ? 'block' : 'none';
+    });
+    document.addEventListener('click', function () { popover.style.display = 'none'; });
+    popover.addEventListener('click', function (e) { e.stopPropagation(); });
+    popover.querySelectorAll('.js-col-vis' + LID).forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        applyColVisibility(cb.dataset.field, cb.checked);
+        persistColumns();
+      });
+    });
+  })();
+
+  /* ── inline edit ── */
+  {% if _has_edit %}
+  (function () {
+    document.querySelectorAll('td.js-inline-cell' + LID).forEach(function (td) {
+      td.addEventListener('dblclick', function (e) {
+        e.stopPropagation();
+        if (td.querySelector('input')) return;
+        var orig = td.textContent.trim();
+        var field = td.dataset.field;
+        var id    = td.dataset.id;
+        var editUrl = '{{ edit_url_base }}/' + id + '/';
+        var input = el('input', { type: 'text', value: orig, className: 'aras-inline-input', style: 'width:100%;box-sizing:border-box;' });
+        td.textContent = ''; td.appendChild(input); input.focus(); input.select();
+        function save() {
+          var val = input.value.trim();
+          if (val === orig) { td.textContent = orig; return; }
+          var body = new FormData(); body.append(field, val);
+          fetch(editUrl, { method: 'PUT', body: body })
+            .then(function (r) { td.textContent = r.ok ? val : orig; })
+            .catch(function () { td.textContent = orig; });
+        }
+        input.addEventListener('blur', save);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+          if (e.key === 'Escape') { td.textContent = orig; }
+        });
+      });
+    });
+  })();
+  {% endif %}
+
+  /* ── preserve settings panel hash on search/filter submit ── */
+  (function () {
+    var panel = document.getElementById('listToolbar' + LID);
+    panel = panel && panel.closest('.settings-panel');
+    if (!panel) return;
+    var panelId = panel.id;
+    [
+      document.getElementById('searchForm' + LID),
+      document.getElementById('listFilterForm' + LID),
+    ].forEach(function (form) {
+      if (!form) return;
+      form.addEventListener('submit', function () {
+        form.action = (form.action || window.location.pathname) + '#' + panelId;
+      });
+    });
+  })();
+
+  /* ── tiny DOM helper ── */
+  function el(tag, props) {
+    var e = document.createElement(tag); for (var k in props) { if (k === 'innerHTML') e.innerHTML = props[k]; else e[k] = props[k]; } return e;
+  }
+})();
+</script>

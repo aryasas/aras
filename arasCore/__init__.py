@@ -96,6 +96,48 @@ def create_app(config_type=None):
         except Exception as _me:
             app.logger.warning(f"[arasCore] migration m006 skipped: {_me}")
 
+        try:
+            from .lib.migrations import m007_workflow
+            m007_workflow.run(app)
+        except Exception as _me:
+            app.logger.warning(f"[arasCore] migration m007 skipped: {_me}")
+
+        try:
+            from .lib.migrations import m008_audit_field_log
+            m008_audit_field_log.run(app)
+        except Exception as _me:
+            app.logger.warning(f"[arasCore] migration m008 skipped: {_me}")
+
+        try:
+            from .lib.migrations import m009_webhook
+            m009_webhook.run(app)
+        except Exception as _me:
+            app.logger.warning(f"[arasCore] migration m009 skipped: {_me}")
+
+        try:
+            from .lib.migrations import m010_formula_field
+            m010_formula_field.run(app)
+        except Exception as _me:
+            app.logger.warning(f"[arasCore] migration m010 skipped: {_me}")
+
+        try:
+            from .lib.migrations import m011_scripts
+            m011_scripts.run(app)
+        except Exception as _me:
+            app.logger.warning(f"[arasCore] migration m011 skipped: {_me}")
+
+        try:
+            from .lib.migrations import m012_dashboard_builder
+            m012_dashboard_builder.run(app)
+        except Exception as _me:
+            app.logger.warning(f"[arasCore] migration m012 skipped: {_me}")
+
+        try:
+            from .lib.migrations import m013_system_settings
+            m013_system_settings.run(app)
+        except Exception as _me:
+            app.logger.warning(f"[arasCore] migration m013 skipped: {_me}")
+
         # App modules from aras/ gated by DB install status + arasAdmin last
         from .lib.blueprints import register_app_modules
         register_app_modules(app)
@@ -113,6 +155,13 @@ def create_app(config_type=None):
 
         from .arasAdmin.page_actions import register_actions_blueprint
         register_actions_blueprint(app)
+
+        # Webhook dispatcher — subscribe after all events are wired up
+        try:
+            from .lib.webhook import init_webhooks
+            init_webhooks(app)
+        except Exception as _we:
+            app.logger.warning(f"[arasCore] webhook init skipped: {_we}")
 
         # Error handlers
         from .lib.error_handler import register_errorhandlers

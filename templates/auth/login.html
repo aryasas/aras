@@ -1,75 +1,349 @@
-{% extends 'auth/_auth_layout.html' %} {% from "_macros.html" import show_errors
-%} {% block page_content %}
+{% extends 'auth/_auth_layout.html' %}
+{% from "macros.html" import show_errors, show_message %}
 
-<!-- login area start -->
+{% block page_content %}
+<style>
+  :root {
+    --auth-ink:    #0f1b2d;
+    --auth-cream:  #f4f2ee;
+    --auth-paper:  #faf8f3;
+    --auth-ochre:  #c9a568;
+    --auth-accent: #6b2c2c;      /* oxblood */
+    --auth-accent-ink: #4d1e1e;
+    --auth-slate:  #6c757d;
+    --auth-mist:   #9aacb8;
+    --auth-hair:   #e6e1d6;
+  }
 
-<div class="login-box ptb--100">
-    <form
-        action="{{ url_for('auth.login_view') }}{% if 'next' in request.args %}?next={{ request.args.next|urlencode }}{% endif %}"
-        method="POST"
-        class="pt-3"
-    >
-        {{ form.hidden_tag() }}
-        <div class="login-form-head">
-            <h5 class="text-muted">
-                <a href="#">Aras Dashboard</a>
-            </h5>
-            <p>Please sign in</p>
-            <br />
-            <p>{{ show_message() }}</p>
+  .login-area.login-s2 {
+    background: radial-gradient(ellipse at top left, #1a2740 0%, #0f1b2d 70%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  /* ------- Wordmark helper ------- */
+  .aras-wm {
+    font-family: var(--aras-font-display, "Libre Baskerville", serif);
+    font-style: italic; font-weight: 700;
+    letter-spacing: -0.02em;
+    display: inline-flex; align-items: baseline;
+    font-size: 34px; color: var(--auth-ink);
+  }
+  .aras-wm .dot {
+    width: .12em; height: .12em; border-radius: 50%;
+    background: var(--auth-ochre);
+    margin-left: .06em; transform: translateY(-.04em);
+    display: inline-block;
+  }
+
+  /* ------- Card ------- */
+  .aras-auth-card {
+    width: 100%;
+    max-width: 680px;
+    background: var(--auth-paper);
+    display: grid; 
+    grid-template-columns: 260px 1fr;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,.06),
+      0 24px 60px -20px rgba(0,0,0,.55),
+      0 2px 6px rgba(0,0,0,.25);
+    position: relative;
+    overflow: hidden;
+    border-radius: 4px;
+  }
+  @media (max-width: 768px) {
+    .aras-auth-card { grid-template-columns: 1fr; }
+    .aras-auth-margin { display: none; }
+  }
+
+  /* a hair-thin outer frame */
+  .aras-auth-card::before {
+    content: ""; position: absolute; inset: 8px;
+    border: 1px solid rgba(15,27,45,.08);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* ------- Left: marginalia panel ------- */
+  .aras-auth-margin {
+    background: var(--auth-cream);
+    padding: 36px 28px 28px;
+    border-right: 1px solid var(--auth-hair);
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .aras-auth-margin .caps {
+    margin-top: 4px;
+    font: 600 9px/1 var(--aras-font-mono, monospace);
+    text-transform: uppercase; letter-spacing: 1.6px; color: var(--auth-mist);
+  }
+
+  .aras-auth-quote {
+    margin: auto 0 0;
+    font-family: var(--aras-font-display, serif);
+    font-style: italic; font-size: 14px; line-height: 1.55;
+    color: var(--auth-ink);
+    position: relative;
+    padding-left: 14px;
+    background: transparent;
+    padding: 0;
+  }
+  .aras-auth-quote::before {
+    content: "";
+    position: absolute; left: 0; top: 6px; bottom: 6px;
+    width: 1px; background: var(--auth-ochre);
+  }
+  .aras-auth-quote cite {
+    display: block; margin-top: 10px;
+    font-family: var(--aras-font-sans, sans-serif); font-style: normal;
+    font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase;
+    color: var(--auth-slate);
+  }
+
+  /* ------- Right: form panel ------- */
+  .aras-auth-form-panel {
+    padding: 36px 36px 28px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .aras-auth-eyebrow {
+    display: flex; align-items: baseline; gap: 10px;
+    margin-bottom: 4px;
+  }
+  .aras-auth-eyebrow .caps {
+    font: 600 9px/1 var(--aras-font-mono, monospace);
+    text-transform: uppercase; letter-spacing: 1.6px; color: var(--auth-mist);
+  }
+  .aras-auth-eyebrow .line { flex: 1; height: 1px; background: var(--auth-hair); align-self: center; }
+  .aras-auth-eyebrow .n {
+    font-family: var(--aras-font-display, serif);
+    font-style: italic; font-size: 11px; color: var(--auth-slate);
+  }
+
+  .aras-auth-title {
+    margin: 2px 0 2px;
+    font-family: var(--aras-font-display, serif);
+    font-weight: 400; font-size: 30px; line-height: 1.15;
+    color: var(--auth-ink); letter-spacing: -0.015em;
+  }
+  .aras-auth-title em { font-style: italic; color: var(--auth-accent); font-weight: 700; }
+
+  .aras-auth-lede {
+    margin: 0 0 24px;
+    font-family: var(--aras-font-display, serif);
+    font-style: italic; font-size: 12px; color: var(--auth-slate);
+  }
+
+  /* underline-only fields (no boxes) */
+  .aras-auth-fld { position: relative; margin-bottom: 18px; }
+  .aras-auth-fld label {
+    display: block;
+    font: 600 9px/1 var(--aras-font-mono, monospace);
+    text-transform: uppercase; letter-spacing: 1.4px;
+    color: var(--auth-mist);
+    margin-bottom: 6px;
+  }
+  .aras-auth-fld input {
+    width: 100%;
+    border: 0; background: transparent;
+    border-bottom: 1px solid var(--auth-hair);
+    padding: 6px 0 8px;
+    font-family: var(--aras-font-display, serif);
+    font-size: 15px; color: var(--auth-ink);
+    outline: none;
+    transition: border-color .15s ease;
+  }
+  .aras-auth-fld input:focus { border-bottom-color: var(--auth-accent); }
+  .aras-auth-fld .hint {
+    position: absolute; right: 0; top: 0;
+    font-family: var(--aras-font-display, serif);
+    font-style: italic; font-size: 11px; color: var(--auth-mist);
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .aras-auth-fld .hint:hover { color: var(--auth-accent); }
+
+  /* remember row */
+  .aras-auth-rmber {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 6px 0 22px;
+    font-size: 12px; color: var(--auth-slate);
+  }
+  .aras-auth-chk {
+    display: inline-flex; align-items: center; gap: 8px;
+    cursor: pointer;
+    font-family: var(--aras-font-display, serif);
+    font-style: italic; font-size: 12px;
+  }
+  .aras-auth-chk .box {
+    width: 14px; height: 14px; border: 1px solid var(--auth-hair);
+    background: #fff; display: inline-flex; align-items: center; justify-content: center;
+    transition: all .15s ease;
+  }
+  .aras-auth-chk input { display: none; }
+  .aras-auth-chk input:checked + .box { background: var(--auth-accent); border-color: var(--auth-accent); }
+  .aras-auth-chk input:checked + .box::after {
+    content: ""; width: 7px; height: 3px;
+    border-left: 1.5px solid #fff; border-bottom: 1.5px solid #fff;
+    transform: rotate(-45deg) translate(1px,-1px);
+  }
+
+  /* ------- Button: oxblood, italic label ------- */
+  .aras-auth-btn {
+    width: 100%;
+    height: 48px;
+    background: var(--auth-accent);
+    color: #f4eeea;
+    border: 0;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 14px;
+    transition: background .18s ease, transform .18s ease;
+    box-shadow: 0 1px 0 var(--auth-accent-ink);
+    text-decoration: none;
+  }
+  .aras-auth-btn:hover { background: var(--auth-accent-ink); color: #fff; text-decoration: none; }
+  .aras-auth-btn:active { transform: translateY(1px); }
+  .aras-auth-btn .lbl {
+    font-family: var(--aras-font-display, serif);
+    font-style: italic; font-weight: 700;
+    font-size: 16px; letter-spacing: 0.04em;
+  }
+  .aras-auth-btn .arrow {
+    font-family: var(--aras-font-display, serif);
+    font-style: italic; font-size: 18px;
+    transition: transform .2s ease;
+  }
+  .aras-auth-btn:hover .arrow { transform: translateX(4px); }
+
+  .aras-auth-foot {
+    margin-top: 18px;
+    text-align: center;
+    font-family: var(--aras-font-display, serif);
+    font-style: italic; font-size: 12px; color: var(--auth-slate);
+  }
+  .aras-auth-foot a {
+    color: var(--auth-accent);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(107,44,44,.35);
+    padding-bottom: 1px;
+  }
+  .aras-auth-foot a:hover { border-bottom-color: var(--auth-accent); }
+
+  .aras-auth-or {
+    display: flex; align-items: center; gap: 10px;
+    margin: 18px 0 14px;
+    color: var(--auth-mist);
+    font-family: var(--aras-font-display, serif);
+    font-style: italic; font-size: 11px;
+  }
+  .aras-auth-or::before, .aras-auth-or::after { content: ""; flex: 1; height: 1px; background: var(--auth-hair); }
+
+  .aras-auth-sso {
+    width: 100%;
+    height: 38px;
+    background: transparent;
+    color: var(--auth-ink);
+    border: 1px solid var(--auth-hair);
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    font-family: var(--aras-font-sans, sans-serif);
+    font-size: 12.5px; font-weight: 500; letter-spacing: .01em;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .aras-auth-sso:hover { border-color: var(--auth-ink); background: #fff; }
+  .aras-auth-sso .g {
+    font-family: var(--aras-font-display, serif);
+    font-style: italic; font-weight: 700; font-size: 13px;
+    color: var(--auth-accent);
+  }
+
+  /* Flash messages override */
+  .flash-messages {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    width: 100%;
+    max-width: 400px;
+  }
+</style>
+
+<div class="aras-auth-card">
+  <!-- Left marginalia -->
+  <aside class="aras-auth-margin">
+    <span class="aras-wm">aras<span class="dot"></span></span>
+    <span class="caps">est. 2020 · Jakarta</span>
+
+    <blockquote class="aras-auth-quote">
+      The craftsman's hand knows the rhythm of a task long before the ledger records it.
+      <cite>— House manual, iv.</cite>
+    </blockquote>
+  </aside>
+
+  <!-- Right form -->
+  <section class="aras-auth-form-panel">
+    <form action="{{ url_for('auth.login_view') }}{% if 'next' in request.args %}?next={{ request.args.next|urlencode }}{% endif %}" method="POST">
+      {{ form.hidden_tag() }}
+      
+      <div class="aras-auth-eyebrow">
+        <span class="caps">Entry</span>
+        <span class="line"></span>
+        <span class="n">№ 001</span>
+      </div>
+
+      <h1 class="aras-auth-title">Welcome <em>back</em>.</h1>
+      <p class="aras-auth-lede">Sign in to continue to the studio.</p>
+
+      {% if form.email_or_username.errors %}
+        <div style="color:var(--auth-accent); font-size:11px; font-style:italic; margin-bottom:10px;">
+          {{ form.email_or_username.errors[0] }}
         </div>
-        <div class="login-form-body">
-            <div class="form-gp">
-                <label for="email-or-username">Email or Username</label>
-                {{ form.email_or_username(type="text", class_="") }}
-                <i class="ti-email"></i>
-                <div class="text-danger"></div>
-            </div>
-            <div class="form-gp">
-                <label for="password">Password</label>
-                {{ form.password(type="password", class_="") }}
-                <i class="ti-lock"></i>
-                <div class="text-danger"></div>
-            </div>
-            <div class="row mb-4 rmber-area">
-                <div class="col-6">
-                    <div class="custom-control custom-checkbox mr-sm-2">
-                        {{ form.remember_me(type_="checkbox",
-                        class_="custom-control-input") }}
-                        <label
-                            class="custom-control-label"
-                            for="customControlAutosizing"
-                            >Remember Me</label
-                        >
-                    </div>
-                </div>
-                <div class="col-6 text-right">
-                    <a href="{{ url_for('auth.password_reset_request') }}"
-                        >Forgot Password?</a
-                    >
-                </div>
-            </div>
-            <div class="submit-btn-area">
-                <button id="form_submit" type="submit">
-                    Login
-                    <i class="ti-arrow-right"></i>
-                </button>
-            </div>
-            <div class="form-footer text-center mt-5">
-                <p class="text-muted">
-                    Don't have an account?
-                    <a
-                        href="{{ url_for('auth.register_view') }}{% if 'next' in request.args %}?next={{ request.args.next|urlencode }}{% endif %}"
-                        class="text-center"
-                    >
-                        Create Account
-                    </a>
-                </p>
-            </div>
-        </div>
+      {% endif %}
+
+      <div class="aras-auth-fld">
+        <label>Email or username</label>
+        {{ form.email_or_username(placeholder="e.g. jane.doe", spellcheck="false") }}
+      </div>
+
+      <div class="aras-auth-fld">
+        <label>Password</label>
+        <a href="{{ url_for('auth.password_reset_request') }}" class="hint">Forgot?</a>
+        {{ form.password(placeholder="••••••••••••") }}
+      </div>
+
+      <div class="aras-auth-rmber">
+        <label class="aras-auth-chk">
+          {{ form.remember_me() }}
+          <span class="box"></span>
+          <span>Remember this browser</span>
+        </label>
+      </div>
+
+      <button type="submit" class="aras-auth-btn">
+        <span class="lbl">Sign in</span>
+        <span class="arrow">→</span>
+      </button>
+
+      <div class="aras-auth-or">or</div>
+
+      <button type="button" class="aras-auth-sso">
+        <span class="g">G</span>
+        <span>Continue with Google workspace</span>
+      </button>
+
+      <p class="aras-auth-foot">
+        New here? <a href="{{ url_for('auth.register_view') }}{% if 'next' in request.args %}?next={{ request.args.next|urlencode }}{% endif %}">Request an account</a>
+      </p>
     </form>
+  </section>
 </div>
-
-<!-- login area end -->
-
 {% endblock %}

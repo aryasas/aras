@@ -114,6 +114,7 @@ def configure_logging(app):
 
 def set_jinja_env(app):
     """Register custom Jinja2 globals and filters."""
+    app.jinja_env.add_extension("jinja2.ext.do")
 
     @app.template_filter('datetime')
     def format_datetime(value, fmt='%Y-%m-%d %H:%M'):

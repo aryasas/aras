@@ -1,0 +1,260 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block head %}
+{{ super() }}
+<style>
+  .report-container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .report-header { border-bottom: 2px solid #3d5af1; padding-bottom: 10px; margin-bottom: 20px; }
+  .report-title { color: #313b3d; font-weight: 700; margin-bottom: 5px; }
+  .report-meta { font-size: 12px; color: #9aacb8; }
+  
+  .filter-card { background: #f8f9fa; border: 1px solid #eef0f2; border-radius: 6px; padding: 15px; margin-bottom: 20px; }
+  
+  .table-report { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .table-report thead th { 
+    background: #f0f4ff; color: #3d5af1; font-weight: 600; 
+    padding: 10px 12px; border-bottom: 2px solid #d8e3e7;
+    text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px;
+  }
+  .table-report tbody td { padding: 8px 12px; border-bottom: 1px solid #f1f3f5; color: #495057; }
+  .table-report tbody tr:hover { background-color: #f8faff; }
+  
+  /* Financial formatting */
+  .row-header { background-color: #fdfdfd; font-weight: 700; color: #2c3e50; border-top: 1px solid #dee2e6; }
+  .row-total { font-weight: 700; background-color: #f8faff; border-top: 2px solid #3d5af1; }
+  .row-net { font-weight: 700; background-color: #e8edff; color: #3d5af1; font-size: 14px; border-top: 2px double #3d5af1; }
+  .indent-1 { padding-left: 25px !important; }
+  .negative { color: #e74c3c; font-weight: 600; }
+  
+  @media print {
+    /* Hide all layout elements */
+    .sidebar-menu, .header-area, .app-menu-bar, .page-title-area, .footer-area, 
+    .filter-card, .no-print, .btn, footer, .flash-messages, #arasSearchOverlay { 
+      display: none !important; 
+    }
+    
+    /* Reset main content positioning */
+    .main-content { 
+      margin-left: 0 !important; 
+      padding: 0 !important;
+      min-height: auto !important;
+    }
+    
+    .page-container {
+      padding-left: 0 !important;
+    }
+
+    .main-content-inner {
+      padding: 0 !important;
+    }
+
+    .report-container { 
+      box-shadow: none !important; 
+      padding: 0 !important; 
+      border: none !important;
+    }
+    
+    .table-report { 
+      font-size: 10pt !important; 
+      width: 100% !important;
+    }
+    
+    body {
+      background: #fff !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block submenu %}
+<div class="page-title-area no-print" style="padding:0 30px;border-bottom:1px solid #eef0f2;background:#fff;">
+  <nav style="display:flex;align-items:center;gap:0;flex-wrap:wrap;">
+    <a href="/admin/erp/reports/" style="padding:15px 14px;font-size:13px;text-decoration:none;color:#9aacb8;">
+      <i class="fa fa-chevron-left mr-1"></i> Reports
+    </a>
+    <span style="color:#d8e3e7;">/</span>
+    <span style="padding:15px 14px;font-size:13px;font-weight:600;color:#313b3d;">{{ report.title }}</span>
+    <span style="margin-left:auto;padding-right:8px;display:flex;gap:8px;align-items:center;">
+      {% if report.render_mode == 'list' %}
+      <a href="/admin/erp/reports/{{ report.id }}/"
+         class="btn btn-xs btn-outline-secondary">
+        <i class="fa fa-list mr-1"></i>List View
+      </a>
+      {% endif %}
+      <button onclick="window.print()" class="btn btn-xs btn-outline-secondary">
+        <i class="fa fa-print mr-1"></i>Print
+      </button>
+      <a href="/admin/erp/reports/{{ report.id }}/export.csv?{{ request.query_string.decode() }}"
+         class="btn btn-xs btn-outline-success">
+        <i class="fa fa-file-excel-o mr-1"></i>Export CSV
+      </a>
+    </span>
+  </nav>
+</div>
+{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid mt-3">
+  <div class="row">
+    <div class="col-12">
+
+      {# Filter form #}
+      <div class="filter-card no-print">
+        <form method="get" id="filter-form">
+          <div class="row align-items-end">
+            {% if filters_def %}
+              {% for f in filters_def %}
+              <div class="col-md-3 mb-2">
+                <label class="small font-weight-bold text-uppercase text-muted" style="font-size:10px;">{{ f.label }}</label>
+                {% if f.type == 'select' %}
+                <select name="{{ f.field }}" class="form-control form-control-sm border-primary-soft">
+                  {% for val, lbl in f.get('options', []) %}
+                  <option value="{{ val }}" {{ 'selected' if filters.get(f.field) == val }}>{{ lbl }}</option>
+                  {% endfor %}
+                </select>
+                {% elif f.type == 'date' %}
+                <input type="date" name="{{ f.field }}" class="form-control form-control-sm"
+                       value="{{ filters.get(f.field) or '' }}">
+                {% else %}
+                <input type="text" name="{{ f.field }}" class="form-control form-control-sm"
+                       placeholder="Enter {{ f.label|lower }}..."
+                       value="{{ filters.get(f.field) or '' }}">
+                {% endif %}
+              </div>
+              {% endfor %}
+            {% endif %}
+            <div class="col-md-2 mb-2">
+              <button type="submit" class="btn btn-sm btn-primary btn-block shadow-sm">
+                <i class="fa fa-refresh mr-1"></i> Generate Report
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      {# Results #}
+      <div class="report-container">
+        {% if result %}
+          {% if result.get('error') %}
+          <div class="alert alert-danger shadow-sm">
+            <i class="fa fa-exclamation-triangle mr-2"></i>
+            <strong>Report Error:</strong> {{ result.error }}
+          </div>
+          {% else %}
+          
+          <div class="report-header">
+            <div class="row align-items-center">
+              <div class="col-md-6">
+                <h3 class="report-title">{{ report.title }}</h3>
+                <div class="report-meta">
+                  <i class="fa fa-calendar-o mr-1"></i> Generated on {{ now() if now is defined else '' }}
+                  {% if filters.date_from or filters.date_to %}
+                  <span class="ml-3"><i class="fa fa-clock-o mr-1"></i> Period: {{ filters.date_from or 'Start' }} to {{ filters.date_to or 'End' }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6 text-right">
+                <div class="h5 mb-0 text-muted" style="font-weight:300;">{{ result.data|length }} <small>RECORDS</small></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table-report" id="report-table">
+              <thead>
+                <tr>
+                  {% for col in result.columns %}
+                  <th class="{{ 'text-right' if col.type in ('currency','integer','number') else '' }}">
+                    {{ col.label }}
+                  </th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in result.data %}
+                  {# Smart row classification for financial reports #}
+                  {% set label = row[1]|string if row|length > 1 else (row[0]|string if row|length > 0 else '') %}
+                  {% set is_header = row|length > 1 and row[0] != '' and row[1] == '' and (row[2] == '' or row[2] is none) %}
+                  {% set is_total = 'Total' in label or 'Subtotal' in label %}
+                  {% set is_net = 'NET' in label or 'PROFIT' in label or 'LOSS' in label or 'BALANCE' in label %}
+                  
+                  <tr class="{{ 'row-header' if is_header else ('row-net' if is_net else ('row-total' if is_total else '')) }}">
+                    {% for col in result.columns %}
+                    {% set i = loop.index0 %}
+                    {% set val = row[i] if row is iterable and i < row|length else '' %}
+                    <td class="{{ 'text-right' if col.type in ('currency','integer','number') else '' }} 
+                               {{ 'indent-1' if not is_header and not is_total and not is_net and i == 1 else '' }}
+                               {{ 'negative' if col.type == 'currency' and val is number and val < 0 else '' }}">
+                      
+                      {% if col.type == 'currency' and val is not none and val != '' %}
+                        {{ '{:,.2f}'.format(val|float) }}
+                      {% elif col.type == 'date' and val %}
+                        {{ val }}
+                      {% else %}
+                        {{ val if val is not none else '' }}
+                      {% endif %}
+                    </td>
+                    {% endfor %}
+                  </tr>
+                {% else %}
+                <tr>
+                  <td colspan="{{ result.columns|length }}" class="text-center text-muted py-5">
+                    <i class="fa fa-folder-open-o fa-2x d-block mb-2"></i>
+                    No data found for the selected criteria.
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+        {% elif request.args %}
+        <div class="text-center py-5">
+          <div class="alert alert-info d-inline-block px-5">
+            <i class="fa fa-info-circle mr-2"></i> No data returned for the selected filters.
+          </div>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-5">
+          <i class="fa fa-bar-chart fa-4x mb-3 d-block text-primary-soft" style="opacity:0.3;"></i>
+          <h4 style="font-weight:300;">Ready to Analyze</h4>
+          <p>Apply filters above and click <strong>Generate Report</strong> to begin.</p>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var table = document.getElementById('report-table');
+  if (!table) return;
+  var ths = table.querySelectorAll('thead th');
+  ths.forEach(function(th, i) {
+    th.style.cursor = 'pointer';
+    th.title = 'Click to sort';
+    th.addEventListener('click', function() {
+      var tbody = table.querySelector('tbody');
+      var rows = Array.from(tbody.querySelectorAll('tr'));
+      // Don't sort if we have section headers/totals which might break logic
+      if (document.querySelector('.row-header')) return; 
+
+      var asc = th.dataset.sort !== 'asc';
+      rows.sort(function(a, b) {
+        var av = a.cells[i] ? a.cells[i].textContent.trim() : '';
+        var bv = b.cells[i] ? b.cells[i].textContent.trim() : '';
+        var an = parseFloat(av.replace(/,/g, ''));
+        var bn = parseFloat(bv.replace(/,/g, ''));
+        if (!isNaN(an) && !isNaN(bn)) return asc ? an - bn : bn - an;
+        return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+      });
+      rows.forEach(function(r) { tbody.appendChild(r); });
+      ths.forEach(function(h) { h.dataset.sort = ''; h.classList.remove('sorted-asc', 'sorted-desc'); });
+      th.dataset.sort = asc ? 'asc' : 'desc';
+    });
+  });
+})();
+</script>
+{% endblock %}

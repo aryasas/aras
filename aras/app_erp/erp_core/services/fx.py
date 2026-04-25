@@ -1,8 +1,7 @@
 """core.fx — currency conversion helper."""
 from decimal import Decimal
 from datetime import date
-from arasCore.lib.extensions import db
-from aras.app_erp.erp_core.models.currency import CoreFxRate
+from aras.app_erp.erp_core.models.currency import Currency, FxRate
 
 
 def convert(amount: Decimal, from_code: str, to_code: str,
@@ -12,20 +11,17 @@ def convert(amount: Decimal, from_code: str, to_code: str,
     if on_date is None:
         on_date = date.today()
 
-    from aras.app_erp.erp_core.models.currency import CoreCurrency
-    from_cur = CoreCurrency.query.filter_by(code=from_code).first()
-    to_cur   = CoreCurrency.query.filter_by(code=to_code).first()
+    from_cur = Currency.find(code=from_code)
+    to_cur   = Currency.find(code=to_code)
     if not from_cur or not to_cur:
         raise ValueError(f"Unknown currency: {from_code} or {to_code}")
 
     rate_row = (
-        CoreFxRate.query
-        .filter(
-            CoreFxRate.from_currency_id == from_cur.id,
-            CoreFxRate.to_currency_id   == to_cur.id,
-            CoreFxRate.valid_from        <= on_date,
-        )
-        .order_by(CoreFxRate.valid_from.desc())
+        FxRate.query
+        .filter(FxRate.from_currency_id == from_cur.id,
+                FxRate.to_currency_id   == to_cur.id,
+                FxRate.valid_from        <= on_date)
+        .order_by(FxRate.valid_from.desc())
         .first()
     )
     if not rate_row:
