@@ -94,7 +94,7 @@ class PosShiftBalance(ArasModel):
     closing_balance    = db.Column(db.Numeric(18, 4), default=0, nullable=False)
 
     session         = db.relationship("PosSession", backref=db.backref("shift_balances", lazy="dynamic"))
-    mode_of_payment = db.relationship("ModeOfPayment")
+    # mode_of_payment resolved via query
 
     def __repr__(self):
         return f"<PosShiftBalance session={self.session_id} mop={self.mode_of_payment_id}>"
