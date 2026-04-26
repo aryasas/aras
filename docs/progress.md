@@ -27,7 +27,6 @@ All `Core*` class names and `core_*` table names removed from app-level ERP code
 | `CoreUserCompany` | `ErpUserCompany` | `erp_user_company` |
 | `CoreTax` | `Charge` | `charge` |
 | `CoreTaxGroup` | deleted | — |
-| *(new)* | `ChargeCategory` | `charge_category` |
 
 Note: `ErpRole`/`ErpPermission` use `erp_` prefix because arasCore already has `Role`/`Permission` classes. All other names are clean (no prefix conflicts).
 
@@ -35,7 +34,6 @@ Note: `ErpRole`/`ErpPermission` use `erp_` prefix because arasCore already has `
 
 - `core_tax` table → `charge` table; class `CoreTax` → `Charge`
 - `core_tax_group` / `core_tax_group_line` dropped
-- New `ChargeCategory` reference table (replaces tax group)
 - `CoreCharge.tax_type` → `Charge.charge_type`
 - Invoice lines: removed single `tax_id`/`tax_amt` per line
 - Added child tables `AccSalesInvoiceCharge` / `AccPurchaseInvoiceCharge` — invoices can now have **multiple charges**
@@ -48,13 +46,12 @@ Note: `ErpRole`/`ErpPermission` use `erp_` prefix because arasCore already has `
 - "Core" MenuGroup → renamed to **"Settings"**
 - `Company` moved into Settings (it's configuration, not a transaction entity)
 - `FxRate`, `FiscalPeriod`, `CrmContact`, `CrmStage`, `CrmActivity`, `PosShiftEntry`, all stock sub-tables, all invoice line/charge tables → `admin_list=False, is_child_table=True` (hidden from menu)
-- `Charge` and `ChargeCategory` added to Settings group as Reference tables
 - New manifest imports: `AccSalesInvoiceCharge`, `AccPurchaseInvoiceCharge`
 - Removed: `CoreCustomField` import (unused), `CoreTaxGroup` ResourceDef
 
 ### Migration 005 (`migrations/005_rename_core_tables.py`)
 
-Idempotent. Renames 18 tables, creates `charge_category`, `acc_sales_invoice_charge`, `acc_purchase_invoice_charge`, drops `core_tax_group`/`core_tax_group_line`. Ran successfully.
+Idempotent. Renames 18 tables, creates `acc_sales_invoice_charge`, `acc_purchase_invoice_charge`, drops `core_tax_group`/`core_tax_group_line`. Ran successfully.
 
 ### Files changed (28 + models)
 

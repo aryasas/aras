@@ -78,3 +78,23 @@ class PosShiftEntry(ArasModel):
 
     def __repr__(self):
         return f"<PosShiftEntry {self.entry_type} {self.amount}>"
+
+
+class PosShiftBalance(ArasModel):
+    """Per-MOP opening/closing balance for a shift — auto expected vs manual count."""
+    __tablename__ = "pos_shift_balance"
+
+    __table_args__ = (
+        db.UniqueConstraint("session_id", "mode_of_payment_id", name="uq_shift_balance_mop"),
+    )
+
+    session_id         = db.Column(db.Integer, db.ForeignKey("pos_session.id"), nullable=False)
+    mode_of_payment_id = db.Column(db.Integer, db.ForeignKey("erp_mode_of_payment.id"), nullable=False)
+    opening_balance    = db.Column(db.Numeric(18, 4), default=0, nullable=False)
+    closing_balance    = db.Column(db.Numeric(18, 4), default=0, nullable=False)
+
+    session         = db.relationship("PosSession", backref=db.backref("shift_balances", lazy="dynamic"))
+    mode_of_payment = db.relationship("ModeOfPayment")
+
+    def __repr__(self):
+        return f"<PosShiftBalance session={self.session_id} mop={self.mode_of_payment_id}>"

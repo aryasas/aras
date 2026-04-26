@@ -42,6 +42,7 @@ class StockProduct(ArasModel):
     standard_price      = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     for_sales           = db.Column(db.Boolean, default=True, nullable=False)
     for_purchase        = db.Column(db.Boolean, default=True, nullable=False)
+    use_price_table     = db.Column(db.Boolean, default=False, nullable=False)
     account_revenue_id  = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
     account_purchase_id = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
     account_cogs_id     = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)

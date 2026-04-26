@@ -14,14 +14,53 @@ _SYSTEM_COLS = {"id", "created_at", "updated_at", "deleted_at",
 _table_registry: dict = {}
 
 
+def _apply_single_filter(query, model, col_name, op, val):
+    """Apply one filter condition. Returns (query, applied_val) or raises."""
+    col_attr = getattr(model, col_name, None)
+    if col_attr is None:
+        raise AttributeError(f"No column {col_name}")
+    if op == "equals":
+        return query.filter(col_attr == val), val
+    elif op == "not_equals":
+        return query.filter(col_attr != val), val
+    elif op == "like":
+        return query.filter(col_attr.ilike(f"%{val}%")), val
+    elif op == "not_like":
+        return query.filter(col_attr.notilike(f"%{val}%")), val
+    elif op == "in":
+        items = [v.strip() for v in val.split(",") if v.strip()]
+        return query.filter(col_attr.in_(items)), val
+    elif op == "not_in":
+        items = [v.strip() for v in val.split(",") if v.strip()]
+        return query.filter(col_attr.notin_(items)), val
+    elif op == "is":
+        return query.filter(col_attr.is_(None)), ""
+    raise ValueError(f"Unknown op: {op}")
+
+
+def _find_model_by_table(table_name: str):
+    """Look up a SQLAlchemy model class by DB table name."""
+    try:
+        from arasCore.lib.extensions import db as _db
+        for mapper in _db.Model.registry.mappers:
+            if mapper.local_table.name == table_name:
+                return mapper.class_
+    except Exception:
+        pass
+    return None
+
+
 def apply_search_and_filters(query, model, search_cols, request):
     """
-    Apply search (q=) and multi-row filters (f_col[], f_op[], f_val[]) to a query.
+    Apply search (q=) and multi-row filters to a query.
 
-    search_cols: list of column names to search against (from mgr_column.searchable or caller).
+    Direct filters:  f_col[], f_op[], f_val[]
+    Child filters:   f_child_table[], f_child_col[], f_child_op[], f_child_val[]
+                     — generates EXISTS subquery against child table
+
     Returns: (query, active_filters_list, search_q)
     """
-    import sqlalchemy as _sa
+    from sqlalchemy import exists, and_
 
     active_filters = []
 
@@ -39,38 +78,59 @@ def apply_search_and_filters(query, model, search_cols, request):
         if clauses:
             query = query.filter(or_(*clauses))
 
-    cols  = request.args.getlist("f_col[]")
-    ops   = request.args.getlist("f_op[]")
-    vals  = request.args.getlist("f_val[]")
+    # ── direct field filters ──────────────────────────────────────────────────
+    cols = request.args.getlist("f_col[]")
+    ops  = request.args.getlist("f_op[]")
+    vals = request.args.getlist("f_val[]")
 
     for col_name, op, val in zip(cols, ops, vals):
-        col_name = col_name.strip()
-        op       = op.strip()
-        val      = val.strip()
+        col_name = col_name.strip(); op = op.strip(); val = val.strip()
         if not col_name or not op:
             continue
-        col_attr = getattr(model, col_name, None)
-        if col_attr is None:
+        try:
+            query, applied_val = _apply_single_filter(query, model, col_name, op, val)
+            active_filters.append({"col": col_name, "op": op, "val": applied_val})
+        except Exception:
+            pass
+
+    # ── child-table EXISTS filters ────────────────────────────────────────────
+    child_tables = request.args.getlist("f_child_table[]")
+    child_cols   = request.args.getlist("f_child_col[]")
+    child_ops    = request.args.getlist("f_child_op[]")
+    child_vals   = request.args.getlist("f_child_val[]")
+
+    for child_tbl, child_col, child_op, child_val in zip(
+            child_tables, child_cols, child_ops, child_vals):
+        child_tbl  = child_tbl.strip(); child_col = child_col.strip()
+        child_op   = child_op.strip();  child_val = child_val.strip()
+        if not child_tbl or not child_col or not child_op:
             continue
         try:
-            if op == "equals":
-                query = query.filter(col_attr == val)
-            elif op == "not_equals":
-                query = query.filter(col_attr != val)
-            elif op == "like":
-                query = query.filter(col_attr.ilike(f"%{val}%"))
-            elif op == "not_like":
-                query = query.filter(col_attr.notilike(f"%{val}%"))
-            elif op == "in":
-                items = [v.strip() for v in val.split(",") if v.strip()]
-                query = query.filter(col_attr.in_(items))
-            elif op == "not_in":
-                items = [v.strip() for v in val.split(",") if v.strip()]
-                query = query.filter(col_attr.notin_(items))
-            elif op == "is":
-                query = query.filter(col_attr.is_(None))
-                val = ""
-            active_filters.append({"col": col_name, "op": op, "val": val})
+            child_model = _find_model_by_table(child_tbl)
+            if not child_model:
+                continue
+            # detect FK column pointing back to parent
+            fk_col = None
+            parent_tbl = model.__tablename__
+            for col in child_model.__table__.columns:
+                for fk in col.foreign_keys:
+                    if fk.column.table.name == parent_tbl:
+                        fk_col = col.name
+                        break
+                if fk_col:
+                    break
+            if not fk_col:
+                continue
+
+            child_q = db.session.query(child_model).filter(
+                getattr(child_model, fk_col) == model.id
+            )
+            child_q, _ = _apply_single_filter(child_q, child_model, child_col, child_op, child_val)
+            query = query.filter(exists(child_q.statement.with_only_columns(db.text("1"))))
+            active_filters.append({
+                "col": f"{child_tbl}.{child_col}", "op": child_op, "val": child_val,
+                "is_child": True, "child_table": child_tbl,
+            })
         except Exception:
             pass
 

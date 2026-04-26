@@ -38,6 +38,8 @@
             ('panel-database', 'ti-server',       'Database'),
             ('panel-roles',    'ti-shield',       'Roles'),
             ('panel-menu',     'ti-menu',         'Menu Editor'),
+            ('panel-workflow', 'ti-share',        'Workflow'),
+            ('panel-studio',   'ti-palette',      'Studio (DnD)'),
             ('panel-audit',    'ti-eye',          'Audit Log'),
             ('panel-health',   'ti-pulse',        'Health'),
             ('panel-system',   'ti-control-knob', 'System'),
@@ -100,6 +102,50 @@
         </div>
       </div>
       {% include 'admin/views/settings/_modal_menu_editor.html' %}
+    </div>
+
+    {% include 'admin/views/settings/_panel_workflow.html' %}
+
+    <div class="settings-panel d-none" id="panel-studio">
+      <div class="panel-header">
+        <h3 style="font-family: 'Libre Baskerville', serif; font-style: italic; font-weight: 700;"><i class="ti-palette mr-2 text-primary"></i>Visual Studio (DnD)</h3>
+        <p class="text-muted">Interactive Drag-and-Drop builder for Forms and Layouts.</p>
+      </div>
+      <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 12px;">
+        <div class="card-body p-0">
+          <div class="bg-dark p-4 text-center">
+            <i class="ti-layers-alt text-studio-ochre mb-3" style="font-size: 4rem; opacity: 0.8; color: #d4a373;"></i>
+            <h4 class="text-white fw-bold">Studio Engine</h4>
+            <p class="text-white-50 small mb-4">Select a DocType from the list to launch the Visual Designer.</p>
+            <a href="{{ url_for('admin.apps_doctypes') }}" class="btn btn-studio-ochre px-4" style="background: #d4a373; border-color: #d4a373; color: #fff;">
+              <i class="ti-new-window mr-1"></i> Open DocType List
+            </a>
+          </div>
+          <div class="p-4 bg-white">
+            <h6 class="text-uppercase small font-weight-bold text-muted mb-3">Builder Capabilities</h6>
+            <div class="row">
+              <div class="col-md-4">
+                <div class="d-flex align-items-center mb-3">
+                  <div class="bg-light rounded-circle p-2 mr-3"><i class="ti-layout text-primary"></i></div>
+                  <span class="small font-weight-bold">Form Designer</span>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="d-flex align-items-center mb-3">
+                  <div class="bg-light rounded-circle p-2 mr-3"><i class="ti-view-grid text-success"></i></div>
+                  <span class="small font-weight-bold">Grid Layouts</span>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="d-flex align-items-center mb-3">
+                  <div class="bg-light rounded-circle p-2 mr-3"><i class="ti-mouse-alt text-info"></i></div>
+                  <span class="small font-weight-bold">DnD Support</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     {% include 'admin/views/settings/_panel_audit.html' %}

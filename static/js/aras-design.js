@@ -109,3 +109,29 @@
     }
 
 })();
+
+/* ── Aras Tab Nav ── */
+(function () {
+  function initTabNavs() {
+    document.querySelectorAll('.aras-tab-nav').forEach(function (nav) {
+      nav.querySelectorAll('.aras-tab-link').forEach(function (link) {
+        link.addEventListener('click', function (e) {
+          e.preventDefault();
+          var targetId = link.getAttribute('data-tab');
+          var card = nav.closest('.aras-card');
+          if (!card) return;
+          nav.querySelectorAll('.aras-tab-link').forEach(function (l) { l.classList.remove('active'); });
+          card.querySelectorAll('.aras-tab-pane').forEach(function (p) { p.classList.remove('active'); });
+          link.classList.add('active');
+          var pane = card.querySelector('#' + targetId);
+          if (pane) pane.classList.add('active');
+        });
+      });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTabNavs);
+  } else {
+    initTabNavs();
+  }
+})();

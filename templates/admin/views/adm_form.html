@@ -40,20 +40,31 @@
 
     <div class="aras-form-layout">
       <div class="aras-main-column">
+        {# Separate inline vs tab child tables #}
+        {% set _all_ct = child_tables if child_tables is defined else [] %}
+        {% set _inline_cts = _all_ct | rejectattr("view_in_tab", "equalto", true) | list %}
+        {% set _tab_cts    = _all_ct | selectattr("view_in_tab", "equalto", true) | list %}
+
         {# ── Main Form Card ── #}
         <div class="aras-card shadow-sm">
           <div class="aras-card-body">
             <form method="POST" action="{{ action }}" id="mainForm">
               {{ form.hidden_tag() if form.hidden_tag is defined }}
-              {{ render_form_fields(form) }}
+              {% if layout_tabs is defined and layout_tabs %}
+                {# Pass child_table_tabs so the layout template appends them as extra tabs #}
+                {% set child_table_tabs = _tab_cts %}
+                {% include 'admin/layouts/base_form_layout.html' %}
+              {% else %}
+                {{ render_form_fields(form) }}
+              {% endif %}
             </form>
           </div>
         </div>
 
-        {# ── Child Tables ── #}
-        {% if child_tables is defined and child_tables %}
+        {# ── Inline Child Tables (no view_in_tab) ── #}
+        {% if _inline_cts %}
           <div class="aras-child-tables-section mt-5">
-            {% for ct in child_tables %}
+            {% for ct in _inline_cts %}
               <div class="aras-card shadow-sm">
                 <div class="aras-card-header d-flex justify-content-between align-items-center">
                   <h3 class="aras-card-title m-0">{{ ct.title }}</h3>
@@ -74,6 +85,43 @@
                 </div>
               </div>
             {% endfor %}
+          </div>
+        {% endif %}
+
+        {# ── Tabbed Child Tables — only when NO layout_tabs (layout_tabs handles them inline above) ── #}
+        {% if _tab_cts and not (layout_tabs is defined and layout_tabs) %}
+          <div class="aras-child-tables-section mt-5">
+            <div class="aras-card shadow-sm">
+              <div class="aras-card-header">
+                <ul class="aras-tab-nav" role="tablist">
+                  {% for _tct in _tab_cts %}
+                  <li class="aras-tab-item">
+                    <a class="aras-tab-link{% if loop.first %} active{% endif %}"
+                       data-tab="ct-tabed-{{ loop.index }}" href="#">{{ _tct.title }}</a>
+                  </li>
+                  {% endfor %}
+                </ul>
+              </div>
+              {% for ct in _tab_cts %}
+              {% set _tab_loop_idx = loop.index + 100 %}
+              <div class="aras-tab-pane{% if loop.first %} active{% endif %}" id="ct-tabed-{{ loop.index }}">
+                <div class="d-flex justify-content-end p-2 border-bottom">
+                  {% if ct.api_url %}
+                    <button type="button" class="aras-btn aras-btn--sm aras-btn--outline" onclick="ctAddRow({{ _tab_loop_idx }})">
+                      <i class="fa fa-plus"></i> Add Row
+                    </button>
+                  {% elif ct.adm_url %}
+                    <a href="{{ ct.adm_url }}/add/?{{ ct.fk_col }}={{ ct.parent_id }}" class="aras-btn aras-btn--sm aras-btn--outline">
+                      <i class="fa fa-plus"></i> Add {{ ct.title }}
+                    </a>
+                  {% endif %}
+                </div>
+                <div class="aras-card-body p-0">
+                  {% include 'admin/partials/com_child_table.html' with context %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
           </div>
         {% endif %}
       </div>
@@ -99,6 +147,26 @@
             </div>
           </div>
         </div>
+
+
+        {# ── Extra sidebar cards from SubHandler.detail_context() ── #}
+        {% if sidebar_cards is defined and sidebar_cards %}
+          {% for card in sidebar_cards %}
+          <div class="aras-card shadow-sm">
+            <div class="aras-card-header"><h3 class="aras-card-title m-0">{{ card.title }}</h3></div>
+            <div class="aras-card-body py-3">
+              <div class="aras-meta-list" style="display:flex;flex-direction:column;gap:10px;">
+                {% for row in card.rows %}
+                <div class="aras-meta-item" style="display:flex;justify-content:space-between;font-size:12.5px;">
+                  <span class="label" style="color:var(--aras-ink-3);">{{ row.label }}</span>
+                  <span class="value" style="font-weight:600;">{{ row.value }}</span>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        {% endif %}
 
         {# ── Activity Timeline ── #}
         {% if activity_log is defined and activity_log %}

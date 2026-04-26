@@ -4,7 +4,7 @@ from arasCore.lib.app_helper import AppHelper, MenuGroup, ResourceDef, SubHandle
 from aras.app_erp.erp_core.models import (
     Company,
     Currency, FxRate,
-    Charge, ChargeCategory,
+    Charge,
     Setting, Sequence,
     FiscalYear, FiscalPeriod,
     ErpRole, ErpPermission,
@@ -290,7 +290,7 @@ helper = AppHelper(
             # ── Reference ───────────────────────────────────────────────────────
             ResourceDef("charge",         Charge,          admin_list=True,
                         menu_title="Charges", menu_icon="fa-percent"),
-            ResourceDef("charge-category", ChargeCategory, admin_list=True,
+            ResourceDef("charge-category", admin_list=True,
                         menu_title="Charge Categories", menu_icon="fa-tags"),
         ]),
 

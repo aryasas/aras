@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&display=swap");
+
 /* ============================================================
    Aras Design System — Core Foundation
    ============================================================ */
@@ -10,8 +12,6 @@
   font-style: normal;
   font-display: swap;
 }
-
-@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&display=swap");
 
 :root {
   /* Studio Palette */
@@ -38,14 +38,14 @@
   --aras-surface-alt:    var(--studio-cream);
   --aras-bg:             var(--studio-paper);
 
-  --aras-radius:         4px;
+  --aras-radius:         10px;
   --aras-shadow-sm:      0 1px 2px rgba(20, 27, 45, .04);
   --aras-shadow-drop:    0 4px 12px rgba(0, 0, 0, .08);
 
   --aras-font-display:   "Libre Baskerville", serif;
   --aras-font-serif:     "Libre Baskerville", serif;
   --aras-font-sans:      "Bricolage Grotesque", system-ui, sans-serif;
-  --aras-font-mono:      ui-monospace, monospace;
+  --aras-font-mono:      "JetBrains Mono", ui-monospace, monospace;
   
   --aras-fs-base:        13px;
   --aras-space-4:        16px;
@@ -723,3 +723,96 @@ html, body {
 .me-row.drag-over-after  { border-bottom:2px solid var(--me-d0) !important; }
 .me-app.drag-over-app { outline:2px dashed var(--me-d0); border-radius:8px; }
 
+
+
+/* ── Child Table Footer Totals ── */
+.ct-footer td {
+  font-size: 12px;
+  padding: 6px 12px;
+  background: var(--aras-surface-2, #f8f9fa);
+  border-top: 2px solid var(--aras-border, #e0e0e0);
+}
+.ct-footer-total {
+  text-align: right;
+  color: var(--aras-ink-1, #333);
+}
+
+/* ── Aras Tab Nav (child tables as tabs) ── */
+.aras-tab-nav {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0 16px;
+  gap: 4px;
+  border-bottom: 1px solid var(--aras-border, #e0e0e0);
+}
+.aras-tab-item { margin: 0; }
+.aras-tab-link {
+  display: block;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--aras-ink-3, #888);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color .15s, border-color .15s;
+}
+.aras-tab-link:hover { color: var(--aras-primary, #4361ee); }
+.aras-tab-link.active {
+  color: var(--aras-primary, #4361ee);
+  border-bottom-color: var(--aras-primary, #4361ee);
+}
+.aras-tab-pane { display: none; }
+.aras-tab-pane.active { display: block; }
+
+/* ── Dynamic Form Tabs & Layout ── */
+.aras-tabs-wrapper {
+  margin-top: 10px;
+}
+.aras-tabs-wrapper .nav-tabs {
+  border-bottom: 2px solid var(--studio-cream);
+  gap: 8px;
+}
+.aras-tabs-wrapper .nav-link {
+  border: none;
+  color: var(--aras-ink-3);
+  font-weight: 600;
+  padding: 12px 20px;
+  font-size: 13.5px;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.aras-tabs-wrapper .nav-link:hover {
+  color: var(--studio-ink);
+  background: var(--studio-cream);
+  border-radius: 4px 4px 0 0;
+}
+.aras-tabs-wrapper .nav-link.active {
+  color: var(--studio-accent);
+  background: transparent;
+  border-bottom-color: var(--studio-accent);
+}
+.aras-form-section {
+  background: var(--aras-surface);
+  border-radius: 4px;
+}
+.aras-section-title {
+  color: var(--studio-ink);
+  font-family: var(--aras-font-sans);
+  margin-bottom: 20px;
+}
+
+.tab-pane {
+  display: none;
+}
+.tab-pane.active {
+  display: block;
+}
+.tab-pane.fade {
+  opacity: 0;
+  transition: opacity 0.15s linear;
+}
+.tab-pane.fade.show {
+  opacity: 1;
+}

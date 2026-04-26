@@ -1,100 +1,96 @@
 # -*- coding: utf-8 -*-
 """
-arasCore/lib/layout.py
-=======================
-Parses AppManagerTable.layout_json and returns a structured layout descriptor
-that the form template can render as Bootstrap tabs / sections / column breaks.
-
-Layout JSON format (list of dicts):
-  [
-    {"type": "tab", "label": "General", "fields": ["name", "status", ...]},
-    {"type": "tab", "label": "Details", "sections": [
-        {"type": "section", "label": "Address", "fields": ["street", "city"]},
-        {"type": "column_break"},
-        {"type": "section", "label": "Contact",  "fields": ["phone", "email"]}
-    ]},
-  ]
-
-Simplified flat form (no tab/section nesting):
-  [{"type": "section", "label": "Info", "fields": ["name", "email"]}]
-
-If layout_json is None/empty the helper returns None and the template falls
-back to the flat base_form_fields.html render.
+arasCore/lib/layout.py — The single source of truth for form arrangement.
 """
 import json
 import logging
 
 logger = logging.getLogger(__name__)
 
-
-def parse_layout(tbl, form):
+def get_available_fields(tbl):
     """
-    Returns a list of tab dicts suitable for template rendering, or None if no
-    layout is defined.
-
-    Each tab dict:
-      {"label": str, "sections": [
-          {"label": str, "fields": [(field_name, field_obj), ...]},
-          ...  (column_break inserts a new column within a row)
-      ]}
+    Returns the list of columns from mgr_column that should be in the form.
     """
-    raw = getattr(tbl, "layout_json", None)
-    if not raw:
-        return None
+    return [c for c in tbl.columns if c.show_in_form]
+
+def parse_layout(data: dict, field_map: dict) -> list:
+    """Parses a layout object into sections with fields mapped to WTForms field instances."""
+    if not data or not isinstance(data, dict):
+        return []
+
+    sections = []
+    raw_sections = data.get("sections", [])
+    
+    for item in raw_sections:
+        if item.get("type") == "column_break":
+            continue
+            
+        label  = item.get("label", "")
+        width  = item.get("width", 12)
+        fields = []
+        
+        for fitem in item.get("fields", []):
+            fname = fitem["name"] if isinstance(fitem, dict) else fitem
+            fwidth = fitem.get("width", 12) if isinstance(fitem, dict) else 12
+            
+            # Source of Truth mapping
+            target_field = field_map.get(fname)
+            if not target_field and not fname.endswith("_id"):
+                target_field = field_map.get(f"{fname}_id")
+            
+            if target_field:
+                fields.append({
+                    "name":  fname,
+                    "field": target_field,
+                    "width": fwidth
+                })
+            else:
+                logger.debug(f"[layout] field '{fname}' not found in form field_map")
+        
+        if fields or label:
+            sections.append({
+                "label": label, 
+                "width": width, 
+                "fields": fields
+            })
+
+    return sections
+
+def _parse_layout_tabs(table_name, layout_json, form) -> list:
+    """
+    Central entry point for the real form renderer.
+    """
+    field_map = {f.name: f for f in form}
+
+    default_tab = [{
+        "label":    table_name,
+        "sections": [{
+            "label": "Details",
+            "width": 12,
+            "fields": [{"name": f.name, "field": f, "width": 6} for f in form if f.name not in ["id", "csrf_token"]]
+        }]
+    }]
+
+    if not layout_json:
+        return default_tab
 
     try:
-        layout = json.loads(raw) if isinstance(raw, str) else raw
-    except (ValueError, TypeError):
-        logger.warning(f"[layout] Invalid layout_json for table {tbl.name}")
-        return None
+        data = json.loads(layout_json) if isinstance(layout_json, str) else layout_json
+        if not data:
+            return default_tab
+    except Exception as e:
+        logger.error(f"[layout] Failed to parse JSON for {table_name}: {e}")
+        return default_tab
 
-    if not isinstance(layout, list) or not layout:
-        return None
-
-    # Build field lookup from form
-    field_map = {f.name: f for f in form if f.type not in ("HiddenField", "CSRFTokenField")}
-
-    # Normalise: if top-level items are sections/fields (no tabs), wrap in one tab
-    first = layout[0]
-    if first.get("type") in ("section", "column_break") or "fields" in first:
-        layout = [{"type": "tab", "label": "", "content": layout}]
-
+    if not isinstance(data, list):
+        data = [{"label": table_name, "width": 12, "sections": data.get("sections", [])}]
+    
     tabs = []
-    for item in layout:
-        if item.get("type") != "tab":
-            continue
-        tab_label    = item.get("label", "")
-        raw_content  = item.get("sections") or item.get("content") or []
-        # Also accept flat "fields" on the tab
-        if "fields" in item and not raw_content:
-            raw_content = [{"type": "section", "label": "", "fields": item["fields"]}]
-
-        sections = _parse_sections(raw_content, field_map)
-        tabs.append({"label": tab_label, "sections": sections})
-
-    return tabs or None
-
-
-def _parse_sections(raw_content, field_map):
-    """Turn raw section/column_break list into column groups."""
-    current_row   = []   # list of section dicts in current column
-    columns       = [current_row]
-
-    for item in raw_content:
-        t = item.get("type", "section")
-        if t == "column_break":
-            current_row = []
-            columns.append(current_row)
-        else:
-            label  = item.get("label", "")
-            fields = [
-                (name, field_map[name])
-                for name in item.get("fields", [])
-                if name in field_map
-            ]
-            if fields:
-                current_row.append({"label": label, "fields": fields})
-
-    # Remove empty columns
-    columns = [c for c in columns if c]
-    return columns
+    for tdata in data:
+        parsed_sections = parse_layout(tdata, field_map)
+        tabs.append({
+            "label":    tdata.get("label", table_name),
+            "sections": parsed_sections
+        })
+    
+    return tabs if tabs else default_tab

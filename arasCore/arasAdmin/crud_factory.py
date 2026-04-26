@@ -114,6 +114,20 @@ def _detect_parent_fk(child_model, parent_model):
     return None
 
 
+
+def _smart_vcols(child_cls, fk_col: str, limit: int = 5) -> list:
+    """Build vcols prioritising non-FK readable columns; FK _id cols come last."""
+    non_fk, fk_cols = [], []
+    for c in child_cls.__table__.columns:
+        if c.name in _SYSTEM_COLS or c.primary_key or c.name == fk_col:
+            continue
+        entry = (_humanize_label(c.name), c.name)
+        if c.foreign_keys:
+            fk_cols.append(entry)
+        else:
+            non_fk.append(entry)
+    return (non_fk + fk_cols)[:limit]
+
 def _get_child_tables_for_model(model):
     from sqlalchemy import inspect as sa_inspect
     from arasCore.lib.api_handler import get_api_url_for_model
@@ -126,9 +140,9 @@ def _get_child_tables_for_model(model):
             fk_col = _detect_parent_fk(child_cls, model)
             if not fk_col:
                 continue
-            vcols = [(_humanize_label(c.name), c.name)
-                     for c in child_cls.__table__.columns
-                     if c.name not in _SYSTEM_COLS][:5]
+            vcols = _smart_vcols(child_cls, fk_col)
+            footer_totals = list(getattr(child_cls, "__footer_totals__", None) or [])
+            view_in_tab   = bool(getattr(child_cls, "__view_in_tab__", False))
             result.append({
                 "title":          child_cls.__tablename__.replace("_", " ").title(),
                 "model":          child_cls,
@@ -137,6 +151,8 @@ def _get_child_tables_for_model(model):
                 "fk_col":         fk_col,
                 "api_url":        get_api_url_for_model(child_cls),
                 "inline_columns": _get_inline_columns(child_cls, fk_col),
+                "footer_totals":  footer_totals,
+                "view_in_tab":    view_in_tab,
             })
     except Exception:
         pass
@@ -299,6 +315,8 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
                         "rel_maps":       _build_fk_maps(cd["vcols"], cd["model"]),
                         "api_url":        cd.get("api_url"),
                         "inline_columns": cd.get("inline_columns", []),
+                        "footer_totals":  cd.get("footer_totals", []),
+                        "view_in_tab":    cd.get("view_in_tab", False),
                     })
                 except Exception:
                     pass

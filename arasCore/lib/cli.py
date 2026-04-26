@@ -20,4 +20,10 @@ def register_cli(app):
     register_test_commands(aras)
     register_misc_commands(aras)
 
+    try:
+        from aras.app_erp.cli import register_erp_commands
+        register_erp_commands(aras)
+    except (ImportError, Exception):
+        pass
+
     app.cli.add_command(aras)

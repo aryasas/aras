@@ -242,7 +242,7 @@ def _run_test_flow(count: int, verbose: bool):
     from aras.app_erp.erp_pos.services.order_service import open_session, create_order, pay_order
     from aras.app_erp.erp_pos.models import PosOrder
     from aras.app_erp.erp_core.models.currency import Currency
-    from aras.app_erp.erp_core.models.payment_mode import ModeOfPayment
+    # from aras.app_erp.erp_core.models.payment_mode import ModeOfPayment
     from arasCore.auth import User
     from aras.app_erp.erp_acc.models.invoice import AccSalesInvoice
 
@@ -268,9 +268,9 @@ def _run_test_flow(count: int, verbose: bool):
     if not terminal:
         _err("Terminal K1 not found. Run: flask aras erp seed"); return
 
-    mop = ModeOfPayment.find(name="Cash")
-    if not mop:
-        _err("MOP 'Cash' not found. Run: flask aras erp seed"); return
+    # mop = ModeOfPayment.find(name="Cash")
+    # if not mop:
+    #     _err("MOP 'Cash' not found. Run: flask aras erp seed"); return
 
     currency = Currency.find(code="IDR") or Currency.query.first()
     user     = User.query.filter_by(is_admin=True).first()

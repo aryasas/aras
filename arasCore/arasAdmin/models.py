@@ -143,6 +143,9 @@ class AppManagerTable(ArasModel):
     # RBAC: optional role slug required to access this table (overrides permission check)
     required_role_slug = db.Column(db.String(64), nullable=True)
 
+    # Child table footer totals — CSV of numeric field names to sum, e.g. "qty,subtotal,amount"
+    footer_totals_fields = db.Column(db.String(500), nullable=True)
+
     columns = db.relationship(
         "AppManagerColumn",
         backref="table",
@@ -239,6 +242,10 @@ class AppManagerColumn(ArasModel):
     # Formula / computed
     formula = db.Column(db.Text, nullable=True)   # Python expr e.g. "qty * unit_price"
 
+    # Child table tab — if True and this field is a relation pointing to a child table,
+    # the child records are auto-loaded into a dedicated tab on the parent form view
+    view_in_tab = db.Column(db.Boolean, default=False)
+
     # Validation
     regex_pattern = db.Column(db.String(300), nullable=True)
 
@@ -280,6 +287,7 @@ class AppManagerColumn(ArasModel):
             "searchable":            self.searchable,
             "choices":               self.choices,
             "formula":               self.formula,
+            "view_in_tab":           self.view_in_tab,
             "regex_pattern":         self.regex_pattern,
             "relation_table_id":     self.relation_table_id,
             "relation_system_table": self.relation_system_table,

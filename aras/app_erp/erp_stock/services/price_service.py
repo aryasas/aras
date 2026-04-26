@@ -5,39 +5,41 @@ from aras.app_erp.erp_stock.models.product import StockProduct, StockProductPric
 
 
 def get_price(product_id: int, uom_id: int, qty: Decimal,
-              pricelist_id: int = None) -> Decimal:
+              pricelist_id: int = None, price_type: str = "sales") -> Decimal:
     """
-    Lookup selling price for product+uom+qty.
-    1. StockPriceListItem if pricelist_id given
-    2. StockProductPrice (sales, matching uom or no uom)
-    3. product.standard_price
+    Lookup price for product+uom+qty.
+    If product.use_price_table: StockProductPrice table only.
+    Otherwise: standard_price (sales) / cost_price (purchase).
+    StockPriceListItem overrides when pricelist_id given.
     """
-    today = date.today()
-    qty   = Decimal(str(qty))
+    today   = date.today()
+    qty     = Decimal(str(qty))
+    product = StockProduct.get(product_id)
+    if not product:
+        return Decimal("0")
 
     if pricelist_id:
         item = (
             StockPriceListItem.query
-            .filter_by(price_list_id=pricelist_id, product_id=product_id, uom_id=uom_id)
-            .filter(StockPriceListItem.min_qty <= qty)
-            .filter((StockPriceListItem.valid_from == None) | (StockPriceListItem.valid_from <= today))
-            .filter((StockPriceListItem.valid_to   == None) | (StockPriceListItem.valid_to   >= today))
+            .filter_by(pricelist_id=pricelist_id, product_id=product_id, is_active=True)
+            .filter(StockPriceListItem.date_start <= today)
+            .filter((StockPriceListItem.date_end == None) | (StockPriceListItem.date_end >= today))
             .order_by(StockPriceListItem.min_qty.desc())
             .first()
         )
         if item:
             return Decimal(str(item.price))
 
-    pp = (
-        StockProductPrice.query
-        .filter_by(product_id=product_id, price_type="sales")
-        .filter((StockProductPrice.uom_id == uom_id) | (StockProductPrice.uom_id == None))
-        .filter(StockProductPrice.min_qty <= qty, StockProductPrice.is_active == True)
-        .order_by(StockProductPrice.uom_id.desc(), StockProductPrice.min_qty.desc())
-        .first()
-    )
-    if pp:
-        return Decimal(str(pp.price))
+    if product.use_price_table:
+        pp = (
+            StockProductPrice.query
+            .filter_by(product_id=product_id, price_type=price_type, is_active=True)
+            .filter((StockProductPrice.uom_id == uom_id) | (StockProductPrice.uom_id == None))
+            .filter(StockProductPrice.min_qty <= qty)
+            .order_by(StockProductPrice.uom_id.desc(), StockProductPrice.min_qty.desc())
+            .first()
+        )
+        if pp:
+            return Decimal(str(pp.price))
 
-    product = StockProduct.get(product_id)
-    return Decimal(str(product.standard_price)) if product else Decimal("0")
+    return Decimal(str(product.cost_price if price_type == "purchase" else product.standard_price))

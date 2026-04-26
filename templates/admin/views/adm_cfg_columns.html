@@ -318,6 +318,9 @@
           <a href="{{ url_for('admin.apps_tables', app_id=app_def.id) }}" class="btn btn-outline-secondary btn-sm">
             <i class="fa fa-arrow-left mr-1"></i>Back to Tables
           </a>
+          <a href="{{ url_for('admin.apps_table_form_builder', app_id=app_def.id, table_id=tbl.id) }}" class="btn btn-primary btn-sm">
+            <i class="fa fa-magic mr-1"></i>Form Designer
+          </a>
           <small class="text-muted">
             SQL: <code>ab_{{ app_def.name }}_{{ tbl.name }}</code>
             &mdash; {{ columns|length + 1 }} column(s) incl. PK

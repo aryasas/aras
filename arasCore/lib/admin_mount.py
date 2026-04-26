@@ -245,6 +245,14 @@ class AdminResourceMounter:
                 except Exception as ex:
                     db.session.rollback()
                     flash(str(ex), "danger")
+            extra_ctx = {}
+            try:
+                handler = getattr(self.res, "handler", None)
+                if handler and hasattr(handler, "detail_context"):
+                    extra_ctx = handler.detail_context(obj) or {}
+            except Exception:
+                pass
+
             return render_template(
                 "admin/views/adm_form.html",
                 title=f"Add {res_title}",
@@ -304,29 +312,11 @@ class AdminResourceMounter:
                     rows = cd["model"].query.filter(
                         getattr(cd["model"], cd["fk_col"]) == item_id
                     ).all()
-                    child_rel_maps = {}
-                    for _, fname in cd["vcols"]:
-                        if fname not in cd["model"].__table__.c:
-                            continue
-                        col_c = cd["model"].__table__.c[fname]
-                        if not col_c.foreign_keys:
-                            continue
-                        try:
-                            fk = list(col_c.foreign_keys)[0]
-                            ref_tname = fk.column.table.name
-                            from arasCore.lib.extensions import db as _db2
-                            ref_model = next(
-                                (m.class_ for m in _db2.Model.registry.mappers
-                                 if m.local_table.name == ref_tname), None
-                            )
-                            if ref_model:
-                                child_rel_maps[fname] = {
-                                    r.id: row_display(r) for r in ref_model.query.all()
-                                }
-                        except Exception:
-                            pass
+                    from arasCore.arasAdmin.crud_factory import _build_fk_maps
                     from arasCore.lib.api_handler import get_api_url_for_model
                     from arasCore.arasAdmin.services import _get_inline_columns
+                    footer_totals = list(getattr(cd["model"], "__footer_totals__", None) or [])
+                    view_in_tab   = bool(getattr(cd["model"], "__view_in_tab__", False))
                     child_tables.append({
                         "title":          cd["title"],
                         "vcols":          cd["vcols"],
@@ -334,15 +324,25 @@ class AdminResourceMounter:
                         "fk_col":         cd["fk_col"],
                         "rows":           rows,
                         "parent_id":      item_id,
-                        "rel_maps":       child_rel_maps,
+                        "rel_maps":       _build_fk_maps(cd["vcols"], cd["model"]),
                         "api_url":        get_api_url_for_model(cd["model"]),
                         "inline_columns": _get_inline_columns(cd["model"], cd["fk_col"]),
+                        "footer_totals":  footer_totals,
+                        "view_in_tab":    view_in_tab,
                     })
                 except Exception:
                     pass
 
             from arasCore.arasAdmin.services import _load_activity_log
             activity_log = _load_activity_log(model.__tablename__, item_id)
+            extra_ctx = {}
+            try:
+                handler = getattr(self.res, "handler", None)
+                if handler and hasattr(handler, "detail_context"):
+                    extra_ctx = handler.detail_context(obj) or {}
+            except Exception:
+                pass
+
             return render_template(
                 "admin/views/adm_form.html",
                 title=f"Edit {res_title}",

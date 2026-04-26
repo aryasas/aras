@@ -20,7 +20,6 @@ Renames:
   core_notification       → notification
   core_email_template     → email_template
   core_tax                → core_charge  (keep core_ prefix — it's a domain object)
-  core_tax_group          → core_charge_category (new table, created fresh)
   Drop: core_tax_group, core_tax_group_line
 
 New columns on existing tables:
@@ -30,7 +29,6 @@ New columns on existing tables:
   acc_purchase_invoice_line: drop tax_id, tax_amt
 
 New tables:
-  core_charge_category
   acc_sales_invoice_charge
   acc_purchase_invoice_charge
 """
@@ -75,26 +73,10 @@ def upgrade(db):
             conn.execute(db.text(f"RENAME TABLE `{old}` TO `{new}`"))
             print(f"  renamed {old} → {new}")
 
-    # ── Create core_charge_category ───────────────────────────────────────────
-    if not table_exists("core_charge_category"):
-        conn.execute(db.text("""
-            CREATE TABLE core_charge_category (
-                id         INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                company_id INT NOT NULL,
-                code       VARCHAR(20) NOT NULL,
-                name       VARCHAR(100) NOT NULL,
-                is_active  TINYINT(1) NOT NULL DEFAULT 1,
-                created_at DATETIME,
-                updated_at DATETIME,
-                FOREIGN KEY (company_id) REFERENCES company(id)
-            )
-        """))
-        print("  created core_charge_category")
-
     # ── Add category_id to core_charge ────────────────────────────────────────
     if not col_exists("core_charge", "category_id"):
         conn.execute(db.text(
-            "ALTER TABLE core_charge ADD COLUMN category_id INT NULL REFERENCES core_charge_category(id)"
+            "ALTER TABLE core_charge ADD COLUMN category_id INT NULL"
         ))
 
     # ── Invoice: rename tax_amt → charge_amt ──────────────────────────────────

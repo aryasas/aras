@@ -278,7 +278,7 @@ ERP (`aras/app_erp/`) menggunakan Python manifest dengan beberapa sub-modul:
 ```
 app_erp/
 ├── manifest.py              ← AppHelper, semua ResourceDef + MenuGroup
-├── erp_core/models/         ← Company, Currency, FxRate, Charge, ChargeCategory,
+├── erp_core/models/         ← Company, Currency, FxRate, Charge,
 │                               FiscalYear, FiscalPeriod, Sequence, Setting,
 │                               PrintTemplate, Attachment, AuditLog, ErpRole, ErpPermission
 ├── erp_acc/models/          ← AccAccount, AccJournalEntry/Line, AccSalesInvoice/Line/Charge,
@@ -292,7 +292,7 @@ app_erp/
 **Menu groups** (dalam `manifest.py`):
 | Group | Isi |
 |-------|-----|
-| Settings | Company, Currency, FiscalYear, Sequence, PrintTemplate, Roles, Permissions, **Charge**, **ChargeCategory** |
+| Settings | Company, Currency, FiscalYear, Sequence, PrintTemplate, Roles, Permissions, **Charge**|
 | Accounting | Chart of Accounts, Journal Entries, Sales Invoices, Purchase Invoices, Analytic Tags |
 | CRM | Customers, Leads, Pipelines |
 | arasPos | Terminals, Sessions, Open POS |
@@ -301,7 +301,7 @@ app_erp/
 
 **Prinsip menu:**
 - Child tables (`*Line`, `*Charge`, `FiscalPeriod`, `FxRate`, `CrmStage`, `CrmActivity`, dll.) → `admin_list=False, is_child_table=True` — tidak muncul di menu.
-- Reference tables (Charge, ChargeCategory) → ada di Settings group.
+- Reference tables (Charge) → ada di Settings group.
 - `Company` ada di Settings (bukan group terpisah "Core") — karena ini konfigurasi, bukan transaksi.
 
 ---

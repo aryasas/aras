@@ -534,6 +534,34 @@ def apps_column_edit(app_id, table_id, col_id):
     return redirect(url_for("admin.apps_columns", app_id=app_id, table_id=table_id))
 
 
+@arasAdmin_bp.route("/apps/<int:app_id>/tables/<int:table_id>/form-builder")
+@login_required
+def apps_table_form_builder(app_id, table_id):
+    from arasCore.arasAdmin.models import AppManagerApp, AppManagerTable
+    app_obj = AppManagerApp.query.get_or_404(app_id)
+    tbl     = AppManagerTable.query.get_or_404(table_id)
+    return render_template("admin/views/adm_cfg_form_builder.html", app_def=app_obj, tbl=tbl)
+
+
+@arasAdmin_bp.route("/apps/<int:app_id>/tables/<int:table_id>/layout", methods=["POST"])
+@login_required
+def apps_table_layout_save(app_id, table_id):
+    """Save layout_json for a table (from the form builder)."""
+    import json
+    from arasCore.arasAdmin.models import AppManagerTable, AppManagerApp
+    from arasCore.arasAdmin.services import clear_cache
+    app_obj = AppManagerApp.query.get_or_404(app_id)
+    tbl     = AppManagerTable.query.get_or_404(table_id)
+    data    = request.get_json(silent=True) or {}
+    layout  = data.get("layout")
+    if layout is None:
+        return {"ok": False, "error": "No layout provided"}, 400
+    tbl.layout_json = json.dumps(layout) if not isinstance(layout, str) else layout
+    db.session.commit()
+    clear_cache(app_obj.slug)
+    return {"ok": True}
+
+
 # ── Schema migrations (3.4) ───────────────────────────────────────────────────
 
 @arasAdmin_bp.route("/apps/<int:app_id>/migrations")

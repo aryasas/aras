@@ -1,6 +1,6 @@
 from .company import Company
 from .currency import Currency, FxRate
-from .tax import Charge, ChargeCategory
+from .tax import Charge
 from .sequence import Sequence
 from .fiscal import FiscalYear, FiscalPeriod
 from .acl import ErpRole, ErpPermission, ErpRolePermission, ErpUserCompany
@@ -16,7 +16,7 @@ from .report import ErpReport, ErpReportFavorite
 __all__ = [
     "Company",
     "Currency", "FxRate",
-    "Charge", "ChargeCategory",
+    "Charge",
     "Sequence",
     "FiscalYear", "FiscalPeriod",
     "ErpRole", "ErpPermission", "ErpRolePermission", "ErpUserCompany",
