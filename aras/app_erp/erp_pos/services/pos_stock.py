@@ -53,7 +53,7 @@ def deduct_stock_from_order(order_id: int) -> StockMovement | None:
     # Filter storable lines only
     storable_lines = [
         l for l in order.lines
-        if l.product_id and l.product and l.product.product_type == "storable"
+        if l.product_id and l.product and getattr(l.product, "is_stock_item", True)
     ]
     if not storable_lines:
         return None
@@ -82,7 +82,10 @@ def deduct_stock_from_order(order_id: int) -> StockMovement | None:
     for line in storable_lines:
         qty      = Decimal(str(line.qty_base)) if line.qty_base else Decimal(str(line.qty))
         uom_id   = line.product.uom_id  # always base UoM for movement
-        cost     = Decimal(str(line.product.standard_price or 0))
+        # Use avg_cost from valuation if available, else 0
+        from aras.app_erp.erp_stock.models import StockValuation
+        val  = StockValuation.find(product_id=line.product_id, company_id=company_id)
+        cost = Decimal(str(val.avg_cost if val else 0))
         db.session.add(StockMovementLine(
             movement_id=mv.id,
             product_id=line.product_id,
@@ -130,7 +133,7 @@ def receive_stock_from_order(order_id: int) -> StockMovement | None:
 
     storable_lines = [
         l for l in order.lines
-        if l.product_id and l.product and l.product.product_type == "storable"
+        if l.product_id and l.product and getattr(l.product, "is_stock_item", True)
     ]
     if not storable_lines:
         return None
@@ -158,7 +161,7 @@ def receive_stock_from_order(order_id: int) -> StockMovement | None:
 
     for line in storable_lines:
         qty    = Decimal(str(line.qty_base)) if line.qty_base else Decimal(str(line.qty))
-        cost   = Decimal(str(line.unit_price or line.product.cost_price or 0))
+        cost   = Decimal(str(line.unit_price or 0))
         db.session.add(StockMovementLine(
             movement_id=mv.id,
             product_id=line.product_id,

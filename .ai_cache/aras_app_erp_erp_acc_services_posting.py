@@ -74,6 +74,7 @@ def post_journal(
             currency_id=l.get("currency_id"),
             amount_currency=l.get("amount_currency"),
             fx_rate=l.get("fx_rate"),
+            tax_id=l.get("tax_id"),
             tax_base_amount=l.get("tax_base_amount"),
             analytic_tag_id=l.get("analytic_tag_id"),
             description=l.get("description", ""),

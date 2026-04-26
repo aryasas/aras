@@ -9,7 +9,7 @@
 ================================================================================
 #}
 
-{% set _has_customize = app_id is defined and app_id and table_id is defined and table_id %}
+{% set _has_customize = app_id and table_id %}
 
 {% block page_content %}
 <div class="aras-form-view">
@@ -25,7 +25,9 @@
       </div>
       <div class="aras-header-right">
         {% if _has_customize %}
-          <a href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}" class="aras-btn aras-btn--outline" title="Customize Columns">
+          <a href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}" 
+             class="aras-btn aras-btn--outline aras-btn--sm ml-2" 
+             style="border-color:var(--studio-ochre); color:var(--studio-accent);" title="Customize Form Fields">
             <i class="fa fa-sliders"></i> <span class="d-none d-md-inline">Customize</span>
           </a>
         {% endif %}

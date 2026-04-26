@@ -108,6 +108,7 @@ def settings():
             user_cache[entry.user_id] = u.username if u else f"#{entry.user_id}"
         entry._username = user_cache.get(entry.user_id, "system") if entry.user_id else "system"
 
+    from arasCore.lib.workflow import _workflow_registry
     return render_template(
         "admin/views/adm_cfg_settings.html",
         title="Settings", main_title="Settings",
@@ -115,8 +116,9 @@ def settings():
         all_permissions=all_permissions, all_tables=all_tables,
         server_info=server_info, server_cfg=server_cfg,
         db_tables=db_tables, activities=activities, audit_logs=audit_logs,
-        q_audit=q_audit, health_data=__import__("arasCore.lib.health", fromlist=["health"]).health._last_result or {},
+        q_audit=q_audit, health_data=__import__("arasCore.lib.health", fromlist=["_last_result"])._last_result,
         dev_routes=[], # Simplified for now
+        workflows=_workflow_registry,
         system_settings=ArasSystemSetting.query.order_by(ArasSystemSetting.section, ArasSystemSetting.key).all(),
         webhook_endpoints=WebhookEndpoint.query.all(),
         server_scripts=SrvScript.query.all(),

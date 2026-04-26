@@ -8,9 +8,8 @@ def get_price(product_id: int, uom_id: int, qty: Decimal,
               pricelist_id: int = None, price_type: str = "sales") -> Decimal:
     """
     Lookup price for product+uom+qty.
-    If product.use_price_table: StockProductPrice table only.
-    Otherwise: standard_price (sales) / cost_price (purchase).
-    StockPriceListItem overrides when pricelist_id given.
+    Checks pricelist first, then StockProductPrice table.
+    Returns 0 if no price found.
     """
     today   = date.today()
     qty     = Decimal(str(qty))
@@ -42,4 +41,4 @@ def get_price(product_id: int, uom_id: int, qty: Decimal,
         if pp:
             return Decimal(str(pp.price))
 
-    return Decimal(str(product.cost_price if price_type == "purchase" else product.standard_price))
+    return Decimal("0")

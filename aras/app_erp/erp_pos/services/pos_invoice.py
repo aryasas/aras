@@ -52,8 +52,6 @@ def create_invoice_from_pos(order_id: int) -> AccSalesInvoice:
         discount_amt=order.discount_amt,
         charge_amt=order.tax_amt,
         total=order.total,
-        amount_paid=order.amount_paid,
-        amount_due=max(Decimal("0"), order.total - order.amount_paid),
         state="posted",
         reference=order.name,
         notes=f"Dari POS {order.name}",
@@ -91,6 +89,12 @@ def create_invoice_from_pos(order_id: int) -> AccSalesInvoice:
 
 
 def _post_pos_journal(inv: AccSalesInvoice, order: PosOrder, company_id: int):
+    """
+    Journal for POS sales invoice:
+      CR Revenue (subtotal) + CR Tax (charge_amt if any)
+      DR each payment method account (cash, qris, bank, etc.)
+      DR Accounts Receivable for any credit balance (total - sum of payments)
+    """
     income_id = get_default_account(company_id, "income_default")
     tax_output_id = None
     if float(inv.charge_amt) > 0:
@@ -101,30 +105,39 @@ def _post_pos_journal(inv: AccSalesInvoice, order: PosOrder, company_id: int):
 
     lines = []
     if tax_output_id and float(inv.charge_amt) > 0:
-        lines.append({"account_id": income_id,    "debit": 0, "credit": float(inv.subtotal), "description": f"Pendapatan {inv.name}"})
-        lines.append({"account_id": tax_output_id,"debit": 0, "credit": float(inv.charge_amt),  "description": "PPN Keluaran"})
+        lines.append({"account_id": income_id,     "debit": 0, "credit": float(inv.subtotal),   "description": f"Revenue {inv.name}"})
+        lines.append({"account_id": tax_output_id, "debit": 0, "credit": float(inv.charge_amt), "description": "Tax output"})
     else:
-        lines.append({"account_id": income_id,    "debit": 0, "credit": float(inv.total),    "description": f"Pendapatan {inv.name}"})
+        lines.append({"account_id": income_id, "debit": 0, "credit": float(inv.total), "description": f"Revenue {inv.name}"})
 
-    payments = order.payments.all() if hasattr(order.payments, "all") else list(order.payments)
-    total_order = float(inv.total)
+    payments      = order.payments.all() if hasattr(order.payments, "all") else list(order.payments)
+    total_order   = Decimal(str(inv.total))
+    total_paid    = Decimal("0")
 
-    if payments:
-        total_paid_raw = sum(float(p.amount) for p in payments)
-        for i, p in enumerate(payments):
-            share = round(float(p.amount) / total_paid_raw * total_order, 4) if total_paid_raw > 0 else (total_order if i == 0 else 0)
-            acc_id = _payment_method_account(company_id, p.method)
-            lines.append({"account_id": acc_id, "debit": share, "credit": 0, "description": f"POS {p.method} {inv.reference}"})
-        # rounding correction
-        diff = round(sum(l["credit"] for l in lines) - sum(l["debit"] for l in lines), 4)
-        if abs(diff) > 0:
-            for l in reversed(lines):
-                if l["debit"] > 0:
-                    l["debit"] = round(l["debit"] + diff, 4)
-                    break
-    else:
+    for p in payments:
+        amt    = Decimal(str(p.amount))
+        acc_id = _payment_method_account(company_id, p.method)
+        lines.append({"account_id": acc_id, "debit": float(amt), "credit": 0,
+                      "description": f"POS {p.method} {inv.reference}"})
+        total_paid += amt
+
+    # Credit balance → AR
+    credit_balance = total_order - total_paid
+    if credit_balance > Decimal("0.001"):
+        try:
+            ar_id = get_default_account(company_id, "receivable_default")
+            lines.append({"account_id": ar_id, "debit": float(credit_balance), "credit": 0,
+                          "description": f"AR credit balance {inv.name}"})
+        except ValueError:
+            # No AR configured — book against cash (degraded)
+            kas_id = get_default_account(company_id, "cash_default")
+            lines.append({"account_id": kas_id, "debit": float(credit_balance), "credit": 0,
+                          "description": f"POS credit (no AR) {inv.name}"})
+
+    if not payments and credit_balance <= Decimal("0.001"):
         kas_id = get_default_account(company_id, "cash_default")
-        lines.append({"account_id": kas_id, "debit": total_order, "credit": 0, "description": f"POS kas {inv.reference}"})
+        lines.append({"account_id": kas_id, "debit": float(total_order), "credit": 0,
+                      "description": f"POS kas {inv.reference}"})
 
     entry = post_journal(
         company_id=company_id,
@@ -136,18 +149,44 @@ def _post_pos_journal(inv: AccSalesInvoice, order: PosOrder, company_id: int):
     )
     inv.journal_entry_id = entry.id
 
+    # Record payment rows in AccInvoicePayment + update invoice state
+    _record_invoice_payments(inv, order, payments, total_paid, total_order)
+
 
 def _payment_method_account(company_id: int, method: str) -> int:
-    """Map POS payment method to GL account via company defaults."""
+    """Resolve GL account for a payment method via ModeOfPayment → CompanyPaymentAccount, then company defaults."""
+    from aras.app_erp.erp_core.models.payment_mode import ModeOfPayment, CompanyPaymentAccount
+    mop = ModeOfPayment.find(name=method) or ModeOfPayment.find(payment_type=method)
+    if mop:
+        cpa = CompanyPaymentAccount.find(mode_of_payment_id=mop.id, company_id=company_id)
+        if cpa and cpa.account_id:
+            return cpa.account_id
     from aras.app_erp.erp_core.models.company import Company
     company = Company.get(company_id)
     key_map = {"cash": "cash_default", "card": "bank_default", "qris": "bank_default", "transfer": "bank_default"}
-    field = f"acc_{key_map.get(method, 'cash_default')}_id"
-    acc_id = getattr(company, field, None) if company else None
-    if acc_id:
-        return acc_id
-    # fallback: cash
-    return getattr(company, "acc_cash_default_id", None) or get_default_account(company_id, "cash_default")
+    field   = f"acc_{key_map.get(method, 'cash_default')}_id"
+    acc_id  = getattr(company, field, None) if company else None
+    return acc_id or get_default_account(company_id, "cash_default")
+
+
+def _record_invoice_payments(inv: AccSalesInvoice, order: PosOrder,
+                              payments: list, total_paid: Decimal, total_order: Decimal):
+    """Write AccInvoicePayment rows and set invoice state (paid / partial / posted)."""
+    from aras.app_erp.erp_acc.models.invoice import AccInvoicePayment
+    for p in payments:
+        db.session.add(AccInvoicePayment(
+            sales_invoice_id=inv.id,
+            payment_date=date.today(),
+            method=p.method,
+            amount=p.amount,
+            reference=getattr(p, "reference", None),
+        ))
+    if total_paid >= total_order - Decimal("0.01"):
+        inv.state = "paid"
+    elif total_paid > 0:
+        inv.state = "partial"
+    else:
+        inv.state = "posted"
 
 
 def _get_or_create_walkin_customer(company_id: int) -> int:
@@ -197,8 +236,6 @@ def create_purchase_invoice_from_pos(order_id: int) -> AccPurchaseInvoice:
         discount_amt=order.discount_amt,
         charge_amt=order.tax_amt,
         total=order.total,
-        amount_paid=order.amount_paid,
-        amount_due=max(Decimal("0"), order.total - order.amount_paid),
         state="posted",
         notes=f"From POS {order.name}",
         pos_order_id=order.id,

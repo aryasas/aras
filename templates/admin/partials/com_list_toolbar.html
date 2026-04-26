@@ -42,6 +42,12 @@
     {% endif %}
 
     {% if _has_customize %}
+    {% if app_id and table_id %}
+    <a href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}" 
+       class="aras-btn aras-btn--outline aras-btn--sm" title="Customize Columns">
+      <i class="fa fa-sliders"></i> <span class="d-none d-md-inline">Customize</span>
+    </a>
+    {% endif %}
     <div class="aras-col-toggle-wrap" style="position:relative;">
       <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" id="colToggleBtn{{ _lid }}" title="Show/hide columns">
         <i class="fa fa-columns"></i>

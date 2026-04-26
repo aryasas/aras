@@ -11,6 +11,7 @@ from aras.app_erp.erp_core.models import (
     Attachment, PrintTemplate,
     ErpReport,
 )
+from aras.app_erp.erp_core.models.payment_mode import ModeOfPayment
 from aras.app_erp.erp_acc.models import (
     AccAccount,
     AccJournalEntry, AccJournalLine,
@@ -96,10 +97,10 @@ def _pos_products(session_id: int):
     for p in products:
         sales_uom    = p.uom_sales or p.uom
         sales_uom_id = sales_uom.id if sales_uom else p.uom_id
-        price = float(get_price(p.id, sales_uom_id, Decimal("1"), pricelist_id)) if sales_uom_id else float(p.standard_price or 0)
+        price = float(get_price(p.id, sales_uom_id, Decimal("1"), pricelist_id)) if sales_uom_id else 0.0
 
         qty_on_hand = None
-        if p.product_type == "storable" and loc_ids:
+        if p.is_stock_item and loc_ids:
             row = db.session.execute(
                 db.text(
                     "SELECT COALESCE(SUM(qty_on_hand),0) FROM stock_valuation "
@@ -137,15 +138,15 @@ def _pos_products(session_id: int):
             if purchase_price_row:
                 display_price = float(purchase_price_row.price)
             else:
-                display_price = float(p.cost_price or 0)
+                display_price = float(get_price(p.id, active_uom_id, Decimal("1"), pricelist_id, price_type="purchase"))
         else:
             active_uom_id = sales_uom_id
             active_uom    = sales_uom
             display_price = price
 
         result.append({
-            "id": p.id, "code": p.code, "name": p.name, "barcode": p.barcode,
-            "product_type": p.product_type,
+            "id": p.id, "code": p.code, "name": p.name,
+            "is_stock_item": p.is_stock_item,
             "tx_mode": tx_mode,
             "uom_id": active_uom_id,
             "uom_name": active_uom.name if active_uom else "",
@@ -171,7 +172,7 @@ def _pos_stock_check(session_id: int, product_id: int):
     warehouse_id = terminal.warehouse_id if terminal else None
 
     product = StockProduct.get_or_404(product_id)
-    if product.product_type != "storable":
+    if not product.is_stock_item:
         return jsonify({"qty_on_hand": None, "storable": False})
     if not warehouse_id:
         return jsonify({"qty_on_hand": None, "storable": True, "warning": "Warehouse belum dikonfigurasi"})
@@ -221,7 +222,7 @@ def _pos_create_order(session_id: int):
             if not pid:
                 continue
             p = StockProduct.get(pid)
-            if not p or p.product_type != "storable":
+            if not p or not getattr(p, "is_stock_item", True):
                 continue
             qty_base = float(l.get("qty_base") or l.get("qty", 1))
             stock = db.session.execute(
@@ -290,8 +291,8 @@ helper = AppHelper(
             # ── Reference ───────────────────────────────────────────────────────
             ResourceDef("charge",         Charge,          admin_list=True,
                         menu_title="Charges", menu_icon="fa-percent"),
-            ResourceDef("charge-category", admin_list=True,
-                        menu_title="Charge Categories", menu_icon="fa-tags"),
+            ResourceDef("payment-mode",   ModeOfPayment,   admin_list=True,
+                        menu_title="Mode of Payment", menu_icon="fa-credit-card"),
         ]),
 
         # ── Accounting ──────────────────────────────────────────────────────────

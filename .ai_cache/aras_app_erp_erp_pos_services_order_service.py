@@ -3,6 +3,8 @@ from datetime import datetime
 from arasCore.lib.extensions import db
 from aras.app_erp.erp_pos.models import PosOrder, PosOrderLine, PosPayment, PosSession
 from aras.app_erp.erp_core.services import sequence as seq_svc
+from aras.app_erp.erp_stock.services.uom_service import to_base_qty
+from aras.app_erp.erp_stock.services.price_service import get_price
 
 
 def open_session(terminal_id: int, cashier_id: int, opening_balance: Decimal = Decimal(0)) -> PosSession:
@@ -68,19 +70,42 @@ def create_order(session_id: int, cashier_id: int,
 
     subtotal = Decimal(0)
     tax_total = Decimal(0)
+    pricelist_id = terminal.pricelist_id if terminal else None
+
     order_lines = []
     for l in lines:
+        product_id = l.get("product_id")
+        uom_id     = l.get("uom_id")
         qty        = Decimal(str(l.get("qty", 1)))
-        price      = Decimal(str(l.get("unit_price", 0)))
         disc_pct   = Decimal(str(l.get("discount_pct", 0)))
         tax_amt    = Decimal(str(l.get("tax_amt", 0)))
+
+        # Auto-lookup price from pricelist if not provided
+        if l.get("unit_price") is not None:
+            price = Decimal(str(l["unit_price"]))
+        elif product_id and uom_id:
+            price = get_price(product_id, uom_id, qty, pricelist_id)
+        else:
+            price = Decimal("0")
+
+        # Compute base UoM qty for stock posting
+        qty_base = qty
+        if product_id and uom_id:
+            from aras.app_erp.erp_stock.models.product import StockProduct
+            prod = StockProduct.query.get(product_id)
+            if prod and prod.uom_id and uom_id != prod.uom_id:
+                qty_base = to_base_qty(product_id, qty, uom_id, prod.uom_id)
+
         line_sub   = qty * price * (1 - disc_pct / 100)
         subtotal  += line_sub
         tax_total += tax_amt
         order_lines.append(PosOrderLine(
+            product_id=product_id,
             product_name=l["product_name"],
             product_code=l.get("product_code"),
+            uom_id=uom_id,
             qty=qty,
+            qty_base=qty_base,
             unit_price=price,
             discount_pct=disc_pct,
             tax_id=l.get("tax_id"),
@@ -108,9 +133,10 @@ def create_order(session_id: int, cashier_id: int,
     return order
 
 
-def pay_order(order_id: int, payments: list) -> PosOrder:
+def pay_order(order_id: int, payments: list, tx_mode: str = "income") -> PosOrder:
     """
     payments: list of dicts — method, amount, reference
+    tx_mode: "income" (sales) | "outcome" (purchase/receive) | "both"
     """
     order = PosOrder.query.get_or_404(order_id)
     if order.state != "draft":
@@ -132,8 +158,16 @@ def pay_order(order_id: int, payments: list) -> PosOrder:
     order.state       = "paid"
     db.session.flush()
 
-    from aras.app_erp.erp_pos.services.pos_invoice import create_invoice_from_pos
-    create_invoice_from_pos(order.id)
+    from aras.app_erp.erp_pos.services.pos_invoice import (
+        create_invoice_from_pos, create_purchase_invoice_from_pos,
+    )
+    from aras.app_erp.erp_pos.services.pos_stock import deduct_stock_from_order, receive_stock_from_order
+    if tx_mode in ("income", "both"):
+        create_invoice_from_pos(order.id)
+        deduct_stock_from_order(order.id)
+    elif tx_mode == "outcome":
+        create_purchase_invoice_from_pos(order.id)
+        receive_stock_from_order(order.id)
 
     db.session.commit()
     return order

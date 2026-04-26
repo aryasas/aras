@@ -69,27 +69,27 @@ def post_movement(movement_id: int, posted_by_id: int = None) -> StockMovement:
         # delivery: DR cogs / CR stock
         # adjustment: DR/CR stock variance
         if mv.move_type == "receipt" and acc_stock and acc_purchase:
-            _add_line(entry, acc_stock,    amount, 0,      line.sequence)
-            _add_line(entry, acc_purchase, 0,      amount, line.sequence)
+            _add_line(entry, acc_stock,    amount, 0,      0)
+            _add_line(entry, acc_purchase, 0,      amount, 0)
 
         elif mv.move_type in ("delivery", "return") and acc_cogs and acc_stock:
-            _add_line(entry, acc_cogs,  amount, 0,      line.sequence)
-            _add_line(entry, acc_stock, 0,      amount, line.sequence)
+            _add_line(entry, acc_cogs,  amount, 0,      0)
+            _add_line(entry, acc_stock, 0,      amount, 0)
 
         elif mv.move_type in ("adjustment", "opening") and acc_stock:
             variance_acc = category.account_variance_id if category else acc_stock
             if amount > 0:
-                _add_line(entry, acc_stock,    amount,      0,      line.sequence)
-                _add_line(entry, variance_acc, 0,           amount, line.sequence)
+                _add_line(entry, acc_stock,    amount,      0,      0)
+                _add_line(entry, variance_acc, 0,           amount, 0)
             else:
                 abs_amt = abs(amount)
-                _add_line(entry, variance_acc, abs_amt, 0,       line.sequence)
-                _add_line(entry, acc_stock,    0,       abs_amt, line.sequence)
+                _add_line(entry, variance_acc, abs_amt, 0,       0)
+                _add_line(entry, acc_stock,    0,       abs_amt, 0)
 
         if mv.move_type in ("receipt", "opening", "adjustment"):
             src = _valuation(mv.company_id, line.product_id, mv.dst_location_id or 0)
             _update_avg_cost(src, qty_base, cost)
-            product.standard_price = src.avg_cost
+            # avg_cost is already stored in StockValuation
 
         elif mv.move_type in ("delivery", "scrap"):
             src = _valuation(mv.company_id, line.product_id, mv.src_location_id or 0)

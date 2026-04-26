@@ -28,7 +28,7 @@ class StockProduct(ArasModel):
         db.UniqueConstraint("company_id", "code", name="uq_stock_product_company_code"),
     )
 
-    company_id          = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=False)
+    company_id          = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
     code                = db.Column(db.String(50), nullable=False)
     name                = db.Column(db.String(200), nullable=False)
     description         = db.Column(db.Text)
@@ -42,6 +42,7 @@ class StockProduct(ArasModel):
     standard_price      = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     for_sales           = db.Column(db.Boolean, default=True, nullable=False)
     for_purchase        = db.Column(db.Boolean, default=True, nullable=False)
+    use_price_table     = db.Column(db.Boolean, default=False, nullable=False)
     account_revenue_id  = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
     account_purchase_id = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
     account_cogs_id     = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
@@ -86,7 +87,7 @@ class StockProductPrice(ArasModel):
     product_id  = db.Column(db.Integer, db.ForeignKey("stock_product.id"), nullable=False)
     name        = db.Column(db.String(50), nullable=False)
     price_type  = db.Column(db.Enum("sales", "purchase"), nullable=False, default="sales")
-    currency_id = db.Column(db.Integer, db.ForeignKey("core_currency.id"), nullable=False)
+    currency_id = db.Column(db.Integer, db.ForeignKey("currency.id"), nullable=False)
     uom_id      = db.Column(db.Integer, db.ForeignKey("stock_uom.id"), nullable=True)
     price       = db.Column(db.Numeric(18, 4), nullable=False)
     min_qty     = db.Column(db.Numeric(18, 4), default=0, nullable=False)
@@ -94,7 +95,7 @@ class StockProductPrice(ArasModel):
     valid_to    = db.Column(db.Date, nullable=True)
     is_active   = db.Column(db.Boolean, default=True, nullable=False)
 
-    currency = db.relationship("CoreCurrency")
+    currency = db.relationship("Currency")
     uom      = db.relationship("StockUom")
 
 
@@ -123,13 +124,13 @@ class StockProductAccountLink(ArasModel):
     )
 
     product_id          = db.Column(db.Integer, db.ForeignKey("stock_product.id"), nullable=False)
-    company_id          = db.Column(db.Integer, db.ForeignKey("core_company.id"), nullable=False)
+    company_id          = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
     account_stock_id    = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
     account_cogs_id     = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
     account_revenue_id  = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
     account_purchase_id = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
 
-    company          = db.relationship("CoreCompany")
+    company          = db.relationship("Company")
     account_stock    = db.relationship("AccAccount", foreign_keys=[account_stock_id])
     account_cogs     = db.relationship("AccAccount", foreign_keys=[account_cogs_id])
     account_revenue  = db.relationship("AccAccount", foreign_keys=[account_revenue_id])

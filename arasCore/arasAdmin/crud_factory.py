@@ -505,7 +505,7 @@ def make_adm_bulk_delete(model, adm_burl, app_slug, req_role, tname):
                            app_slug=app_slug, req_role=req_role, tname=tname)
 
 
-def make_web_list(model, title, main_t, vcols, burl, app_title, sibling_tabs, cur_burl):
+def make_web_list(model, title, main_t, vcols, burl, app_title, app_id, table_id, sibling_tabs, cur_burl):
     from flask import render_template
     def view():
         return render_template(
@@ -513,12 +513,13 @@ def make_web_list(model, title, main_t, vcols, burl, app_title, sibling_tabs, cu
             title=title, main_title=main_t,
             items=model.query.all(), view_columns=vcols,
             add_url=f"{burl}/add/", edit_url_base=burl, delete_url_base=burl,
-            app_title=app_title, sibling_tabs=sibling_tabs, current_tab_url=cur_burl,
+            app_title=app_title, app_id=app_id, table_id=table_id,
+            sibling_tabs=sibling_tabs, current_tab_url=cur_burl,
         )
     return view
 
 
-def make_web_add(model, form_cls, title, main_t, burl, app_title, sibling_tabs, cur_burl):
+def make_web_add(model, form_cls, title, main_t, burl, app_title, app_id, table_id, sibling_tabs, cur_burl):
     from flask import render_template, redirect, flash
     from flask_login import login_required
 
@@ -536,12 +537,13 @@ def make_web_add(model, form_cls, title, main_t, burl, app_title, sibling_tabs, 
             "admin/views/adm_form.html",
             title=f"Add — {title}", main_title=f"Add {main_t}",
             form=form, action=f"{burl}/add/", list_url=f"{burl}/",
-            app_title=app_title, sibling_tabs=sibling_tabs, current_tab_url=cur_burl,
+            app_title=app_title, app_id=app_id, table_id=table_id,
+            sibling_tabs=sibling_tabs, current_tab_url=cur_burl,
         )
     return view
 
 
-def make_web_edit(model, form_cls, title, main_t, burl, app_title, sibling_tabs, cur_burl):
+def make_web_edit(model, form_cls, title, main_t, burl, app_title, app_id, table_id, sibling_tabs, cur_burl):
     from flask import render_template, redirect, flash
     from flask_login import login_required
 
@@ -559,7 +561,8 @@ def make_web_edit(model, form_cls, title, main_t, burl, app_title, sibling_tabs,
             "admin/views/adm_form.html",
             title=f"Edit — {title}", main_title=f"Edit {main_t}",
             form=form, action=f"{burl}/{item_id}/", list_url=f"{burl}/",
-            app_title=app_title, sibling_tabs=sibling_tabs, current_tab_url=cur_burl,
+            app_title=app_title, app_id=app_id, table_id=table_id,
+            sibling_tabs=sibling_tabs, current_tab_url=cur_burl,
         )
     return view
 

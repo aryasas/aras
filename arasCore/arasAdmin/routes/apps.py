@@ -300,7 +300,7 @@ def apps_tables(app_id):
     return render_template(
         "admin/views/adm_cfg_tables.html",
         title=f"Tables — {app_obj.title}",
-        main_title=app_obj.main_title,
+        main_title=app_obj.title,
         app_def=app_obj,
         tables=tables,
     )
@@ -344,7 +344,7 @@ def apps_table_new(app_id):
     return render_template(
         "admin/views/adm_cfg_table_form.html",
         title="New Table",
-        main_title=app_obj.main_title,
+        main_title=app_obj.title,
         app_def=app_obj,
         form=form,
     )
@@ -390,7 +390,7 @@ def apps_table_edit(app_id, table_id):
     return render_template(
         "admin/views/adm_cfg_table_form.html",
         title=f"Edit Table — {tbl.title}",
-        main_title=app_obj.main_title,
+        main_title=app_obj.title,
         app_def=app_obj,
         form=form,
         tbl=tbl,
@@ -478,7 +478,7 @@ def apps_columns(app_id, table_id):
     return render_template(
         "admin/views/adm_cfg_columns.html",
         title=f"Columns — {tbl.title}",
-        main_title=app_obj.main_title,
+        main_title=app_obj.title,
         app_def=app_obj,
         tbl=tbl,
         columns=columns,
@@ -575,7 +575,7 @@ def apps_migrations(app_id):
     return render_template(
         "admin/views/adm_cfg_migrations.html",
         title=f"Migrations — {app_obj.title}",
-        main_title=app_obj.main_title,
+        main_title=app_obj.title,
         app_def=app_obj,
         pending=pending,
     )

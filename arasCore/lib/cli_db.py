@@ -93,10 +93,15 @@ def register_db_commands(aras):
             from aras.app_erp.erp_core.migrate_task4 import run as mt4
             from aras.app_erp.erp_core.migrate_task5 import run as mt5
             from aras.app_erp.erp_core.migrate_task6 import run as mt6
+            import importlib as _ilib
+            m021 = _ilib.import_module("aras.app_erp.migrations.021_restructure_charge_mop_shift")
+            m022 = _ilib.import_module("aras.app_erp.migrations.022_invoice_payment_coa_group")
             from aras.app_erp.erp_core.seed import run_seed
             mt4(_app)
             mt5(_app)
             mt6(_app)
+            m021.run(_app)
+            m022.run(_app)
             run_seed(_app)
             click.echo("          ERP done.")
         except (ModuleNotFoundError, ImportError):

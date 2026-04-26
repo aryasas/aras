@@ -115,6 +115,6 @@ def _seed_products(company_id: int):
             "company_id": company_id, "code": code, "name": name,
             "category_id": cat.id if cat else None,
             "uom_id": uom.id, "uom_sales_id": uom.id, "uom_purchase_id": uom.id,
-            "product_type": ptype, "cost_price": cost, "standard_price": price,
+            "is_stock_item": (ptype == "storable"), "use_price_table": False,
             "for_sales": True, "for_purchase": (ptype != "service"), "is_active": True,
         })

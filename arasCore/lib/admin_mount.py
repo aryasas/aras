@@ -253,6 +253,7 @@ class AdminResourceMounter:
             except Exception:
                 pass
 
+            _app_id, _table_id = self._resolve_app_table_ids()
             return render_template(
                 "admin/views/adm_form.html",
                 title=f"Add {res_title}",
@@ -261,6 +262,8 @@ class AdminResourceMounter:
                 action=f"{base_url}/add/",
                 list_url=f"{base_url}/",
                 show_save_btn=show_save_btn,
+                app_id=_app_id,
+                table_id=_table_id,
             )
         return view
 
@@ -343,6 +346,7 @@ class AdminResourceMounter:
             except Exception:
                 pass
 
+            _app_id, _table_id = self._resolve_app_table_ids()
             return render_template(
                 "admin/views/adm_form.html",
                 title=f"Edit {res_title}",
@@ -353,6 +357,8 @@ class AdminResourceMounter:
                 child_tables=child_tables,
                 show_save_btn=show_save_btn,
                 activity_log=activity_log,
+                app_id=_app_id,
+                table_id=_table_id,
             )
         return view
 

@@ -35,7 +35,7 @@
         </div>
       </div>
       <hr>
-      <form method="POST" action="{{ url_for('admin.server_restart') }}"
+      <form method="POST" action="{{ url_for('admin.settings') }}"
             onsubmit="return confirm('Restart server? Active connections will be dropped.')">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-danger btn-sm">

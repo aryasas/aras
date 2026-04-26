@@ -65,8 +65,7 @@ class PosPayment(ArasModel):
 
     id        = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     order_id  = db.Column(db.BigInteger, db.ForeignKey("pos_order.id"), nullable=False)
-    method    = db.Column(db.Enum("cash", "card", "qris", "transfer", "voucher", "other"),
-                          nullable=False, default="cash")
+    method    = db.Column(db.String(100), nullable=False, default="cash")
     amount    = db.Column(db.Numeric(18, 4), nullable=False)
     reference = db.Column(db.String(100), nullable=True)
     paid_at   = db.Column(db.DateTime, default=datetime.utcnow)

@@ -16,8 +16,22 @@ def run(flask_app):
         # Drop charge_category FK from charge table
         charge_cols = {c["name"] for c in insp.get_columns("charge")} if "charge" in tables else set()
         if "category_id" in charge_cols:
-            db.session.execute(text("ALTER TABLE charge DROP COLUMN category_id"))
-            logger.info("[021] charge.category_id dropped")
+            # Drop FK constraint first using information_schema (MariaDB requires this)
+            try:
+                fk_rows = db.session.execute(text(
+                    "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE "
+                    "WHERE TABLE_NAME='charge' AND COLUMN_NAME='category_id' "
+                    "AND REFERENCED_TABLE_NAME IS NOT NULL"
+                )).fetchall()
+                for row in fk_rows:
+                    db.session.execute(text(f"ALTER TABLE charge DROP FOREIGN KEY `{row[0]}`"))
+            except Exception as e:
+                logger.warning(f"[021] FK drop warning: {e}")
+            try:
+                db.session.execute(text("ALTER TABLE charge DROP COLUMN category_id"))
+                logger.info("[021] charge.category_id dropped")
+            except Exception as e:
+                logger.warning(f"[021] charge.category_id drop warning: {e}")
 
         # Merge payment_type into mode_of_payment
         if "erp_mode_of_payment" in tables:

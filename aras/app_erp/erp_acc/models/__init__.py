@@ -4,6 +4,7 @@ from .journal import AccJournalEntry, AccJournalLine  # noqa: F401
 from .invoice import (  # noqa: F401
     AccSalesInvoice, AccSalesInvoiceLine, AccSalesInvoiceCharge,
     AccPurchaseInvoice, AccPurchaseInvoiceLine, AccPurchaseInvoiceCharge,
+    AccInvoicePayment,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "AccJournalEntry", "AccJournalLine",
     "AccSalesInvoice", "AccSalesInvoiceLine", "AccSalesInvoiceCharge",
     "AccPurchaseInvoice", "AccPurchaseInvoiceLine", "AccPurchaseInvoiceCharge",
+    "AccInvoicePayment",
 ]

@@ -21,6 +21,8 @@ class AccSalesInvoice(ArasModel):
     discount_amt      = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     charge_amt        = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     total             = db.Column(db.Numeric(18, 4), default=0, nullable=False)
+    amount_paid       = db.Column(db.Numeric(18, 4), default=0, nullable=False)
+    amount_due        = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     state             = db.Column(db.Enum("draft", "posted", "partial", "paid", "cancelled"),
                                   default="draft", nullable=False)
     payment_term_days = db.Column(db.Integer, default=0)
@@ -37,17 +39,6 @@ class AccSalesInvoice(ArasModel):
                                     cascade="all, delete-orphan")
     charges       = db.relationship("AccSalesInvoiceCharge", backref="invoice",
                                     cascade="all, delete-orphan")
-    payments      = db.relationship("AccInvoicePayment",
-                                    primaryjoin="AccInvoicePayment.sales_invoice_id==AccSalesInvoice.id",
-                                    backref="sales_invoice", cascade="all, delete-orphan")
-
-    @property
-    def amount_paid(self):
-        return sum(float(p.amount) for p in self.payments)
-
-    @property
-    def amount_due(self):
-        return max(0, float(self.total) - self.amount_paid)
 
     def __repr__(self):
         return f"<SalesInvoice {self.name} [{self.state}]>"
@@ -108,6 +99,8 @@ class AccPurchaseInvoice(ArasModel):
     discount_amt      = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     charge_amt        = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     total             = db.Column(db.Numeric(18, 4), default=0, nullable=False)
+    amount_paid       = db.Column(db.Numeric(18, 4), default=0, nullable=False)
+    amount_due        = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     state             = db.Column(db.Enum("draft", "posted", "partial", "paid", "cancelled"),
                                   default="draft", nullable=False)
     payment_term_days = db.Column(db.Integer, default=0)
@@ -122,17 +115,6 @@ class AccPurchaseInvoice(ArasModel):
                                     cascade="all, delete-orphan")
     charges       = db.relationship("AccPurchaseInvoiceCharge", backref="invoice",
                                     cascade="all, delete-orphan")
-    payments      = db.relationship("AccInvoicePayment",
-                                    primaryjoin="AccInvoicePayment.purchase_invoice_id==AccPurchaseInvoice.id",
-                                    backref="purchase_invoice", cascade="all, delete-orphan")
-
-    @property
-    def amount_paid(self):
-        return sum(float(p.amount) for p in self.payments)
-
-    @property
-    def amount_due(self):
-        return max(0, float(self.total) - self.amount_paid)
 
     def __repr__(self):
         return f"<PurchaseInvoice {self.name} [{self.state}]>"
@@ -171,20 +153,3 @@ class AccPurchaseInvoiceCharge(ArasModel):
 
     charge  = db.relationship("Charge")
     account = db.relationship("AccAccount")
-
-
-class AccInvoicePayment(ArasModel):
-    """Payment record for a sales or purchase invoice — multi-method and partial payment support."""
-    __tablename__ = "acc_invoice_payment"
-
-    id                  = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    sales_invoice_id    = db.Column(db.BigInteger, db.ForeignKey("acc_sales_invoice.id"), nullable=True)
-    purchase_invoice_id = db.Column(db.BigInteger, db.ForeignKey("acc_purchase_invoice.id"), nullable=True)
-    payment_date        = db.Column(db.Date, nullable=False)
-    method              = db.Column(db.String(50), nullable=False, default="cash")
-    amount              = db.Column(db.Numeric(18, 4), nullable=False)
-    reference           = db.Column(db.String(100), nullable=True)
-    notes               = db.Column(db.Text, nullable=True)
-    journal_entry_id    = db.Column(db.BigInteger, db.ForeignKey("acc_journal_entry.id"), nullable=True)
-
-    journal_entry = db.relationship("AccJournalEntry")

@@ -31,7 +31,7 @@
             <form method="POST" action="{{ url_for('admin.webhook_toggle', ep_id=ep.id) }}" class="d-inline">
               <button class="btn btn-xs btn-outline-secondary">Toggle</button>
             </form>
-            <form method="POST" action="{{ url_for('admin.webhook_delete', ep_id=ep.id) }}" class="d-inline"
+            <form method="POST" action="{{ url_for('admin.settings') }}" class="d-inline"
                   onsubmit="return confirm('Delete webhook?')">
               <button class="btn btn-xs btn-outline-danger">Delete</button>
             </form>

@@ -1,8 +1,7 @@
 """
 ERP CLI commands.
-  flask aras erp seed                       — seed full CoA, warehouse, product, POS terminal
+  flask aras erp seed                       — seed demo COA, warehouse, product, POS terminal
   flask aras erp test-flow-transaction N    — run N full purchase→POS→verify cycles
-  flask aras erp demo N                     — seed + test-flow in one shot
 """
 import click
 from decimal import Decimal
@@ -11,38 +10,31 @@ from datetime import date
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
-def _ok(msg):  click.echo(click.style(f"  ✓ {msg}", fg="green"))
+def _ok(msg): click.echo(click.style(f"  ✓ {msg}", fg="green"))
 def _err(msg): click.echo(click.style(f"  ✗ {msg}", fg="red"))
 def _hdr(msg): click.echo(click.style(f"\n{msg}", bold=True))
 
 
 def _seed_coa(company_id):
-    """Seed full international 5-digit CoA and wire company default accounts."""
-    from aras.app_erp.erp_acc.seed_coa import seed_coa
-    from aras.app_erp.erp_core.models.company import Company
-    from arasCore.lib.extensions import db
-
-    slugs = seed_coa(company_id)
-
-    company = Company.get(company_id)
-    if company:
-        mapping = {
-            "acc_cash_default_id":       slugs.get("cash"),
-            "acc_receivable_default_id": slugs.get("receivable"),
-            "acc_payable_default_id":    slugs.get("payable"),
-            "acc_income_default_id":     slugs.get("revenue"),
-            "acc_inventory_default_id":  slugs.get("inventory"),
-        }
-        changed = False
-        for field, acc in mapping.items():
-            if acc and not getattr(company, field, None):
-                setattr(company, field, acc.id)
-                changed = True
-        if changed:
-            db.session.add(company)
-            db.session.flush()
-
-    return slugs
+    from aras.app_erp.erp_acc.models.account import AccAccount
+    # (code, name, account_type enum, slug-key)
+    accounts = [
+        ("1-0001", "Kas",                   "asset_current",    "cash"),
+        ("1-0002", "Bank BCA",              "asset_current",    "bank"),
+        ("1-1001", "Persediaan Barang",     "asset_current",    "inventory"),
+        ("2-0001", "Hutang Dagang",         "liability_current","payable"),
+        ("4-0001", "Pendapatan Penjualan",  "income_operating", "revenue"),
+        ("5-0001", "Harga Pokok Penjualan", "expense_cogs",     "cogs"),
+        ("5-0002", "Selisih Persediaan",    "expense_operating","variance"),
+    ]
+    created = {}
+    for code, name, acct_type, key in accounts:
+        acc, _ = AccAccount.get_or_create(
+            {"name": name, "account_type": acct_type, "company_id": company_id},
+            code=code, company_id=company_id,
+        )
+        created[key] = acc
+    return created
 
 
 def _seed_warehouse(company_id):
@@ -70,23 +62,26 @@ def _seed_warehouse(company_id):
 def _seed_product(company_id, category):
     from aras.app_erp.erp_stock.models.product import StockProduct, StockProductPrice
     from aras.app_erp.erp_stock.models.uom import StockUom
-    from aras.app_erp.erp_core.models.currency import Currency
     uom, _ = StockUom.get_or_create({"name": "Pcs", "ratio": 1}, code="PCS")
+    cat_obj = category  # AccAccount-keyed dict passed in; category is a StockProductCategory
     prod, _ = StockProduct.get_or_create(
         {
             "name": "Kopi Susu Test", "company_id": company_id,
-            "category_id": category.id, "uom_id": uom.id,
+            "category_id": cat_obj.id, "uom_id": uom.id,
             "for_sales": True, "for_purchase": True,
             "is_stock_item": True, "use_price_table": True,
         },
         code="KST", company_id=company_id,
     )
+    from aras.app_erp.erp_core.models.currency import Currency
     currency = Currency.find(code="IDR") or Currency.query.first()
+    # Sales price
     StockProductPrice.get_or_create(
         {"name": "Retail", "price": Decimal("25000"), "price_type": "sales",
          "min_qty": 1, "uom_id": uom.id, "is_active": True, "currency_id": currency.id},
         product_id=prod.id, price_type="sales", uom_id=uom.id,
     )
+    # Purchase price
     StockProductPrice.get_or_create(
         {"name": "Beli", "price": Decimal("10000"), "price_type": "purchase",
          "min_qty": 1, "uom_id": uom.id, "is_active": True, "currency_id": currency.id},
@@ -110,10 +105,6 @@ def _seed_category(company_id, coa):
 
 
 def _seed_mop(company_id, coa):
-    """
-    Seed Cash / QRIS / Bank mode-of-payment, reading account codes from the seeded CoA.
-    Also seeds an AR account for credit payments — reads from coa["receivable"].
-    """
     from aras.app_erp.erp_core.models.payment_mode import ModeOfPayment, CompanyPaymentAccount
     mops = {}
     for name, ptype, coa_key in [
@@ -121,21 +112,17 @@ def _seed_mop(company_id, coa):
         ("QRIS", "ewallet", "bank"),
         ("Bank", "bank",    "bank"),
     ]:
-        acc = coa.get(coa_key)
-        if not acc:
-            continue
         mop, _ = ModeOfPayment.get_or_create({"payment_type": ptype}, name=name)
         CompanyPaymentAccount.get_or_create(
-            {"account_id": acc.id},
+            {"account_id": coa[coa_key].id},
             mode_of_payment_id=mop.id, company_id=company_id,
         )
         mops[name] = mop
     return mops
 
 
-def _seed_terminal(company_id, wh, mops):
+def _seed_terminal(company_id, wh, mop):
     from aras.app_erp.erp_pos.models.terminal import PosTerminal
-    from arasCore.lib.extensions import db
     term, _ = PosTerminal.get_or_create(
         {
             "name": "Kasir 1", "company_id": company_id,
@@ -145,26 +132,29 @@ def _seed_terminal(company_id, wh, mops):
     )
     if not term.warehouse_id:
         term.warehouse_id = wh.id
+        from arasCore.lib.extensions import db
         db.session.commit()
     return term
 
 
 def _seed_fiscal(company_id):
     from aras.app_erp.erp_core.models.fiscal import FiscalYear, FiscalPeriod
-    import calendar
     today = date.today()
+    import calendar
+    fy_code = f"FY{today.year}"
     fy, _ = FiscalYear.get_or_create(
         {"date_start": date(today.year, 1, 1), "date_end": date(today.year, 12, 31),
          "state": "open", "company_id": company_id},
-        code=f"FY{today.year}", company_id=company_id,
+        code=fy_code, company_id=company_id,
     )
+    fp_code = f"{today.year}{today.month:02d}"
     last_day = calendar.monthrange(today.year, today.month)[1]
-    FiscalPeriod.get_or_create(
+    fp, _ = FiscalPeriod.get_or_create(
         {"fiscal_year_id": fy.id, "date_start": date(today.year, today.month, 1),
          "date_end": date(today.year, today.month, last_day), "state": "open"},
-        code=f"{today.year}{today.month:02d}",
+        code=fp_code,
     )
-    return fy
+    return fy, fp
 
 
 # ── commands ──────────────────────────────────────────────────────────────────
@@ -186,7 +176,7 @@ def register_erp_commands(aras):
             m022.run(app); _ok("022 done")
             click.echo(click.style("\nMigrations complete.", bold=True, fg="green"))
 
-    @erp_group.command("seed", help="Seed full international CoA, warehouse, product, POS terminal")
+    @erp_group.command("seed", help="Seed demo COA, warehouse, product, POS terminal for ERP testing")
     def erp_seed():
         import flask
         app = flask.current_app._get_current_object()
@@ -202,13 +192,13 @@ def register_erp_commands(aras):
             cid = company.id
             _ok(f"Company: {company.legal_name} (id={cid})")
 
-            coa   = _seed_coa(cid);          _ok(f"COA: {len(coa)} key accounts wired")
-            cat   = _seed_category(cid, coa); _ok(f"Category: {cat.name}")
-            prod, uom = _seed_product(cid, cat); _ok(f"Product: {prod.name}")
-            wh, loc   = _seed_warehouse(cid); _ok(f"Warehouse: {wh.name}")
-            mops  = _seed_mop(cid, coa);     _ok(f"MOPs: {', '.join(mops.keys())}")
-            _seed_terminal(cid, wh, mops);   _ok("Terminal: Kasir 1 (K1)")
-            _seed_fiscal(cid);               _ok("Fiscal year/period")
+            coa = _seed_coa(cid);         _ok(f"COA: {len(coa)} accounts")
+            cat = _seed_category(cid, coa); _ok(f"Category: {cat.name}")
+            prod, uom = _seed_product(cid, cat); _ok(f"Product: {prod.name} (use_price_table={prod.use_price_table})")
+            wh, loc = _seed_warehouse(cid); _ok(f"Warehouse: {wh.name}, location: {loc.name}")
+            mops = _seed_mop(cid, coa);   _ok(f"MOPs: {', '.join(mops.keys())}")
+            term = _seed_terminal(cid, wh, mops); _ok(f"Terminal: {term.name} wh={term.warehouse_id}")
+            _seed_fiscal(cid);            _ok("Fiscal year/period")
             db.session.commit()
             click.echo(click.style("\nSeed complete.", bold=True, fg="green"))
 
@@ -240,37 +230,33 @@ def register_erp_commands(aras):
             cid = company.id
             _ok(f"Company: {company.legal_name}")
 
-            coa       = _seed_coa(cid);          _ok(f"COA: {len(coa)} key accounts")
-            cat       = _seed_category(cid, coa); _ok(f"Category: {cat.name}")
-            prod, uom = _seed_product(cid, cat);  _ok(f"Product: {prod.name}")
-            wh, loc   = _seed_warehouse(cid);     _ok(f"Warehouse: {wh.name}")
-            mops      = _seed_mop(cid, coa);      _ok(f"MOPs: {', '.join(mops.keys())}")
-            _seed_terminal(cid, wh, mops);        _ok("Terminal: K1")
-            _seed_fiscal(cid);                    _ok("Fiscal year/period")
+            coa          = _seed_coa(cid);            _ok(f"COA: {len(coa)} accounts")
+            cat          = _seed_category(cid, coa);  _ok(f"Category: {cat.name}")
+            prod, uom    = _seed_product(cid, cat);   _ok(f"Product: {prod.name}")
+            wh, loc      = _seed_warehouse(cid);      _ok(f"Warehouse: {wh.name}")
+            mops         = _seed_mop(cid, coa);       _ok(f"MOPs: {', '.join(mops.keys())}")
+            term         = _seed_terminal(cid, wh, mops); _ok(f"Terminal: {term.name}")
+            _seed_fiscal(cid);                        _ok("Fiscal year/period")
 
             from aras.app_erp.erp_core.report_seed import run_seed as seed_reports
-            seed_reports(); _ok("Reports")
+            seed_reports()
+            _ok("Reports")
             db.session.commit()
 
             _hdr(f"ERP Demo — Transactions ({count})")
             _run_test_flow(count, verbose)
 
 
-# ── test flow ─────────────────────────────────────────────────────────────────
-
 def _run_test_flow(count: int, verbose: bool):
     """
-    Generic full ERP transaction flow — resolves all accounts/MOPs/products from DB,
-    no hardcoded IDs.
-
-    Flow per iteration:
-      1. Resolve seed data (product, warehouse, terminal, MOPs, accounts) from DB
-      2. Read buy/sell prices from StockProductPrice table
-      3. Purchase invoice (1 row, is_stock_item=True) → post → stock receipt + journal
-      4. POS sale: split payment cash + QRIS + bank (each 5,000); remainder → AR credit
-      5. Assert: invoice state=partial (if credit>0), journal balanced, AR debit line correct
-      6. Assert: stock qty deducted
-      7. P&L / BS spot-check using company default account fields
+    Full ERP transaction flow:
+      1. Price table verification
+      2. Purchase invoice (1 row, stock_item=True) → stock receipt → journal
+      3. POS sale: total=20,000 paid cash=5,000 + qris=5,000 + bank=5,000 → credit=5,000 (AR)
+      4. Verify sales invoice state=partial, journal balanced
+      5. Verify stock deducted
+      6. Verify customer AR balance
+      7. Verify P&L (revenue credited) and Balance Sheet (AR, Cash, Inventory)
     """
     from arasCore.lib.extensions import db
     from aras.app_erp.erp_core.models.company import Company
@@ -278,19 +264,15 @@ def _run_test_flow(count: int, verbose: bool):
     from aras.app_erp.erp_stock.models.warehouse import StockWarehouse
     from aras.app_erp.erp_stock.models import StockValuation
     from aras.app_erp.erp_acc.models.journal import AccJournalEntry, AccJournalLine
-    from aras.app_erp.erp_acc.models.invoice import (
-        AccPurchaseInvoice, AccPurchaseInvoiceLine, AccSalesInvoice,
-    )
+    from aras.app_erp.erp_acc.models.invoice import AccPurchaseInvoice, AccPurchaseInvoiceLine, AccSalesInvoice
     from aras.app_erp.erp_acc.services.purchase_posting import post_purchase_invoice
     from aras.app_erp.erp_pos.models.terminal import PosTerminal
     from aras.app_erp.erp_pos.services.order_service import open_session, create_order, pay_order
     from aras.app_erp.erp_core.models.currency import Currency
-    from aras.app_erp.erp_core.models.payment_mode import ModeOfPayment
     from arasCore.auth import User
 
     _hdr(f"ERP Transaction Flow Test ({count} iteration{'s' if count > 1 else ''})")
 
-    # ── Resolve from DB — zero hardcoded IDs ──────────────────────────────────
     company = Company.find(code="HQ") or Company.query.first()
     if not company:
         _err("No company. Run: flask aras db seed && flask aras erp seed"); return
@@ -298,98 +280,68 @@ def _run_test_flow(count: int, verbose: bool):
 
     prod = StockProduct.find(code="KST", company_id=cid)
     if not prod:
-        _err("No product KST. Run: flask aras erp seed"); return
+        _err("Product KST not found. Run: flask aras erp seed"); return
 
-    wh = StockWarehouse.find(code="GU", company_id=cid) or StockWarehouse.find(company_id=cid)
-    if not wh:
-        _err("No warehouse. Run: flask aras erp seed"); return
-
-    terminal = PosTerminal.find(code="K1", company_id=cid) or PosTerminal.find(company_id=cid)
-    if not terminal:
-        _err("No POS terminal. Run: flask aras erp seed"); return
-
-    # Read MOPs from DB — generic: take first cash, first ewallet, first bank
-    all_mops = ModeOfPayment.list_all()
-    mop_by_type = {}
-    for m in all_mops:
-        mop_by_type.setdefault(m.payment_type, m)
-
-    mop_cash   = mop_by_type.get("cash")
-    mop_qris   = mop_by_type.get("ewallet")
-    mop_bank   = mop_by_type.get("bank")
-    if not (mop_cash and mop_qris and mop_bank):
-        _err(f"Missing MOPs — found: {list(mop_by_type.keys())}. Run: flask aras erp seed"); return
-
-    currency   = Currency.find(code="IDR") or Currency.query.first()
-    user       = User.query.filter_by(is_admin=True).first()
+    uom_id   = prod.uom_id
+    cat      = prod.category
+    wh       = StockWarehouse.find(code="GU", company_id=cid)
+    terminal = PosTerminal.find(code="K1", company_id=cid)
+    currency = Currency.find(code="IDR") or Currency.query.first()
+    user     = User.query.filter_by(is_admin=True).first()
     cashier_id = user.id if user else 1
-    uom_id     = prod.uom_id
-    cat        = prod.category
 
-    if verbose:
-        _ok(f"Company: {company.legal_name}")
-        _ok(f"Product: {prod.name} ({prod.code}), is_stock_item={prod.is_stock_item}")
-        _ok(f"Warehouse: {wh.name} ({wh.code})")
-        _ok(f"Terminal: {terminal.name} ({terminal.code})")
-        _ok(f"MOPs: cash={mop_cash.name}, qris={mop_qris.name}, bank={mop_bank.name}")
-        _ok(f"AR account: {company.acc_receivable_default_id or 'not set (skipping AR check)'}")
+    if not wh:       _err("Warehouse GU not found. Run: flask aras erp seed"); return
+    if not terminal: _err("Terminal K1 not found. Run: flask aras erp seed"); return
 
     passed, failed = 0, []
 
     for i in range(1, count + 1):
         label = f"[{i}/{count}]"
         try:
-            # ── Step 1: Read prices from StockProductPrice (generic) ───────
+            # ── Step 1: Price table ────────────────────────────────────────
             from aras.app_erp.erp_stock.services.price_service import get_price
             sell_price = get_price(prod.id, uom_id, Decimal("1"), price_type="sales")
             buy_price  = get_price(prod.id, uom_id, Decimal("1"), price_type="purchase")
-            assert sell_price > 0, f"sell_price={sell_price} — add a StockProductPrice row"
-            assert buy_price  > 0, f"buy_price={buy_price} — add a StockProductPrice row"
-            if verbose: _ok(f"{label} Prices from table: buy={buy_price} sell={sell_price}")
+            assert sell_price > 0, f"sell_price={sell_price} — check StockProductPrice"
+            assert buy_price  > 0, f"buy_price={buy_price} — check StockProductPrice"
+            if verbose: _ok(f"{label} Prices: buy={buy_price} sell={sell_price}")
 
-            # ── Step 2: Purchase invoice (1 row, is_stock_item=True) ───────
+            # ── Step 2: Purchase invoice (1 line, stock_item=True) → stock ─
             pre_val = StockValuation.find(company_id=cid, product_id=prod.id)
             pre_qty = Decimal(str(pre_val.qty_on_hand)) if pre_val else Decimal("0")
 
             buy_qty = Decimal("1")
             buy_amt = buy_qty * buy_price
-
-            # account from category, fallback to payable default on company
-            stock_acc = (
-                (cat.account_stock_id if cat else None)
-                or company.acc_inventory_default_id
-            )
             pinv = AccPurchaseInvoice(
                 company_id=cid, name=f"BILL/TF/{i:04d}",
                 vendor_name="Supplier Demo", invoice_date=date.today(),
-                currency_id=currency.id if currency else None,
+                currency_id=currency.id,
             )
             db.session.add(pinv); db.session.flush()
             db.session.add(AccPurchaseInvoiceLine(
                 invoice_id=pinv.id, sequence=1, product_id=prod.id,
                 description=prod.name, qty=buy_qty, uom_id=uom_id,
                 unit_price=buy_price, subtotal=buy_amt,
-                account_id=stock_acc,
+                account_id=cat.account_stock_id if cat else None,
             ))
             db.session.commit()
-
             posted_pinv = post_purchase_invoice(pinv.id, warehouse_id=wh.id)
-            assert posted_pinv.state == "posted",        f"Purchase state={posted_pinv.state}"
-            assert posted_pinv.journal_entry_id,          "Purchase journal entry missing"
+            assert posted_pinv.state == "posted", f"Purchase state={posted_pinv.state}"
+            assert posted_pinv.journal_entry_id, "Purchase has no journal entry"
 
             post_val = StockValuation.find(company_id=cid, product_id=prod.id)
             post_qty = Decimal(str(post_val.qty_on_hand))
             assert post_qty == pre_qty + buy_qty, f"Stock expected {pre_qty+buy_qty} got {post_qty}"
 
-            pj    = AccJournalEntry.get(posted_pinv.journal_entry_id)
+            pj = AccJournalEntry.get(posted_pinv.journal_entry_id)
             pj_dr = sum(float(l.debit)  for l in pj.lines)
             pj_cr = sum(float(l.credit) for l in pj.lines)
             assert abs(pj_dr - pj_cr) < 0.01, f"Purchase journal unbalanced DR={pj_dr} CR={pj_cr}"
-            if verbose:
-                _ok(f"{label} Purchase: {pinv.name} qty {pre_qty}→{post_qty} "
-                    f"journal {pj.name} DR={pj_dr:.0f} CR={pj_cr:.0f}")
+            if verbose: _ok(f"{label} Purchase: {pinv.name} qty={post_qty} journal={pj.name} DR={pj_dr:.0f}")
 
-            # ── Step 3: POS sale — cash=5k + QRIS=5k + bank=5k → AR credit ─
+            # ── Step 3: POS sale — 3 MOPs + 1 credit balance ──────────────
+            # total = sell_price * 1 unit  (e.g. 25,000)
+            # pay cash=5,000 + qris=5,000 + bank=5,000 → credit=total-15,000
             sell_qty   = Decimal("1")
             total_sale = sell_qty * sell_price
             cash_pay   = Decimal("5000")
@@ -398,125 +350,84 @@ def _run_test_flow(count: int, verbose: bool):
             paid_sum   = cash_pay + qris_pay + bank_pay
             credit_bal = total_sale - paid_sum
 
-            assert credit_bal >= 0, (
-                f"sell_price={sell_price} < 15,000 — "
-                "update StockProductPrice or adjust payment amounts"
-            )
+            assert credit_bal >= 0, f"Test assumes sell_price≥15000, got {sell_price}"
 
-            session    = open_session(terminal.id, cashier_id, Decimal("0"))
-            order      = create_order(session.id, cashier_id, [{
-                "product_id":   prod.id,
-                "product_name": prod.name,
-                "product_code": prod.code,
-                "uom_id":       uom_id,
-                "qty":          sell_qty,
-                "unit_price":   sell_price,
-                "discount_pct": Decimal("0"),
+            session = open_session(terminal.id, cashier_id, Decimal("0"))
+            order   = create_order(session.id, cashier_id, [{
+                "product_id": prod.id, "product_name": prod.name,
+                "product_code": prod.code, "uom_id": uom_id,
+                "qty": sell_qty, "unit_price": sell_price, "discount_pct": Decimal("0"),
             }])
-            assert Decimal(str(order.total)) == total_sale, \
-                f"order.total={order.total} expected={total_sale}"
+            assert Decimal(str(order.total)) == total_sale, f"order.total={order.total} expected={total_sale}"
 
-            # Payment methods use MOP names read from DB
             paid_order = pay_order(order.id, [
-                {"method": mop_cash.name, "amount": float(cash_pay)},
-                {"method": mop_qris.name, "amount": float(qris_pay)},
-                {"method": mop_bank.name, "amount": float(bank_pay)},
+                {"method": "Cash", "amount": float(cash_pay)},
+                {"method": "QRIS", "amount": float(qris_pay)},
+                {"method": "Bank", "amount": float(bank_pay)},
             ])
-            assert paid_order.state in ("paid", "invoiced"), \
-                f"order.state={paid_order.state}"
-            if verbose:
-                _ok(f"{label} POS: {order.name} total={total_sale:.0f} "
-                    f"[{mop_cash.name}={cash_pay:.0f} "
-                    f"{mop_qris.name}={qris_pay:.0f} "
-                    f"{mop_bank.name}={bank_pay:.0f} AR={credit_bal:.0f}]")
+            assert paid_order.state in ("paid", "invoiced"), f"order.state={paid_order.state}"
+            if verbose: _ok(f"{label} POS order: {order.name} total={total_sale} paid={paid_sum} credit={credit_bal}")
 
             # ── Step 4: Sales invoice + journal ───────────────────────────
             sinv = AccSalesInvoice.find(pos_order_id=paid_order.id)
-            assert sinv,                    "Sales invoice not created"
-            assert sinv.journal_entry_id,   "Sales invoice has no journal entry"
+            assert sinv, "Sales invoice not created"
+            assert sinv.journal_entry_id, "Sales invoice has no journal entry"
 
+            # State: partial if credit_bal > 0, else paid
             if credit_bal > Decimal("0.01"):
-                assert sinv.state in ("partial", "posted"), \
-                    f"sinv.state={sinv.state} — expected partial (credit balance={credit_bal})"
+                assert sinv.state in ("partial", "posted"), f"sinv.state={sinv.state} expected partial"
             else:
                 assert sinv.state in ("paid", "posted"), f"sinv.state={sinv.state}"
 
             sj    = AccJournalEntry.get(sinv.journal_entry_id)
             sj_dr = sum(float(l.debit)  for l in sj.lines)
             sj_cr = sum(float(l.credit) for l in sj.lines)
-            assert abs(sj_dr - sj_cr) < 0.01, \
-                f"Sales journal unbalanced DR={sj_dr:.2f} CR={sj_cr:.2f}"
-            assert abs(sj_cr - float(total_sale)) < 0.01, \
-                f"Revenue credit {sj_cr:.2f} != total {float(total_sale):.2f}"
-            if verbose:
-                _ok(f"{label} Sales invoice: {sinv.name} state={sinv.state} "
-                    f"journal={sj.name} DR={sj_dr:.0f} CR={sj_cr:.0f}")
+            assert abs(sj_dr - sj_cr) < 0.01, f"Sales journal unbalanced DR={sj_dr} CR={sj_cr}"
+            assert abs(sj_cr - float(total_sale)) < 0.01, f"Revenue credit {sj_cr} != {total_sale}"
+            if verbose: _ok(f"{label} Sales invoice: {sinv.name} state={sinv.state} journal={sj.name} DR={sj_dr:.0f}")
 
-            # ── Step 5: AR debit line (credit balance check) ──────────────
+            # ── Step 5: AR credit balance in journal ──────────────────────
             if credit_bal > Decimal("0.01") and company.acc_receivable_default_id:
-                ar_acc_id = company.acc_receivable_default_id
-                ar_lines  = [l for l in sj.lines
-                             if l.account_id == ar_acc_id and float(l.debit) > 0]
-                assert ar_lines, (
-                    f"AR debit line missing in journal {sj.name} "
-                    f"(acc_receivable_default_id={ar_acc_id})"
-                )
+                ar_lines = [l for l in sj.lines
+                            if l.account_id == company.acc_receivable_default_id and float(l.debit) > 0]
+                assert ar_lines, "AR debit line missing in journal for credit balance"
                 ar_amt = sum(float(l.debit) for l in ar_lines)
-                assert abs(ar_amt - float(credit_bal)) < 0.01, \
-                    f"AR line={ar_amt:.2f} != credit_bal={float(credit_bal):.2f}"
+                assert abs(ar_amt - float(credit_bal)) < 0.01, f"AR line {ar_amt} != credit {credit_bal}"
+                if verbose: _ok(f"{label} AR credit balance: {ar_amt:.0f} (expected {float(credit_bal):.0f})")
 
+                # Customer balance = AR
                 ar_balance = sum(
                     float(l.debit) - float(l.credit)
-                    for l in AccJournalLine.find_all(account_id=ar_acc_id)
+                    for l in AccJournalLine.find_all(account_id=company.acc_receivable_default_id)
                 )
-                if verbose:
-                    _ok(f"{label} AR: journal debit={ar_amt:.0f}, "
-                        f"cumulative balance={ar_balance:.0f}")
+                if verbose: _ok(f"{label} Customer AR balance: {ar_balance:.0f}")
 
             # ── Step 6: Stock deducted ────────────────────────────────────
             after_val = StockValuation.find(company_id=cid, product_id=prod.id)
             after_qty = Decimal(str(after_val.qty_on_hand))
-            assert after_qty == post_qty - sell_qty, \
-                f"Stock after sale: expected {post_qty-sell_qty} got {after_qty}"
+            assert after_qty == post_qty - sell_qty, f"Stock expected {post_qty-sell_qty} got {after_qty}"
             if verbose: _ok(f"{label} Stock: {post_qty}→{after_qty}")
 
-            # ── Step 7: P&L / BS spot-check using company default accounts ─
-            if verbose:
-                # Revenue (P&L)
-                if company.acc_income_default_id:
-                    rev = sum(
-                        float(l.credit) - float(l.debit)
-                        for l in AccJournalLine.find_all(account_id=company.acc_income_default_id)
-                    )
-                    _ok(f"{label} P&L Revenue (cumulative): {rev:.0f}")
-
-                # Inventory (BS)
-                inv_acc_id = (
-                    company.acc_inventory_default_id
-                    or (cat.account_stock_id if cat else None)
+            # ── Step 7: P&L / Balance Sheet spot-check ────────────────────
+            if company.acc_income_default_id:
+                rev = sum(
+                    float(l.credit) - float(l.debit)
+                    for l in AccJournalLine.find_all(account_id=company.acc_income_default_id)
                 )
-                if inv_acc_id:
-                    inv_bal = sum(
-                        float(l.debit) - float(l.credit)
-                        for l in AccJournalLine.find_all(account_id=inv_acc_id)
-                    )
-                    _ok(f"{label} BS Inventory balance: {inv_bal:.0f}")
+                if verbose: _ok(f"{label} Revenue (cumulative): {rev:.0f}")
 
-                # Cash (BS)
-                if company.acc_cash_default_id:
-                    cash_bal = sum(
-                        float(l.debit) - float(l.credit)
-                        for l in AccJournalLine.find_all(account_id=company.acc_cash_default_id)
-                    )
-                    _ok(f"{label} BS Cash balance: {cash_bal:.0f}")
+            if company.acc_inventory_default_id or (cat and cat.account_stock_id):
+                inv_acc_id = company.acc_inventory_default_id or cat.account_stock_id
+                inv_bal = sum(
+                    float(l.debit) - float(l.credit)
+                    for l in AccJournalLine.find_all(account_id=inv_acc_id)
+                )
+                if verbose: _ok(f"{label} Inventory balance: {inv_bal:.0f}")
 
             click.echo(
-                f"  {label} PASS — "
-                f"purchase {pinv.name} ({buy_qty} unit @ {buy_price:.0f}), "
+                f"  {label} PASS — purchase {pinv.name} buy_qty={buy_qty}, "
                 f"sale {order.name} total={total_sale:.0f} "
-                f"[{mop_cash.name}={cash_pay:.0f} "
-                f"{mop_qris.name}={qris_pay:.0f} "
-                f"{mop_bank.name}={bank_pay:.0f} AR={credit_bal:.0f}], "
+                f"[cash={cash_pay:.0f} qris={qris_pay:.0f} bank={bank_pay:.0f} AR={credit_bal:.0f}], "
                 f"stock {pre_qty}→{after_qty}"
             )
             passed += 1

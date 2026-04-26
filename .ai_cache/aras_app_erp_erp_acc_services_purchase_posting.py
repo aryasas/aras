@@ -48,18 +48,18 @@ def post_purchase_invoice(invoice_id: int, warehouse_id: int = None) -> AccPurch
             company_id=company_id,
             date=inv.invoice_date or date_type.today(),
             lines=journal_lines,
-            narrative=f"Purchase: {inv.name}",
-            origin=("acc_purchase_invoice", inv.id),
+            description=f"Purchase: {inv.name}",
+            origin_model="acc_purchase_invoice",
+            origin_id=inv.id,
         )
         inv.journal_entry_id = entry.id
 
     if stock_lines and warehouse_id:
         from aras.app_erp.erp_stock.models.movement import StockMovement, StockMovementLine
         from aras.app_erp.erp_core.models.sequence import Sequence
+        seq  = Sequence.find(code="stock.receipt", company_id=company_id)
         from aras.app_erp.erp_core.services import sequence as seq_svc
-        seq  = (Sequence.find(code="stock.receipt", company_id=company_id)
-                or Sequence.find(code="stock.move", company_id=company_id))
-        name = seq_svc.next_number_for_seq(seq) if seq else f"GRN/{company_id}/{inv.name}"
+        name = seq_svc.next_number_for_seq(seq) if seq else seq_svc.next_number("stock.receipt", company_id)
 
         dst_loc = StockLocation.query.filter_by(
             warehouse_id=warehouse_id, location_type="internal", is_active=True
@@ -72,7 +72,7 @@ def post_purchase_invoice(invoice_id: int, warehouse_id: int = None) -> AccPurch
                 move_type="receipt",
                 date_move=inv.invoice_date or date_type.today(),
                 dst_location_id=dst_loc.id,
-                state="confirmed",
+                state="draft",
                 origin_model="acc_purchase_invoice",
                 origin_id=inv.id,
             )
@@ -85,7 +85,6 @@ def post_purchase_invoice(invoice_id: int, warehouse_id: int = None) -> AccPurch
                     product_id=sl["product_id"],
                     uom_id=sl["uom_id"],
                     qty=sl["qty"],
-                    qty_base=sl["qty"],  # same as qty (base UOM purchase)
                     unit_cost=sl["unit_cost"],
                     total_cost=sl["qty"] * sl["unit_cost"],
                 ))

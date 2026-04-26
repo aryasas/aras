@@ -251,9 +251,9 @@ def _register_table_routes(bp, snap, all_snaps):
     ep      = tname
     adm_url = f"/admin{burl}"
 
-    bp.add_url_rule(f"{burl}/",               endpoint=f"{ep}_index",      view_func=make_web_list(model, title, main_t, vcols, burl, app_title, sibling_tabs, burl))
-    bp.add_url_rule(f"{burl}/add/",           endpoint=f"{ep}_add",        view_func=make_web_add(model, form_cls, title, main_t, burl, app_title, sibling_tabs, burl),  methods=["GET","POST"])
-    bp.add_url_rule(f"{burl}/<int:item_id>/", endpoint=f"{ep}_edit",       view_func=make_web_edit(model, form_cls, title, main_t, burl, app_title, sibling_tabs, burl), methods=["GET","POST"])
+    bp.add_url_rule(f"{burl}/",               endpoint=f"{ep}_index",      view_func=make_web_list(model, title, main_t, vcols, burl, app_title, app_id, table_id, sibling_tabs, burl))
+    bp.add_url_rule(f"{burl}/add/",           endpoint=f"{ep}_add",        view_func=make_web_add(model, form_cls, title, main_t, burl, app_title, app_id, table_id, sibling_tabs, burl),  methods=["GET","POST"])
+    bp.add_url_rule(f"{burl}/<int:item_id>/", endpoint=f"{ep}_edit",       view_func=make_web_edit(model, form_cls, title, main_t, burl, app_title, app_id, table_id, sibling_tabs, burl), methods=["GET","POST"])
     bp.add_url_rule(f"{burl}/<int:item_id>/delete/", endpoint=f"{ep}_delete", view_func=make_web_delete(model, burl), methods=["POST"])
 
     bp.add_url_rule(f"{adm_url}/",               endpoint=f"{ep}_adm_index",       view_func=make_adm_list(model, title, main_t, vcols, adm_url, app_title, app_id, table_id, sibling_tabs, adm_url, app_slug, req_role, tname, apply_search_and_filters, layout_json=layout_json, per_page=snap.get("per_page", 20)))

@@ -40,7 +40,7 @@
     <div class="card-body">
       <h6><i class="ti-upload mr-1"></i>Test Upload Folder</h6>
       <hr>
-      <form method="POST" action="{{ url_for('admin.settings_upload_test') }}" enctype="multipart/form-data">
+      <form method="POST" action="{{ url_for('admin.settings_upload_save') }}" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-group row">
           <label class="col-sm-3 col-form-label">Folder</label>
