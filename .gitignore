@@ -83,6 +83,7 @@ docs/_build/
 .pybuilder/
 target/
 /site
+docs/
 
 # ── Node ──────────────────────────────────────────
 node_modules/
@@ -121,3 +122,10 @@ bu/
 *.sage.py
 *.mo
 *.pot
+.aider.chat.history.md
+.aider.input.history
+.claudeignore
+smart_read.py
+smart_read.sh
+smart_read.py
+smart_read.sh
