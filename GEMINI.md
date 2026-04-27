@@ -1,4 +1,6 @@
-# Aras Framework — Context & Guidelines
+- YOU ARE STRONGLY NOT ALLOW TO USE GIT COMMAND THAT WILL BRING CHANGE. ONLY ALLOW GIT TO READ (git diff atau git log)
+
+- # Aras Framework — Context & Guidelines
 
 Aras is a modular, metadata-driven ERP and Application Framework built with Flask, SQLAlchemy, and MariaDB. It consists of a core engine (`arasCore`) and various application modules (`aras/app_*`).
 

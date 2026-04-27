@@ -54,10 +54,31 @@ def pos_session(session_id):
 
     products = (
         StockProduct.query
-        .filter_by(for_sales=True, is_active=True)
+        .filter_by(is_active=True)
         .order_by(StockProduct.name)
         .all()
     )
+
+    for p in products:
+        sales_pr = next((pr for pr in p.prices if pr.price_type == 'sales' and pr.is_active), None)
+        if not sales_pr:
+            sales_pr = next((pr for pr in p.prices if pr.price_type == 'sales'), None)
+        p.sales_price = float(sales_pr.price) if sales_pr else 0.0
+
+        purch_pr = next((pr for pr in p.prices if pr.price_type == 'purchase' and pr.is_active), None)
+        if not purch_pr:
+            purch_pr = next((pr for pr in p.prices if pr.price_type == 'purchase'), None)
+        p.purchase_price = float(purch_pr.price) if purch_pr else 0.0
+
+    from aras.app_erp.erp_core.models.company import Company
+    from aras.app_erp.erp_core.models.currency import Currency
+    company = Company.query.first()
+    currency_symbol = "$"
+    if company and company.base_currency_id:
+        cur = Currency.query.get(company.base_currency_id)
+        if cur and cur.symbol:
+            currency_symbol = cur.symbol
+
     customers = CrmCustomer.query.filter_by(is_active=True).order_by(CrmCustomer.name).all()
 
     return render_template(
@@ -66,6 +87,7 @@ def pos_session(session_id):
         terminal=session.terminal,
         products=products,
         customers=customers,
+        currency_symbol=currency_symbol,
         main_title="POS",
     )
 
@@ -125,7 +147,7 @@ def pos_cash_entry(session_id):
 def pos_session_shift_report(session_id):
     from aras.app_erp.erp_pos.services.shift_service import get_shift_report
     data = get_shift_report(session_id)
-    return render_template("erp/erp_pos_shift_report.html", main_title="Shift Report", **data)
+    return render_template("erp/reports/custom/pos_session_shift.html", main_title="Shift Report", **data)
 
 
 # ── Print / Export ────────────────────────────────────────────────────────────

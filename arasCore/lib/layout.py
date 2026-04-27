@@ -33,10 +33,8 @@ def parse_layout(data: dict, field_map: dict) -> list:
             fname = fitem["name"] if isinstance(fitem, dict) else fitem
             fwidth = fitem.get("width", 12) if isinstance(fitem, dict) else 12
             
-            # Source of Truth mapping
-            target_field = field_map.get(fname)
-            if not target_field and not fname.endswith("_id"):
-                target_field = field_map.get(f"{fname}_id")
+            # Source of Truth mapping (case-insensitive)
+            target_field = field_map.get(fname.lower())
             
             if target_field:
                 fields.append({
@@ -60,7 +58,15 @@ def _parse_layout_tabs(table_name, layout_json, form) -> list:
     """
     Central entry point for the real form renderer.
     """
-    field_map = {f.name: f for f in form}
+    # Build a more resilient field map (case-insensitive and suffix-aware)
+    field_map = {}
+    for f in form:
+        fname = f.name.lower()
+        field_map[fname] = f
+        if fname.endswith("_id"):
+            field_map[fname.replace("_id", "")] = f
+        else:
+            field_map[fname + "_id"] = f
 
     default_tab = [{
         "label":    table_name,

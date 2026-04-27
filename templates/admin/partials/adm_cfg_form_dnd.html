@@ -5,16 +5,14 @@
 
 <style>
     :root {
-        --builder-bg: var(--aras-bg);
-        --builder-border: var(--studio-ochre);
-        --builder-sidebar-w: 280px;
+        --builder-sidebar-w: 260px;
     }
 
     .aras-builder-wrapper {
         display: flex;
         height: calc(100vh - 200px);
-        background: var(--builder-bg);
-        border: 1px solid var(--builder-border);
+        background: var(--aras-bg);
+        border: 1px solid var(--studio-ochre);
         border-radius: var(--aras-radius);
         overflow: hidden;
         font-family: var(--aras-font-sans);
@@ -23,26 +21,27 @@
     /* TOOLBOX SIDEBAR */
     .builder-sidebar {
         width: var(--builder-sidebar-w);
-        border-right: 1px solid var(--builder-border);
+        border-right: 1px solid var(--aras-line-2);
         background: #fff;
         display: flex;
         flex-direction: column;
+        z-index: 10;
     }
 
-    .sidebar-header {
-        padding: 16px;
-        border-bottom: 1px solid var(--aras-line);
+    .builder-sidebar-header {
+        padding: 20px 16px;
+        border-bottom: 1px solid var(--aras-line-2);
         background: var(--studio-paper);
     }
 
-    .sidebar-header h6 {
+    .builder-sidebar-header h6 {
         margin: 0;
         font-family: var(--aras-font-serif);
         font-weight: 700;
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         color: var(--studio-ink);
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.1em;
     }
 
     .field-list {
@@ -55,7 +54,7 @@
         padding: 10px 14px;
         background: #fff;
         border: 1px solid var(--aras-line-2);
-        border-radius: var(--aras-radius);
+        border-radius: 6px;
         margin-bottom: 8px;
         font-size: 13px;
         cursor: grab;
@@ -67,45 +66,46 @@
     }
 
     .field-draggable:hover {
-        border-color: var(--studio-accent);
+        border-color: var(--studio-ochre);
         background: var(--studio-cream);
         box-shadow: var(--aras-shadow-sm);
     }
 
     .field-draggable.is-used {
-        opacity: 0.4;
+        opacity: 0.35;
         cursor: not-allowed;
         background: var(--aras-line-3);
     }
 
     .core-badge {
         font-size: 9px;
-        padding: 1px 4px;
+        padding: 2px 4px;
         background: var(--studio-ochre);
         color: #fff;
-        border-radius: 2px;
+        border-radius: 3px;
         font-weight: 700;
     }
 
     /* CANVAS */
     .builder-canvas {
         flex: 1;
-        background: var(--studio-cream);
+        background: var(--studio-paper);
         overflow-y: auto;
-        padding: 30px;
+        padding: 32px;
     }
 
     .canvas-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 20px;
+        margin-bottom: 24px;
     }
     
     .canvas-header h4 {
         font-family: var(--aras-font-serif);
         font-weight: 700;
         color: var(--studio-ink);
+        margin: 0;
     }
 
     /* MOCK FORM STYLING */
@@ -122,14 +122,14 @@
     .mock-tab-strip {
         display: flex;
         border-bottom: 1px solid var(--studio-ochre);
-        padding: 0 20px;
+        padding: 0 24px;
         background: #fff;
         gap: 4px;
     }
 
     .mock-tab-item {
-        padding: 12px 20px;
-        font-size: 13px;
+        padding: 14px 24px;
+        font-size: 13.5px;
         font-weight: 600;
         color: var(--aras-ink-3);
         cursor: pointer;
@@ -148,27 +148,28 @@
         flex: 1;
         display: flex;
         flex-direction: column;
+        background: var(--studio-paper);
     }
 
     .tab-config-strip {
-        background: var(--studio-paper);
+        background: var(--studio-cream);
         border-bottom: 1px solid var(--aras-line-2);
-        padding: 8px 20px;
+        padding: 8px 24px;
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
 
     .mock-form-body {
-        padding: 30px;
+        padding: 40px;
         flex: 1;
     }
 
     .mock-section {
         border: 1px dashed var(--aras-line-2);
-        margin-bottom: 20px;
-        padding: 15px;
-        border-radius: var(--aras-radius);
+        margin-bottom: 32px;
+        padding: 24px;
+        border-radius: 8px;
         transition: all 0.2s;
         position: relative;
         background: #fff;
@@ -179,87 +180,152 @@
         background: var(--studio-accent-50);
     }
 
-    .section-title {
-        margin-bottom: 20px;
-        padding-bottom: 10px;
+    .section-title-wrap {
+        margin-bottom: 24px;
+        padding-bottom: 12px;
         border-bottom: 1px solid var(--aras-line-3);
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
     
-    .section-title input {
+    .section-title-input {
         font-family: var(--aras-font-serif);
         text-transform: uppercase;
         letter-spacing: 1px;
         color: var(--studio-ink);
-        font-size: 0.75rem;
+        font-size: 11.5px;
+        font-weight: 700;
         background: transparent;
         border: none;
         outline: none;
+        width: 100%;
     }
 
-    /* Horizontal Field Mock (Aras Design 4.0) */
-    .mock-field-group {
-        position: relative;
+    /* Aras Horizontal Row Mock */
+    .mock-aras-row {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 20px;
+        padding: 12px 0;
         border-bottom: 1px solid var(--aras-line-3);
+        align-items: start;
+        position: relative;
+        cursor: grab;
     }
-    
-    .mock-label {
-        width: 140px;
-        flex-shrink: 0;
+    .mock-aras-row:last-child { border-bottom: none; }
+    .mock-aras-row:hover { background: rgba(0,0,0,0.01); }
+    .mock-aras-row.is-dragging { opacity: 0.3; background: var(--studio-cream); }
+    .mock-aras-row.drag-target-top { border-top: 2px solid var(--studio-accent); }
+    .mock-aras-row.drag-target-bottom { border-bottom: 2px solid var(--studio-accent); }
+
+    .mock-aras-label {
         font-weight: 600;
-        font-size: 12px;
+        font-size: 12.5px;
         color: var(--studio-ink);
+        padding-top: 8px;
+    }
+
+    .width-picker {
+        display: inline-flex;
+        background: var(--aras-line-3);
+        padding: 2px;
+        border-radius: 4px;
+        gap: 2px;
+    }
+    .width-btn {
+        padding: 2px 6px;
+        font-size: 10px;
+        font-weight: 700;
+        border: none;
+        background: transparent;
+        color: var(--aras-ink-3);
+        border-radius: 3px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .width-btn.active {
+        background: #fff;
+        color: var(--studio-accent);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
 
     .field-actions {
         position: absolute;
-        top: 0; right: 0;
+        top: 6px; right: 0;
         display: none;
+        background: #fff;
+        padding: 4px;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         z-index: 10;
+        gap: 6px;
+        align-items: center;
+        border: 1px solid var(--aras-line-2);
     }
-    .mock-field-group:hover .field-actions,
-    .mock-field-group:hover .field-actions-trigger {
-        display: block;
-        opacity: 1;
-    }
+    .mock-aras-row:hover .field-actions { display: flex; }
 
-    .btn-ghost-sec {
+    .btn-ghost-studio {
         width: 100%;
-        padding: 12px;
+        padding: 14px;
         border: 1px dashed var(--studio-ochre);
         background: transparent;
-        color: var(--aras-ink-3);
-        font-size: 12px;
-        font-weight: 600;
+        color: var(--studio-ochre);
+        font-size: 11px;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.1em;
         border-radius: var(--aras-radius);
-        margin-top: 10px;
+        margin-top: 12px;
         transition: all 0.2s;
     }
-    .btn-ghost-sec:hover {
+    .btn-ghost-studio:hover {
         background: var(--studio-paper);
         color: var(--studio-accent);
+        border-color: var(--studio-accent);
     }
-    
-    .btn-xs { padding: 1px 5px; font-size: 10px; }
+
+    .aras-form-input-mock {
+        padding: 8px 12px;
+        font-size: 13px;
+        border: 1px solid var(--aras-line-2);
+        border-radius: 4px;
+        background: #fff;
+        color: var(--aras-ink-3);
+        height: 34px;
+        display: flex;
+        align-items: center;
+    }
+    .aras-form-textarea-mock {
+        padding: 8px 12px;
+        font-size: 13px;
+        border: 1px solid var(--aras-line-2);
+        border-radius: 4px;
+        background: #fff;
+        color: var(--aras-ink-3);
+        min-height: 60px;
+    }
 </style>
 
 <div id="aras-form-builder-root">
     <div class="text-center py-5">
-        <div class="spinner-grow text-primary" role="status"></div>
-        <p class="mt-3 text-muted fw-bold">Synchronizing Form Metadata...</p>
+        <div class="spinner-grow" style="color: var(--studio-accent);" role="status"></div>
+        <p class="mt-3 text-muted fw-bold">Synchronizing Form Architecture...</p>
     </div>
 </div>
 
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useCallback, useRef } = React;
+
+    // Helper to get CSRF token
+    const getCsrf = () => {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || "{{ csrf_token() }}";
+    };
 
     function FormBuilder() {
         const [table, setTable] = useState(null);
@@ -268,76 +334,94 @@
         const [activeTabIdx, setActiveTabIdx] = useState(0);
         const [loading, setLoading] = useState(true);
         const [dragOverSection, setDragOverSection] = useState(null);
-        const [childTables, setChildTables] = useState([]);
+        const [dragOverItem, setDragOverItem] = useState(null);
+        const [draggedItem, setDraggedItem] = useState(null);
 
-        useEffect(() => {
+        const refreshData = useCallback(() => {
             const tableId = {{ tbl.id }};
+            setLoading(true);
             Promise.all([
                 fetch(`/api/admin/apps/tables/${tableId}/`).then(r => r.json()),
-                fetch(`/api/admin/apps/tables/columns/?filter[table_id]=${tableId}&per_page=200`).then(r => r.json()),
-                fetch(`/api/admin/apps/tables/?filter[parent_table_id]=${tableId}&per_page=100`).then(r => r.json())
-            ]).then(([tableData, colsData, childData]) => {
-                // Only show fields that are visible in the form — mgr_column.show_in_form is the source of truth
-                let fetchedCols = (colsData.data || []).filter(c => c.show_in_form !== false);
+                fetch(`/api/admin/apps/tables/columns/?filter[table_id]=${tableId}&per_page=200`).then(r => r.json())
+            ]).then(([tableData, colsData]) => {
+                // SYSTEM FIELDS GUARD: Match with arasCore/lib/forms.py _FORM_HIDDEN
+                const systemFields = [
+                    'id', 'created_at', 'updated_at', 'deleted_at', 
+                    'created_by_id', 'updated_by_id', 'is_active',
+                    'owner_id', 'tenant_id', 'posted_by', 'posted_at',
+                    'created_by', 'modified_by', 'modified_at',
+                    'posted_by_id', 'modified_by_id', 'owner', 'tenant'
+                ];
+                
+                // 1. FILTER & DEDUPLICATE COLUMNS
+                let colMap = new Map();
+                (colsData.data || []).forEach(c => {
+                    const cleanName = c.name.toLowerCase();
+                    const isSystem = systemFields.includes(cleanName) || 
+                                     (cleanName.endsWith('_id') && systemFields.includes(cleanName.replace('_id', '_by_id')));
+
+                    if (c.show_in_form !== false && !isSystem) {
+                        // Unique name deduplication
+                        if (!colMap.has(c.name)) {
+                            colMap.set(c.name, c);
+                        }
+                    }
+                });
+                const fetchedCols = Array.from(colMap.values());
                 setColumns(fetchedCols);
-                if (childData.data) setChildTables(childData.data);
 
                 if (tableData.id) {
-                    const tableTitle = tableData.title || tableData.name || 'General';
                     setTable(tableData);
                     let parsed = tableData.layout_json;
-                    let initialLayout = typeof parsed === 'string' ? JSON.parse(parsed) : (parsed || []);
-                    
-                    // 1. AUTO-BOOTSTRAP
-                    if (initialLayout.length === 0 && fetchedCols.length > 0) {
+                    let initialLayout = [];
+                    try {
+                        initialLayout = typeof parsed === 'string' ? JSON.parse(parsed) : (parsed || []);
+                    } catch(e) { console.error("Layout parse error", e); }
+
+                    // 2. BOOTSTRAP DEFAULT LAYOUT IF EMPTY
+                    if (!Array.isArray(initialLayout) || initialLayout.length === 0) {
                         initialLayout = [{
                             type: 'tab',
-                            label: tableTitle,
+                            label: tableData.title || 'General',
                             sections: [{
-                                type: 'section',
-                                label: 'Main Details',
-                                width: 12,
-                                fields: fetchedCols.map(c => ({ name: c.name, width: 6 }))
+                                type: 'section', label: 'Main Details', width: 12,
+                                fields: fetchedCols.slice(0, 10).map(c => ({ name: c.name, width: 6 }))
                             }]
                         }];
-                    }
-
-                    // 2. DATA INTEGRITY & UPGRADE
-                    initialLayout = initialLayout.map(t => {
-                        let label = t.label;
-                        if (label === 'Test Tab' || label === 'General' || !label) label = tableTitle;
-                        return {
+                    } else {
+                        // Validate and heal existing layout
+                        initialLayout = initialLayout.map(t => ({
                             ...t,
-                            label: label,
-                            sections: (t.sections || []).filter(s => s.type !== 'column_break').map(s => ({
+                            type: 'tab',
+                            label: t.label || 'New Segment',
+                            sections: (t.sections || []).map(s => ({
                                 ...s,
+                                type: 'section',
                                 width: s.width || 12,
-                                fields: (s.fields || []).map(f => typeof f === 'string' ? { name: f, width: 12 } : f)
+                                fields: (s.fields || []).filter(f => {
+                                    // Check if field exists in colMap to avoid dead links
+                                    return colMap.has(f.name);
+                                })
                             }))
-                        };
-                    });
-
-                    // 3. AUTO-RECOVERY
-                    const usedFields = new Set();
-                    initialLayout.forEach(t => (t.sections || []).forEach(s => (s.fields || []).forEach(f => usedFields.add(f.name))));
-                    
-                    const missingCols = fetchedCols.filter(c => !usedFields.has(c.name));
-                    if (missingCols.length > 0 && initialLayout.length > 0) {
-                        const firstTab = initialLayout[0];
-                        if (!firstTab.sections) firstTab.sections = [];
-                        firstTab.sections.push({
-                            type: 'section',
-                            label: 'Unarranged Fields',
-                            width: 12,
-                            fields: missingCols.map(c => ({ name: c.name, width: 12 }))
-                        });
+                        }));
                     }
-
                     setLayout(initialLayout);
+                    console.log("Layout Synced:", initialLayout);
                 }
                 setLoading(false);
-            }).catch(err => { console.error(err); setLoading(false); });
+            }).catch(err => { console.error("Refresh Error:", err); setLoading(false); });
         }, []);
+
+        useEffect(() => { refreshData(); }, [refreshData]);
+
+        // Auto-switch to new tab
+        const prevLayoutLength = useRef(0);
+        useEffect(() => {
+            if (layout.length > prevLayoutLength.current && prevLayoutLength.current !== 0) {
+                setActiveTabIdx(layout.length - 1);
+            }
+            prevLayoutLength.current = layout.length;
+        }, [layout.length]);
 
         const getCol = (name) => columns.find(c => c.name === name) || { label: name, field_type: 'string' };
         
@@ -347,172 +431,229 @@
             return used;
         };
 
-        const onDragStart = (e, fieldName) => { e.dataTransfer.setData("fieldName", fieldName); };
-        const onDragOver = (e, id) => { e.preventDefault(); setDragOverSection(id); };
+        const onDragStartNew = (e, fieldName) => { setDraggedItem({ type: 'new', fieldName }); };
+        const onDragStartExisting = (e, fieldName, tIdx, sIdx, fIdx) => { setDraggedItem({ type: 'existing', fieldName, tIdx, sIdx, fIdx }); };
+
+        const onFieldDragOver = (e, tIdx, sIdx, fIdx) => {
+            e.preventDefault(); e.stopPropagation();
+            const rect = e.currentTarget.getBoundingClientRect();
+            const pos = (e.clientY - rect.top) < rect.height / 2 ? 'top' : 'bottom';
+            setDragOverItem({ tIdx, sIdx, fIdx, pos });
+            setDragOverSection(null);
+        };
+
+        const onSectionDragOver = (e, id) => {
+            e.preventDefault();
+            setDragOverSection(id);
+            setDragOverItem(null);
+        };
 
         const onDrop = (e, tIdx, sIdx) => {
             e.preventDefault();
-            setDragOverSection(null);
-            const fieldName = e.dataTransfer.getData("fieldName");
-            if (!fieldName) return;
-            const newLayout = [...layout];
-            if (!newLayout[tIdx].sections[sIdx].fields) newLayout[tIdx].sections[sIdx].fields = [];
-            if (!newLayout[tIdx].sections[sIdx].fields.find(f => f.name === fieldName)) {
-                newLayout[tIdx].sections[sIdx].fields.push({ name: fieldName, width: 12 });
-                setLayout(newLayout);
-            }
+            const currentDragged = draggedItem;
+            const currentDragOver = dragOverItem;
+            setDragOverSection(null); setDragOverItem(null); setDraggedItem(null);
+            
+            if (!currentDragged) return;
+
+            setLayout(prev => {
+                const nl = JSON.parse(JSON.stringify(prev));
+                let itemToMove;
+                if (currentDragged.type === 'new') {
+                    itemToMove = { name: currentDragged.fieldName, width: 12 };
+                } else {
+                    const sourceFields = nl[currentDragged.tIdx].sections[currentDragged.sIdx].fields;
+                    itemToMove = sourceFields.splice(currentDragged.fIdx, 1)[0];
+                }
+                const targetSection = nl[tIdx].sections[sIdx];
+                if (!targetSection.fields) targetSection.fields = [];
+
+                if (currentDragOver && currentDragOver.tIdx === tIdx && currentDragOver.sIdx === sIdx) {
+                    let insertIdx = currentDragOver.fIdx;
+                    if (currentDragOver.pos === 'bottom') insertIdx++;
+                    targetSection.fields.splice(insertIdx, 0, itemToMove);
+                } else {
+                    targetSection.fields.push(itemToMove);
+                }
+                return nl;
+            });
         };
 
         const updateFieldWidth = (tIdx, sIdx, fIdx, width) => {
-            const nl = [...layout];
-            nl[tIdx].sections[sIdx].fields[fIdx].width = width;
-            setLayout(nl);
+            setLayout(prev => {
+                const nl = JSON.parse(JSON.stringify(prev));
+                nl[tIdx].sections[sIdx].fields[fIdx].width = width;
+                return nl;
+            });
         };
 
         const updateSectionWidth = (tIdx, sIdx, width) => {
-            const nl = [...layout];
-            nl[tIdx].sections[sIdx].width = width;
-            setLayout(nl);
+            setLayout(prev => {
+                const nl = JSON.parse(JSON.stringify(prev));
+                nl[tIdx].sections[sIdx].width = width;
+                return nl;
+            });
         };
 
-        const MockInput = ({ col }) => {
-            if (col.field_type === 'boolean') {
-                return (
-                    <div className="aras-toggle active" style={ {transform: 'scale(0.8)', transformOrigin: 'left'} }>
-                        <span className="aras-toggle-track" style={ {background: '#4f6f53'} }>
-                            <span className="aras-toggle-thumb" style={ {transform: 'translateX(16px)'} }></span>
-                        </span>
-                        <span className="aras-toggle-label">{col.label}</span>
-                    </div>
-                );
-            }
-            if (col.field_type === 'select' || col.field_type === 'relation') {
-                return (
-                    <div className="aras-form-select text-muted" style={ {padding: '6px 12px', fontSize:'12px'} }>
-                        Select {col.label}...
-                    </div>
-                );
-            }
-            if (col.field_type === 'text' || col.field_type === 'json') {
-                return <div className="aras-form-textarea text-muted" style={ {minHeight: '40px', fontSize:'12px'} }>Large text...</div>;
-            }
-            return (
-                <div className="aras-form-input text-muted" style={ {padding: '6px 12px', fontSize:'12px'} }>
-                    {col.field_type === 'date' ? 'YYYY-MM-DD' : 
-                     col.field_type === 'datetime' ? 'YYYY-MM-DD HH:mm' :
-                     col.field_type === 'decimal' || col.field_type === 'float' ? '0.00' :
-                     `Enter ${col.label}...`}
-                </div>
-            );
+        const updateTabLabel = (tIdx, label) => {
+            setLayout(prev => {
+                const nl = JSON.parse(JSON.stringify(prev));
+                nl[tIdx].label = label;
+                return nl;
+            });
         };
 
-        const getCsrf = () => {
-            const m = document.cookie.match(/csrf_token=([^;]+)/);
-            if (m) return decodeURIComponent(m[1]);
-            const tag = document.querySelector('input[name="csrf_token"]');
-            if (tag) return tag.value;
-            return "{{ csrf_token() }}";
+        const updateSectionLabel = (tIdx, sIdx, label) => {
+            setLayout(prev => {
+                const nl = JSON.parse(JSON.stringify(prev));
+                nl[tIdx].sections[sIdx].label = label;
+                return nl;
+            });
+        };
+
+        const addTab = () => {
+            const label = prompt("New Tab Name:");
+            if(label) {
+                const newTab = { type: 'tab', label, sections: [{type:'section', label:'Main', width:12, fields:[]}] };
+                setLayout(prev => [...prev, newTab]);
+            }
+        };
+
+        const deleteTab = (tIdx) => {
+            if(layout.length <= 1) return;
+            if(!confirm('Archive this tab segment?')) return;
+            setLayout(prev => {
+                const nl = JSON.parse(JSON.stringify(prev));
+                nl.splice(tIdx, 1);
+                return nl;
+            });
+            setActiveTabIdx(0);
+        };
+
+        const addSection = (tIdx) => {
+            setLayout(prev => {
+                const nl = JSON.parse(JSON.stringify(prev));
+                nl[tIdx].sections.push({ type:'section', label:'New Context', width: 12, fields:[] });
+                return nl;
+            });
+        };
+
+        const deleteSection = (tIdx, sIdx) => {
+            if(!confirm('Remove section?')) return;
+            setLayout(prev => {
+                const nl = JSON.parse(JSON.stringify(prev));
+                nl[tIdx].sections.splice(sIdx, 1);
+                return nl;
+            });
+        };
+
+        const deleteField = (tIdx, sIdx, fIdx) => {
+            setLayout(prev => {
+                const nl = JSON.parse(JSON.stringify(prev));
+                nl[tIdx].sections[sIdx].fields.splice(fIdx, 1);
+                return nl;
+            });
         };
 
         const saveLayout = async () => {
             try {
-                const layoutToSave = layout.map(tab => {
-                    return {
-                        ...tab,
-                        sections: (tab.sections || []).filter(s => s.type !== 'column_break')
-                    };
-                });
+                // Ensure correct structure for engine compatibility
+                const layoutToSave = layout.map(t => ({
+                    ...t,
+                    type: 'tab',
+                    sections: (t.sections || []).map(s => ({
+                        ...s,
+                        type: 'section',
+                        width: s.width || 12,
+                        fields: (s.fields || []).map(f => ({
+                            name: f.name,
+                            width: f.width || 12
+                        }))
+                    }))
+                })).filter(t => t.label);
 
-                const res = await fetch(`/admin/apps/{{ tbl.app_id }}/tables/{{ tbl.id }}/layout`, {
+                console.log("Committing Layout:", layoutToSave);
+
+                const res = await fetch(`/admin/apps/${table.app_id}/tables/${table.id}/layout`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCsrf()
-                    },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
                     body: JSON.stringify({ layout: layoutToSave })
                 });
+
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(`Server status ${res.status}: ${errorText}`);
+                }
+
                 const data = await res.json();
                 if (data.ok) {
-                    Swal.fire({ icon: 'success', title: 'Form Updated', timer: 1500, showConfirmButton: false });
+                    Swal.fire({ 
+                        icon: 'success', 
+                        title: 'Architecture Committed', 
+                        text: 'Layout successfully synchronized with database.',
+                        timer: 2000, 
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end'
+                    });
                 } else {
-                    const errTxt = typeof data.error === 'object' ? JSON.stringify(data.error) : (data.error || 'Unknown error');
-                    Swal.fire({ icon: 'error', title: 'Save Failed', text: errTxt });
+                    Swal.fire({ icon: 'error', title: 'Commit Failed', text: data.error });
                 }
-            } catch (err) {
-                console.error(err);
-                Swal.fire({ icon: 'error', title: 'Network Error', text: err.message });
+            } catch (err) { 
+                console.error("Save error detail:", err);
+                Swal.fire({ icon: 'error', title: 'System Error', text: err.message }); 
             }
         };
 
-        if (loading) return <div className="text-center py-5"><div className="spinner-grow text-primary"></div></div>;
-        if (!table) return <div className="alert alert-danger">Table configuration missing.</div>;
+        const MockInput = ({ col }) => {
+            if (col.field_type === 'boolean') {
+                return <div className="aras-toggle active"><span className="aras-toggle-track" style={ {background:'var(--studio-accent)'} }><span className="aras-toggle-thumb" style={ {transform:'translateX(16px)'} }></span></span><span className="aras-toggle-label" style={ {fontSize:'12px'} }>{col.label}</span></div>;
+            }
+            if (col.field_type === 'text' || col.field_type === 'json') return <div className="aras-form-textarea-mock">Value placeholder...</div>;
+            return <div className="aras-form-input-mock">Value placeholder...</div>;
+        };
 
-        const activeTab = layout[activeTabIdx];
+        if (loading) return <div className="text-center py-5"><div className="spinner-grow" style={ {color:'var(--studio-accent)'} }></div></div>;
+        if (!table) return <div className="alert alert-danger">Table context lost.</div>;
+        
+        const activeTab = layout[activeTabIdx] || layout[0];
 
         return (
             <div className="aras-builder-wrapper">
-                {/* TOOLBOX */}
                 <aside className="builder-sidebar">
-                    <div className="sidebar-header">
-                        <h6>Form Fields</h6>
-                        <small className="text-muted">Drag into sections</small>
-                    </div>
+                    <div className="builder-sidebar-header"><h6>Architecture Toolset</h6></div>
                     <div className="field-list">
-                        <div className="mb-3">
-                            <a href={`/admin/apps/${table.app_id}/tables/${table.id}/columns`} className="btn btn-outline-secondary btn-sm w-100" style={ {borderStyle:'dashed'} }>
-                                <i className="fa fa-plus me-1"></i> New Field
-                            </a>
-                        </div>
-                        {columns.sort((a,b) => (a.order||0)-(b.order||0)).map(col => (
-                            <div key={col.id} className={`field-draggable ${isFieldUsed(col.name) ? 'is-used' : ''}`} draggable={!isFieldUsed(col.name)} onDragStart={(e) => onDragStart(e, col.name)}>
-                                <i className="fa fa-grip-vertical text-muted"></i>
-                                <span className="flex-grow-1">{col.label}</span>
-                                {col.is_standard_column && <span className="core-badge">STANDARD</span>}
+                        <div className="mb-3 px-1"><a href={`/admin/apps/${table.app_id}/tables/${table.id}/columns`} className="btn btn-outline-secondary btn-xs w-100 py-2" style={ {borderStyle:'dashed'} }><i className="fa fa-plus me-1"></i> Add Data Point</a></div>
+                        {columns.map(col => (
+                            <div key={col.id} className={`field-draggable ${isFieldUsed(col.name) ? 'is-used' : ''}`} draggable={!isFieldUsed(col.name)} onDragStart={(e) => onDragStartNew(e, col.name)}>
+                                <i className="fa fa-grip-vertical text-muted"></i><span className="flex-grow-1">{col.label}</span>{col.is_standard_column && <span className="core-badge">CORE</span>}
                             </div>
                         ))}
                     </div>
-                    <div className="p-3 border-top bg-light">
-                        <button className="btn btn-primary btn-sm w-100 shadow-sm" onClick={saveLayout}>
-                            <i className="fa fa-save me-2"></i> Save Layout
-                        </button>
-                    </div>
+                    <div className="p-3 border-top bg-light"><button className="btn btn-block py-2 shadow-sm" style={ {background:'var(--studio-accent)', color:'#fff', fontWeight:600} } onClick={saveLayout}><i className="fa fa-save me-2"></i> Commit Architecture</button></div>
                 </aside>
 
-                {/* CANVAS */}
                 <main className="builder-canvas">
                     <div className="canvas-header">
-                        <h4 className="fw-bold mb-0 text-dark">{table.title} <small className="text-muted fw-normal ms-2">/ Designer</small></h4>
-                        <button className="btn btn-outline-primary btn-sm" onClick={() => {
-                            const label = prompt("Tab Name:");
-                            if(label) setLayout([...layout, { type: 'tab', label, sections: [{type:'section', label:'Main', width:12, fields:[]}] }]);
-                        }}>+ Add Tab</button>
+                        <h4>{table.title} <small className="text-muted italic ms-2" style={ {fontFamily:'var(--aras-font-serif)', fontSize:'14px'} }>— Designer</small></h4>
+                        <button className="btn btn-sm" style={ {border:'1px solid var(--studio-ochre)', color:'var(--studio-ochre)', fontWeight:600} } onClick={addTab}>+ NEW TAB</button>
                     </div>
-
                     <div className="mock-form-card">
                         <div className="mock-tab-strip">
-                            {layout.map((tab, idx) => (
-                                <div key={idx} className={`mock-tab-item ${activeTabIdx === idx ? 'active' : ''}`} onClick={() => setActiveTabIdx(idx)}>
-                                    {tab.label}
-                                </div>
-                            ))}
+                            {layout.map((tab, idx) => (<div key={idx} className={`mock-tab-item ${activeTabIdx === idx ? 'active' : ''}`} onClick={() => setActiveTabIdx(idx)}>{tab.label}</div>))}
                         </div>
-
                         {activeTab && (
                             <div className="active-tab-container">
                                 <div className="tab-config-strip">
-                                    <div className="d-flex align-items-center gap-4">
-                                        <div className="d-flex align-items-center gap-2">
-                                            <small className="text-muted">Rename Tab:</small>
-                                            <input className="form-control form-control-sm" style={ {width:'150px'} } value={activeTab.label} onChange={(e) => {
-                                                const nl = [...layout]; nl[activeTabIdx].label = e.target.value; setLayout(nl);
-                                            }} />
-                                        </div>
+                                    <div className="d-flex align-items-center gap-3">
+                                        <small className="fw-bold text-muted">TAB LABEL:</small>
+                                        <input className="form-control form-control-sm py-0" style={ {width:'180px', height:'26px', fontSize:'12px', fontWeight:600} } value={activeTab.label} onChange={(e) => updateTabLabel(activeTabIdx, e.target.value)} />
                                     </div>
-                                    <button className="btn btn-link btn-xs text-danger" onClick={() => {
-                                        const nl = [...layout]; nl.splice(activeTabIdx, 1); setLayout(nl); setActiveTabIdx(0);
-                                    }}>Delete Tab</button>
+                                    <div className="d-flex gap-2">
+                                        <button className="btn btn-link btn-xs text-primary fw-bold" onClick={saveLayout}><i className="fa fa-check"></i> QUICK SAVE</button>
+                                        <button className="btn btn-link btn-xs text-danger" onClick={() => deleteTab(activeTabIdx)}><i className="fa fa-trash"></i> DELETE TAB</button>
+                                    </div>
                                 </div>
-
                                 <div className="mock-form-body">
                                     <div className="row">
                                         {(activeTab.sections || []).map((sec, sIdx) => {
@@ -520,89 +661,47 @@
                                             const sWidth = sec.width || 12;
                                             return (
                                                 <div key={sIdx} className={`col-md-${sWidth}`}>
-                                                    <div className={`mock-section ${dragOverSection === sectionId ? 'drag-over' : ''}`} onDragOver={(e) => onDragOver(e, sectionId)} onDragLeave={() => setDragOverSection(null)} onDrop={(e) => onDrop(e, activeTabIdx, sIdx)}>
-                                                        <div className="section-title">
-                                                            <div className="d-flex align-items-center gap-3">
-                                                                <input value={sec.label || ''} placeholder="SECTION TITLE" onChange={(e) => {
-                                                                    const nl = [...layout]; nl[activeTabIdx].sections[sIdx].label = e.target.value; setLayout(nl);
-                                                                }} />
-                                                                <select 
-                                                                    className="form-select form-select-xs py-0 opacity-50" 
-                                                                    style={ {width:'70px', fontSize:'0.6rem'} }
-                                                                    value={sWidth}
-                                                                    onChange={(e) => updateSectionWidth(activeTabIdx, sIdx, parseInt(e.target.value))}
-                                                                >
-                                                                    <option value="12">Full</option>
-                                                                    <option value="6">Half</option>
-                                                                </select>
+                                                    <div className={`mock-section ${dragOverSection === sectionId ? 'drag-over' : ''}`} onDragOver={(e) => onSectionDragOver(e, sectionId)} onDragLeave={() => setDragOverSection(null)} onDrop={(e) => onDrop(e, activeTabIdx, sIdx)}>
+                                                        <div className="section-title-wrap">
+                                                            <div className="d-flex align-items-center gap-3 flex-grow-1">
+                                                                <input className="section-title-input" value={sec.label || ''} placeholder="SECTION IDENTIFIER" onChange={(e) => updateSectionLabel(activeTabIdx, sIdx, e.target.value)} />
+                                                                <div className="width-picker">
+                                                                    <button className={`width-btn ${sWidth === 12 ? 'active' : ''}`} onClick={() => updateSectionWidth(activeTabIdx, sIdx, 12)}>FULL</button>
+                                                                    <button className={`width-btn ${sWidth === 6 ? 'active' : ''}`} onClick={() => updateSectionWidth(activeTabIdx, sIdx, 6)}>HALF</button>
+                                                                </div>
                                                             </div>
-                                                            <i className="fa fa-times cursor-pointer text-danger opacity-25" onClick={() => {
-                                                                const nl = [...layout]; nl[activeTabIdx].sections.splice(sIdx, 1); setLayout(nl);
-                                                            }}></i>
+                                                            <i className="fa fa-times cursor-pointer text-danger opacity-25 ms-3" onClick={() => deleteSection(activeTabIdx, sIdx)}></i>
                                                         </div>
-                                                        <div className="row">
+                                                        <div className="row align-items-start" style={ {minHeight:'60px'} }>
                                                             {(sec.fields || []).map((field, fIdx) => {
                                                                 const col = getCol(field.name);
-                                                                const width = field.width || 12;
+                                                                const fWidth = field.width || 12;
+                                                                const isTarget = dragOverItem?.tIdx === activeTabIdx && dragOverItem?.sIdx === sIdx && dragOverItem?.fIdx === fIdx;
                                                                 return (
-                                                                    <div key={fIdx} className={`col-md-${width} mb-1 position-relative mock-field-group`}>
-                                                                        <div className="d-flex align-items-center" style={ {minHeight: '44px'} }>
-                                                                            <div className="mock-label">{col.label}</div>
-                                                                            <div className="flex-grow-1 position-relative">
-                                                                                <MockInput col={col} />
-                                                                                <div className="field-actions-trigger opacity-25" style={ {position:'absolute', top:'-15px', right:0} }>
-                                                                                    <select className="form-select form-select-xs py-0 px-1" style={ {fontSize:'0.6rem', width:'60px'} } value={width} onChange={(e) => updateFieldWidth(activeTabIdx, sIdx, fIdx, parseInt(e.target.value))}>
-                                                                                        <option value="12">Full</option>
-                                                                                        <option value="6">Half</option>
-                                                                                    </select>
+                                                                    <div key={fIdx} className={`col-md-${fWidth} mb-2`}>
+                                                                        <div className={`mock-aras-row ${draggedItem?.fieldName === field.name ? 'is-dragging' : ''} ${isTarget ? `drag-target-${dragOverItem.pos}` : ''}`} draggable onDragStart={(e) => onDragStartExisting(e, field.name, activeTabIdx, sIdx, fIdx)} onDragOver={(e) => onFieldDragOver(e, activeTabIdx, sIdx, fIdx)} onDragLeave={() => setDragOverItem(null)}>
+                                                                            <div className="mock-aras-label">{col.label}</div>
+                                                                            <div className="flex-grow-1"><MockInput col={col} /></div>
+                                                                            <div className="field-actions">
+                                                                                <div className="width-picker">
+                                                                                    <button className={`width-btn ${fWidth === 12 ? 'active' : ''}`} onClick={() => updateFieldWidth(activeTabIdx, sIdx, fIdx, 12)}>W:12</button>
+                                                                                    <button className={`width-btn ${fWidth === 6 ? 'active' : ''}`} onClick={() => updateFieldWidth(activeTabIdx, sIdx, fIdx, 6)}>W:6</button>
                                                                                 </div>
+                                                                                <button className="btn btn-xs btn-outline-danger rounded" onClick={() => deleteField(activeTabIdx, sIdx, fIdx)}><i className="fa fa-trash"></i></button>
                                                                             </div>
-                                                                        </div>
-                                                                        <div className="field-actions" style={ {top: '12px', right: '5px'} }>
-                                                                            <button className="btn btn-xs btn-danger p-0 shadow-sm rounded-circle" style={ {width:'16px', height:'16px'} } onClick={() => {
-                                                                                const nl = [...layout]; nl[activeTabIdx].sections[sIdx].fields.splice(fIdx, 1); setLayout(nl);
-                                                                            }}><i className="fa fa-times" style={ {fontSize:'0.6rem'} }></i></button>
                                                                         </div>
                                                                     </div>
                                                                 );
                                                             })}
-                                                            {(sec.fields || []).length === 0 && (
-                                                                <div className="text-center py-4 text-muted small border rounded bg-light" style={ {borderStyle:'dashed !important'} }>
-                                                                    Drop fields here
-                                                                </div>
-                                                            )}
+                                                            {(!sec.fields || sec.fields.length === 0) && <div className="col-12 text-center py-4 text-muted small border rounded" style={ {borderStyle:'dashed', borderColor:'var(--aras-line-2)'} }><i className="fa fa-plus me-1"></i> Drop Data Point</div>}
                                                         </div>
                                                     </div>
                                                 </div>
                                             );
                                         })}
                                     </div>
-                                    <button className="btn-ghost-sec" onClick={() => {
-                                        const nl = [...layout];
-                                        nl[activeTabIdx].sections = [...(nl[activeTabIdx].sections || []), { type:'section', label:'New Section', width: 12, fields:[] }];
-                                        setLayout(nl);
-                                    }}>+ Add New Section</button>
+                                    <button className="btn-ghost-studio" onClick={() => addSection(activeTabIdx)}>+ ADD NEW SECTION</button>
                                 </div>
-                            </div>
-                        )}
-
-                        {/* CHILD TABLES PREVIEW */}
-                        {childTables.length > 0 && (
-                            <div className="mt-5 border-top pt-4 px-4 pb-4 bg-light">
-                                <h6 className="text-muted fw-bold mb-3" style={ {fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px'} }>
-                                    Child Tables (Auto-Detected)
-                                </h6>
-                                {childTables.map(ct => (
-                                    <div key={ct.id} className="card shadow-none border mb-3">
-                                        <div className="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center">
-                                            <span className="fw-bold small">{ct.title}</span>
-                                            <button className="btn btn-xs btn-outline-secondary disabled">+ Add Row</button>
-                                        </div>
-                                        <div className="card-body py-4 text-center text-muted small italic">
-                                            List of {ct.title} will appear here...
-                                        </div>
-                                    </div>
-                                ))}
                             </div>
                         )}
                     </div>

@@ -816,3 +816,484 @@ html, body {
 .tab-pane.fade.show {
   opacity: 1;
 }
+
+/* ============================================================
+   Stunning POS UI (Aras Design Extension)
+   ============================================================ */
+.pos-layout {
+  height: 100vh;
+  display: flex;
+  background: var(--aras-bg);
+  font-family: var(--aras-font-sans);
+  overflow: hidden;
+}
+
+.pos-sidebar {
+  width: 400px;
+  background: var(--studio-paper);
+  border-right: 1px solid var(--studio-ochre);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  box-shadow: var(--aras-shadow-drop);
+}
+
+.pos-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  position: relative;
+}
+
+.pos-header {
+  height: 70px;
+  border-bottom: 1px solid var(--aras-line-2);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  justify-content: space-between;
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(10px);
+}
+
+.pos-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--studio-ink);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  transition: color 0.2s, transform 0.2s;
+}
+.pos-back-btn:hover {
+  color: var(--studio-accent);
+  transform: translateX(-4px);
+}
+
+/* Stunning Switch */
+.pos-switch-wrapper {
+  display: flex;
+  align-items: center;
+  background: var(--studio-cream);
+  border-radius: 30px;
+  padding: 4px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+  position: relative;
+}
+.pos-switch-label {
+  z-index: 2;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--aras-ink-3);
+  cursor: pointer;
+  transition: color 0.3s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.pos-switch-label.active {
+  color: #fff;
+}
+.pos-switch-pill {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: calc(50% - 4px);
+  background: var(--studio-accent);
+  border-radius: 26px;
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 2px 8px rgba(107, 44, 44, 0.4);
+}
+.pos-switch-wrapper[data-mode="out"] .pos-switch-pill {
+  transform: translateX(100%);
+  background: var(--aras-primary);
+  box-shadow: 0 2px 8px rgba(45, 74, 107, 0.4);
+}
+
+/* Searchable Underlined Combobox */
+.pos-customer-select {
+  position: relative;
+  margin: 20px 24px;
+}
+.pos-customer-input {
+  width: 100%;
+  border: none;
+  border-bottom: 2px solid var(--aras-line-2);
+  background: transparent;
+  font-size: 24px;
+  font-family: var(--aras-font-serif);
+  font-weight: 700;
+  color: var(--studio-ink);
+  padding: 8px 0;
+  outline: none;
+  transition: border-color 0.3s;
+}
+.pos-customer-input::placeholder {
+  color: var(--aras-ink-3);
+  font-weight: 400;
+  font-style: italic;
+}
+.pos-customer-input:focus {
+  border-bottom-color: var(--studio-ochre);
+}
+.pos-customer-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid var(--studio-ochre);
+  box-shadow: var(--aras-shadow-drop);
+  border-radius: 0 0 8px 8px;
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-10px);
+  transition: opacity 0.2s, transform 0.2s;
+}
+.pos-customer-dropdown.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.pos-customer-option {
+  padding: 12px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--aras-line-3);
+  transition: background 0.2s;
+}
+.pos-customer-option:hover {
+  background: var(--studio-cream);
+  color: var(--studio-accent);
+}
+
+/* Products Grid */
+.pos-products {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+  align-content: start;
+}
+.pos-product-card {
+  background: #fff;
+  border: 1px solid var(--aras-line-2);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
+  overflow: hidden;
+}
+.pos-product-card:hover {
+  border-color: var(--studio-ochre);
+  box-shadow: 0 10px 20px rgba(201, 165, 104, 0.15);
+  transform: translateY(-4px);
+}
+.pos-product-img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  background: var(--studio-cream);
+}
+.pos-product-title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+.pos-product-price {
+  color: var(--studio-accent);
+  font-weight: 700;
+  font-size: 16px;
+  font-family: var(--aras-font-mono);
+}
+
+/* Cart Items */
+.pos-cart {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 24px;
+}
+.pos-cart-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  border-bottom: 1px dashed var(--aras-line-2);
+}
+.pos-cart-info {
+  flex: 1;
+}
+.pos-cart-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+.pos-cart-meta {
+  font-size: 12px;
+  color: var(--aras-ink-3);
+  margin-top: 4px;
+}
+.pos-cart-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pos-cart-qty {
+  font-weight: 700;
+  font-family: var(--aras-font-mono);
+  background: var(--studio-cream);
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+/* POS Footer (Pay) */
+.pos-footer {
+  padding: 24px;
+  background: #fff;
+  border-top: 1px solid var(--aras-line-2);
+}
+.pos-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.pos-total-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--aras-ink-2);
+}
+.pos-total-value {
+  font-size: 32px;
+  font-weight: 700;
+  font-family: var(--aras-font-serif);
+  color: var(--studio-ink);
+}
+.pos-pay-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--studio-ink);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+.pos-pay-btn:hover {
+  background: var(--studio-accent);
+  box-shadow: 0 8px 16px rgba(107, 44, 44, 0.2);
+}
+
+/* POS Payment Modal */
+.pos-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 27, 45, 0.4);
+  backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.pos-modal-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.pos-modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 800px;
+  max-width: 90vw;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  display: flex;
+  overflow: hidden;
+  transform: scale(0.95) translateY(10px);
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.pos-modal-overlay.show .pos-modal {
+  transform: scale(1) translateY(0);
+}
+.pos-modal-left {
+  background: var(--studio-paper);
+  padding: 40px;
+  width: 350px;
+  border-right: 1px solid var(--studio-ochre);
+  display: flex;
+  flex-direction: column;
+}
+.pos-modal-right {
+  padding: 40px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.pos-modal-title {
+  font-family: var(--aras-font-serif);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--studio-ink);
+  margin-bottom: 24px;
+}
+.pos-pay-methods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.pos-pay-method {
+  border: 2px solid var(--aras-line-2);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--aras-ink-2);
+  font-weight: 600;
+}
+.pos-pay-method:hover {
+  border-color: var(--studio-ochre);
+  background: var(--studio-cream);
+  color: var(--studio-ink);
+}
+.pos-pay-method.active {
+  border-color: var(--studio-accent);
+  background: var(--studio-accent-50);
+  color: var(--studio-accent);
+}
+.pos-pay-method i {
+  display: block;
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+.pos-amount-input-wrap {
+  margin-bottom: 24px;
+}
+.pos-amount-input-wrap label {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 8px;
+  color: var(--aras-ink-2);
+}
+.pos-amount-input {
+  width: 100%;
+  font-size: 36px;
+  font-family: var(--aras-font-mono);
+  font-weight: 700;
+  border: none;
+  border-bottom: 2px solid var(--aras-line-2);
+  padding: 8px 0;
+  outline: none;
+  color: var(--studio-ink);
+  background: transparent;
+  transition: border-color 0.3s;
+}
+.pos-amount-input:focus {
+  border-bottom-color: var(--studio-accent);
+}
+.pos-modal-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 16px;
+}
+.pos-btn-cancel {
+  padding: 16px 24px;
+  border: none;
+  background: transparent;
+  color: var(--aras-ink-3);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.pos-btn-cancel:hover {
+  color: var(--studio-ink);
+}
+.pos-btn-confirm {
+  flex: 1;
+  padding: 16px;
+  background: var(--studio-ink);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.pos-btn-confirm:hover {
+  background: var(--studio-accent);
+  box-shadow: 0 8px 16px rgba(107, 44, 44, 0.2);
+}
+.pos-btn-confirm:disabled {
+  background: var(--aras-line-2);
+  color: var(--aras-ink-3);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Success Actions */
+.pos-success-icon {
+  font-size: 64px;
+  color: #4f6f53;
+  margin-bottom: 24px;
+  text-align: center;
+}
+.pos-success-title {
+  font-family: var(--aras-font-serif);
+  font-size: 32px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 8px;
+}
+.pos-success-subtitle {
+  text-align: center;
+  color: var(--aras-ink-2);
+  margin-bottom: 32px;
+}
+.pos-action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.pos-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid var(--aras-line-2);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--studio-ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+.pos-action-btn:hover {
+  border-color: var(--studio-ochre);
+  box-shadow: 0 4px 12px rgba(201,165,104,0.1);
+  transform: translateY(-2px);
+  color: var(--studio-accent);
+}
+.pos-action-btn i {
+  font-size: 24px;
+}

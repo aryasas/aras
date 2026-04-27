@@ -3,27 +3,23 @@
   Required: app_def (AppManagerApp object)
   Optional: submenu_title — if set, app_def becomes a link and this is the active leaf crumb
 #}
-<div class="page-title-area" style="padding:0 30px;border-bottom:1px solid #eef0f2;">
-  <nav style="display:flex;align-items:center;gap:0;flex-wrap:wrap;">
-    <a href="{{ url_for('admin.settings') }}#panel-apps"
-       style="padding:10px 14px;font-size:13px;color:#9aacb8;text-decoration:none;">
-      <i class="ti-settings mr-1"></i>Settings
+<div class="app-menu-bar">
+    <a href="{{ url_for('admin.settings') }}#panel-apps" class="appmenu-item-link" style="color: var(--aras-ink-3);">
+        Settings
     </a>
-    <span style="color:#d8e3e7;">/</span>
+    <span class="app-menu-divider" style="color: #d8e3e7;">/</span>
 
     {% if submenu_title %}
-      <a href="{{ url_for('admin.apps_tables', app_id=app_def.id) }}"
-         style="padding:10px 14px;font-size:13px;color:#9aacb8;text-decoration:none;">
-        <i class="fa {{ app_def.icon or 'fa-cubes' }} mr-1"></i>{{ app_def.title }}
+      <a href="{{ url_for('admin.apps_tables', app_id=app_def.id) }}" class="appmenu-item-link" style="color: var(--aras-ink-3);">
+        {{ app_def.title }}
       </a>
-      <span style="color:#d8e3e7;">/</span>
-      <span style="padding:10px 14px;font-size:13px;font-weight:600;color:#313b3d;border-bottom:2px solid var(--primary-color,#5a6fd6);">
-        {{ submenu_title }}
+      <span class="app-menu-divider" style="color: #d8e3e7;">/</span>
+      <span class="appmenu-item-link" style="font-weight: 600; color: var(--studio-ink); border-bottom: 2px solid var(--primary-color, #5a6fd6);">
+        {{ submenu_title|safe }}
       </span>
     {% else %}
-      <span style="padding:10px 14px;font-size:13px;font-weight:600;color:#313b3d;border-bottom:2px solid var(--primary-color,#5a6fd6);">
+      <span class="appmenu-item-link" style="font-weight: 600; color: var(--studio-ink); border-bottom: 2px solid var(--primary-color, #5a6fd6);">
         <i class="fa {{ app_def.icon or 'fa-cubes' }} mr-1"></i>{{ app_def.title }} — Tables
       </span>
     {% endif %}
-  </nav>
 </div>

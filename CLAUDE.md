@@ -10,7 +10,7 @@
 - KEEP code SHORT, SIMPLE, CLEAN, PROFESSIONAL, BEAUTY, and easy to understand. MUST DRY (Don't Repeat Yourself) principles
 
 ## Agent Rules
-- READ DIFF ONLY
+- YOU ARE STRONGLY NOT ALLOW TO USE GIT COMMAND THAT WILL BRING CHANGE. ONLY ALLOW GIT TO READ (git diff atau git log)
 - BE CONCISE: Zero conversational filler. Output minimal explanations.
 - LIMIT I/O: Only read the specific `docs/*.md` file relevant to the current task. Track read files.
 - DO NOT rewrite entire files — output specific diffs or targeted function replacements.
@@ -19,6 +19,7 @@
 - CRITICAL: You are strictly FORBIDDEN from using native Read, View, or cat tools to read code files. To read ANY file, execute: `./smart_read.sh <filepath>` — this script handles deduplication and diffing automatically.
 - DO NOT WASTE TOKENS. Prefer Grep over Read to locate code before reading. Use offset/limit for large files.
 - If you are about to read a file listed in Do NOT Re-read, STOP. Ask me for the specific info you need instead.
+- For design use new css in `static/css/aras_design.css`
 
 ## Framework Contract — READ THIS FIRST
 
@@ -33,7 +34,7 @@
 3. **CLI + manifest name**: `flask aras install-app soc` → imports `aras/app_soc/manifest.py`, syncs to DB via `sync_helper_to_db()`
 4. **Web UI manifest install**: `POST /admin/apps/install-manifest/<app_name>` → same as above, from browser
 
-### The golden rule: framework must know EVERY URL and endpoint
+### The golden rule: framework must know EVERY URL and endpoint, pages, tables
 - **CRUD resource**: `ResourceDef(name, model)` → framework auto-generates `/api/<app>/<name>/` + `/admin/<app>/<name>/`
 - **Non-CRUD API endpoint**: `CustomRoute(path, handler)` → mounted at `/api/<app>/<path>/`
 - **Menu link to existing route (no new CRUD)**: `ResourceDef(name, url="/existing/route", menu_title="...", menu_icon="...")` with no `model` — framework skips route gen, **but does NOT add it to the sidebar** (sidebar is DB-only, see below)

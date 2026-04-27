@@ -1,7 +1,7 @@
 import json
 import csv
 import io
-from flask import render_template, request, jsonify, redirect, url_for, flash, Response
+from flask import render_template, request, jsonify, redirect, url_for, flash, Response, current_app
 from flask_login import login_required, current_user
 from . import app_bp
 from arasCore.lib.extensions import db
@@ -248,74 +248,7 @@ def _get_company_id():
 #     )
 
 
-# ── TASK 3b: POS Shift Report ─────────────────────────────────────────────────
-
-@app_bp.route("/reports/pos-shift/")
-@login_required
-def pos_shift_report():
-    date_from  = request.args.get("date_from", "")
-    date_to    = request.args.get("date_to", "")
-    page       = int(request.args.get("page", 1))
-    per_page   = int(request.args.get("per_page", 20))
-
-    sql = """
-        SELECT
-          ps.id,
-          ps.shift_number,
-          u.username  AS cashier,
-          pt.name     AS terminal,
-          ps.opened_at,
-          ps.closed_at,
-          ps.state,
-          COUNT(po.id)                   AS total_orders,
-          COALESCE(SUM(po.total), 0)     AS total_sales,
-          ps.opening_balance,
-          ps.closing_balance,
-          ps.cash_difference
-        FROM pos_session ps
-        JOIN auth_users u  ON u.id  = ps.cashier_id
-        JOIN pos_terminal pt ON pt.id = ps.terminal_id
-        LEFT JOIN pos_order po ON po.session_id = ps.id AND po.state IN ('paid','invoiced')
-        WHERE 1=1
-    """
-    params = {}
-    if date_from:
-        sql += " AND DATE(ps.opened_at) >= :date_from"
-        params["date_from"] = date_from
-    if date_to:
-        sql += " AND DATE(ps.opened_at) <= :date_to"
-        params["date_to"] = date_to
-    sql += " GROUP BY ps.id ORDER BY ps.opened_at DESC"
-
-    count_sql = f"SELECT COUNT(*) FROM ({sql}) AS sub"
-    total = db.session.execute(db.text(count_sql), params).scalar() or 0
-
-    offset = (page - 1) * per_page
-    sql += f" LIMIT {per_page} OFFSET {offset}"
-    rows = db.session.execute(db.text(sql), params).fetchall()
-
-    class FakePagination:
-        def __init__(self, total, page, per_page):
-            self.total = total
-            self.page  = page
-            self.per_page = per_page
-            self.pages = max(1, (total + per_page - 1) // per_page)
-            self.has_prev = page > 1
-            self.has_next = page < self.pages
-            self.prev_num = page - 1
-            self.next_num = page + 1
-            self.iter_pages = lambda **kw: range(1, self.pages + 1)
-
-    pagination = FakePagination(total, page, per_page)
-
-    return render_template(
-        "erp/reports/pos_shift.html",
-        rows=rows,
-        pagination=pagination,
-        filters={"date_from": date_from, "date_to": date_to},
-        main_title="POS Shift Report",
-    )
-
+# ── TASK 3b: POS Shift Report (Handled by dynamic reports) ────────────────────
 
 # ── List-view user setting API ────────────────────────────────────────────────
 
@@ -394,7 +327,7 @@ def reports_index():
     default_company_id = _get_company_id()
 
     return render_template(
-        "erp/erp_report_index.html",
+        "erp/reports/index.html",
         grouped=grouped,
         settings_map=settings_map,
         companies=companies,
@@ -408,129 +341,40 @@ def reports_index():
 def report_run(report_id):
     from aras.app_erp.erp_core.models.report import ErpReport
     from aras.app_erp.erp_core.services.report_runner import run_report
+    from jinja2.exceptions import TemplateNotFound
 
     report = ErpReport.get_or_404(report_id)
     filters_def = json.loads(report.filters_json) if report.filters_json else []
-
-    if report.render_mode == "list":
-        # Always run immediately; filters come from query params
-        filters = {}
-        for f in filters_def:
-            val = request.args.get(f["field"], "")
-            filters[f["field"]] = val if val else None
-        result = run_report(report_id, filters, _get_company_id())
-        columns = result.get("columns", [])
-        rows = result.get("data", [])
-        error = result.get("error")
-
-        # Build per-column filter state for the panel
-        active_filters = []
-        for k, v in request.args.items():
-            if k.startswith("f_col") or k.startswith("f_op") or k.startswith("f_val"):
-                pass  # handled below
-        f_cols = request.args.getlist("f_col[]")
-        f_ops  = request.args.getlist("f_op[]")
-        f_vals = request.args.getlist("f_val[]")
-        active_filters = [
-            {"col": c, "op": o, "val": v}
-            for c, o, v in zip(f_cols, f_ops, f_vals)
-        ]
-
-        # Apply client-side column filters to rows
-        def _apply_filters(rows, columns, active_filters):
-            if not active_filters:
-                return rows
-            col_idx = {c["field"]: i for i, c in enumerate(columns)}
-            out = []
-            for row in rows:
-                match = True
-                for af in active_filters:
-                    idx = col_idx.get(af["col"])
-                    if idx is None:
-                        continue
-                    cell = str(row[idx] if row[idx] is not None else "").lower()
-                    val  = af["val"].lower()
-                    op   = af["op"]
-                    if op == "equals" and cell != val:
-                        match = False; break
-                    elif op == "not_equals" and cell == val:
-                        match = False; break
-                    elif op == "like" and val not in cell:
-                        match = False; break
-                    elif op == "not_like" and val in cell:
-                        match = False; break
-                    elif op == "is" and cell != "":
-                        match = False; break
-                if match:
-                    out.append(row)
-            return out
-
-        rows = _apply_filters(rows, columns, active_filters)
-
-        search_q = request.args.get("q", "").strip()
-        if search_q:
-            sq = search_q.lower()
-            rows = [r for r in rows if any(sq in str(v).lower() for v in r if v is not None)]
-
-        return render_template(
-            "erp/reports/run_list.html",
-            report=report,
-            filters_def=filters_def,
-            filters=filters,
-            columns=columns,
-            rows=rows,
-            error=error,
-            active_filters=active_filters,
-            search_q=search_q,
-            main_title=report.title,
-        )
-
-    # custom render mode — filter-gate, script/formula view
-    filters = {}
-    for f in filters_def:
-        val = request.args.get(f["field"], "")
-        filters[f["field"]] = val if val else None
-
-    result = None
-    if request.args:
-        result = run_report(report_id, filters, _get_company_id())
-
-    return render_template(
-        "erp/erp_report_run.html",
-        report=report,
-        filters_def=filters_def,
-        filters=filters,
-        result=result,
-        main_title=report.title,
-    )
-
-
-@app_bp.route("/reports/<int:report_id>/run/")
-@login_required
-def report_run_custom(report_id):
-    """Always renders the custom/formula view (run.html), ignoring render_mode."""
-    from aras.app_erp.erp_core.models.report import ErpReport
-    from aras.app_erp.erp_core.services.report_runner import run_report
-
-    report = ErpReport.get_or_404(report_id)
-    filters_def = json.loads(report.filters_json) if report.filters_json else []
+    
+    # Check for custom template
+    template_name = "erp/reports/run.html"
+    custom_tpl = f"erp/reports/custom/{report.name}.html"
+    try:
+        current_app.jinja_env.get_template(custom_tpl)
+        template_name = custom_tpl
+    except TemplateNotFound:
+        pass
 
     filters = {}
     for f in filters_def:
         val = request.args.get(f["field"], "")
         filters[f["field"]] = val if val else None
-
-    result = None
-    if request.args:
-        result = run_report(report_id, filters, _get_company_id())
+    
+    result = run_report(report_id, filters, _get_company_id())
+    columns = result.get("columns", [])
+    rows = result.get("data", [])
+    error = result.get("error")
 
     return render_template(
-        "erp/erp_report_run.html",
+        template_name,
         report=report,
         filters_def=filters_def,
         filters=filters,
-        result=result,
+        columns=columns,
+        rows=rows,
+        error=error,
         main_title=report.title,
+        **result
     )
 
 
@@ -556,16 +400,27 @@ def report_meta_json(report_id):
 @app_bp.route("/reports/<int:report_id>/data.json")
 @login_required
 def report_data_json(report_id):
+    from aras.app_erp.erp_core.models.report import ErpReport
     from aras.app_erp.erp_core.services.report_runner import run_report
+    from jinja2.exceptions import TemplateNotFound
 
+    report = ErpReport.get_or_404(report_id)
     filters = {}
     for k, v in request.args.items():
         if k != "company_id":
             filters[k] = v if v else None
 
-    # Allow overriding company_id via param (from index panel company selector)
     company_id = request.args.get("company_id", type=int) or _get_company_id()
     result = run_report(report_id, filters, company_id)
+
+    # Check for custom partial template (view inside index)
+    partial_tpl = f"erp/reports/custom/{report.name}_partial.html"
+    try:
+        current_app.jinja_env.get_template(partial_tpl)
+        result["html"] = render_template(partial_tpl, report=report, filters=filters, **result)
+    except TemplateNotFound:
+        pass
+
     return jsonify(result)
 
 

@@ -64,23 +64,24 @@ class BasicForm(ArasForm):
                 read_only(field)
 
 
-_FORM_HIDDEN = {"id", "created_at", "updated_at", "deleted_at", "created_by", "updated_by",
-                "created_by_id", "updated_by_id"}
-
+# Minimal core safety list for fields that should NEVER be manually added to forms
+_CORE_SYSTEM_INTERNAL = {"id", "csrf_token", "deleted_at", "tenant_id", "owner_id"}
 
 def build_form_from_table(tbl, extra_columns=None) -> type:
     """
     Build an ArasForm subclass from AppManagerTable + optional extra AppManagerColumn list.
-    Merges standard columns with extra_columns (e.g. from AppManagerField / doctype settings),
-    ordered by the column's `order` attribute.
-    Returns a Form class ready to be instantiated in a route.
+    Respects the 'show_in_form' attribute from mgr_column metadata.
     """
-    columns = [c for c in tbl.get_columns() if c.name not in _FORM_HIDDEN]
+    # Use metadata show_in_form + minimal safety guard
+    columns = [
+        c for c in tbl.get_columns() 
+        if c.show_in_form and c.name not in _CORE_SYSTEM_INTERNAL
+    ]
 
     if extra_columns:
         existing_names = {c.name for c in columns}
         for ec in extra_columns:
-            if ec.name not in existing_names and ec.name not in _FORM_HIDDEN:
+            if ec.name not in existing_names and getattr(ec, "show_in_form", True) and ec.name not in _CORE_SYSTEM_INTERNAL:
                 columns.append(ec)
         columns.sort(key=lambda c: getattr(c, "order", 0) or 0)
 

@@ -1,0 +1,139 @@
+{% extends 'admin/layouts/base_admin.html' %}
+
+{% block head %}
+{{ super() }}
+<style>
+  .report-run-container { padding: 40px; background: var(--aras-bg); min-height: calc(100vh - 60px); }
+  .report-card { background: #fff; border-radius: 4px; border: 1px solid var(--studio-cream); box-shadow: var(--aras-shadow-sm); padding: 32px; }
+  
+  .report-header { 
+    display: flex; align-items: center; justify-content: space-between; 
+    margin-bottom: 32px; border-bottom: 1px solid var(--studio-cream); 
+    padding-bottom: 24px; 
+  }
+  .report-title h2 { font-family: var(--aras-font-serif); margin: 0; font-weight: 700; color: var(--studio-ink); font-size: 28px; }
+  .report-meta { font-family: var(--aras-font-mono); font-size: 11px; color: var(--aras-ink-3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  
+  .filter-section { background: var(--studio-paper); border: 1px solid var(--studio-cream); border-radius: 4px; padding: 24px; margin-bottom: 32px; }
+  
+  .aras-report-table { width: 100%; font-size: 13px; border-collapse: separate; border-spacing: 0; }
+  .aras-report-table thead th { 
+    font: 600 9.5px/1.2 var(--aras-font-mono); 
+    text-transform: uppercase; letter-spacing: 1.4px; 
+    color: var(--aras-ink-3); padding: 12px 16px; 
+    text-align: left; border-bottom: 1px solid var(--aras-line); 
+    background: #fff; 
+  }
+  .aras-report-table tbody td { padding: 14px 16px; border-bottom: 1px solid var(--aras-surface-alt); color: var(--studio-ink); }
+  
+  .val-currency { font-family: var(--aras-font-mono); font-weight: 600; text-align: right; }
+  .val-negative { color: var(--studio-accent); }
+
+  .filter-label {
+    font-family: var(--aras-font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--aras-ink-3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  @media print {
+    .filter-section, .aras-btn, .navbar, .header-area { display: none !important; }
+    .report-run-container { padding: 0; background: #fff; }
+    .report-card { box-shadow: none; border: none; padding: 0; }
+  }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<div class="report-run-container">
+  <div class="report-card">
+    
+    <div class="report-header">
+      <div class="report-title">
+        <div class="report-meta">{{ report.module|capitalize }} / {{ report.report_type|upper }}</div>
+        <h2>{{ report.title }}</h2>
+      </div>
+      <div class="report-actions d-flex gap-2">
+        <button class="aras-btn aras-btn--outline" onclick="window.print()">
+          <i class="fa fa-print"></i> Print
+        </button>
+        <a href="{{ url_for('erp_views.report_export_csv', report_id=report.id, **request.args) }}" class="aras-btn aras-btn--outline">
+          <i class="fa fa-file-excel-o"></i> Excel
+        </a>
+      </div>
+    </div>
+
+    <form method="GET" class="filter-section">
+      <div class="row align-items-end g-3">
+        {% for f in filters_def %}
+        <div class="col-md-2">
+          <label class="filter-label">{{ f.label }}</label>
+          <input type="{{ 'date' if f.type == 'date' else 'text' }}" 
+                 name="{{ f.field }}" 
+                 class="aras-form-input" 
+                 value="{{ filters.get(f.field, '') }}"
+                 style="height: 38px;">
+        </div>
+        {% endfor %}
+        <div class="col-md-2">
+          <button type="submit" class="aras-btn aras-btn--primary w-100 justify-content-center" style="height: 38px;">
+            <i class="fa fa-refresh mr-1"></i> Update
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <div class="report-results">
+      {% block report_results %}
+      {% if error %}
+        <div class="alert alert-warning">{{ error }}</div>
+      {% elif rows %}
+        <div class="table-responsive aras-table-wrap">
+          <table class="aras-report-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                {% for c in columns %}
+                <th>{{ c.label }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+              <tr>
+                <td class="text-muted small italic">{{ loop.index }}</td>
+                {% for c in columns %}
+                  {% set val = row[loop.index0] %}
+                  {% set is_currency = c.type == 'currency' %}
+                  <td class="{{ 'val-currency' if is_currency }} {{ 'val-negative' if is_currency and val < 0 }}">
+                    {% if val is none %}
+                      —
+                    {% elif is_currency %}
+                      {{ "{:,.2f}".format(val) }}
+                    {% else %}
+                      {{ val }}
+                    {% endif %}
+                  </td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="mt-3 text-muted small italic" style="font-family: var(--aras-font-serif);">Total: {{ rows|length }} records found.</div>
+      {% else %}
+        <div class="text-center py-5">
+          <i class="fa fa-info-circle fa-2x text-muted opacity-25 mb-3"></i>
+          <p class="text-muted" style="font-family: var(--aras-font-serif); font-style: italic;">No data to display. Please adjust filters and run.</p>
+        </div>
+      {% endif %}
+      {% endblock %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

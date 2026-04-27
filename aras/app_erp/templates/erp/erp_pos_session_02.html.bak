@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>arasPos Studio — {{ terminal.name }}</title>
+    
+    <!-- Core Assets -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.min.css') }}">
+    
+    <style>
+        :root {
+            --studio-ink: #1a1110;
+            --studio-oxblood: #6b2c2c;
+            --studio-ochre: #b38b6d;
+            --studio-cream: #f4eee8;
+            --studio-paper: #faf8f6;
+            --aras-primary: #4a90e2;
+            --aras-success: #27ae60;
+            --sidebar-w: 420px;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            height: 100vh; overflow: hidden;
+            background-color: var(--studio-ink);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: var(--studio-ink);
+        }
+
+        /* ── Layout ── */
+        .pos-shell {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* ── Main Catalog Area ── */
+        .pos-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--studio-cream);
+            border-top-left-radius: 20px;
+            border-bottom-left-radius: 20px;
+            margin: 10px 0 10px 10px;
+            overflow: hidden;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.3);
+        }
+
+        /* ── Header ── */
+        .pos-topbar {
+            padding: 20px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #fff;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .pos-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .pos-logo {
+            width: 32px; height: 32px;
+            background: var(--studio-oxblood);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-weight: 800;
+        }
+        .pos-title { font-weight: 800; font-size: 1.25rem; letter-spacing: -0.5px; margin: 0; }
+
+        .pos-top-meta {
+            display: flex; gap: 24px; font-size: 0.85rem; color: #666;
+        }
+        .meta-item { display: flex; align-items: center; gap: 6px; }
+        .meta-item i { color: var(--studio-oxblood); opacity: 0.7; }
+
+        /* ── Content ── */
+        .pos-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 30px;
+            overflow: hidden;
+        }
+
+        .search-container {
+            position: relative;
+            margin-bottom: 25px;
+        }
+        .search-input {
+            width: 100%;
+            height: 54px;
+            background: #fff;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 0 20px 0 55px;
+            font-size: 1.05rem;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: var(--studio-oxblood);
+            box-shadow: 0 8px 20px rgba(107,44,44,0.1);
+        }
+        .search-icon {
+            position: absolute;
+            left: 20px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--studio-ochre);
+            font-size: 1.2rem;
+        }
+
+        .cat-scroll {
+            display: flex; gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 15px;
+            margin-bottom: 5px;
+        }
+        .cat-pill {
+            padding: 8px 20px;
+            background: #fff;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .cat-pill:hover { background: var(--studio-paper); }
+        .cat-pill.active {
+            background: var(--studio-oxblood);
+            color: #fff;
+        }
+
+        .prod-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 20px;
+            overflow-y: auto;
+            padding-top: 10px;
+            align-content: start;
+        }
+        .prod-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            border: 1px solid transparent;
+            position: relative;
+        }
+        .prod-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(107,44,44,0.08);
+            border-color: var(--studio-ochre);
+        }
+        .prod-card:active { transform: scale(0.95); }
+        
+        .prod-card__icon {
+            width: 60px; height: 60px;
+            background: var(--studio-paper);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; color: var(--studio-oxblood);
+            margin-bottom: 15px;
+        }
+        .prod-card__name {
+            font-weight: 700; font-size: 0.9rem;
+            margin-bottom: 8px; line-height: 1.3;
+            height: 2.6em; overflow: hidden;
+        }
+        .prod-card__price {
+            font-weight: 800; color: var(--studio-oxblood);
+            font-size: 1.1rem; margin-top: auto;
+        }
+
+        /* ── Sidebar (Cart) Area ── */
+        .pos-side {
+            width: var(--sidebar-w);
+            display: flex;
+            flex-direction: column;
+            background: var(--studio-ink);
+            color: #fff;
+            padding: 25px;
+        }
+
+        .side-header {
+            margin-bottom: 25px;
+        }
+        .cust-box {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .cust-select {
+            background: none; border: none; color: #fff;
+            width: 100%; font-size: 0.95rem; font-weight: 600;
+        }
+        .cust-select option { color: #333; }
+
+        .cart-container {
+            flex: 1;
+            overflow-y: auto;
+            margin: 0 -10px; padding: 0 10px;
+        }
+        .cart-row {
+            display: flex; align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            animation: fadeInRight 0.3s ease;
+        }
+        @keyframes fadeInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+        .cart-row__info { flex: 1; }
+        .cart-row__name { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+        .cart-row__price { font-size: 0.85rem; color: rgba(255,255,255,0.5); }
+
+        .cart-row__qty {
+            display: flex; align-items: center; gap: 12px;
+            background: rgba(255,255,255,0.1);
+            padding: 5px 12px; border-radius: 20px;
+        }
+        .q-btn { cursor: pointer; opacity: 0.7; transition: 0.2s; }
+        .q-btn:hover { opacity: 1; }
+
+        .side-footer {
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 2px dashed rgba(255,255,255,0.1);
+        }
+        .bill-row {
+            display: flex; justify-content: space-between;
+            margin-bottom: 10px; font-size: 0.95rem;
+        }
+        .bill-total {
+            margin-top: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .bill-total__label { font-weight: 800; font-size: 1.1rem; color: var(--studio-ochre); }
+        .bill-total__val { font-weight: 900; font-size: 2.2rem; letter-spacing: -1px; }
+
+        .btn-checkout {
+            width: 100%;
+            height: 64px;
+            background: var(--studio-oxblood);
+            color: #fff;
+            border: none;
+            border-radius: 16px;
+            font-weight: 800;
+            font-size: 1.2rem;
+            margin-top: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .btn-checkout:hover:not(:disabled) {
+            background: #8e3a3a;
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+        .btn-checkout:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* ── Modals ── */
+        .modal-studio .modal-content {
+            border-radius: 24px; border: none; overflow: hidden;
+            background: var(--studio-paper);
+        }
+        .modal-studio .modal-header {
+            background: var(--studio-ink); color: #fff;
+            padding: 25px; border: none;
+        }
+        
+        .pay-display {
+            background: #fff;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 25px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .pay-input-wrap {
+            position: relative;
+            margin-top: 15px;
+        }
+        #numpad-input {
+            width: 100%;
+            border: none; background: none;
+            text-align: right;
+            font-size: 3rem; font-weight: 900;
+            color: var(--studio-oxblood);
+            font-family: 'Courier New', monospace;
+        }
+        #numpad-input:focus { outline: none; }
+
+        .numpad-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;
+        }
+        .num-btn {
+            height: 70px;
+            background: #fff;
+            border: 1px solid rgba(0,0,0,0.05);
+            border-radius: 16px;
+            font-size: 1.5rem; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.1s;
+        }
+        .num-btn:hover { background: var(--studio-cream); transform: scale(1.02); }
+        .num-btn:active { background: #ddd; transform: scale(0.98); }
+        .num-btn.accent { color: var(--studio-oxblood); }
+        .num-btn.zero { grid-column: span 2; }
+
+        .btn-finish {
+            width: 100%;
+            height: 60px;
+            background: var(--studio-oxblood);
+            color: #fff;
+            border: none; border-radius: 12px;
+            font-weight: 800; font-size: 1.1rem;
+            margin-top: 30px; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="pos-shell">
+    
+    <!-- Left: Catalog Area -->
+    <main class="pos-main">
+        <header class="pos-topbar">
+            <div class="pos-brand">
+                <div class="pos-logo">A</div>
+                <h1 class="pos-title">arasPos <span style="font-weight:300; opacity:0.5;">Studio</span></h1>
+            </div>
+            <div class="pos-top-meta">
+                <div class="meta-item"><i class="fa fa-desktop"></i> {{ terminal.name }}</div>
+                <div class="meta-item"><i class="fa fa-user"></i> {{ session.cashier.username }}</div>
+                <div class="meta-item"><i class="fa fa-clock-o"></i> <span id="clock">00:00:00</span></div>
+            </div>
+            <div>
+                <a href="{{ url_for('erp_views.pos_close_session', session_id=session.id) }}" class="btn btn-sm" style="background:var(--studio-cream); border-radius:8px; font-weight:700; color:var(--studio-oxblood);">
+                    <i class="fa fa-power-off"></i>
+                </a>
+            </div>
+        </header>
+
+        <div class="pos-content">
+            <div class="search-container">
+                <i class="fa fa-search search-icon"></i>
+                <input type="text" id="pSearch" class="search-input" placeholder="Search products or scan barcode...">
+            </div>
+
+            <div class="cat-scroll" id="catList">
+                <div class="cat-pill active" data-cat="all">Everything</div>
+                {% set cats = [] %}
+                {% for p in products %}
+                    {% if p.category and p.category.name not in cats %}
+                        {% set _ = cats.append(p.category.name) %}
+                        <div class="cat-pill" data-cat="{{ p.category.name }}">{{ p.category.name }}</div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            <div class="prod-grid" id="pGrid">
+                {% for p in products %}
+                <div class="prod-card" 
+                     data-id="{{ p.id }}" 
+                     data-name="{{ p.name }}" 
+                     data-code="{{ p.code }}"
+                     data-price="{{ p.price|default(0) }}"
+                     data-cat="{{ p.category.name if p.category else '' }}">
+                    <div class="prod-card__icon"><i class="fa fa-cube"></i></div>
+                    <div class="prod-card__name">{{ p.name }}</div>
+                    <div class="prod-card__price">{{ "{:,.0f}".format(p.price|default(0)) }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </main>
+
+    <!-- Right: Cart Area -->
+    <aside class="pos-side">
+        <div class="side-header">
+            <div class="cust-box">
+                <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; opacity:0.5; margin-bottom:5px;">Customer</div>
+                <select id="cSelect" class="cust-select">
+                    <option value="">Walk-in Customer</option>
+                    {% for c in customers %}
+                    <option value="{{ c.id }}">{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="cart-container" id="cItems">
+            <!-- Items injected by JS -->
+            <div class="text-center py-5" style="opacity:0.2;" id="emptyMsg">
+                <i class="fa fa-shopping-cart fa-4x mb-3"></i>
+                <div>No items selected</div>
+            </div>
+        </div>
+
+        <div class="side-footer">
+            <div class="bill-row">
+                <span style="opacity:0.5;">Subtotal</span>
+                <span id="subTotal">0</span>
+            </div>
+            <div class="bill-row">
+                <span style="opacity:0.5;">Tax (0%)</span>
+                <span>0</span>
+            </div>
+            <div class="bill-total">
+                <span class="bill-total__label">TOTAL</span>
+                <span class="bill-total__val" id="grandTotal">0</span>
+            </div>
+            <button class="btn-checkout" id="btnPay" disabled>
+                PAYMENT <i class="fa fa-arrow-right"></i>
+            </button>
+        </div>
+    </aside>
+</div>
+
+<!-- Modal: Payment -->
+<div class="modal fade modal-studio" id="payModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Complete Transaction</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="pay-display">
+                    <div style="font-size:11px; font-weight:800; text-transform:uppercase; color:var(--studio-ochre);">Amount Due</div>
+                    <div class="h1 fw-900 mb-0" id="dueDisplay" style="font-family:monospace;">0</div>
+                    <div class="pay-input-wrap">
+                        <input type="number" id="numpad-input" placeholder="0">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="d-flex gap-2">
+                        <input type="radio" class="btn-check" name="pm" id="pm_cash" value="cash" checked>
+                        <label class="btn btn-outline-dark flex-fill py-3" for="pm_cash"><b>CASH</b></label>
+                        <input type="radio" class="btn-check" name="pm" id="pm_bank" value="bank">
+                        <label class="btn btn-outline-dark flex-fill py-3" for="pm_bank"><b>BANK</b></label>
+                    </div>
+                </div>
+
+                <div class="numpad-grid">
+                    <button class="num-btn" onclick="numIn('1')">1</button>
+                    <button class="num-btn" onclick="numIn('2')">2</button>
+                    <button class="num-btn" onclick="numIn('3')">3</button>
+                    <button class="num-btn" onclick="numIn('4')">4</button>
+                    <button class="num-btn" onclick="numIn('5')">5</button>
+                    <button class="num-btn" onclick="numIn('6')">6</button>
+                    <button class="num-btn" onclick="numIn('7')">7</button>
+                    <button class="num-btn" onclick="numIn('8')">8</button>
+                    <button class="num-btn" onclick="numIn('9')">9</button>
+                    <button class="num-btn accent" onclick="numIn('C')">C</button>
+                    <button class="num-btn zero" onclick="numIn('0')">0</button>
+                    <button class="num-btn accent" onclick="numIn('back')"><i class="fa fa-chevron-left"></i></button>
+                </div>
+
+                <div class="mt-4 p-3 bg-white rounded-3 d-flex justify-content-between align-items-center">
+                    <div style="font-weight:700; opacity:0.5;" id="changeLabel">Change</div>
+                    <div class="h3 fw-800 mb-0" id="changeDisplay">0</div>
+                </div>
+
+                <button class="btn-finish" id="btnFinish">COMPLETE ORDER</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Success -->
+<div class="modal fade modal-studio" id="okModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content text-center p-4">
+            <div class="py-4">
+                <i class="fa fa-check-circle fa-5x text-success mb-3"></i>
+                <h4 class="fw-800">Paid Successfully</h4>
+                <div class="text-muted small" id="okNum">#ORD-000</div>
+            </div>
+            <div class="d-grid gap-2">
+                <button onclick="location.reload()" class="btn-finish mt-0">NEW ORDER</button>
+                <button id="btnPrint" class="btn btn-link text-muted">Print Receipt</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        let cart = [];
+        const SID = {{ session.id }};
+        const CSRF = "{{ csrf_token() }}";
+
+        const pGrid = document.getElementById('pGrid');
+        const cItems = document.getElementById('cItems');
+        const emptyMsg = document.getElementById('emptyMsg');
+        const subT = document.getElementById('subTotal');
+        const grandT = document.getElementById('grandTotal');
+        const btnPay = document.getElementById('btnPay');
+        const pSearch = document.getElementById('pSearch');
+        const catList = document.getElementById('catList');
+
+        const f = (n) => Number(n).toLocaleString('en-US');
+
+        // Clock
+        setInterval(() => {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+        }, 1000);
+
+        // Catalog Interactions
+        pGrid.addEventListener('click', e => {
+            const card = e.target.closest('.prod-card');
+            if (!card) return;
+            addToCart(parseInt(card.dataset.id), card.dataset.name, card.dataset.code, parseFloat(card.dataset.price));
+        });
+
+        function addToCart(id, name, code, price) {
+            const ex = cart.find(i => i.product_id === id);
+            if (ex) {
+                ex.qty++;
+                ex.subtotal = ex.qty * ex.unit_price;
+            } else {
+                cart.push({ product_id: id, product_name: name, product_code: code, qty: 1, unit_price: price, subtotal: price, discount_pct: 0, tax_amt: 0 });
+            }
+            render();
+        }
+
+        function render() {
+            if (!cart.length) {
+                cItems.innerHTML = ''; cItems.appendChild(emptyMsg);
+                subT.innerText = '0'; grandT.innerText = '0';
+                btnPay.disabled = true; return;
+            }
+            emptyMsg.remove();
+            cItems.innerHTML = cart.map((i, idx) => `
+                <div class="cart-row">
+                    <div class="cart-row__info">
+                        <div class="cart-row__name">${i.product_name}</div>
+                        <div class="cart-row__price">${f(i.unit_price)}</div>
+                    </div>
+                    <div class="cart-row__qty">
+                        <span class="q-btn" onclick="upd(${idx}, -1)">−</span>
+                        <span class="fw-bold">${i.qty}</span>
+                        <span class="q-btn" onclick="upd(${idx}, 1)">+</span>
+                    </div>
+                </div>
+            `).join('');
+            let t = cart.reduce((s, i) => s + i.subtotal, 0);
+            subT.innerText = f(t);
+            grandT.innerText = f(t);
+            btnPay.disabled = false;
+        }
+
+        window.upd = (idx, d) => {
+            cart[idx].qty += d;
+            if (cart[idx].qty <= 0) cart.splice(idx, 1);
+            else cart[idx].subtotal = cart[idx].qty * cart[idx].unit_price;
+            render();
+        };
+
+        pSearch.addEventListener('input', e => {
+            const q = e.target.value.toLowerCase();
+            document.querySelectorAll('.prod-card').forEach(c => {
+                c.style.display = (c.dataset.name.toLowerCase().includes(q) || c.dataset.code.toLowerCase().includes(q)) ? 'flex' : 'none';
+            });
+        });
+
+        catList.addEventListener('click', e => {
+            const pill = e.target.closest('.cat-pill');
+            if (!pill) return;
+            document.querySelectorAll('.cat-pill').forEach(t => t.classList.remove('active'));
+            pill.classList.add('active');
+            const cat = pill.dataset.cat;
+            document.querySelectorAll('.prod-card').forEach(c => {
+                c.style.display = (cat === 'all' || c.dataset.cat === cat) ? 'flex' : 'none';
+            });
+        });
+
+        // Payment
+        const mPay = new bootstrap.Modal(document.getElementById('payModal'));
+        const mOk = new bootstrap.Modal(document.getElementById('okModal'));
+        const numInp = document.getElementById('numpad-input');
+
+        btnPay.addEventListener('click', () => {
+            const t = cart.reduce((s, i) => s + i.subtotal, 0);
+            document.getElementById('dueDisplay').innerText = f(t);
+            numInp.value = t;
+            calc();
+            mPay.show();
+            setTimeout(() => numInp.focus(), 500);
+        });
+
+        window.numIn = (v) => {
+            if (v === 'C') numInp.value = '0';
+            else if (v === 'back') numInp.value = numInp.value.slice(0, -1) || '0';
+            else numInp.value = (numInp.value === '0' ? v : numInp.value + v);
+            calc();
+        };
+
+        numInp.addEventListener('input', calc);
+
+        function calc() {
+            const t = cart.reduce((s, i) => s + i.subtotal, 0);
+            const p = parseFloat(numInp.value) || 0;
+            const d = p - t;
+            const disp = document.getElementById('changeDisplay');
+            const lbl = document.getElementById('changeLabel');
+            if (d >= 0) {
+                lbl.innerText = "Change"; disp.innerText = f(d); disp.style.color = "var(--aras-success)";
+                document.getElementById('btnFinish').disabled = false;
+            } else {
+                lbl.innerText = "Remaining"; disp.innerText = f(Math.abs(d)); disp.style.color = "var(--studio-oxblood)";
+                document.getElementById('btnFinish').disabled = true;
+            }
+        }
+
+        document.getElementById('btnFinish').addEventListener('click', async function() {
+            const p = parseFloat(numInp.value) || 0;
+            const payload = {
+                lines: cart,
+                payments: [{ method: document.querySelector('input[name="pm"]:checked').value, amount: p }],
+                customer_id: document.getElementById('cSelect').value || null
+            };
+            this.disabled = true; this.innerText = 'Processing...';
+            try {
+                const res = await fetch(`/api/erp/pos/session/${SID}/order/`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    mPay.hide();
+                    document.getElementById('okNum').innerText = data.name;
+                    document.getElementById('btnPrint').onclick = () => window.open(`/pos/order/${data.order_id}/receipt`, '_blank');
+                    mOk.show();
+                } else { alert("Error: " + data.error); this.disabled = false; this.innerText = 'COMPLETE ORDER'; }
+            } catch (e) { alert("Network Error"); this.disabled = false; this.innerText = 'COMPLETE ORDER'; }
+        });
+    });
+</script>
+
+</body>
+</html>

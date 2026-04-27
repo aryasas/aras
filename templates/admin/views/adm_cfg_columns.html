@@ -1,358 +1,318 @@
 {% extends extends_layout if extends_layout else 'admin/layouts/base_admin.html' %}
 
 {% block submenu %}
-<div class="page-title-area" style="padding:0 30px;border-bottom:1px solid #eef0f2;">
-  <nav style="display:flex;align-items:center;gap:0;flex-wrap:wrap;">
-    <a href="{{ url_for('admin.settings') }}#panel-apps"
-       style="padding:10px 14px;font-size:13px;color:#9aacb8;text-decoration:none;">Settings</a>
-    <span style="color:#d8e3e7;">/</span>
-    <a href="{{ url_for('admin.apps_tables', app_id=app_def.id) }}"
-       style="padding:10px 14px;font-size:13px;color:#9aacb8;text-decoration:none;">{{ app_def.title }}</a>
-    <span style="color:#d8e3e7;">/</span>
-    <span style="padding:10px 14px;font-size:13px;font-weight:600;color:#313b3d;border-bottom:2px solid var(--primary-color,#5a6fd6);">
-      <i class="fa {{ tbl.menu_icon or 'fa-table' }} mr-1"></i>{{ tbl.title }} — Columns
-    </span>
-    {% if all_tables|length > 1 %}
-      <span style="margin-left:auto;display:flex;align-items:center;gap:4px;padding-right:8px;">
-        {% for t in all_tables %}{% if t.id != tbl.id %}
-          <a href="{{ url_for('admin.apps_columns', app_id=app_def.id, table_id=t.id) }}"
-             style="padding:6px 10px;font-size:12px;color:#6c757d;text-decoration:none;border:1px solid #d8e3e7;border-radius:3px;">
-            {{ t.title }}
-          </a>
-        {% endif %}{% endfor %}
-      </span>
-    {% endif %}
-  </nav>
-</div>
+{% set submenu_title = '<i class="fa ' ~ (tbl.menu_icon or 'fa-table') ~ ' mr-1"></i>' ~ tbl.title ~ ' — Columns' %}
+{% include 'admin/layouts/base_admin_submenu.html' %}
 {% endblock %}
 
-
 {% block page_content %}
-<div class="row mt-4">
-
-  <!-- Add / Edit Column Form -->
-  <div class="col-md-4">
-    <div class="card">
-      <div class="card-body">
-        <h6 class="mb-3" id="col-form-title"><i class="fa fa-plus-circle mr-1 text-primary"></i>Add Column</h6>
-        <form method="POST" action="{{ url_for('admin.apps_columns', app_id=app_def.id, table_id=tbl.id) }}" id="col-form">
-          <input type="hidden" id="col-edit-id" name="_col_id" value="">
-          {{ form.hidden_tag() }}
-
-          <div class="form-group">
-            {{ form.name.label(class_="col-form-label-sm") }}
-            {{ form.name(class_="form-control form-control-sm", placeholder="e.g. product_name") }}
-            {% for e in form.name.errors %}<small class="text-danger">{{ e }}</small>{% endfor %}
-          </div>
-
-          <div class="form-group">
-            {{ form.label.label(class_="col-form-label-sm") }}
-            {{ form.label(class_="form-control form-control-sm", placeholder="e.g. Product Name") }}
-          </div>
-
-          <div class="form-group">
-            {{ form.field_type.label(class_="col-form-label-sm") }}
-            {{ form.field_type(class_="form-control form-control-sm", id="field_type_sel") }}
-          </div>
-
-          <!-- String length -->
-          <div class="form-group" id="length-option">
-            {{ form.length.label(class_="col-form-label-sm") }}
-            {{ form.length(class_="form-control form-control-sm", placeholder="200") }}
-          </div>
-
-          <!-- Relation options -->
-          <div id="relation-options" class="border rounded p-2 mb-2 bg-light">
-            <small class="text-muted d-block mb-2"><b>Relation Options</b></small>
-            <div class="form-group mb-1">
-              {{ form.relation_table_id.label(class_="col-form-label-sm") }}
-              {{ form.relation_table_id(class_="form-control form-control-sm") }}
-            </div>
-            <div class="form-group mb-1">
-              {{ form.relation_system_table.label(class_="col-form-label-sm") }}
-              {{ form.relation_system_table(class_="form-control form-control-sm", placeholder="e.g. auth_users") }}
-              <small class="text-muted">Use if target is a system table, not in this app.</small>
-            </div>
-            <div class="form-group mb-1">
-              {{ form.relation_display_col.label(class_="col-form-label-sm") }}
-              {{ form.relation_display_col(class_="form-control form-control-sm", placeholder="e.g. name") }}
-            </div>
-            <div class="form-check mb-1">
-              {{ form.cascade_delete(class_="form-check-input") }}
-              {{ form.cascade_delete.label(class_="form-check-label small") }}
-            </div>
-          </div>
-
-          <!-- Select choices -->
-          <div id="select-options" class="border rounded p-2 mb-2 bg-light">
-            <small class="text-muted d-block mb-1"><b>Select Options</b></small>
-            <div class="form-group mb-0">
-              {{ form.choices.label(class_="col-form-label-sm") }}
-              {{ form.choices(class_="form-control form-control-sm", placeholder="e.g. Active,Inactive,Pending") }}
-              <small class="text-muted">{{ form.choices.description }}</small>
-            </div>
-          </div>
-
-          <div class="form-group">
-            {{ form.default_value.label(class_="col-form-label-sm") }}
-            {{ form.default_value(class_="form-control form-control-sm", placeholder="optional") }}
-          </div>
-
-          <div class="row">
-            <div class="col-6 form-group">
-              {{ form.order.label(class_="col-form-label-sm") }}
-              {{ form.order(class_="form-control form-control-sm") }}
-            </div>
-            <div class="col-6 form-group d-flex align-items-end">
-              <div class="form-check mb-2">
-                {{ form.required(class_="form-check-input") }}
-                {{ form.required.label(class_="form-check-label small") }}
-              </div>
-            </div>
-          </div>
-
-          <!-- Display / UX -->
-          <div class="col-settings-section">
-            <small class="text-muted d-block mb-1"><b>Display</b></small>
-            <div class="form-group mb-1">
-              {{ form.placeholder.label(class_="col-form-label-sm") }}
-              {{ form.placeholder(class_="form-control form-control-sm") }}
-            </div>
-            <div class="form-group mb-1">
-              {{ form.help_text.label(class_="col-form-label-sm") }}
-              {{ form.help_text(class_="form-control form-control-sm") }}
-            </div>
-            <div class="row">
-              <div class="col-4 form-check pl-4">
-                {{ form.show_in_list(class_="form-check-input") }}
-                {{ form.show_in_list.label(class_="form-check-label small") }}
-              </div>
-              <div class="col-4 form-check pl-4">
-                {{ form.show_in_form(class_="form-check-input") }}
-                {{ form.show_in_form.label(class_="form-check-label small") }}
-              </div>
-              <div class="col-4 form-check pl-4">
-                {{ form.readonly(class_="form-check-input") }}
-                {{ form.readonly.label(class_="form-check-label small") }}
-              </div>
-            </div>
-          </div>
-
-          <!-- Validation -->
-          <div class="col-settings-section">
-            <small class="text-muted d-block mb-1"><b>Validation</b></small>
-            <div class="row">
-              <div class="col-6 form-group mb-1">
-                {{ form.min_value.label(class_="col-form-label-sm") }}
-                {{ form.min_value(class_="form-control form-control-sm") }}
-              </div>
-              <div class="col-6 form-group mb-1">
-                {{ form.max_value.label(class_="col-form-label-sm") }}
-                {{ form.max_value(class_="form-control form-control-sm") }}
-              </div>
-            </div>
-            <div class="form-group mb-1">
-              {{ form.max_length.label(class_="col-form-label-sm") }}
-              {{ form.max_length(class_="form-control form-control-sm") }}
-            </div>
-            <div class="row">
-              <div class="col-6 form-check pl-4">
-                {{ form.unique(class_="form-check-input") }}
-                {{ form.unique.label(class_="form-check-label small") }}
-              </div>
-              <div class="col-6 form-check pl-4">
-                {{ form.searchable(class_="form-check-input") }}
-                {{ form.searchable.label(class_="form-check-label small") }}
-              </div>
-            </div>
-          </div>
-
-          <div class="d-flex mt-3" style="gap:6px;">
-            <button type="submit" id="col-submit-btn" class="btn btn-primary btn-sm flex-grow-1">
-              <i class="fa fa-plus mr-1"></i> Add Column
-            </button>
-            <button type="button" id="col-cancel-btn" class="btn btn-outline-secondary btn-sm" style="display:none;" onclick="resetColForm()">
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- Columns List -->
-  <div class="col-md-8">
-    <div class="card">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div>
-            <h6 class="mb-0">
-              <i class="fa fa-table mr-1"></i>
-              <b>{{ tbl.title }}</b>
-              <small class="text-muted ml-1">&mdash; DB: <code>ab_{{ app_def.name }}_{{ tbl.name }}</code></small>
-            </h6>
-          </div>
-          <div>
-            {% if not app_def.is_active %}
-              <form method="POST" action="{{ url_for('admin.apps_activate', app_id=app_def.id) }}" style="display:inline;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-xs btn-success mr-1">
-                  <i class="fa fa-play"></i> Activate
-                </button>
-              </form>
-            {% else %}
-              <span class="badge badge-success mr-1">Active</span>
-            {% endif %}
-            <a href="{{ url_for('admin.apps_table_edit', app_id=app_def.id, table_id=tbl.id) }}"
-               class="btn btn-xs btn-outline-secondary">
-              <i class="fa fa-cog"></i> Table Settings
+<div class="container-fluid px-4 mt-2">
+    <div class="aras-tabs-wrapper">
+        <ul class="nav nav-tabs mb-4" id="cfgTab" role="tablist">
+          <li class="nav-item">
+            <a class="nav-link active" id="fields-tab" data-toggle="tab" href="#fields-pane" role="tab" aria-controls="fields-pane" aria-selected="true">
+                <i class="fa fa-database mr-2"></i> Architecture
             </a>
-          </div>
-        </div>
-        <hr class="mt-1">
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" id="designer-tab" data-toggle="tab" href="#designer-pane" role="tab" aria-controls="designer-pane" aria-selected="false">
+                <i class="fa fa-magic mr-2"></i> Form Designer
+            </a>
+          </li>
+        </ul>
+    </div>
 
-        <!-- Column type reference -->
-        <div class="mb-2">
-          {% set type_colors = {'string':'secondary','text':'secondary','integer':'primary','float':'primary','decimal':'primary','boolean':'warning','date':'info','datetime':'info','json':'dark','relation':'danger'} %}
-          <small class="text-muted">
-            {% for col in columns %}
-              <span class="badge badge-{{ type_colors.get(col.field_type, 'light') }} mr-1">{{ col.name }}</span>
-            {% endfor %}
-          </small>
-        </div>
+    <div class="tab-content" id="cfgTabContent">
+      <!-- Tab 1: Fields (Redesigned) -->
+      <div class="tab-pane fade show active" id="fields-pane" role="tabpanel" aria-labelledby="fields-tab">
+        <div class="row mt-2">
 
-        <div class="table-responsive">
-          <table class="table table-sm table-hover mb-0">
-            <thead class="bg-light">
-              <tr>
-                <th style="width:30px">#</th>
-                <th>Column</th>
-                <th>Label</th>
-                <th>Type</th>
-                <th>Details</th>
-                <th style="width:50px">Req</th>
-                <th style="width:40px">Ord</th>
-                <th style="width:70px"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- Virtual: id (always present) -->
-              <tr class="text-muted">
-                <td>—</td>
-                <td><code>id</code></td>
-                <td>ID</td>
-                <td><span class="badge badge-primary">integer</span></td>
-                <td><small>Primary Key (auto)</small></td>
-                <td><i class="fa fa-check text-success"></i></td>
-                <td>—</td>
-                <td></td>
-              </tr>
-              {% for col in columns %}
-              <tr>
-                <td>{{ col.id }}</td>
-                <td><code>{{ col.name }}{% if col.field_type == 'relation' %}_id{% endif %}</code></td>
-                <td>{{ col.label }}</td>
-                <td>
-                  <span class="badge badge-{{ type_colors.get(col.field_type, 'light') }}">
-                    {{ col.field_type }}{% if col.length %}({{ col.length }}){% endif %}
-                  </span>
-                </td>
-                <td class="small text-muted">
-                  {% if col.field_type == 'relation' %}
-                    {% if col.relation_table %}
-                      FK → {{ col.relation_table.title }}
-                      {% if col.cascade_delete %}<span class="badge badge-danger badge-sm ml-1">cascade</span>{% endif %}
-                    {% elif col.relation_system_table %}
-                      FK → <code>{{ col.relation_system_table }}</code>
-                    {% endif %}
-                    {% if col.relation_display_col %}· display: <code>{{ col.relation_display_col }}</code>{% endif %}
-                  {% elif col.field_type == 'select' and col.choices %}
-                    <span title="{{ col.choices }}">{{ col.choices[:30] }}{% if col.choices|length > 30 %}…{% endif %}</span>
-                  {% elif col.default_value %}
-                    default: <code>{{ col.default_value }}</code>
-                  {% else %}
-                    —
-                  {% endif %}
-                  {% if col.unique %}<span class="badge badge-info badge-sm ml-1">unique</span>{% endif %}
-                  {% if col.searchable %}<span class="badge badge-secondary badge-sm ml-1">search</span>{% endif %}
-                  {% if col.readonly %}<span class="badge badge-warning badge-sm ml-1">readonly</span>{% endif %}
-                  {% if not col.show_in_list %}<span class="badge badge-light badge-sm ml-1">hidden-list</span>{% endif %}
-                </td>
-                <td>
-                  {% if col.required %}
-                    <i class="fa fa-check text-success"></i>
-                  {% else %}
-                    <i class="fa fa-times text-muted"></i>
-                  {% endif %}
-                </td>
-                <td>{{ col.order }}</td>
-                <td style="white-space:nowrap;">
-                  <button type="button" class="btn btn-xs btn-outline-secondary mr-1"
-                          onclick="fillEditForm({{ col.id }}, '{{ col.name }}', '{{ col.label }}', '{{ col.field_type }}', {{ col.order }}, {{ 'true' if col.required else 'false' }}, {{ 'true' if col.show_in_list else 'false' }}, {{ 'true' if col.show_in_form else 'false' }}, {{ 'true' if col.searchable else 'false' }}, {{ 'true' if col.readonly else 'false' }}, {{ 'true' if col.unique else 'false' }})"
-                          title="Edit">
-                    <i class="fa fa-pencil"></i>
+          <!-- Add / Edit Column Form -->
+          <div class="col-md-4">
+            <div class="aras-card shadow-sm mb-4" style="border: 1px solid var(--studio-ochre);">
+              <div class="card-header bg-white border-bottom py-3 px-4">
+                <h6 class="mb-0 fw-bold" id="col-form-title" style="font-family: var(--aras-font-serif); color: var(--studio-ink);">
+                  <i class="fa fa-plus-circle mr-2" style="color: var(--studio-ochre);"></i>Define Data Point
+                </h6>
+              </div>
+              <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('admin.apps_columns', app_id=app_def.id, table_id=tbl.id) }}" id="col-form" class="aras-form-fields">
+                  <input type="hidden" id="col-edit-id" name="_col_id" value="">
+                  {{ form.hidden_tag() }}
+
+                  <div class="mb-3">
+                    <label class="small fw-bold text-muted mb-1">{{ form.name.label.text }}</label>
+                    {{ form.name(class_="aras-form-input", placeholder="e.g. customer_name", style="font-family: var(--aras-font-mono); font-size: 12px;") }}
+                    {% for e in form.name.errors %}<small class="text-danger">{{ e }}</small>{% endfor %}
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="small fw-bold text-muted mb-1">{{ form.label.label.text }}</label>
+                    {{ form.label(class_="aras-form-input", placeholder="e.g. Customer Name") }}
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="small fw-bold text-muted mb-1">{{ form.field_type.label.text }}</label>
+                    {{ form.field_type(class_="aras-form-select", id="field_type_sel") }}
+                  </div>
+
+                  <!-- String length -->
+                  <div class="mb-3" id="length-option">
+                    <label class="small fw-bold text-muted mb-1">{{ form.length.label.text }}</label>
+                    {{ form.length(class_="aras-form-input", placeholder="200") }}
+                  </div>
+
+                  <!-- Relation options -->
+                  <div id="relation-options" class="p-3 mb-3 border rounded bg-light" style="border-left: 3px solid var(--studio-ochre) !important;">
+                    <div class="mb-2"><small class="fw-bold text-dark text-uppercase letter-spacing-1" style="font-size: 10px;">Relation Context</small></div>
+                    <div class="mb-2">
+                      <label class="small text-muted mb-1">{{ form.relation_table_id.label.text }}</label>
+                      {{ form.relation_table_id(class_="aras-form-select py-1", style="height: 32px; font-size: 12px;") }}
+                    </div>
+                    <div class="mb-2">
+                      <label class="small text-muted mb-1">{{ form.relation_system_table.label.text }}</label>
+                      {{ form.relation_system_table(class_="aras-form-input py-1", style="height: 32px; font-size: 12px;", placeholder="e.g. auth_users") }}
+                    </div>
+                    <div class="mb-2">
+                      <label class="small text-muted mb-1">{{ form.relation_display_col.label.text }}</label>
+                      {{ form.relation_display_col(class_="aras-form-input py-1", style="height: 32px; font-size: 12px;", placeholder="e.g. name") }}
+                    </div>
+                    <div class="aras-toggle mt-1">
+                      {{ form.cascade_delete(class_="aras-toggle-input") }}
+                      <span class="aras-toggle-track"><span class="aras-toggle-thumb"></span></span>
+                      <span class="aras-toggle-label small fw-bold">Cascade Delete</span>
+                    </div>
+                  </div>
+
+                  <!-- Select choices -->
+                  <div id="select-options" class="p-3 mb-3 border rounded bg-light" style="border-left: 3px solid var(--studio-ochre) !important;">
+                    <div class="mb-2"><small class="fw-bold text-dark text-uppercase letter-spacing-1" style="font-size: 10px;">List Options</small></div>
+                    {{ form.choices(class_="aras-form-textarea py-2", rows=2, placeholder="e.g. Active, Inactive", style="font-size: 12px;") }}
+                    <small class="text-muted italic" style="font-size: 10px;">Comma separated values.</small>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="small fw-bold text-muted mb-1">{{ form.default_value.label.text }}</label>
+                    {{ form.default_value(class_="aras-form-input", placeholder="optional default") }}
+                  </div>
+
+                  <div class="row mb-3">
+                    <div class="col-6">
+                      <label class="small fw-bold text-muted mb-1">{{ form.order.label.text }}</label>
+                      {{ form.order(class_="aras-form-input") }}
+                    </div>
+                    <div class="col-6 d-flex align-items-end pb-1">
+                      <div class="aras-toggle">
+                        {{ form.required(class_="aras-toggle-input") }}
+                        <span class="aras-toggle-track"><span class="aras-toggle-thumb"></span></span>
+                        <span class="aras-toggle-label small fw-bold">Required</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Config Collapse Trigger -->
+                  <button class="btn btn-block btn-outline-secondary btn-xs mb-3 py-2" type="button" data-toggle="collapse" data-target="#advConfig" aria-expanded="false" style="border-style: dashed; font-weight: 600;">
+                    Visual & Validation Properties <i class="fa fa-chevron-down ml-1"></i>
                   </button>
-                  <form method="POST"
-                        action="{{ url_for('admin.apps_column_delete', app_id=app_def.id, table_id=tbl.id, col_id=col.id) }}"
-                        style="display:inline;"
-                        onsubmit="return confirm('Delete column {{ col.name }}?')">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-xs btn-outline-danger" title="Delete">
-                      <i class="fa fa-trash"></i>
+
+                  <div class="collapse" id="advConfig">
+                    <div class="mb-3">
+                      <label class="small fw-bold text-muted mb-1">{{ form.placeholder.label.text }}</label>
+                      {{ form.placeholder(class_="aras-form-input") }}
+                    </div>
+                    <div class="mb-3">
+                      <label class="small fw-bold text-muted mb-1">{{ form.help_text.label.text }}</label>
+                      {{ form.help_text(class_="aras-form-input") }}
+                    </div>
+
+                    <div class="row mb-3">
+                      <div class="col-4">
+                        <label class="small fw-bold text-muted mb-1">{{ form.min_value.label.text }}</label>
+                        {{ form.min_value(class_="aras-form-input") }}
+                      </div>
+                      <div class="col-4">
+                        <label class="small fw-bold text-muted mb-1">{{ form.max_value.label.text }}</label>
+                        {{ form.max_value(class_="aras-form-input") }}
+                      </div>
+                      <div class="col-4">
+                        <label class="small fw-bold text-muted mb-1">{{ form.max_length.label.text }}</label>
+                        {{ form.max_length(class_="aras-form-input") }}
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-1">Display Controls</label>
+                        <div class="row px-2">
+                           <div class="col-4 p-1"><div class="aras-toggle">{{ form.show_in_list(class_="aras-toggle-input") }}<span class="aras-toggle-track"><span class="aras-toggle-thumb"></span></span><span class="aras-toggle-label" style="font-size:10px;">List</span></div></div>
+                           <div class="col-4 p-1"><div class="aras-toggle">{{ form.show_in_form(class_="aras-toggle-input") }}<span class="aras-toggle-track"><span class="aras-toggle-thumb"></span></span><span class="aras-toggle-label" style="font-size:10px;">Form</span></div></div>
+                           <div class="col-4 p-1"><div class="aras-toggle">{{ form.readonly(class_="aras-toggle-input") }}<span class="aras-toggle-track"><span class="aras-toggle-thumb"></span></span><span class="aras-toggle-label" style="font-size:10px;">Read</span></div></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-1">Architecture Guards</label>
+                        <div class="row mb-2 px-2">
+                            <div class="col-6 p-1"><div class="aras-toggle">{{ form.unique(class_="aras-toggle-input") }}<span class="aras-toggle-track"><span class="aras-toggle-thumb"></span></span><span class="aras-toggle-label" style="font-size:10px;">Unique</span></div></div>
+                            <div class="col-6 p-1"><div class="aras-toggle">{{ form.searchable(class_="aras-toggle-input") }}<span class="aras-toggle-track"><span class="aras-toggle-thumb"></span></span><span class="aras-toggle-label" style="font-size:10px;">Search</span></div></div>
+                        </div>
+                    </div>
+                  </div>
+
+                  <div class="d-flex mt-4 gap-2">
+                    <button type="submit" id="col-submit-btn" class="aras-btn aras-btn--primary flex-grow-1">
+                      <i class="fa fa-save mr-2"></i> Register Point
                     </button>
-                  </form>
-                </td>
-              </tr>
-              {% else %}
-              <tr>
-                <td colspan="8" class="text-center text-muted py-3">
-                  No columns yet — add the first column on the left.
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+                    <button type="button" id="col-cancel-btn" class="aras-btn" style="display:none;" onclick="resetColForm()">
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
 
-        <div class="mt-3 d-flex justify-content-between align-items-center">
-          <a href="{{ url_for('admin.apps_tables', app_id=app_def.id) }}" class="btn btn-outline-secondary btn-sm">
-            <i class="fa fa-arrow-left mr-1"></i>Back to Tables
-          </a>
-          <a href="{{ url_for('admin.apps_table_form_builder', app_id=app_def.id, table_id=tbl.id) }}" class="btn btn-primary btn-sm">
-            <i class="fa fa-magic mr-1"></i>Form Designer
-          </a>
-          <small class="text-muted">
-            SQL: <code>ab_{{ app_def.name }}_{{ tbl.name }}</code>
-            &mdash; {{ columns|length + 1 }} column(s) incl. PK
-          </small>
+          <!-- Columns List (Modernized) -->
+          <div class="col-md-8">
+            <div class="aras-card shadow-sm border-0 mb-4 overflow-hidden">
+              <div class="aras-table-toolbar border-bottom py-3 px-4 d-flex justify-content-between">
+                <div class="d-flex align-items-baseline">
+                    <h4 class="mb-0 fw-bold">{{ tbl.title }} <small class="text-muted italic ml-2">architecture</small></h4>
+                    <span class="meta ml-3"><code style="background: var(--studio-cream); padding: 2px 6px; border-radius: 4px; color: var(--studio-ink);">ab_{{ app_def.name }}_{{ tbl.name }}</code></span>
+                </div>
+                <div>
+                    <a href="{{ url_for('admin.apps_table_edit', app_id=app_def.id, table_id=tbl.id) }}"
+                       class="aras-btn aras-btn--outline aras-btn--sm">
+                      <i class="fa fa-cog mr-1"></i> Global Settings
+                    </a>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="aras-table w-100">
+                  <thead>
+                    <tr>
+                      <th style="width: 40px" class="text-center">#</th>
+                      <th>Identifier</th>
+                      <th>Label</th>
+                      <th>Context Type</th>
+                      <th>Behavior</th>
+                      <th class="text-center">Req</th>
+                      <th class="text-center">Ord</th>
+                      <th style="width: 100px" class="text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- System Base: ID -->
+                    <tr class="opacity-50" style="background: var(--studio-paper);">
+                      <td class="text-center"><i class="fa fa-lock small"></i></td>
+                      <td class="fw-bold"><code>id</code></td>
+                      <td class="italic text-muted">Primary Segment</td>
+                      <td><span class="mk on"><span class="dot"></span> INTEGER</span></td>
+                      <td><small class="italic">System Key (auto)</small></td>
+                      <td class="text-center"><i class="fa fa-check text-success small"></i></td>
+                      <td class="text-center">—</td>
+                      <td></td>
+                    </tr>
+
+                    {% for col in columns %}
+                    <tr class="is-clickable" onclick="fillEditForm({{ col.id }}, '{{ col.name }}', '{{ col.label }}', '{{ col.field_type }}', {{ col.order }}, {{ 'true' if col.required else 'false' }}, {{ 'true' if col.show_in_list else 'false' }}, {{ 'true' if col.show_in_form else 'false' }}, {{ 'true' if col.searchable else 'false' }}, {{ 'true' if col.readonly else 'false' }}, {{ 'true' if col.unique else 'false' }}, {{ col.length or 'null' }}, '{{ col.default_value or '' }}', '{{ col.placeholder or '' }}', '{{ col.help_text or '' }}', '{{ col.min_value or '' }}', '{{ col.max_value or '' }}', {{ col.max_length or 'null' }}, '{{ col.choices or '' }}', {{ col.relation_table_id or 0 }}, '{{ col.relation_system_table or '' }}', '{{ col.relation_display_col or '' }}', {{ 'true' if col.cascade_delete else 'false' }})">
+                      <td class="text-center text-muted hash" style="font-size: 11px;">{{ col.id }}</td>
+                      <td><code style="color: var(--studio-accent); font-weight: 600;">{{ col.name }}{% if col.field_type == 'relation' %}_id{% endif %}</code></td>
+                      <td class="fw-bold" style="color: var(--studio-ink);">{{ col.label }}</td>
+                      <td>
+                        {% set type_map = {'relation':'mk warn', 'boolean':'mk on', 'integer':'mk', 'string':'mk off'} %}
+                        <span class="{{ type_map.get(col.field_type, 'mk') }}">
+                            <span class="dot"></span> {{ col.field_type|upper }}{% if col.length %}({{ col.length }}){% endif %}
+                        </span>
+                      </td>
+                      <td>
+                          <div class="d-flex flex-wrap gap-1">
+                            {% if col.field_type == 'relation' %}
+                                <span class="badge badge-light border text-muted px-2 py-0" style="font-size: 9px;">FK: {{ col.relation_table.name if col.relation_table else col.relation_system_table }}</span>
+                            {% elif col.field_type == 'select' %}
+                                <span class="badge badge-light border text-muted px-2 py-0" style="font-size: 9px;">LIST</span>
+                            {% endif %}
+                            {% if col.unique %}<span class="badge badge-info px-2 py-0" style="font-size: 9px; background: #e0f2fe; color: #0369a1; border: none;">UNIQ</span>{% endif %}
+                            {% if not col.show_in_list %}<span class="badge badge-light px-2 py-0" style="font-size: 9px;">HID-L</span>{% endif %}
+                            {% if col.readonly %}<span class="badge badge-warning px-2 py-0" style="font-size: 9px; background: #fef3c7; color: #92400e; border: none;">R/O</span>{% endif %}
+                          </div>
+                      </td>
+                      <td class="text-center">
+                        {% if col.required %}
+                          <i class="fa fa-circle" style="color: var(--studio-accent); font-size: 6px;"></i>
+                        {% else %}
+                          <span class="text-muted">—</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-center fw-bold small">{{ col.order }}</td>
+                      <td class="text-right px-4" onclick="event.stopPropagation()">
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-xs btn-outline-secondary"
+                                    onclick="fillEditForm({{ col.id }}, '{{ col.name }}', '{{ col.label }}', '{{ col.field_type }}', {{ col.order }}, {{ 'true' if col.required else 'false' }}, {{ 'true' if col.show_in_list else 'false' }}, {{ 'true' if col.show_in_form else 'false' }}, {{ 'true' if col.searchable else 'false' }}, {{ 'true' if col.readonly else 'false' }}, {{ 'true' if col.unique else 'false' }}, {{ col.length or 'null' }}, '{{ col.default_value or '' }}', '{{ col.placeholder or '' }}', '{{ col.help_text or '' }}', '{{ col.min_value or '' }}', '{{ col.max_value or '' }}', {{ col.max_length or 'null' }}, '{{ col.choices or '' }}', {{ col.relation_table_id or 0 }}, '{{ col.relation_system_table or '' }}', '{{ col.relation_display_col or '' }}', {{ 'true' if col.cascade_delete else 'false' }})"
+                                    title="Edit Properties">
+                              <i class="fa fa-pencil"></i>
+                            </button>
+                            <form method="POST"
+                                  action="{{ url_for('admin.apps_column_delete', app_id=app_def.id, table_id=tbl.id, col_id=col.id) }}"
+                                  onsubmit="return confirm('Archive data point {{ col.name }}?')">
+                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                              <button type="submit" class="btn btn-xs btn-outline-danger" title="Remove Segment">
+                                <i class="fa fa-trash"></i>
+                              </button>
+                            </form>
+                        </div>
+                      </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                      <td colspan="8" class="text-center text-muted py-5 italic">
+                        No architecture segments defined — use the define tool on the left.
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="card-footer bg-light border-top py-2 px-4 d-flex justify-content-between align-items-center">
+                  <a href="{{ url_for('admin.apps_tables', app_id=app_def.id) }}" class="small text-muted fw-bold">
+                    <i class="fa fa-arrow-left mr-1"></i>Return to Registry
+                  </a>
+                  <span class="small text-muted italic">{{ columns|length + 1 }} segments mapped.</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Other tables in this app -->
-    {% if all_tables|length > 1 %}
-    <div class="card mt-3">
-      <div class="card-body py-2">
-        <small class="text-muted"><b>Other tables in {{ app_def.title }}:</b></small>
-        {% for t in all_tables %}
-          {% if t.id != tbl.id %}
-            <a href="{{ url_for('admin.apps_columns', app_id=app_def.id, table_id=t.id) }}"
-               class="btn btn-xs btn-outline-secondary ml-1 mt-1">
-              <i class="fa fa-table mr-1"></i>{{ t.title }}
-            </a>
-          {% endif %}
-        {% endfor %}
+      <!-- Tab 2: Designer -->
+      <div class="tab-pane fade" id="designer-pane" role="tabpanel" aria-labelledby="designer-tab">
+          {% include 'admin/partials/adm_cfg_form_dnd.html' %}
       </div>
     </div>
-    {% endif %}
-  </div>
-
 </div>
 {% endblock %}
 
 {% block script %}
 {{ super() }}
 <script>
+// Handle tab switching via URL hash
+(function() {
+  var hash = window.location.hash;
+  if (hash) {
+    $('.nav-tabs a[href="' + hash + '"]').tab('show');
+  }
+
+  // Update hash when tab changes
+  $('.nav-tabs a').on('shown.bs.tab', function (e) {
+    var newHash = e.target.hash;
+    if (history.pushState) {
+        history.pushState(null, null, newHash);
+    } else {
+        window.location.hash = newHash;
+    }
+  });
+})();
+
 (function(){
   var sel = document.getElementById('field_type_sel');
   if (!sel) return;
@@ -373,25 +333,56 @@ var EDIT_URL = "{{ url_for('admin.apps_columns', app_id=app_def.id, table_id=tbl
   /\/columns$/, '/columns/__COL_ID__/edit'
 );
 
-function fillEditForm(colId, name, label, fieldType, order, required, showInList, showInForm, searchable, readonly, unique) {
+function fillEditForm(colId, name, label, fieldType, order, required, showInList, showInForm, searchable, readonly, unique, length, default_value, placeholder, help_text, min_value, max_value, max_length, choices, relation_table_id, relation_system_table, relation_display_col, cascade_delete) {
   var form  = document.getElementById('col-form');
   form.action = EDIT_URL.replace('__COL_ID__', colId);
   document.getElementById('col-edit-id').value = colId;
+  
+  // Basic inputs
   form.elements['name'].value           = name;
   form.elements['label'].value          = label;
-  form.elements['field_type_sel'] ? (document.getElementById('field_type_sel').value = fieldType) : null;
   form.elements['order'].value          = order;
-  form.elements['required'].checked     = required;
-  form.elements['show_in_list'].checked = showInList;
-  form.elements['show_in_form'].checked = showInForm;
-  form.elements['searchable'].checked   = searchable;
-  form.elements['readonly'].checked     = readonly;
-  form.elements['unique'].checked       = unique;
+  form.elements['length'].value         = length || '';
+  form.elements['default_value'].value  = default_value || '';
+  form.elements['placeholder'].value    = placeholder || '';
+  form.elements['help_text'].value      = help_text || '';
+  form.elements['min_value'].value      = min_value || '';
+  form.elements['max_value'].value      = max_value || '';
+  if (form.elements['max_length']) form.elements['max_length'].value = max_length || '';
+  form.elements['choices'].value        = choices || '';
+
+  // Selects
+  if (document.getElementById('field_type_sel')) {
+    document.getElementById('field_type_sel').value = fieldType;
+  }
+
+  // Relation fields
+  if (form.elements['relation_table_id']) {
+      form.elements['relation_table_id'].value = relation_table_id || 0;
+  }
+  form.elements['relation_system_table'].value = relation_system_table || '';
+  form.elements['relation_display_col'].value = relation_display_col || '';
+
+  // Toggles (Aras Custom Design)
+  function setToggle(name, val) {
+    var inp = form.querySelector('input[name="' + name + '"]');
+    if (inp) {
+      inp.checked = val;
+    }
+  }
+
+  setToggle('required', required);
+  setToggle('show_in_list', showInList);
+  setToggle('show_in_form', showInForm);
+  setToggle('searchable', searchable);
+  setToggle('readonly', readonly);
+  setToggle('unique', unique);
+  setToggle('cascade_delete', cascade_delete);
 
   document.getElementById('col-form-title').innerHTML =
-    '<i class="fa fa-pencil mr-1 text-warning"></i>Edit Column: <b>' + label + '</b>';
-  document.getElementById('col-submit-btn').innerHTML = '<i class="fa fa-save mr-1"></i> Save Changes';
-  document.getElementById('col-submit-btn').className = 'btn btn-warning btn-sm flex-grow-1';
+    '<i class="fa fa-pencil mr-2" style="color: var(--studio-ochre);"></i>Edit Point: <b>' + label + '</b>';
+  document.getElementById('col-submit-btn').innerHTML = '<i class="fa fa-save mr-2"></i> Update Point';
+  document.getElementById('col-submit-btn').className = 'aras-btn aras-btn--primary flex-grow-1';
   document.getElementById('col-cancel-btn').style.display = 'inline-block';
 
   // trigger field_type change to show/hide options
@@ -405,9 +396,9 @@ function resetColForm() {
   form.reset();
   document.getElementById('col-edit-id').value = '';
   document.getElementById('col-form-title').innerHTML =
-    '<i class="fa fa-plus-circle mr-1 text-primary"></i>Add Column';
-  document.getElementById('col-submit-btn').innerHTML = '<i class="fa fa-plus mr-1"></i> Add Column';
-  document.getElementById('col-submit-btn').className = 'btn btn-primary btn-sm flex-grow-1';
+    '<i class="fa fa-plus-circle mr-2" style="color: var(--studio-ochre);"></i>Define Data Point';
+  document.getElementById('col-submit-btn').innerHTML = '<i class="fa fa-save mr-2"></i> Register Point';
+  document.getElementById('col-submit-btn').className = 'aras-btn aras-btn--primary flex-grow-1';
   document.getElementById('col-cancel-btn').style.display = 'none';
   document.getElementById('field_type_sel').dispatchEvent(new Event('change'));
 }

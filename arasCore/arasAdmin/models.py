@@ -200,6 +200,7 @@ class AppManagerTable(ArasModel):
             "show_in_menu":    self.show_in_menu,
             "menu_order":      self.menu_order,
             "is_active":       self.is_active,
+            "layout_json":     self.layout_json,
         }
 
     def __repr__(self):

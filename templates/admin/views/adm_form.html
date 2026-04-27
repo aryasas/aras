@@ -28,7 +28,12 @@
           <a href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}" 
              class="aras-btn aras-btn--outline aras-btn--sm ml-2" 
              style="border-color:var(--studio-ochre); color:var(--studio-accent);" title="Customize Form Fields">
-            <i class="fa fa-sliders"></i> <span class="d-none d-md-inline">Customize</span>
+            <i class="fa fa-sliders"></i> <span class="d-none d-md-inline">Fields</span>
+          </a>
+          <a href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}#designer-pane" 
+             class="aras-btn aras-btn--outline aras-btn--sm ml-2" 
+             style="border-color:var(--studio-accent); color:var(--studio-accent);" title="Visual Form Designer">
+            <i class="fa fa-magic"></i> <span class="d-none d-md-inline">Design</span>
           </a>
         {% endif %}
         <a href="{{ list_url }}" class="aras-btn">Cancel</a>

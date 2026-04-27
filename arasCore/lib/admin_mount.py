@@ -42,9 +42,17 @@ def _build_model_form(model, obj=None):
     import sqlalchemy as _sa
     from wtforms import StringField, TextAreaField, IntegerField, BooleanField, DateField, SelectField
     from wtforms.validators import Optional as _Opt, DataRequired
-
+    from arasCore.lib.forms import _CORE_SYSTEM_INTERNAL
+    
     attrs = {}
     for lbl, col_name, col in model.form_columns():
+        # Check if the column has a show_in_form attribute (e.g. from mgr_column)
+        show_in_form = getattr(col, "show_in_form", True)
+        
+        # Guard: skip hidden fields or internal system fields
+        if not show_in_form or col_name in _CORE_SYSTEM_INTERNAL:
+            continue
+
         req = not col.nullable and col.default is None and not col.server_default
         v = [DataRequired()] if req else [_Opt()]
 
@@ -254,6 +262,11 @@ class AdminResourceMounter:
                 pass
 
             _app_id, _table_id = self._resolve_app_table_ids()
+            
+            # Resolve custom layout
+            from arasCore.arasAdmin.crud_factory import _parse_layout_tabs
+            layout_tabs = _parse_layout_tabs(res_title, None, form, table_id=_table_id)
+
             return render_template(
                 "admin/views/adm_form.html",
                 title=f"Add {res_title}",
@@ -264,6 +277,7 @@ class AdminResourceMounter:
                 show_save_btn=show_save_btn,
                 app_id=_app_id,
                 table_id=_table_id,
+                layout_tabs=layout_tabs,
             )
         return view
 
@@ -347,6 +361,11 @@ class AdminResourceMounter:
                 pass
 
             _app_id, _table_id = self._resolve_app_table_ids()
+            
+            # Resolve custom layout
+            from arasCore.arasAdmin.crud_factory import _parse_layout_tabs
+            layout_tabs = _parse_layout_tabs(res_title, None, form, table_id=_table_id)
+
             return render_template(
                 "admin/views/adm_form.html",
                 title=f"Edit {res_title}",
@@ -359,6 +378,7 @@ class AdminResourceMounter:
                 activity_log=activity_log,
                 app_id=_app_id,
                 table_id=_table_id,
+                layout_tabs=layout_tabs,
             )
         return view
 

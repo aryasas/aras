@@ -208,18 +208,35 @@ def _get_inline_columns(child_model, fk_col: str) -> list:
 
 # ── Layout helper ─────────────────────────────────────────────────────────────
 
-def _parse_layout_tabs(tname, layout_json, form):
-    if not layout_json:
-        return None
+def _parse_layout_tabs(tname, layout_json, form, table_id=None):
+    """
+    Resolves the layout structure for the form.
+    If table_id is provided, it attempts to fetch the latest layout from DB
+    to ensure immediate feedback after saves.
+    """
+    actual_layout = layout_json
+    
+    if table_id:
+        try:
+            from arasCore.arasAdmin.models import AppManagerTable
+            # Ensure we are not using a cached version of the object
+            tbl = db.session.query(AppManagerTable).filter_by(id=table_id).first()
+            if tbl and tbl.layout_json:
+                actual_layout = tbl.layout_json
+                logger.info(f"[crud_factory] Successfully fetched dynamic layout for {tname} (table_id: {table_id})")
+            else:
+                logger.debug(f"[crud_factory] No custom layout found in DB for {tname}, using snapshot.")
+        except Exception as e:
+            logger.warning(f"[crud_factory] Dynamic layout fetch failed for table {table_id}: {e}")
+
     try:
-        from arasCore.lib.layout import parse_layout
-        class _FakeTbl:
-            name = tname
-            pass
-        _ft = _FakeTbl()
-        _ft.layout_json = layout_json
-        return parse_layout(_ft, form)
-    except Exception:
+        from arasCore.lib.layout import _parse_layout_tabs as _do_parse
+        result = _do_parse(tname, actual_layout, form)
+        if result:
+            logger.debug(f"[crud_factory] Parsed {len(result)} tab(s) for {tname}")
+        return result
+    except Exception as e:
+        logger.error(f"[crud_factory] Layout parsing failed for {tname}: {e}", exc_info=True)
         return None
 
 
@@ -278,7 +295,7 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
                 form=form, action=f"{burl}/add/", list_url=f"{burl}/",
                 app_title=app_title, app_id=app_id, table_id=table_id,
                 sibling_tabs=adm_tabs, current_tab_url=burl,
-                layout_tabs=_parse_layout_tabs(tname, layout_json, form),
+                layout_tabs=_parse_layout_tabs(tname, layout_json, form, table_id=table_id),
             )
         return view
 
@@ -328,7 +345,7 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
                 app_title=app_title, app_id=app_id, table_id=table_id,
                 sibling_tabs=adm_tabs, current_tab_url=burl,
                 child_tables=child_tables,
-                layout_tabs=_parse_layout_tabs(tname, layout_json, form),
+                layout_tabs=_parse_layout_tabs(tname, layout_json, form, table_id=table_id),
                 activity_log=_load_activity_log(model.__tablename__, item_id),
             )
         return view

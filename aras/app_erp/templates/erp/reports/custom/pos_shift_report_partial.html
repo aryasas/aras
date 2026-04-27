@@ -1,0 +1,44 @@
+<div class="aras-table-wrap" style="background: #fff; border: 1px solid var(--studio-cream);">
+  <table class="aras-report-table">
+    <thead>
+      <tr>
+        <th>Shift No</th>
+        <th>Cashier</th>
+        <th>Terminal</th>
+        <th>Opened / Closed</th>
+        <th class="text-center">Status</th>
+        <th class="text-end">Orders</th>
+        <th class="text-end">Total Sales</th>
+        <th class="text-end">Difference</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in data %}
+      <tr>
+        <td class="fw-bold" style="font-family: var(--aras-font-serif); color: var(--studio-accent); font-size: 15px;">
+          {{ row[1] }}
+        </td>
+        <td style="font-weight: 500;">{{ row[2] }}</td>
+        <td>{{ row[3] }}</td>
+        <td class="small text-muted">
+          <div>{{ row[4] }}</div>
+          <div style="opacity: 0.7;">{{ row[5] or '—' }}</div>
+        </td>
+        <td class="text-center">
+          <span class="aras-badge {{ 'aras-badge--info' if row[6] == 'open' else 'bg-light text-dark border' }}" style="font-size: 9px;">
+            {{ row[6]|upper }}
+          </span>
+        </td>
+        <td class="text-end" style="font-family: var(--aras-font-mono);">{{ row[7] }}</td>
+        <td class="val-currency">{{ "{:,.0f}".format(row[8]) }}</td>
+        <td class="val-currency {{ 'val-negative' if row[11] < 0 }}">
+          {{ "{:,.0f}".format(row[11]) }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="mt-3 text-muted small italic" style="font-family: var(--aras-font-serif);">
+  Showing {{ data|length }} shift records.
+</div>

@@ -139,7 +139,7 @@
                       <span class="badge badge-light border">{{ t.app.slug if t.app else 'unknown' }}</span>
                     </td>
                     <td class="px-4 py-3 text-right">
-                      <a href="{{ url_for('admin.apps_table_form_builder', app_id=t.app_id, table_id=t.id) }}" 
+                      <a href="{{ url_for('admin.apps_columns', app_id=t.app_id, table_id=t.id) }}#designer-pane" 
                          class="btn btn-sm btn-outline-primary" title="Edit Layout">
                         <i class="ti-layout-column2 mr-1"></i> Form
                       </a>
