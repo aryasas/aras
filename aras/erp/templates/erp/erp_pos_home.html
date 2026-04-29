@@ -1,0 +1,74 @@
+{% extends 'admin/base_index.html' %}
+
+{% block page_content %}
+<div class="aras-studio-theme">
+
+  {# ── App Hero Section ── #}
+  <header class="aras-app-hero">
+    <div class="aras-app-hero__icon">
+      <i class="fa fa-desktop"></i>
+    </div>
+    <div class="aras-app-hero__content">
+      <h1 class="aras-app-hero__title">arasPos</h1>
+      <p class="aras-app-hero__desc">Point of Sale Terminal Management</p>
+    </div>
+    <div style="margin-left: auto;">
+      <a href="/admin/erp/pos/terminal/" class="aras-btn aras-btn--outline">
+        <i class="fa fa-cog"></i> <span class="d-none d-md-inline">Setup Terminals</span>
+      </a>
+    </div>
+  </header>
+
+  {% if not terminals %}
+  <div class="aras-empty-state mb-4" style="background: #fff; border-radius: 4px; border: 1px dashed var(--studio-cream); padding: 48px; text-align: center;">
+    <i class="fa fa-exclamation-triangle fa-2x mb-3 text-warning"></i>
+    <p class="aras-empty-text">No active terminals found.</p>
+    <a href="/admin/erp/pos/terminal/add/" class="aras-btn aras-btn--primary">Add New Terminal</a>
+  </div>
+  {% endif %}
+
+  <div class="aras-pages-section">
+    <h6 class="aras-caps mb-4" style="color: var(--studio-ochre);">Active Terminals</h6>
+    
+    <div class="row">
+      {% for t in terminals %}
+      {% set sess = open_sessions.get(t.id) %}
+      <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+        <div class="aras-studio-tile" style="position: relative;">
+          <div class="aras-studio-tile__icon" style="color: {% if sess %}var(--aras-primary){% else %}var(--studio-accent){% endif %};">
+            <i class="fa fa-desktop"></i>
+          </div>
+          <div class="aras-studio-tile__title">{{ t.name }}</div>
+          <div class="aras-studio-tile__meta">{{ t.code }}</div>
+          
+          {% if sess %}
+            <div class="mt-2">
+              <span class="badge" style="background: var(--aras-primary-50); color: var(--aras-primary); font-size: 10px;">ACTIVE SESSION</span>
+              <div class="aras-studio-tile__meta mt-1">Cashier: {{ sess.cashier.username }}</div>
+            </div>
+            <div class="mt-3 d-flex gap-2">
+              <a href="{{ url_for('erp_views.pos_session', session_id=sess.id) }}" class="aras-btn aras-btn--primary flex-fill justify-content-center" style="font-size: 11px;">
+                <i class="fa fa-play mr-1"></i> Resume
+              </a>
+              <a href="{{ url_for('erp_views.pos_close_session', session_id=sess.id) }}" class="aras-btn aras-btn--outline flex-fill justify-content-center" style="font-size: 11px; border-color: #ffc107; color: #856404;">
+                <i class="fa fa-stop mr-1"></i> Close
+              </a>
+            </div>
+          {% else %}
+            <div class="mt-2">
+              <span class="badge" style="background: var(--studio-cream); color: var(--aras-ink-3); font-size: 10px;">CLOSED</span>
+            </div>
+            <div class="mt-3">
+              <a href="{{ url_for('erp_views.pos_open_session', terminal_id=t.id) }}" class="aras-btn aras-btn--outline flex-fill w-100 justify-content-center" style="font-size: 11px; border-color: var(--studio-accent); color: var(--studio-accent);">
+                <i class="fa fa-play mr-1"></i> Open Session
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

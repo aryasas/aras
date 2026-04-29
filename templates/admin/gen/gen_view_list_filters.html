@@ -1,0 +1,57 @@
+{# ── Filter panel ── #}
+{% if _has_filter %}
+<form method="GET" id="listFilterForm{{ _lid }}">
+  {% if search_q %}<input type="hidden" name="{{ _qparam }}" value="{{ search_q }}">{% endif %}
+  <div id="filterPanel{{ _lid }}" class="aras-filter-panel {% if active_filters %}is-open{% endif %}">
+    <div class="aras-filter-header">
+      <span class="aras-filter-title"><i class="fa fa-filter"></i> Filters</span>
+      <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" id="filterCloseBtn{{ _lid }}">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+    <div id="filterRows{{ _lid }}" class="aras-filter-rows">
+      {% for f in (active_filters or []) %}
+      <div class="aras-filter-row">
+        <div class="d-flex gap-8 flex-grow-1">
+          <select name="f_col[]" class="aras-fsel">
+            {% for lbl, fname in filter_cols %}
+            <option value="{{ fname }}" {% if fname == f.col %}selected{% endif %}>{{ lbl }}</option>
+            {% endfor %}
+          </select>
+          <select name="f_op[]" class="aras-fsel aras-fsel--op js-op-select{{ _lid }}">
+            {% for op_val, op_lbl in [('equals','='),('not_equals','≠'),('like','contains'),('not_like','not contains'),('in','in'),('not_in','not in'),('is','is null')] %}
+            <option value="{{ op_val }}" {% if op_val == f.op %}selected{% endif %}>{{ op_lbl }}</option>
+            {% endfor %}
+          </select>
+          <input type="text" name="f_val[]" class="aras-finput js-val-input{{ _lid }}"
+                 style="{% if f.op == 'is' %}display:none;{% endif %}"
+                 value="{{ f.val }}" placeholder="value…">
+        </div>
+        <button type="button" class="aras-btn aras-btn--outline aras-btn--sm js-remove-filter-row{{ _lid }}" title="Remove">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="aras-filter-footer">
+      {% if _has_pag %}
+      <div class="d-flex align-items-center gap-8 fs-12 mr-auto">
+        <span class="text-muted">Show:</span>
+        <select name="per_page" class="aras-fsel w-auto">
+          <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+          <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+          <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+        </select>
+      </div>
+      {% endif %}
+      <button type="button" class="aras-filter-add-row" id="addFilterRowBtn{{ _lid }}">
+        <i class="fa fa-plus"></i> Add condition
+      </button>
+      <button type="submit" class="aras-btn aras-btn--primary aras-btn--sm">Apply</button>
+      {% if active_filters %}
+      <a href="?" class="aras-btn aras-btn--outline aras-btn--sm">Clear all</a>
+      {% endif %}
+    </div>
+  </div>
+</form>
+{% endif %}

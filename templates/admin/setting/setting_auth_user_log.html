@@ -1,0 +1,43 @@
+{% extends "admin/base_index.html" %}
+
+{% block page_content %}
+<div class="aras-studio-theme mt-5">
+    <div class="row justify-content-center">
+      <div class="col-md-9">
+        <div class="aras-card shadow-sm">
+          <div class="aras-card-header">
+            <h3 class="aras-card-title">User Log</h3>
+          </div>
+          <div class="aras-card-body">
+            {% if activities %}
+              <div class="aras-meta-list">
+                {% for entry in activities %}
+                  <div class="aras-meta-item py-3 border-bottom">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                      <div class="d-flex align-items-center gap-2">
+                        <strong class="fs-14">{{ entry.name }}</strong>
+                        {% if entry.module %}
+                          <span class="aras-badge aras-badge--info fs-11">{{ entry.module }}</span>
+                        {% endif %}
+                      </div>
+                      <small class="text-muted-aras aras-mono fs-11">{{ entry.created_at.strftime('%d %b %Y %H:%M') }}</small>
+                    </div>
+                    {% if entry.get_data() %}
+                      <div class="text-muted-aras fs-12">
+                        {% for k, v in entry.get_data().items() %}
+                          <span class="mr-3"><strong>{{ k }}:</strong> {{ v }}</span>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="text-muted-aras aras-serif-italic py-4 text-center">No log entries yet.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+{% endblock page_content %}

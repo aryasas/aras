@@ -1,0 +1,66 @@
+{% extends 'admin/base_index.html' %}
+
+{% block page_content %}
+<div class="aras-studio-theme mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="aras-page-title">Schema Migrations — {{ app_def.title }}</h3>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('admin.apps_tables', app_id=app_def.id) }}" class="aras-btn aras-btn--outline aras-btn--sm">
+        <i class="fa fa-arrow-left"></i> Back to Tables
+      </a>
+      {% if pending %}
+      <form method="POST" action="{{ url_for('admin.apps_migrations_apply', app_id=app_def.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="aras-btn aras-btn--sm aras-btn--primary"
+                onclick="return confirm('Apply {{ pending|length }} safe migration(s)?')">
+          <i class="fa fa-play"></i> Apply Safe Migrations
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if pending %}
+  <div class="aras-card shadow-sm">
+    <div class="aras-card-header">
+      <h3 class="aras-card-title">Pending Migrations ({{ pending|length }})</h3>
+    </div>
+    <div class="aras-table-wrap">
+      <table class="aras-table">
+        <thead>
+          <tr>
+            <th>Table</th>
+            <th>Column</th>
+            <th>Action</th>
+            <th>SQL</th>
+            <th>Safe?</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in pending %}
+          <tr>
+            <td class="font-weight-bold">{{ m.table_name }}</td>
+            <td><code class="aras-mono">{{ m.column_name }}</code></td>
+            <td><span class="aras-badge aras-badge--info">{{ m.action }}</span></td>
+            <td class="fs-11 aras-mono text-muted-aras">{{ m.sql_stmt }}</td>
+            <td>
+              {% if m.action == 'add_column' %}
+              <span class="mk on"><span class="dot"></span> SAFE</span>
+              {% else %}
+              <span class="mk warn"><span class="dot"></span> MANUAL</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="text-center py-5 bg-white rounded shadow-sm">
+    <div class="mb-3"><i class="fa fa-check-circle text-success-aras fs-60 opacity-8"></i></div>
+    <p class="aras-serif-italic text-muted-aras">Schema is up to date — no pending migrations.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

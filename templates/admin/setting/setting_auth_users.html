@@ -1,0 +1,96 @@
+{% extends extends_layout if extends_layout else 'admin/base_index.html' %}
+
+{% block page_content %}
+<div class="aras-studio-theme mt-4">
+    <div class="aras-card shadow-sm">
+      <div class="aras-card-header">
+        <div class="d-flex justify-content-between align-items-center w-100">
+          <h3 class="aras-card-title">All Users <span class="aras-badge aras-badge--info ml-2">{{ users|length }}</span></h3>
+          <div class="d-flex gap-2">
+            <a href="{{ url_for('admin.users_new') }}" class="aras-btn aras-btn--sm aras-btn--primary">
+              <i class="fa fa-plus"></i> Add User
+            </a>
+            <a href="{{ url_for('admin.users_export_csv') }}" class="aras-btn aras-btn--sm aras-btn--outline">
+              <i class="fa fa-download"></i> Export CSV
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="aras-card-body">
+        <div class="aras-table-wrap">
+          <table class="aras-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Avatar</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Joined</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for u in users %}
+              <tr>
+                <td class="text-muted-aras fs-11">#{{ u.id }}</td>
+                <td><img src="{{ u.gravatar(32) }}" class="rounded-circle w-32 h-32"></td>
+                <td class="font-weight-bold">{{ u.username }}</td>
+                <td>{{ u.email }}</td>
+                <td>
+                  {% for ur in u.roles.all() %}
+                    <span class="aras-badge aras-badge--info">{{ ur.role.name }}</span>
+                  {% endfor %}
+                  {% if u.is_admin %}
+                    <span class="aras-badge" style="background:var(--studio-ink); color:#fff;">superadmin</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if u.is_active %}
+                    <span class="mk on"><span class="dot"></span> ACTIVE</span>
+                  {% else %}
+                    <span class="mk off"><span class="dot"></span> INACTIVE</span>
+                  {% endif %}
+                </td>
+                <td>{{ u.created_at.strftime('%d %b %Y') if u.created_at else '—' }}</td>
+                <td class="text-nowrap">
+                  <div class="d-flex gap-1">
+                    <a href="{{ url_for('auth.user', username=u.username) }}"
+                       class="aras-btn aras-btn--sm aras-btn--outline">View</a>
+
+                    {% if u.id != current_user.id %}
+                      {% if u.is_active %}
+                        <form method="POST" action="{{ url_for('admin.user_deactivate', user_id=u.id) }}" class="d-inline">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                          <button type="submit" class="aras-btn aras-btn--sm aras-btn--outline text-danger-aras"
+                                  onclick="return confirm('Deactivate {{ u.username }}?')">Deactivate</button>
+                        </form>
+                      {% else %}
+                        <form method="POST" action="{{ url_for('admin.user_activate', user_id=u.id) }}" class="d-inline">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                          <button type="submit" class="aras-btn aras-btn--sm aras-btn--outline text-success-aras">Activate</button>
+                        </form>
+                      {% endif %}
+
+                      <form method="POST" action="{{ url_for('admin.user_toggle_admin', user_id=u.id) }}" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="aras-btn aras-btn--sm aras-btn--outline {{ 'text-danger-aras' if u.is_admin else '' }}"
+                                onclick="return confirm('Toggle admin for {{ u.username }}?')">
+                          {{ 'Revoke Admin' if u.is_admin else 'Make Admin' }}
+                        </button>
+                      </form>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="8" class="text-center text-muted-aras aras-serif-italic py-4">No users found.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+</div>
+{% endblock %}

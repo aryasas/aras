@@ -1,0 +1,40 @@
+{#
+================================================================================
+  aras/templates/macros.html
+  Main entry point for all Aras UI components.
+  This file aggregates and re-exports macros from modular component files.
+================================================================================
+#}
+
+{% import "admin/macro/macro_alerts.html" as alerts with context %}
+{% import "admin/macro/macro_buttons.html" as buttons with context %}
+{% import "admin/macro/macro_cards.html" as cards with context %}
+{% import "admin/macro/macro_forms.html" as forms with context %}
+{% import "admin/macro/macro_navigation.html" as navigation with context %}
+{% import "admin/macro/macro_tables.html" as tables with context %}
+{% import "admin/macro/macro_widgets.html" as widgets with context %}
+
+{# -- Alerts -- #}
+{% macro render_alert() %}{{ alerts.render_alert(*varargs, **kwargs) }}{% endmacro %}
+{% macro show_message() %}{{ alerts.show_message(*varargs, **kwargs) }}{% endmacro %}
+
+{# -- Buttons -- #}
+{% macro render_button() %}{{ buttons.render_button(*varargs, **kwargs) }}{% endmacro %}
+
+{# -- Cards -- #}
+{% macro render_card() %}{% call cards.render_card(*varargs, **kwargs) %}{{ caller() }}{% endcall %}{% endmacro %}
+
+{# -- Forms -- #}
+{% macro show_errors() %}{{ forms.show_errors(*varargs, **kwargs) }}{% endmacro %}
+{% macro render_form_fields() %}{{ forms.render_form_fields(*varargs, **kwargs) }}{% endmacro %}
+
+{# -- Navigation -- #}
+{% macro render_tabs() %}{{ navigation.render_tabs(*varargs, **kwargs) }}{% endmacro %}
+{% macro pagination_widget() %}{{ navigation.pagination_widget(*varargs, **kwargs) }}{% endmacro %}
+
+{# -- Tables -- #}
+{% macro render_data_table() %}{{ tables.render_data_table(*varargs, **kwargs) }}{% endmacro %}
+
+{# -- Widgets -- #}
+{% macro render_stat_box() %}{{ widgets.render_stat_box(*varargs, **kwargs) }}{% endmacro %}
+{% macro render_modal() %}{% call widgets.render_modal(*varargs, **kwargs) %}{{ caller() }}{% endcall %}{% endmacro %}

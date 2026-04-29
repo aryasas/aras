@@ -16,8 +16,8 @@ Aras is a modular, metadata-driven ERP and Application Framework built with Flas
   - **Webhooks**: Event-driven outbound notifications with HMAC signatures.
   - **CLI**: Powerful command-line interface under `flask aras`.
 - **Apps (`aras/`)**:
-  - **app_erp**: A comprehensive ERP suite covering Accounting, CRM, POS, and Stock/Inventory.
-  - **app_todo / app_soc**: Example dynamic/social apps.
+  - **erp**: A comprehensive ERP suite covering Accounting, CRM, POS, and Stock/Inventory.
+  - **todo / soc**: Example dynamic/social apps.
 - **Data Layer**: Uses a custom `ArasModel` (base for all models) and an idempotent migration system.
 
 ## 🚀 Key Commands
@@ -40,7 +40,7 @@ Aras is a modular, metadata-driven ERP and Application Framework built with Flas
 - **Models**: Inherit from `arasCore.lib.base_model.ArasModel`.
 - **Manifests**: Code-based apps are registered via a `manifest.py` file using `AppHelper` to define menu groups, resources, and custom routes.
 - **Templates**: 
-  - Standardized admin views use `admin/adm_list.html` and `admin/adm_form.html`.
+  - Standardized admin views use `admin/gen_view_list.html` and `admin/gen_view_form.html`.
   - Reusable list logic is encapsulated in `admin/_list_partial.html`.
   - **MANDATE**: Never write CSS or JavaScript directly in HTML templates. Always move styles to `static/css/aras_design.css` (or relevant stylesheets) and logic to external `.js` files in `static/js/`.
 - **API**: Resources defined in manifests are automatically exposed at `/api/<app_slug>/<resource_name>/`.
@@ -50,7 +50,7 @@ Aras is a modular, metadata-driven ERP and Application Framework built with Flas
 
 ## ⚠️ Known Fixes & Quirks
 - **Database Mismatches**: If you encounter "Unknown column" errors, check the model definition vs the physical table. Use `flask aras fix-db` or manual `ALTER TABLE` via the `mysql` client.
-- **Template Errors**: Ensure you use `admin/adm_list.html` for generic lists. Avoid non-existent legacy paths like `admin/aras_list.html`.
+- **Template Errors**: Ensure you use `admin/gen_view_list.html` for generic lists. Avoid non-existent legacy paths like `admin/aras_list.html`.
 
 ## 📁 Project Structure (Post-Refactor)
 
@@ -74,7 +74,7 @@ The project has undergone a significant refactor. This is the updated high-level
     - `events.py`: A pub/sub event system for decoupled communication.
     - `search.py`: Powers the global search functionality.
     - `utils.py`: General utility functions.
-  - **`arasAdmin/`**: The built-in administration application. This has been heavily refactored.
+  - **`admin/`**: The built-in administration application. This has been heavily refactored.
     - `crud_factory.py`: A factory for creating CRUD (Create, Read, Update, Delete) views.
     - `column_factory.py`: A factory for generating table columns.
     - `table_registry.py`: A registry for dynamic tables.
@@ -84,7 +84,7 @@ The project has undergone a significant refactor. This is the updated high-level
   - `auth.py`: Manages user authentication and authorization.
   - `__init__.py`: The application factory `create_app()` is in here.
 - **`aras/`**: This directory contains all the pluggable application modules.
-  - **`app_*/`**: Each subdirectory represents an application (e.g., `app_erp`, `app_todo`).
+  - **`app_*/`**: Each subdirectory represents an application (e.g., `erp`, `todo`).
     - `manifest.py`: The entry point for a code-based application, where it registers itself with the framework.
     - `migrations/`: App-specific database migrations.
     - `views/`: App-specific view functions.

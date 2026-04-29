@@ -1,0 +1,48 @@
+<!-- Aras Sidebar -->
+<aside class="aras-sidebar" id="sidebar-menu">
+    <div class="aras-sidebar__header">
+        <div class="side-mark">a</div>
+        <span class="brand-name">aras</span>
+    </div>
+
+    <nav class="aras-sidebar__nav" id="sidebar-nav">
+        <div class="kicker sidebar-kicker sidebar-kicker--top">Workspace</div>
+        <ul class="no-list-style">
+            <li>
+                <a href="{{ url_for('admin.dashboard') }}" class="side-item">
+                    <i class="ti-home"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+
+            {% if g.gmenu %} 
+                {% for app in g.gmenu %}
+                <li>
+                    <a href="{{ app.url or '#' }}" class="side-item">
+                        <i class="fa {{ app.icon or 'fa-cubes' }}"></i>
+                        <span>{{ app.title }}</span>
+                    </a>
+                </li>
+                {% endfor %} 
+            {% endif %}
+        </ul>
+
+        <div class="kicker sidebar-kicker sidebar-kicker--bottom">System</div>
+        <ul class="no-list-style">
+            <li>
+                <a href="{{ url_for('admin.settings') }}" class="side-item">
+                    <i class="ti-settings"></i>
+                    <span>Settings</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('admin.help_page') }}" class="side-item">
+                    <i class="ti-help-alt"></i>
+                    <span>Help</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</aside>
+
+<script src="{{ url_for('static', filename='js/sidebar_logic.js') }}"></script>

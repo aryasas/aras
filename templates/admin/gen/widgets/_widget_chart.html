@@ -1,0 +1,65 @@
+{# Chart widget — bar chart via Chart.js #}
+<div class="col-md-{{ widget.width|default(6) }}">
+  <div class="aras-card">
+    <div class="aras-card__header">
+      <h3 class="aras-card__title">
+        <i class="{{ widget.icon|default('fa fa-chart-bar') }} icon--aras-accent-mr-2"></i>
+        {{ widget.title }}
+      </h3>
+    </div>
+    <div class="aras-card__body">
+      <canvas id="chart-{{ widget.id }}" height="120"></canvas>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var ctx = document.getElementById('chart-{{ widget.id }}');
+  if (!ctx || typeof Chart === 'undefined') return;
+  
+  // Use CSS variable colors if possible, else fallback
+  var primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--aras-primary').trim() || '#2d4a6b';
+  var primaryHover = getComputedStyle(document.documentElement).getPropertyValue('--aras-primary-600').trim() || '#23395a';
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: {{ widget.labels|tojson }},
+      datasets: [{
+        label: {{ widget.title|tojson }},
+        data: {{ widget.data|tojson }},
+        backgroundColor: primaryColor,
+        hoverBackgroundColor: primaryHover,
+        borderRadius: 2,
+        barThickness: 'flex',
+        maxBarThickness: 30
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { 
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f1b2d',
+          titleFont: { family: 'Bricolage Grotesque', size: 12 },
+          bodyFont: { family: 'Bricolage Grotesque', size: 12 },
+          padding: 10,
+          cornerRadius: 4
+        }
+      },
+      scales: { 
+        y: { 
+          beginAtZero: true,
+          grid: { color: '#eef0f2' },
+          ticks: { font: { family: 'ui-monospace', size: 10 }, color: '#9aacb8' }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { family: 'Bricolage Grotesque', size: 11 }, color: '#6c757d' }
+        }
+      }
+    }
+  });
+})();
+</script>

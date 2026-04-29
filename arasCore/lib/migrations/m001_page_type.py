@@ -29,7 +29,7 @@ MGR_TABLE_NEW_COLUMNS = [
 
 def run(flask_app):
     """Apply migration. Idempotent."""
-    from arasCore.lib.extensions import db
+    from arasCore.lib.core.extensions import db
     from sqlalchemy import text
 
     with flask_app.app_context():
@@ -48,7 +48,7 @@ def run(flask_app):
                     logger.info(f"[m001] mgr_table.{col} added")
 
             # 2. Create companion tables via SQLAlchemy metadata (idempotent checkfirst=True)
-            from arasCore.arasAdmin.models import (
+            from arasCore.admin.models import (
                 AppManagerPageAction, AppManagerPageView,
                 AppManagerDashboard, AppManagerSetting,
             )

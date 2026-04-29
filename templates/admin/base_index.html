@@ -1,0 +1,100 @@
+{% from 'admin/macro/macro_main.html' import render_alert %}
+
+<!doctype html>
+<html class="no-js" lang="en">
+    <head>
+        {% include 'admin/base/base_partial_head.html' %} 
+        {% block head %}{% endblock head %}
+    </head>
+
+    <body>
+        <!-- Aras Design System Frame (v3 Editorial) -->
+        <div class="aras-frame">
+            
+            <!-- Sidebar -->
+            {% include 'admin/base/base_partial_sidebar.html' %}
+
+            <!-- Main Pane -->
+            <div class="aras-pane">
+                
+                <!-- Top Bar -->
+                {% include "admin/base/base_partial_top.html" %}
+                {% include "admin/base/base_partial_menu_bar.html" %}
+
+                <!-- Main Scrollable Content Area -->
+                <div class="aras-pane-content">
+                    {% block content %} 
+                        {% block top_page_content%}{% endblock top_page_content %} 
+                        {% block page_content %}{% endblock page_content%} 
+                        {% include 'admin/base/base_partial_dev_msg.html' %} 
+                    {% endblock content %}
+                </div>
+
+                <!-- Footer -->
+                {% include 'admin/base/base_partial_footer.html' %}
+
+            </div>
+            <!-- End Main Pane -->
+
+        </div>
+        <!-- End Aras Frame -->
+
+        {# {{ widgets.render_tweak_panel() }} #}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-messages">
+              {% for category, message in messages %}
+                <div class="alert alert-{{ category if category != 'message' else 'info' }}">
+                    {{ message }}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        {% include 'admin/base/base_partial_script_src.html' %} 
+        {% block script_src %}{% endblock script_src %}
+
+        <script src="{{ url_for('static', filename='js/aras-design.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/aras_tweaks.js') }}"></script>
+
+        {% block script %} 
+        {% if moment is defined %}{{ moment.include_moment() }}{{ moment.lang(g.locale) }}{% endif %}
+        <script>
+            function set_message_count(n) {
+                $('#message_count').text(n);
+                $('#message_count').css('visibility', n ? 'visible' : 'hidden');
+            }
+            function set_activity_count(n) {
+                $('#activity_count').text(n);
+                $('#activity_count').css('visibility', n ? 'visible' : 'hidden');
+            }
+            {% if current_user.is_authenticated %}
+            var notif_since_msg = 0;
+            var notif_since_act = 0;
+            function poll_notifications() {
+                $.getJSON("{{ url_for('admin.notifications', category='message') }}?since=" + notif_since_msg, function(data) {
+                    if (data.length > 0) {
+                        notif_since_msg = data[data.length - 1].timestamp;
+                        $.each(data, function(i, n) {
+                            if (n.name === 'unread_message_count') set_message_count(n.data);
+                        });
+                    }
+                });
+                $.getJSON("{{ url_for('admin.notifications', category='activity') }}?since=" + notif_since_act, function(data) {
+                    if (data.length > 0) {
+                        notif_since_act = data[data.length - 1].timestamp;
+                        $.each(data, function(i, n) {
+                            if (n.name === 'unread_activity_count') set_activity_count(n.data);
+                        });
+                    }
+                });
+            }
+            setInterval(poll_notifications, 30000);
+            poll_notifications();
+            {% endif %}
+        </script>
+        {% endblock script %}
+    </body>
+</html>

@@ -21,3 +21,5 @@ bu/
 next/
 node_modules/
 *.egg-info/
+claudefraud.txt
+run_test*

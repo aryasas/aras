@@ -1,0 +1,18 @@
+<div class="settings-panel" id="panel-general">
+  <div class="panel-header">
+    <h3 class="settings-panel-title"><i class="ti-settings"></i>General Settings</h3>
+    <p class="text-muted">Global framework identity and environment configuration.</p>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-6">
+          <p><b>App Name:</b> {{ config.get('APP_NAME', 'Aras') if config is defined else 'Aras' }}</p>
+        </div>
+        <div class="col-6">
+          <p><b>Environment:</b> {{ server_info.env if server_info is defined else '—' }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

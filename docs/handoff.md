@@ -3,12 +3,12 @@
 ## Completed in last session
 - Created arasCore/lib/base_model.py (ArasModel + ArasSoftModel)
 - Updated arasCore/lib/api_handler.py to use ArasModel methods (create, update_self, delete_self)
-- Refactored all app_soc models to ArasSoftModel:
+- Refactored all soc models to ArasSoftModel:
   post.py, profile.py, comment.py, friendship.py,
   conversation.py, like.py, message.py, user_pref.py
 
 ## Completed this session
-Refactored all app_erp models to ArasModel/ArasSoftModel:
+Refactored all erp models to ArasModel/ArasSoftModel:
 
 ### erp_core/models/
 - tax.py: CoreTax → ArasSoftModel, CoreTaxGroup → ArasModel, CoreTaxGroupLine → db.Model (junction)
@@ -66,9 +66,9 @@ Refactored all app_erp models to ArasModel/ArasSoftModel:
 ## Do NOT re-read
 - arasCore/lib/base_model.py — done
 - arasCore/lib/api_handler.py — done
-- app_soc models — done
-- app_erp/erp_core/models/* — done
-- app_erp/erp_crm/models/* — done
-- app_erp/erp_acc/models/* — done
-- app_erp/erp_stock/models/* — done
-- app_erp/erp_pos/models/* — done
+- soc models — done
+- erp/erp_core/models/* — done
+- erp/erp_crm/models/* — done
+- erp/erp_acc/models/* — done
+- erp/erp_stock/models/* — done
+- erp/erp_pos/models/* — done

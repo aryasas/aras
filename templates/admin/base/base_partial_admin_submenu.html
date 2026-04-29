@@ -1,0 +1,25 @@
+{#
+  base_admin_submenu.html — App Manager breadcrumb nav
+  Required: app_def (AppManagerApp object)
+  Optional: submenu_title — if set, app_def becomes a link and this is the active leaf crumb
+#}
+<div class="app-menu-bar">
+    <a href="{{ url_for('admin.settings') }}#panel-apps" class="appmenu-item-link text-aras-ink-3">
+        Settings
+    </a>
+    <span class="app-menu-divider"></span>
+
+    {% if submenu_title %}
+      <a href="{{ url_for('admin.apps_tables', app_id=app_def.id) }}" class="appmenu-item-link text-aras-ink-3">
+        {{ app_def.title }}
+      </a>
+      <span class="app-menu-divider"></span>
+      <span class="appmenu-item-link appmenu-item-link--active">
+        {{ submenu_title|safe }}
+      </span>
+    {% else %}
+      <span class="appmenu-item-link appmenu-item-link--active">
+        <i class="fa {{ app_def.icon or 'fa-cubes' }} mr-1"></i>{{ app_def.title }} — Tables
+      </span>
+    {% endif %}
+</div>

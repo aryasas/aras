@@ -1,4 +1,4 @@
-{% extends 'auth/_auth_layout.html' %} {% from "macros.html" import show_errors,
+{% extends 'auth/_auth_layout.html' %} {% from "admin/macro/macro_main.html" import show_errors,
 show_message %} {% block page_content %}
 <style>
     :root {
@@ -59,6 +59,7 @@ show_message %} {% block page_content %}
         position: relative;
         overflow: hidden;
         border-radius: 4px;
+        margin: 0 auto;
     }
     @media (max-width: 768px) {
         .aras-auth-card {

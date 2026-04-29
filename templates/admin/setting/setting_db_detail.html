@@ -1,0 +1,69 @@
+{% extends "admin/base_index.html" %}
+{% block page_content %}
+<div class="aras-studio-theme mt-4">
+    <div class="d-flex align-items-center mb-4 gap-3">
+      <a href="{{ url_for('admin.settings') }}#panel-database" class="aras-btn aras-btn--outline aras-btn--sm">
+        <i class="fa fa-arrow-left"></i> Back
+      </a>
+      <h3 class="aras-page-title aras-mono">{{ table_name }}</h3>
+    </div>
+
+    <div class="aras-card mb-4">
+      <div class="aras-card-header">
+        <h3 class="aras-card-title">Columns</h3>
+      </div>
+      <div class="aras-card-body p-0">
+        <div class="aras-table-wrap">
+          <table class="aras-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Nullable</th>
+                <th>Default</th>
+                <th>PK</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for col in columns %}
+              <tr>
+                <td class="aras-mono font-weight-bold">{{ col.name }}</td>
+                <td><code class="aras-mono fs-11">{{ col.type }}</code></td>
+                <td>{{ 'Yes' if col.nullable else 'No' }}</td>
+                <td><small class="text-muted-aras">{{ col.default if col.default is not none else '—' }}</small></td>
+                <td>{% if col.name in pk_cols %}<span class="aras-badge" style="background:var(--studio-ink); color:#fff;">PK</span>{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    {% if indexes %}
+    <div class="aras-card">
+      <div class="aras-card-header">
+        <h3 class="aras-card-title">Indexes</h3>
+      </div>
+      <div class="aras-card-body p-0">
+        <div class="aras-table-wrap">
+          <table class="aras-table">
+            <thead>
+              <tr><th>Name</th><th>Columns</th><th>Unique</th></tr>
+            </thead>
+            <tbody>
+              {% for idx in indexes %}
+              <tr>
+                <td class="aras-mono text-accent">{{ idx.name }}</td>
+                <td>{{ idx.column_names | join(', ') }}</td>
+                <td>{{ 'Yes' if idx.unique else 'No' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock page_content %}

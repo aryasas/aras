@@ -1,0 +1,19 @@
+{% set _path = request.path %}
+<nav class="dashboard-nav">
+    {% for app_entry in g.gmenu %}
+        {% for child in app_entry.children %}
+        <a
+            href="{{ child.url }}"
+            class="dashboard-nav-item"
+        >
+            <i class="fa {{ child.icon }}"></i> {{ child.title }}
+        </a>
+        {% endfor %}
+    {% endfor %}
+    <a
+        href="{{ url_for('admin.settings') }}"
+        class="dashboard-nav-item dashboard-nav-item--settings"
+    >
+        <i class="ti-settings"></i> Settings
+    </a>
+</nav>

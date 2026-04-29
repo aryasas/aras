@@ -1,5 +1,5 @@
-arasCore/arasAdmin/models.py line 375, 486, 507, 529, 557, 600             
-arasCore/arasAdmin/services.py line 282, 308, 351                          
+arasCore/admin/models.py line 375, 486, 507, 529, 557, 600             
+arasCore/admin/services.py line 282, 308, 351                          
 arasCore/auth.py line 17                                                   
 arasCore/lib/installer.py line 446                                         
 arasCore/lib/label_utils.py line 45                                        
@@ -10,7 +10,7 @@ then:
                                                                                                   
 (this is made before continuing work after terminated) recheck the line number:
   
-Refactor arasCore/arasAdmin/services.py — split into focused modules. Do not change any logic, signatures, or behavior.
+Refactor arasCore/admin/services.py — split into focused modules. Do not change any logic, signatures, or behavior.
 Read only these sections of services.py, nothing else:
 
 Lines 1–70 (imports, _SYSTEM_COLS, _slug_from_url, _make_sa_column)
@@ -32,7 +32,7 @@ menu_service.py — _build_raw_menu, build_sidebar_menu, _filter_menu_for_user
 Then update services.py: replace moved code with imports from the new files. Do not re-read services.py for this step — use what is already in context.
 Finally, search only for these two import patterns across the codebase — do not read any full files:
 
-from arasCore.arasAdmin.services import
+from arasCore.admin.services import
 from .services import
 
 Fix any broken imports found. Stop after that.

@@ -30,7 +30,7 @@ def run(base: str, username: str, password: str, app_url: str, field: str, value
 
     status, url, html = c.get(f"{app_url}/")
     assert_ok(f"GET {app_url}/ → 200", status == 200, f"status={status}")
-    assert_ok("Web list uses web template (no adm_base)", "adm_base" not in html)
+    assert_ok("Web list uses web template (no base_index)", "base_index" not in html)
 
     section(f"Built App — Web add (requires login)")
 
@@ -76,7 +76,7 @@ def run(base: str, username: str, password: str, app_url: str, field: str, value
 
     status, _, html = c.get(f"{adm_url}/")
     assert_ok(f"GET {adm_url}/ → 200", status == 200, f"status={status}")
-    assert_ok("Admin list uses admin template", any(k in html for k in ["adm_base", "sidebar", "admin/ab_list"]))
+    assert_ok("Admin list uses admin template", any(k in html for k in ["base_index", "sidebar", "admin/ab_list"]))
 
     section(f"Built App — Admin add  {adm_url}/add/")
 

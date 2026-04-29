@@ -113,6 +113,14 @@ skills/
 
 # ── Dev Reference (local only) ────────────────────
 erpnext-develop/
+arasd/
+arasd2/
+static/arasd_ref_assets/
+static/arasd_v3_ref/
+static/arasd_ref_table_example.html/
+static/arasd_v3_reference.css/
+static2/
+templates2/
 
 # ── Runtime / Logs ────────────────────────────────
 log/
@@ -127,3 +135,5 @@ bu/
 .claudeignore
 smart_read.py
 smart_read.sh
+claudefraud.txt
+run_test*

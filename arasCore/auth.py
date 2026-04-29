@@ -8,8 +8,8 @@ from functools import wraps
 from flask import redirect, url_for, flash, abort, current_app
 from flask_login import current_user, login_user, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from .lib.extensions import db, login_manager
-from .lib.base_model import ArasModel
+from .lib.core.extensions import db, login_manager
+from .lib.core.base_model import ArasModel
 import json
 
 
@@ -93,7 +93,7 @@ class User(ArasModel):
         return f"https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}"
 
     # def new_messages(self):
-    #     from arasCore.arasAdmin.models import Message
+    #     from arasCore.admin.models import Message
     #     from datetime import datetime
     #     last_read = self.last_message_read_time or datetime(1900, 1, 1)
     #     return (
@@ -104,7 +104,7 @@ class User(ArasModel):
     #     )
 
     def new_activities(self):
-        from arasCore.arasAdmin.models import UserActivity
+        from arasCore.admin.models import UserActivity
         from datetime import datetime
         last_read = self.last_activity_read_time or datetime(1900, 1, 1)
         return (
@@ -115,7 +115,7 @@ class User(ArasModel):
         )
 
     def log_activity(self, name, module=None, payload=None):
-        from arasCore.arasAdmin.models import UserActivity
+        from arasCore.admin.models import UserActivity
         import json as _json
         entry = UserActivity(
             user_id=self.id,
@@ -131,7 +131,7 @@ class User(ArasModel):
         )
 
     def add_notification(self, name, data, category="general"):
-        from arasCore.arasAdmin.models import Notification
+        from arasCore.admin.models import Notification
         # Remove existing same-name notification for this user
         self.notifications.filter_by(name=name).delete()
         n = Notification(

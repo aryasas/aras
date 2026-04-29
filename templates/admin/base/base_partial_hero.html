@@ -1,0 +1,60 @@
+{# 
+  com_hero.html — Standard Hero/Title Section for Aras Admin
+  Refactored from adm_app_home.html to be reusable across all admin views.
+#}
+
+{# Prioritize 'title' as requested, fallback to hero_title then main_title #}
+{% set _title = title if title is defined else (hero_title if hero_title is defined else main_title) %}
+
+{# Description/Subtitle mapping #}
+{% set _desc  = hero_desc if hero_desc is defined else (description if description is defined else (app_description if app_description is defined else '')) %}
+{% set _icon  = hero_icon if hero_icon is defined else (app_icon if app_icon is defined else 'fa-cube') %}
+{% set _back  = back_url if back_url is defined else none %}
+
+<header class="aras-app-hero aras-hero--standard">
+  {% if _icon %}
+    <div class="aras-app-hero__icon">
+      <i class="fa {{ _icon }}"></i>
+    </div>
+  {% endif %}
+  
+  <div class="aras-app-hero__content">
+    <h1 class="aras-app-hero__title">{{ _title }}</h1>
+    
+    {% if _back %}
+      <p class="aras-app-hero__desc">
+        Part of <a href="{{ _back }}" class="app-hero-link">{{ app_title if app_title is defined else 'Parent Module' }}</a>
+      </p>
+    {% elif _desc %}
+      <p class="aras-app-hero__desc">{{ _desc }}</p>
+    {% endif %}
+  </div>
+  
+  <div class="aras-hero-actions" style="margin-left: auto; display: flex; gap: 12px; align-items: center;">
+    {% if extra_buttons %}
+      {% for btn in extra_buttons %}
+        <a href="{{ btn.url }}" class="aras-btn aras-btn--{{ btn.style|default('outline') }}">
+          {% if btn.icon %}<i class="fa {{ btn.icon }}"></i>{% endif %} {{ btn.label }}
+        </a>
+      {% endfor %}
+    {% endif %}
+
+    {% if _back %}
+      <a href="{{ _back }}" class="aras-btn aras-btn--outline">
+        <i class="ti-arrow-left"></i> Back
+      </a>
+    {% elif settings_url %}
+      <a href="{{ settings_url }}" class="aras-btn aras-btn--outline">
+        <i class="ti-settings"></i> Config
+      </a>
+    {% endif %}
+  </div>
+</header>
+
+<style>
+  /* Move it down slightly from the top bar */
+  .aras-hero--standard {
+    margin-top: -8px;
+    margin-bottom: 32px;
+  }
+</style>

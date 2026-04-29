@@ -1,0 +1,19 @@
+{% extends "admin/base_index.html" %} {% block head %} {{ super() }} {% endblock
+%} {% block page_content %}
+<div class="aras-studio-theme mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-9">
+            <div class="aras-card shadow-sm">
+                <div class="aras-card-header">
+                    <h3 class="aras-card-title">{{ title }}</h3>
+                </div>
+                <div class="aras-card-body">
+                    {# Messages content #}
+                    <p class="text-muted-aras aras-serif-italic py-4 text-center">No messages yet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock page_content %} {% block script %} {{ super() }} {% endblock %}
+</div>

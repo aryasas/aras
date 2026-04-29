@@ -1,0 +1,121 @@
+{% extends extends_layout if extends_layout else 'admin/base_index.html' %}
+
+{% block submenu %}{% include 'admin/base/base_partial_admin_submenu.html' %}{% endblock %}
+
+{% block page_content %}
+<div class="aras-studio-theme mt-4">
+    <div class="aras-card shadow-sm">
+      <div class="aras-card-header">
+        <div class="d-flex justify-content-between align-items-center w-100">
+          <div>
+            <h3 class="aras-card-title">{{ app_def.title }} — Tables / Pages</h3>
+            <small class="aras-serif-italic text-muted-aras">Each table = 1 DB table + 1 set of CRUD pages.</small>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            {% if not app_def.is_active %}
+              <form method="POST" action="{{ url_for('admin.apps_activate', app_id=app_def.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="aras-btn aras-btn--sm aras-btn--primary">
+                  <i class="fa fa-play"></i> Activate App
+                </button>
+              </form>
+            {% else %}
+              <span class="badge badge-success fs-13">Active</span>
+            {% endif %}
+            <a href="{{ url_for('admin.apps_migrations', app_id=app_def.id) }}" class="aras-btn aras-btn--sm aras-btn--outline" title="Schema Migrations">
+              <i class="fa fa-database"></i> Migrations
+            </a>
+            <a href="{{ url_for('admin.apps_table_new', app_id=app_def.id) }}" class="aras-btn aras-btn--sm aras-btn--primary">
+              <i class="fa fa-plus"></i> Add Table
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="aras-card-body">
+        {% if tables %}
+        <div class="aras-table-wrap">
+          <table class="aras-table">
+            <thead>
+              <tr>
+                <th>Name</th><th>Title</th><th>URL</th><th>Parent</th>
+                <th>Menu</th><th>Order</th><th>Columns</th><th>Active</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for tbl in tables %}
+              <tr>
+                <td><code class="aras-mono">{{ tbl.name }}</code></td>
+                <td>{{ tbl.title }}</td>
+                <td><code class="aras-mono">{{ app_def.url }}{{ tbl.url_suffix }}</code></td>
+                <td>
+                  {% if tbl.parent %}
+                    <span class="aras-badge aras-badge--info">{{ tbl.parent.title }}</span>
+                  {% else %}
+                    <span class="text-muted-aras">—</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if tbl.show_in_menu %}
+                    <i class="fa {{ tbl.menu_icon }} mr-1 text-accent"></i>
+                    {{ tbl.get_menu_title() }}
+                  {% else %}
+                    <span class="text-muted-aras">hidden</span>
+                  {% endif %}
+                </td>
+                <td>{{ tbl.menu_order }}</td>
+                <td>
+                  <a href="{{ url_for('admin.apps_columns', app_id=app_def.id, table_id=tbl.id) }}"
+                     class="aras-badge aras-badge--info">
+                    {{ tbl.columns.count() }} col(s)
+                  </a>
+                </td>
+                <td>
+                  {% if tbl.is_active %}
+                    <span class="mk on"><span class="dot"></span> ON</span>
+                  {% else %}
+                    <span class="mk off"><span class="dot"></span> OFF</span>
+                  {% endif %}
+                </td>
+                <td class="text-nowrap">
+                  <div class="d-flex gap-1">
+                    <a href="{{ url_for('admin.apps_columns', app_id=app_def.id, table_id=tbl.id) }}"
+                       class="aras-btn aras-btn--sm aras-btn--outline" title="Columns">
+                      <i class="fa fa-columns"></i>
+                    </a>
+                    <a href="{{ url_for('admin.apps_table_edit', app_id=app_def.id, table_id=tbl.id) }}"
+                       class="aras-btn aras-btn--sm aras-btn--outline" title="Edit">
+                      <i class="fa fa-pencil"></i>
+                    </a>
+                    <form method="POST" action="{{ url_for('admin.apps_table_delete', app_id=app_def.id, table_id=tbl.id) }}"
+                          class="d-inline" onsubmit="return confirm('Delete table {{ tbl.title }}?')">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="aras-btn aras-btn--sm aras-btn--outline text-danger-aras" title="Delete">
+                        <i class="fa fa-trash"></i>
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+          <i class="fa fa-table fs-60 opacity-2 text-accent"></i>
+          <p class="mt-3 text-muted-aras aras-serif-italic">No tables yet. Add the first table to start building.</p>
+          <a href="{{ url_for('admin.apps_table_new', app_id=app_def.id) }}" class="aras-btn aras-btn--primary">
+            <i class="fa fa-plus"></i> Add First Table
+          </a>
+        </div>
+        {% endif %}
+
+        <div class="mt-4">
+          <a href="{{ url_for('admin.settings') }}#panel-apps" class="aras-btn aras-btn--outline aras-btn--sm">
+            <i class="fa fa-arrow-left"></i> Back to Settings
+          </a>
+        </div>
+      </div>
+    </div>
+</div>
+{% endblock %}

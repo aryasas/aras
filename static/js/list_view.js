@@ -66,8 +66,8 @@
       var checked = getChecked();
       if (!checked.length) return;
       if (!confirm('Delete ' + checked.length + ' record(s)?')) return;
-      $id('bulkDeleteIds').value = checked.map(function (c) { return c.value; }).join(',');
-      $id('bulkDeleteForm').submit();
+      $id('bulkDeleteIds' + LID).value = checked.map(function (c) { return c.value; }).join(',');
+      $id('bulkDeleteForm' + LID).submit();
     }
     document.querySelectorAll('.js-bulk-delete' + LID).forEach(function (el) {
       el.addEventListener('click', function (e) { e.preventDefault(); triggerBulkDelete(); });
@@ -89,14 +89,34 @@
     function buildFilterRow() {
       var row = document.createElement('div');
       row.className = 'aras-filter-row';
+
+      var wrap = document.createElement('div');
+      wrap.className = 'd-flex gap-8 flex-grow-1';
+
       var colSel = el('select', { name: 'f_col[]', className: 'aras-fsel' });
       filterCols.forEach(function (fc) { colSel.appendChild(el('option', { value: fc[1], textContent: fc[0] })); });
+
       var opSel = el('select', { name: 'f_op[]', className: 'aras-fsel aras-fsel--op js-op-select' + LID });
       opOptions.forEach(function (op) { opSel.appendChild(el('option', { value: op[0], textContent: op[1] })); });
+
       var valIn = el('input', { type: 'text', name: 'f_val[]', className: 'aras-finput js-val-input' + LID, placeholder: 'value…' });
-      var rm    = el('button', { type: 'button', className: 'aras-btn aras-btn--sm js-remove-filter-row' + LID, innerHTML: '<i class="fa fa-times"></i>' });
-      bindOpSelect(opSel); bindRemoveFilter(rm);
-      row.appendChild(colSel); row.appendChild(opSel); row.appendChild(valIn); row.appendChild(rm);
+
+      wrap.appendChild(colSel);
+      wrap.appendChild(opSel);
+      wrap.appendChild(valIn);
+
+      var rm = el('button', {
+        type: 'button',
+        className: 'aras-btn aras-btn--outline aras-btn--sm js-remove-filter-row' + LID,
+        title: 'Remove',
+        innerHTML: '<i class="fa fa-times"></i>'
+      });
+
+      bindOpSelect(opSel);
+      bindRemoveFilter(rm);
+
+      row.appendChild(wrap);
+      row.appendChild(rm);
       return row;
     }
     function bindOpSelect(sel) {
@@ -154,21 +174,28 @@
   (function () {
     var btn     = $id('colToggleBtn');
     var popover = $id('colTogglePopover');
+    var table   = $id('mainListTable');
     if (!btn || !popover) return;
 
     function applyColVisibility(fieldName, visible) {
-      var table = $id('mainListTable');
       if (!table) return;
-      popover.querySelectorAll('.js-col-vis' + LID).forEach(function (cb) {
-        if (cb.dataset.field === fieldName) {
-          var colIdx = parseInt(cb.dataset.col);
-          table.querySelectorAll('tr').forEach(function (row) {
-            var cell = row.cells[colIdx];
-            if (cell) cell.style.display = visible ? '' : 'none';
-          });
-          cb.checked = visible;
-        }
+      table.querySelectorAll('thead th[data-field="' + fieldName + '"]').forEach(function (th) {
+        th.style.display = visible ? '' : 'none';
       });
+      table.querySelectorAll('tbody td[data-field="' + fieldName + '"]').forEach(function (td) {
+        td.style.display = visible ? '' : 'none';
+      });
+      var totalsRow = $id('totalsRow');
+      if (totalsRow) {
+        totalsRow.querySelectorAll('td[data-field="' + fieldName + '"]').forEach(function (td) {
+          td.style.display = visible ? '' : 'none';
+        });
+      }
+    }
+
+    function _getCsrf() {
+      var m = document.cookie.match(/csrf_token=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : '';
     }
 
     function persistColumns() {
@@ -179,16 +206,15 @@
       });
       fetch('/admin/api/list-pref/', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': _getCsrf()},
         body: JSON.stringify({doctype: doctypeKey, columns: visible})
       });
     }
 
-    if (savedColumns && Array.isArray(savedColumns)) {
-      popover.querySelectorAll('.js-col-vis' + LID).forEach(function (cb) {
-        if (cb.dataset.field) applyColVisibility(cb.dataset.field, savedColumns.indexOf(cb.dataset.field) !== -1);
-      });
-    }
+    // Apply initial state — hide unchecked columns
+    popover.querySelectorAll('.js-col-vis' + LID).forEach(function (cb) {
+      if (!cb.checked) applyColVisibility(cb.dataset.field, false);
+    });
 
     btn.addEventListener('click', function (e) {
       e.stopPropagation();

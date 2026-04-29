@@ -1,13 +1,22 @@
 # Project Context for Claude Code
 
+Jika saya mengatakan:
+"'dde', artinya 'don't do edit' — jangan lakukan perubahan apapun."
+"'rrc', artinya 're read CLAUDE.md' — before anything else, re-read CLAUDE.md rules 1-3"
+
+## HARD RULES — NEVER VIOLATE
+1. NO commentary during task execution. Silent execution only.
+2. Report ONCE at end: file changed + what changed. Nothing else.
+3. STOP before token limit → update docs/progress.md → report "stopped, see progress.md"
+
 ## Project Instructions
-- Report only at the end, briefly. No explanations during task execution.
 - Follow the correct framework flow (SEE docs/MAIN.md).
 - This app is similar to ERPNext in function and system but simpler. See ERPNext code in `erpnext-develop/`.
 - Before hitting limit, stop and update `docs/progress.md`.
 - Use English for all comments in code.
-- DONT answering in every task. Just do task and report in the end.
 - KEEP code SHORT, SIMPLE, CLEAN, PROFESSIONAL, BEAUTY, and easy to understand. MUST DRY (Don't Repeat Yourself) principles
+- jika ingin membuat design. pastikan menggunakan referensi dari static/css/aras_design.css
+- berhati-hati untuk merubah halaman form kareana tersambung dengan fungsi form designer (js/react js)
 
 ## Agent Rules
 - YOU ARE STRONGLY NOT ALLOW TO USE GIT COMMAND THAT WILL BRING CHANGE. ONLY ALLOW GIT TO READ (git diff atau git log)
@@ -31,7 +40,7 @@
 ### All app installation methods (any arasCore change must not break these):
 1. **CLI + YAML/JSON**: `flask aras install-app ./app.yaml --activate` → creates DB records (AppManagerApp/Table/Column) + folders
 2. **Web UI file upload**: `POST /admin/apps/install` → same as above, from browser
-3. **CLI + manifest name**: `flask aras install-app soc` → imports `aras/app_soc/manifest.py`, syncs to DB via `sync_helper_to_db()`
+3. **CLI + manifest name**: `flask aras install-app soc` → imports `aras/soc/manifest.py`, syncs to DB via `sync_helper_to_db()`
 4. **Web UI manifest install**: `POST /admin/apps/install-manifest/<app_name>` → same as above, from browser
 
 ### The golden rule: framework must know EVERY URL and endpoint, pages, tables
@@ -68,9 +77,9 @@ Startup flow: extensions → blueprints → dynamic apps → API → jinja
 
 ## Key Files
 
-### arasCore/arasAdmin/routes/ — SPLIT PACKAGE (was routes.py, NEVER read in full)
+### arasCore/admin/routes/ — SPLIT PACKAGE (was routes.py, NEVER read in full)
 `routes.py` has been split into a package. `routes_legacy.py` is the old file (kept for reference, not imported).
-`arasAdmin/__init__.py` imports `routes` which now resolves to the package.
+`admin/__init__.py` imports `routes` which now resolves to the package.
 
 **Sub-modules:**
 
@@ -143,7 +152,7 @@ Startup flow: extensions → blueprints → dynamic apps → API → jinja
 | `_resolve_install_path(name_or_file, flask_app)` | L345 | resolve app name or file path |
 | `_activate_app_by_id(app_id, flask_app)` | L398 | activate app by ID |
 
-### arasCore/arasAdmin/services.py — NEVER read in full (~1300 lines)
+### arasCore/admin/services.py — NEVER read in full (~1300 lines)
 Functions only (no classes). Read by line number only.
 Now also emits `emit_crud()` on admin form create/update/delete (4.4).
 Snapshots `layout_json` per table and passes `layout_tabs` to form views (4.1).
@@ -236,7 +245,7 @@ Global search across all registered resources.
 |---|---|
 | `global_search(q, user, max_per_resource=5)` | search all `searchable=True` AppManagerColumns + manifest `ResourceDef.searchable`; returns list of `{app, resource, title, url, match}` |
 
-Triggered by `GET /api/_search/?q=foo`. Cmd+K / Ctrl+K overlay in `adm_base.html`.
+Triggered by `GET /api/_search/?q=foo`. Cmd+K / Ctrl+K overlay in `base_index.html`.
 
 ### arasCore/lib/events.py — NEW (4.4)
 Blinker-based pub/sub event bus. Graceful no-op when blinker unavailable.
@@ -356,7 +365,7 @@ on("erp/acc_journal.created", lambda obj: ...)
 
 ---
 
-### aras/app_soc/manifest.py — NEVER read in full
+### aras/soc/manifest.py — NEVER read in full
 
 | Function | Line | Purpose |
 |---|---|---|
@@ -386,7 +395,7 @@ on("erp/acc_journal.created", lambda obj: ...)
 | `_read_mode_file()` | L13 | read mode config file |
 | `create_app(config_type=None)` | L25 | entry point — full startup flow |
 
-### arasCore/arasAdmin/models.py — NEVER read in full
+### arasCore/admin/models.py — NEVER read in full
 
 | Class | Line | Table | Purpose |
 |---|---|---|---|
@@ -402,24 +411,24 @@ on("erp/acc_journal.created", lambda obj: ...)
 | `Notification` | L519 | — | admin notification |
 | `UserActivity` | L541 | — | user activity log |
 
-### aras/app_erp/views/__init__.py — empty file, skip
+### aras/erp/views/__init__.py — empty file, skip
 ### templates/admin/_menu_bar.html — HTML template, read only if directly relevant
 
 ## Do NOT Re-read
 - `arasCore/auth.py` — use function table above
-- `aras/app_soc/manifest.py` — use function table above
+- `aras/soc/manifest.py` — use function table above
 - `arasCore/lib/blueprints.py` — use function table above
 - `arasCore/lib/base_model.py` — use function table below, do not re-read
 - `arasCore/__init__.py` — use function table above
-- `arasCore/arasAdmin/models.py` — use class table above
-- `aras/app_erp/views/__init__.py` — empty file
+- `arasCore/admin/models.py` — use class table above
+- `aras/erp/views/__init__.py` — empty file
 - `templates/admin/_menu_bar.html` — read only if directly relevant
-- `arasCore/arasAdmin/routes_legacy.py` — old flat routes file, superseded by routes/ package, do not read
-- `arasCore/arasAdmin/routes/apps.py` — use the function table above, read by line number only
-- `arasCore/arasAdmin/routes/settings.py` — use the function table above, read by line number only
+- `arasCore/admin/routes_legacy.py` — old flat routes file, superseded by routes/ package, do not read
+- `arasCore/admin/routes/apps.py` — use the function table above, read by line number only
+- `arasCore/admin/routes/settings.py` — use the function table above, read by line number only
 - `arasCore/lib/installer.py` — use the function table above, read by line number only
 - `arasCore/lib/cli.py` — use the function table above, read by line number only
-- `arasCore/arasAdmin/services.py` — use the function table above, read by line number only
+- `arasCore/admin/services.py` — use the function table above, read by line number only
 - `arasCore/lib/app_helper.py` — use the class table above, only read if directly relevant
 
 ## Token Efficiency Rules

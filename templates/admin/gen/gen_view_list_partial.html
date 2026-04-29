@@ -1,0 +1,498 @@
+{# ─────────────────────────────────────────────────────────────────────────────
+_list_partial.html — includeable list UI (toolbar + filter + table + pagination
++ JS) Include this partial inside any template. Set these variables before
+including: main_title, items, view_columns (required) edit_url_base,
+delete_url_base, add_url search_enabled, search_q filter_cols, active_filters
+pagination, per_page rel_maps, show_totals, doctype_key app_id, table_id,
+linked_report_url extra_buttons —
+[{"label","url","icon"(opt),"style"(opt:"outline")}] _list_id — unique suffix
+when multiple lists on same page (default "")
+─────────────────────────────────────────────────────────────────────────── #}
+{# ── capability flags ── #} {% set _use_item_url = use_item_edit_url is defined
+and use_item_edit_url %} {% set _has_edit = (edit_url_base is defined and
+edit_url_base) or _use_item_url %} {% set _has_delete = delete_url_base is
+defined and delete_url_base %} {% set _has_add = add_url is defined and add_url
+%} {% set _has_search = search_enabled is defined and search_enabled %} {% set
+_has_filter = filter_cols is defined and filter_cols %} {% set _has_pag =
+pagination is defined and pagination and pagination.pages is defined %} {% set
+_has_bulk = _has_delete %} {% set _has_totals = show_totals is defined %} {% set
+_has_customize = (app_id is defined and app_id) and (table_id is defined and
+table_id) %} {% set _has_report = linked_report_url is defined and
+linked_report_url %} {% set _has_extra = extra_buttons is defined and
+extra_buttons %} {% set _col_count = view_columns|length + (1 if _has_bulk else
+0) %} {% set _lid = _list_id if _list_id is defined else '' %} {% set _qparam =
+search_param if search_param is defined else 'q' %} {# ── Page Hero Title (Standardized) ── #}
+{% set hero_title = res_title %}
+{% set _rec_count = pagination.total if _has_pag else items|length %}
+{% set hero_desc = _rec_count ~ ' records' %}
+{% if active_filters %}
+  {% set hero_desc = hero_desc ~ ' • ' ~ active_filters|length ~ ' filters applied' %}
+{% endif %}
+{% include 'admin/base/base_partial_hero.html' %}
+
+{# ── Sticky Header (Midnight Editorial) ── #}
+<div class="aras-header-sticky">
+    <div class="d-flex align-items-center gap-16">
+        <div class="aras-breadcrumb fs-13 f-normal">
+            <a href="{{ url_for('admin.dashboard') }}">Home</a>
+            <span class="app-menu-divider">/</span>
+            <span class="aras-breadcrumb__current">{{ res_title }}</span>
+        </div>
+
+        {% if _has_search %}
+        <form method="GET" id="searchForm{{ _lid }}" class="m-0">
+            <div class="aras-top-search-input-wrap w-250 h-32">
+                <i class="fa fa-search fs-12"></i>
+                <input
+                    type="text"
+                    name="{{ _qparam }}"
+                    placeholder="Search…"
+                    value="{{ search_q or '' }}"
+                    class="fs-12"
+                />
+            </div>
+        </form>
+        {% endif %}
+    </div>
+
+    <div class="aras-toolbar-right gap-12">
+        {% if _has_pag %}
+        <div class="d-flex align-items-center gap-8 fs-12 text-muted">
+            <span>Show</span>
+            <select
+                id="perPageSelect{{ _lid }}"
+                class="aras-form-select py-4 px-8 h-auto w-auto fs-12"
+                style="min-width: 60px"
+            >
+                <option
+                    value="20"
+                    {%
+                    if
+                    per_page=""
+                    ="20"
+                    %}selected{%
+                    endif
+                    %}
+                >
+                    20
+                </option>
+                <option
+                    value="50"
+                    {%
+                    if
+                    per_page=""
+                    ="50"
+                    %}selected{%
+                    endif
+                    %}
+                >
+                    50
+                </option>
+                <option
+                    value="100"
+                    {%
+                    if
+                    per_page=""
+                    ="100"
+                    %}selected{%
+                    endif
+                    %}
+                >
+                    100
+                </option>
+            </select>
+        </div>
+        {% endif %} {% if _has_bulk %}
+        <div
+            class="aras-bulk-wrap align-items-center gap-8"
+            id="bulkWrapInline{{ _lid }}"
+            style="display: none"
+        >
+            <span class="aras-badge aras-badge--info text-transform-none"
+                ><span id="bulkCountInline{{ _lid }}">0</span> selected</span
+            >
+            <button
+                class="aras-btn aras-btn--accent aras-btn--sm js-bulk-delete{{ _lid }}"
+                type="button"
+            >
+                <i class="fa fa-trash-o"></i> Delete
+            </button>
+        </div>
+        {% endif %} {% if _has_filter %}
+        <button
+            type="button"
+            class="aras-btn aras-btn--outline aras-btn--sm {% if active_filters %}active{% endif %}"
+            id="filterToggleBtn{{ _lid }}"
+        >
+            <i class="fa fa-sliders"></i> Filter
+        </button>
+        {% endif %} {% if _has_add %}
+        <a href="{{ add_url }}" class="aras-btn aras-btn--primary aras-btn--sm">
+            <i class="fa fa-plus"></i> Add New
+        </a>
+        {% endif %} {% if _has_customize or view_columns %} {% set _picker_cols
+        = all_columns if (all_columns is defined and all_columns) else
+        view_columns %} {% set _visible_fields = view_columns | map(attribute=1)
+        | list %}
+        <div class="position-relative">
+            <button
+                type="button"
+                class="aras-btn aras-btn--outline aras-btn--sm"
+                id="colToggleBtn{{ _lid }}"
+            >
+                <i class="fa fa-columns"></i> Columns
+            </button>
+            <div
+                id="colTogglePopover{{ _lid }}"
+                class="aras-popover overflow-y-auto max-h-300"
+                style="display: none"
+            >
+                <h6 class="small-caps-label text-muted m-0 mb-8">
+                    Visible Columns
+                </h6>
+                <div class="d-flex flex-column gap-8">
+                    {% for label, field in _picker_cols %} {% set _is_visible =
+                    field in _visible_fields %}
+                    <label
+                        class="d-flex align-items-center gap-8 fs-13 cursor-pointer m-0 user-select-none"
+                    >
+                        <input
+                            type="checkbox"
+                            class="js-col-vis{{ _lid }}"
+                            data-field="{{ field }}"
+                            {%
+                            if
+                            _is_visible
+                            %}checked{%
+                            endif
+                            %}
+                        />
+                        {{ label }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %} {% if _has_customize %}
+        <a
+            href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}"
+            class="aras-btn aras-btn--outline aras-btn--sm"
+            title="Customize Columns"
+        >
+            <i class="fa fa-sliders"></i> Customize
+        </a>
+        {% endif %} {% if _has_extra %} {% for btn in extra_buttons %}
+        <a
+            href="{{ btn.url }}"
+            class="aras-btn aras-btn--sm {% if btn.style == 'outline' %}aras-btn--outline{% else %}aras-btn--primary{% endif %}"
+        >
+            {% if btn.icon %}<i class="fa {{ btn.icon }}"></i> {% endif %}{{
+            btn.label }}
+        </a>
+        {% endfor %} {% endif %}
+    </div>
+</div>
+
+{# ── Filter panel (Midnight Editorial) ── #} {% if _has_filter %}
+<form method="GET" id="listFilterForm{{ _lid }}">
+    <div
+        id="filterPanel{{ _lid }}"
+        class="aras-filter-panel {% if active_filters %}is-open{% endif %}"
+    >
+        <div class="aras-filter-header">
+            <span class="aras-filter-title"
+                ><i class="fa fa-filter"></i> Filters</span
+            >
+            <button
+                type="button"
+                class="aras-btn aras-btn--outline aras-btn--sm"
+                id="filterCloseBtn{{ _lid }}"
+            >
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+        <div id="filterRows{{ _lid }}" class="aras-filter-rows">
+            {% for f in (active_filters or []) %}
+            <div class="aras-filter-row">
+                <div class="aras-filter-fields d-flex gap-8 flex-grow-1">
+                    <select name="f_col[]" class="aras-fsel">
+                        {% for lbl, fname in filter_cols %}
+                        <option
+                            value="{{ fname }}"
+                            {%
+                            if
+                            fname=""
+                            ="f.col"
+                            %}selected{%
+                            endif
+                            %}
+                        >
+                            {{ lbl }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <select
+                        name="f_op[]"
+                        class="aras-fsel aras-fsel--op js-op-select{{ _lid }}"
+                    >
+                        {% for op_val, op_lbl in
+                        [('equals','='),('not_equals','≠'),('like','contains'),('not_like','not
+                        contains'),('in','in'),('not_in','not in'),('is','is
+                        null')] %}
+                        <option
+                            value="{{ op_val }}"
+                            {%
+                            if
+                            op_val=""
+                            ="f.op"
+                            %}selected{%
+                            endif
+                            %}
+                        >
+                            {{ op_lbl }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <input
+                        type="text"
+                        name="f_val[]"
+                        class="aras-finput js-val-input{{ _lid }}"
+                        style="{% if f.op == 'is' %}display:none;{% endif %}"
+                        value="{{ f.val }}"
+                        placeholder="value…"
+                    />
+                </div>
+                <button
+                    type="button"
+                    class="aras-btn aras-btn--outline aras-btn--sm js-remove-filter-row{{ _lid }}"
+                    title="Remove"
+                >
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="aras-filter-footer">
+            {% if _has_pag %}
+            <div class="d-flex align-items-center gap-8 fs-12 mr-auto">
+                <span class="text-muted">Show:</span>
+                <select name="per_page" class="aras-fsel w-auto">
+                    <option
+                        value="20"
+                        {%
+                        if
+                        per_page=""
+                        ="20"
+                        %}selected{%
+                        endif
+                        %}
+                    >
+                        20
+                    </option>
+                    <option
+                        value="50"
+                        {%
+                        if
+                        per_page=""
+                        ="50"
+                        %}selected{%
+                        endif
+                        %}
+                    >
+                        50
+                    </option>
+                    <option
+                        value="100"
+                        {%
+                        if
+                        per_page=""
+                        ="100"
+                        %}selected{%
+                        endif
+                        %}
+                    >
+                        100
+                    </option>
+                </select>
+            </div>
+            {% endif %}
+            <button
+                type="button"
+                class="aras-filter-add-row"
+                id="addFilterRowBtn{{ _lid }}"
+            >
+                <i class="fa fa-plus"></i> Add condition
+            </button>
+            <button
+                type="submit"
+                class="aras-btn aras-btn--primary aras-btn--sm"
+            >
+                Apply
+            </button>
+            {% if active_filters %}
+            <a href="?" class="aras-btn aras-btn--outline aras-btn--sm"
+                >Clear all</a
+            >
+            {% endif %}
+        </div>
+    </div>
+</form>
+{% endif %} {# Hidden bulk-delete form #} {% if _has_bulk %}
+<form
+    method="POST"
+    id="bulkDeleteForm{{ _lid }}"
+    action="{{ delete_url_base }}/bulk-delete/"
+    class="d-none"
+>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <input type="hidden" name="ids" id="bulkDeleteIds{{ _lid }}" />
+</form>
+{% endif %} {# ── Refined Table ── #}
+<div class="aras-table-wrap">
+    <table class="aras-table" id="mainListTable{{ _lid }}">
+        <thead>
+            <tr>
+                {% if _has_bulk %}
+                <th class="th-check">
+                    <label class="aras-checkbox">
+                        <input type="checkbox" id="checkAll{{ _lid }}" />
+                        <span class="aras-checkmark"></span>
+                    </label>
+                </th>
+                {% endif %} {% for label, field in view_columns %}
+                <th data-field="{{ field }}">{{ label }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% set _rel = rel_maps if rel_maps is defined else {} %} {% for item
+            in items %} {% if _has_edit %} {% if edit_url_base is defined and
+            edit_url_base %} {% set _row_edit_url = edit_url_base ~ '/' ~
+            item.id ~ '/' %} {% elif _use_item_url %} {% set _row_edit_url =
+            item.edit_url %} {% else %} {% set _row_edit_url = '' %} {% endif %}
+            {% endif %}
+            <tr
+                {%
+                if
+                _has_edit
+                and
+                _row_edit_url
+                %}
+                class="is-clickable"
+                data-edit-url="{{ _row_edit_url }}"
+                {%
+                endif
+                %}
+            >
+                {% if _has_bulk %}
+                <td class="td-check" onclick="event.stopPropagation()">
+                    <label class="aras-checkbox">
+                        <input
+                            type="checkbox"
+                            class="js-row-check{{ _lid }}"
+                            value="{{ item.id }}"
+                        />
+                        <span class="aras-checkmark"></span>
+                    </label>
+                </td>
+                {% endif %} {% for label, field in view_columns %} {% set raw =
+                item|attr(field) if item|attr(field) is defined else none %} {%
+                if field in _rel and raw is not none %}
+                <td
+                    data-field="{{ field }}"
+                    data-id="{{ item.id }}"
+                    data-rel="1"
+                >
+                    {% if loop.first %}<span class="hash">{{ raw }}</span>{%
+                    else %}{{ _rel[field][raw] if raw in _rel[field] else raw
+                    }}{% endif %}
+                </td>
+                {% else %}
+                <td
+                    data-field="{{ field }}"
+                    data-id="{{ item.id }}"
+                    class="js-inline-cell{{ _lid }}"
+                >
+                    {% if loop.first %}<span class="hash"
+                        >{{ raw if raw is not none else '' }}</span
+                    >{% else %}{{ raw if raw is not none else '' }}{% endif %}
+                </td>
+                {% endif %} {% endfor %}
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="{{ _col_count }}">
+                    <div class="aras-empty-state">
+                        <div class="aras-empty-icon">
+                            <i class="fa fa-inbox"></i>
+                        </div>
+                        <p class="aras-empty-text">No records yet</p>
+                        {% if _has_add %}
+                        <a
+                            href="{{ add_url }}"
+                            class="aras-btn aras-btn--primary"
+                        >
+                            <i class="fa fa-plus"></i> Add First Record
+                        </a>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+
+        {% if _has_totals %}
+        <tfoot
+            id="totalsRow{{ _lid }}"
+            style="{% if not show_totals %}display:none;{% endif %}"
+        >
+            <tr>
+                {% if _has_bulk %}
+                <td></td>
+                {% endif %} {% for label, field in view_columns %}
+                <td class="js-col-total{{ _lid }}" data-field="{{ field }}">
+                    —
+                </td>
+                {% endfor %}
+            </tr>
+        </tfoot>
+        {% endif %}
+    </table>
+</div>
+
+{# ── Pagination ── #} {% if _has_pag and pagination.pages > 1 %} {% set _bqs =
+[] %} {% if search_q %}{% set _bqs = _bqs + [_qparam + '=' + search_q] %}{%
+endif %} {% if per_page != 20 %}{% set _bqs = _bqs + ['per_page=' +
+per_page|string] %}{% endif %} {% for f in (active_filters or []) %}{% set _bqs
+= _bqs + ['f_col[]=' + f.col, 'f_op[]=' + f.op, 'f_val[]=' + f.val] %}{% endfor
+%} {% set _qs = (_bqs|join('&') + '&') if _bqs else '' %}
+<div class="aras-pagination">
+    <span class="aras-pag-info">
+        {{ ((pagination.page - 1) * per_page) + 1 }}–{{ [pagination.page *
+        per_page, pagination.total]|min }} of {{ pagination.total }}
+    </span>
+    <nav class="aras-pag-nav">
+        <a
+            class="aras-pag-btn {% if not pagination.has_prev %}disabled{% endif %}"
+            href="?{{ _qs }}page={{ pagination.prev_num }}"
+            >‹</a
+        >
+        {% for p in pagination.iter_pages(left_edge=1, left_current=2,
+        right_current=2, right_edge=1) %} {% if p %}
+        <a
+            class="aras-pag-btn {% if p == pagination.page %}active{% endif %}"
+            href="?{{ _qs }}page={{ p }}"
+            >{{ p }}</a
+        >
+        {% else %}
+        <span class="aras-pag-ellipsis">…</span>
+        {% endif %} {% endfor %}
+        <a
+            class="aras-pag-btn {% if not pagination.has_next %}disabled{% endif %}"
+            href="?{{ _qs }}page={{ pagination.next_num }}"
+            >›</a
+        >
+    </nav>
+</div>
+{% endif %} {# ── JS ── #}
+<script src="{{ url_for('static', filename='js/list_partial.js') }}"></script>

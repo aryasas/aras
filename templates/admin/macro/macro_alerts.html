@@ -1,0 +1,34 @@
+{#
+--------------------------------------------------------------------------------
+  render_alert(category, message)
+  Renders an alert message using Studio theme variables.
+--------------------------------------------------------------------------------
+#}
+{% macro render_alert(category, message) %}
+  <div class="aras-alert aras-badge--{{ category if category != 'danger' else 'danger' }}">
+    <i class="fa {% if category == 'success' %}fa-check-circle{% elif category == 'danger' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %} mr-2"></i>
+    {{ message }}
+  </div>
+{% endmacro %}
+
+{#
+--------------------------------------------------------------------------------
+  show_message()
+  Renders Flask flash messages (used in auth layout and other non-admin pages).
+--------------------------------------------------------------------------------
+#}
+{% macro show_message() %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="aras-alert-toast-wrap">
+        {% for category, message in messages %}
+          <div class="aras-alert-toast aras-badge--{{ category if category != 'danger' else 'danger' }}">
+            <i class="fa {% if category == 'success' %}fa-check-circle{% elif category == 'danger' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %} mt-1"></i>
+            <span class="flex-grow-1">{{ message }}</span>
+            <button type="button" onclick="this.parentElement.remove()">&times;</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+{% endmacro %}

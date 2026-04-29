@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Aras POS</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/aras_design.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+  <div id="pos-app" class="pos-layout" v-cloak>
+    <!-- Left Sidebar: Cart & Customer -->
+    <div class="pos-sidebar">
+      <div style="padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+        <a href="/admin" class="pos-back-btn"><i class="fas fa-arrow-left"></i> Back</a>
+        <div class="pos-switch-wrapper" :data-mode="mode">
+          <div class="pos-switch-pill"></div>
+          <div class="pos-switch-label" :class="{active: mode === 'in'}" @click="mode = 'in'">IN</div>
+          <div class="pos-switch-label" :class="{active: mode === 'out'}" @click="mode = 'out'">OUT</div>
+        </div>
+      </div>
+
+      <div class="pos-customer-select" @click.stop>
+        <input type="text" class="pos-customer-input" v-model="customerSearch"
+               @focus="showCustomerDropdown = true"
+               :placeholder="mode === 'in' ? 'Select Customer...' : 'Select Vendor...'">
+        <div class="pos-customer-dropdown" :class="{show: showCustomerDropdown}">
+          <div class="pos-customer-option" v-for="cust in filteredCustomers" :key="cust.id"
+               @click="selectCustomer(cust)">
+            [[ cust.name ]]
+            <div style="font-size: 11px; color: var(--aras-ink-3); margin-top: 2px;">[[ cust.phone ]]</div>
+          </div>
+          <div class="pos-customer-option" v-if="filteredCustomers.length === 0"
+               style="color: var(--aras-ink-3); font-style: italic;">No matches found.</div>
+        </div>
+      </div>
+
+      <!-- Cart Items -->
+      <div class="pos-cart">
+        <div class="pos-cart-item" v-for="item in cart" :key="item.id">
+          <div class="pos-cart-info">
+            <div class="pos-cart-title">[[ item.name ]]</div>
+            <div class="pos-cart-meta">
+              {{ currency_symbol }} [[ item.price.toFixed(2) ]]
+              <span v-if="taxInclusive" style="font-size: 10px; color: var(--aras-ink-3);">(incl. tax)</span>
+            </div>
+          </div>
+          <div class="pos-cart-actions">
+            <button class="ct-btn-del" @click="updateQty(item, -1)"><i class="fas fa-minus"></i></button>
+            <div class="pos-cart-qty">[[ item.qty ]]</div>
+            <button class="ct-btn-edit" @click="updateQty(item, 1)"><i class="fas fa-plus"></i></button>
+          </div>
+        </div>
+        <div v-if="cart.length === 0" style="padding: 40px; text-align: center; color: var(--aras-ink-3); font-style: italic;">
+          <i class="fas fa-shopping-basket" style="font-size: 32px; margin-bottom: 16px; opacity: 0.5;"></i>
+          <div>Basket is empty</div>
+        </div>
+      </div>
+
+      <!-- Totals & Pay -->
+      <div class="pos-footer">
+        <div v-if="taxInclusive && taxTotal > 0" style="padding: 8px 0; border-top: 1px solid var(--aras-line-2);">
+          <div class="pos-total-row" style="font-size: 12px; color: var(--aras-ink-3);">
+            <div>Net (before tax)</div>
+            <div>{{ currency_symbol }} [[ netSubtotal.toFixed(2) ]]</div>
+          </div>
+          <div class="pos-total-row" style="font-size: 12px; color: var(--aras-ink-3);">
+            <div>Tax ([[ taxRate ]]%)</div>
+            <div>{{ currency_symbol }} [[ taxTotal.toFixed(2) ]]</div>
+          </div>
+        </div>
+        <div class="pos-total-row">
+          <div class="pos-total-label">Total</div>
+          <div class="pos-total-value">{{ currency_symbol }} [[ grandTotal.toFixed(2) ]]</div>
+        </div>
+        <button class="pos-pay-btn" @click="openPaymentModal">
+          <i class="fas fa-bolt" style="margin-right: 8px;"></i> [[ mode === 'in' ? 'Charge' : 'Pay' ]]
+        </button>
+      </div>
+    </div>
+
+    <!-- Right Main: Products Grid -->
+    <div class="pos-main">
+      <div class="pos-header">
+        <div class="aras-top-search-input-wrap" style="width: 400px;">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Search products..." v-model="productSearch">
+        </div>
+        <div style="font-family: var(--aras-font-serif); font-weight: 700; font-size: 24px; color: var(--studio-ochre); letter-spacing: -1px;">
+          Aras<span style="color: var(--studio-ink)">POS</span>
+        </div>
+      </div>
+      <div class="pos-products">
+        <div class="pos-product-card" v-for="prod in filteredProducts" :key="prod.id" @click="addToCart(prod)">
+          <div class="pos-product-img" :style="'background: linear-gradient(135deg,' + prod.color1 + ' 0%,' + prod.color2 + ' 100%)'"></div>
+          <div class="pos-product-title">[[ prod.name ]]</div>
+          <div class="pos-product-price">{{ currency_symbol }} [[ (mode === 'in' ? prod.sales_price : prod.purchase_price).toFixed(2) ]]</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div class="pos-modal-overlay" :class="{show: showPaymentModal}" @click="closePaymentModal">
+      <div class="pos-modal" v-if="showPaymentModal" @click.stop>
+
+        <!-- Payment Step -->
+        <template v-if="paymentStep === 'payment'">
+          <div class="pos-modal-left">
+            <div class="pos-modal-title">Order Summary</div>
+            <div style="font-size: 14px; color: var(--aras-ink-2); margin-bottom: 24px;">
+              Client: <strong style="color: var(--studio-ink);">[[ customerSearch ]]</strong>
+            </div>
+            <div style="flex: 1; overflow-y: auto; margin-bottom: 16px; border-top: 1px solid var(--aras-line-2); border-bottom: 1px solid var(--aras-line-2); padding: 16px 0;">
+              <div v-for="item in cart" :key="item.id" style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 13px;">
+                <span>[[ item.qty ]]x [[ item.name ]]</span>
+                <span style="font-weight: 600;">{{ currency_symbol }} [[ (item.price * item.qty).toFixed(2) ]]</span>
+              </div>
+            </div>
+            <div v-if="taxInclusive && taxTotal > 0" style="font-size: 12px; color: var(--aras-ink-3); margin-bottom: 8px;">
+              <div style="display: flex; justify-content: space-between;"><span>Subtotal (net)</span><span>{{ currency_symbol }} [[ netSubtotal.toFixed(2) ]]</span></div>
+              <div style="display: flex; justify-content: space-between;"><span>Tax ([[ taxRate ]]%)</span><span>{{ currency_symbol }} [[ taxTotal.toFixed(2) ]]</span></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: 700; font-family: var(--aras-font-serif);">
+              <span>Total</span>
+              <span style="color: var(--studio-accent);">{{ currency_symbol }} [[ grandTotal.toFixed(2) ]]</span>
+            </div>
+            <!-- Payments added -->
+            <div v-if="payments.length > 0" style="margin-top: 16px; border-top: 1px solid var(--aras-line-2); padding-top: 12px;">
+              <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--aras-ink-3); margin-bottom: 8px;">Payments</div>
+              <div v-for="(p, i) in payments" :key="i" style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; margin-bottom: 6px;">
+                <span>[[ p.method.toUpperCase() ]]</span>
+                <span>{{ currency_symbol }} [[ p.amount.toFixed(2) ]] <button @click="removePayment(i)" style="background: none; border: none; color: #a05a5a; cursor: pointer; padding: 0 4px; font-size: 12px;"><i class="fas fa-times"></i></button></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; border-top: 1px solid var(--aras-line-2); padding-top: 8px; margin-top: 4px;">
+                <span>Remaining</span>
+                <span :style="{color: remaining <= 0.001 ? '#4f6f53' : 'var(--studio-accent)'}">{{ currency_symbol }} [[ Math.max(0, remaining).toFixed(2) ]]</span>
+              </div>
+              <div v-if="remaining < -0.001" style="font-size: 12px; color: #4f6f53;">Credit balance: {{ currency_symbol }} [[ (-remaining).toFixed(2) ]] → AR</div>
+            </div>
+          </div>
+
+          <div class="pos-modal-right">
+            <div class="pos-modal-title">Add Payment</div>
+            <div class="pos-pay-methods">
+              <div class="pos-pay-method" :class="{active: newMethod === 'cash'}" @click="newMethod = 'cash'; newAmount = Math.max(0, remaining)">
+                <i class="fas fa-money-bill-wave"></i> Cash
+              </div>
+              <div class="pos-pay-method" :class="{active: newMethod === 'qris'}" @click="newMethod = 'qris'; newAmount = Math.max(0, remaining)">
+                <i class="fas fa-qrcode"></i> QRIS
+              </div>
+              <div class="pos-pay-method" :class="{active: newMethod === 'transfer'}" @click="newMethod = 'transfer'; newAmount = Math.max(0, remaining)">
+                <i class="fas fa-university"></i> Transfer
+              </div>
+              <div class="pos-pay-method" :class="{active: newMethod === 'card'}" @click="newMethod = 'card'; newAmount = Math.max(0, remaining)">
+                <i class="fas fa-credit-card"></i> Card
+              </div>
+              <div class="pos-pay-method" :class="{active: newMethod === 'credit'}" @click="newMethod = 'credit'; newAmount = Math.max(0, remaining)" title="Book to AR (credit balance)">
+                <i class="fas fa-file-invoice-dollar"></i> Credit
+              </div>
+            </div>
+            <div class="pos-amount-input-wrap">
+              <label>Amount</label>
+              <div style="position: relative;">
+                <span style="position: absolute; left: 0; top: 12px; font-size: 24px; color: var(--aras-ink-3); font-family: var(--aras-font-mono);">{{ currency_symbol }}</span>
+                <input type="number" class="pos-amount-input" style="padding-left: 24px;" v-model.number="newAmount" placeholder="0.00">
+              </div>
+            </div>
+            <button class="pos-btn-confirm" style="margin-bottom: 12px;" @click="addPayment" :disabled="!newAmount || newAmount <= 0">
+              <i class="fas fa-plus"></i> Add [[ newMethod.toUpperCase() ]]
+            </button>
+            <div style="border-top: 1px solid var(--aras-line-2); padding-top: 16px;">
+              <div v-if="remaining < -0.001" style="font-size: 12px; color: var(--aras-ink-2); margin-bottom: 12px; padding: 8px; background: #f0f7f0; border-radius: 4px;">
+                <i class="fas fa-info-circle" style="color: #4f6f53;"></i> Remaining {{ currency_symbol }} [[ (-remaining).toFixed(2) ]] will be booked as AR credit balance.
+              </div>
+              <button class="pos-btn-confirm" style="width: 100%;"
+                      :disabled="payments.length === 0 || (remaining > 0.001 && !hasCredit)"
+                      @click="confirmPayment">
+                <i class="fas fa-check"></i> Confirm [[ remaining <= 0.001 ? 'Payment' : (hasCredit ? 'with Credit Balance' : 'Payment') ]]
+              </button>
+              <div v-if="payments.length === 0" style="font-size: 11px; color: var(--aras-ink-3); text-align: center; margin-top: 8px;">Add at least one payment method.</div>
+            </div>
+            <div class="pos-modal-actions" style="margin-top: 12px;">
+              <button class="pos-btn-cancel" @click="closePaymentModal">Cancel</button>
+            </div>
+          </div>
+        </template>
+
+        <!-- Success Step -->
+        <template v-else-if="paymentStep === 'success'">
+          <div style="padding: 40px; width: 100%; display: flex; flex-direction: column; align-items: center;">
+            <i class="fas fa-check-circle pos-success-icon"></i>
+            <div class="pos-success-title">Payment Successful!</div>
+            <div class="pos-success-subtitle">Transaction processed and recorded.</div>
+            <div class="pos-action-grid">
+              <a href="#" class="pos-action-btn" @click.prevent="printReceipt"><i class="fas fa-print"></i> Print Receipt</a>
+              <a href="#" class="pos-action-btn" @click.prevent="exportPDF"><i class="fas fa-file-pdf"></i> PDF</a>
+            </div>
+            <button class="pos-btn-confirm" style="width: 100%; max-width: 400px;" @click="newTransaction">
+              Start New Transaction
+            </button>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <style>[v-cloak] { display: none; }</style>
+
+  <script>
+    const { createApp, ref, computed, onMounted, onUnmounted, watch } = Vue;
+
+    createApp({
+      compilerOptions: { delimiters: ['[[', ']]'] },
+      setup() {
+        const mode = ref('in');
+        const customerSearch = ref('');
+        const showCustomerDropdown = ref(false);
+        const productSearch = ref('');
+        const cart = ref([]);
+        const showPaymentModal = ref(false);
+        const paymentStep = ref('payment');
+        const payments = ref([]);
+        const newMethod = ref('cash');
+        const newAmount = ref(null);
+        const lastOrderId = ref(null);
+
+        const TAX_RATE = {{ tax_rate | default(0) }};
+        const TAX_INCLUSIVE = {{ 'true' if tax_inclusive else 'false' }};
+
+        const taxRate = computed(() => TAX_RATE);
+        const taxInclusive = computed(() => TAX_INCLUSIVE);
+
+        const customers = ref([
+          {% for c in customers %}
+          { id: {{ c.id }}, name: "{{ c.name | e }}", phone: '{{ c.phone | default("") | e }}' }{{ "," if not loop.last else "" }}
+          {% endfor %}
+        ]);
+
+        const products = ref([
+          {% for p in products %}
+          {
+            id: {{ p.id }},
+            name: "{{ p.name | e }}",
+            sales_price: {{ p.sales_price | default(0) }},
+            purchase_price: {{ p.purchase_price | default(0) }},
+            color1: '#c9a568', color2: '#8a6d0b'
+          }{{ "," if not loop.last else "" }}
+          {% endfor %}
+        ]);
+
+        const SID = {{ session.id }};
+        const CSRF = "{{ csrf_token() }}";
+
+        const filteredCustomers = computed(() => {
+          if (!customerSearch.value) return customers.value;
+          return customers.value.filter(c => c.name.toLowerCase().includes(customerSearch.value.toLowerCase()));
+        });
+
+        const filteredProducts = computed(() => {
+          if (!productSearch.value) return products.value;
+          return products.value.filter(p => p.name.toLowerCase().includes(productSearch.value.toLowerCase()));
+        });
+
+        // Grand total = sum of all items (price includes tax when tax_inclusive)
+        const grandTotal = computed(() =>
+          cart.value.reduce((s, i) => s + i.price * i.qty, 0)
+        );
+
+        // When tax inclusive: net = total / (1 + rate/100), tax = total - net
+        const taxTotal = computed(() => {
+          if (!TAX_INCLUSIVE || TAX_RATE <= 0) return 0;
+          return grandTotal.value - grandTotal.value / (1 + TAX_RATE / 100);
+        });
+
+        const netSubtotal = computed(() => grandTotal.value - taxTotal.value);
+
+        // Total paid so far
+        const totalPaid = computed(() => payments.value.reduce((s, p) => s + p.amount, 0));
+        const remaining = computed(() => grandTotal.value - totalPaid.value);
+        const hasCredit = computed(() => payments.value.some(p => p.method === 'credit'));
+
+        const selectCustomer = (cust) => {
+          customerSearch.value = cust.name;
+          showCustomerDropdown.value = false;
+        };
+
+        const addToCart = (prod) => {
+          const price = mode.value === 'in' ? prod.sales_price : prod.purchase_price;
+          const existing = cart.value.find(i => i.id === prod.id);
+          if (existing) { existing.qty++; } else { cart.value.push({ ...prod, qty: 1, price }); }
+        };
+
+        const updateQty = (item, delta) => {
+          item.qty += delta;
+          if (item.qty <= 0) cart.value = cart.value.filter(i => i.id !== item.id);
+        };
+
+        const addPayment = () => {
+          if (!newAmount.value || newAmount.value <= 0) return;
+          payments.value.push({ method: newMethod.value, amount: parseFloat(newAmount.value) });
+          newAmount.value = Math.max(0, remaining.value);
+        };
+
+        const removePayment = (i) => {
+          payments.value.splice(i, 1);
+        };
+
+        const openPaymentModal = () => {
+          if (cart.value.length === 0) { alert('Cart is empty!'); return; }
+          if (!customerSearch.value) { alert(`Please select a ${mode.value === 'in' ? 'customer' : 'vendor'}.`); return; }
+          payments.value = [];
+          newMethod.value = 'cash';
+          newAmount.value = grandTotal.value;
+          paymentStep.value = 'payment';
+          showPaymentModal.value = true;
+        };
+
+        const closePaymentModal = () => {
+          if (paymentStep.value === 'success') return;
+          showPaymentModal.value = false;
+        };
+
+        const confirmPayment = async () => {
+          if (payments.value.length === 0) return;
+
+          const match = customers.value.find(c => c.name === customerSearch.value);
+          const selectedCustId = match ? match.id : null;
+
+          // Build line tax_amt for inclusive pricing
+          const lines = cart.value.map(i => {
+            const lineTotal = i.price * i.qty;
+            const lineTax = TAX_INCLUSIVE && TAX_RATE > 0
+              ? lineTotal - lineTotal / (1 + TAX_RATE / 100) : 0;
+            return {
+              product_id: i.id, qty: i.qty, uom_id: i.uom_id || null,
+              unit_price: i.price, subtotal: lineTotal, tax_amt: lineTax,
+            };
+          });
+
+          // AR credit = total - totalPaid (if positive, book to AR)
+          const creditBalance = Math.max(0, grandTotal.value - totalPaid.value);
+          const payloadsToSend = payments.value.filter(p => p.method !== 'credit');
+          if (creditBalance > 0.001) {
+            payloadsToSend.push({ method: 'credit', amount: creditBalance });
+          }
+
+          try {
+            const res = await fetch(`/api/erp/pos/session/${SID}/order/`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+              body: JSON.stringify({ lines, payments: payloadsToSend, customer_id: selectedCustId })
+            });
+            const data = await res.json();
+            if (data.ok) {
+              lastOrderId.value = data.order_id;
+              paymentStep.value = 'success';
+            } else {
+              alert('Error: ' + data.error);
+            }
+          } catch (e) {
+            alert('Network Error: ' + e.message);
+          }
+        };
+
+        const newTransaction = () => {
+          cart.value = [];
+          customerSearch.value = '';
+          payments.value = [];
+          showPaymentModal.value = false;
+          paymentStep.value = 'payment';
+        };
+
+        const printReceipt = () => {
+          if (lastOrderId.value) window.open(`/admin/erp/pos/order/${lastOrderId.value}/receipt`, '_blank');
+        };
+        const exportPDF = () => {
+          if (lastOrderId.value) window.open(`/admin/erp/pos/order/${lastOrderId.value}/receipt.pdf`, '_blank');
+        };
+
+        const closeDropdown = () => { showCustomerDropdown.value = false; };
+        onMounted(() => document.addEventListener('click', closeDropdown));
+        onUnmounted(() => document.removeEventListener('click', closeDropdown));
+
+        return {
+          mode, customerSearch, showCustomerDropdown, filteredCustomers,
+          productSearch, filteredProducts, cart, grandTotal, netSubtotal, taxTotal, taxRate, taxInclusive,
+          showPaymentModal, paymentStep, payments, newMethod, newAmount,
+          totalPaid, remaining, hasCredit,
+          selectCustomer, addToCart, updateQty, addPayment, removePayment,
+          openPaymentModal, closePaymentModal, confirmPayment, newTransaction, printReceipt, exportPDF
+        };
+      }
+    }).mount('#pos-app');
+  </script>
+</body>
+</html>

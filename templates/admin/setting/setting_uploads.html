@@ -1,0 +1,61 @@
+<div class="settings-panel d-none" id="panel-uploads">
+  <div class="panel-header">
+    <h3 class="settings-panel-title"><i class="ti-folder"></i>Upload Settings</h3>
+    <p class="text-muted">Configure directory paths for media and document storage.</p>
+  </div>
+  <div class="card mb-3">
+    <div class="card-body">
+      <p class="text-muted small">These paths are configured in <code>config.py</code>. Editing here updates <code>instance/server.json</code> overrides.</p>
+      <div class="mt-3">
+      <form method="POST" action="{{ url_for('admin.settings_upload_save') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% for key, path in upload_folders.items() %}
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label font-weight-bold" style="font-size:13px;">
+            {{ key.replace('_',' ').title() }}
+          </label>
+          <div class="col-sm-9">
+            <div class="input-group input-group-sm">
+              <input type="text" name="{{ key }}" class="form-control form-control-sm" value="{{ path }}" placeholder="/path/to/folder">
+              <div class="input-group-append">
+                <span class="input-group-text" style="font-size:11px;">
+                  {% if path %}<i class="fa fa-check text-success"></i>
+                  {% else %}<i class="fa fa-exclamation-triangle text-warning"></i>{% endif %}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+        <hr>
+        <button type="submit" class="aras-btn aras-btn--primary">
+          <i class="fa fa-save mr-1"></i> Save Upload Paths
+        </button>
+        <small class="text-muted ml-2">Restart server to apply.</small>
+      </form>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <h6><i class="ti-upload mr-1"></i>Test Upload Folder</h6>
+      <hr>
+      <form method="POST" action="{{ url_for('admin.settings_upload_save') }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label">Folder</label>
+          <div class="col-sm-4">
+            <select name="folder_key" class="form-control form-control-sm">
+              {% for key in upload_folders %}<option value="{{ key }}">{{ key }}</option>{% endfor %}
+            </select>
+          </div>
+          <label class="col-sm-1 col-form-label">File</label>
+          <div class="col-sm-4">
+            <input type="file" name="test_file" class="form-control-file form-control-sm">
+          </div>
+        </div>
+        <button type="submit" class="aras-btn aras-btn--sm"><i class="fa fa-upload mr-1"></i> Upload Test File</button>
+      </form>
+    </div>
+  </div>
+</div>

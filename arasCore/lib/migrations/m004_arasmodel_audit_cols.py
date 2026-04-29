@@ -51,7 +51,7 @@ def _table_exists(conn, table):
 
 
 def run(flask_app):
-    from arasCore.lib.extensions import db
+    from arasCore.lib.core.extensions import db
     from sqlalchemy import text
 
     with flask_app.app_context():

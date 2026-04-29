@@ -1,0 +1,264 @@
+Endpoint                                                Methods                        Rule                                                                      
+------------------------------------------------------  -----------------------------  --------------------------------------------------------------------------
+_debug_toolbar.static                                   GET                            /_debug_toolbar/static/<path:filename>                                    
+_helper_erp.adm_erp_acc_account_add                     GET, POST                      /admin/erp/acc/account/add/                                               
+_helper_erp.adm_erp_acc_account_bulk_delete             POST                           /admin/erp/acc/account/bulk-delete/                                       
+_helper_erp.adm_erp_acc_account_delete                  POST                           /admin/erp/acc/account/<int:item_id>/delete/                              
+_helper_erp.adm_erp_acc_account_edit                    GET, POST                      /admin/erp/acc/account/<int:item_id>/                                     
+_helper_erp.adm_erp_acc_account_list                    GET                            /admin/erp/acc/account/                                                   
+_helper_erp.adm_erp_acc_analytic-tag_add                GET, POST                      /admin/erp/acc/analytic-tag/add/                                          
+_helper_erp.adm_erp_acc_analytic-tag_bulk_delete        POST                           /admin/erp/acc/analytic-tag/bulk-delete/                                  
+_helper_erp.adm_erp_acc_analytic-tag_delete             POST                           /admin/erp/acc/analytic-tag/<int:item_id>/delete/                         
+_helper_erp.adm_erp_acc_analytic-tag_edit               GET, POST                      /admin/erp/acc/analytic-tag/<int:item_id>/                                
+_helper_erp.adm_erp_acc_analytic-tag_list               GET                            /admin/erp/acc/analytic-tag/                                              
+_helper_erp.adm_erp_acc_entry_add                       GET, POST                      /admin/erp/acc/entry/add/                                                 
+_helper_erp.adm_erp_acc_entry_bulk_delete               POST                           /admin/erp/acc/entry/bulk-delete/                                         
+_helper_erp.adm_erp_acc_entry_delete                    POST                           /admin/erp/acc/entry/<int:item_id>/delete/                                
+_helper_erp.adm_erp_acc_entry_edit                      GET, POST                      /admin/erp/acc/entry/<int:item_id>/                                       
+_helper_erp.adm_erp_acc_entry_list                      GET                            /admin/erp/acc/entry/                                                     
+_helper_erp.adm_erp_acc_purchase-invoice_add            GET, POST                      /admin/erp/acc/purchase-invoice/add/                                      
+_helper_erp.adm_erp_acc_purchase-invoice_bulk_delete    POST                           /admin/erp/acc/purchase-invoice/bulk-delete/                              
+_helper_erp.adm_erp_acc_purchase-invoice_delete         POST                           /admin/erp/acc/purchase-invoice/<int:item_id>/delete/                     
+_helper_erp.adm_erp_acc_purchase-invoice_edit           GET, POST                      /admin/erp/acc/purchase-invoice/<int:item_id>/                            
+_helper_erp.adm_erp_acc_purchase-invoice_list           GET                            /admin/erp/acc/purchase-invoice/                                          
+_helper_erp.adm_erp_acc_sales-invoice_add               GET, POST                      /admin/erp/acc/sales-invoice/add/                                         
+_helper_erp.adm_erp_acc_sales-invoice_bulk_delete       POST                           /admin/erp/acc/sales-invoice/bulk-delete/                                 
+_helper_erp.adm_erp_acc_sales-invoice_delete            POST                           /admin/erp/acc/sales-invoice/<int:item_id>/delete/                        
+_helper_erp.adm_erp_acc_sales-invoice_edit              GET, POST                      /admin/erp/acc/sales-invoice/<int:item_id>/                               
+_helper_erp.adm_erp_acc_sales-invoice_list              GET                            /admin/erp/acc/sales-invoice/                                             
+_helper_erp.adm_erp_charge_add                          GET, POST                      /admin/erp/charge/add/                                                    
+_helper_erp.adm_erp_charge_bulk_delete                  POST                           /admin/erp/charge/bulk-delete/                                            
+_helper_erp.adm_erp_charge_delete                       POST                           /admin/erp/charge/<int:item_id>/delete/                                   
+_helper_erp.adm_erp_charge_edit                         GET, POST                      /admin/erp/charge/<int:item_id>/                                          
+_helper_erp.adm_erp_charge_list                         GET                            /admin/erp/charge/                                                        
+_helper_erp.adm_erp_company_add                         GET, POST                      /admin/erp/company/add/                                                   
+_helper_erp.adm_erp_company_bulk_delete                 POST                           /admin/erp/company/bulk-delete/                                           
+_helper_erp.adm_erp_company_delete                      POST                           /admin/erp/company/<int:item_id>/delete/                                  
+_helper_erp.adm_erp_company_edit                        GET, POST                      /admin/erp/company/<int:item_id>/                                         
+_helper_erp.adm_erp_company_list                        GET                            /admin/erp/company/                                                       
+_helper_erp.adm_erp_crm_customer_add                    GET, POST                      /admin/erp/crm/customer/add/                                              
+_helper_erp.adm_erp_crm_customer_bulk_delete            POST                           /admin/erp/crm/customer/bulk-delete/                                      
+_helper_erp.adm_erp_crm_customer_delete                 POST                           /admin/erp/crm/customer/<int:item_id>/delete/                             
+_helper_erp.adm_erp_crm_customer_edit                   GET, POST                      /admin/erp/crm/customer/<int:item_id>/                                    
+_helper_erp.adm_erp_crm_customer_list                   GET                            /admin/erp/crm/customer/                                                  
+_helper_erp.adm_erp_crm_lead_add                        GET, POST                      /admin/erp/crm/lead/add/                                                  
+_helper_erp.adm_erp_crm_lead_bulk_delete                POST                           /admin/erp/crm/lead/bulk-delete/                                          
+_helper_erp.adm_erp_crm_lead_delete                     POST                           /admin/erp/crm/lead/<int:item_id>/delete/                                 
+_helper_erp.adm_erp_crm_lead_edit                       GET, POST                      /admin/erp/crm/lead/<int:item_id>/                                        
+_helper_erp.adm_erp_crm_lead_list                       GET                            /admin/erp/crm/lead/                                                      
+_helper_erp.adm_erp_crm_pipeline_add                    GET, POST                      /admin/erp/crm/pipeline/add/                                              
+_helper_erp.adm_erp_crm_pipeline_bulk_delete            POST                           /admin/erp/crm/pipeline/bulk-delete/                                      
+_helper_erp.adm_erp_crm_pipeline_delete                 POST                           /admin/erp/crm/pipeline/<int:item_id>/delete/                             
+_helper_erp.adm_erp_crm_pipeline_edit                   GET, POST                      /admin/erp/crm/pipeline/<int:item_id>/                                    
+_helper_erp.adm_erp_crm_pipeline_list                   GET                            /admin/erp/crm/pipeline/                                                  
+_helper_erp.adm_erp_currency_add                        GET, POST                      /admin/erp/currency/add/                                                  
+_helper_erp.adm_erp_currency_bulk_delete                POST                           /admin/erp/currency/bulk-delete/                                          
+_helper_erp.adm_erp_currency_delete                     POST                           /admin/erp/currency/<int:item_id>/delete/                                 
+_helper_erp.adm_erp_currency_edit                       GET, POST                      /admin/erp/currency/<int:item_id>/                                        
+_helper_erp.adm_erp_currency_list                       GET                            /admin/erp/currency/                                                      
+_helper_erp.adm_erp_fiscal-year_add                     GET, POST                      /admin/erp/fiscal-year/add/                                               
+_helper_erp.adm_erp_fiscal-year_bulk_delete             POST                           /admin/erp/fiscal-year/bulk-delete/                                       
+_helper_erp.adm_erp_fiscal-year_delete                  POST                           /admin/erp/fiscal-year/<int:item_id>/delete/                              
+_helper_erp.adm_erp_fiscal-year_edit                    GET, POST                      /admin/erp/fiscal-year/<int:item_id>/                                     
+_helper_erp.adm_erp_fiscal-year_list                    GET                            /admin/erp/fiscal-year/                                                   
+_helper_erp.adm_erp_payment-mode_add                    GET, POST                      /admin/erp/payment-mode/add/                                              
+_helper_erp.adm_erp_payment-mode_bulk_delete            POST                           /admin/erp/payment-mode/bulk-delete/                                      
+_helper_erp.adm_erp_payment-mode_delete                 POST                           /admin/erp/payment-mode/<int:item_id>/delete/                             
+_helper_erp.adm_erp_payment-mode_edit                   GET, POST                      /admin/erp/payment-mode/<int:item_id>/                                    
+_helper_erp.adm_erp_payment-mode_list                   GET                            /admin/erp/payment-mode/                                                  
+_helper_erp.adm_erp_permission_add                      GET, POST                      /admin/erp/permission/add/                                                
+_helper_erp.adm_erp_permission_bulk_delete              POST                           /admin/erp/permission/bulk-delete/                                        
+_helper_erp.adm_erp_permission_delete                   POST                           /admin/erp/permission/<int:item_id>/delete/                               
+_helper_erp.adm_erp_permission_edit                     GET, POST                      /admin/erp/permission/<int:item_id>/                                      
+_helper_erp.adm_erp_permission_list                     GET                            /admin/erp/permission/                                                    
+_helper_erp.adm_erp_pos_session_add                     GET, POST                      /admin/erp/pos/session/add/                                               
+_helper_erp.adm_erp_pos_session_bulk_delete             POST                           /admin/erp/pos/session/bulk-delete/                                       
+_helper_erp.adm_erp_pos_session_delete                  POST                           /admin/erp/pos/session/<int:item_id>/delete/                              
+_helper_erp.adm_erp_pos_session_edit                    GET, POST                      /admin/erp/pos/session/<int:item_id>/                                     
+_helper_erp.adm_erp_pos_session_list                    GET                            /admin/erp/pos/session/                                                   
+_helper_erp.adm_erp_pos_terminal_add                    GET, POST                      /admin/erp/pos/terminal/add/                                              
+_helper_erp.adm_erp_pos_terminal_bulk_delete            POST                           /admin/erp/pos/terminal/bulk-delete/                                      
+_helper_erp.adm_erp_pos_terminal_delete                 POST                           /admin/erp/pos/terminal/<int:item_id>/delete/                             
+_helper_erp.adm_erp_pos_terminal_edit                   GET, POST                      /admin/erp/pos/terminal/<int:item_id>/                                    
+_helper_erp.adm_erp_pos_terminal_list                   GET                            /admin/erp/pos/terminal/                                                  
+_helper_erp.adm_erp_print-template_add                  GET, POST                      /admin/erp/print-template/add/                                            
+_helper_erp.adm_erp_print-template_bulk_delete          POST                           /admin/erp/print-template/bulk-delete/                                    
+_helper_erp.adm_erp_print-template_delete               POST                           /admin/erp/print-template/<int:item_id>/delete/                           
+_helper_erp.adm_erp_print-template_edit                 GET, POST                      /admin/erp/print-template/<int:item_id>/                                  
+_helper_erp.adm_erp_print-template_list                 GET                            /admin/erp/print-template/                                                
+_helper_erp.adm_erp_report_add                          GET, POST                      /admin/erp/report/add/                                                    
+_helper_erp.adm_erp_report_bulk_delete                  POST                           /admin/erp/report/bulk-delete/                                            
+_helper_erp.adm_erp_report_delete                       POST                           /admin/erp/report/<int:item_id>/delete/                                   
+_helper_erp.adm_erp_report_edit                         GET, POST                      /admin/erp/report/<int:item_id>/                                          
+_helper_erp.adm_erp_report_list                         GET                            /admin/erp/report/                                                        
+_helper_erp.adm_erp_role_add                            GET, POST                      /admin/erp/role/add/                                                      
+_helper_erp.adm_erp_role_bulk_delete                    POST                           /admin/erp/role/bulk-delete/                                              
+_helper_erp.adm_erp_role_delete                         POST                           /admin/erp/role/<int:item_id>/delete/                                     
+_helper_erp.adm_erp_role_edit                           GET, POST                      /admin/erp/role/<int:item_id>/                                            
+_helper_erp.adm_erp_role_list                           GET                            /admin/erp/role/                                                          
+_helper_erp.adm_erp_sequence_add                        GET, POST                      /admin/erp/sequence/add/                                                  
+_helper_erp.adm_erp_sequence_bulk_delete                POST                           /admin/erp/sequence/bulk-delete/                                          
+_helper_erp.adm_erp_sequence_delete                     POST                           /admin/erp/sequence/<int:item_id>/delete/                                 
+_helper_erp.adm_erp_sequence_edit                       GET, POST                      /admin/erp/sequence/<int:item_id>/                                        
+_helper_erp.adm_erp_sequence_list                       GET                            /admin/erp/sequence/                                                      
+_helper_erp.adm_erp_stock_movement_add                  GET, POST                      /admin/erp/stock/movement/add/                                            
+_helper_erp.adm_erp_stock_movement_bulk_delete          POST                           /admin/erp/stock/movement/bulk-delete/                                    
+_helper_erp.adm_erp_stock_movement_delete               POST                           /admin/erp/stock/movement/<int:item_id>/delete/                           
+_helper_erp.adm_erp_stock_movement_edit                 GET, POST                      /admin/erp/stock/movement/<int:item_id>/                                  
+_helper_erp.adm_erp_stock_movement_list                 GET                            /admin/erp/stock/movement/                                                
+_helper_erp.adm_erp_stock_pricelist_add                 GET, POST                      /admin/erp/stock/pricelist/add/                                           
+_helper_erp.adm_erp_stock_pricelist_bulk_delete         POST                           /admin/erp/stock/pricelist/bulk-delete/                                   
+_helper_erp.adm_erp_stock_pricelist_delete              POST                           /admin/erp/stock/pricelist/<int:item_id>/delete/                          
+_helper_erp.adm_erp_stock_pricelist_edit                GET, POST                      /admin/erp/stock/pricelist/<int:item_id>/                                 
+_helper_erp.adm_erp_stock_pricelist_list                GET                            /admin/erp/stock/pricelist/                                               
+_helper_erp.adm_erp_stock_product-bundle_add            GET, POST                      /admin/erp/stock/product-bundle/add/                                      
+_helper_erp.adm_erp_stock_product-bundle_bulk_delete    POST                           /admin/erp/stock/product-bundle/bulk-delete/                              
+_helper_erp.adm_erp_stock_product-bundle_delete         POST                           /admin/erp/stock/product-bundle/<int:item_id>/delete/                     
+_helper_erp.adm_erp_stock_product-bundle_edit           GET, POST                      /admin/erp/stock/product-bundle/<int:item_id>/                            
+_helper_erp.adm_erp_stock_product-bundle_list           GET                            /admin/erp/stock/product-bundle/                                          
+_helper_erp.adm_erp_stock_product-category_add          GET, POST                      /admin/erp/stock/product-category/add/                                    
+_helper_erp.adm_erp_stock_product-category_bulk_delete  POST                           /admin/erp/stock/product-category/bulk-delete/                            
+_helper_erp.adm_erp_stock_product-category_delete       POST                           /admin/erp/stock/product-category/<int:item_id>/delete/                   
+_helper_erp.adm_erp_stock_product-category_edit         GET, POST                      /admin/erp/stock/product-category/<int:item_id>/                          
+_helper_erp.adm_erp_stock_product-category_list         GET                            /admin/erp/stock/product-category/                                        
+_helper_erp.adm_erp_stock_product_add                   GET, POST                      /admin/erp/stock/product/add/                                             
+_helper_erp.adm_erp_stock_product_bulk_delete           POST                           /admin/erp/stock/product/bulk-delete/                                     
+_helper_erp.adm_erp_stock_product_delete                POST                           /admin/erp/stock/product/<int:item_id>/delete/                            
+_helper_erp.adm_erp_stock_product_edit                  GET, POST                      /admin/erp/stock/product/<int:item_id>/                                   
+_helper_erp.adm_erp_stock_product_list                  GET                            /admin/erp/stock/product/                                                 
+_helper_erp.adm_erp_stock_uom_add                       GET, POST                      /admin/erp/stock/uom/add/                                                 
+_helper_erp.adm_erp_stock_uom_bulk_delete               POST                           /admin/erp/stock/uom/bulk-delete/                                         
+_helper_erp.adm_erp_stock_uom_delete                    POST                           /admin/erp/stock/uom/<int:item_id>/delete/                                
+_helper_erp.adm_erp_stock_uom_edit                      GET, POST                      /admin/erp/stock/uom/<int:item_id>/                                       
+_helper_erp.adm_erp_stock_uom_list                      GET                            /admin/erp/stock/uom/                                                     
+_helper_erp.adm_erp_stock_valuation_add                 GET, POST                      /admin/erp/stock/valuation/add/                                           
+_helper_erp.adm_erp_stock_valuation_bulk_delete         POST                           /admin/erp/stock/valuation/bulk-delete/                                   
+_helper_erp.adm_erp_stock_valuation_delete              POST                           /admin/erp/stock/valuation/<int:item_id>/delete/                          
+_helper_erp.adm_erp_stock_valuation_edit                GET, POST                      /admin/erp/stock/valuation/<int:item_id>/                                 
+_helper_erp.adm_erp_stock_valuation_list                GET                            /admin/erp/stock/valuation/                                               
+_helper_erp.adm_erp_stock_warehouse_add                 GET, POST                      /admin/erp/stock/warehouse/add/                                           
+_helper_erp.adm_erp_stock_warehouse_bulk_delete         POST                           /admin/erp/stock/warehouse/bulk-delete/                                   
+_helper_erp.adm_erp_stock_warehouse_delete              POST                           /admin/erp/stock/warehouse/<int:item_id>/delete/                          
+_helper_erp.adm_erp_stock_warehouse_edit                GET, POST                      /admin/erp/stock/warehouse/<int:item_id>/                                 
+_helper_erp.adm_erp_stock_warehouse_list                GET                            /admin/erp/stock/warehouse/                                               
+_helper_erp.adm_erp_sup_supplier_add                    GET, POST                      /admin/erp/sup/supplier/add/                                              
+_helper_erp.adm_erp_sup_supplier_bulk_delete            POST                           /admin/erp/sup/supplier/bulk-delete/                                      
+_helper_erp.adm_erp_sup_supplier_delete                 POST                           /admin/erp/sup/supplier/<int:item_id>/delete/                             
+_helper_erp.adm_erp_sup_supplier_edit                   GET, POST                      /admin/erp/sup/supplier/<int:item_id>/                                    
+_helper_erp.adm_erp_sup_supplier_list                   GET                            /admin/erp/sup/supplier/                                                  
+_helper_erp.api_erp_acc_entry_post                      POST                           /api/erp/acc/entry/post/                                                  
+_helper_erp.api_erp_acc_purchase-invoice_post           POST                           /api/erp/acc/purchase-invoice/post/                                       
+_helper_erp.api_erp_acc_sales-invoice_post              POST                           /api/erp/acc/sales-invoice/post/                                          
+_helper_erp.api_erp_invoice_product-price               GET                            /api/erp/invoice/product-price/                                           
+_helper_erp.api_erp_pos_session_x_order                 POST                           /api/erp/pos/session/<int:session_id>/order/                              
+_helper_erp.api_erp_pos_session_x_products              GET                            /api/erp/pos/session/<int:session_id>/products/                           
+_helper_erp.api_erp_pos_session_x_stock_x               GET                            /api/erp/pos/session/<int:session_id>/stock/<int:product_id>/             
+_helper_erp.group_erp                                   GET                            /admin/erp/<group_slug>/                                                  
+_helper_erp.home_erp                                    GET                            /admin/erp/                                                               
+_helper_erp.settings_erp                                GET                            /admin/erp/settings/                                                      
+_helper_erp.settings_erp_section                        GET, POST                      /admin/erp/settings/<section>/                                            
+admin.apps                                              GET                            /admin/apps                                                               
+admin.apps_activate                                     POST                           /admin/apps/<int:app_id>/activate                                         
+admin.apps_bulk_delete                                  POST                           /admin/apps/bulk-delete/                                                  
+admin.apps_column_delete                                POST                           /admin/apps/<int:app_id>/tables/<int:table_id>/columns/<int:col_id>/delete
+admin.apps_column_edit                                  POST                           /admin/apps/<int:app_id>/tables/<int:table_id>/columns/<int:col_id>/edit  
+admin.apps_columns                                      GET, POST                      /admin/apps/<int:app_id>/tables/<int:table_id>/columns                    
+admin.apps_deactivate                                   POST                           /admin/apps/<int:app_id>/deactivate                                       
+admin.apps_delete                                       POST                           /admin/apps/<int:app_id>/delete                                           
+admin.apps_detail                                       GET                            /admin/apps/<int:app_id>/                                                 
+admin.apps_doctypes                                     GET                            /admin/apps/doctypes                                                      
+admin.apps_edit                                         GET, POST                      /admin/apps/<int:app_id>/edit                                             
+admin.apps_export_json                                  GET                            /admin/apps/<int:app_id>/export/json                                      
+admin.apps_export_yaml                                  GET                            /admin/apps/<int:app_id>/export/yaml                                      
+admin.apps_field_delete                                 POST                           /admin/apps/<int:app_id>/fields/<int:field_id>/delete                     
+admin.apps_fields                                       GET                            /admin/apps/<int:app_id>/fields                                           
+admin.apps_install                                      GET, POST                      /admin/apps/install                                                       
+admin.apps_install_manifest                             POST                           /admin/apps/install-manifest/<app_name>                                   
+admin.apps_list                                         GET                            /admin/apps/list                                                          
+admin.apps_migrations                                   GET                            /admin/apps/<int:app_id>/migrations                                       
+admin.apps_migrations_apply                             POST                           /admin/apps/<int:app_id>/migrations/apply                                 
+admin.apps_migrations_diff                              GET                            /admin/apps/<int:app_id>/migrations/diff                                  
+admin.apps_new                                          GET, POST                      /admin/apps/new                                                           
+admin.apps_sync                                         POST                           /admin/apps/<int:app_id>/sync                                             
+admin.apps_table_delete                                 POST                           /admin/apps/<int:app_id>/tables/<int:table_id>/delete                     
+admin.apps_table_edit                                   GET, POST                      /admin/apps/<int:app_id>/tables/<int:table_id>/edit                       
+admin.apps_table_form_builder                           GET                            /admin/apps/<int:app_id>/tables/<int:table_id>/form-builder               
+admin.apps_table_layout_save                            POST                           /admin/apps/<int:app_id>/tables/<int:table_id>/layout                     
+admin.apps_table_new                                    GET, POST                      /admin/apps/<int:app_id>/tables/new                                       
+admin.apps_tables                                       GET                            /admin/apps/<int:app_id>/tables                                           
+admin.apps_tables_bulk_delete                           POST                           /admin/apps/tables/bulk-delete/                                           
+admin.apps_template_json                                GET                            /admin/apps/template/json                                                 
+admin.apps_template_yaml                                GET                            /admin/apps/template/yaml                                                 
+admin.dashboard                                         GET, POST                      /admin/dashboard                                                          
+admin.db_generate_view                                  POST                           /admin/settings/db/generate-view                                          
+admin.db_table_detail                                   GET                            /admin/settings/db/<table_name>/                                          
+admin.dev                                               GET                            /admin/dev                                                                
+admin.help_page                                         GET                            /admin/help                                                               
+admin.list_pref_save                                    POST                           /admin/api/list-pref/                                                     
+admin.menu_data                                         GET                            /admin/settings/menu/data                                                 
+admin.menu_save                                         POST                           /admin/settings/menu/save                                                 
+admin.notifications                                     GET                            /admin/notifications/<category>                                           
+admin.role_edit                                         GET, POST                      /admin/roles/<int:role_id>/edit                                           
+admin.role_new                                          POST                           /admin/roles/new                                                          
+admin.script_edit                                       POST                           /admin/settings/scripts/<int:sc_id>/edit                                  
+admin.script_new                                        POST                           /admin/settings/scripts/new                                               
+admin.server_settings_save                              POST                           /admin/settings/server/save                                               
+admin.settings                                          GET                            /admin/settings                                                           
+admin.settings_upload_save                              POST                           /admin/settings/uploads/save                                              
+admin.user_activate                                     POST                           /admin/users/<int:user_id>/activate                                       
+admin.user_deactivate                                   POST                           /admin/users/<int:user_id>/deactivate                                     
+admin.user_detail                                       GET                            /admin/users/<int:user_id>/                                               
+admin.user_log                                          GET, POST                      /admin/user-log                                                           
+admin.user_toggle_admin                                 POST                           /admin/users/<int:user_id>/toggle-admin                                   
+admin.userlog_bulk_delete                               POST                           /admin/user-log/bulk-delete/                                              
+admin.users                                             GET                            /admin/users                                                              
+admin.users_bulk_delete                                 POST                           /admin/users/bulk-delete/                                                 
+admin.users_export_csv                                  GET                            /admin/users/export-csv                                                   
+admin.users_new                                         GET, POST                      /admin/users/new                                                          
+admin.webhook_new                                       POST                           /admin/settings/webhooks/new                                              
+admin.webhook_toggle                                    POST                           /admin/settings/webhooks/<int:ep_id>/toggle                               
+aras_actions.dispatch                                   POST                           /admin/actions/dispatch/                                                  
+aras_api.api_collection                                 DELETE, GET, PATCH, POST, PUT  /api/<path:resource_path>/                                                
+aras_api.api_global_search                              GET                            /api/_search/                                                             
+aras_api.api_index                                      GET                            /api/                                                                     
+aras_api.api_item                                       DELETE, GET, PUT               /api/<path:resource_path>/<int:item_id>/                                  
+aras_api.api_schema                                     GET                            /api/<path:resource_path>/_schema/                                        
+aras_api.workflow_actions                               GET                            /api/workflow/actions/                                                    
+aras_api.workflow_transition                            POST                           /api/workflow/transition/                                                 
+aras_health.health_check                                GET                            /admin/_health/                                                           
+auth.change_email                                       GET                            /auth/change-email/<token>                                                
+auth.change_email_request                               GET, POST                      /auth/change-email                                                        
+auth.change_password                                    GET, POST                      /auth/change-password                                                     
+auth.login_view                                         GET, POST                      /auth/login                                                               
+auth.logout_view                                        GET                            /auth/logout                                                              
+auth.password_reset                                     GET, POST                      /auth/password-reset/<token>                                              
+auth.password_reset_request                             GET, POST                      /auth/password-reset                                                      
+auth.register_view                                      GET, POST                      /auth/register                                                            
+auth.user                                               GET                            /auth/user/<username>                                                     
+debugtoolbar.save_template                              POST                           /_debug_toolbar/views/template/<key>/save                                 
+debugtoolbar.sql_select                                 GET, POST                      /_debug_toolbar/views/sqlalchemy/sql_explain                              
+debugtoolbar.sql_select                                 GET, POST                      /_debug_toolbar/views/sqlalchemy/sql_select                               
+debugtoolbar.template_editor                            GET                            /_debug_toolbar/views/template/<key>                                      
+debugtoolbar.template_preview                           POST                           /_debug_toolbar/views/template/<key>                                      
+erp_views.api_report_setting                            GET, POST                      /admin/erp/api/report-setting/<int:report_id>/                            
+erp_views.api_save_list_setting                         POST                           /admin/erp/api/list-setting/                                              
+erp_views.pos_cash_entry                                POST                           /admin/erp/pos/session/<int:session_id>/cash-entry                        
+erp_views.pos_close_session                             GET, POST                      /admin/erp/pos/session/<int:session_id>/close                             
+erp_views.pos_home                                      GET                            /admin/erp/pos/                                                           
+erp_views.pos_invoice_pdf                               GET                            /admin/erp/pos/invoice/<int:invoice_id>/print.pdf                         
+erp_views.pos_invoice_print                             GET                            /admin/erp/pos/invoice/<int:invoice_id>/print                             
+erp_views.pos_open_session                              GET, POST                      /admin/erp/pos/open/<int:terminal_id>                                     
+erp_views.pos_print_template_preview                    GET                            /admin/erp/pos/print-template/<int:tpl_id>/preview                        
+erp_views.pos_receipt_html                              GET                            /admin/erp/pos/order/<int:order_id>/receipt                               
+erp_views.pos_receipt_jpg                               GET                            /admin/erp/pos/order/<int:order_id>/receipt.jpg                           
+erp_views.pos_receipt_pdf                               GET                            /admin/erp/pos/order/<int:order_id>/receipt.pdf                           
+erp_views.pos_session                                   GET                            /admin/erp/pos/session/<int:session_id>                                   
+erp_views.pos_session_shift_report                      GET                            /admin/erp/pos/session/<int:session_id>/shift-report                      
+erp_views.report_data_json                              GET                            /admin/erp/reports/<int:report_id>/data.json                              
+erp_views.report_export_csv                             GET                            /admin/erp/reports/<int:report_id>/export.csv                             
+erp_views.report_meta_json                              GET                            /admin/erp/reports/<int:report_id>/meta.json                              
+erp_views.report_run                                    GET                            /admin/erp/reports/<int:report_id>/                                       
+erp_views.reports_index                                 GET                            /admin/erp/reports/                                                       
+erp_views.static                                        GET                            /admin/erp/erp_static/<path:filename>                                     
+root                                                    GET                            /                                                                         
+static                                                  GET                            /static/<path:filename>                                                   

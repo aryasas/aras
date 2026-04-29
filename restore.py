@@ -6,9 +6,9 @@ source venv/bin/activate
 
 echo "=== Restoring all changes from lost session ==="
 
-# ── 1. aras/app_erp/erp_core/models/tax.py ──────────────────────────────────
-cat > aras/app_erp/erp_core/models/tax.py << 'EOF'
-from arasCore.lib.base_model import ArasModel, ArasSoftModel, db
+# ── 1. aras/erp/erp_core/models/tax.py ──────────────────────────────────
+cat > aras/erp/erp_core/models/tax.py << 'EOF'
+from arasCore.lib.core.base_model import ArasModel, ArasSoftModel, db
 
 
 class Charge(ArasSoftModel):
@@ -48,9 +48,9 @@ class CompanyDefaultCharge(ArasModel):
     charge  = db.relationship("Charge")
 EOF
 
-# ── 2. aras/app_erp/erp_core/models/payment_mode.py ─────────────────────────
-cat > aras/app_erp/erp_core/models/payment_mode.py << 'EOF'
-from arasCore.lib.base_model import ArasModel, db
+# ── 2. aras/erp/erp_core/models/payment_mode.py ─────────────────────────
+cat > aras/erp/erp_core/models/payment_mode.py << 'EOF'
+from arasCore.lib.core.base_model import ArasModel, db
 
 
 class ModeOfPayment(ArasModel):
@@ -80,14 +80,14 @@ class CompanyPaymentAccount(ArasModel):
     )
 EOF
 
-# ── 3. aras/app_erp/erp_core/models/__init__.py ──────────────────────────────
-sed -i '' 's/from .tax import Charge, ChargeCategory, CompanyDefaultCharge/from .tax import Charge, CompanyDefaultCharge/' aras/app_erp/erp_core/models/__init__.py
-sed -i '' 's/from .payment_mode import PaymentType, ModeOfPayment, CompanyPaymentAccount/from .payment_mode import ModeOfPayment, CompanyPaymentAccount/' aras/app_erp/erp_core/models/__init__.py
-sed -i '' 's/"Charge", "ChargeCategory", "CompanyDefaultCharge"/"Charge", "CompanyDefaultCharge"/' aras/app_erp/erp_core/models/__init__.py
-sed -i '' 's/"PaymentType", "ModeOfPayment", "CompanyPaymentAccount"/"ModeOfPayment", "CompanyPaymentAccount"/' aras/app_erp/erp_core/models/__init__.py
+# ── 3. aras/erp/erp_core/models/__init__.py ──────────────────────────────
+sed -i '' 's/from .tax import Charge, ChargeCategory, CompanyDefaultCharge/from .tax import Charge, CompanyDefaultCharge/' aras/erp/erp_core/models/__init__.py
+sed -i '' 's/from .payment_mode import PaymentType, ModeOfPayment, CompanyPaymentAccount/from .payment_mode import ModeOfPayment, CompanyPaymentAccount/' aras/erp/erp_core/models/__init__.py
+sed -i '' 's/"Charge", "ChargeCategory", "CompanyDefaultCharge"/"Charge", "CompanyDefaultCharge"/' aras/erp/erp_core/models/__init__.py
+sed -i '' 's/"PaymentType", "ModeOfPayment", "CompanyPaymentAccount"/"ModeOfPayment", "CompanyPaymentAccount"/' aras/erp/erp_core/models/__init__.py
 
-# ── 4. aras/app_erp/erp_pos/models/terminal.py — add PosShiftBalance ─────────
-cat >> aras/app_erp/erp_pos/models/terminal.py << 'EOF'
+# ── 4. aras/erp/erp_pos/models/terminal.py — add PosShiftBalance ─────────
+cat >> aras/erp/erp_pos/models/terminal.py << 'EOF'
 
 
 class PosShiftBalance(ArasModel):
@@ -110,19 +110,19 @@ class PosShiftBalance(ArasModel):
         return f"<PosShiftBalance session={self.session_id} mop={self.mode_of_payment_id}>"
 EOF
 
-# ── 5. aras/app_erp/erp_pos/models/__init__.py ───────────────────────────────
-sed -i '' 's/from .terminal import PosTerminal, PosSession, PosShiftEntry$/from .terminal import PosTerminal, PosSession, PosShiftEntry, PosShiftBalance/' aras/app_erp/erp_pos/models/__init__.py
-sed -i '' 's/"PosTerminal", "PosSession", "PosShiftEntry"$/"PosTerminal", "PosSession", "PosShiftEntry", "PosShiftBalance"/' aras/app_erp/erp_pos/models/__init__.py
+# ── 5. aras/erp/erp_pos/models/__init__.py ───────────────────────────────
+sed -i '' 's/from .terminal import PosTerminal, PosSession, PosShiftEntry$/from .terminal import PosTerminal, PosSession, PosShiftEntry, PosShiftBalance/' aras/erp/erp_pos/models/__init__.py
+sed -i '' 's/"PosTerminal", "PosSession", "PosShiftEntry"$/"PosTerminal", "PosSession", "PosShiftEntry", "PosShiftBalance"/' aras/erp/erp_pos/models/__init__.py
 
-# ── 6. aras/app_erp/erp_stock/models/product.py — add use_price_table ────────
-sed -i '' 's/for_purchase        = db.Column(db.Boolean, default=True, nullable=False)/for_purchase        = db.Column(db.Boolean, default=True, nullable=False)\n    use_price_table     = db.Column(db.Boolean, default=False, nullable=False)/' aras/app_erp/erp_stock/models/product.py
+# ── 6. aras/erp/erp_stock/models/product.py — add use_price_table ────────
+sed -i '' 's/for_purchase        = db.Column(db.Boolean, default=True, nullable=False)/for_purchase        = db.Column(db.Boolean, default=True, nullable=False)\n    use_price_table     = db.Column(db.Boolean, default=False, nullable=False)/' aras/erp/erp_stock/models/product.py
 
-# ── 7. aras/app_erp/erp_stock/services/price_service.py ─────────────────────
-cat > aras/app_erp/erp_stock/services/price_service.py << 'EOF'
+# ── 7. aras/erp/erp_stock/services/price_service.py ─────────────────────
+cat > aras/erp/erp_stock/services/price_service.py << 'EOF'
 from datetime import date
 from decimal import Decimal
-from aras.app_erp.erp_stock.models.pricelist import StockPriceListItem
-from aras.app_erp.erp_stock.models.product import StockProduct, StockProductPrice
+from aras.erp.erp_stock.models.pricelist import StockPriceListItem
+from aras.erp.erp_stock.models.product import StockProduct, StockProductPrice
 
 
 def get_price(product_id: int, uom_id: int, qty: Decimal,
@@ -166,18 +166,18 @@ def get_price(product_id: int, uom_id: int, qty: Decimal,
     return Decimal(str(product.cost_price if price_type == "purchase" else product.standard_price))
 EOF
 
-# ── 8. aras/app_erp/erp_pos/services/shift_service.py — fix PaymentType ref ──
-sed -i '' 's/from aras.app_erp.erp_core.models.payment_mode import ModeOfPayment, PaymentType/from aras.app_erp.erp_core.models.payment_mode import ModeOfPayment/' aras/app_erp/erp_pos/services/shift_service.py
-sed -i '' 's/cash_mop_names = {.*PaymentType.*}/cash_mop_names = {m.name for m in ModeOfPayment.query.filter_by(payment_type="cash").all()}/' aras/app_erp/erp_pos/services/shift_service.py
+# ── 8. aras/erp/erp_pos/services/shift_service.py — fix PaymentType ref ──
+sed -i '' 's/from aras.erp.erp_core.models.payment_mode import ModeOfPayment, PaymentType/from aras.erp.erp_core.models.payment_mode import ModeOfPayment/' aras/erp/erp_pos/services/shift_service.py
+sed -i '' 's/cash_mop_names = {.*PaymentType.*}/cash_mop_names = {m.name for m in ModeOfPayment.query.filter_by(payment_type="cash").all()}/' aras/erp/erp_pos/services/shift_service.py
 
-# ── 9. aras/app_erp/erp_pos/services/order_service.py — fix PaymentType ref ──
-sed -i '' 's/cash_mop_ids = {m.id for m in ModeOfPayment.query.join(ModeOfPayment.payment_type).filter_by(code="cash").all()}/cash_mop_ids = {m.id for m in ModeOfPayment.query.filter_by(payment_type="cash").all()}/' aras/app_erp/erp_pos/services/order_service.py
+# ── 9. aras/erp/erp_pos/services/order_service.py — fix PaymentType ref ──
+sed -i '' 's/cash_mop_ids = {m.id for m in ModeOfPayment.query.join(ModeOfPayment.payment_type).filter_by(code="cash").all()}/cash_mop_ids = {m.id for m in ModeOfPayment.query.filter_by(payment_type="cash").all()}/' aras/erp/erp_pos/services/order_service.py
 
-# ── 10. arasCore/arasAdmin/crud_factory.py — smart vcols ─────────────────────
+# ── 10. arasCore/admin/crud_factory.py — smart vcols ─────────────────────
 python3 - << 'PYEOF'
 import re
 
-path = "arasCore/arasAdmin/crud_factory.py"
+path = "arasCore/admin/crud_factory.py"
 with open(path) as f:
     src = f.read()
 
@@ -227,7 +227,7 @@ old = '''                    child_rel_maps = {}
                         try:
                             fk = list(col_c.foreign_keys)[0]
                             ref_tname = fk.column.table.name
-                            from arasCore.lib.extensions import db as _db2
+                            from arasCore.lib.core.extensions import db as _db2
                             ref_model = next(
                                 (m.class_ for m in _db2.Model.registry.mappers
                                  if m.local_table.name == ref_tname), None
@@ -238,7 +238,7 @@ old = '''                    child_rel_maps = {}
                                 }
                         except Exception:
                             pass'''
-new = '                    from arasCore.arasAdmin.crud_factory import _build_fk_maps'
+new = '                    from arasCore.admin.crud_factory import _build_fk_maps'
 src = src.replace(old, new)
 src = src.replace('"rel_maps":       child_rel_maps,', '"rel_maps":       _build_fk_maps(cd["vcols"], cd["model"]),')
 
@@ -272,7 +272,7 @@ path = "arasCore/lib/admin_mount.py"
 with open(path) as f:
     src = f.read()
 
-old = '            return render_template(\n                "admin/views/adm_form.html",'
+old = '            return render_template(\n                "admin/views/gen_view_form.html",'
 new = '''            extra_ctx = {}
             try:
                 handler = getattr(self.res, "handler", None)
@@ -282,7 +282,7 @@ new = '''            extra_ctx = {}
                 pass
 
             return render_template(
-                "admin/views/adm_form.html",'''
+                "admin/views/gen_view_form.html",'''
 src = src.replace(old, new)
 
 # add **extra_ctx to render_template call
@@ -295,9 +295,9 @@ with open(path, 'w') as f:
 print("admin_mount.py detail_context wired")
 PYEOF
 
-# ── 14. templates/admin/views/adm_form.html — sidebar_cards block ────────────
+# ── 14. templates/admin/views/gen_view_form.html — sidebar_cards block ────────────
 python3 - << 'PYEOF'
-path = "templates/admin/views/adm_form.html"
+path = "templates/admin/views/gen_view_form.html"
 with open(path) as f:
     src = f.read()
 
@@ -328,7 +328,7 @@ src = src.replace(marker, block + marker)
 
 with open(path, 'w') as f:
     f.write(src)
-print("adm_form.html patched")
+print("gen_view_form.html patched")
 PYEOF
 
 # ── 15. arasCore/lib/cli.py — register ERP commands ──────────────────────────
@@ -339,7 +339,7 @@ with open(path) as f:
 
 old = '    app.cli.add_command(aras)'
 new = '''    try:
-        from aras.app_erp.cli import register_erp_commands
+        from aras.erp.cli import register_erp_commands
         register_erp_commands(aras)
     except (ImportError, Exception):
         pass
@@ -352,8 +352,8 @@ with open(path, 'w') as f:
 print("cli.py patched")
 PYEOF
 
-# ── 16. aras/app_erp/erp_acc/services/purchase_posting.py ────────────────────
-cat > aras/app_erp/erp_acc/services/purchase_posting.py << 'EOF'
+# ── 16. aras/erp/erp_acc/services/purchase_posting.py ────────────────────
+cat > aras/erp/erp_acc/services/purchase_posting.py << 'EOF'
 """
 acc.purchase_posting — post AccPurchaseInvoice:
   1. Journal: DR inventory / CR payable per product category
@@ -362,12 +362,12 @@ acc.purchase_posting — post AccPurchaseInvoice:
 from decimal import Decimal
 from datetime import date as date_type
 
-from arasCore.lib.extensions import db
-from aras.app_erp.erp_acc.models.invoice import AccPurchaseInvoice
-from aras.app_erp.erp_acc.services.posting import post_journal, get_default_account
-from aras.app_erp.erp_stock.models.product import StockProduct
-from aras.app_erp.erp_stock.models.warehouse import StockLocation
-from aras.app_erp.erp_stock.services.posting import post_movement
+from arasCore.lib.core.extensions import db
+from aras.erp.erp_acc.models.invoice import AccPurchaseInvoice
+from aras.erp.erp_acc.services.posting import post_journal, get_default_account
+from aras.erp.erp_stock.models.product import StockProduct
+from aras.erp.erp_stock.models.warehouse import StockLocation
+from aras.erp.erp_stock.services.posting import post_movement
 
 
 def post_purchase_invoice(invoice_id: int, warehouse_id: int = None) -> AccPurchaseInvoice:
@@ -411,10 +411,10 @@ def post_purchase_invoice(invoice_id: int, warehouse_id: int = None) -> AccPurch
         inv.journal_entry_id = entry.id
 
     if stock_lines and warehouse_id:
-        from aras.app_erp.erp_stock.models.movement import StockMovement, StockMovementLine
-        from aras.app_erp.erp_core.models.sequence import Sequence
+        from aras.erp.erp_stock.models.movement import StockMovement, StockMovementLine
+        from aras.erp.erp_core.models.sequence import Sequence
         seq  = Sequence.find(code="stock.receipt", company_id=company_id)
-        from aras.app_erp.erp_core.services import sequence as seq_svc
+        from aras.erp.erp_core.services import sequence as seq_svc
         name = seq_svc.next_number_for_seq(seq) if seq else seq_svc.next_number("stock.receipt", company_id)
 
         dst_loc = StockLocation.query.filter_by(
@@ -452,8 +452,8 @@ def post_purchase_invoice(invoice_id: int, warehouse_id: int = None) -> AccPurch
     return inv
 EOF
 
-# ── 17. aras/app_erp/migrations/022_invoice_payment_coa_group.py ─────────────
-cat > aras/app_erp/migrations/022_invoice_payment_coa_group.py << 'EOF'
+# ── 17. aras/erp/migrations/022_invoice_payment_coa_group.py ─────────────
+cat > aras/erp/migrations/022_invoice_payment_coa_group.py << 'EOF'
 """
 022 — add acc_invoice_payment, acc_account.is_group,
       drop amount_paid/amount_due from invoices,
@@ -465,7 +465,7 @@ logger = logging.getLogger(__name__)
 
 def run(flask_app):
     from sqlalchemy import text, inspect
-    from arasCore.lib.extensions import db
+    from arasCore.lib.core.extensions import db
     with flask_app.app_context():
         insp   = inspect(db.engine)
         tables = insp.get_table_names()
@@ -515,8 +515,8 @@ def run(flask_app):
         logger.info("[022] done")
 EOF
 
-# ── 18. aras/app_erp/migrations/021_restructure_charge_mop_shift.py ──────────
-cat > aras/app_erp/migrations/021_restructure_charge_mop_shift.py << 'EOF'
+# ── 18. aras/erp/migrations/021_restructure_charge_mop_shift.py ──────────
+cat > aras/erp/migrations/021_restructure_charge_mop_shift.py << 'EOF'
 """
 021 — drop charge_category, merge payment_type into mode_of_payment,
       add pos_shift_balance, add product.use_price_table
@@ -527,7 +527,7 @@ logger = logging.getLogger(__name__)
 
 def run(flask_app):
     from sqlalchemy import text, inspect
-    from arasCore.lib.extensions import db
+    from arasCore.lib.core.extensions import db
     with flask_app.app_context():
         insp   = inspect(db.engine)
         tables = insp.get_table_names()

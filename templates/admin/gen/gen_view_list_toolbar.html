@@ -1,0 +1,100 @@
+{# ── Toolbar ── #}
+<div class="aras-toolbar" id="listToolbar{{ _lid }}">
+  <div class="aras-toolbar__left">
+    {% if _has_add %}
+    <a href="{{ add_url }}" class="aras-btn aras-btn--primary aras-btn--sm">
+      <i class="fa fa-plus"></i> New
+    </a>
+    {% endif %}
+
+    {% if _has_search %}
+    <form method="GET" id="searchForm{{ _lid }}" class="m-0 flex-grow-1 max-w-400">
+      <div class="aras-search-wrap w-100">
+        <i class="ti-search text-accent"></i>
+        <input type="text" name="{{ _qparam }}" placeholder="Search…" value="{{ search_q or '' }}" autocomplete="off">
+      </div>
+      {% for f in (active_filters or []) %}
+        <input type="hidden" name="f_col[]" value="{{ f.col }}">
+        <input type="hidden" name="f_op[]"  value="{{ f.op }}">
+        <input type="hidden" name="f_val[]" value="{{ f.val }}">
+      {% endfor %}
+    </form>
+    {% endif %}
+
+    <div id="bulkWrapInline{{ _lid }}" class="aras-toolbar__bulk" style="display:none;">
+      <span class="aras-badge aras-badge--info aras-badge--xs">
+        <span id="bulkCountInline{{ _lid }}">0</span> selected
+      </span>
+      <button type="button" class="aras-btn aras-btn--sm js-bulk-delete{{ _lid }} text-danger border-danger">
+        <i class="fa fa-trash"></i> Delete
+      </button>
+    </div>
+  </div>
+
+  <div class="aras-toolbar__right">
+    {% if _has_pag %}
+    <div class="d-flex align-items-center gap-8 fs-12 text-muted">
+      <span>Show</span>
+      <select id="perPageSelect{{ _lid }}" class="aras-form-select py-4 px-8 h-auto w-auto fs-12" style="min-width: 60px;">
+        <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+        <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+        <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+      </select>
+    </div>
+    {% endif %}
+    {% if _has_filter %}
+    <button type="button" class="aras-btn aras-btn--outline aras-btn--sm {% if active_filters %}active{% endif %}"
+            id="filterToggleBtn{{ _lid }}" title="Filters">
+      <i class="ti-filter"></i>
+      {% if active_filters %}<span class="badge badge-primary ml-1">{{ active_filters|length }}</span>{% endif %}
+    </button>
+    {% endif %}
+
+    {# ── Totals toggle ── #}
+    <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" id="totalsToggleBtn{{ _lid }}" title="Show column totals" data-active="false">
+      <i class="fa fa-calculator"></i>
+    </button>
+
+    {# ── Column picker ── #}
+    {% set _picker_cols = all_columns if (all_columns is defined and all_columns) else view_columns %}
+    {% set _visible_fields = view_columns | map(attribute=1) | list %}
+    <div class="position-relative">
+      <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" id="colToggleBtn{{ _lid }}" title="Columns">
+        <i class="fa fa-columns"></i>
+      </button>
+      <div id="colTogglePopover{{ _lid }}" class="aras-popover" style="display:none;min-width:160px;max-height:300px;overflow-y:auto;">
+        <div class="d-flex flex-column gap-8" style="padding:8px 0;">
+          {% for label, field in _picker_cols %}
+          {% set _is_visible = field in _visible_fields %}
+          <label class="d-flex align-items-center gap-8 fs-13 cursor-pointer m-0 px-12 user-select-none">
+            <input type="checkbox" class="js-col-vis{{ _lid }}" data-field="{{ field }}" {% if _is_visible %}checked{% endif %}>
+            {{ label }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {% if _has_customize and app_id and table_id %}
+    <a href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}"
+       class="aras-btn aras-btn--outline aras-btn--sm" title="Customize Fields">
+      <i class="ti-layout-column4"></i>
+    </a>
+    {% endif %}
+
+    {% if _has_report %}
+    <a href="{{ linked_report_url }}" class="aras-btn aras-btn--outline aras-btn--sm" title="View Report">
+      <i class="ti-stats-up"></i>
+    </a>
+    {% endif %}
+
+    {% if _has_extra %}
+      {% for btn in extra_buttons %}
+        <a href="{{ btn.url }}" class="aras-btn aras-btn--outline aras-btn--sm" title="{{ btn.title if btn.title is defined else '' }}">
+          {% if btn.icon is defined %}<i class="fa {{ btn.icon }}"></i>{% endif %}
+          {{ btn.label if btn.label is defined else '' }}
+        </a>
+      {% endfor %}
+    {% endif %}
+  </div>
+</div>

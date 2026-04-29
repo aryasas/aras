@@ -1,0 +1,258 @@
+{#
+  com_child_table.html — child table with inline row add + edit modal
+  ct.footer_totals — list of field names to sum
+  ct.price_api_url — optional: URL to fetch price on product change (invoice lines)
+  ct.price_type    — "sales" or "purchase" (for price lookup)
+  ct.parent_company_id — company_id of parent (for price/account resolution)
+  ct.parent_price_list_field — JS selector for price list field on parent form
+#}
+{% set _ct_footer = ct.footer_totals if ct.footer_totals is defined else [] %}
+{% set _li = ct.model_name if (ct.model_name is defined and ct.model_name) else (loop.index | string) %}
+{% set _ct_all_render = ct.all_columns if (ct.all_columns is defined and ct.all_columns) else ct.vcols %}
+{% set _ct_vcol_names = ct.vcols | map(attribute=1) | list %}
+
+<div class="aras-child-table-wrap" id="ctw-{{ _li }}">
+  <input type="hidden" name="ct_local_{{ _li }}" id="ct-local-input-{{ _li }}" value="{{ request.form.get('ct_local_' + _li) or '' }}">
+
+  {# ── Toolbar ── #}
+  <div class="aras-child-toolbar d-flex justify-content-between align-items-center mb-0" style="padding: 12px 20px; background: var(--studio-paper); border-bottom: 1px solid var(--studio-cream);">
+    <h5 class="aras-child-toolbar__title m-0" style="font-family: var(--aras-font-serif); font-weight: 700; font-size: 14px; color: var(--studio-ink);">
+      {{ ct.title }}
+    </h5>
+    <div class="aras-child-toolbar__actions d-flex gap-2" style="position: relative;">
+      {% if ct.api_url and ct.inline_columns %}
+      <button type="button" class="aras-btn aras-btn--primary aras-btn--sm" onclick="ctAddRow('{{ _li }}')" id="ct-add-btn-{{ _li }}">
+        <i class="fa fa-plus"></i> Add Row
+      </button>
+      {% elif ct.adm_url and ct.parent_id %}
+      <a href="{{ ct.adm_url }}/add/?{{ ct.fk_col }}={{ ct.parent_id }}" class="aras-btn aras-btn--primary aras-btn--sm">
+        <i class="fa fa-plus"></i> Add {{ ct.title }}
+      </a>
+      {% endif %}
+      <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" onclick="toggleCtTotals('{{ _li }}')" id="ct-totals-btn-{{ _li }}" title="Show totals" style="padding: 6px 10px;">
+        <i class="fa fa-calculator"></i>
+      </button>
+      <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" onclick="toggleCtSettings('{{ _li }}', event)" title="Columns" style="padding: 6px 10px;">
+        <i class="fa fa-columns"></i>
+      </button>
+      {% if ct.app_id is defined and ct.app_id and ct.table_id is defined and ct.table_id %}
+      <a href="{{ url_for('admin.apps_columns', app_id=ct.app_id, table_id=ct.table_id) }}"
+         class="aras-btn aras-btn--outline aras-btn--sm" title="Customize Columns" style="padding: 6px 10px;">
+        <i class="fa fa-sliders"></i>
+      </a>
+      {% endif %}
+      {% set _ct_picker_cols = ct.all_columns if (ct.all_columns is defined and ct.all_columns) else ct.vcols %}
+      {% set _ct_visible_fields = ct.vcols | map(attribute=1) | list %}
+      <div id="ct-settings-{{ _li }}" class="aras-popover" style="display:none; top: 40px; border: 1px solid var(--studio-ochre); border-radius: 4px; box-shadow: var(--aras-shadow-drop);">
+        <div class="aras-popover__head" style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--aras-ink-3); border-bottom: 1px solid var(--aras-line); padding-bottom: 6px; margin-bottom: 8px;">Visible Columns</div>
+        {% for label, field in _ct_picker_cols %}
+        {% set _ct_checked = field in _ct_visible_fields %}
+        <label class="aras-popover__item" style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer; margin: 0 0 6px 0; font-weight: normal; user-select: none;">
+          <input type="checkbox" class="js-ct-col-vis-{{ _li }}" data-field="{{ field }}" {% if _ct_checked %}checked{% endif %}
+                 onchange="applyCtColVis('{{ _li }}', '{{ field }}', this.checked); persistCtCols('{{ _li }}')">
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Table ── #}
+  <div class="overflow-x-auto">
+  <table class="aras-table mb-0" id="ct-table-{{ _li }}">
+    <thead>
+      <tr>
+        <th class="ct-th-seq w-32 text-center" style="background: var(--studio-paper); border-bottom: 1px solid var(--studio-cream); padding: 12px 20px; font-family: var(--aras-font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: var(--aras-ink-3);">#</th>
+        {% for label, field in _ct_all_render %}
+        <th data-field="{{ field }}" {% if field not in _ct_vcol_names %}style="display:none; background: var(--studio-paper); border-bottom: 1px solid var(--studio-cream); padding: 12px 20px; font-family: var(--aras-font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: var(--aras-ink-3);"{% else %}style="background: var(--studio-paper); border-bottom: 1px solid var(--studio-cream); padding: 12px 20px; font-family: var(--aras-font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: var(--aras-ink-3);"{% endif %}>{{ label }}</th>
+        {% endfor %}
+        {% if ct.api_url %}
+        <th class="ct-th-actions w-70 text-right" style="background: var(--studio-paper); border-bottom: 1px solid var(--studio-cream); padding: 12px 20px;"></th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody id="ct-tbody-{{ _li }}">
+      {% for row in ct.rows %}
+      {# Determine ID robustly #}
+      {% set row_id = row['id'] if row['id'] is defined else (row.id if row.id is defined else '') %}
+      <tr data-id="{{ row_id }}" class="ct-data-row{% if ct.adm_url and not ct.api_url %} is-clickable{% endif %}"
+          {% if ct.adm_url and not ct.api_url %}onclick="window.location='{{ ct.adm_url }}/{{ row_id }}/';"{% endif %}>
+        <td class="ct-td-seq text-center text-muted-aras fs-11" style="border-bottom: 1px solid var(--studio-cream); padding: 14px 20px;">{{ loop.index }}</td>
+        {% set _ct_rel = ct.rel_maps if ct.rel_maps is defined else {} %}
+        {% for _, field_name in _ct_all_render %}
+          {# Resolve value robustly for both dicts and objects #}
+          {% set raw = row[field_name] if row[field_name] is defined else (row|attr(field_name) if row|attr(field_name) is defined else none) %}
+          {% set _hidden_style = 'display:none; ' if field_name not in _ct_vcol_names else '' %}
+          
+          <td data-raw="{{ raw if raw is not none else '' }}" data-field="{{ field_name }}" style="{{ _hidden_style }}border-bottom: 1px solid var(--studio-cream); padding: 14px 20px;">
+            {%- if field_name in _ct_rel and raw is not none -%}
+              {%- set raw_str = raw | string -%}
+              {{ _ct_rel[field_name][raw_str] if raw_str in _ct_rel[field_name] else raw }}
+            {%- else -%}
+              {{ raw if raw is not none else '—' }}
+            {%- endif -%}
+          </td>
+        {% endfor %}
+        {% if ct.api_url and ct.inline_columns %}
+        <td class="ct-td-actions text-right" style="border-bottom: 1px solid var(--studio-cream); padding: 8px 20px;">
+          <button type="button" class="ct-btn-edit" title="Edit" onclick="ctOpenModal('{{ _li }}', this)" style="background: none; border: none; padding: 6px; cursor: pointer; color: var(--aras-ink-3); transition: color 0.2s;"><i class="fa fa-pencil"></i></button>
+          <button type="button" class="ct-btn-del"  title="Delete" onclick="ctDeleteRow('{{ _li }}', this)" style="background: none; border: none; padding: 6px; cursor: pointer; color: var(--aras-ink-3); transition: color 0.2s;"><i class="fa fa-trash"></i></button>
+        </td>
+        {% else %}
+        <td class="td-arrow text-right" style="border-bottom: 1px solid var(--studio-cream); padding: 14px 20px;">{% if ct.adm_url %}<i class="fa fa-chevron-right row-arrow" style="color: var(--aras-ink-3); font-size: 11px;"></i>{% endif %}</td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+
+      {# ── Inline add row (hidden by default, appears as table row) ── #}
+      {% if ct.api_url and ct.inline_columns %}
+      {% set _inline_map = {} %}
+      {% for col in ct.inline_columns %}{% if _inline_map.update({col.name: col}) %}{% endif %}{% endfor %}
+      {% set _inline_col_names = ct.inline_columns | map(attribute='name') | list %}
+      <tr class="ct-input-row d-none" id="ct-input-row-{{ _li }}" style="background: var(--studio-accent-50);">
+        <td class="ct-td-seq text-center text-muted-aras fs-11" style="padding: 10px 20px;">*</td>
+        {# Render all columns (hidden if not in vcols) #}
+        {% for _, vcol_name in _ct_all_render %}
+        {% set col = _inline_map.get(vcol_name) %}
+        {% set _hidden_td = vcol_name not in _ct_vcol_names %}
+        <td data-field="{{ vcol_name }}" class="ct-input-cell" style="{{ 'display:none; ' if _hidden_td else '' }}padding: 8px 10px;">
+          {% if col %}
+            {% if col.type == 'select' %}
+              <select name="{{ col.name }}" id="ct-{{ _li }}-{{ col.name }}" class="ct-cell-input"
+                      {% if col.name == 'product_id' %}onchange="ctOnProductChange('{{ _li }}', this)"{% endif %}
+                      style="width: 100%; min-width: 80px; padding: 6px 10px; font-size: 12px; border: 1px solid var(--studio-ochre); border-radius: 4px; background: #fff; outline: none;">
+                <option value="">—</option>
+                {% for opt in col.fk_options %}
+                  <option value="{{ opt.id }}">{{ opt.label }}</option>
+                {% endfor %}
+              </select>
+            {% elif col.type == 'textarea' %}
+              <textarea name="{{ col.name }}" id="ct-{{ _li }}-{{ col.name }}" class="ct-cell-input" rows="1"
+                        style="width: 100%; min-width: 80px; padding: 6px 10px; font-size: 12px; border: 1px solid var(--studio-ochre); border-radius: 4px; background: #fff; outline: none;"></textarea>
+            {% elif col.type == 'checkbox' %}
+              <input type="checkbox" name="{{ col.name }}" id="ct-{{ _li }}-{{ col.name }}" class="ct-cell-input w-auto">
+            {% else %}
+              <input type="{{ col.type }}" name="{{ col.name }}" id="ct-{{ _li }}-{{ col.name }}" class="ct-cell-input"
+                     {% if col.name in ('subtotal','total','amount') %}data-calc="true" readonly tabindex="-1"{% endif %}
+                     style="width: 100%; min-width: 80px; padding: 6px 10px; font-size: 12px; border: 1px solid var(--studio-ochre); border-radius: 4px; background: #fff; outline: none;">
+            {% endif %}
+          {% endif %}
+        </td>
+        {% endfor %}
+        {# Hidden inputs for extra inline columns not rendered above (e.g. account_id) #}
+        {% for col in ct.inline_columns %}
+        {% if col.name not in (_ct_all_render | map(attribute=1) | list) %}
+          <input type="hidden" name="{{ col.name }}" id="ct-{{ _li }}-{{ col.name }}" class="ct-cell-input">
+        {% endif %}
+        {% endfor %}
+        <td class="ct-td-actions text-right" style="padding: 8px 20px;">
+          <button type="button" class="ct-btn-edit" title="Edit Detail" onclick="ctOpenModal('{{ _li }}', this, true)" style="color: var(--studio-accent); background: none; border: none; padding: 6px; cursor: pointer;">
+            <i class="fa fa-pencil"></i>
+          </button>
+          <button type="button" class="ct-btn-save" title="Save" onclick="ctSaveInlineRow('{{ _li }}', '{{ ct.api_url }}', '{{ ct.fk_col }}', '{{ ct.parent_id }}')" style="color: #4f6f53; background: none; border: none; padding: 6px; cursor: pointer;">
+            <i class="fa fa-check"></i>
+          </button>
+          <button type="button" class="ct-btn-cancel" title="Cancel" onclick="ctHideInputRow('{{ _li }}')" style="color: var(--aras-ink-3); background: none; border: none; padding: 6px; cursor: pointer;">
+            <i class="fa fa-times"></i>
+          </button>
+        </td>
+      </tr>
+      {% endif %}
+    </tbody>
+
+    <tfoot id="ct-footer-{{ _li }}" class="ct-footer" style="display:none; background: var(--studio-paper); border-top: 2px solid var(--studio-cream);">
+      <tr>
+        <td style="padding: 14px 20px;"></td>
+        {% for _, field_name in _ct_all_render %}
+          {% set _hidden_tf = field_name not in _ct_vcol_names %}
+          <td class="ct-footer-total text-right" data-total-field="{{ field_name }}" style="{{ 'display:none; ' if _hidden_tf else '' }}padding: 14px 20px; font-family: var(--aras-font-mono); font-weight: 700; color: var(--studio-ink);">
+            {%- if field_name in _ct_footer -%}
+              {%- set _total = namespace(v=0) -%}
+              {%- for row in ct.rows -%}
+                {%- set _val = row[field_name] if row[field_name] is defined else (row|attr(field_name) if row|attr(field_name) is defined else none) -%}
+                {%- if _val is not none -%}{%- set _total.v = _total.v + (_val | float) -%}{%- endif -%}
+              {%- endfor -%}
+              <strong>{{ "%.2f"|format(_total.v) }}</strong>
+            {%- endif -%}
+          </td>
+        {% endfor %}
+        {% if ct.api_url %}<td></td>{% endif %}
+      </tr>
+    </tfoot>
+  </table>
+  </div>
+
+  <div class="aras-child-empty{% if ct.rows %} d-none{% endif %}" id="ct-empty-{{ _li }}" style="padding: 40px; text-align: center; color: var(--aras-ink-3); font-family: var(--aras-font-serif); font-style: italic; border-top: 1px solid var(--studio-cream);">
+    <i class="fa fa-inbox" style="display: block; font-size: 24px; margin-bottom: 12px; opacity: 0.5;"></i>
+    <span>No {{ ct.title }} yet</span>
+  </div>
+</div>
+
+
+{# ── Edit Modal ── #}
+{% if ct.api_url and ct.inline_columns %}
+<div class="ct-modal-backdrop d-none" id="ct-modal-{{ _li }}" onclick="ctCloseModal('{{ _li }}', event)" style="position: fixed; inset: 0; background: rgba(15, 27, 45, 0.4); backdrop-filter: blur(8px); z-index: 1200; display: flex; align-items: center; justify-content: center;">
+  <div class="ct-modal" style="background: #fff; border-radius: 8px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); width: 100%; max-width: 560px; max-height: 90vh; display: flex; flex-direction: column;">
+    <div class="ct-modal__head" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--studio-cream);">
+      <span class="ct-modal__title" style="font-family: var(--aras-font-serif); font-weight: 700; font-size: 18px; color: var(--studio-ink);">Edit {{ ct.title }}</span>
+      <button type="button" class="ct-modal__close" onclick="ctCloseModal('{{ _li }}')" style="background: none; border: none; cursor: pointer; padding: 4px 6px; color: var(--aras-ink-3); font-size: 18px;"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="ct-modal__body" style="padding: 24px; overflow-y: auto; flex: 1;">
+      <input type="hidden" id="ct-modal-id-{{ _li }}" value="">
+      {% for col in ct.inline_columns %}
+      <div class="aras-form-row" style="display: grid; grid-template-columns: 140px 1fr; gap: 20px; padding: 12px 0; border-bottom: 1px solid var(--studio-cream); align-items: center;">
+        <label class="aras-form-label" style="font-weight: 600; font-size: 13px; color: var(--studio-ink); margin: 0;">{{ col.label }}</label>
+        <div class="aras-form-control-wrap">
+        {% if col.type == 'select' %}
+          <select name="{{ col.name }}" id="ct-modal-{{ _li }}-{{ col.name }}" class="aras-form-select"
+                  {% if col.name == 'product_id' %}onchange="ctOnProductChangeModal('{{ _li }}', this)"{% endif %}
+                  style="width: 100%; padding: 8px 12px; border: 1px solid var(--aras-line-2); border-radius: 4px; outline: none; font-size: 13px;">
+            <option value="">—</option>
+            {% for opt in col.fk_options %}
+              <option value="{{ opt.id }}">{{ opt.label }}</option>
+            {% endfor %}
+          </select>
+        {% elif col.type == 'textarea' %}
+          <textarea name="{{ col.name }}" id="ct-modal-{{ _li }}-{{ col.name }}" class="aras-form-textarea" rows="3"
+                    style="width: 100%; padding: 8px 12px; border: 1px solid var(--aras-line-2); border-radius: 4px; outline: none; font-size: 13px; min-height: 80px;"></textarea>
+        {% elif col.type == 'checkbox' %}
+          <div class="aras-form-check">
+            <input type="checkbox" name="{{ col.name }}" id="ct-modal-{{ _li }}-{{ col.name }}" class="aras-form-check-input">
+          </div>
+        {% else %}
+          <input type="{{ col.type }}" name="{{ col.name }}" id="ct-modal-{{ _li }}-{{ col.name }}" class="aras-form-input"
+                 {% if col.name in ('subtotal','total','amount') %}data-calc="true" readonly{% endif %}
+                 {% if col.required %}required{% endif %}
+                 style="width: 100%; padding: 8px 12px; border: 1px solid var(--aras-line-2); border-radius: 4px; outline: none; font-size: 13px;">
+        {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="ct-modal__foot" style="padding: 16px 24px; border-top: 1px solid var(--studio-cream); display: flex; gap: 12px; justify-content: flex-end; background: var(--studio-paper);">
+      <button type="button" class="aras-btn aras-btn--primary" onclick="ctSaveModal('{{ _li }}', '{{ ct.api_url }}', '{{ ct.fk_col }}', '{{ ct.parent_id }}')">
+        <i class="fa fa-save"></i> Save changes
+      </button>
+      <button type="button" class="aras-btn aras-btn--outline" onclick="ctCloseModal('{{ _li }}')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="ct-meta-{{ _li }}">
+{
+  "li":            {{ _li | tojson }},
+  "model_name":    {{ ct.model_name | tojson if ct.model_name is defined else '""' }},
+  "api_url":       {{ (ct.api_url | tojson) if ct.api_url is defined and ct.api_url else 'null' }},
+  "vcols":         [{{ ct.vcols | map(attribute=1) | map('tojson') | join(', ') }}],
+  "all_vcols":     [{{ _ct_all_render | map(attribute=1) | map('tojson') | join(', ') }}],
+  "rel_maps":      {{ ct.rel_maps | tojson if ct.rel_maps else '{}' }},
+  "footer_totals": {{ _ct_footer | tojson }},
+  "price_api":     {{ (ct.price_api_url | tojson) if ct.price_api_url is defined and ct.price_api_url else 'null' }},
+  "price_type":    {{ (ct.price_type | tojson) if ct.price_type is defined and ct.price_type else '"sales"' }},
+  "company_id":    {{ ct.parent_company_id if ct.parent_company_id is defined and ct.parent_company_id else 'null' }},
+  "price_list_field": {{ (ct.parent_price_list_field | tojson) if ct.parent_price_list_field is defined and ct.parent_price_list_field else 'null' }}
+}
+</script>
+<script src="{{ url_for('static', filename='js/child_table.js') }}"></script>
+<script>initChildTable({{ _li | tojson }});</script>
+{% endif %}

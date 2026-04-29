@@ -1,0 +1,16 @@
+{% extends extends_layout if extends_layout else 'admin/base_index.html' %}
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   gen_view_list.html — universal list page (Refactored)
+   Delegates rendering to the self-contained _list_partial.html
+   ─────────────────────────────────────────────────────────────────────────── #}
+
+{% block page_content %}
+<div class="aras-studio-theme">
+  {% include 'admin/gen/gen_view_list_content.html' %}
+</div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+{% endblock %}

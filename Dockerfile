@@ -1,14 +1,18 @@
 # Use an official Python runtime as a parent image
-FROM python:3.10-slim-buster
+FROM python:3.10-slim-bullseye
 
-# Set the working directory in the container
-WORKDIR /app
+# Install dependencies for adding MariaDB repository and downloading
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install system dependencies required for mariadb client
-RUN apt-get update && apt-get install -y 
-    default-libmysqlclient-dev 
-    build-essential 
-    pkg-config 
+# Add MariaDB official repository and install newer libmariadb-dev
+RUN curl -LsS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | bash \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    libmariadb-dev \
+    build-essential \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the requirements file and install dependencies
@@ -26,5 +30,5 @@ ENV FLASK_APP=run.py
 ENV FLASK_RUN_PORT=8080
 
 # Command to run the application
-# Using 'python run.py' as confirmed from run.py
+CMD ["python", "run.py"]
 CMD ["python", "run.py"]

@@ -6,7 +6,7 @@
 Three interleaved tasks:
 1. **Rename all `templates/admin/` files** to a consistent `adm_` / `adm_cfg_` / `adm_auth_` prefix scheme.
 2. **Delete dead templates** (`templates/app_manager/` is entirely unused).
-3. **Promote `ErpListViewSetting`** from `aras/app_erp/` to `arasCore` as `ListViewSetting`, persist column
+3. **Promote `ErpListViewSetting`** from `aras/erp/` to `arasCore` as `ListViewSetting`, persist column
    visibility per-user, and let apps declare extra toolbar buttons via `ResourceDef.extra_buttons`.
 
 ---
@@ -27,8 +27,8 @@ Three interleaved tasks:
 
 | Current | New | Notes |
 |---------|-----|-------|
-| `aras_list.html` | `adm_list.html` | |
-| `aras_admin_form.html` | `adm_form.html` | |
+| `aras_list.html` | `gen_view_list.html` | |
+| `aras_admin_form.html` | `gen_view_form.html` | |
 | `dashboard.html` | `adm_dashboard.html` | |
 | `messages.html` | `adm_messages.html` | |
 | `send_message.html` | `adm_send_message.html` | |
@@ -39,9 +39,9 @@ Three interleaved tasks:
 | `settings.html` | `adm_cfg_settings.html` | |
 | `aras_admin_settings.html` | `adm_cfg_app_settings.html` | |
 | `aras_admin_settings_section.html` | `adm_cfg_settings_section.html` | |
-| `aras_admin_tables.html` | `adm_cfg_tables.html` | custom row actions — cannot use adm_list |
+| `aras_admin_tables.html` | `adm_cfg_tables.html` | custom row actions — cannot use gen_view_list |
 | `aras_admin_table_form.html` | `adm_cfg_table_form.html` | form page, not a list |
-| `aras_admin_columns.html` | `adm_cfg_columns.html` | dual-panel editor — cannot use adm_list |
+| `aras_admin_columns.html` | `adm_cfg_columns.html` | dual-panel editor — cannot use gen_view_list |
 | `db_table_detail.html` | `adm_cfg_db_detail.html` | raw DB schema view — not ORM-backed |
 | `users.html` | `adm_auth_users.html` | |
 | `user_form.html` | `adm_auth_user_form.html` | |
@@ -51,7 +51,7 @@ Three interleaved tasks:
 | `dev.html` | `adm_dev.html` | |
 | `dev_msg.html` | `adm_dev_msg.html` | |
 
-**Already correct (no rename):** `adm_base.html`, `adm_index.html`, `adm_app_home.html`,
+**Already correct (no rename):** `base_index.html`, `adm_index.html`, `adm_app_home.html`,
 `_list_partial.html`, all `base_*` partials.
 
 ### Delete
@@ -64,21 +64,21 @@ App-specific settings pages stay at `/admin/<app>/settings/` (framework-generate
 ### Execution
 - `git mv` each file (preserves history)
 - Update every `render_template(...)` string in Python and `{% extends %}`/`{% include %}` in Jinja
-- Files to update: `arasCore/arasAdmin/routes/*.py`, `arasCore/arasAdmin/services.py`,
+- Files to update: `arasCore/admin/routes/*.py`, `arasCore/admin/services.py`,
   `arasCore/lib/admin_mount.py`, `arasCore/lib/blueprints.py`, all templates that reference renamed files
 
 ---
 
 ## Part B — Framework-Level ListViewSetting
 
-### Step B1 — Add `ListViewSetting` to `arasCore/arasAdmin/models.py`
+### Step B1 — Add `ListViewSetting` to `arasCore/admin/models.py`
 
 Append after last class:
 ```python
 class ListViewSetting(ArasModel):
-    __tablename__ = "adm_list_view_setting"
+    __tablename__ = "gen_view_list_view_setting"
     __table_args__ = (
-        db.UniqueConstraint("user_id", "doctype", name="uq_adm_list_view"),
+        db.UniqueConstraint("user_id", "doctype", name="uq_gen_view_list_view"),
     )
     user_id      = db.Column(db.Integer, db.ForeignKey("auth_users.id"), nullable=False)
     doctype      = db.Column(db.String(120), nullable=False)
@@ -91,13 +91,13 @@ class ListViewSetting(ArasModel):
 ### Step B2 — Migration `m005_list_view_setting.py`
 
 New file `arasCore/lib/migrations/m005_list_view_setting.py`.
-Pattern: CREATE TABLE `adm_list_view_setting` with IF NOT EXISTS guard (same as m004).
+Pattern: CREATE TABLE `gen_view_list_view_setting` with IF NOT EXISTS guard (same as m004).
 
 ### Step B3 — Replace `ErpListViewSetting` in `services.py` L754–783
 
-Replace both `try: from aras.app_erp...` blocks with:
+Replace both `try: from aras.erp...` blocks with:
 ```python
-from arasCore.arasAdmin.models import ListViewSetting
+from arasCore.admin.models import ListViewSetting
 user_setting = ListViewSetting.query.filter_by(
     user_id=current_user.id, doctype=_doctype_key
 ).first()
@@ -111,7 +111,7 @@ POST /admin/api/list-pref/
 Body JSON: {doctype: str, columns: [str, ...]}
 ```
 Upserts `ListViewSetting` for current user. Returns `{"ok": true}`.
-Add to `arasCore/arasAdmin/routes/settings.py`, register in `routes/__init__.py`.
+Add to `arasCore/admin/routes/settings.py`, register in `routes/__init__.py`.
 
 ### Step B5 — Persist column toggle in `_list_partial.html`
 
@@ -146,11 +146,11 @@ apps_extra_buttons = [
 ```
 In `adm_cfg_settings.html` Apps panel: `{% set extra_buttons = apps_extra_buttons %}` before include.
 
-### Step C4 — Alias `ErpListViewSetting` in `app_erp`
+### Step C4 — Alias `ErpListViewSetting` in `erp`
 
-`aras/app_erp/erp_core/models/list_view.py`:
+`aras/erp/erp_core/models/list_view.py`:
 ```python
-from arasCore.arasAdmin.models import ListViewSetting as ErpListViewSetting  # noqa: F401
+from arasCore.admin.models import ListViewSetting as ErpListViewSetting  # noqa: F401
 ```
 `ErpReportSetting` stays as-is.
 
@@ -162,23 +162,23 @@ from arasCore.arasAdmin.models import ListViewSetting as ErpListViewSetting  # n
 |------|--------|
 | `templates/admin/*.html` (23 files) | Rename per map above |
 | `templates/app_manager/` | Delete entirely |
-| `arasCore/arasAdmin/routes/*.py` + `services.py` + `admin_mount.py` | Update template string references |
-| `arasCore/arasAdmin/models.py` | Add `ListViewSetting` |
+| `arasCore/admin/routes/*.py` + `services.py` + `admin_mount.py` | Update template string references |
+| `arasCore/admin/models.py` | Add `ListViewSetting` |
 | `arasCore/lib/migrations/m005_list_view_setting.py` | New — CREATE TABLE |
-| `arasCore/arasAdmin/services.py` L754–783 | Replace `ErpListViewSetting` → `ListViewSetting`; pass `saved_columns` |
+| `arasCore/admin/services.py` L754–783 | Replace `ErpListViewSetting` → `ListViewSetting`; pass `saved_columns` |
 | `arasCore/lib/admin_mount.py` L183–195 | Pass `extra_buttons`, `saved_columns` |
 | `arasCore/lib/app_helper.py` L138 | Add `extra_buttons` to `ResourceDef` |
-| `arasCore/arasAdmin/routes/settings.py` | Add list-pref endpoint + `apps_extra_buttons` |
+| `arasCore/admin/routes/settings.py` | Add list-pref endpoint + `apps_extra_buttons` |
 | `templates/admin/_list_partial.html` | `data-field` on checkboxes; fetch POST on toggle; restore on load |
-| `aras/app_erp/erp_core/models/list_view.py` | Alias `ErpListViewSetting` |
+| `aras/erp/erp_core/models/list_view.py` | Alias `ErpListViewSetting` |
 
 ---
 
 ## Verification
 
 1. App still boots, no 500 on any admin page
-2. `adm_list_view_setting` table created in DB
+2. `gen_view_list_view_setting` table created in DB
 3. Toggle column off on any list → reload → column still hidden (persisted)
 4. Settings page → Apps panel → Install App + New App buttons in toolbar
 5. `ResourceDef(extra_buttons=[...])` in a manifest → buttons appear in that resource's list
-6. `from aras.app_erp.erp_core.models.list_view import ErpListViewSetting` still works (alias)
+6. `from aras.erp.erp_core.models.list_view import ErpListViewSetting` still works (alias)

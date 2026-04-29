@@ -18,7 +18,7 @@ from decimal import Decimal
 from datetime import date, timedelta
 
 from arasCore import create_app
-from arasCore.lib.extensions import db
+from arasCore.lib.core.extensions import db
 from tests.helpers import section, assert_ok, summary, reset
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ app = create_app()
 # ──────────────────────────────────────────────────────────────────────────────
 
 def _get_or_create_company():
-    from aras.app_erp.erp_core.models.company import CoreCompany
+    from aras.erp.erp_core.models.company import CoreCompany
     c = CoreCompany.query.filter_by(code="HQ").first()
     if not c:
         c = CoreCompany(code="HQ", legal_name="Test Company", is_active=True)
@@ -43,7 +43,7 @@ def _get_or_create_company():
 
 
 def _get_or_create_currency(company):
-    from aras.app_erp.erp_core.models.currency import CoreCurrency
+    from aras.erp.erp_core.models.currency import CoreCurrency
     cur = CoreCurrency.query.filter_by(code="IDR").first()
     if not cur:
         cur = CoreCurrency(code="IDR", name="Rupiah", symbol="Rp", decimal_places=0)
@@ -56,7 +56,7 @@ def _get_or_create_currency(company):
 
 
 def _get_or_create_customer(company, currency):
-    from aras.app_erp.erp_crm.models.customer import CrmCustomer
+    from aras.erp.erp_crm.models.customer import CrmCustomer
     c = CrmCustomer.query.filter_by(company_id=company.id, code="CUST-TEST").first()
     if not c:
         c = CrmCustomer(
@@ -73,7 +73,7 @@ def _get_or_create_customer(company, currency):
 
 def _ensure_coa(company):
     """Insert COA dasar jika belum ada."""
-    from aras.app_erp.erp_acc.models.account import AccAccount, AccDefaultAccount
+    from aras.erp.erp_acc.models.account import AccAccount, AccDefaultAccount
 
     COA = [
         ("1.1.01.001", "Kas Besar",               "asset_current",    False),
@@ -125,7 +125,7 @@ def _ensure_coa(company):
 
 
 def _ensure_journal(company, code, name, jtype, debit_code, credit_code, accounts):
-    from aras.app_erp.erp_acc.models.journal import AccJournal
+    from aras.erp.erp_acc.models.journal import AccJournal
     j = AccJournal.query.filter_by(company_id=company.id, code=code).first()
     if not j:
         j = AccJournal(
@@ -143,7 +143,7 @@ def _ensure_journal(company, code, name, jtype, debit_code, credit_code, account
 
 
 def _ensure_sequence(company, code, prefix):
-    from aras.app_erp.erp_core.models.sequence import CoreSequence
+    from aras.erp.erp_core.models.sequence import CoreSequence
     s = CoreSequence.query.filter_by(company_id=company.id, code=code).first()
     if not s:
         s = CoreSequence(
@@ -159,7 +159,7 @@ def _ensure_sequence(company, code, prefix):
 
 
 def _ensure_pos_terminal(company):
-    from aras.app_erp.erp_pos.models.terminal import PosTerminal
+    from aras.erp.erp_pos.models.terminal import PosTerminal
     t = PosTerminal.query.filter_by(company_id=company.id, code="MAIN").first()
     if not t:
         t = PosTerminal(
@@ -184,10 +184,10 @@ def _get_user_id():
 # ──────────────────────────────────────────────────────────────────────────────
 
 def test_pos(company, currency, accounts):
-    from aras.app_erp.erp_pos.models.terminal import PosTerminal, PosSession
-    from aras.app_erp.erp_pos.services.order_service import create_order, pay_order, open_session
-    from aras.app_erp.erp_acc.services.posting import post_journal
-    from aras.app_erp.erp_acc.models.invoice import AccSalesInvoice, AccSalesInvoiceLine
+    from aras.erp.erp_pos.models.terminal import PosTerminal, PosSession
+    from aras.erp.erp_pos.services.order_service import create_order, pay_order, open_session
+    from aras.erp.erp_acc.services.posting import post_journal
+    from aras.erp.erp_acc.models.invoice import AccSalesInvoice, AccSalesInvoiceLine
 
     section("POS Order → Accounting")
 
@@ -241,9 +241,9 @@ def test_pos(company, currency, accounts):
 # ──────────────────────────────────────────────────────────────────────────────
 
 def test_sales_invoice(company, currency, customer, accounts):
-    from aras.app_erp.erp_acc.models.invoice import AccSalesInvoice, AccSalesInvoiceLine
-    from aras.app_erp.erp_acc.models.journal import AccJournal
-    from aras.app_erp.erp_acc.services.posting import post_journal
+    from aras.erp.erp_acc.models.invoice import AccSalesInvoice, AccSalesInvoiceLine
+    from aras.erp.erp_acc.models.journal import AccJournal
+    from aras.erp.erp_acc.services.posting import post_journal
 
     section("Sales Invoice → Accounting")
 
@@ -342,9 +342,9 @@ def test_sales_invoice(company, currency, customer, accounts):
 # ──────────────────────────────────────────────────────────────────────────────
 
 def test_purchase_invoice(company, currency, accounts):
-    from aras.app_erp.erp_acc.models.invoice import AccPurchaseInvoice, AccPurchaseInvoiceLine
-    from aras.app_erp.erp_acc.models.journal import AccJournal
-    from aras.app_erp.erp_acc.services.posting import post_journal
+    from aras.erp.erp_acc.models.invoice import AccPurchaseInvoice, AccPurchaseInvoiceLine
+    from aras.erp.erp_acc.models.journal import AccJournal
+    from aras.erp.erp_acc.services.posting import post_journal
 
     section("Purchase Invoice → Accounting")
 
@@ -443,7 +443,7 @@ def test_purchase_invoice(company, currency, accounts):
 # ──────────────────────────────────────────────────────────────────────────────
 
 def test_journal_balance(company):
-    from aras.app_erp.erp_acc.models.journal import AccJournalEntry, AccJournalLine
+    from aras.erp.erp_acc.models.journal import AccJournalEntry, AccJournalLine
     from sqlalchemy import func
 
     section("Verifikasi Balance Journal Entries")

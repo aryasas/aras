@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 def run(flask_app):
     with flask_app.app_context():
-        from arasCore.lib.extensions import db
+        from arasCore.lib.core.extensions import db
         from sqlalchemy import text, inspect as sa_inspect
         inspector = sa_inspect(db.engine)
         existing = set(inspector.get_table_names())

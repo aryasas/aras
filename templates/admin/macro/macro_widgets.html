@@ -1,0 +1,94 @@
+{#
+--------------------------------------------------------------------------------
+  render_stat_box(label, value, trend=none, trend_up=true)
+  Renders a statistic box with trend support.
+--------------------------------------------------------------------------------
+#}
+{% macro render_stat_box(label, value, trend=none, trend_up=true) %}
+  <div class="stat-card">
+    <span class="label">{{ label }}</span>
+    <span class="value">{{ value }}</span>
+    {% if trend %}
+      <span class="trend {{ 'trend--up' if trend_up else 'trend--down' }}">
+        <i class="fa fa-caret-{{ 'up' if trend_up else 'down' }}"></i>
+        {{ trend }}
+      </span>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{#
+--------------------------------------------------------------------------------
+  render_tweak_panel()
+  Renders the UI Tweak control panel.
+--------------------------------------------------------------------------------
+#}
+{% macro render_tweak_panel() %}
+<div class="tw-toggle" id="twToggle" title="UI Tweaks">
+    <i class="ti-settings"></i>
+</div>
+
+<div class="tw-panel" id="twPanel">
+    <div class="tw-head">
+        <h4>UI Tweaks</h4>
+        <button class="aras-btn--outline aras-btn--sm" id="twClose" style="padding: 4px 8px; border:0;">
+            <i class="ti-close"></i>
+        </button>
+    </div>
+    <div class="tw-body">
+        <div class="tw-row">
+            <div class="lbl">Theme</div>
+            <div class="seg" data-key="theme">
+                <button class="on" data-val="light">Light</button>
+                <button data-val="dark">Dark</button>
+            </div>
+        </div>
+        <div class="tw-row">
+            <div class="lbl">Density</div>
+            <div class="seg" data-key="density">
+                <button data-val="compact">Compact</button>
+                <button class="on" data-val="cozy">Cozy</button>
+                <button data-val="roomy">Roomy</button>
+            </div>
+        </div>
+        <div class="tw-row">
+            <div class="lbl">Corners</div>
+            <div class="seg" data-key="corners">
+                <button class="on" data-val="sharp">Sharp</button>
+                <button data-val="rounded">Rounded</button>
+            </div>
+        </div>
+        <div class="tw-row">
+            <div class="lbl">Accent Color</div>
+            <div class="swatches" data-key="accent">
+                <button class="sw-terra on" data-val="terra" title="Terra"></button>
+                <button class="sw-moss" data-val="moss" title="Moss"></button>
+                <button class="sw-wheat" data-val="wheat" title="Wheat"></button>
+                <button class="sw-slate" data-val="slate" title="Slate"></button>
+                <button class="sw-plum" data-val="plum" title="Plum"></button>
+                <button class="sw-rose" data-val="rose" title="Rose"></button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{#
+--------------------------------------------------------------------------------
+  render_modal(id, title)
+  Renders the basic structure for a modal dialog.
+--------------------------------------------------------------------------------
+#}
+{% macro render_modal(id, title) %}
+  <div class="modal" id="{{ id }}" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">{{ title }}</h3>
+        <button class="modal-close" onclick="document.getElementById('{{ id }}').style.display='none'">&times;</button>
+      </div>
+      <div class="modal-body">
+        {{ caller() }}
+      </div>
+    </div>
+  </div>
+{% endmacro %}

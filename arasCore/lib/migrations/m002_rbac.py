@@ -48,7 +48,7 @@ def _index_exists(conn, table, index_name):
 
 def run(flask_app):
     """Apply migration. Idempotent."""
-    from arasCore.lib.extensions import db
+    from arasCore.lib.core.extensions import db
     from sqlalchemy import text
 
     with flask_app.app_context():
@@ -145,12 +145,12 @@ def run(flask_app):
 def _seed_permissions(flask_app):
     """Seed view/create/edit/delete permissions for all registered apps."""
     from arasCore.rbac import seed_app_permissions, seed_app_permissions_from_helper
-    from arasCore.lib.extensions import db
+    from arasCore.lib.core.extensions import db
 
     with flask_app.app_context():
         # Code-based apps (already registered via _register_helper at startup)
         try:
-            from arasCore.lib.blueprints import get_helper_registry
+            from arasCore.lib.services.blueprints import get_helper_registry
             for helper in get_helper_registry().values():
                 seed_app_permissions_from_helper(helper, db)
                 logger.info(f"[m002] seeded permissions for code-based app: {helper.name}")
@@ -159,7 +159,7 @@ def _seed_permissions(flask_app):
 
         # Dynamic apps from DB
         try:
-            from arasCore.arasAdmin.models import AppManagerApp, AppManagerTable
+            from arasCore.admin.models import AppManagerApp, AppManagerTable
             apps = AppManagerApp.query.all()
             for app in apps:
                 tables = AppManagerTable.query.filter_by(app_id=app.id, is_active=True).all()

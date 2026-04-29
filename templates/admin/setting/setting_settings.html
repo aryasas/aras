@@ -1,0 +1,219 @@
+{% extends extends_layout if extends_layout else 'admin/base_index.html' %}
+
+{% block submenu %}
+<div class="aras-top-bar px-4">
+    <div class="aras-breadcrumb">
+        <a href="{{ url_for('admin.dashboard') }}">Home</a>
+        <span class="app-menu-divider">/</span>
+        <span class="aras-breadcrumb__current">Settings</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_content %}
+<div class="aras-studio-theme">
+<div class="row">
+
+  {# ── Sidebar nav ── #}
+  <div class="col-md-3">
+    <div class="aras-card shadow-sm">
+      <div class="aras-card-header">
+        <h3 class="aras-card-title small-caps-label text-muted-aras fs-11"><i class="ti-panel mr-2"></i>Administration</h3>
+      </div>
+      <div class="aras-card-body p-0">
+        <div class="list-group list-group-flush" id="settings-nav">
+          {% for panel_id, icon, label in [
+            ('panel-general',  'ti-settings',     'General'),
+            ('panel-server',   'ti-desktop',      'Server'),
+            ('panel-apps',     'ti-layout-grid2', 'App Manager'),
+            ('panel-doctypes', 'ti-files',        'DocTypes'),
+            ('panel-uploads',  'ti-folder',       'Uploads'),
+            ('panel-users',    'ti-user',         'Users'),
+            ('panel-userlog',  'ti-time',         'User Log'),
+            ('panel-database', 'ti-server',       'Database'),
+            ('panel-roles',    'ti-shield',       'Roles'),
+            ('panel-menu',     'ti-menu',         'Menu Editor'),
+            ('panel-workflow', 'ti-share',        'Workflow'),
+            ('panel-studio',   'ti-palette',      'Studio (DnD)'),
+            ('panel-audit',    'ti-eye',          'Audit Log'),
+            ('panel-health',   'ti-pulse',        'Health'),
+            ('panel-system',   'ti-control-knob', 'System'),
+            ('panel-webhooks', 'ti-link',         'Webhooks'),
+            ('panel-scripts',  'ti-code',         'Scripts'),
+            ('panel-dev',      'ti-dashboard',    'Dev'),
+          ] %}
+          <a href="#{{ panel_id }}"
+             class="list-group-item list-group-item-action border-0 settings-nav-item {% if loop.first %}active{% endif %}"
+             data-panel="{{ panel_id }}">
+            <i class="{{ icon }}"></i>
+            <span>{{ label }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Panels ── #}
+  <div class="col-md-9">
+    {% include 'admin/setting/setting_general.html' %}
+    {% include 'admin/setting/setting_server.html' %}
+    {% include 'admin/setting/setting_apps.html' %}
+    {% include 'admin/setting/setting_doctypes.html' %}
+    {% include 'admin/setting/setting_uploads.html' %}
+    {% include 'admin/setting/setting_users.html' %}
+    {% include 'admin/setting/setting_userlog.html' %}
+    {% include 'admin/setting/setting_database.html' %}
+    {% include 'admin/setting/setting_roles.html' %}
+
+    {# Menu Editor ── #}
+    <div class="settings-panel d-none" id="panel-menu">
+      <div class="panel-header">
+        <h3 class="aras-page-title"><i class="ti-menu mr-2 text-accent"></i>Navigation Menu Editor</h3>
+        <p class="text-muted-aras aras-serif-italic">Customize the sidebar navigation structure for all applications.</p>
+      </div>
+      <div class="aras-card shadow-sm">
+        <div class="aras-card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <p class="text-muted-aras fs-13">
+                Drag <i class="ti-menu-alt"></i> to reorder. Click a row to edit. Drop onto a row's <strong>indent zone</strong> to nest it as a child.
+              </p>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="aras-btn aras-btn--sm aras-btn--outline" onclick="ME.openAddModal('group')" title="Add a new menu group">
+                <i class="ti-folder"></i> Add Group
+              </button>
+              <button class="aras-btn aras-btn--sm aras-btn--outline" onclick="ME.openAddModal('page')" title="Add a new menu page">
+                <i class="ti-file"></i> Add Page
+              </button>
+              <button class="aras-btn aras-btn--sm aras-btn--primary" id="menuSaveBtn" onclick="ME.save()">
+                <i class="ti-save"></i> Save Changes
+              </button>
+            </div>
+          </div>
+          <div id="menuEditorRoot"></div>
+        </div>
+      </div>
+      {% include 'admin/setting/setting_modal_menu_editor.html' %}
+    </div>
+
+    {% include 'admin/setting/setting_workflow.html' %}
+
+    <div class="settings-panel d-none" id="panel-studio">
+      <div class="panel-header">
+        <h3 class="aras-page-title"><i class="ti-palette mr-2 text-accent"></i>Visual Studio (DnD)</h3>
+        <p class="text-muted-aras aras-serif-italic">Interactive Drag-and-Drop builder for Forms and Layouts.</p>
+      </div>
+      <div class="aras-card shadow-sm rounded-lg overflow-hidden">
+        <div class="aras-card-body p-0">
+          <div class="bg-dark p-4 text-center">
+            <i class="ti-layers-alt text-studio-ochre mb-3 fs-60 opacity-8"></i>
+            <h4 class="text-white font-weight-bold">Studio Engine</h4>
+            <p class="text-white-50 small mb-0">Select a DocType below to launch the Visual Designer.</p>
+          </div>
+          <div class="bg-white">
+            <div class="aras-table-wrap">
+              <table class="aras-table">
+                <thead>
+                  <tr>
+                    <th>DocType / Resource</th>
+                    <th>Module</th>
+                    <th class="text-right">Design Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for t in all_tables %}
+                  <tr>
+                    <td>
+                      <div class="font-weight-bold">{{ t.title }}</div>
+                      <div class="text-muted-aras fs-11"><code class="aras-mono">{{ t.name }}</code></div>
+                    </td>
+                    <td>
+                      <span class="aras-badge aras-badge--info">{{ t.app.slug if t.app else 'unknown' }}</span>
+                    </td>
+                    <td class="text-right">
+                      <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('admin.apps_columns', app_id=t.app_id, table_id=t.id) }}#designer-pane" 
+                           class="aras-btn aras-btn--sm aras-btn--outline" title="Edit Layout">
+                          <i class="ti-layout-column2"></i> Form
+                        </a>
+                        <a href="{{ url_for('admin.apps_columns', app_id=t.app_id, table_id=t.id) }}" 
+                           class="aras-btn aras-btn--sm aras-btn--outline" title="Edit Columns">
+                          <i class="ti-view-list"></i> Columns
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% include 'admin/setting/setting_audit.html' %}
+    {% include 'admin/setting/setting_health.html' %}
+    {% include 'admin/setting/setting_system.html' %}
+    {% include 'admin/setting/setting_webhooks.html' %}
+    {% include 'admin/setting/setting_scripts.html' %}
+    {% include 'admin/setting/setting_dev.html' %}
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script>
+function activatePanel(panelId) {
+  document.querySelectorAll('.settings-nav-item').forEach(function(el) {
+    el.classList.toggle('active', el.getAttribute('data-panel') === panelId);
+  });
+  document.querySelectorAll('.settings-panel').forEach(function(p) {
+    p.classList.add('d-none');
+  });
+  var panel = document.getElementById(panelId);
+  if (panel) {
+    panel.classList.remove('d-none');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  if (history.pushState) {
+    history.pushState(null, null, '#' + panelId);
+  } else {
+    window.location.hash = panelId;
+  }
+}
+
+document.querySelectorAll('.settings-nav-item').forEach(function(item) {
+  item.addEventListener('click', function(e) {
+    e.preventDefault();
+    var panelId = item.getAttribute('data-panel');
+    activatePanel(panelId);
+    if (panelId === 'panel-menu' && typeof ME !== 'undefined' && !ME._data) {
+      ME.load();
+    }
+  });
+});
+
+var urlParams = new URLSearchParams(window.location.search);
+var panelParam = urlParams.get('panel');
+var hash = window.location.hash.replace('#', '');
+activatePanel(panelParam || hash || 'panel-general');
+
+document.addEventListener('change', function(e) {
+  var el = e.target;
+  if (el.classList.contains('system-setting-toggle') || el.classList.contains('system-setting-input')) {
+    var key = el.dataset.key;
+    var value = el.type === 'checkbox' ? el.checked : el.value;
+    fetch('{{ url_for("admin.server_settings_save") }}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrf_token]')?.value || ''},
+      body: JSON.stringify({[key]: value})
+    }).then(function(r){ if(!r.ok) console.warn('System setting save failed'); });
+  }
+});
+</script>
+{% include 'admin/setting/setting_js_menu_editor.html' %}
+{% endblock %}

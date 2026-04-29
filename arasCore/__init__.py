@@ -4,10 +4,10 @@ import os
 from flask import Flask
 from config import config
 
-from .lib.extensions import register_extensions
-from .lib.database import configure_database
-from .lib.context import register_context_processors
-from .lib.utils import set_jinja_env
+from .lib.core.extensions import register_extensions
+from .lib.core.database import configure_database
+from .lib.core.context import register_context_processors
+from .lib.core.utils import set_jinja_env
 
 
 def _read_mode_file():
@@ -144,37 +144,37 @@ def create_app(config_type=None):
         except Exception as _me:
             app.logger.warning(f"[arasCore] migration m014 skipped: {_me}")
 
-        # App modules from aras/ gated by DB install status + arasAdmin last
-        from .lib.blueprints import register_app_modules
+        # App modules from aras/ gated by DB install status + admin last
+        from .lib.services.blueprints import register_app_modules
         register_app_modules(app)
 
         # Context processors
         register_context_processors(app)
 
         # Load dynamic apps from DB
-        from .arasAdmin.services import load_all_built_apps
+        from .admin.services import load_all_built_apps
         load_all_built_apps(app)
 
         # Universal API — must run after all blueprints registered
-        from .lib.api_handler import register_universal_api
+        from .lib.services.api_handler import register_universal_api
         register_universal_api(app)
 
-        from .arasAdmin.page_actions import register_actions_blueprint
+        from .admin.page_actions import register_actions_blueprint
         register_actions_blueprint(app)
 
         # Webhook dispatcher — subscribe after all events are wired up
         try:
-            from .lib.webhook import init_webhooks
+            from .lib.services.webhook import init_webhooks
             init_webhooks(app)
         except Exception as _we:
             app.logger.warning(f"[arasCore] webhook init skipped: {_we}")
 
         # Error handlers
-        from .lib.error_handler import register_errorhandlers
+        from .lib.core.error_handler import register_errorhandlers
         register_errorhandlers(app)
 
         # Health check endpoint + startup validation
-        from .lib.health import register_health_endpoint, run_startup_checks
+        from .lib.core.health import register_health_endpoint, run_startup_checks
         register_health_endpoint(app)
         try:
             result = run_startup_checks(app)
@@ -187,7 +187,7 @@ def create_app(config_type=None):
             app.logger.warning(f"[health] startup check skipped: {_he}")
 
         # CLI commands (aras install-app, list-apps, etc.)
-        from .lib.cli import register_cli
+        from .lib.cli.cli import register_cli
         register_cli(app)
 
         # Jinja env
@@ -199,4 +199,4 @@ def create_app(config_type=None):
 
 
 # Expose db for flask db migrate
-from .lib.extensions import db  # noqa: E402, F401
+from .lib.core.extensions import db  # noqa: E402, F401

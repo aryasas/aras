@@ -1,0 +1,45 @@
+<div class="settings-panel d-none" id="panel-audit">
+  <div class="panel-header">
+    <h3 class="settings-panel-title"><i class="ti-eye"></i>System Audit Log</h3>
+    <p class="text-muted">Field-level change tracking and administrative action history.</p>
+  </div>
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="d-flex align-items-center px-3 pt-3 pb-2 gap-8">
+        <span class="badge badge-secondary ml-2">{{ audit_logs|length }} entries</span>
+        <form method="GET" action="{{ url_for('admin.settings') }}" class="ml-auto d-flex gap-6">
+          <input type="hidden" name="panel" value="panel-audit">
+          <input type="text" name="q_audit" value="{{ q_audit }}" placeholder="Search model / action…"
+                 class="form-control form-control-sm w-220">
+          <button type="submit" class="aras-btn aras-btn--sm">Search</button>
+        </form>
+      </div>
+      {% if audit_logs %}
+      <div class="table-responsive">
+        <table class="aras-table">
+          <thead><tr>
+            <th>Time</th><th>User</th><th>Model</th><th>Record</th><th>Action</th>
+          </tr></thead>
+          <tbody>
+          {% for e in audit_logs %}
+          <tr>
+            <td style="white-space:nowrap;font-size:12px;">{{ e.ts.strftime('%Y-%m-%d %H:%M:%S') if e.ts else '—' }}</td>
+            <td>{{ e._username }}</td>
+            <td><code>{{ e.model_name }}</code></td>
+            <td>{{ e.record_id or '—' }}</td>
+            <td>
+              <span class="badge badge-{{ 'success' if e.action=='create' else ('warning' if e.action=='update' else 'danger') }}">
+                {{ e.action }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="aras-empty-state py-4"><i class="ti-eye"></i><p>No audit entries yet.</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>

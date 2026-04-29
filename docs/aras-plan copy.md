@@ -110,7 +110,7 @@
  2.5 Frappe-style "report" primitive
 
  File: new arasCore/lib/reports.py
- Why: ERP apps (see aras/app_erp/erp_core/services/report_runner.py in cache) already need ad-hoc reports. No framework primitive exists.
+ Why: ERP apps (see aras/erp/erp_core/services/report_runner.py in cache) already need ad-hoc reports. No framework primitive exists.
  What: ReportDef(name, query_fn, columns, filters, chart=None) on AppHelper; framework mounts /admin/<app>/reports/<name>/ with a generic table + export button. Leverages ArasQuery.
 
  ---
@@ -124,7 +124,7 @@
 
  3.2 Registry cache invalidation
 
- File: arasCore/arasAdmin/services.py (clear_cache L140)
+ File: arasCore/admin/services.py (clear_cache L140)
  Why: Dynamic apps cache built models; when an admin edits a column, cache isn't always flushed — stale form field.
  What: Signal-based: emit resource_changed(app, table) from installer/column-edit routes → subscribers in services, audit, api_handler drop their caches. Small implementation, big reliability win.
 
@@ -141,11 +141,11 @@
  What: Per-dynamic-app migrations table (ab_<app>_migrations), diff between AppManagerColumn snapshot and live table (via SQLAlchemy inspector), generate ALTER TABLE stubs. First version: log-only +
  require manual approval; later: auto-apply for safe ops (add column nullable).
 
- 3.5 Replace god-file arasCore/arasAdmin/routes.py (1288 lines)
+ 3.5 Replace god-file arasCore/admin/routes.py (1288 lines)
 
- File: arasCore/arasAdmin/routes.py
+ File: arasCore/admin/routes.py
  Why: CLAUDE.md already flags this as "never read in full". 42 view functions in one file.
- What: Split into routes/apps.py (install/activate/export), routes/users.py, routes/settings.py, routes/dev.py, routes/dashboard.py. Register them from arasAdmin/__init__.py. Pure refactor — no
+ What: Split into routes/apps.py (install/activate/export), routes/users.py, routes/settings.py, routes/dev.py, routes/dashboard.py. Register them from admin/__init__.py. Pure refactor — no
  behavior change.
 
  ---
@@ -199,7 +199,7 @@
  ├─────────────────┼────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
  │ 1.2             │ Error envelope     │ arasCore/lib/api_handler.py, arasCore/lib/error_handler.py                         │
  ├─────────────────┼────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
- │ 1.5 / 3.5       │ Refactor           │ arasCore/lib/blueprints.py L146–404, arasCore/arasAdmin/routes.py                  │
+ │ 1.5 / 3.5       │ Refactor           │ arasCore/lib/blueprints.py L146–404, arasCore/admin/routes.py                  │
  ├─────────────────┼────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
  │ 2.1 / 2.3 / 2.4 │ Manifest DSL       │ arasCore/lib/app_helper.py                                                         │
  ├─────────────────┼────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
@@ -209,15 +209,15 @@
  ├─────────────────┼────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
  │ 3.1             │ Transactions       │ new arasCore/lib/tx.py                                                             │
  ├─────────────────┼────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
- │ 3.2             │ Cache              │ arasCore/arasAdmin/services.py L140                                                │
+ │ 3.2             │ Cache              │ arasCore/admin/services.py L140                                                │
  ├─────────────────┼────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
  │ 3.3             │ Health             │ new arasCore/lib/health.py, arasCore/__init__.py L25                               │
  ├─────────────────┼────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
  │ 3.4             │ Dynamic migrations │ arasCore/lib/installer.py, arasCore/lib/migrations/                                │
  ├─────────────────┼────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
- │ 4.1             │ Layouts            │ arasCore/arasAdmin/models.py L85, templates/admin/ab_form.html                     │
+ │ 4.1             │ Layouts            │ arasCore/admin/models.py L85, templates/admin/ab_form.html                     │
  ├─────────────────┼────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
- │ 4.2             │ List UX            │ templates/admin/ab_list.html, arasCore/arasAdmin/models.py L316                    │
+ │ 4.2             │ List UX            │ templates/admin/ab_list.html, arasCore/admin/models.py L316                    │
  ├─────────────────┼────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
  │ 4.3             │ Global search      │ new arasCore/lib/search.py                                                         │
  ├─────────────────┼────────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
@@ -227,6 +227,6 @@
  Verification pattern (applies to each ticket)
 
  1. flask run — no ImportError, existing routes still 200.
- 2. Run existing app (app_soc, ERP) — no regression on sidebar, CRUD, list, form.
+ 2. Run existing app (soc, ERP) — no regression on sidebar, CRUD, list, form.
  3. New feature: exercise via curl /api/... + browser /admin/....
  4. Dynamic app round-trip: install a YAML → add column in admin → verify form/API/schema endpoint reflect it.

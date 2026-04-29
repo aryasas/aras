@@ -1,0 +1,60 @@
+{% extends 'admin/base_index.html' %}
+
+{% block page_content %}
+<div class="aras-form-view">
+  <div class="container-fluid px-0">
+
+    {# ── Action Header ── #}
+    <div class="aras-header-sticky">
+      <div class="aras-header-left">
+        <a href="{{ url_for('erp_views.pos_home') }}" class="aras-back-link" title="Back to POS Home">
+          <i class="fa fa-arrow-left"></i>
+        </a>
+        <h2 class="aras-page-title">Open POS Session</h2>
+      </div>
+      <div class="aras-header-right">
+        <a href="{{ url_for('erp_views.pos_home') }}" class="aras-btn">Cancel</a>
+        <button type="submit" form="openSessionForm" class="aras-btn aras-btn--primary">
+          <i class="fa fa-play mr-1"></i> Open Session
+        </button>
+      </div>
+    </div>
+
+    <div class="row justify-content-center mt-5">
+      <div class="col-md-5">
+        <div class="aras-card shadow-sm">
+          <div class="aras-card-header">
+            <h3 class="aras-card-title m-0">Session Details</h3>
+          </div>
+          <div class="aras-card-body p-4">
+            <div class="mb-4">
+              <label class="aras-caps mb-1" style="color: var(--studio-ochre); font-size: 10px;">Terminal</label>
+              <div class="h5" style="font-family: var(--aras-font-serif); font-weight: 700;">{{ terminal.name }}</div>
+              <small class="text-muted">{{ terminal.code }}</small>
+            </div>
+
+            <form method="POST" id="openSessionForm">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              
+              <div class="form-group mb-4">
+                <label class="aras-caps mb-2" style="color: var(--studio-ochre); font-size: 10px;">Opening Float (Cash)</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-white" style="border-right: none; color: var(--aras-ink-3);">Rp</span>
+                  <input type="number" name="opening_balance" class="form-control" value="0" min="0" step="1000" style="border-left: none; font-weight: 600;">
+                </div>
+                <small class="form-text text-muted">Amount of cash in drawer at start of shift.</small>
+              </div>
+
+              <div class="aras-meta-item mt-4 pt-3 border-top" style="display:flex; justify-content:space-between; font-size:12.5px;">
+                <span class="label" style="color:var(--aras-ink-3);">Cashier</span>
+                <span class="value" style="font-weight: 600;">{{ current_user.username }}</span>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

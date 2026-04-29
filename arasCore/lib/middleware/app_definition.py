@@ -136,7 +136,7 @@ class AppDefinitionMiddleware:
         Currently delegates to installer.parse_app_definition().
         Insert pre/post processing hooks here as the framework evolves.
         """
-        from arasCore.lib.installer import parse_app_definition
+        from arasCore.lib.services.installer import parse_app_definition
 
         # Pre-processing hook (placeholder)
         data = AppDefinitionMiddleware._pre_process(data)

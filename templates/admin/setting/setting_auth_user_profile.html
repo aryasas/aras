@@ -1,0 +1,99 @@
+{% extends extends_layout if extends_layout else
+  'admin/base_index.html' %}
+
+{% block page_content %}
+<div class="aras-studio-theme mt-5">
+    <div class="aras-card shadow-sm">
+      <div class="aras-card-body">
+          <div class="row">
+            <div class="col-md-3 text-center border-right">
+              <img src="{{ user.gravatar(128) }}" class="rounded-circle w-128 h-128 shadow-sm">
+              <h3 class="mt-3 font-weight-bold">{{ user.username }}</h3>
+              <p class="text-muted-aras aras-serif-italic">{{ user.email }}</p>
+              <div class="d-flex flex-wrap justify-content-center gap-1">
+                {% set role_list = user.roles.all() %}
+                {% if role_list %}
+                  {% for ur in role_list %}
+                    <span class="aras-badge aras-badge--info">{{ ur.role.name }}</span>
+                  {% endfor %}
+                {% endif %}
+                {% if user.is_admin %}
+                  <span class="aras-badge" style="background:var(--studio-ink); color:#fff;">superadmin</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="col-md-9">
+              <div class="aras-table-wrap">
+                <table class="aras-table">
+                  <tbody>
+                    <tr>
+                      <th width="200">Username</th>
+                      <td>{{ user.username }}</td>
+                    </tr>
+                    <tr>
+                      <th>Email</th>
+                      <td>{{ user.email }}</td>
+                    </tr>
+                    <tr>
+                      <th>Status</th>
+                      <td>
+                        {% if user.is_active %}
+                          <span class="mk on"><span class="dot"></span> ACTIVE</span>
+                        {% else %}
+                          <span class="mk off"><span class="dot"></span> INACTIVE</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>Member since</th>
+                      <td>{{ user.created_at.strftime('%d %b %Y') if user.created_at else '—' }}</td>
+                    </tr>
+                    <tr>
+                      <th>Last updated</th>
+                      <td>{{ user.updated_at.strftime('%d %b %Y %H:%M') if user.updated_at else '—' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {% if user == current_user %}
+                <div class="mt-4 d-flex gap-2">
+                  <a href="{{ url_for('auth.change_password') }}" class="aras-btn aras-btn--sm aras-btn--outline">Change Password</a>
+                  <a href="{{ url_for('auth.change_email_request') }}" class="aras-btn aras-btn--sm aras-btn--outline">Change Email</a>
+                  <a href="{{ url_for('auth.logout_view') }}" class="aras-btn aras-btn--sm aras-btn--outline text-danger-aras">Logout</a>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if user == current_user %}
+            <hr class="aras-w__rule my-4">
+            <h5 class="aras-card-title mb-3">User Log</h5>
+            {% if recent_activities %}
+              <div class="aras-meta-list">
+                {% for act in recent_activities %}
+                  <div class="aras-meta-item d-flex align-items-center gap-2 py-2 border-bottom">
+                    <small class="text-muted-aras aras-mono fs-11">{{ act.created_at.strftime('%d %b %Y %H:%M') }}</small>
+                    <span class="flex-grow-1 fs-13">{{ act.name }}</span>
+                    {% if act.module %}<span class="aras-badge aras-badge--info fs-11">{{ act.module }}</span>{% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+              <div class="mt-3">
+                <a href="{{ url_for('admin.user_log') }}" class="aras-btn aras-btn--sm aras-btn--ghost">View all log &rarr;</a>
+              </div>
+            {% else %}
+              <p class="text-muted-aras aras-serif-italic small">No activities recorded.</p>
+            {% endif %}
+
+          {% endif %}
+
+      </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+  {{ super() }}
+{% endblock %}

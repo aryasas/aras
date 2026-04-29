@@ -2,7 +2,7 @@
 """arasCore/forms.py — Auth forms. Field names match existing templates."""
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
 from wtforms.validators import DataRequired, Email, Length, EqualTo
-from arasCore.lib.forms import ArasForm
+from arasCore.lib.ui.forms import ArasForm
 
 class LoginForm(ArasForm):
     email_or_username = StringField("Email or Username", validators=[DataRequired()])

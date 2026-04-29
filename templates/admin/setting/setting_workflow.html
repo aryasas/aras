@@ -1,0 +1,56 @@
+<div class="settings-panel d-none" id="panel-workflow">
+  <div class="panel-header">
+    <h3 class="settings-panel-title">
+      <i class="ti-share"></i>Workflow Engine
+    </h3>
+    <p class="text-muted">Manage state-machine definitions and document lifecycles.</p>
+  </div>
+  
+  <div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+      {% if workflows %}
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="bg-light">
+            <tr>
+              <th class="border-0 px-4 py-3 small text-uppercase text-muted">Workflow Name</th>
+              <th class="border-0 px-4 py-3 small text-uppercase text-muted">Resource Key</th>
+              <th class="border-0 px-4 py-3 small text-uppercase text-muted">Initial State</th>
+              <th class="border-0 px-4 py-3 small text-uppercase text-muted">States</th>
+              <th class="border-0 px-4 py-3 small text-uppercase text-muted text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for key, wf in workflows.items() %}
+            <tr>
+              <td class="px-4 py-3 font-weight-bold">{{ wf.name }}</td>
+              <td class="px-4 py-3"><code>{{ wf.resource_key }}</code></td>
+              <td class="px-4 py-3"><span class="badge badge-pill badge-info">{{ wf.initial }}</span></td>
+              <td class="px-4 py-3">
+                {% for state in wf.states %}
+                  <span class="badge badge-light border small">{{ state }}</span>
+                {% endfor %}
+              </td>
+              <td class="px-4 py-3 text-right">
+                <button class="btn btn-link btn-sm text-primary p-0" title="Visual Builder (Coming Soon)" disabled>
+                  <i class="ti-pencil-alt"></i>
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-5">
+        <i class="ti-direction-alt text-muted mb-3" style="font-size: 3rem; opacity: 0.3;"></i>
+        <h5 class="text-muted">No Workflows Registered</h5>
+        <p class="text-muted small">Use <code>register_workflow()</code> in your app manifest to define transitions.</p>
+        <a href="https://github.com/aryasasubiakti/aras" target="_blank" class="btn btn-outline-primary btn-sm mt-3">
+          <i class="ti-book mr-1"></i> Documentation
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>

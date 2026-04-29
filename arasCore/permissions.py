@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """arasCore/permissions.py — Role, Permission, UserRole models."""
-from .lib.extensions import db
-from .lib.base_model import ArasModel
+from .lib.core.extensions import db
+from .lib.core.base_model import ArasModel
 
 role_permissions = db.Table(
     "auth_role_permissions",

@@ -71,8 +71,8 @@ Idempotent. Renames 18 tables, creates `acc_sales_invoice_charge`, `acc_purchase
 - `_list_partial.html`, `base_*` — keep as-is (partials / layout primitives)
 
 **Rename map (23 files):**
-- `aras_list.html` → `adm_list.html`
-- `aras_admin_form.html` → `adm_form.html`
+- `aras_list.html` → `gen_view_list.html`
+- `aras_admin_form.html` → `gen_view_form.html`
 - `dashboard.html` → `adm_dashboard.html`
 - `messages.html` → `adm_messages.html`
 - `send_message.html` → `adm_send_message.html`
@@ -100,10 +100,10 @@ Idempotent. Renames 18 tables, creates `acc_sales_invoice_charge`, `acc_purchase
 **App-level custom templates:** use `templates/admin/app_<name>/` subfolder when app needs many files.
 
 **ListViewSetting (framework-level):**
-- Add `ListViewSetting` model to `arasCore/arasAdmin/models.py` (table: `adm_list_view_setting`)
+- Add `ListViewSetting` model to `arasCore/admin/models.py` (table: `gen_view_list_view_setting`)
 - Migration `m005_list_view_setting.py`
 - Replace `ErpListViewSetting` imports in `services.py` with `ListViewSetting`; persist `columns_json`
-- `aras/app_erp/erp_core/models/list_view.py` → alias `ErpListViewSetting = ListViewSetting`
+- `aras/erp/erp_core/models/list_view.py` → alias `ErpListViewSetting = ListViewSetting`
 - API endpoint `POST /admin/api/list-pref/` for JS to save column visibility
 - `_list_partial.html` JS: POST on column toggle, restore on page load
 
@@ -119,7 +119,7 @@ Idempotent. Renames 18 tables, creates `acc_sales_invoice_charge`, `acc_purchase
 ### Template Cleanup
 
 **Deleted unused admin templates (14 files):**
-- `adm_form_upload.html`, `adm_home.html`, `adm_list.html`, `adm_list_detail.html`, `adm_list_dict.html`, `adm_list_dt.html`, `adm_list_search.html`
+- `gen_view_form_upload.html`, `adm_home.html`, `gen_view_list.html`, `gen_view_list_detail.html`, `gen_view_list_dict.html`, `gen_view_list_dt.html`, `gen_view_list_search.html`
 - `activities.html`, `edit_profile.html`, `test.html`, `user_popup.html`
 - `_menu_app.html`, `_notif_messages.html`, `aras_admin_fields.html`
 
@@ -152,15 +152,15 @@ Idempotent. Renames 18 tables, creates `acc_sales_invoice_charge`, `acc_purchase
 - `routes/apps.py` calls `diff_app()` after column add to auto-queue new migrations
 
 **3.5 — Split routes.py (1288 lines → 5 focused files)**
-- Old `arasCore/arasAdmin/routes.py` → renamed `routes_legacy.py`
-- New package `arasCore/arasAdmin/routes/`:
+- Old `arasCore/admin/routes.py` → renamed `routes_legacy.py`
+- New package `arasCore/admin/routes/`:
   - `__init__.py` — `before_app_request` hook + imports all sub-modules
   - `dashboard.py` — dashboard, notifications, user-log
   - `dev.py` — dev page
   - `settings.py` — settings, DB generate-view, upload save/test, server save/restart, roles CRUD
   - `users.py` — users list/new/activate/deactivate/toggle-admin/export-csv
   - `apps.py` — apps CRUD, tables, columns, schema migrations, install, sync, export
-- `arasAdmin/__init__.py` unchanged — `from . import routes` now resolves to the package
+- `admin/__init__.py` unchanged — `from . import routes` now resolves to the package
 
 **4.1 — Layout DSL per page type**
 - New `arasCore/lib/layout.py`: `parse_layout(tbl, form)` parses `tbl.layout_json` → tab/section/column-break structure
@@ -176,7 +176,7 @@ Idempotent. Renames 18 tables, creates `acc_sales_invoice_charge`, `acc_purchase
 **4.3 — Global search (⌘K)**
 - New `arasCore/lib/search.py`: `global_search(q, user)` — searches `searchable=True` AppManagerColumns + manifest `ResourceDef.searchable`; returns `{app, resource, title, url, match}` per hit
 - New API endpoint `GET /api/_search/?q=foo` in `api_handler.py`
-- `adm_base.html`: Cmd+K / Ctrl+K overlay with debounced fetch, result list with app › resource breadcrumb
+- `base_index.html`: Cmd+K / Ctrl+K overlay with debounced fetch, result list with app › resource breadcrumb
 
 **4.4 — Webhook / event bus**
 - New `arasCore/lib/events.py`: blinker-based pub/sub; graceful no-op when blinker unavailable

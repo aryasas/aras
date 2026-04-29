@@ -1,0 +1,48 @@
+<!-- Aras Top Bar -->
+<header class="aras-top-bar">
+    <div class="aras-top-bar__left">
+        <button
+            class="aras-btn aras-btn--sm d-lg-none"
+            id="mobileSidebarToggle"
+        >
+            <i class="ti-menu"></i>
+        </button>
+        <!--<div class="aras-breadcrumb">
+            <h1>{% if title %}{{ title }}{% else %}Operations{% endif %}</h1>
+        </div>-->
+    </div>
+
+    <div class="aras-top-bar__right">
+        <div class="aras-search-wrap d-none d-md-flex">
+            <i class="ti-search text-muted"></i>
+            <input
+                type="text"
+                id="arasTopSearchInput"
+                placeholder="Search resources... (⌘K)"
+                autocomplete="off"
+            />
+            <div
+                id="arasTopSearchResults"
+                class="aras-top-search-results"
+            ></div>
+        </div>
+
+        {% if current_user.is_authenticated %}
+        <div class="aras-top-bar__user">
+            <div class="aras-top-bar__user-info">
+                <div class="aras-top-bar__user-name">
+                    {{ current_user.username }}
+                </div>
+                <div class="kicker aras-top-bar__user-role">Administrator</div>
+            </div>
+            <a
+                href="{{ url_for('auth.logout_view') }}"
+                class="aras-btn aras-btn--sm"
+                title="Log out"
+            >
+                <i class="ti-power-off"></i>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</header>

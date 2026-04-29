@@ -4,11 +4,13 @@ import time
 import mariadb
 
 print("Waiting for MariaDB...")
-host = os.getenv("DB_HOST", "db")
-user = os.getenv("DB_USER", "aras")
-password = os.getenv("DB_PASSWORD", "araspass")
-database = os.getenv("DB_NAME", "arasdb")
-port = int(os.getenv("DB_PORT", 3306))
+host = os.getenv("DB_HOST")
+user = os.getenv("DB_USER")
+password = os.getenv("DB_PASSWORD")
+database = os.getenv("DB_NAME")
+port_env = os.getenv("DB_PORT")
+print(f"Connecting to {host}:{port_env} as {user} for database {database}")
+port = int(port_env) if port_env else 3306
 
 for i in range(20): # Try to connect 20 times with 3-second intervals
     try:

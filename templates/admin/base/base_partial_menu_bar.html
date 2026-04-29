@@ -1,0 +1,83 @@
+<!-- app menu bar -->
+{% if g.gmenu %}
+    {% set _path = request.path %}
+    {% set _active_app = namespace(found=none) %}
+    
+    {% for app in g.gmenu %}
+        {# Normalize slugs and paths for comparison #}
+        {% set _app_slug = app.app_slug or '' %}
+        {% set _admin_prefix = '/admin/' ~ _app_slug %}
+        
+        {# Match exact app root or any path starting with /admin/slug/ #}
+        {% if _app_slug and (_path == _admin_prefix or _path == _admin_prefix ~ '/' or _path.startswith(_admin_prefix ~ '/')) %}
+            {% set _active_app.found = app %}
+        {% elif app.url and (_path == app.url or _path.startswith(app.url)) and app.url != '/admin/' %}
+            {% set _active_app.found = app %}
+        {% endif %}
+    {% endfor %}
+
+    <div class="app-menu-bar">
+        {# 1. All Apps Dropdown #}
+        <div class="appmenu-item">
+            <a href="{{ url_for('admin.dashboard') }}" class="appmenu-item-link {{ 'active' if _path == url_for('admin.dashboard') }}">
+                <i class="ti-layout-grid2"></i>
+                <span>Apps</span>
+                <i class="fa fa-caret-down ml-1"></i>
+            </a>
+            <div class="appmenu-dropdown">
+                <a href="{{ url_for('admin.dashboard') }}">
+                    <i class="ti-home"></i> Dashboard
+                </a>
+                <div class="app-menu-divider-horizontal"></div>
+                {% for app in g.gmenu %}
+                    <a href="{{ app.url }}">
+                        <i class="fa {{ app.icon or 'fa-cubes' }}"></i>
+                        {{ app.title }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if _active_app.found %}
+            {% set _app = _active_app.found %}
+            <span class="app-menu-divider"></span>
+            
+            <a href="{{ _app.url }}" class="appmenu-item-link {{ 'active' if _path == _app.url or _path == _app.url ~ '/' }}">
+                <i class="fa {{ _app.icon }}"></i>
+                {{ _app.title }}
+            </a>
+            <span class="app-menu-divider"></span>
+
+            {% for child in _app.children %}
+                {% if child.children %}
+                    {# Group Dropdown #}
+                    <div class="appmenu-item">
+                        <a href="{{ child.url if child.url else '#' }}" class="appmenu-item-link">
+                            <i class="fa {{ child.icon or 'fa-folder-o' }}"></i>
+                            {{ child.title }}
+                            <i class="fa fa-caret-down ml-1"></i>
+                        </a>
+                        <div class="appmenu-dropdown">
+                            {% for item in child.children %}
+                                <a href="{{ item.url }}">
+                                    <i class="fa {{ item.icon or 'fa-file-o' }}"></i>
+                                    {{ item.title }}
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% else %}
+                    {# Flat Item #}
+                    <a href="{{ child.url }}" class="appmenu-item-link">
+                        <i class="fa {{ child.icon or 'fa-table' }}"></i>
+                        {{ child.title }}
+                    </a>
+                {% endif %}
+            {% endfor %}
+        {% else %}
+             <span class="app-menu-divider"></span>
+             <span class="appmenu-item-link text-muted">No module selected</span>
+        {% endif %}
+    </div>
+{% endif %}
+<!-- /app menu bar -->

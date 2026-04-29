@@ -27,21 +27,21 @@ Dokumen ini adalah **satu-satunya sumber kebenaran** tentang cara kerja framewor
 /Users/aras/Dev/aras/
 ├── arasCore/                 ← framework (JANGAN DIEDIT app-wise)
 │   ├── lib/                  ← engine: app_factory, blueprints, installer, api_handler, manager, registry
-│   ├── arasAdmin/            ← admin built-in (app_manager, dashboard, users, messages)
+│   ├── admin/            ← admin built-in (app_manager, dashboard, users, messages)
 │   ├── auth.py               ← User model + login
 │   ├── routes.py             ← /auth/* + core routes
 │   └── permissions.py
 ├── aras/                     ← tempat semua app
-│   ├── app_todo/             ← contoh app minimal (YAML-based)
-│   ├── app_erp/              ← (disembunyikan sementara)
-│   └── app_soc/              ← (disembunyikan sementara)
+│   ├── todo/             ← contoh app minimal (YAML-based)
+│   ├── erp/              ← (disembunyikan sementara)
+│   └── soc/              ← (disembunyikan sementara)
 ├── app_install.yaml          ← contoh/template YAML installer
 ├── docs/                     ← MAIN.md (file ini) + progress.md
 └── run.py                    ← entry point
 ```
 
 **Aturan:**
-- Folder app WAJIB dinamai `app_<nama>` (contoh: `app_todo`, `app_contact`).
+- Folder app WAJIB dinamai `app_<nama>` (contoh: `todo`, `app_contact`).
 - File framework yang masih di `aras/lib/` (legacy) dipindah ke `arasCore/lib/` bertahap — jangan tambah file baru di `aras/lib/`.
 
 ---
@@ -89,7 +89,7 @@ App **hanya** mengirim parameter menu:
 - `parent` (opsional, untuk submenu)
 - `show_in_sidebar` (boolean)
 
-Framework yang **menampilkan & mengelola** sidebar (`build_sidebar_menu()` di `arasCore/arasAdmin/services.py`). App **tidak** menyentuh HTML sidebar.
+Framework yang **menampilkan & mengelola** sidebar (`build_sidebar_menu()` di `arasCore/admin/services.py`). App **tidak** menyentuh HTML sidebar.
 
 ---
 
@@ -226,11 +226,11 @@ helper = AppHelper(
 
 ## 8. App Manager
 
-- Dulu bernama `app_manager`, sekarang ada di `arasCore/arasAdmin/` sebagai bagian admin core.
+- Dulu bernama `app_manager`, sekarang ada di `arasCore/admin/` sebagai bagian admin core.
 - **Tidak** muncul sebagai app biasa di sidebar — dia perkakas admin.
 - Fungsi: list app, create/edit/delete app & table & column, import YAML, export YAML, aktif/nonaktif.
-- Model: `AppManagerApp`, `AppManagerTable`, `AppManagerColumn` di `arasCore/arasAdmin/models.py`.
-- Service engine: `arasCore/arasAdmin/services.py` (`make_table_model`, `_register_built_app`, `build_sidebar_menu`).
+- Model: `AppManagerApp`, `AppManagerTable`, `AppManagerColumn` di `arasCore/admin/models.py`.
+- Service engine: `arasCore/admin/services.py` (`make_table_model`, `_register_built_app`, `build_sidebar_menu`).
 
 ---
 
@@ -240,7 +240,7 @@ All admin templates use a scoped prefix. No exceptions.
 
 | Prefix | Scope | Examples |
 |--------|-------|---------|
-| `adm_` | General admin page (list, form, dashboard) | `adm_list.html`, `adm_form.html`, `adm_dashboard.html` |
+| `adm_` | General admin page (list, form, dashboard) | `gen_view_list.html`, `gen_view_form.html`, `adm_dashboard.html` |
 | `adm_cfg_` | Framework config / App Manager / settings | `adm_cfg_apps.html`, `adm_cfg_tables.html`, `adm_cfg_columns.html` |
 | `adm_auth_` | User and role management | `adm_auth_users.html`, `adm_auth_role_edit.html` |
 | `adm_dev_` | Developer tools | `adm_dev.html` |
@@ -248,7 +248,7 @@ All admin templates use a scoped prefix. No exceptions.
 | `_list_partial.html` | Includeable list UI partial | **no rename** |
 
 **App-level custom templates:** if an app needs multiple custom admin templates, use a subfolder:
-`templates/admin/app_<name>/` e.g. `templates/admin/app_erp/`.
+`templates/admin/app_<name>/` e.g. `templates/admin/erp/`.
 App settings pages stay at `/admin/<app>/settings/` (framework-generated) — no separate route scope.
 
 **`templates/app_manager/`** — deleted (was dead code, zero Python references).
@@ -273,10 +273,10 @@ Aras membedakan dua jenis relasi antar tabel:
 
 ## 11. ERP App Structure
 
-ERP (`aras/app_erp/`) menggunakan Python manifest dengan beberapa sub-modul:
+ERP (`aras/erp/`) menggunakan Python manifest dengan beberapa sub-modul:
 
 ```
-app_erp/
+erp/
 ├── manifest.py              ← AppHelper, semua ResourceDef + MenuGroup
 ├── erp_core/models/         ← Company, Currency, FxRate, Charge,
 │                               FiscalYear, FiscalPeriod, Sequence, Setting,
@@ -308,7 +308,7 @@ app_erp/
 
 ## 12. Referensi Lanjutan
 
-- Peta file terkini: jalankan `ls arasCore/lib/` dan `ls arasCore/arasAdmin/` — jangan hafalkan nama file di dokumen ini, struktur arasCore masih berkembang.
+- Peta file terkini: jalankan `ls arasCore/lib/` dan `ls arasCore/admin/` — jangan hafalkan nama file di dokumen ini, struktur arasCore masih berkembang.
 - Status implementasi & TODO aktif → `docs/progress.md`.
 - Contoh format installer → `app_install.yaml`.
 - Jangan buat dokumen baru tanpa persetujuan user. Update file yang sudah ada.

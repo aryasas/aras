@@ -1,0 +1,87 @@
+{% extends 'admin/base_index.html' %}
+
+{% block page_content %}
+<div class="aras-studio-theme">
+  
+  {# ── App Hero Section (Standardized) ── #}
+  {% set hero_title = group_title if back_url else app_title %}
+  {% set hero_icon = group_icon if back_url else app_icon %}
+  {% include 'admin/base/base_partial_hero.html' %}
+
+  {# ── Dashboard Widgets (Studio style) ── #}
+  {% if widgets %}
+    <div class="aras-grid-dashboard mb-5">
+      {% for w in widgets %}
+        {% set widget = w %}
+        {% include 'admin/gen/widgets/_widget_count.html' %}
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# ── Pages / Tiles Grid ── #}
+  <div class="aras-pages-section">
+    {% if not back_url %}
+      <h6 class="aras-caps mb-4 aras-caps--accent">Available Resources</h6>
+    {% endif %}
+
+    {% if not tiles %}
+      <div class="aras-empty-state aras-empty-state--styled">
+        <i class="ti-package"></i>
+        <p class="aras-empty-text">This module is currently empty.</p>
+        {% if is_dynamic %}<a href="/admin/apps" class="aras-btn aras-btn--primary">Open App Manager</a>{% endif %}
+      </div>
+    {% else %}
+      
+      {% macro render_studio_tile(t) %}
+        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+          <a href="{{ t.url }}" class="aras-studio-tile">
+            <div class="aras-studio-tile__icon">
+              <i class="fa {{ t.icon }}"></i>
+            </div>
+            <div class="aras-studio-tile__title">{{ t.title }}</div>
+            
+            {% if t.description %}
+              <div class="aras-studio-tile__meta aras-studio-tile__meta--small">{{ t.description }}</div>
+            {% endif %}
+
+            <div class="aras-studio-tile__meta">
+              {% if t.page_type == 'group' %}
+                {{ t.tile_count|default('Collection') }}
+              {% else %}
+                {{ t.count|default(0) }} record{{ '' if t.count == 1 else 's' }}
+              {% endif %}
+            </div>
+          </a>
+        </div>
+      {% endmacro %}
+
+      {% if back_url %}
+        <div class="row">
+          {% for t in tiles %}{{ render_studio_tile(t) }}{% endfor %}
+        </div>
+      {% else %}
+        {% set grouped = {} %}
+        {% set ungrouped = [] %}
+        {% for t in tiles %}
+          {% if t.group %}
+            {% if t.group not in grouped %}{% set _ = grouped.update({t.group: []}) %}{% endif %}
+            {% set _ = grouped[t.group].append(t) %}
+          {% else %}
+            {% set _ = ungrouped.append(t) %}
+          {% endif %}
+        {% endfor %}
+
+        {% if ungrouped %}
+          <div class="row">{% for t in ungrouped %}{{ render_studio_tile(t) }}{% endfor %}</div>
+        {% endif %}
+
+        {% for grp_name, grp_tiles in grouped.items() %}
+          <h6 class="aras-caps mt-2 mb-4 aras-caps--accent-subtle">{{ grp_name }}</h6>
+          <div class="row">{% for t in grp_tiles %}{{ render_studio_tile(t) }}{% endfor %}</div>
+        {% endfor %}
+      {% endif %}
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,82 @@
+      {# ── Edit drawer (inline, not modal) ── #}
+      <div id="meDrawer" class="aras-drawer" style="display:none;">
+        <div class="aras-modal-header">
+          <strong class="fs-14" id="meDrawer_title">Edit Item</strong>
+          <button onclick="ME.drawerClose()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#6c757d;">&times;</button>
+        </div>
+        <div class="aras-modal-body flex-grow-1 overflow-y-auto">
+          <input type="hidden" id="medit_type">
+          <input type="hidden" id="medit_id">
+          <div class="form-group mb-3">
+            <label class="small font-weight-bold mb-1">Display Title</label>
+            <input type="text" class="form-control form-control-sm" id="medit_title" placeholder="Leave blank to use default">
+          </div>
+          <div class="form-group mb-3">
+            <label class="small font-weight-bold mb-1">Icon</label>
+            <input type="text" class="form-control form-control-sm" id="medit_icon" placeholder="e.g. fa-home or ti-star">
+            <div id="medit_icon_preview" class="fs-20 mt-2" style="color:#4e73df;min-height:28px;"></div>
+          </div>
+          <div class="form-group mb-3" id="medit_parent_row">
+            <label class="small font-weight-bold mb-1">Parent</label>
+            <select class="form-control form-control-sm" id="medit_parent"></select>
+            <small class="text-muted">Move this item under another page or to top level.</small>
+          </div>
+          <div class="form-group mb-2" id="medit_show_row">
+            <div class="custom-control custom-switch">
+              <input type="checkbox" class="custom-control-input" id="medit_show">
+              <label class="custom-control-label small" for="medit_show">Show in sidebar</label>
+            </div>
+          </div>
+          <div class="form-group mb-0" id="medit_sidebar_row">
+            <div class="custom-control custom-switch">
+              <input type="checkbox" class="custom-control-input" id="medit_in_sidebar">
+              <label class="custom-control-label small" for="medit_in_sidebar">App visible in sidebar</label>
+            </div>
+          </div>
+        </div>
+        <div class="aras-modal-footer">
+          <button class="btn btn-primary btn-sm flex-fill" onclick="ME.drawerApply()">Apply</button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="ME.drawerClose()">Cancel</button>
+        </div>
+      </div>
+      <div id="meOverlay" onclick="ME.drawerClose()"
+           style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.25);"></div>
+
+      {# ── Add Group / Add Page modal ── #}
+      <div id="meAddModal" class="aras-modal" style="display:none;">
+        <div class="aras-modal__overlay" onclick="ME.closeAddModal()"></div>
+        <div class="aras-modal__content">
+          <div class="aras-modal-header">
+            <strong id="meAddModal_title" class="fs-14">Add Group</strong>
+            <button onclick="ME.closeAddModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#6c757d;">&times;</button>
+          </div>
+          <div class="aras-modal-body">
+            <input type="hidden" id="meAdd_type">
+            <div class="form-group mb-3">
+              <label class="small font-weight-bold mb-1">App</label>
+              <select class="form-control form-control-sm" id="meAdd_app"></select>
+            </div>
+            <div class="form-group mb-3">
+              <label class="small font-weight-bold mb-1">Title <span class="text-danger">*</span></label>
+              <input type="text" class="form-control form-control-sm" id="meAdd_title" placeholder="e.g. Reports">
+            </div>
+            <div class="form-group mb-3">
+              <label class="small font-weight-bold mb-1">Icon</label>
+              <input type="text" class="form-control form-control-sm" id="meAdd_icon" placeholder="e.g. fa-folder or ti-chart-bar">
+            </div>
+            <div class="form-group mb-3" id="meAdd_url_row" style="display:none;">
+              <label class="small font-weight-bold mb-1">URL suffix <span class="text-danger">*</span></label>
+              <input type="text" class="form-control form-control-sm" id="meAdd_url" placeholder="e.g. /my-page (relative to app url)">
+              <small class="text-muted">Path appended to the app's base URL.</small>
+            </div>
+            <div class="form-group mb-0" id="meAdd_parent_row" style="display:none;">
+              <label class="small font-weight-bold mb-1">Parent (optional)</label>
+              <select class="form-control form-control-sm" id="meAdd_parent"></select>
+            </div>
+          </div>
+          <div class="aras-modal-footer">
+            <button class="btn btn-primary btn-sm flex-fill" onclick="ME.submitAdd()">Create</button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="ME.closeAddModal()">Cancel</button>
+          </div>
+        </div>
+      </div>

@@ -1,4 +1,4 @@
-{% extends 'auth/_auth_layout.html' %} {% from "macros.html" import show_errors,
+{% extends 'auth/_auth_layout.html' %} {% from "admin/macro/macro_main.html" import show_errors,
 show_message %} {% block page_content %}
 <style>
     :root {
@@ -61,6 +61,7 @@ show_message %} {% block page_content %}
         position: relative;
         overflow: hidden;
         border-radius: 4px;
+        margin: 0 auto;
     }
     @media (max-width: 768px) {
         .aras-auth-card {
@@ -411,11 +412,12 @@ show_message %} {% block page_content %}
 
     <!-- Right form -->
     <section class="aras-auth-form-panel">
+        {{ show_message() }}
         <form
             action="{{ url_for('auth.login_view') }}{% if 'next' in request.args %}?next={{ request.args.next|urlencode }}{% endif %}"
             method="POST"
         >
-            {{ form.hidden_tag() }}
+            {{ form.hidden_tag() }} {{ show_errors(form) }}
 
             <div class="aras-auth-eyebrow">
                 <span class="caps">Entry</span>
@@ -425,19 +427,6 @@ show_message %} {% block page_content %}
 
             <h1 class="aras-auth-title">Welcome <em>back</em>.</h1>
             <p class="aras-auth-lede">Sign in to continue to the studio.</p>
-
-            {% if form.email_or_username.errors %}
-            <div
-                style="
-                    color: var(--auth-accent);
-                    font-size: 11px;
-                    font-style: italic;
-                    margin-bottom: 10px;
-                "
-            >
-                {{ form.email_or_username.errors[0] }}
-            </div>
-            {% endif %}
 
             <div class="aras-auth-fld">
                 <label>Email or username</label>

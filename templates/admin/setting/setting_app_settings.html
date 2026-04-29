@@ -1,0 +1,46 @@
+{% extends 'admin/base_index.html' %}
+
+{% block page_content %}
+<div class="aras-studio-theme mt-3">
+    {# ── Header ── #}
+    <div class="aras-card shadow-sm mb-4">
+      <div class="aras-card-body d-flex align-items-center gap-3">
+        <div class="text-primary-aras fs-60 opacity-8">
+          <i class="fa fa-cog"></i>
+        </div>
+        <div>
+          <h3 class="aras-card-title">{{ app_title }} &mdash; Settings</h3>
+          <p class="text-muted-aras fs-13 mb-0">
+            <a href="{{ home_url }}" class="text-muted-aras">{{ app_title }}</a> &rsaquo; Settings
+          </p>
+        </div>
+      </div>
+    </div>
+
+    {# ── Section cards ── #}
+    <div class="row">
+      {% for card in cards %}
+      <div class="col-md-4 mb-4">
+        <a href="{{ card.url }}" class="text-decoration-none">
+          <div class="aras-card h-100 aras-card--hover">
+            <div class="aras-card-body d-flex align-items-start gap-3">
+              <div class="fs-32 {% if card.framework %}text-primary-aras{% else %}text-muted-aras{% endif %}">
+                <i class="fa {{ card.icon }}"></i>
+              </div>
+              <div>
+                <h6 class="font-weight-bold mb-1">{{ card.label }}</h6>
+                {% if card.description %}
+                  <p class="text-muted-aras small mb-2">{{ card.description }}</p>
+                {% endif %}
+                {% if card.framework %}
+                  <span class="aras-badge aras-badge--info fs-11">Framework</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+</div>
+{% endblock %}

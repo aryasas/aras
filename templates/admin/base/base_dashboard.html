@@ -1,0 +1,28 @@
+{% extends extends_layout if extends_layout else 'admin/base_index.html' %} {%
+from "admin/macro/macro_main.html" import render_fields, render_field %} {% block submenu %} {%
+if g.gmenu %}
+<div
+    class="page-title-area page-title-area--dashboard"
+>
+    {% include 'admin/base/base_partial_dashboard_nav.html' %}
+</div>
+{% endif %} {% endblock %} {% block head %} {{ super() }} {% endblock %} {%
+block page_content %}
+<!-- Main content -->
+
+<!-- Dashboard Widgets -->
+{% if widgets %}
+<div class="row mt-2">
+  {% for w in widgets %}
+    {% set widget = w %}
+    {% set wtype = widget.widget_type|default('count') %}
+    {% if wtype == 'chart' %}
+      {% include 'admin/gen/widgets/_widget_chart.html' %}
+    {% elif wtype == 'sum' %}
+      {% include 'admin/gen/widgets/_widget_sum.html' %}
+    {% else %}
+      {% include 'admin/gen/widgets/_widget_count.html' %}
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %} {% endblock %} {% block script %} {{ super() }} {% endblock %}

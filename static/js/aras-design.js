@@ -1,6 +1,6 @@
 /**
- * Aras Design System - Core JS
- * Handles Integrated Search and Studio UI interactions.
+ * Aras Design System - Core JS (Midnight Editorial)
+ * Handles Sidebar, Search and Dropdowns.
  */
 
 (function() {
@@ -8,8 +8,117 @@
 
     var ArasStudio = {
         init: function() {
+            this.initSidebar();
             this.initSearch();
-            this.initDropdowns();
+            this.initCustomSelects();
+        },
+
+        initSidebar: function() {
+            var toggle = document.getElementById('mobileSidebarToggle');
+            var sidebar = document.getElementById('sidebar-menu');
+            if (!toggle || !sidebar) return;
+
+            toggle.addEventListener('click', function() {
+                sidebar.classList.toggle('is-open');
+            });
+
+            // Close when clicking outside on mobile
+            document.addEventListener('click', function(e) {
+                if (sidebar.classList.contains('is-open') && 
+                    !sidebar.contains(e.target) && 
+                    !toggle.contains(e.target)) {
+                    sidebar.classList.remove('is-open');
+                }
+            });
+        },
+
+        initCustomSelects: function() {
+            var selects = document.querySelectorAll('.aras-form-select, .aras-fsel');
+            selects.forEach(function(select) {
+                if (select.closest('.aras-custom-select') || select.classList.contains('is-hidden')) return;
+                
+                var wrapper = document.createElement('div');
+                wrapper.className = 'aras-custom-select';
+                if (select.classList.contains('aras-fsel')) wrapper.classList.add('aras-fsel-wrapper');
+                
+                var trigger = document.createElement('div');
+                trigger.className = 'aras-select-trigger';
+                
+                var label = document.createElement('span');
+                label.textContent = select.options[select.selectedIndex] ? select.options[select.selectedIndex].text : 'Select...';
+                
+                var icon = document.createElement('i');
+                icon.className = 'fa fa-chevron-down';
+                
+                trigger.appendChild(label);
+                trigger.appendChild(icon);
+                
+                var optionsContainer = document.createElement('div');
+                optionsContainer.className = 'aras-select-options';
+                
+                function buildOptions() {
+                    optionsContainer.innerHTML = '';
+                    Array.from(select.options).forEach(function(opt) {
+                        var o = document.createElement('div');
+                        o.className = 'aras-select-option';
+                        if (opt.selected) o.classList.add('is-selected');
+                        o.textContent = opt.text;
+                        o.dataset.value = opt.value;
+                        
+                        o.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            select.value = opt.value;
+                            label.textContent = opt.text;
+                            
+                            updateSelectedState();
+                            wrapper.classList.remove('is-open');
+                            
+                            var event = new Event('change', { bubbles: true });
+                            select.dispatchEvent(event);
+                        });
+                        optionsContainer.appendChild(o);
+                    });
+                }
+
+                function updateSelectedState() {
+                    var val = select.value;
+                    optionsContainer.querySelectorAll('.aras-select-option').forEach(function(el) {
+                        el.classList.toggle('is-selected', el.dataset.value === val);
+                    });
+                    label.textContent = select.options[select.selectedIndex] ? select.options[select.selectedIndex].text : 'Select...';
+                }
+                
+                buildOptions();
+                
+                wrapper.appendChild(trigger);
+                wrapper.appendChild(optionsContainer);
+                
+                select.parentNode.insertBefore(wrapper, select);
+                select.classList.add('is-hidden');
+                wrapper.appendChild(select);
+                
+                trigger.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    document.querySelectorAll('.aras-custom-select.is-open').forEach(function(openSelect) {
+                        if (openSelect !== wrapper) openSelect.classList.remove('is-open');
+                    });
+                    wrapper.classList.toggle('is-open');
+                });
+
+                select.addEventListener('change', updateSelectedState);
+                
+                var observer = new MutationObserver(function() {
+                    buildOptions();
+                    updateSelectedState();
+                });
+                observer.observe(select, { childList: true });
+            });
+            
+            document.addEventListener('click', function() {
+                document.querySelectorAll('.aras-custom-select.is-open').forEach(function(el) {
+                    el.classList.remove('is-open');
+                });
+            });
         },
 
         initSearch: function() {
@@ -19,119 +128,60 @@
 
             if (!input || !results) return;
 
-            input.addEventListener('focus', function() {
-                if (input.value.trim().length >= 2) results.style.display = 'block';
-            });
-
-            document.addEventListener('click', function(e) {
-                if (!input.contains(e.target) && !results.contains(e.target)) {
-                    results.style.display = 'none';
-                }
-            });
-
             input.addEventListener('input', function() {
-                clearTimeout(timer);
                 var q = input.value.trim();
+                clearTimeout(timer);
                 if (q.length < 2) {
-                    results.innerHTML = '';
                     results.style.display = 'none';
                     return;
                 }
-                results.style.display = 'block';
+
                 timer = setTimeout(function() {
-                    ArasStudio.doSearch(q, results);
-                }, 220);
+                    fetch('/api/search?q=' + encodeURIComponent(q))
+                        .then(function(r) { return r.json(); })
+                        .then(function(data) {
+                            ArasStudio.renderResults(data, results);
+                            results.style.display = 'block';
+                        });
+                }, 300);
             });
 
-            // Global shortcut ⌘K or Ctrl+K to focus search
+            // Keyboard shortcut (Cmd+K or Ctrl+K)
             document.addEventListener('keydown', function(e) {
                 if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
                     e.preventDefault();
                     input.focus();
                 }
-                if (e.key === 'Escape') {
+            });
+
+            // Hide results on blur
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !results.contains(e.target)) {
                     results.style.display = 'none';
-                    input.blur();
                 }
             });
         },
 
-        doSearch: function(q, resultsContainer) {
-            resultsContainer.innerHTML = '<div style="padding:16px;text-align:center;color:#9aacb8;"><i class="fa fa-spinner fa-spin"></i></div>';
-            
-            fetch('/api/_search/?q=' + encodeURIComponent(q))
-                .then(function(r) { return r.json(); })
-                .then(function(data) { 
-                    ArasStudio.renderResults(data.results || [], resultsContainer); 
-                })
-                .catch(function() { 
-                    resultsContainer.innerHTML = '<div style="padding:12px;color:#a05a5a;font-size:12px;text-align:center;">Search failed.</div>'; 
-                });
-        },
-
         renderResults: function(items, container) {
             if (!items.length) {
-                container.innerHTML = '<div style="padding:16px;text-align:center;color:#9aacb8;font-family:serif;font-style:italic;font-size:13px;">No results</div>';
+                container.innerHTML = '<div style="padding:16px;text-align:center;color:var(--aras-ink-3);font-family:var(--aras-font-serif);font-style:italic;font-size:13px;">No results</div>';
                 return;
             }
             var html = '';
             items.forEach(function(item) {
-                html += '<a href="' + item.url + '" style="display:flex;flex-direction:column;padding:10px 16px;text-decoration:none;color:inherit;border-bottom:1px solid #f0f3f5;transition:background 0.1s;" onmouseover="this.style.background=\'#faf8f3\'" onmouseout="this.style.background=\'\'">'
-                    + '<div style="font-size:10px;font-weight:600;color:#9aacb8;text-transform:uppercase;letter-spacing:0.5px;">' + item.app + ' › ' + item.resource + '</div>'
-                    + '<div style="font-size:13px;font-weight:600;color:#0f1b2d;">' + item.title + '</div>'
-                    + (item.match ? '<div style="font-size:11px;color:#6c757d;font-family:serif;font-style:italic;">' + item.match + '</div>' : '')
+                html += '<a href="' + item.url + '" class="aras-search-result-item">'
+                    + '<div style="font-size:9px;font-weight:700;color:var(--aras-accent);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px;">' + item.app + ' › ' + item.resource + '</div>'
+                    + '<div style="font-size:14px;font-weight:700;color:var(--aras-brand);font-family:var(--aras-font-serif);">' + item.title + '</div>'
+                    + (item.match ? '<div style="font-size:11px;color:var(--aras-ink-2);font-family:var(--aras-font-serif);font-style:italic;">' + item.match + '</div>' : '')
                     + '</a>';
             });
             container.innerHTML = html;
-        },
-
-        initDropdowns: function() {
-            // Dropdown hover logic if not handled by CSS
-            document.querySelectorAll('.appmenu-item').forEach(function(item) {
-                var dropdown = item.querySelector('.appmenu-dropdown');
-                if (!dropdown) return;
-                
-                item.addEventListener('mouseenter', function() {
-                    dropdown.style.display = 'block';
-                });
-                item.addEventListener('mouseleave', function() {
-                    dropdown.style.display = 'none';
-                });
-            });
         }
     };
 
-    // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() { ArasStudio.init(); });
     } else {
         ArasStudio.init();
     }
-
-})();
-
-/* ── Aras Tab Nav ── */
-(function () {
-  function initTabNavs() {
-    document.querySelectorAll('.aras-tab-nav').forEach(function (nav) {
-      nav.querySelectorAll('.aras-tab-link').forEach(function (link) {
-        link.addEventListener('click', function (e) {
-          e.preventDefault();
-          var targetId = link.getAttribute('data-tab');
-          var card = nav.closest('.aras-card');
-          if (!card) return;
-          nav.querySelectorAll('.aras-tab-link').forEach(function (l) { l.classList.remove('active'); });
-          card.querySelectorAll('.aras-tab-pane').forEach(function (p) { p.classList.remove('active'); });
-          link.classList.add('active');
-          var pane = card.querySelector('#' + targetId);
-          if (pane) pane.classList.add('active');
-        });
-      });
-    });
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initTabNavs);
-  } else {
-    initTabNavs();
-  }
 })();

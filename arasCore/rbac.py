@@ -9,16 +9,18 @@ concern independently testable.
 Dev mode: set RBAC_ENABLED=false (env) or DevelopmentConfig.RBAC_ENABLED=False
 to short-circuit all checks.
 """
+
 import logging
 from functools import wraps
 
-from flask import abort, jsonify, request, current_app
+from flask import abort, current_app, jsonify, request
 from flask_login import current_user
 
 logger = logging.getLogger(__name__)
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
+
 
 def _rbac_enabled() -> bool:
     return current_app.config.get("RBAC_ENABLED", True)
@@ -32,8 +34,14 @@ def _parse_key(url_key: str) -> tuple[str, str | None]:
 
 # ── Core check ────────────────────────────────────────────────────────────────
 
-def check_permission(user, app_slug: str, resource_slug: str | None,
-                     action: str, module_slug: str | None = None) -> bool:
+
+def check_permission(
+    user,
+    app_slug: str,
+    resource_slug: str | None,
+    action: str,
+    module_slug: str | None = None,
+) -> bool:
     """
     Return True if user may perform action on resource.
 
@@ -50,9 +58,10 @@ def check_permission(user, app_slug: str, resource_slug: str | None,
     if user.is_admin:
         return True
 
-    from arasCore.permissions import UserRole, Permission, role_permissions
-    from arasCore.lib.extensions import db
     from sqlalchemy import or_
+
+    from arasCore.lib.core.extensions import db
+    from arasCore.permissions import Permission, UserRole, role_permissions
 
     # Collect role IDs for this user scoped to app or globally
     user_role_ids = (
@@ -72,7 +81,10 @@ def check_permission(user, app_slug: str, resource_slug: str | None,
             role_permissions.c.role_id.in_(user_role_ids),
             Permission.app_slug == app_slug,
             or_(Permission.module_slug == None, Permission.module_slug == module_slug),  # noqa: E711
-            or_(Permission.resource_slug == None, Permission.resource_slug == resource_slug),  # noqa: E711
+            or_(
+                Permission.resource_slug == None,
+                Permission.resource_slug == resource_slug,
+            ),  # noqa: E711
             or_(Permission.action == "*", Permission.action == action),
         )
         .limit(1)
@@ -81,6 +93,7 @@ def check_permission(user, app_slug: str, resource_slug: str | None,
 
 
 # ── Allowed-resource set (for sidebar filtering) ──────────────────────────────
+
 
 def get_user_allowed_resources(user, app_slug: str) -> set | None:
     """
@@ -94,9 +107,10 @@ def get_user_allowed_resources(user, app_slug: str) -> set | None:
     if user.is_admin:
         return None
 
-    from arasCore.permissions import UserRole, Permission, role_permissions
-    from arasCore.lib.extensions import db
     from sqlalchemy import or_
+
+    from arasCore.lib.core.extensions import db
+    from arasCore.permissions import Permission, UserRole, role_permissions
 
     user_role_ids = (
         db.session.query(UserRole.role_id)
@@ -130,21 +144,31 @@ def get_user_allowed_resources(user, app_slug: str) -> set | None:
 
 # ── Decorator factory ─────────────────────────────────────────────────────────
 
-def require_permission(app_slug: str, resource_slug: str | None, action: str,
-                       module_slug: str | None = None):
+
+def require_permission(
+    app_slug: str,
+    resource_slug: str | None,
+    action: str,
+    module_slug: str | None = None,
+):
     """
     Decorator factory for Flask view functions.
     Returns 403 JSON for /api/ routes, 403 HTML otherwise.
     """
+
     def decorator(f):
         @wraps(f)
         def decorated(*args, **kwargs):
-            if not check_permission(current_user, app_slug, resource_slug, action, module_slug):
+            if not check_permission(
+                current_user, app_slug, resource_slug, action, module_slug
+            ):
                 if request.path.startswith("/api/"):
                     return jsonify({"error": "Forbidden"}), 403
                 abort(403)
             return f(*args, **kwargs)
+
         return decorated
+
     return decorator
 
 
@@ -153,8 +177,9 @@ def require_permission(app_slug: str, resource_slug: str | None, action: str,
 _ACTIONS = ("view", "create", "edit", "delete")
 
 
-def seed_app_permissions(app_slug: str, resource_slugs: list[str], db,
-                         module_slug: str | None = None):
+def seed_app_permissions(
+    app_slug: str, resource_slugs: list[str], db, module_slug: str | None = None
+):
     """
     Idempotent: insert view/create/edit/delete permissions for each resource.
     Called at install time, activation, and migration — safe to call repeatedly.
@@ -215,7 +240,9 @@ def seed_app_permissions_from_helper(helper, db):
         db.session.commit()
     except Exception as e:
         db.session.rollback()
-        logger.warning(f"[rbac] seed_app_permissions_from_helper failed for {helper.name}: {e}")
+        logger.warning(
+            f"[rbac] seed_app_permissions_from_helper failed for {helper.name}: {e}"
+        )
 
 
 def unseed_app_permissions(app_slug: str, db):

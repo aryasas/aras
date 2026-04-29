@@ -46,13 +46,13 @@ Where the savings come from:
 
 1. _make_sa_column and _make_wtf_field (lines 31–146) — both are long if ft == chains mapping the same field type names. They can be collapsed into a lookup dict/dispatch table, cutting ~60 lines combined.
 
-2. make_adm_list, make_adm_add, make_adm_edit, make_adm_delete, make_adm_bulk_delete + their web counterparts — this is the biggest bloat. 8 nearly identical factory functions all repeat the same permission check pattern (req_role + check_permission), the same before_hook/after_hook calls, and the same render_template calls. A single generic _make_crud_view(action, ...) factory would collapse ~400 lines into ~100.
+2. make_gen_view_list, make_adm_add, make_adm_edit, make_adm_delete, make_adm_bulk_delete + their web counterparts — this is the biggest bloat. 8 nearly identical factory functions all repeat the same permission check pattern (req_role + check_permission), the same before_hook/after_hook calls, and the same render_template calls. A single generic _make_crud_view(action, ...) factory would collapse ~400 lines into ~100.
 
 3. get_dashboard_widgets — ~80 lines but ~50 of them are commented-out dead code. Remove those and it's ~25 lines.
 
 4. _load_activity_log — clean and fine as is.
 
-5. Repeated rel_maps FK resolution — appears in both make_adm_list and make_adm_edit with identical logic. Extract to a helper, save ~20 lines.
+5. Repeated rel_maps FK resolution — appears in both make_gen_view_list and make_adm_edit with identical logic. Extract to a helper, save ~20 lines.
 
 6. Duplicate from arasCore.auth import User — line 1418–1419 imports the same thing twice.
 
@@ -64,7 +64,7 @@ base_model.py	130 lines	~95 lines
 Total	1,626	~995
 Roughly ~40% smaller overall.
 
-Refactor arasCore/arasAdmin/services.py — split into focused modules. Do not change any logic, signatures, or behavior.
+Refactor arasCore/admin/services.py — split into focused modules. Do not change any logic, signatures, or behavior.
 Read only these sections of services.py, nothing else:
 
 Lines 1–70 (imports, _SYSTEM_COLS, _slug_from_url, _make_sa_column)
@@ -86,7 +86,7 @@ menu_service.py — _build_raw_menu, build_sidebar_menu, _filter_menu_for_user
 Then update services.py: replace moved code with imports from the new files. Do not re-read services.py for this step — use what is already in context.
 Finally, search only for these two import patterns across the codebase — do not read any full files:
 
-from arasCore.arasAdmin.services import
+from arasCore.admin.services import
 from .services import
 
 Fix any broken imports found. Stop after that.

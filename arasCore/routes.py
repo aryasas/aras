@@ -18,7 +18,7 @@ def login_view():
         user = authenticate(form.email_or_username.data, form.password.data)
         if user:
             login(user, remember=form.remember_me.data)
-            from .lib.extensions import db
+            from .lib.core.extensions import db
             user.log_activity("login", module="auth")
             db.session.commit()
             next_page = request.args.get("next")
@@ -91,7 +91,7 @@ def password_reset(token):
         return redirect(url_for("auth.password_reset_request"))
     form = PasswordResetForm()
     if form.validate_on_submit():
-        from .lib.extensions import db
+        from .lib.core.extensions import db
         user.set_password(form.password.data)
         user.log_activity("password_reset", module="auth")
         db.session.commit()
@@ -109,7 +109,7 @@ def change_password():
             flash("Current password is incorrect.", "danger")
         else:
             current_user.set_password(form.new_password.data)
-            from .lib.extensions import db
+            from .lib.core.extensions import db
             current_user.log_activity("password_changed", module="auth")
             db.session.commit()
             flash("Password changed successfully.", "success")
@@ -121,7 +121,7 @@ def change_password():
 @login_required
 def user(username):
     from .auth import User
-    from .arasAdmin.models import UserActivity
+    from .admin.models import UserActivity
     u = User.query.filter_by(username=username).first_or_404()
     recent_activities = (
         UserActivity.query
@@ -130,7 +130,7 @@ def user(username):
         .limit(10)
         .all()
     )
-    return render_template("admin/views/adm_auth_user_profile.html",
+    return render_template("admin/setting/setting_auth_user_profile.html",
                            title=u.username,
                            main_title="User Profile",
                            user=u,
@@ -173,7 +173,7 @@ def change_email(token):
     if not user or user.id != current_user.id:
         flash("Confirmation link is invalid or has expired.", "danger")
         return redirect(url_for("admin.dashboard"))
-    from .lib.extensions import db
+    from .lib.core.extensions import db
     current_user.email = new_email
     current_user.log_activity("email_changed", module="auth", payload={"new_email": new_email})
     db.session.commit()

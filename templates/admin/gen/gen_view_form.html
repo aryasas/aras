@@ -1,0 +1,200 @@
+{% extends extends_layout if extends_layout else 'admin/base_index.html'
+%} {% from 'admin/macro/macro_main.html' import render_card, render_button, render_form_fields
+%} {#
+================================================================================
+gen_view_form.html — Midnight Editorial Redesign for Aras Admin
+form view with timeline activity and optimized child-table interactions.
+================================================================================
+#} {% set _has_customize = app_id and table_id %} {% block page_content %}
+<div class="aras-studio-theme">
+    <div class="container-fluid px-0">
+        {# ── Action Header ── #}
+        <div class="aras-header-sticky">
+            <div class="aras-header-left">
+                <a
+                    href="{{ list_url }}"
+                    class="aras-back-link"
+                    title="Back to list"
+                >
+                    <i class="fa fa-arrow-left"></i>
+                </a>
+                <h2 class="aras-page-title">{{ title }}</h2>
+            </div>
+            <div class="aras-header-right">
+                {% if _has_customize %}
+                <a
+                    href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}"
+                    class="aras-btn aras-btn--outline aras-btn--sm aras-btn--accent ml-2"
+                    title="Customize Form Fields"
+                >
+                    <i class="fa fa-sliders"></i>
+                    <span class="d-none d-md-inline">Fields</span>
+                </a>
+                <a
+                    href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}#designer-pane"
+                    class="aras-btn aras-btn--outline aras-btn--sm aras-btn--accent ml-2"
+                    title="Visual Form Designer"
+                >
+                    <i class="fa fa-magic"></i>
+                    <span class="d-none d-md-inline">Design</span>
+                </a>
+                {% endif %}
+                <a href="{{ list_url }}" class="aras-btn">Cancel</a>
+                {% if show_save_btn is not defined or show_save_btn %}
+                <button
+                    type="submit"
+                    form="mainForm"
+                    class="aras-btn aras-btn--primary"
+                >
+                    <i class="fa fa-check"></i> Save
+                </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="aras-form-layout">
+            <div class="aras-main-column">
+                {# Separate inline vs tab child tables #} {% set _all_ct =
+                child_tables if child_tables is defined else [] %} {% set
+                _inline_cts = _all_ct | rejectattr("view_in_tab", "equalto",
+                true) | list %} {% set _tab_cts = _all_ct |
+                selectattr("view_in_tab", "equalto", true) | list %} {# ── Main
+                Form Card ── #}
+                <div class="aras-card shadow-sm">
+                    <div class="aras-card-body">
+                        <form method="POST" action="{{ action }}" id="mainForm" novalidate>
+                            {{ form.hidden_tag() if form.hidden_tag is defined
+                            }} {% if layout_tabs is defined and layout_tabs %}
+                            {# Pass all child tables so the layout engine can arrange them #}
+                            {% set child_table_tabs = _all_ct %} 
+                            {% include 'admin/gen/macro_form_layout.html' %} 
+                            {% else %}
+                            {{ render_form_fields(form) }} {% endif %}
+
+                            {# ── Fallback for Unplaced Child Tables (only if layout_tabs is NOT defined) ── #}
+                            {% if not (layout_tabs is defined and layout_tabs) %}
+                                {% for ct in _all_ct %}
+                                    {% if not ct.get('_is_placed') %}
+                                    <div class="aras-child-tables-section mt-5 pt-4 border-top">
+                                        {% include 'admin/gen/gen_view_form_child_table.html' %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="aras-sidebar-sticky">
+                {# ── Meta Info ── #}
+                <div class="aras-card shadow-sm">
+                    <div class="aras-card-header">
+                        <h3 class="aras-card-title m-0">Details</h3>
+                    </div>
+                    <div class="aras-card-body py-3">
+                        <div class="aras-meta-list d-flex flex-column gap-12">
+                            <div class="aras-meta-item d-flex justify-content-between fs-12-5">
+                                <span class="label text-muted">Status</span>
+                                <span class="value"
+                                    ><span class="badge badge-pill badge-info"
+                                        >Draft</span
+                                    ></span
+                                >
+                            </div>
+                            {% if table_id %}
+                            <div class="aras-meta-item d-flex justify-content-between fs-12-5">
+                                <span class="label text-muted">Resource</span>
+                                <span class="value"
+                                    ><code>{{ table_id }}</code></span
+                                >
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {# ── Extra sidebar cards from SubHandler.detail_context() ── #}
+                {% if sidebar_cards is defined and sidebar_cards %} {% for card
+                in sidebar_cards %}
+                <div class="aras-card shadow-sm">
+                    <div class="aras-card-header">
+                        <h3 class="aras-card-title m-0">{{ card.title }}</h3>
+                    </div>
+                    <div class="aras-card-body py-3">
+                        <div class="aras-meta-list d-flex flex-column gap-10">
+                            {% for row in card.rows %}
+                            <div class="aras-meta-item d-flex justify-content-between fs-12-5">
+                                <span class="label text-muted">{{ row.label }}</span>
+                                <span class="value font-weight-bold">{{ row.value }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %} {% endif %} {# ── Activity Timeline ── #} {% if
+                activity_log is defined and activity_log %}
+                <div class="aras-card shadow-sm">
+                    <div class="aras-card-header">
+                        <h3 class="aras-card-title m-0">Activity</h3>
+                    </div>
+                    <div class="aras-card-body">
+                        <div class="aras-timeline">
+                            {% for entry in activity_log %}
+                            <div class="aras-timeline-item">
+                                <div
+                                    class="aras-timeline-dot {{ entry.action }}"
+                                ></div>
+                                <div class="aras-timeline-content">
+                                    <div class="aras-timeline-header">
+                                        <span class="aras-timeline-user"
+                                            >{{ entry.user }}</span
+                                        >
+                                        <span
+                                            class="aras-timeline-time"
+                                            data-ts="{{ entry.ts.isoformat() if entry.ts else '' }}"
+                                        >
+                                            {{ entry.ts.strftime('%H:%M') if
+                                            entry.ts else '' }}
+                                        </span>
+                                    </div>
+                                    <div class="aras-timeline-body">
+                                        {% if entry.action == 'create' %}
+                                        Created this record. {% elif
+                                        entry.action == 'delete' %} Deleted this
+                                        record. {% elif entry.action == 'update'
+                                        %} Updated this record. {% if
+                                        entry.changes %}
+                                        <div class="aras-timeline-changes">
+                                            {% for field, change in
+                                            entry.changes.items() %}
+                                            <span
+                                                >{{ field }}:
+                                                <code>{{ change.old }}</code> →
+                                                <code
+                                                    >{{ change.new }}</code
+                                                ></span
+                                            >
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %} {% else %} {{
+                                        entry.action|capitalize }} {% endif %}
+                                    </div>
+                                    <div class="aras-timeline-date">
+                                        {{ entry.ts.strftime('%d %b %Y') if
+                                        entry.ts else '' }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} {% block script %} {{ super() }}
+<script src="{{ url_for('static', filename='js/adm_form.js') }}"></script>
+{% endblock %}

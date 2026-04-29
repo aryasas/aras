@@ -1,0 +1,205 @@
+{% extends 'admin/base_index.html' %}
+
+{% block page_content %}
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="header-title mb-0">Aras Framework Documentation & Help Center</h4>
+                    <span class="badge badge-primary">v1.0 (Core Engine)</span>
+                </div>
+                
+                <div class="alert alert-info" role="alert">
+                    <h5 class="alert-heading"><i class="ti-info-alt"></i> Welcome to Aras</h5>
+                    <p class="mb-0">Aras is a modular, metadata-driven Application Framework and ERP built for speed and extensibility. This Help Center provides comprehensive guidance on how to navigate, administer, and develop on the platform.</p>
+                </div>
+
+                <!-- Help Navigation Tabs -->
+                <ul class="nav nav-tabs mt-4 mb-4" id="helpTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="getting-started-tab" data-toggle="tab" href="#getting-started" role="tab" aria-controls="getting-started" aria-selected="true"><i class="ti-flag-alt-2"></i> Getting Started</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="administration-tab" data-toggle="tab" href="#administration" role="tab" aria-controls="administration" aria-selected="false"><i class="ti-settings"></i> Administration</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="developer-guide-tab" data-toggle="tab" href="#developer-guide" role="tab" aria-controls="developer-guide" aria-selected="false"><i class="ti-paint-roller"></i> Developer Guide</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="faq-tab" data-toggle="tab" href="#faq" role="tab" aria-controls="faq" aria-selected="false"><i class="ti-help"></i> FAQ & Troubleshooting</a>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content" id="helpTabsContent">
+                    
+                    <!-- Getting Started Tab -->
+                    <div class="tab-pane fade show active" id="getting-started" role="tabpanel" aria-labelledby="getting-started-tab">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5 class="text-primary">Navigating the System</h5>
+                                <p>Aras uses a modern sidebar navigation grouped by App Modules. You can find installed applications like <strong>ERP</strong>, <strong>CRM</strong>, and <strong>Settings</strong> on the left panel.</p>
+                                <ul>
+                                    <li><strong>Global Search:</strong> The fastest way to navigate. Use the search bar at the top (or press <code>Cmd+K</code> / <code>Ctrl+K</code>) to instantly find records, pages, or settings across all modules.</li>
+                                    <li><strong>Dashboards:</strong> Most apps have a dedicated dashboard showing KPIs, charts, and recent activities.</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h5 class="text-primary">Core Concepts</h5>
+                                <ul>
+                                    <li><strong>Apps:</strong> Self-contained modules (like Accounting or Inventory) that add specific business logic to the framework.</li>
+                                    <li><strong>Resources (CRUD):</strong> Most pages you interact with are Data Resources. Aras automatically handles Create, Read, Update, and Delete operations for these.</li>
+                                    <li><strong>Workflows:</strong> Many documents (like Invoices or Purchase Orders) go through states (Draft &rarr; Submitted &rarr; Approved). Workflows govern these transitions.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Administration Tab -->
+                    <div class="tab-pane fade" id="administration" role="tabpanel" aria-labelledby="administration-tab">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card bg-light mb-3">
+                                    <div class="card-body">
+                                        <h5 class="card-title"><i class="ti-lock"></i> Role-Based Access Control (RBAC)</h5>
+                                        <p class="card-text">Security is managed at the resource level. Administrators can create Roles and assign specific permissions (Read, Write, Create, Delete, Submit) for each App and Resource. Assign Users to Roles to grant access.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card bg-light mb-3">
+                                    <div class="card-body">
+                                        <h5 class="card-title"><i class="ti-layers"></i> App Manager</h5>
+                                        <p class="card-text">Install and manage dynamic apps. The App Manager allows you to load new modules via YAML/JSON definitions or Python manifests without restarting the core engine.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card bg-light mb-3">
+                                    <div class="card-body">
+                                        <h5 class="card-title"><i class="ti-control-shuffle"></i> Workflow Engine</h5>
+                                        <p class="card-text">A declarative state-machine. Define Custom States (e.g., Draft, Pending, Approved) and rules for transitioning between them, including gating by specific User Roles.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card bg-light mb-3">
+                                    <div class="card-body">
+                                        <h5 class="card-title"><i class="ti-eye"></i> Audit Logs</h5>
+                                        <p class="card-text">Every modification to critical data is tracked. The Audit Log records who changed what, showing the exact old and new values for every field modification.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Developer Guide Tab -->
+                    <div class="tab-pane fade" id="developer-guide" role="tabpanel" aria-labelledby="developer-guide-tab">
+                        <h5 class="text-primary mb-3">Building on Aras</h5>
+                        <div class="accordion" id="devAccordion">
+                            
+                            <div class="card mb-2">
+                                <div class="card-header bg-white" id="headingManifest">
+                                    <h5 class="mb-0">
+                                        <button class="btn btn-link text-dark font-weight-bold" type="button" data-toggle="collapse" data-target="#collapseManifest" aria-expanded="true" aria-controls="collapseManifest">
+                                            1. Manifest-Driven Architecture (AppHelper)
+                                        </button>
+                                    </h5>
+                                </div>
+                                <div id="collapseManifest" class="collapse show" aria-labelledby="headingManifest" data-parent="#devAccordion">
+                                    <div class="card-body">
+                                        Code-based apps in the <code>aras/</code> directory register themselves using a <code>manifest.py</code> file. By defining an <code>AppHelper</code> instance, you automatically generate UI menus, API endpoints, and RBAC entries without writing boilerplate routing code.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card mb-2">
+                                <div class="card-header bg-white" id="headingModels">
+                                    <h5 class="mb-0">
+                                        <button class="btn btn-link text-dark font-weight-bold collapsed" type="button" data-toggle="collapse" data-target="#collapseModels" aria-expanded="false" aria-controls="collapseModels">
+                                            2. Database Models (ArasModel)
+                                        </button>
+                                    </h5>
+                                </div>
+                                <div id="collapseModels" class="collapse" aria-labelledby="headingModels" data-parent="#devAccordion">
+                                    <div class="card-body">
+                                        All models should inherit from <code>arasCore.lib.base_model.ArasModel</code>. This base class provides built-in support for standard fields (created_at, updated_at), UUID generation, and automatic integration with the Audit Trail system.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card mb-2">
+                                <div class="card-header bg-white" id="headingAPI">
+                                    <h5 class="mb-0">
+                                        <button class="btn btn-link text-dark font-weight-bold collapsed" type="button" data-toggle="collapse" data-target="#collapseAPI" aria-expanded="false" aria-controls="collapseAPI">
+                                            3. Universal REST API
+                                        </button>
+                                    </h5>
+                                </div>
+                                <div id="collapseAPI" class="collapse" aria-labelledby="headingAPI" data-parent="#devAccordion">
+                                    <div class="card-body">
+                                        Resources defined in your manifest are automatically exposed via RESTful endpoints at <code>/api/&lt;app_slug&gt;/&lt;resource_name&gt;/</code>. The API includes built-in validation, pagination, and sorting.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card mb-2">
+                                <div class="card-header bg-white" id="headingScripts">
+                                    <h5 class="mb-0">
+                                        <button class="btn btn-link text-dark font-weight-bold collapsed" type="button" data-toggle="collapse" data-target="#collapseScripts" aria-expanded="false" aria-controls="collapseScripts">
+                                            4. Server Scripts & Webhooks
+                                        </button>
+                                    </h5>
+                                </div>
+                                <div id="collapseScripts" class="collapse" aria-labelledby="headingScripts" data-parent="#devAccordion">
+                                    <div class="card-body">
+                                        Need custom business logic? Use <strong>Server Scripts</strong> for sandboxed Python hooks (Before Insert, After Update, etc.) to modify data on the fly. Use <strong>Webhooks</strong> to send HMAC-signed outbound events to external systems when data changes.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-warning mt-4">
+                            <strong>Important Convention:</strong> Never write CSS or JavaScript directly in HTML templates. Use <code>static/css/aras_design.css</code> and external JS files. Always use <code>admin/gen_view_list.html</code> for standard list views.
+                        </div>
+                    </div>
+
+                    <!-- FAQ Tab -->
+                    <div class="tab-pane fade" id="faq" role="tabpanel" aria-labelledby="faq-tab">
+                        <h5 class="text-primary mb-3">Frequently Asked Questions</h5>
+                        
+                        <div class="mt-3">
+                            <h6><i class="ti-help-alt text-info"></i> I'm getting an "Unknown column" error in the database.</h6>
+                            <p class="text-muted">This happens when there is a mismatch between your SQLAlchemy models and the physical MariaDB tables. Run <code>flask aras fix-db</code> in the CLI to attempt an automatic fix, or use Alembic migrations.</p>
+                        </div>
+                        <hr>
+                        <div class="mt-3">
+                            <h6><i class="ti-help-alt text-info"></i> How do I completely reset the database for development?</h6>
+                            <p class="text-muted">Use the CLI command <code>flask aras remigrate</code>. Warning: This drops all tables, recreates them, runs migrations, and applies basic seed data. Use <code>flask aras erp-init</code> to seed ERP-specific test data.</p>
+                        </div>
+                        <hr>
+                        <div class="mt-3">
+                            <h6><i class="ti-help-alt text-info"></i> A template is missing or showing an error.</h6>
+                            <p class="text-muted">Ensure you are using the modern generic templates. Legacy paths like <code>admin/aras_list.html</code> have been deprecated. Use <code>admin/gen_view_list.html</code> and <code>admin/gen_view_form.html</code> instead.</p>
+                        </div>
+                        <hr>
+                        <div class="mt-3">
+                            <h6><i class="ti-help-alt text-info"></i> The UI looks broken after an update.</h6>
+                            <p class="text-muted">Clear your browser cache or perform a hard refresh (Cmd+Shift+R / Ctrl+F5) to ensure you are loading the latest <code>aras_design.css</code> and JavaScript files.</p>
+                        </div>
+                        
+                        <div class="card border-primary mt-5">
+                            <div class="card-body text-center">
+                                <h5 class="card-title text-primary"><i class="ti-thought"></i> Coming Soon: AI Knowledge Base</h5>
+                                <p class="card-text">We are integrating a context-aware AI assistant that understands your specific app configurations and the Aras Core engine. Soon you will be able to ask natural language questions to generate apps, debug scripts, and query data directly from this interface.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- End Tab Content -->
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

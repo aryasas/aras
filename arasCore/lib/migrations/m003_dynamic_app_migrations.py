@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def run(_flask_app):
-    from arasCore.lib.extensions import db
+    from arasCore.lib.core.extensions import db
     from sqlalchemy import text
 
     with db.engine.connect() as conn:

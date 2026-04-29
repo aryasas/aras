@@ -21,7 +21,7 @@ def run(base: str, username: str, password: str):
 
     status, url, html = c.get("/admin/dashboard")
     assert_ok("GET /admin/dashboard → 200", status == 200, f"status={status}")
-    assert_ok("Dashboard contains admin markup", any(k in html for k in ["dashboard", "Dashboard", "adm_base"]))
+    assert_ok("Dashboard contains admin markup", any(k in html for k in ["dashboard", "Dashboard", "base_index"]))
 
     # Dashboard POST (create post)
     token = c.csrf(html)
