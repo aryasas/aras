@@ -1,6 +1,14 @@
 /* list_view.js — pure JS. Config set by _list_partial.html via window._listViewCfg */
 (function () {
   var cfg = window._listViewCfg || {};
+  var dataEl = document.getElementById('list-view-config-data');
+  if (dataEl) {
+    try {
+      var jsonData = JSON.parse(dataEl.textContent);
+      for (var key in jsonData) { cfg[key] = jsonData[key]; }
+    } catch (e) { console.error('Failed to parse list-view-config-data', e); }
+  }
+
   var LID        = cfg.LID        || '';
   var HAS_EDIT   = cfg.HAS_EDIT   || false;
   var HAS_BULK   = cfg.HAS_BULK   || false;
