@@ -598,8 +598,20 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
                 and hasattr(model.__table__.c[fname].type, "length")
             ][:5]
         q_obj, active_filters, search_q = apply_search_fn(model.query.order_by(model.id.desc()), model, search_cols, _req)
-        page = _req.args.get("page", 1, type=int)
-        pagination = q_obj.paginate(page=page, per_page=eff_pp, error_out=False)
+        
+        current_view = _req.args.get('view', 'list')
+        if current_view == 'tree':
+            # Force sort by code or id to keep tree consistent
+            if hasattr(model, 'code'):
+                items = q_obj.order_by(model.code).all()
+            else:
+                items = q_obj.order_by(model.id).all()
+            pagination = None
+        else:
+            page = _req.args.get("page", 1, type=int)
+            pagination = q_obj.paginate(page=page, per_page=eff_pp, error_out=False)
+            items = pagination.items
+
         linked_report_url = None
         try:
             from aras.erp.erp_core.models.report import ErpReport
@@ -627,7 +639,7 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
         return render_template(
             "admin/gen/gen_view_list.html",
             title=title, main_title=main_t,
-            items=pagination.items, view_columns=eff_vcols,
+            items=items, view_columns=eff_vcols,
             pagination=pagination, per_page=eff_pp,
             rel_maps=_build_fk_maps(eff_vcols, model),
             add_url=f"{adm_burl}/add/", edit_url_base=adm_burl, delete_url_base=adm_burl,

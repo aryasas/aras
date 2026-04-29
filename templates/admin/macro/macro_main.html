@@ -34,6 +34,7 @@
 
 {# -- Tables -- #}
 {% macro render_data_table() %}{{ tables.render_data_table(*varargs, **kwargs) }}{% endmacro %}
+{% macro render_tree_table() %}{{ tables.render_tree_table(*varargs, **kwargs) }}{% endmacro %}
 
 {# -- Widgets -- #}
 {% macro render_stat_box() %}{{ widgets.render_stat_box(*varargs, **kwargs) }}{% endmacro %}
