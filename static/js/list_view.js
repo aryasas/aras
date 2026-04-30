@@ -89,24 +89,22 @@
       function showBulkModal(bodyHtml) {
         var modal      = document.getElementById('arasDeleteModal');
         var body       = document.getElementById('arasDeleteModalBody');
-        var confirmBtn = document.getElementById('arasDeleteModalConfirm');
-        var cancelBtn  = document.getElementById('arasDeleteModalCancel');
-        var closeBtn   = document.getElementById('arasDeleteModalClose');
-        var overlay    = document.getElementById('arasDeleteModalOverlay');
-        if (!modal || !body || !confirmBtn) { doSubmit(); return; }
+        if (!modal || !body) { doSubmit(); return; }
         body.innerHTML = bodyHtml;
         modal.style.display = '';
-        function hide() { modal.style.display = 'none'; }
-        var newConfirm = confirmBtn.cloneNode(true);
-        var newCancel  = cancelBtn ? cancelBtn.cloneNode(true) : null;
-        var newClose   = closeBtn  ? closeBtn.cloneNode(true)  : null;
-        confirmBtn.parentNode.replaceChild(newConfirm, confirmBtn);
-        if (newCancel && cancelBtn) cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
-        if (newClose  && closeBtn)  closeBtn.parentNode.replaceChild(newClose,  closeBtn);
-        if (overlay) overlay.onclick = hide;
-        newConfirm.addEventListener('click', function () { hide(); doSubmit(); });
-        if (newCancel) newCancel.addEventListener('click', hide);
-        if (newClose)  newClose.addEventListener('click',  hide);
+        
+        // Use the global setter from adm_delete.js
+        if (window._arasSetDeleteConfirm) {
+            window._arasSetDeleteConfirm(function () { doSubmit(); });
+        } else {
+            // Fallback if adm_delete.js not loaded
+            var confirmBtn = document.getElementById('arasDeleteModalConfirm');
+            if (confirmBtn) {
+                var newConfirm = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newConfirm, confirmBtn);
+                newConfirm.onclick = function() { modal.style.display = 'none'; doSubmit(); };
+            }
+        }
       }
 
       // Single record — fetch linked docs preview

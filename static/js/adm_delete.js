@@ -1,40 +1,53 @@
 /**
  * adm_delete.js — Generic deletion dialog with linked-docs preview.
+ * Refactored for better robustness against dynamic UI changes.
  * Loaded globally from base_index.html.
  */
 (function () {
     "use strict";
 
-    var modal        = null;
-    var overlay      = null;
-    var bodyEl       = null;
-    var confirmBtn   = null;
-    var cancelBtn    = null;
-    var closeBtn     = null;
     var _onConfirm   = null;
 
-    function init() {
-        modal      = document.getElementById("arasDeleteModal");
-        if (!modal) return;
-        overlay    = document.getElementById("arasDeleteModalOverlay");
-        bodyEl     = document.getElementById("arasDeleteModalBody");
-        confirmBtn = document.getElementById("arasDeleteModalConfirm");
-        cancelBtn  = document.getElementById("arasDeleteModalCancel");
-        closeBtn   = document.getElementById("arasDeleteModalClose");
+    function getEl(id) { return document.getElementById(id); }
 
-        cancelBtn.addEventListener("click", hideModal);
-        closeBtn.addEventListener("click",  hideModal);
-        if (overlay) overlay.addEventListener("click", hideModal);
-        confirmBtn.addEventListener("click", function () {
-            hideModal();
-            if (_onConfirm) _onConfirm();
+    function init() {
+        var modal = getEl("arasDeleteModal");
+        if (!modal) return;
+
+        // Use delegation for modal buttons to avoid issues with button cloning/replacement
+        modal.addEventListener("click", function (e) {
+            var target = e.target.closest("button");
+            if (!target) return;
+
+            if (target.id === "arasDeleteModalConfirm") {
+                hideModal();
+                if (_onConfirm) {
+                    var cb = _onConfirm;
+                    _onConfirm = null; // reset
+                    cb();
+                }
+            } else if (target.id === "arasDeleteModalCancel" || target.id === "arasDeleteModalClose") {
+                hideModal();
+            }
         });
+
+        var overlay = getEl("arasDeleteModalOverlay");
+        if (overlay) {
+            overlay.addEventListener("click", hideModal);
+        }
 
         wireDeleteButton();
     }
 
-    function showModal() { if (modal) modal.style.display = ""; }
-    function hideModal() { if (modal) modal.style.display = "none"; }
+    function showModal() {
+        var modal = getEl("arasDeleteModal");
+        if (modal) modal.style.display = "";
+    }
+
+    function hideModal() {
+        var modal = getEl("arasDeleteModal");
+        if (modal) modal.style.display = "none";
+    }
 
     function getCsrf() {
         var meta = document.querySelector("meta[name='csrf-token']");
@@ -63,7 +76,7 @@
                 html += label;
             }
             html += "</span>";
-            // Per-doc delete button (goes to admin_url + delete)
+            // Per-doc delete button
             if (node.admin_url) {
                 var docDeleteUrl = node.admin_url.replace(/\/$/, "") + "/delete/";
                 html += "<button class='aras-btn aras-btn--sm text-danger aras-btn--outline js-linked-doc-delete' "
@@ -79,7 +92,7 @@
     }
 
     function wireDeleteButton() {
-        var btn = document.getElementById("btnDeleteRecord");
+        var btn = getEl("btnDeleteRecord");
         if (!btn) return;
 
         btn.addEventListener("click", function () {
@@ -89,13 +102,12 @@
             if (!deleteUrl) return;
 
             if (!linkedDocsUrl) {
-                // No API URL — simple confirm
                 if (!confirm("Delete this record?")) return;
                 submitDeletePost(deleteUrl);
                 return;
             }
 
-            // Fetch linked docs first
+            // Fetch linked docs
             btn.disabled = true;
             var origHtml = btn.innerHTML;
             btn.innerHTML = "<i class='fa fa-spinner fa-spin'></i>";
@@ -108,10 +120,13 @@
                 btn.disabled  = false;
                 btn.innerHTML = origHtml;
                 var tree = data.tree || [];
-                bodyEl.innerHTML = renderTree(tree);
-                _onConfirm = function () { submitDeletePost(deleteUrl); };
-                wireLinkedDocButtons();
-                showModal();
+                var bodyEl = getEl("arasDeleteModalBody");
+                if (bodyEl) {
+                    bodyEl.innerHTML = renderTree(tree);
+                    _onConfirm = function () { submitDeletePost(deleteUrl); };
+                    wireLinkedDocButtons(bodyEl);
+                    showModal();
+                }
             })
             .catch(function () {
                 btn.disabled  = false;
@@ -121,9 +136,8 @@
         });
     }
 
-    function wireLinkedDocButtons() {
-        if (!bodyEl) return;
-        bodyEl.querySelectorAll(".js-linked-doc-delete").forEach(function (btn) {
+    function wireLinkedDocButtons(container) {
+        container.querySelectorAll(".js-linked-doc-delete").forEach(function (btn) {
             btn.addEventListener("click", function (e) {
                 e.stopPropagation();
                 var url = btn.dataset.url;
@@ -147,6 +161,11 @@
         document.body.appendChild(form);
         form.submit();
     }
+
+    // Set globally for list_view.js and others to use the same callback mechanism
+    window._arasSetDeleteConfirm = function (cb) {
+        _onConfirm = cb;
+    };
 
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", init);
