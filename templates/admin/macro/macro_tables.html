@@ -88,3 +88,184 @@
   </table>
 </div>
 {% endmacro %}
+
+{#
+--------------------------------------------------------------------------------
+  render_tree_table(view_columns, items, rel_maps, edit_url_base, _lid)
+  Renders a hierarchical (tree) table.
+--------------------------------------------------------------------------------
+#}
+{#
+--------------------------------------------------------------------------------
+  render_tree_table(view_columns, items, edit_url_base, _lid)
+  Renders a stunning directory-style tree view.
+--------------------------------------------------------------------------------
+#}
+{% macro render_tree_table(view_columns, items, edit_url_base=None, _lid='', _visible_fields=None) %}
+<div class="aras-tree-container p-20 bg-white border rounded shadow-sm">
+  <div class="aras-tree-header d-flex justify-content-between mb-16 pb-12 border-bottom">
+    <div class="font-weight-bold text-muted fs-12 uppercase tracking-wider">{{ view_columns[0][0] }}</div>
+    <div class="font-weight-bold text-muted fs-12 uppercase tracking-wider">Details</div>
+  </div>
+  
+  <div class="aras-tree-root">
+    {% set roots = items | selectattr('parent_id', 'none') | list %}
+    {% if not roots and items %}
+      {% set roots = items[:50] %} 
+    {% endif %}
+    
+    {% for root in roots %}
+      {{ render_tree_row(root, view_columns, 0, edit_url_base, _visible_fields) }}
+    {% endfor %}
+    
+    {% if not items %}
+    <div class="text-center py-50">
+      <i class="fa fa-sitemap fa-3x text-light mb-16"></i>
+      <p class="text-muted">No hierarchical data found</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+  .aras-tree-container { min-height: 400px; color: #444; }
+  .tree-node { position: relative; }
+  .tree-content { 
+    display: flex; 
+    align-items: center; 
+    padding: 8px 12px; 
+    border-radius: 6px; 
+    margin-bottom: 2px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .tree-content:hover { background: #f6f5ff; }
+  .tree-content:hover .tree-link { color: var(--aras-accent, #7266ba); }
+  
+  .tree-indent-wrapper { display: flex; align-items: center; }
+  .tree-indent { width: 24px; height: 32px; flex-shrink: 0; position: relative; }
+  
+  /* Garis Pemandu */
+  .tree-indent::before {
+    content: '';
+    position: absolute;
+    left: 12px;
+    top: 0;
+    bottom: 0;
+    border-left: 1px dashed #ddd;
+  }
+  
+  .js-tree-toggle {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    background: #fff;
+    border-radius: 4px;
+    color: #999;
+    transition: all 0.2s;
+    margin-right: 8px;
+  }
+  .js-tree-toggle:hover { color: var(--aras-accent, #7266ba); background: #f0edff; }
+  .js-tree-toggle.collapsed i { transform: rotate(-90deg); }
+  
+  .tree-icon { width: 20px; text-align: center; margin-right: 10px; color: #bcc1d5; }
+  .tree-link { 
+    color: #333; 
+    font-weight: 500; 
+    text-decoration: none !important; 
+    flex-grow: 1;
+    font-size: 14px;
+  }
+  
+  .tree-details { display: flex; align-items: center; gap: 8px; }
+  .tree-badge { 
+    font-size: 11px; 
+    padding: 2px 8px; 
+    background: #f1f3f7; 
+    color: #666; 
+    border-radius: 12px;
+    white-space: nowrap;
+  }
+  
+  .tree-children { margin-left: 0; display: block; }
+  .tree-children.collapsed { display: none; }
+</style>
+
+<script>
+(function() {
+  document.addEventListener('click', function(e) {
+    const toggle = e.target.closest('.js-tree-toggle');
+    if (!toggle) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const node = toggle.closest('.tree-node');
+    const childrenContainer = node.querySelector('.tree-children');
+    
+    if (childrenContainer) {
+      const isCollapsed = childrenContainer.classList.toggle('collapsed');
+      toggle.classList.toggle('collapsed', isCollapsed);
+      
+      const icon = toggle.querySelector('i');
+      if (isCollapsed) {
+        icon.className = 'fa fa-folder-o';
+      } else {
+        icon.className = 'fa fa-folder-open-o';
+      }
+    }
+  });
+})();
+</script>
+{% endmacro %}
+
+{% macro render_tree_row(item, view_columns, level, edit_url_base, _visible_fields=None) %}
+  {% set _row_url = edit_url_base ~ '/' ~ item.id ~ '/' if edit_url_base else '#' %}
+  {% set has_children = item.children|length > 0 if item.children is defined else False %}
+  
+  <div class="tree-node" data-id="{{ item.id }}">
+    <div class="tree-content">
+      <div class="tree-indent-wrapper">
+        {% for i in range(level) %}<span class="tree-indent"></span>{% endfor %}
+      </div>
+      
+      {% if has_children %}
+        <div class="js-tree-toggle">
+          <i class="fa fa-folder-open-o"></i>
+        </div>
+      {% else %}
+        <div class="tree-icon" style="width: 24px; margin-right: 8px;">
+          <i class="fa fa-circle-o fs-10"></i>
+        </div>
+      {% endif %}
+      
+      <a href="{{ _row_url }}" class="tree-link">
+        <span class="text-muted mr-4">{{ item.code if item.code else '' }}</span>
+        {{ item.name if item.name else item.id }}
+      </a>
+      
+      <div class="tree-details">
+        {% for label, field in view_columns %}
+          {% if not loop.first %}
+            {% set val = item|attr(field) if item|attr(field) is defined else '' %}
+            {% if val %}
+              <span class="tree-badge">{{ val }}</span>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    
+    {% if has_children %}
+      <div class="tree-children">
+        {% for child in item.children %}
+          {{ render_tree_row(child, view_columns, level + 1, edit_url_base, _visible_fields) }}
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+{% endmacro %}

@@ -5,33 +5,47 @@ defined and delete_url_base %} {% set _has_add = add_url is defined and add_url
 %} {% set _has_search = search_enabled is defined and search_enabled %} {% set
 _has_filter = filter_cols is defined and filter_cols %} {% set _has_pag =
 pagination is defined and pagination and pagination.pages is defined %} {% set
-_has_bulk = _has_delete %} {% set _has_totals = true %} {% set _has_customize =
-(app_id is defined and app_id) and (table_id is defined and table_id) %} {% set
-_has_report = linked_report_url is defined and linked_report_url %} {% set
-_has_extra = extra_buttons is defined and extra_buttons %} {% set _col_count =
-view_columns|length + (1 if _has_bulk else 0) %} {% set _lid = _list_id if
-_list_id is defined else '' %} {% set _qparam = search_param if search_param is
-defined else 'q' %} {% from 'admin/macro/macro_main.html' import
-render_data_table, pagination_widget %} {# ── Page Hero Title ── #} {# ── Page
-Hero Title (Standardized) ── #} {% set _rec_count = pagination.total if _has_pag
-else items|length %} {% set hero_desc = _rec_count ~ ' records' %} {% if
-active_filters %} {% set hero_desc = hero_desc ~ ' • ' ~ active_filters|length ~
-' filters applied' %} {% endif %} {% include 'admin/base/base_partial_hero.html'
-%} {# ── Toolbar ── #} {% include 'admin/gen/gen_view_list_toolbar.html' %} {#
-── Filter panel ── #} {% include 'admin/gen/gen_view_list_filters.html' %} {# ──
-Table ── #} {% set _picker_cols = all_columns if (all_columns is defined and
-all_columns) else view_columns %} {% set _visible_fields = view_columns |
-map(attribute=1) | list %} {{ render_data_table(_picker_cols, items,
-rel_maps=rel_maps if rel_maps is defined else {}, edit_url_base=edit_url_base if
-edit_url_base is defined else none, show_bulk_delete=_has_bulk, _lid=_lid,
-_has_bulk=_has_bulk, _has_edit=_has_edit, _has_totals=_has_totals,
-show_totals=show_totals if show_totals is defined else false,
-_col_count=_col_count, add_url=add_url if _has_add else none,
-_visible_fields=_visible_fields) }} {# ── Pagination ── #} {{
-pagination_widget(pagination if _has_pag else none, _lid=_lid, per_page=per_page
-if per_page is defined else 20, search_q=search_q if search_q is defined else
-'', active_filters=active_filters if active_filters is defined else none,
-qparam=_qparam) }} {# ── JS config (inline so Jinja2 vars are resolved) ── #}
+_has_bulk = _has_delete %} {% set _has_totals = true %} {% set
+_has_customize = (app_id is defined and app_id) and (table_id is defined and
+table_id) %} {% set _has_report = linked_report_url is defined and
+linked_report_url %} {% set _has_extra = extra_buttons is defined and
+extra_buttons %} {% set _col_count = view_columns|length + (1 if _has_bulk else
+0) %} {% set _lid = _list_id if _list_id is defined else '' %} {% set _qparam =
+search_param if search_param is defined else 'q' %} {% from 'admin/macro/macro_main.html' import
+render_data_table, render_tree_table, pagination_widget %} {# ── Page Hero Title ── #}
+{# ── Page Hero Title (Standardized) ── #}
+{% set _rec_count = pagination.total if _has_pag else items|length %}
+{% set hero_desc = _rec_count ~ ' records' %}
+{% if active_filters %}
+  {% set hero_desc = hero_desc ~ ' • ' ~ active_filters|length ~ ' filters applied' %}
+{% endif %}
+{% include 'admin/base/base_partial_hero.html' %}
+
+{# ── Toolbar ── #} {% include 'admin/gen/gen_view_list_toolbar.html' %}
+
+{# ── Filter panel ── #} {% include 'admin/gen/gen_view_list_filters.html' %}
+
+{# ── Table / View Content ── #}
+{% set current_view = request.args.get('view', 'list') %}
+
+{% if current_view == 'tree' %}
+  {{ render_tree_table(view_columns, items, edit_url_base=edit_url_base if edit_url_base is defined else none, _lid=_lid) }}
+{% else %}
+  {% set _picker_cols = all_columns if (all_columns is defined and all_columns) else view_columns %}
+  {% set _visible_fields = view_columns | map(attribute=1) | list %}
+  {{ render_data_table(_picker_cols, items, rel_maps=rel_maps if
+  rel_maps is defined else {}, edit_url_base=edit_url_base if edit_url_base is
+  defined else none, show_bulk_delete=_has_bulk, _lid=_lid, _has_bulk=_has_bulk,
+  _has_edit=_has_edit, _has_totals=_has_totals, show_totals=show_totals if
+  show_totals is defined else false, _col_count=_col_count, add_url=add_url if
+  _has_add else none, _visible_fields=_visible_fields) }}
+
+  {# ── Pagination (Only for List View) ── #}
+  {{ pagination_widget(pagination if _has_pag else none, _lid=_lid, per_page=per_page if per_page is defined else 20,
+  search_q=search_q if search_q is defined else '', active_filters=active_filters
+  if active_filters is defined else none, qparam=_qparam) }}
+{% endif %}
+{# ── JS config (inline so Jinja2 vars are resolved) ── #}
 <script>
     window._listViewCfg = {
       LID:        {{ _lid | tojson }},

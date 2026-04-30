@@ -73,9 +73,98 @@
           {% endfor %}
         </div>
       </div>
-    </div>
+      </div>
 
-    {% if _has_customize and app_id and table_id %}
+      {# ── View Switcher Popover ── #}
+      {% set current_view = request.args.get('view', 'list') %}
+      {% set _has_tree_view = false %}
+      {% if all_columns and 'parent_id' in all_columns | map(attribute=1) | list %}
+        {% set _has_tree_view = true %}
+      {% endif %}
+
+      <div class="position-relative d-inline-block">
+        <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" id="viewToggleBtn{{ _lid }}" title="Change View">
+          {% if current_view == 'tree' %}
+            <i class="fa fa-sitemap mr-1"></i> Tree
+          {% elif current_view == 'report' %}
+            <i class="ti-stats-up mr-1"></i> Report
+          {% else %}
+            <i class="fa fa-list mr-1"></i> List
+          {% endif %}
+          <i class="fa fa-caret-down ml-1 fs-10"></i>
+        </button>
+
+        <div id="viewTogglePopover{{ _lid }}" class="aras-popover" style="display:none;min-width:160px; right:0; top:100%; margin-top:5px; z-index:100;">
+          <div class="d-flex flex-column" style="padding:4px 0;">
+            <a class="aras-popover-item {% if current_view == 'list' %}active{% endif %}" href="{{ url_for(request.endpoint, view='list', **request.view_args) }}">
+              <i class="fa fa-list w-20"></i> List View
+            </a>
+            {% if _has_tree_view %}
+            <a class="aras-popover-item {% if current_view == 'tree' %}active{% endif %}" href="{{ url_for(request.endpoint, view='tree', **request.view_args) }}">
+              <i class="fa fa-sitemap w-20"></i> Tree View
+            </a>
+            {% endif %}
+            {% if linked_report_url %}
+            <a class="aras-popover-item {% if current_view == 'report' %}active{% endif %}" href="{{ linked_report_url }}">
+              <i class="ti-stats-up w-20"></i> Report View
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <script>
+      (function() {
+        const btn = document.getElementById('viewToggleBtn{{ _lid }}');
+        const pop = document.getElementById('viewTogglePopover{{ _lid }}');
+        if (btn && pop) {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isVisible = pop.style.display === 'block';
+            document.querySelectorAll('.aras-popover').forEach(p => p.style.display = 'none');
+            pop.style.display = isVisible ? 'none' : 'block';
+          });
+          document.addEventListener('click', function() {
+            pop.style.display = 'none';
+          });
+          pop.addEventListener('click', function(e) {
+            e.stopPropagation();
+          });
+        }
+      })();
+      </script>
+
+      <style>
+        .aras-popover {
+          position: absolute;
+          background: #fff;
+          border-radius: 8px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+          border: 1px solid #eee;
+        }
+        .aras-popover-item {
+          display: flex;
+          align-items: center;
+          padding: 10px 16px;
+          color: #444;
+          text-decoration: none !important;
+          font-size: 13px;
+          transition: all 0.2s;
+        }
+        .aras-popover-item:hover {
+          background: #f8f9fa;
+          color: var(--aras-accent, #7266ba);
+        }
+        .aras-popover-item.active {
+          background: #f0edff;
+          color: var(--aras-accent, #7266ba);
+          font-weight: 600;
+        }
+        .w-20 { width: 20px; text-align: center; margin-right: 10px; }
+      </style>
+
+      {% if _has_customize and app_id and table_id %}
+
     <a href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}"
        class="aras-btn aras-btn--outline aras-btn--sm" title="Customize Fields">
       <i class="ti-layout-column4"></i>

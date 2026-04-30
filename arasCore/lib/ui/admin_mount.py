@@ -189,7 +189,19 @@ class AdminResourceMounter:
             q_obj, active_filters, search_q = apply_search_and_filters(
                 model.query.order_by(model.id.desc()), model, search_cols, _req
             )
-            items = q_obj.all()
+
+            current_view = _req.args.get('view', 'list')
+            if current_view == 'tree':
+                if hasattr(model, 'code'):
+                    items = q_obj.order_by(model.code).all()
+                else:
+                    items = q_obj.order_by(model.id).all()
+                pagination = None
+            else:
+                page = _req.args.get("page", 1, type=int)
+                pagination = q_obj.paginate(page=page, per_page=20, error_out=False)
+                items = pagination.items
+
             rel_maps = _build_fk_maps(cols, model)
 
             # Load per-user saved columns
@@ -226,6 +238,7 @@ class AdminResourceMounter:
                 items=items,
                 view_columns=cols,
                 all_columns=all_cols,
+                pagination=pagination,
                 rel_maps=rel_maps,
                 add_url=f"{base_url}/add/",
                 edit_url_base=base_url,
