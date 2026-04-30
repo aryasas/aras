@@ -57,8 +57,9 @@ render_data_table, render_tree_table, pagination_widget %} {# ── Page Hero T
       showTotals:   {{ 'true' if (show_totals is defined and show_totals) else 'false' }},
       doctypeKey:   {{ (doctype_key if doctype_key is defined else '') | tojson }},
       savedColumns: {{ saved_columns | tojson if (saved_columns is defined and saved_columns) else 'null' }},
-      filterCols:   {{ (filter_cols if filter_cols is defined else []) | tojson }},
-      editUrlBase:  {{ (edit_url_base if (edit_url_base is defined and edit_url_base) else '') | tojson }}
+      filterCols:         {{ (filter_cols if filter_cols is defined else []) | tojson }},
+      editUrlBase:        {{ (edit_url_base if (edit_url_base is defined and edit_url_base) else '') | tojson }},
+      linkedDocsUrlBase:  {{ (linked_docs_url_base if (linked_docs_url_base is defined and linked_docs_url_base) else '') | tojson }}
     };
 </script>
 <script src="{{ url_for('static', filename='js/list_view.js') }}"></script>

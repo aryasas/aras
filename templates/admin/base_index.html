@@ -41,6 +41,8 @@
 
         {# {{ widgets.render_tweak_panel() }} #}
 
+        {% include 'admin/gen/modal_delete_confirm.html' %}
+
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             <div class="flash-messages">

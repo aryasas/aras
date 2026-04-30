@@ -231,6 +231,8 @@ class AdminResourceMounter:
                     cols = eff_cols
                     rel_maps = _build_fk_maps(cols, model)
 
+            from arasCore.lib.services.api_handler import get_api_url_for_model
+            _api_url = get_api_url_for_model(model)
             return render_template(
                 "admin/gen/gen_view_list.html",
                 title=res_title,
@@ -243,6 +245,7 @@ class AdminResourceMounter:
                 add_url=f"{base_url}/add/",
                 edit_url_base=base_url,
                 delete_url_base=base_url,
+                linked_docs_url_base=_api_url,
                 app_id=_app_id,
                 table_id=_table_id,
                 search_enabled=True,
@@ -561,7 +564,8 @@ class AdminResourceMounter:
                 from arasCore.lib.services.audit import maybe_log, _snapshot
                 maybe_log(obj, action="delete", before=_snapshot(obj))
                 from arasCore.lib.services.deletion_service import execute_deletion
-                execute_deletion(obj, user_id=getattr(current_user, "id", None))
+                from flask_login import current_user as _cu
+                execute_deletion(obj, user_id=getattr(_cu, "id", None))
                 flash("Record deleted.", "warning")
             except Exception as ex:
                 db.session.rollback()
@@ -582,6 +586,7 @@ class AdminResourceMounter:
             raw = request.form.get("ids", "")
             ids = [i.strip() for i in raw.split(",") if i.strip().isdigit()]
             deleted = 0
+            errors  = []
             for id_str in ids:
                 obj = model.query.get(int(id_str))
                 if obj:
@@ -589,11 +594,16 @@ class AdminResourceMounter:
                         from arasCore.lib.services.audit import maybe_log, _snapshot
                         maybe_log(obj, action="delete", before=_snapshot(obj))
                         from arasCore.lib.services.deletion_service import execute_deletion
-                        execute_deletion(obj, user_id=getattr(current_user, "id", None))
+                        from flask_login import current_user as _cu
+                        execute_deletion(obj, user_id=getattr(_cu, "id", None))
                         deleted += 1
-                    except Exception:
-                        pass
-            flash(f"{deleted} record(s) deleted.", "warning")
+                    except Exception as ex:
+                        db.session.rollback()
+                        errors.append(str(ex))
+            if deleted:
+                flash(f"{deleted} record(s) deleted.", "warning")
+            for err in errors:
+                flash(f"Delete failed: {err}", "danger")
             return redirect(f"{base_url}/")
         return view
 

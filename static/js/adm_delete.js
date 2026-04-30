@@ -37,6 +37,8 @@
     function hideModal() { if (modal) modal.style.display = "none"; }
 
     function getCsrf() {
+        var meta = document.querySelector("meta[name='csrf-token']");
+        if (meta) return meta.getAttribute("content");
         var el = document.querySelector("input[name='csrf_token']");
         return el ? el.value : "";
     }
@@ -106,13 +108,6 @@
                 btn.disabled  = false;
                 btn.innerHTML = origHtml;
                 var tree = data.tree || [];
-                if (!tree.length) {
-                    // No linked docs — simple confirm
-                    if (!confirm("Delete this record? This will be saved to Trash.")) return;
-                    submitDeletePost(deleteUrl);
-                    return;
-                }
-                // Show modal
                 bodyEl.innerHTML = renderTree(tree);
                 _onConfirm = function () { submitDeletePost(deleteUrl); };
                 wireLinkedDocButtons();

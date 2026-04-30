@@ -2025,3 +2025,35 @@ select.aras-fsel.is-hidden {
   min-height: 36px;
   padding: 0 12px;
 }
+
+/* ── Delete Confirmation Modal ── */
+.aras-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.aras-modal__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 0;
+}
+.aras-modal__content {
+  position: relative;
+  z-index: 1;
+  background: var(--surface, #fff);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  width: 90%;
+  max-width: 520px;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: arasModalIn 0.15s ease;
+}
+@keyframes arasModalIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}

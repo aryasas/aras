@@ -18,8 +18,9 @@
   var showTotals   = cfg.showTotals   || false;
   var doctypeKey   = cfg.doctypeKey   || '';
   var savedColumns = cfg.savedColumns || null;
-  var filterCols   = cfg.filterCols   || [];
-  var editUrlBase  = cfg.editUrlBase  || '';
+  var filterCols        = cfg.filterCols        || [];
+  var editUrlBase       = cfg.editUrlBase       || '';
+  var linkedDocsUrlBase = cfg.linkedDocsUrlBase || '';
   var opOptions = [
     ['equals','='],['not_equals','≠'],
     ['like','contains'],['not_like','not contains'],
@@ -70,12 +71,79 @@
     document.querySelectorAll('.js-row-check' + LID).forEach(function (cb) {
       cb.addEventListener('change', updateSelectionUI);
     });
+    function _getCsrfBulk() {
+      var meta = document.querySelector("meta[name='csrf-token']");
+      if (meta) return meta.getAttribute("content");
+      var el = document.querySelector("input[name='csrf_token']");
+      return el ? el.value : '';
+    }
     function triggerBulkDelete() {
       var checked = getChecked();
       if (!checked.length) return;
-      if (!confirm('Delete ' + checked.length + ' record(s)?')) return;
-      $id('bulkDeleteIds' + LID).value = checked.map(function (c) { return c.value; }).join(',');
-      $id('bulkDeleteForm' + LID).submit();
+      var idsVal  = checked.map(function (c) { return c.value; }).join(',');
+      var idsInput = document.getElementById('bulkDeleteIds' + LID);
+      var form     = document.getElementById('bulkDeleteForm' + LID);
+      if (!idsInput || !form) return;
+      function doSubmit() { idsInput.value = idsVal; form.submit(); }
+
+      function showBulkModal(bodyHtml) {
+        var modal      = document.getElementById('arasDeleteModal');
+        var body       = document.getElementById('arasDeleteModalBody');
+        var confirmBtn = document.getElementById('arasDeleteModalConfirm');
+        var cancelBtn  = document.getElementById('arasDeleteModalCancel');
+        var closeBtn   = document.getElementById('arasDeleteModalClose');
+        var overlay    = document.getElementById('arasDeleteModalOverlay');
+        if (!modal || !body || !confirmBtn) { doSubmit(); return; }
+        body.innerHTML = bodyHtml;
+        modal.style.display = '';
+        function hide() { modal.style.display = 'none'; }
+        var newConfirm = confirmBtn.cloneNode(true);
+        var newCancel  = cancelBtn ? cancelBtn.cloneNode(true) : null;
+        var newClose   = closeBtn  ? closeBtn.cloneNode(true)  : null;
+        confirmBtn.parentNode.replaceChild(newConfirm, confirmBtn);
+        if (newCancel && cancelBtn) cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+        if (newClose  && closeBtn)  closeBtn.parentNode.replaceChild(newClose,  closeBtn);
+        if (overlay) overlay.onclick = hide;
+        newConfirm.addEventListener('click', function () { hide(); doSubmit(); });
+        if (newCancel) newCancel.addEventListener('click', hide);
+        if (newClose)  newClose.addEventListener('click',  hide);
+      }
+
+      // Single record — fetch linked docs preview
+      if (checked.length === 1 && linkedDocsUrlBase) {
+        var id  = checked[0].value;
+        var url = linkedDocsUrlBase + id + '/linked-docs/';
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': _getCsrfBulk() } })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            var tree = data.tree || [];
+            var html;
+            if (tree.length) {
+              html = "<p class='text-danger mb-2'><strong>" + tree.length
+                   + " linked record(s) will also be deleted:</strong></p>"
+                   + "<ul style='list-style:none;padding:0;margin:0 0 12px;'>";
+              tree.forEach(function (node) {
+                var indent = node.depth > 1 ? 'margin-left:' + ((node.depth - 1) * 16) + 'px;' : '';
+                var label  = node.display ? node.doc_type + ' — ' + node.display
+                                          : node.doc_type + ' #' + node.doc_id;
+                html += "<li style='padding:4px 0;" + indent + "'>"
+                      + "<i class='fa fa-file-o mr-1 text-muted'></i>" + label + "</li>";
+              });
+              html += "</ul><small class='text-muted'>All records will be backed up to Trash and can be restored.</small>";
+            } else {
+              html = "<p>Delete this record?<br><small class='text-muted'>Will be saved to Trash and can be restored.</small></p>";
+            }
+            showBulkModal(html);
+          })
+          .catch(function () { showBulkModal("<p>Delete this record?</p>"); });
+        return;
+      }
+
+      // Multiple records — simple count modal
+      showBulkModal(
+        "<p>Delete <strong>" + checked.length + "</strong> record(s)?<br>"
+        + "<small class='text-muted'>Records will be saved to Trash and can be restored.</small></p>"
+      );
     }
     document.querySelectorAll('.js-bulk-delete' + LID).forEach(function (el) {
       el.addEventListener('click', function (e) { e.preventDefault(); triggerBulkDelete(); });

@@ -125,7 +125,30 @@ def _collect(obj, visited: set, depth: int, results: list) -> None:
     except Exception:
         pass
 
-    # Pass 3 — explicit __linked_docs__ on model
+    # Pass 3b — SA mapper FK scan (catches FKs without cascade)
+    _AUDIT_COLS = {"created_by_id", "updated_by_id", "deleted_by_id"}
+    try:
+        from sqlalchemy import inspect as sa_inspect
+        target_tname = getattr(model_cls, "__tablename__", None)
+        if target_tname:
+            for mapper in sa_inspect(model_cls).mapper.registry.mappers:
+                child_cls = mapper.class_
+                if child_cls is model_cls:
+                    continue
+                for col in mapper.persist_selectable.columns:
+                    if col.name in _AUDIT_COLS:
+                        continue
+                    for fk in col.foreign_keys:
+                        if fk.column.table.name == target_tname:
+                            children = child_cls.query.filter(
+                                getattr(child_cls, col.key) == obj_id
+                            ).all()
+                            for child in children:
+                                _collect(child, visited, depth + 1, results)
+    except Exception:
+        pass
+
+    # Pass 5 — explicit __linked_docs__ on model
     linked_decls = getattr(model_cls, "__linked_docs__", None)
     if linked_decls:
         for decl in linked_decls:
@@ -264,6 +287,29 @@ def detect_linked_docs(obj) -> list:
                         _collect(child, visited, 1, results)
             except Exception:
                 pass
+
+    # Pass 4 — SA mapper FK scan for all FKs pointing to this table (no cascade required)
+    _AUDIT_COLS = {"created_by_id", "updated_by_id", "deleted_by_id"}
+    try:
+        from sqlalchemy import inspect as sa_inspect
+        target_tname = getattr(model_cls, "__tablename__", None)
+        if target_tname:
+            for mapper in sa_inspect(model_cls).mapper.registry.mappers:
+                child_cls = mapper.class_
+                if child_cls is model_cls:
+                    continue
+                for col in mapper.persist_selectable.columns:
+                    if col.name in _AUDIT_COLS:
+                        continue
+                    for fk in col.foreign_keys:
+                        if fk.column.table.name == target_tname:
+                            children = child_cls.query.filter(
+                                getattr(child_cls, col.key) == obj_id
+                            ).all()
+                            for child in children:
+                                _collect(child, visited, 1, results)
+    except Exception:
+        pass
 
     # Sort deepest-first
     results.sort(key=lambda n: (-n.depth, n.doc_id or 0))

@@ -473,10 +473,14 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
                     local_rows = _get_local_child_rows(cd["model_name"])
                     cd["rows"] = db_rows + local_rows
 
+            from arasCore.lib.services.api_handler import get_api_url_for_model
+            _api_url = get_api_url_for_model(model)
             return render_template(
                 "admin/gen/gen_view_form.html",
                 title=f"Edit — {title}", main_title=main_t,
                 form=form, action=f"{burl}/{item_id}/", list_url=f"{burl}/",
+                delete_url=f"{burl}/{item_id}/delete/",
+                linked_docs_url=f"{_api_url}{item_id}/linked-docs/" if _api_url else None,
                 app_title=app_title, app_id=app_id, table_id=table_id,
                 sibling_tabs=adm_tabs, current_tab_url=burl,
                 layout_tabs=_parse_layout_tabs(tname, layout_json, form, table_id=table_id, child_tables=child_defs),
@@ -509,6 +513,7 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
             from flask import request as _req # This was `request` originally, changed to `_req`
             ids = [i.strip() for i in _req.form.get("ids", "").split(",") if i.strip().isdigit()]
             deleted = 0
+            errors  = []
             for id_str in ids:
                 obj = model.query.get(int(id_str))
                 if obj:
@@ -519,9 +524,14 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
                         from flask_login import current_user as _cu
                         execute_deletion(obj, user_id=getattr(_cu, "id", None))
                         deleted += 1
-                    except Exception:
-                        pass
-            flash(f"{deleted} record(s) deleted.", "warning")
+                    except Exception as ex:
+                        from arasCore.lib.core.extensions import db
+                        db.session.rollback()
+                        errors.append(str(ex))
+            if deleted:
+                flash(f"{deleted} record(s) deleted.", "warning")
+            for err in errors:
+                flash(f"Delete failed: {err}", "danger")
             return redirect(f"{burl}/")
         return view
 
@@ -636,6 +646,8 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
                 eff_vcols = vcols
         else:
             eff_vcols = vcols
+        from arasCore.lib.services.api_handler import get_api_url_for_model
+        _api_url = get_api_url_for_model(model)
         return render_template(
             "admin/gen/gen_view_list.html",
             title=title, main_title=main_t,
@@ -643,6 +655,7 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
             pagination=pagination, per_page=eff_pp,
             rel_maps=_build_fk_maps(eff_vcols, model),
             add_url=f"{adm_burl}/add/", edit_url_base=adm_burl, delete_url_base=adm_burl,
+            linked_docs_url_base=_api_url,
             app_title=app_title, app_id=app_id, table_id=table_id,
             sibling_tabs=adm_tabs, current_tab_url=adm_burl,
             search_enabled=True, search_q=search_q,
@@ -734,10 +747,14 @@ def make_web_edit(model, form_cls, title, main_t, burl, app_title, app_id, table
             bh(); form.populate_obj(obj); db.session.commit(); ah()
             flash("Record updated.", "success")
             return redirect(f"{burl}/")
+        from arasCore.lib.services.api_handler import get_api_url_for_model
+        _api_url = get_api_url_for_model(model)
         return render_template(
             "admin/gen/gen_view_form.html",
             title=f"Edit — {title}", main_title=f"Edit {main_t}",
             form=form, action=f"{burl}/{item_id}/", list_url=f"{burl}/",
+            delete_url=f"{burl}/{item_id}/delete/",
+            linked_docs_url=f"{_api_url}{item_id}/linked-docs/" if _api_url else None,
             app_title=app_title, app_id=app_id, table_id=table_id,
             sibling_tabs=sibling_tabs, current_tab_url=cur_burl,
         )
