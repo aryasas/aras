@@ -510,12 +510,17 @@ class AdminResourceMounter:
             layout_tabs = _parse_layout_tabs(res_title, None, form, table_id=_table_id, child_tables=child_tables)
 
             _readonly_fields = set(getattr(model, "__readonly_fields__", None) or [])
+            # Build linked-docs preview URL for delete dialog
+            from arasCore.lib.services.api_handler import get_api_url_for_model
+            _api_url = get_api_url_for_model(model)
+            _linked_docs_url = f"{_api_url}{item_id}/linked-docs/" if _api_url else None
             return render_template(
                 "admin/gen/gen_view_form.html",
                 title=f"Edit {res_title}",
                 main_title=app_title,
                 form=form,
                 action=f"{base_url}/{item_id}/",
+                delete_url=f"{base_url}/{item_id}/delete/",
                 list_url=f"{base_url}/",
                 child_tables=child_tables,
                 readonly_fields=_readonly_fields,
@@ -524,6 +529,7 @@ class AdminResourceMounter:
                 app_id=_app_id,
                 table_id=_table_id,
                 layout_tabs=layout_tabs,
+                linked_docs_url=_linked_docs_url,
                 **extra_ctx,
             )
         return view
@@ -541,8 +547,8 @@ class AdminResourceMounter:
             try:
                 from arasCore.lib.services.audit import maybe_log, _snapshot
                 maybe_log(obj, action="delete", before=_snapshot(obj))
-                db.session.delete(obj)
-                db.session.commit()
+                from arasCore.lib.services.deletion_service import execute_deletion
+                execute_deletion(obj, user_id=getattr(current_user, "id", None))
                 flash("Record deleted.", "warning")
             except Exception as ex:
                 db.session.rollback()
@@ -569,16 +575,12 @@ class AdminResourceMounter:
                     try:
                         from arasCore.lib.services.audit import maybe_log, _snapshot
                         maybe_log(obj, action="delete", before=_snapshot(obj))
-                        db.session.delete(obj)
+                        from arasCore.lib.services.deletion_service import execute_deletion
+                        execute_deletion(obj, user_id=getattr(current_user, "id", None))
                         deleted += 1
                     except Exception:
                         pass
-            try:
-                db.session.commit()
-                flash(f"{deleted} record(s) deleted.", "warning")
-            except Exception as ex:
-                db.session.rollback()
-                flash(str(ex), "danger")
+            flash(f"{deleted} record(s) deleted.", "warning")
             return redirect(f"{base_url}/")
         return view
 

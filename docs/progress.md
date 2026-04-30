@@ -1,5 +1,39 @@
 # Aras Progress
 
+## Session: 2026-04-30 — Generic Deletion Dialog + Backup/Restore
+
+### Selesai ✅
+
+**New files:**
+- `arasCore/lib/models/deletion_models.py` — `DeletedDoc` model + `_ORIGIN_MODEL_REGISTRY`
+- `arasCore/lib/services/linked_doc_detector.py` — auto-detect linked docs via SA cascade + origin_model + `__linked_docs__`
+- `arasCore/lib/services/deletion_service.py` — `inspect_deletion`, `execute_deletion`, `execute_restore`
+- `arasCore/lib/migrations/m015_deleted_docs.py` — CREATE TABLE `aras_deleted_doc`
+- `static/js/adm_delete.js` — delete modal JS (fetch linked-docs → show modal with per-doc delete buttons → confirm)
+- `templates/admin/gen/modal_delete_confirm.html` — modal fragment
+- `templates/admin/trash/trash_list.html` — Trash page
+- `arasCore/admin/routes/trash.py` — `/admin/trash/`, inspect, restore, permanent-delete
+
+**Modified files:**
+- `arasCore/lib/services/api_handler.py` — add `GET /<id>/linked-docs/` route; replace DELETE with `execute_deletion`
+- `arasCore/lib/ui/admin_mount.py` — `make_delete`/`make_bulk_delete` → `execute_deletion`; `make_edit` injects `linked_docs_url`
+- `arasCore/admin/crud_factory.py` — action `"delete"`/`"bulk_delete"` → `execute_deletion`
+- `arasCore/lib/services/blueprints.py` — auto-register `origin_model` models in `_register_helper`
+- `arasCore/__init__.py` — add m015 migration
+- `arasCore/admin/routes/__init__.py` — import `trash` module
+- `arasCore/admin/menu_service.py` — add static "Trash" sidebar entry
+- `templates/admin/gen/gen_view_form.html` — Delete button + include modal
+- `templates/admin/base_index.html` — load `adm_delete.js`
+
+**Notes:**
+- Dialog muncul hanya jika ada linked docs; jika tidak ada → `confirm()` biasa
+- Tiap linked doc di dialog ada tombol delete individual (tidak perlu ke halaman doc-nya)
+- `StockValuation` tidak di-cascade — itu running balance per-product, bukan per-invoice
+- Backup ke `aras_deleted_doc` sebelum setiap delete; dapat restore dari Trash
+- Auto-detect via SA `cascade='all, delete-orphan'` + `origin_model`/`origin_id` + `__linked_docs__`
+
+---
+
 ## Session: 2026-04-24 — ERP Rename + Charge Refactor
 
 ### Remove `Core` prefix — model classes and DB tables

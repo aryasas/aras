@@ -4,6 +4,9 @@ from arasCore.lib.core.base_model import ArasModel, db
 class AccSalesInvoice(ArasModel):
     __tablename__ = "acc_sales_invoice"
     __readonly_fields__ = {"subtotal", "discount_amt", "charge_amt", "total", "journal_entry_id", "pos_order_id"}
+    __linked_docs__ = [
+        {"model_name": "AccJournalEntry", "fk_field": "journal_entry_id", "fk_on_self": True},
+    ]
     __table_args__ = (
         db.Index("ix_sal_inv_company_date", "company_id", "invoice_date"),
         db.Index("ix_sal_inv_customer", "customer_id"),
@@ -103,6 +106,9 @@ class AccSalesInvoiceCharge(ArasModel):
 class AccPurchaseInvoice(ArasModel):
     __tablename__ = "acc_purchase_invoice"
     __readonly_fields__ = {"subtotal", "discount_amt", "charge_amt", "total", "journal_entry_id", "pos_order_id"}
+    __linked_docs__ = [
+        {"model_name": "AccJournalEntry", "fk_field": "journal_entry_id", "fk_on_self": True},
+    ]
     __table_args__ = (
         db.Index("ix_pur_inv_company_date", "company_id", "invoice_date"),
         db.Index("ix_pur_inv_state", "state"),

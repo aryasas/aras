@@ -14,6 +14,11 @@ Changes:
 from arasCore.lib.core.extensions import db
 
 
+def run(flask_app):
+    with flask_app.app_context():
+        up()
+
+
 def up():
     conn = db.engine.connect()
     trans = conn.begin()

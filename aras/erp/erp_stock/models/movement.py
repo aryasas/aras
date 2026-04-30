@@ -10,6 +10,10 @@ class StockMovement(ArasModel):
     One movement auto-creates one AccJournalEntry on post.
     origin_model + origin_id links back to source (PO, SO, POS Order, etc.)
     """
+    # Pull journal entry along when this movement is deleted
+    __linked_docs__ = [
+        {"model_name": "AccJournalEntry", "fk_field": "journal_entry_id", "fk_on_self": True},
+    ]
     __tablename__ = "stock_movement"
     __table_args__ = (
         db.Index("ix_stock_move_company_date", "company_id", "date_move"),

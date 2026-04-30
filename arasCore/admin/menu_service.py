@@ -54,6 +54,17 @@ def _build_raw_menu() -> list:
     except Exception as e:
         logger.warning(f"[menu_service] menu build error: {e}")
 
+    # Static framework entries
+    result.append({
+        "title":    "Trash",
+        "icon":     "fa-trash-o",
+        "order":    999,
+        "url":      "/admin/trash/",
+        "children": [],
+        "source":   "framework",
+        "app_slug": "trash",
+    })
+
     return sorted(result, key=lambda x: x.get("order", 99))
 
 

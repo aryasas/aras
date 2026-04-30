@@ -54,6 +54,8 @@ class AccPaymentAllocation(ArasModel):
     notes               = db.Column(db.String(255), nullable=True)
 
     sales_invoice    = db.relationship("AccSalesInvoice",
-                                       primaryjoin="AccPaymentAllocation.sales_invoice_id==AccSalesInvoice.id")
+                                       primaryjoin="AccPaymentAllocation.sales_invoice_id==AccSalesInvoice.id",
+                                       overlaps="allocations")
     purchase_invoice = db.relationship("AccPurchaseInvoice",
-                                       primaryjoin="AccPaymentAllocation.purchase_invoice_id==AccPurchaseInvoice.id")
+                                       primaryjoin="AccPaymentAllocation.purchase_invoice_id==AccPurchaseInvoice.id",
+                                       overlaps="allocations")

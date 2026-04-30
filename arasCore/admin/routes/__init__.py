@@ -16,4 +16,4 @@ def before_request():
         g.gmenu = build_sidebar_menu()
 
 
-from . import dashboard, dev, settings, apps, users, help  # noqa: F401, E402
+from . import dashboard, dev, settings, apps, users, help, trash  # noqa: F401, E402

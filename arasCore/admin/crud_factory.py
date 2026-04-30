@@ -493,7 +493,9 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
             obj = model.query.get_or_404(item_id)
             from arasCore.lib.services.audit import maybe_log, _snapshot
             maybe_log(obj, action="delete", before=_snapshot(obj))
-            db.session.delete(obj); db.session.commit()
+            from arasCore.lib.services.deletion_service import execute_deletion
+            from flask_login import current_user as _cu
+            execute_deletion(obj, user_id=getattr(_cu, "id", None))
             _emit("delete", obj)
             flash("Record deleted.", "warning")
             return redirect(f"{burl}/")
@@ -513,15 +515,13 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
                     try:
                         from arasCore.lib.services.audit import maybe_log, _snapshot
                         maybe_log(obj, action="delete", before=_snapshot(obj))
-                        db.session.delete(obj); deleted += 1
+                        from arasCore.lib.services.deletion_service import execute_deletion
+                        from flask_login import current_user as _cu
+                        execute_deletion(obj, user_id=getattr(_cu, "id", None))
+                        deleted += 1
                     except Exception:
                         pass
-            try:
-                db.session.commit()
-                flash(f"{deleted} record(s) deleted.", "warning")
-            except Exception as ex:
-                db.session.rollback()
-                flash(str(ex), "danger")
+            flash(f"{deleted} record(s) deleted.", "warning")
             return redirect(f"{burl}/")
         return view
 

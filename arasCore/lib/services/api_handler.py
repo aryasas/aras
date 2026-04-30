@@ -323,6 +323,18 @@ def _build_api_blueprint() -> Blueprint:
             logger.error(f"[api_handler] POST error: {ex}")
             return jsonify({"error": str(ex)}), 500
 
+    @api_bp.route("/api/<path:resource_path>/<int:item_id>/linked-docs/", methods=["GET"])
+    @login_required
+    def api_linked_docs(resource_path, item_id):
+        """GET /api/<app>/<resource>/<id>/linked-docs/ — preview deletion tree."""
+        key   = resource_path.rstrip("/")
+        entry = _api_registry.get(key)
+        if entry is None:
+            return jsonify({"error": f"Resource '{key}' not found."}), 404
+        obj = entry["model"].query.get_or_404(item_id)
+        from arasCore.lib.services.deletion_service import inspect_deletion
+        return jsonify(inspect_deletion(obj)), 200
+
     @api_bp.route("/api/<path:resource_path>/<int:item_id>/", methods=["GET", "PUT", "DELETE"])
     @login_required
     def api_item(resource_path, item_id):
@@ -402,12 +414,9 @@ def _build_api_blueprint() -> Blueprint:
             if h:
                 h.before_delete(obj)
             _rse(_app_slug, _res_slug, "before_delete", obj)
-            if hasattr(obj, "delete_self") and callable(obj.delete_self):
-                user_id = getattr(current_user, "id", None)
-                obj.delete_self(user_id=user_id)
-            else:
-                db.session.delete(obj)
-                db.session.commit()
+            from arasCore.lib.services.deletion_service import execute_deletion
+            _uid = getattr(current_user, "id", None)
+            execute_deletion(obj, user_id=_uid)
             _rse(_app_slug, _res_slug, "after_delete", obj)
             try:
                 from arasCore.lib.core.events import emit_crud
