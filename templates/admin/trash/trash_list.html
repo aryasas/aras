@@ -31,10 +31,10 @@
                 {% for g in groups %}
                 <tr>
                     <td>
-                        {% if g.root and g.root.admin_url %}
-                        <a href="{{ g.root.admin_url }}" target="_blank">{{ g.root.doc_type }} #{{ g.root.doc_id }}</a>
-                        {% elif g.root %}
-                        {{ g.root.doc_type }} #{{ g.root.doc_id }}
+                        {% if g.root %}
+                        <a href="javascript:void(0)" onclick="viewSnapshot({{ g.root.id }})">
+                            {{ g.root.doc_type }} #{{ g.root.doc_id }}
+                        </a>
                         {% else %}
                         —
                         {% endif %}
@@ -86,7 +86,7 @@
             <strong style="font-size:14px;"><i class="fa fa-undo text-success mr-2"></i> Confirm Restore</strong>
             <button id="arasRestoreModalClose" class="aras-btn aras-btn--sm" style="padding:4px 8px;">&times;</button>
         </div>
-        <div id="arasRestoreModalBody" style="padding:20px;"></div>
+        <div id="arasRestoreModalBody" style="padding:20px;max-height:60vh;overflow-y:auto;"></div>
         <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;">
             <form id="arasRestoreForm" method="POST" style="flex:1;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -95,6 +95,21 @@
                 </button>
             </form>
             <button id="arasRestoreModalCancel" class="aras-btn aras-btn--outline">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Snapshot Viewer Modal -->
+<div id="arasSnapshotModal" class="aras-modal" style="display:none;">
+    <div class="aras-modal__overlay" id="arasSnapshotModalOverlay"></div>
+    <div class="aras-modal__content" style="max-width:600px;">
+        <div class="aras-modal-header" style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+            <strong style="font-size:14px;"><i class="fa fa-eye mr-2"></i> Document Snapshot</strong>
+            <button id="arasSnapshotModalClose" class="aras-btn aras-btn--sm" style="padding:4px 8px;">&times;</button>
+        </div>
+        <div id="arasSnapshotModalBody" style="padding:20px;max-height:70vh;overflow-y:auto;"></div>
+        <div class="aras-modal-footer" style="padding:12px 20px;border-top:1px solid var(--border);text-align:right;">
+            <button id="arasSnapshotModalCancel" class="aras-btn aras-btn--outline">Close</button>
         </div>
     </div>
 </div>
@@ -120,8 +135,11 @@ function previewRestore(groupId) {
         var html = "<p class='text-success mb-2'><strong>" + docs.length + " record(s) will be restored:</strong></p>"
                  + "<ul style='list-style:none;padding:0;margin:0 0 12px;'>";
         docs.forEach(function(d) {
-            html += "<li style='padding:3px 0;'><i class='fa fa-file-o mr-1 text-muted'></i>"
-                  + d.doc_type + " #" + d.doc_id + "</li>";
+            var indent = d.depth > 0 ? "margin-left:" + (d.depth * 16) + "px;" : "";
+            html += "<li style='padding:3px 0;" + indent + "'>"
+                  + "<i class='fa fa-file-o mr-1 text-muted'></i>"
+                  + "<a href='javascript:void(0)' onclick='viewSnapshot(" + d.id + ")'>"
+                  + d.doc_type + " #" + d.doc_id + "</a></li>";
         });
         html += "</ul><small class='text-muted'>Records will be inserted in dependency order.</small>";
         body.innerHTML = html;
@@ -131,14 +149,44 @@ function previewRestore(groupId) {
     });
 }
 
-document.getElementById("arasRestoreModalClose").addEventListener("click", function() {
-    document.getElementById("arasRestoreModal").style.display = "none";
-});
-document.getElementById("arasRestoreModalCancel").addEventListener("click", function() {
-    document.getElementById("arasRestoreModal").style.display = "none";
-});
-document.getElementById("arasRestoreModalOverlay").addEventListener("click", function() {
-    document.getElementById("arasRestoreModal").style.display = "none";
-});
+function viewSnapshot(docId) {
+    var modal = document.getElementById("arasSnapshotModal");
+    var body  = document.getElementById("arasSnapshotModalBody");
+    if (!modal || !body) return;
+
+    body.innerHTML = "<i class='fa fa-spinner fa-spin'></i> Loading data...";
+    modal.style.display = "";
+
+    fetch("/admin/trash/doc/" + docId + "/")
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        var html = "<div class='mb-3'><strong>Type:</strong> " + data.doc_type + " #" + data.doc_id + "<br>"
+                 + "<strong>Deleted At:</strong> " + data.deleted_at + "</div>"
+                 + "<div class='aras-snapshot-data' style='background:#f8f9fa;padding:12px;border-radius:4px;font-family:monospace;font-size:12px;'>";
+        
+        for (var key in data.data) {
+            html += "<div style='display:flex;border-bottom:1px solid #eee;padding:4px 0;'>"
+                  + "<span style='width:140px;color:#666;flex-shrink:0;'>" + key + "</span>"
+                  + "<span style='word-break:break-all;'>" + data.data[key] + "</span></div>";
+        }
+        html += "</div>";
+        body.innerHTML = html;
+    })
+    .catch(function() {
+        body.innerHTML = "<p class='text-danger'>Failed to load snapshot data.</p>";
+    });
+}
+
+// Modal closing logic
+function setupModalClose(modalId, overlayId, closeId, cancelId) {
+    var modal = document.getElementById(modalId);
+    var close = function() { if (modal) modal.style.display = "none"; };
+    if (document.getElementById(overlayId)) document.getElementById(overlayId).addEventListener("click", close);
+    if (document.getElementById(closeId))   document.getElementById(closeId).addEventListener("click",   close);
+    if (document.getElementById(cancelId))  document.getElementById(cancelId).addEventListener("click",  close);
+}
+
+setupModalClose("arasRestoreModal", "arasRestoreModalOverlay", "arasRestoreModalClose", "arasRestoreModalCancel");
+setupModalClose("arasSnapshotModal", "arasSnapshotModalOverlay", "arasSnapshotModalClose", "arasSnapshotModalCancel");
 </script>
 {% endblock %}

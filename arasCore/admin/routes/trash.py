@@ -53,9 +53,22 @@ def trash_inspect(group_id):
             .order_by(DeletedDoc.depth.asc(), DeletedDoc.id.asc())
             .all())
     return jsonify({"docs": [
-        {"doc_type": d.doc_type, "doc_id": d.doc_id, "depth": d.depth, "admin_url": d.admin_url}
+        {"id": d.id, "doc_type": d.doc_type, "doc_id": d.doc_id, "depth": d.depth, "admin_url": d.admin_url}
         for d in docs
     ]})
+
+
+@admin_bp.route("/trash/doc/<int:doc_id>/")
+@login_required
+def trash_view_doc(doc_id):
+    from arasCore.lib.models.deletion_models import DeletedDoc
+    doc = DeletedDoc.query.get_or_404(doc_id)
+    return jsonify({
+        "doc_type": doc.doc_type,
+        "doc_id":   doc.doc_id,
+        "data":     doc.doc_data,
+        "deleted_at": doc.deleted_at.isoformat() if doc.deleted_at else None
+    })
 
 
 @admin_bp.route("/trash/<group_id>/restore/", methods=["POST"])

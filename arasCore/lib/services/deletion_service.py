@@ -6,12 +6,14 @@ Usage:
     from arasCore.lib.services.deletion_service import execute_deletion, inspect_deletion, execute_restore
 """
 import uuid
+import logging
 from datetime import datetime, date, time
 from decimal import Decimal
 
 from arasCore.lib.core.extensions import db
 from arasCore.lib.services.linked_doc_detector import detect_linked_docs
 
+logger = logging.getLogger(__name__)
 
 def _json_safe(val):
     if isinstance(val, (datetime, date, time)):
@@ -99,11 +101,22 @@ def execute_deletion(obj, user_id=None) -> str:
     for _, instance in rows_to_delete:
         cls_name = type(instance).__name__
         if cls_name == "StockMovement":
-            for line in getattr(instance, "lines", []):
+            # For StockMovement, we need product_id and location_id
+            # Lines might have product_id
+            product_id = getattr(instance, "product_id", None)
+            location_id = instance.src_location_id or instance.dst_location_id
+            if not product_id and hasattr(instance, "lines"):
+                for line in instance.lines:
+                    stock_movements_deleted.append({
+                        "company_id":  instance.company_id,
+                        "product_id":  line.product_id,
+                        "location_id": location_id,
+                    })
+            elif product_id:
                 stock_movements_deleted.append({
                     "company_id":  instance.company_id,
-                    "product_id":  line.product_id,
-                    "location_id": instance.src_location_id or instance.dst_location_id,
+                    "product_id":  product_id,
+                    "location_id": location_id,
                 })
 
     # Delete deepest-first
@@ -124,11 +137,11 @@ def execute_deletion(obj, user_id=None) -> str:
             seen = set()
             for info in stock_movements_deleted:
                 key = (info["company_id"], info["product_id"], info["location_id"])
-                if key not in seen and info["location_id"]:
+                if key not in seen and info["location_id"] and info["product_id"]:
                     seen.add(key)
                     recalculate_valuation(*key)
-        except Exception:
-            pass  # ERP not installed or valuation not applicable
+        except Exception as e:
+            logger.error(f"Error recalculating valuation: {e}")
 
     db.session.commit()
     return group_id
@@ -137,8 +150,8 @@ def execute_deletion(obj, user_id=None) -> str:
 def execute_restore(group_id: str, user_id=None) -> None:
     """
     Restore all docs in a deletion group.
-    Inserts parent rows first (depth ASC), skips if PK already exists.
-    Removes DeletedDoc rows on success.
+    Inserts parent rows first (depth ASC).
+    Uses SQLAlchemy models where possible for better safety.
     """
     from arasCore.lib.models.deletion_models import DeletedDoc
     from sqlalchemy import inspect as sa_inspect, text
@@ -153,14 +166,20 @@ def execute_restore(group_id: str, user_id=None) -> None:
 
     # Collect all SA model classes from mapper registry
     _cls_map: dict = {}
-    for m in sa_inspect(DeletedDoc).mapper.registry.mappers:
-        _cls_map[m.class_.__name__] = m.class_
+    from arasCore.lib.core.extensions import db
+    # We use a broader way to find models if needed, but registry is standard
+    from sqlalchemy.orm import declarative_base
+    for mapper in db.Model.registry.mappers:
+        _cls_map[mapper.class_.__name__] = mapper.class_
 
-    restored = []
+    restored_docs = []
+    affected_valuation_keys = []
+
     for doc in docs:
         cls = _cls_map.get(doc.doc_type)
         if cls is None:
-            continue  # unknown model, skip
+            logger.warning(f"Restore: Model {doc.doc_type} not found in registry. Skipping.")
+            continue
 
         table = cls.__table__
         pk_val = doc.doc_id
@@ -170,18 +189,48 @@ def execute_restore(group_id: str, user_id=None) -> None:
             text(f"SELECT id FROM {table.name} WHERE id = :id"),
             {"id": pk_val}
         ).fetchone()
+        
         if existing:
-            continue  # already recreated, skip
+            logger.info(f"Restore: Record {doc.doc_type} #{pk_val} already exists. Skipping.")
+            restored_docs.append(doc) # Mark as "done" so it gets removed from Trash
+            continue
 
         # Filter data to only known columns
         col_names = {c.name for c in table.columns}
         data = {k: v for k, v in doc.doc_data.items() if k in col_names}
 
-        db.session.execute(table.insert().values(**data))
-        restored.append(doc)
+        # Use raw insert to preserve ID
+        try:
+            db.session.execute(table.insert().values(**data))
+            
+            # If it's a StockMovement, queue valuation recalc
+            if doc.doc_type == "StockMovement":
+                affected_valuation_keys.append({
+                    "company_id": data.get("company_id"),
+                    "product_id": data.get("product_id"),
+                    "location_id": data.get("src_location_id") or data.get("dst_location_id")
+                })
+            
+            restored_docs.append(doc)
+        except Exception as e:
+            logger.error(f"Restore: Failed to insert {doc.doc_type} #{pk_val}: {e}")
+            raise
+
+    # Trigger valuation recalc for restored movements
+    if affected_valuation_keys:
+        try:
+            from aras.erp.erp_stock.services.posting import recalculate_valuation
+            seen = set()
+            for info in affected_valuation_keys:
+                key = (info["company_id"], info["product_id"], info["location_id"])
+                if key not in seen and all(key):
+                    seen.add(key)
+                    recalculate_valuation(*key)
+        except Exception:
+            pass
 
     # Remove backup rows for successfully restored docs
-    for doc in restored:
+    for doc in restored_docs:
         db.session.delete(doc)
 
     db.session.commit()
