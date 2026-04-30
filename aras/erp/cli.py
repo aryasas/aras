@@ -367,7 +367,7 @@ def _run_test_flow(count: int, verbose: bool):
             )
             pinv = AccPurchaseInvoice(
                 company_id=cid, name=f"BILL/TF/{i:04d}",
-                vendor_name="Supplier Demo", invoice_date=date.today(),
+                invoice_date=date.today(),
                 currency_id=currency.id if currency else None,
             )
             db.session.add(pinv); db.session.flush()

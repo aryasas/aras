@@ -221,16 +221,31 @@ def _payment_method_account(company_id: int, method: str) -> int:
 
 def _record_invoice_payments(inv: AccSalesInvoice, order: PosOrder,
                               payments: list, total_paid: Decimal, total_order: Decimal):
-    """Write AccInvoicePayment rows and set invoice state (paid / partial / posted)."""
-    from aras.erp.erp_acc.models.invoice import AccInvoicePayment
+    """Create AccPayment + AccPaymentAllocation rows for each POS payment split."""
+    from aras.erp.erp_acc.models.payment import AccPayment, AccPaymentAllocation
+    from aras.erp.erp_core.models.currency import Currency
     for p in payments:
-        db.session.add(AccInvoicePayment(
-            sales_invoice_id=inv.id,
-            payment_date=date.today(),
-            method=p.method,
-            amount=p.amount,
-            reference=getattr(p, "reference", None),
+        pay = AccPayment(
+            company_id   = inv.company_id,
+            name         = f"POS-{order.name}-{p.method}",
+            payment_type = "inbound",
+            partner_type = "customer",
+            partner_id   = inv.customer_id,
+            payment_date = date.today(),
+            method       = p.method,
+            total_amount = p.amount,
+            allocated_amount = p.amount,
+            state        = "posted",
+            reference    = order.name,
+        )
+        db.session.add(pay)
+        db.session.flush()
+        db.session.add(AccPaymentAllocation(
+            payment_id       = pay.id,
+            sales_invoice_id = inv.id,
+            amount           = p.amount,
         ))
+
     # Credit method = AR balance (not yet paid) — don't count toward cash paid
     cash_paid = sum(Decimal(str(p.amount)) for p in payments if p.method != "credit")
     if cash_paid >= total_order - Decimal("0.01"):
@@ -279,8 +294,6 @@ def create_purchase_invoice_from_pos(order_id: int) -> AccPurchaseInvoice:
     bill = AccPurchaseInvoice(
         company_id=company_id,
         name=bill_name,
-        vendor_name=terminal.name,
-        vendor_ref=order.name,
         invoice_date=date.today(),
         due_date=date.today(),
         currency_id=currency.id if currency else 1,

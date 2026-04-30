@@ -10,45 +10,47 @@ class AccSalesInvoice(ArasModel):
         db.Index("ix_sal_inv_state", "state"),
     )
 
-    id                = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    company_id        = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
-    name              = db.Column(db.String(50), nullable=False)
-    customer_id       = db.Column(db.Integer, db.ForeignKey("crm_customer.id"), nullable=True)
-    location_id       = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=True)
-    invoice_date      = db.Column(db.Date, nullable=False)
-    due_date          = db.Column(db.Date, nullable=True)
-    currency_id       = db.Column(db.Integer, db.ForeignKey("currency.id"), nullable=False)
-    fiscal_period_id  = db.Column(db.Integer, db.ForeignKey("fiscal_period.id"), nullable=True)
-    subtotal          = db.Column(db.Numeric(18, 4), default=0, nullable=False)
-    discount_amt      = db.Column(db.Numeric(18, 4), default=0, nullable=False)
-    charge_amt        = db.Column(db.Numeric(18, 4), default=0, nullable=False)
-    total             = db.Column(db.Numeric(18, 4), default=0, nullable=False)
-    state             = db.Column(db.Enum("draft", "posted", "partial", "paid", "cancelled"),
+    id               = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
+    name             = db.Column(db.String(50), nullable=False)
+    customer_id      = db.Column(db.Integer, db.ForeignKey("crm_customer.id"), nullable=True)
+    location_id      = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=True)
+    origin_order_id  = db.Column(db.BigInteger, db.ForeignKey("acc_sales_order.id"), nullable=True)
+    invoice_date     = db.Column(db.Date, nullable=False)
+    due_date         = db.Column(db.Date, nullable=True)
+    currency_id      = db.Column(db.Integer, db.ForeignKey("currency.id"), nullable=False)
+    fiscal_period_id = db.Column(db.Integer, db.ForeignKey("fiscal_period.id"), nullable=True)
+    subtotal         = db.Column(db.Numeric(18, 4), default=0, nullable=False)
+    discount_amt     = db.Column(db.Numeric(18, 4), default=0, nullable=False)
+    charge_amt       = db.Column(db.Numeric(18, 4), default=0, nullable=False)
+    total            = db.Column(db.Numeric(18, 4), default=0, nullable=False)
+    state            = db.Column(db.Enum("draft", "posted", "partial", "paid", "cancelled"),
                                   default="draft", nullable=False)
     payment_term_days = db.Column(db.Integer, default=0)
-    reference         = db.Column(db.String(100), nullable=True)
-    notes             = db.Column(db.Text, nullable=True)
-    price_list_id     = db.Column(db.Integer, db.ForeignKey("stock_price_list.id"), nullable=True)
-    journal_entry_id  = db.Column(db.BigInteger, db.ForeignKey("acc_journal_entry.id"), nullable=True)
-    pos_order_id      = db.Column(db.BigInteger, db.ForeignKey("pos_order.id"), nullable=True)
+    reference        = db.Column(db.String(100), nullable=True)
+    notes            = db.Column(db.Text, nullable=True)
+    price_list_id    = db.Column(db.Integer, db.ForeignKey("stock_price_list.id"), nullable=True)
+    journal_entry_id = db.Column(db.BigInteger, db.ForeignKey("acc_journal_entry.id"), nullable=True)
+    pos_order_id     = db.Column(db.BigInteger, db.ForeignKey("pos_order.id"), nullable=True)
 
     company       = db.relationship("Company")
     customer      = db.relationship("CrmCustomer")
     currency      = db.relationship("Currency")
     location      = db.relationship("StockLocation", foreign_keys=[location_id])
+    origin_order  = db.relationship("SalesOrder", foreign_keys=[origin_order_id])
     price_list    = db.relationship("StockPriceList", foreign_keys=[price_list_id])
     journal_entry = db.relationship("AccJournalEntry")
     lines         = db.relationship("AccSalesInvoiceLine", backref="invoice",
                                     cascade="all, delete-orphan")
     charges       = db.relationship("AccSalesInvoiceCharge", backref="invoice",
                                     cascade="all, delete-orphan")
-    payments      = db.relationship("AccInvoicePayment",
-                                    primaryjoin="AccInvoicePayment.sales_invoice_id==AccSalesInvoice.id",
-                                    backref="sales_invoice", cascade="all, delete-orphan")
+    allocations   = db.relationship("AccPaymentAllocation",
+                                    primaryjoin="AccPaymentAllocation.sales_invoice_id==AccSalesInvoice.id",
+                                    cascade="all, delete-orphan")
 
     @property
     def amount_paid(self):
-        return sum(float(p.amount) for p in self.payments)
+        return sum(float(a.amount) for a in self.allocations)
 
     @property
     def amount_due(self):
@@ -106,32 +108,32 @@ class AccPurchaseInvoice(ArasModel):
         db.Index("ix_pur_inv_state", "state"),
     )
 
-    id                = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    company_id        = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
-    supplier_id       = db.Column(db.Integer, db.ForeignKey("sup_supplier.id"), nullable=True)
-    location_id       = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=True)
-    name              = db.Column(db.String(50), nullable=False)
-    vendor_name       = db.Column(db.String(200), nullable=True)
-    vendor_ref        = db.Column(db.String(100), nullable=True)
-    invoice_date      = db.Column(db.Date, nullable=False)
-    due_date          = db.Column(db.Date, nullable=True)
-    currency_id       = db.Column(db.Integer, db.ForeignKey("currency.id"), nullable=False)
-    fiscal_period_id  = db.Column(db.Integer, db.ForeignKey("fiscal_period.id"), nullable=True)
-    subtotal          = db.Column(db.Numeric(18, 4), default=0, nullable=False)
-    discount_amt      = db.Column(db.Numeric(18, 4), default=0, nullable=False)
-    charge_amt        = db.Column(db.Numeric(18, 4), default=0, nullable=False)
-    total             = db.Column(db.Numeric(18, 4), default=0, nullable=False)
-    state             = db.Column(db.Enum("draft", "posted", "partial", "paid", "cancelled"),
+    id               = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    company_id       = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
+    supplier_id      = db.Column(db.Integer, db.ForeignKey("sup_supplier.id"), nullable=True)
+    location_id      = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=True)
+    origin_order_id  = db.Column(db.BigInteger, db.ForeignKey("sup_purchase_order.id"), nullable=True)
+    name             = db.Column(db.String(50), nullable=False)
+    invoice_date     = db.Column(db.Date, nullable=False)
+    due_date         = db.Column(db.Date, nullable=True)
+    currency_id      = db.Column(db.Integer, db.ForeignKey("currency.id"), nullable=False)
+    fiscal_period_id = db.Column(db.Integer, db.ForeignKey("fiscal_period.id"), nullable=True)
+    subtotal         = db.Column(db.Numeric(18, 4), default=0, nullable=False)
+    discount_amt     = db.Column(db.Numeric(18, 4), default=0, nullable=False)
+    charge_amt       = db.Column(db.Numeric(18, 4), default=0, nullable=False)
+    total            = db.Column(db.Numeric(18, 4), default=0, nullable=False)
+    state            = db.Column(db.Enum("draft", "posted", "partial", "paid", "cancelled"),
                                   default="draft", nullable=False)
     payment_term_days = db.Column(db.Integer, default=0)
-    notes             = db.Column(db.Text, nullable=True)
-    price_list_id     = db.Column(db.Integer, db.ForeignKey("stock_price_list.id"), nullable=True)
-    journal_entry_id  = db.Column(db.BigInteger, db.ForeignKey("acc_journal_entry.id"), nullable=True)
-    pos_order_id      = db.Column(db.BigInteger, db.ForeignKey("pos_order.id"), nullable=True)
+    notes            = db.Column(db.Text, nullable=True)
+    price_list_id    = db.Column(db.Integer, db.ForeignKey("stock_price_list.id"), nullable=True)
+    journal_entry_id = db.Column(db.BigInteger, db.ForeignKey("acc_journal_entry.id"), nullable=True)
+    pos_order_id     = db.Column(db.BigInteger, db.ForeignKey("pos_order.id"), nullable=True)
 
     company       = db.relationship("Company")
     supplier      = db.relationship("SupSupplier", foreign_keys=[supplier_id])
     location      = db.relationship("StockLocation", foreign_keys=[location_id])
+    origin_order  = db.relationship("PurchaseOrder", foreign_keys=[origin_order_id])
     currency      = db.relationship("Currency")
     price_list    = db.relationship("StockPriceList", foreign_keys=[price_list_id])
     journal_entry = db.relationship("AccJournalEntry")
@@ -139,13 +141,13 @@ class AccPurchaseInvoice(ArasModel):
                                     cascade="all, delete-orphan")
     charges       = db.relationship("AccPurchaseInvoiceCharge", backref="invoice",
                                     cascade="all, delete-orphan")
-    payments      = db.relationship("AccInvoicePayment",
-                                    primaryjoin="AccInvoicePayment.purchase_invoice_id==AccPurchaseInvoice.id",
-                                    backref="purchase_invoice", cascade="all, delete-orphan")
+    allocations   = db.relationship("AccPaymentAllocation",
+                                    primaryjoin="AccPaymentAllocation.purchase_invoice_id==AccPurchaseInvoice.id",
+                                    cascade="all, delete-orphan")
 
     @property
     def amount_paid(self):
-        return sum(float(p.amount) for p in self.payments)
+        return sum(float(a.amount) for a in self.allocations)
 
     @property
     def amount_due(self):
@@ -193,20 +195,3 @@ class AccPurchaseInvoiceCharge(ArasModel):
 
     charge  = db.relationship("Charge")
     account = db.relationship("AccAccount")
-
-
-class AccInvoicePayment(ArasModel):
-    """Payment record for a sales or purchase invoice — multi-method and partial payment support."""
-    __tablename__ = "acc_invoice_payment"
-
-    id                  = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    sales_invoice_id    = db.Column(db.BigInteger, db.ForeignKey("acc_sales_invoice.id"), nullable=True)
-    purchase_invoice_id = db.Column(db.BigInteger, db.ForeignKey("acc_purchase_invoice.id"), nullable=True)
-    payment_date        = db.Column(db.Date, nullable=False)
-    method              = db.Column(db.String(50), nullable=False, default="cash")
-    amount              = db.Column(db.Numeric(18, 4), nullable=False)
-    reference           = db.Column(db.String(100), nullable=True)
-    notes               = db.Column(db.Text, nullable=True)
-    journal_entry_id    = db.Column(db.BigInteger, db.ForeignKey("acc_journal_entry.id"), nullable=True)
-
-    journal_entry = db.relationship("AccJournalEntry")

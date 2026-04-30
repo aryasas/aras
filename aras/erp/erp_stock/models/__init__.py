@@ -6,6 +6,7 @@ from .product import (
 from .pricelist import StockPriceList
 from .warehouse import StockLocation, StockProductLocation
 from .movement import StockMovement, StockMovementLine, StockValuation
+from .delivery import DeliveryTrip, DeliveryOrder, DeliveryOrderLine
 
 __all__ = [
     "StockUomCategory", "StockUom", "StockUomConversion",
@@ -14,4 +15,5 @@ __all__ = [
     "StockPriceList",
     "StockLocation", "StockProductLocation",
     "StockMovement", "StockMovementLine", "StockValuation",
+    "DeliveryTrip", "DeliveryOrder", "DeliveryOrderLine",
 ]
