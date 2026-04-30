@@ -1,31 +1,43 @@
 from arasCore.lib.core.base_model import ArasModel, db
 
 
-class StockWarehouse(ArasModel):
-    __tablename__ = "stock_warehouse"
-    __table_args__ = (
-        db.UniqueConstraint("company_id", "code", name="uq_stock_warehouse_code"),
-    )
-
-    company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
-    code       = db.Column(db.String(10), nullable=False)
-    name       = db.Column(db.String(100), nullable=False)
-    address    = db.Column(db.Text)
-
-    locations = db.relationship("StockLocation", backref="warehouse", cascade="all, delete-orphan")
-
-
 class StockLocation(ArasModel):
-    """Storage location inside a warehouse, supports hierarchy."""
+    """
+    Storage location — supports full hierarchy (company → warehouse → zone → rack).
+    location_type determines role:
+      internal  = physical storage (gudang, rak) — holds real stock
+      vendor    = virtual source for purchases
+      customer  = virtual destination for sales/deliveries
+      transit   = in-transit between locations
+      virtual   = write-off, adjustment, opening balance
+    """
     __tablename__ = "stock_location"
+    __display_fields__ = ("name",)
 
-    warehouse_id  = db.Column(db.Integer, db.ForeignKey("stock_warehouse.id"), nullable=True)
+    company_id    = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=True)
     parent_id     = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=True)
     name          = db.Column(db.String(100), nullable=False)
-    full_name     = db.Column(db.String(300))   # computed: WH/Zone/Rack
+    full_name     = db.Column(db.String(300))   # computed: GU / Stok Utama / Rak A1
+    code          = db.Column(db.String(20))
     location_type = db.Column(
-        db.Enum("internal", "input", "output", "packing", "virtual", "customer", "vendor", "transit"),
+        db.Enum("internal", "vendor", "customer", "transit", "virtual"),
         nullable=False, default="internal"
     )
+    is_group      = db.Column(db.Boolean, default=False, nullable=False)
 
-    parent = db.relationship("StockLocation", remote_side="StockLocation.id", backref="children")
+    parent   = db.relationship("StockLocation", remote_side="StockLocation.id", backref="children")
+
+
+class StockProductLocation(ArasModel):
+    """Which locations stock a given product (min/max reorder levels per location)."""
+    __tablename__ = "stock_product_location"
+    __display_fields__ = ("product_id",)
+
+    product_id  = db.Column(db.Integer, db.ForeignKey("stock_product.id"), nullable=False)
+    location_id = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=False)
+    min_qty     = db.Column(db.Numeric(12, 4), default=0)
+    max_qty     = db.Column(db.Numeric(12, 4), default=0)
+    notes       = db.Column(db.String(255))
+
+    product  = db.relationship("StockProduct")
+    location = db.relationship("StockLocation")

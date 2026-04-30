@@ -1,0 +1,79 @@
+"""024 — add supplier_id + warehouse_id to purchase invoice; warehouse_id to sales invoice;
+         merge stock_price_list_item into stock_product_price (add price_list_id column)
+"""
+import logging
+logger = logging.getLogger(__name__)
+
+
+def run(flask_app):
+    from sqlalchemy import text, inspect
+    from arasCore.lib.core.extensions import db
+
+    with flask_app.app_context():
+        insp = inspect(db.engine)
+
+        # ── acc_purchase_invoice: supplier_id + warehouse_id ─────────────────
+        pur_cols = {c["name"] for c in insp.get_columns("acc_purchase_invoice")}
+        if "supplier_id" not in pur_cols:
+            db.session.execute(text(
+                "ALTER TABLE acc_purchase_invoice ADD COLUMN supplier_id INT NULL"
+                " AFTER company_id"
+            ))
+            logger.info("[024] added supplier_id to acc_purchase_invoice")
+        if "warehouse_id" not in pur_cols:
+            db.session.execute(text(
+                "ALTER TABLE acc_purchase_invoice ADD COLUMN warehouse_id INT NULL"
+                " AFTER supplier_id"
+            ))
+            logger.info("[024] added warehouse_id to acc_purchase_invoice")
+
+        # ── acc_sales_invoice: warehouse_id ───────────────────────────────────
+        sal_cols = {c["name"] for c in insp.get_columns("acc_sales_invoice")}
+        if "warehouse_id" not in sal_cols:
+            db.session.execute(text(
+                "ALTER TABLE acc_sales_invoice ADD COLUMN warehouse_id INT NULL"
+                " AFTER customer_id"
+            ))
+            logger.info("[024] added warehouse_id to acc_sales_invoice")
+
+        # ── stock_product_price: price_list_id ───────────────────────────────
+        pp_cols = {c["name"] for c in insp.get_columns("stock_product_price")}
+        if "price_list_id" not in pp_cols:
+            db.session.execute(text(
+                "ALTER TABLE stock_product_price ADD COLUMN price_list_id INT NULL"
+                " AFTER product_id"
+            ))
+            logger.info("[024] added price_list_id to stock_product_price")
+
+        # ── migrate stock_price_list_item → stock_product_price ──────────────
+        tables = insp.get_table_names()
+        if "stock_price_list_item" in tables:
+            rows = db.session.execute(text(
+                "SELECT price_list_id, product_id, uom_id, price, min_qty,"
+                "       discount_pct, valid_from, valid_to FROM stock_price_list_item"
+            )).fetchall()
+            migrated = 0
+            for r in rows:
+                exists = db.session.execute(text(
+                    "SELECT id FROM stock_product_price"
+                    " WHERE product_id=:pid AND price_list_id=:plid AND uom_id=:uid AND min_qty=:mq"
+                ), {"pid": r[1], "plid": r[0], "uid": r[2], "mq": r[4]}).fetchone()
+                if not exists:
+                    db.session.execute(text(
+                        "INSERT INTO stock_product_price"
+                        " (product_id, price_list_id, name, price_type, currency_id,"
+                        "  uom_id, price, min_qty, valid_from, valid_to, is_active)"
+                        " SELECT :pid, :plid, pl.name, pl.price_type, pl.currency_id,"
+                        "        :uid, :price, :mq, :vf, :vt, 1"
+                        " FROM stock_price_list pl WHERE pl.id=:plid"
+                    ), {
+                        "pid": r[1], "plid": r[0], "uid": r[2],
+                        "price": r[3], "mq": r[4], "vf": r[6], "vt": r[7],
+                    })
+                    migrated += 1
+            logger.info(f"[024] migrated {migrated} rows from stock_price_list_item")
+            db.session.execute(text("DROP TABLE stock_price_list_item"))
+            logger.info("[024] dropped stock_price_list_item")
+
+        db.session.commit()
+        logger.info("[024] done")

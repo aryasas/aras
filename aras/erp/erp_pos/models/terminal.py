@@ -13,7 +13,7 @@ class PosTerminal(ArasModel):
     name                = db.Column(db.String(100), nullable=False)
     sequence_id         = db.Column(db.Integer, db.ForeignKey("sequence.id"), nullable=True)
     invoice_sequence_id = db.Column(db.Integer, db.ForeignKey("sequence.id"), nullable=True)
-    warehouse_id        = db.Column(db.Integer, db.ForeignKey("stock_warehouse.id"), nullable=True)
+    location_id         = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=True)
     pricelist_id        = db.Column(db.Integer, db.ForeignKey("stock_price_list.id"), nullable=True)
     transaction_mode    = db.Column(db.Enum("income", "outcome", "both"), nullable=False, default="income")
     default_tax_id      = db.Column(db.Integer, db.ForeignKey("charge.id"), nullable=True)
@@ -23,7 +23,7 @@ class PosTerminal(ArasModel):
     allow_discount      = db.Column(db.Boolean, default=True)
     max_discount_pct    = db.Column(db.Numeric(5, 2), default=100)
 
-    warehouse      = db.relationship("StockWarehouse", foreign_keys=[warehouse_id])
+    location       = db.relationship("StockLocation", foreign_keys=[location_id])
     pricelist      = db.relationship("StockPriceList", foreign_keys=[pricelist_id])
     print_template = db.relationship("PrintTemplate", foreign_keys=[print_template_id])
     sessions       = db.relationship("PosSession", backref="terminal", lazy="dynamic")

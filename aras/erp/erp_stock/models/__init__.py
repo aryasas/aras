@@ -3,15 +3,15 @@ from .product import (
     StockProductCategory, StockProduct, StockProductUom,
     StockProductPrice, StockProductBundle, StockProductAccountLink,
 )
-from .pricelist import StockPriceList, StockPriceListItem
-from .warehouse import StockWarehouse, StockLocation
+from .pricelist import StockPriceList
+from .warehouse import StockLocation, StockProductLocation
 from .movement import StockMovement, StockMovementLine, StockValuation
 
 __all__ = [
     "StockUomCategory", "StockUom", "StockUomConversion",
     "StockProductCategory", "StockProduct", "StockProductUom",
     "StockProductPrice", "StockProductBundle", "StockProductAccountLink",
-    "StockPriceList", "StockPriceListItem",
-    "StockWarehouse", "StockLocation",
+    "StockPriceList",
+    "StockLocation", "StockProductLocation",
     "StockMovement", "StockMovementLine", "StockValuation",
 ]

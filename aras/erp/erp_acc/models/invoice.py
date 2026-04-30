@@ -13,7 +13,8 @@ class AccSalesInvoice(ArasModel):
     id                = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     company_id        = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
     name              = db.Column(db.String(50), nullable=False)
-    customer_id       = db.Column(db.Integer, db.ForeignKey("crm_customer.id"), nullable=False)
+    customer_id       = db.Column(db.Integer, db.ForeignKey("crm_customer.id"), nullable=True)
+    location_id       = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=True)
     invoice_date      = db.Column(db.Date, nullable=False)
     due_date          = db.Column(db.Date, nullable=True)
     currency_id       = db.Column(db.Integer, db.ForeignKey("currency.id"), nullable=False)
@@ -34,6 +35,7 @@ class AccSalesInvoice(ArasModel):
     company       = db.relationship("Company")
     customer      = db.relationship("CrmCustomer")
     currency      = db.relationship("Currency")
+    location      = db.relationship("StockLocation", foreign_keys=[location_id])
     price_list    = db.relationship("StockPriceList", foreign_keys=[price_list_id])
     journal_entry = db.relationship("AccJournalEntry")
     lines         = db.relationship("AccSalesInvoiceLine", backref="invoice",
@@ -106,8 +108,10 @@ class AccPurchaseInvoice(ArasModel):
 
     id                = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     company_id        = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
+    supplier_id       = db.Column(db.Integer, db.ForeignKey("sup_supplier.id"), nullable=True)
+    location_id       = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=True)
     name              = db.Column(db.String(50), nullable=False)
-    vendor_name       = db.Column(db.String(200), nullable=False)
+    vendor_name       = db.Column(db.String(200), nullable=True)
     vendor_ref        = db.Column(db.String(100), nullable=True)
     invoice_date      = db.Column(db.Date, nullable=False)
     due_date          = db.Column(db.Date, nullable=True)
@@ -126,6 +130,8 @@ class AccPurchaseInvoice(ArasModel):
     pos_order_id      = db.Column(db.BigInteger, db.ForeignKey("pos_order.id"), nullable=True)
 
     company       = db.relationship("Company")
+    supplier      = db.relationship("SupSupplier", foreign_keys=[supplier_id])
+    location      = db.relationship("StockLocation", foreign_keys=[location_id])
     currency      = db.relationship("Currency")
     price_list    = db.relationship("StockPriceList", foreign_keys=[price_list_id])
     journal_entry = db.relationship("AccJournalEntry")

@@ -13,14 +13,8 @@ from aras.erp.erp_stock.services.posting import post_movement
 from aras.erp.erp_core.services import sequence as seq_svc
 
 
-def _get_output_location(warehouse_id: int) -> StockLocation | None:
-    """Return the output/internal location for a warehouse."""
-    return (StockLocation.find(warehouse_id=warehouse_id, location_type="internal", is_active=True)
-            or StockLocation.find(warehouse_id=warehouse_id, is_active=True))
-
-
-def _get_customer_location(company_id: int) -> StockLocation | None:
-    return StockLocation.find(warehouse_id=None, location_type="customer", is_active=True)
+def _get_virtual_location(location_type: str) -> StockLocation | None:
+    return StockLocation.find(location_type=location_type, is_active=True)
 
 
 def deduct_stock_from_order(order_id: int) -> StockMovement | None:
@@ -40,17 +34,16 @@ def deduct_stock_from_order(order_id: int) -> StockMovement | None:
     if not terminal:
         return None
 
-    company_id   = terminal.company_id
-    warehouse_id = terminal.warehouse_id
-    if not warehouse_id:
-        return None  # warehouse not configured — skip stock deduction
+    company_id  = terminal.company_id
+    location_id = terminal.location_id
+    if not location_id:
+        return None
 
-    src_loc = _get_output_location(warehouse_id)
-    dst_loc = _get_customer_location(company_id)
+    src_loc = StockLocation.get(location_id)
+    dst_loc = _get_virtual_location("customer")
     if not src_loc:
         return None
 
-    # Filter storable lines only
     storable_lines = [
         l for l in order.lines
         if l.product_id and l.product and getattr(l.product, "is_stock_item", True)
@@ -80,9 +73,8 @@ def deduct_stock_from_order(order_id: int) -> StockMovement | None:
     db.session.flush()
 
     for line in storable_lines:
-        qty      = Decimal(str(line.qty_base)) if line.qty_base else Decimal(str(line.qty))
-        uom_id   = line.product.uom_id  # always base UoM for movement
-        # Use avg_cost from valuation if available, else 0
+        qty    = Decimal(str(line.qty_base)) if line.qty_base else Decimal(str(line.qty))
+        uom_id = line.product.uom_id
         from aras.erp.erp_stock.models import StockValuation
         val  = StockValuation.find(product_id=line.product_id, company_id=company_id)
         cost = Decimal(str(val.avg_cost if val else 0))
@@ -97,7 +89,7 @@ def deduct_stock_from_order(order_id: int) -> StockMovement | None:
         ))
 
     db.session.flush()
-    post_movement(mv.id, skip_journal=True)  # COGS lines added to sales journal entry
+    post_movement(mv.id, skip_journal=True)
     return mv
 
 
@@ -105,7 +97,6 @@ def receive_stock_from_order(order_id: int) -> StockMovement | None:
     """
     Outcome mode — buat StockMovement receipt (stok masuk) dari POT order.
     Idempotent via origin_model=pos_order_outcome.
-    Hanya storable products.
     """
     order = PosOrder.get_or_404(order_id)
 
@@ -118,18 +109,15 @@ def receive_stock_from_order(order_id: int) -> StockMovement | None:
     if not terminal:
         return None
 
-    company_id   = terminal.company_id
-    warehouse_id = terminal.warehouse_id
-    if not warehouse_id:
+    company_id  = terminal.company_id
+    location_id = terminal.location_id
+    if not location_id:
         return None
 
-    dst_loc = _get_output_location(warehouse_id)  # stok masuk ke internal
+    dst_loc = StockLocation.get(location_id)
+    src_loc = _get_virtual_location("vendor") or _get_virtual_location("virtual")
     if not dst_loc:
         return None
-
-    # vendor/virtual location as source
-    src_loc = (StockLocation.find(warehouse_id=None, location_type="vendor", is_active=True)
-               or StockLocation.find(warehouse_id=None, location_type="virtual", is_active=True))
 
     storable_lines = [
         l for l in order.lines
@@ -160,8 +148,8 @@ def receive_stock_from_order(order_id: int) -> StockMovement | None:
     db.session.flush()
 
     for line in storable_lines:
-        qty    = Decimal(str(line.qty_base)) if line.qty_base else Decimal(str(line.qty))
-        cost   = Decimal(str(line.unit_price or 0))
+        qty  = Decimal(str(line.qty_base)) if line.qty_base else Decimal(str(line.qty))
+        cost = Decimal(str(line.unit_price or 0))
         db.session.add(StockMovementLine(
             movement_id=mv.id,
             product_id=line.product_id,

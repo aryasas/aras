@@ -17,24 +17,7 @@ class StockPriceList(ArasModel):
     description = db.Column(db.Text)
 
     currency = db.relationship("Currency")
-    items    = db.relationship("StockPriceListItem", backref="price_list", cascade="all, delete-orphan")
-
-
-class StockPriceListItem(ArasModel):
-    """Price per product per UOM in a price list."""
-    __tablename__ = "stock_price_list_item"
-    __table_args__ = (
-        db.UniqueConstraint("price_list_id", "product_id", "uom_id", "min_qty",
-                            name="uq_price_list_item"),
-    )
-
-    price_list_id = db.Column(db.Integer, db.ForeignKey("stock_price_list.id"), nullable=False)
-    product_id    = db.Column(db.Integer, db.ForeignKey("stock_product.id"), nullable=False)
-    uom_id        = db.Column(db.Integer, db.ForeignKey("stock_uom.id"), nullable=False)
-    price         = db.Column(db.Numeric(18, 4), nullable=False)
-    min_qty       = db.Column(db.Numeric(18, 4), default=0, nullable=False)
-    discount_pct  = db.Column(db.Numeric(6, 2), default=0, nullable=False)
-    valid_from    = db.Column(db.Date, nullable=True)
-    valid_to      = db.Column(db.Date, nullable=True)
-
-    uom = db.relationship("StockUom")
+    items    = db.relationship("StockProductPrice",
+                               foreign_keys="StockProductPrice.price_list_id",
+                               back_populates="price_list",
+                               cascade="all, delete-orphan")

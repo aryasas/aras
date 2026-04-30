@@ -10,14 +10,19 @@ from arasCore.lib.core.extensions import db
 from aras.erp.erp_acc.models.invoice import AccPurchaseInvoice
 from aras.erp.erp_acc.services.posting import post_journal, get_default_account
 from aras.erp.erp_stock.models.product import StockProduct
-from aras.erp.erp_stock.models.warehouse import StockLocation
+from aras.erp.erp_stock.models.warehouse import StockLocation  # noqa
 from aras.erp.erp_stock.services.posting import post_movement
+from aras.erp.erp_stock.services.coa_resolver import resolve_stock_account, resolve_purchase_account
 
 
-def post_purchase_invoice(invoice_id: int, warehouse_id: int = None) -> AccPurchaseInvoice:
+def post_purchase_invoice(invoice_id: int, location_id: int = None) -> AccPurchaseInvoice:
     inv = AccPurchaseInvoice.query.get_or_404(invoice_id)
     if inv.state != "draft":
         raise ValueError(f"Invoice {inv.name} is already {inv.state}")
+    if inv.journal_entry_id:
+        raise ValueError(f"Invoice {inv.name} already has a journal entry")
+    if not location_id:
+        location_id = inv.location_id
 
     company_id   = inv.company_id
     journal_lines = []
@@ -29,10 +34,13 @@ def post_purchase_invoice(invoice_id: int, warehouse_id: int = None) -> AccPurch
         subtotal = Decimal(str(line.subtotal or (qty * price)))
 
         product   = StockProduct.get(line.product_id) if line.product_id else None
-        category  = product.category if product and product.category else None
 
-        acc_stock    = (category.account_stock_id    if category else None) or get_default_account(company_id, "stock_default")
-        acc_purchase = (category.account_purchase_id if category else None) or get_default_account(company_id, "payable_default")
+        if product:
+            acc_stock    = resolve_stock_account(product, company_id)
+            acc_purchase = resolve_purchase_account(product, company_id)
+        else:
+            acc_stock    = get_default_account(company_id, "stock_default")
+            acc_purchase = get_default_account(company_id, "payable_default")
 
         if acc_stock:
             journal_lines.append({"account_id": acc_stock,    "debit": float(subtotal), "credit": 0})
@@ -53,7 +61,7 @@ def post_purchase_invoice(invoice_id: int, warehouse_id: int = None) -> AccPurch
         )
         inv.journal_entry_id = entry.id
 
-    if stock_lines and warehouse_id:
+    if stock_lines and location_id:
         from aras.erp.erp_stock.models.movement import StockMovement, StockMovementLine
         from aras.erp.erp_core.models.sequence import Sequence
         from aras.erp.erp_core.services import sequence as seq_svc
@@ -61,9 +69,7 @@ def post_purchase_invoice(invoice_id: int, warehouse_id: int = None) -> AccPurch
                 or Sequence.find(code="stock.move", company_id=company_id))
         name = seq_svc.next_number_for_seq(seq) if seq else f"GRN/{company_id}/{inv.name}"
 
-        dst_loc = StockLocation.query.filter_by(
-            warehouse_id=warehouse_id, location_type="internal", is_active=True
-        ).first()
+        dst_loc = StockLocation.get(location_id)
 
         if dst_loc:
             mv = StockMovement(
@@ -90,7 +96,7 @@ def post_purchase_invoice(invoice_id: int, warehouse_id: int = None) -> AccPurch
                     total_cost=sl["qty"] * sl["unit_cost"],
                 ))
             db.session.flush()
-            post_movement(mv.id)
+            post_movement(mv.id, skip_journal=True)
 
     inv.state = "posted"
     db.session.commit()

@@ -40,7 +40,20 @@ form view with timeline activity and optimized child-table interactions.
                 </a>
                 {% endif %}
                 <a href="{{ list_url }}" class="aras-btn">Cancel</a>
-                {% if show_save_btn is not defined or show_save_btn %}
+                {% if action and '/add/' not in action %}
+                <button type="button" class="aras-btn aras-btn--outline" id="btnDuplicate" title="Duplicate this record">
+                    <i class="fa fa-copy"></i> <span class="d-none d-md-inline">Duplicate</span>
+                </button>
+                {% endif %}
+                {% if post_url is defined and post_url %}
+                <button type="submit" form="mainForm" class="aras-btn aras-btn--outline">
+                    <i class="fa fa-floppy-o"></i> Save Draft
+                </button>
+                <button type="button" class="aras-btn aras-btn--primary" id="btnPostInvoice"
+                        data-post-url="{{ post_url }}" data-obj-id="{{ obj_id }}">
+                    <i class="fa fa-paper-plane"></i> Post / Submit
+                </button>
+                {% elif show_save_btn is not defined or show_save_btn %}
                 <button
                     type="submit"
                     form="mainForm"
@@ -197,4 +210,75 @@ form view with timeline activity and optimized child-table interactions.
 </div>
 {% endblock %} {% block script %} {{ super() }}
 <script src="{{ url_for('static', filename='js/adm_form.js') }}"></script>
+<script>
+(function () {
+    // ── Duplicate button: collect form data → navigate to add URL with params ──
+    var btn = document.getElementById('btnDuplicate');
+    if (btn) {
+        btn.addEventListener('click', function () {
+            var form = document.getElementById('mainForm');
+            if (!form) return;
+            var addUrl = '{{ list_url }}add/';
+            var params = new URLSearchParams();
+            var skip = ['id', 'csrf_token', 'state', 'name'];
+            form.querySelectorAll('input, select, textarea').forEach(function (el) {
+                if (!el.name || skip.indexOf(el.name) !== -1) return;
+                if (el.type === 'checkbox') { if (el.checked) params.append(el.name, '1'); }
+                else if (el.value) params.append(el.name, el.value);
+            });
+            window.location.href = addUrl + '?' + params.toString();
+        });
+    }
+
+    // ── Pre-fill add form from URL params (used by duplicate) ─────────────────
+    var isAddPage = window.location.pathname.endsWith('/add/');
+    if (isAddPage && window.location.search) {
+        var qp = new URLSearchParams(window.location.search);
+        var form = document.getElementById('mainForm');
+        if (form) {
+            qp.forEach(function (val, key) {
+                var el = form.querySelector('[name="' + key + '"]');
+                if (!el) return;
+                if (el.tagName === 'SELECT') { el.value = val; }
+                else if (el.type === 'checkbox') { el.checked = (val === '1'); }
+                else { el.value = val; }
+            });
+        }
+    }
+})();
+
+// ── Post / Submit invoice button ──────────────────────────────────────────────
+(function () {
+    var btn = document.getElementById('btnPostInvoice');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+        var postUrl = btn.dataset.postUrl;
+        var objId   = btn.dataset.objId;
+        if (!postUrl || !objId) return;
+        if (!confirm('Post / submit dokumen ini? Aksi ini tidak bisa dibatalkan.')) return;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Posting...';
+        fetch(postUrl, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
+            body: JSON.stringify({invoice_id: parseInt(objId)})
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.ok) {
+                window.location.reload();
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa fa-paper-plane"></i> Post / Submit';
+            }
+        })
+        .catch(function (e) {
+            alert('Network error: ' + e);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa fa-paper-plane"></i> Post / Submit';
+        });
+    });
+})();
+</script>
 {% endblock %}

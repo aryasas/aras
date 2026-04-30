@@ -31,8 +31,8 @@ from aras.erp.erp_stock.models import (
     StockUomCategory, StockUom, StockUomConversion,
     StockProductCategory, StockProduct, StockProductUom,
     StockProductPrice, StockProductBundle, StockProductAccountLink,
-    StockPriceList, StockPriceListItem,
-    StockWarehouse, StockLocation,
+    StockPriceList,
+    StockLocation, StockProductLocation,
     StockMovement, StockMovementLine, StockValuation,
 )
 
@@ -77,6 +77,49 @@ class CustomerHandler(SubHandler):
             return {}
 
 
+class PostableInvoiceHandler(SubHandler):
+    """Handler untuk Sales/Purchase Invoice — inject post_url ke form context."""
+    def __init__(self, post_url: str):
+        self._post_url = post_url
+
+    def detail_context(self, obj):
+        if not obj:
+            return {}
+        state = getattr(obj, "state", None)
+        if state == "draft":
+            return {"post_url": self._post_url, "obj_id": obj.id}
+        return {"obj_state": state}
+
+
+class StockProductHandler(SubHandler):
+    def detail_context(self, obj):
+        if not obj:
+            return {}
+        try:
+            from arasCore.lib.core.extensions import db
+            rows = db.session.execute(db.text(
+                "SELECT sl.name, sv.qty_on_hand, sv.avg_cost, "
+                "       (sv.qty_on_hand * sv.avg_cost) AS total_value "
+                "FROM stock_valuation sv "
+                "JOIN stock_location sl ON sl.id = sv.location_id "
+                "WHERE sv.product_id = :pid AND sv.qty_on_hand != 0 "
+                "ORDER BY sl.name"
+            ), {"pid": obj.id}).fetchall()
+            total_qty   = sum(float(r.qty_on_hand) for r in rows)
+            total_value = sum(float(r.total_value)  for r in rows)
+            avg_cost    = (total_value / total_qty) if total_qty else 0.0
+            stock_rows  = [{"label": r.name, "value": f"{float(r.qty_on_hand):,.4g}"} for r in rows]
+            stock_rows += [
+                {"label": "─────────", "value": ""},
+                {"label": "Total Qty",    "value": f"{total_qty:,.4g}"},
+                {"label": "Avg Cost",     "value": f"{avg_cost:,.2f}"},
+                {"label": "Total Value",  "value": f"{total_value:,.2f}"},
+            ]
+            return {"sidebar_cards": [{"title": "Stock & Valuation", "rows": stock_rows}]}
+        except Exception:
+            return {}
+
+
 def _handle_post_journal():
     from flask import request, jsonify
     from arasCore.lib.core.extensions import db
@@ -108,14 +151,15 @@ def _pos_products(session_id: int):
     session      = PosSession.get_or_404(session_id)
     terminal     = PosTerminal.get(session.terminal_id)
     pricelist_id = terminal.pricelist_id if terminal else None
-    warehouse_id = terminal.warehouse_id if terminal else None
-    tx_mode      = terminal.transaction_mode if terminal else "income"
+    location_id = terminal.location_id if terminal else None
+    tx_mode     = terminal.transaction_mode if terminal else "income"
 
     loc_ids = []
-    if warehouse_id:
-        loc_ids = [l.id for l in StockLocation.find_all(
-            warehouse_id=warehouse_id, location_type="internal", is_active=True
-        )]
+    if location_id:
+        # include selected location + all child locations
+        loc_ids = [location_id] + [
+            l.id for l in StockLocation.find_all(parent_id=location_id, is_active=True)
+        ]
 
     q = StockProduct.query.filter_by(is_active=True)
     if tx_mode == "income":
@@ -158,19 +202,7 @@ def _pos_products(session_id: int):
         if tx_mode == "outcome":
             active_uom    = p.uom_purchase or p.uom
             active_uom_id = active_uom.id if active_uom else p.uom_id
-            from aras.erp.erp_stock.models.pricelist import StockPriceListItem
-            from datetime import date as _date
-            purchase_price_row = None
-            if active_uom_id:
-                purchase_price_row = (
-                    StockPriceListItem.query
-                    .filter_by(price_list_id=pricelist_id, product_id=p.id, uom_id=active_uom_id)
-                    .first() if pricelist_id else None
-                )
-            if purchase_price_row:
-                display_price = float(purchase_price_row.price)
-            else:
-                display_price = float(get_price(p.id, active_uom_id, Decimal("1"), pricelist_id, price_type="purchase"))
+            display_price = float(get_price(p.id, active_uom_id, Decimal("1"), pricelist_id, price_type="purchase"))
         else:
             active_uom_id = sales_uom_id
             active_uom    = sales_uom
@@ -201,16 +233,16 @@ def _pos_stock_check(session_id: int, product_id: int):
 
     session      = PosSession.get_or_404(session_id)
     terminal     = PosTerminal.get(session.terminal_id)
-    warehouse_id = terminal.warehouse_id if terminal else None
+    location_id = terminal.location_id if terminal else None
 
     product = StockProduct.get_or_404(product_id)
     if not product.is_stock_item:
         return jsonify({"qty_on_hand": None, "storable": False})
-    if not warehouse_id:
-        return jsonify({"qty_on_hand": None, "storable": True, "warning": "Warehouse belum dikonfigurasi"})
+    if not location_id:
+        return jsonify({"qty_on_hand": None, "storable": True, "warning": "Location belum dikonfigurasi di terminal"})
 
-    locs    = StockLocation.find_all(warehouse_id=warehouse_id, location_type="internal", is_active=True)
-    loc_ids = tuple(l.id for l in locs) or (0,)
+    child_ids = [l.id for l in StockLocation.find_all(parent_id=location_id, is_active=True)]
+    loc_ids   = tuple([location_id] + child_ids) or (0,)
     qty = db.session.execute(
         db.text("SELECT COALESCE(SUM(qty_on_hand),0) FROM stock_valuation WHERE product_id=:pid AND location_id IN :lids").bindparams(db.bindparam("lids", expanding=True)),
         {"pid": product_id, "lids": loc_ids}
@@ -242,13 +274,13 @@ def _pos_create_order(session_id: int):
     if not lines_data:
         return jsonify({"ok": False, "error": "No items"}), 400
 
-    terminal     = PosTerminal.get(session.terminal_id)
-    warehouse_id = terminal.warehouse_id if terminal else None
+    terminal    = PosTerminal.get(session.terminal_id)
+    location_id = terminal.location_id if terminal else None
 
-    if warehouse_id:
+    if location_id:
         from aras.erp.erp_stock.models.warehouse import StockLocation
-        locs    = StockLocation.find_all(warehouse_id=warehouse_id, location_type="internal", is_active=True)
-        loc_ids = tuple(l.id for l in locs) or (0,)
+        child_ids = [l.id for l in StockLocation.find_all(parent_id=location_id, is_active=True)]
+        loc_ids   = tuple([location_id] + child_ids) or (0,)
         for l in lines_data:
             pid = l.get("product_id")
             if not pid:
@@ -424,10 +456,12 @@ helper = AppHelper(
             ResourceDef("acc/analytic-tag", AccAnalyticTag,   admin_list=True,
                         menu_title="Analytic Tags", menu_icon="fa-tag"),
             ResourceDef("acc/sales-invoice",          AccSalesInvoice,        admin_list=True,
+                        handler=PostableInvoiceHandler("/api/erp/acc/sales-invoice/post"),
                         menu_title="Sales Invoices", menu_icon="fa-file-text-o"),
             ResourceDef("acc/sales-invoice-line",     AccSalesInvoiceLine,    admin_list=False, is_child_table=True),
             ResourceDef("acc/sales-invoice-charge",   AccSalesInvoiceCharge,  admin_list=False, is_child_table=True),
             ResourceDef("acc/purchase-invoice",       AccPurchaseInvoice,     admin_list=True,
+                        handler=PostableInvoiceHandler("/api/erp/acc/purchase-invoice/post"),
                         menu_title="Purchase Invoices", menu_icon="fa-file-o"),
             ResourceDef("acc/purchase-invoice-line",  AccPurchaseInvoiceLine, admin_list=False, is_child_table=True),
             ResourceDef("acc/purchase-invoice-charge",AccPurchaseInvoiceCharge,admin_list=False, is_child_table=True),
@@ -479,7 +513,8 @@ helper = AppHelper(
             ResourceDef("stock/product-category", StockProductCategory, admin_list=True,
                         menu_title="Product Categories", menu_icon="fa-folder-o"),
             ResourceDef("stock/product",          StockProduct,         admin_list=True,
-                        menu_title="Products", menu_icon="fa-cube"),
+                        menu_title="Products", menu_icon="fa-cube",
+                        handler=StockProductHandler()),
             ResourceDef("stock/product-uom",      StockProductUom,      admin_list=False, is_child_table=True),
             ResourceDef("stock/product-price",    StockProductPrice,    admin_list=False, is_child_table=True),
             ResourceDef("stock/product-bundle",   StockProductBundle,   admin_list=True,
@@ -487,10 +522,10 @@ helper = AppHelper(
             ResourceDef("stock/product-account",  StockProductAccountLink, admin_list=False, is_child_table=True),
             ResourceDef("stock/pricelist",        StockPriceList,       admin_list=True,
                         menu_title="Price Lists", menu_icon="fa-tag"),
-            ResourceDef("stock/pricelist-item",   StockPriceListItem,   admin_list=False, is_child_table=True),
-            ResourceDef("stock/warehouse",        StockWarehouse,       admin_list=True,
-                        menu_title="Warehouses", menu_icon="fa-building-o"),
-            ResourceDef("stock/location",         StockLocation,        admin_list=False, is_child_table=True),
+            ResourceDef("stock/pricelist-item",   StockProductPrice,    admin_list=False, is_child_table=True),
+            ResourceDef("stock/location",          StockLocation,         admin_list=True,
+                        menu_title="Locations", menu_icon="fa-building-o"),
+            ResourceDef("stock/product-location",  StockProductLocation,  admin_list=False, is_child_table=True),
             ResourceDef("stock/movement",         StockMovement,        admin_list=True,
                         menu_title="Stock Movements", menu_icon="fa-exchange"),
             ResourceDef("stock/movement-line",    StockMovementLine,    admin_list=False, is_child_table=True),

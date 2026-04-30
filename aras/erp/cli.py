@@ -46,23 +46,27 @@ def _seed_coa(company_id):
 
 
 def _seed_warehouse(company_id):
-    from aras.erp.erp_stock.models.warehouse import StockWarehouse, StockLocation
-    wh, _ = StockWarehouse.get_or_create(
-        {"name": "Gudang Utama", "company_id": company_id, "is_active": True},
-        code="GU", company_id=company_id,
+    from aras.erp.erp_stock.models.warehouse import StockLocation
+    # Root warehouse location (is_group=True = container, not physical)
+    wh, _ = StockLocation.get_or_create(
+        {"name": "Gudang Utama", "company_id": company_id, "location_type": "internal",
+         "is_group": True, "is_active": True},
+        company_id=company_id, name="Gudang Utama",
     )
-    StockLocation.get_or_create(
-        {"name": "Vendor", "location_type": "vendor", "is_active": True},
-        warehouse_id=None, location_type="vendor",
-    )
+    # Physical stock location (child of warehouse)
     loc, _ = StockLocation.get_or_create(
-        {"name": "Stok Utama", "location_type": "internal",
-         "warehouse_id": wh.id, "is_active": True},
-        warehouse_id=wh.id, location_type="internal",
+        {"name": "Stok Utama", "company_id": company_id, "location_type": "internal",
+         "parent_id": wh.id, "is_active": True},
+        company_id=company_id, parent_id=wh.id, location_type="internal",
+    )
+    # Virtual system locations (no company = shared)
+    StockLocation.get_or_create(
+        {"name": "Vendor",     "location_type": "vendor",   "is_active": True},
+        location_type="vendor",
     )
     StockLocation.get_or_create(
-        {"name": "Pelanggan", "location_type": "customer", "is_active": True},
-        warehouse_id=None, location_type="customer",
+        {"name": "Pelanggan",  "location_type": "customer",  "is_active": True},
+        location_type="customer",
     )
     return wh, loc
 
@@ -133,18 +137,18 @@ def _seed_mop(company_id, coa):
     return mops
 
 
-def _seed_terminal(company_id, wh, mops):
+def _seed_terminal(company_id, loc, mops):
     from aras.erp.erp_pos.models.terminal import PosTerminal
     from arasCore.lib.core.extensions import db
     term, _ = PosTerminal.get_or_create(
         {
             "name": "Kasir 1", "company_id": company_id,
-            "warehouse_id": wh.id, "transaction_mode": "income",
+            "location_id": loc.id, "transaction_mode": "income",
         },
         code="K1", company_id=company_id,
     )
-    if not term.warehouse_id:
-        term.warehouse_id = wh.id
+    if not term.location_id:
+        term.location_id = loc.id
         db.session.commit()
     return term
 
@@ -277,7 +281,7 @@ def _run_test_flow(count: int, verbose: bool):
     from arasCore.lib.core.extensions import db
     from aras.erp.erp_core.models.company import Company
     from aras.erp.erp_stock.models.product import StockProduct
-    from aras.erp.erp_stock.models.warehouse import StockWarehouse
+    from aras.erp.erp_stock.models.warehouse import StockLocation
     from aras.erp.erp_stock.models import StockValuation
     from aras.erp.erp_acc.models.journal import AccJournalEntry, AccJournalLine
     from aras.erp.erp_acc.models.invoice import (
@@ -302,9 +306,9 @@ def _run_test_flow(count: int, verbose: bool):
     if not prod:
         _err("No product KST. Run: flask aras erp seed"); return
 
-    wh = StockWarehouse.find(code="GU", company_id=cid) or StockWarehouse.find(company_id=cid)
+    wh = StockLocation.find(company_id=cid, location_type="internal", is_group=False)
     if not wh:
-        _err("No warehouse. Run: flask aras erp seed"); return
+        _err("No stock location. Run: flask aras erp seed"); return
 
     terminal = PosTerminal.find(code="K1", company_id=cid) or PosTerminal.find(company_id=cid)
     if not terminal:
@@ -375,7 +379,7 @@ def _run_test_flow(count: int, verbose: bool):
             ))
             db.session.commit()
 
-            posted_pinv = post_purchase_invoice(pinv.id, warehouse_id=wh.id)
+            posted_pinv = post_purchase_invoice(pinv.id, location_id=wh.id)
             assert posted_pinv.state == "posted",        f"Purchase state={posted_pinv.state}"
             assert posted_pinv.journal_entry_id,          "Purchase journal entry missing"
 

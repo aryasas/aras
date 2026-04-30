@@ -40,12 +40,25 @@ def register_db_commands(aras):
     @aras.command("migrate", help="Run arasCore idempotent migrations (page type, settings, etc.)")
     def migrate():
         import flask
+        import importlib as _ilib
         from arasCore.lib.migrations import m001_page_type, m002_rbac, m004_arasmodel_audit_cols, m005_list_view_setting
         _app = flask.current_app._get_current_object()
         m001_page_type.run(_app)
         m002_rbac.run(_app)
         m004_arasmodel_audit_cols.run(_app)
         m005_list_view_setting.run(_app)
+        # ERP-specific migrations (idempotent — safe to run on every migrate)
+        for _mname in (
+            "aras.erp.migrations.021_restructure_charge_mop_shift",
+            "aras.erp.migrations.022_invoice_payment_coa_group",
+            "aras.erp.migrations.023_supplier_module",
+            "aras.erp.migrations.024_invoice_supplier_warehouse",
+            "aras.erp.migrations.025_warehouse_group_product_warehouse",
+        ):
+            try:
+                _ilib.import_module(_mname).run(_app)
+            except (ModuleNotFoundError, ImportError) as _e:
+                click.echo(f"          [migrate] skipped {_mname}: {_e}")
         click.echo("[migrate] done.")
 
     @aras.command("remigrate", help="Drop & recreate all tables, run all migrations, sync all manifests, seed ERP")

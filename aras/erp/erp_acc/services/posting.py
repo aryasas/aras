@@ -30,6 +30,15 @@ def post_journal(
     if period and period.state == "closed":
         raise ValueError(f"Fiscal period '{period.code}' is closed")
 
+    if origin:
+        existing = AccJournalEntry.query.filter_by(
+            origin_model=origin[0], origin_id=origin[1]
+        ).first()
+        if existing:
+            raise ValueError(f"Journal entry already exists for {origin[0]} #{origin[1]} ({existing.name})")
+
+    lines = _merge_lines(lines)
+
     total_debit  = sum(Decimal(str(l.get("debit",  0))) for l in lines)
     total_credit = sum(Decimal(str(l.get("credit", 0))) for l in lines)
     if abs(total_debit - total_credit) > Decimal("0.01"):
@@ -62,10 +71,14 @@ def post_journal(
     db.session.add(entry)
     db.session.flush()
 
-    for i, l in enumerate(lines):
+    dr_lines = [l for l in lines if Decimal(str(l.get("debit",  0))) > 0]
+    cr_lines = [l for l in lines if Decimal(str(l.get("credit", 0))) > 0]
+    ordered  = dr_lines + cr_lines
+
+    for i, l in enumerate(ordered):
         db.session.add(AccJournalLine(
             entry_id=entry.id,
-            sequence=i,
+            sequence=(i + 1) * 10,
             account_id=l["account_id"],
             partner_type=l.get("partner_type", "none"),
             partner_id=l.get("partner_id"),
@@ -106,6 +119,13 @@ def post_sales_invoice(invoice_id: int) -> "AccSalesInvoice":
         raise ValueError(f"Invoice {inv.name} is already {inv.state}")
 
     company_id = inv.company_id
+
+    # Recompute totals from lines if header totals are zero (e.g. created programmatically)
+    computed_subtotal = sum(Decimal(str(il.subtotal or 0)) for il in inv.lines)
+    if Decimal(str(inv.total or 0)) == 0 and computed_subtotal > 0:
+        inv.subtotal = float(computed_subtotal)
+        inv.total    = float(computed_subtotal)
+
     lines = []
 
     # ── Revenue + COGS per line ───────────────────────────────────────────────
@@ -176,9 +196,66 @@ def post_sales_invoice(invoice_id: int) -> "AccSalesInvoice":
         origin=("acc_sales_invoice", inv.id),
     )
     inv.journal_entry_id = entry.id
+
+    # ── Stock movement (delivery) ─────────────────────────────────────────────
+    location_id = getattr(inv, "location_id", None)
+    if location_id:
+        _post_sales_delivery(inv, company_id, location_id)
+
     inv.state = "posted"
     db.session.commit()
     return inv
+
+
+def _post_sales_delivery(inv, company_id: int, location_id: int):
+    from aras.erp.erp_stock.models.movement import StockMovement, StockMovementLine
+    from aras.erp.erp_stock.models.warehouse import StockLocation
+    from aras.erp.erp_stock.services.posting import post_movement
+    from aras.erp.erp_core.models.sequence import Sequence
+    from aras.erp.erp_core.services import sequence as seq_svc
+
+    src_loc = StockLocation.get(location_id)
+    if not src_loc:
+        return
+
+    seq = (Sequence.find(code="stock.delivery", company_id=company_id)
+           or Sequence.find(code="stock.move", company_id=company_id))
+    name = seq_svc.next_number_for_seq(seq) if seq else f"DEL/{company_id}/{inv.name}"
+
+    mv = StockMovement(
+        company_id=company_id,
+        name=name,
+        move_type="delivery",
+        date_move=inv.invoice_date or date_type.today(),
+        src_location_id=src_loc.id,
+        state="confirmed",
+        origin_model="acc_sales_invoice",
+        origin_id=inv.id,
+    )
+    db.session.add(mv)
+    db.session.flush()
+
+    for il in inv.lines:
+        product = il.product
+        if not product or not getattr(product, "is_stock_item", True):
+            continue
+        qty = il.qty or 0
+        if qty <= 0:
+            continue
+        from aras.erp.erp_stock.models import StockValuation
+        val  = StockValuation.find(product_id=product.id, company_id=company_id)
+        cost = Decimal(str(val.avg_cost if val else 0))
+        db.session.add(StockMovementLine(
+            movement_id=mv.id,
+            product_id=product.id,
+            uom_id=il.uom_id or product.uom_id,
+            qty=qty,
+            qty_base=qty,
+            unit_cost=cost,
+            total_cost=Decimal(str(qty)) * cost,
+        ))
+    db.session.flush()
+    post_movement(mv.id, skip_journal=True)  # journal already posted above
 
 
 def reverse_entry(entry_id: int, date: date_type, narrative: str = "") -> AccJournalEntry:
@@ -212,6 +289,43 @@ def reverse_entry(entry_id: int, date: date_type, narrative: str = "") -> AccJou
         narrative=narrative or f"Reversal of {orig.name}",
         origin=("acc_journal_entry", orig.id),
     )
+
+
+def _merge_lines(lines: list) -> list:
+    """
+    Merge journal lines with the same account_id into one row.
+    Non-numeric metadata (description, partner_type, partner_id, etc.) is kept
+    from the first line that carries it; amounts are summed.
+    """
+    merged: dict = {}
+    order:  list = []
+    for l in lines:
+        acc = l["account_id"]
+        if acc not in merged:
+            merged[acc] = {
+                "account_id":      acc,
+                "debit":           Decimal("0"),
+                "credit":          Decimal("0"),
+                "partner_type":    l.get("partner_type", "none"),
+                "partner_id":      l.get("partner_id"),
+                "currency_id":     l.get("currency_id"),
+                "amount_currency": l.get("amount_currency"),
+                "fx_rate":         l.get("fx_rate"),
+                "tax_base_amount": l.get("tax_base_amount"),
+                "analytic_tag_id": l.get("analytic_tag_id"),
+                "description":     l.get("description", ""),
+            }
+            order.append(acc)
+        merged[acc]["debit"]  += Decimal(str(l.get("debit",  0)))
+        merged[acc]["credit"] += Decimal(str(l.get("credit", 0)))
+        # keep first non-empty description / partner
+        if not merged[acc]["description"] and l.get("description"):
+            merged[acc]["description"] = l["description"]
+        if merged[acc]["partner_type"] == "none" and l.get("partner_type", "none") != "none":
+            merged[acc]["partner_type"] = l["partner_type"]
+            merged[acc]["partner_id"]   = l.get("partner_id")
+
+    return [merged[acc] for acc in order]
 
 
 def get_default_account(company_id: int, key: str) -> int:
