@@ -584,9 +584,8 @@ liab_curr    = run("a.account_type = 'liability_current'", 'credit')
 liab_long    = run("a.account_type = 'liability_long'",    'credit')
 equity       = run("a.account_type = 'equity'",            'credit')
 
-# Retained earnings: net income to date
-ret_sql = '''SELECT COALESCE(SUM(CASE WHEN a.account_type IN ('income_operating','income_other')
-                    THEN jl.credit - jl.debit ELSE jl.debit - jl.credit END), 0)
+# Retained earnings: net income = revenue - expense (all as credit - debit)
+ret_sql = '''SELECT COALESCE(SUM(jl.credit - jl.debit), 0)
     FROM acc_journal_line jl
     JOIN acc_journal_entry je ON je.id = jl.entry_id
     JOIN acc_account a ON a.id = jl.account_id
