@@ -58,6 +58,7 @@
 
         <script src="{{ url_for('static', filename='js/aras-design.js') }}"></script>
         <script src="{{ url_for('static', filename='js/aras_tweaks.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/adm_delete.js') }}"></script>
 
         {% block script %} 
         {% if moment is defined %}{{ moment.include_moment() }}{{ moment.lang(g.locale) }}{% endif %}

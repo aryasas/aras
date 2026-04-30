@@ -178,7 +178,7 @@ def register_erp_commands(aras):
     def erp_group():
         pass
 
-    @erp_group.command("migrate", help="Run ERP schema migrations 021 + 022 + 023")
+    @erp_group.command("migrate", help="Run ERP schema migrations 021–026")
     def erp_migrate():
         import flask, importlib
         app = flask.current_app._get_current_object()
@@ -186,10 +186,16 @@ def register_erp_commands(aras):
             m021 = importlib.import_module("aras.erp.migrations.021_restructure_charge_mop_shift")
             m022 = importlib.import_module("aras.erp.migrations.022_invoice_payment_coa_group")
             m023 = importlib.import_module("aras.erp.migrations.023_supplier_module")
+            m024 = importlib.import_module("aras.erp.migrations.024_invoice_supplier_warehouse")
+            m025 = importlib.import_module("aras.erp.migrations.025_warehouse_group_product_warehouse")
+            m026 = importlib.import_module("aras.erp.migrations.026_payment_order_delivery")
             _hdr("ERP Migrations")
             m021.run(app); _ok("021 done")
             m022.run(app); _ok("022 done")
             m023.run(app); _ok("023 done")
+            m024.run(app); _ok("024 done")
+            m025.run(app); _ok("025 done")
+            m026.run(app); _ok("026 done")
             click.echo(click.style("\nMigrations complete.", bold=True, fg="green"))
 
     @erp_group.command("seed", help="Seed full international CoA, warehouse, product, POS terminal")
@@ -367,7 +373,7 @@ def _run_test_flow(count: int, verbose: bool):
             )
             pinv = AccPurchaseInvoice(
                 company_id=cid, name=f"BILL/TF/{i:04d}",
-                vendor_name="Supplier Demo", invoice_date=date.today(),
+                invoice_date=date.today(),
                 currency_id=currency.id if currency else None,
             )
             db.session.add(pinv); db.session.flush()

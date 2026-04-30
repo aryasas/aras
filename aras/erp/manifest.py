@@ -16,14 +16,19 @@ from aras.erp.erp_acc.models import (
     AccAccount,
     AccJournalEntry, AccJournalLine,
     AccAnalyticTag,
+    SalesOrder, SalesOrderLine, SalesOrderCharge,
     AccSalesInvoice, AccSalesInvoiceLine, AccSalesInvoiceCharge,
     AccPurchaseInvoice, AccPurchaseInvoiceLine, AccPurchaseInvoiceCharge,
+    AccPayment, AccPaymentAllocation,
 )
 from aras.erp.erp_crm.models import (
     CrmCustomer, CrmContact,
     CrmLead, CrmPipeline, CrmStage, CrmActivity,
 )
-from aras.erp.erp_sup.models import SupSupplier
+from aras.erp.erp_sup.models import (
+    SupSupplier,
+    PurchaseOrder, PurchaseOrderLine, PurchaseOrderCharge,
+)
 from aras.erp.erp_pos.models import (
     PosTerminal, PosSession, PosShiftEntry,
 )
@@ -34,6 +39,7 @@ from aras.erp.erp_stock.models import (
     StockPriceList,
     StockLocation, StockProductLocation,
     StockMovement, StockMovementLine, StockValuation,
+    DeliveryTrip, DeliveryOrder, DeliveryOrderLine,
 )
 
 
@@ -118,6 +124,37 @@ class StockProductHandler(SubHandler):
             return {"sidebar_cards": [{"title": "Stock & Valuation", "rows": stock_rows}]}
         except Exception:
             return {}
+
+
+class LeadHandler(SubHandler):
+    def detail_context(self, obj):
+        if not obj or obj.state == "won":
+            return {}
+        return {"convert_url": "/api/erp/crm/lead/convert-customer"}
+
+
+class SalesOrderHandler(SubHandler):
+    def detail_context(self, obj):
+        if not obj:
+            return {}
+        if obj.state == "confirmed":
+            return {
+                "post_url": "/api/erp/acc/sales-order/create-invoice",
+                "obj_id":   obj.id,
+            }
+        return {"obj_state": obj.state}
+
+
+class PurchaseOrderHandler(SubHandler):
+    def detail_context(self, obj):
+        if not obj:
+            return {}
+        if obj.state == "confirmed":
+            return {
+                "post_url": "/api/erp/sup/purchase-order/create-invoice",
+                "obj_id":   obj.id,
+            }
+        return {"obj_state": obj.state}
 
 
 def _handle_post_journal():
@@ -401,6 +438,165 @@ def _handle_purchase_invoice_post():
         return jsonify({"ok": False, "error": str(e)}), 400
 
 
+# ── Sales Order handlers ──────────────────────────────────────────────────────
+
+def _handle_sales_order_confirm():
+    from flask import request, jsonify
+    from arasCore.lib.core.extensions import db
+    data = request.get_json() or {}
+    order_id = data.get("order_id") or data.get("obj_id")
+    if not order_id:
+        return jsonify({"ok": False, "error": "order_id required"}), 400
+    try:
+        from aras.erp.erp_acc.services.sales_order_service import confirm_order
+        confirm_order(int(order_id))
+        return jsonify({"ok": True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+def _handle_sales_order_create_invoice():
+    from flask import request, jsonify
+    from arasCore.lib.core.extensions import db
+    data = request.get_json() or {}
+    order_id = data.get("order_id") or data.get("obj_id")
+    if not order_id:
+        return jsonify({"ok": False, "error": "order_id required"}), 400
+    try:
+        from aras.erp.erp_acc.services.sales_order_service import create_invoice_from_order
+        inv = create_invoice_from_order(int(order_id))
+        return jsonify({"ok": True, "invoice_id": inv.id, "invoice_name": inv.name})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+# ── Purchase Order handlers ───────────────────────────────────────────────────
+
+def _handle_purchase_order_confirm():
+    from flask import request, jsonify
+    from arasCore.lib.core.extensions import db
+    data = request.get_json() or {}
+    order_id = data.get("order_id") or data.get("obj_id")
+    if not order_id:
+        return jsonify({"ok": False, "error": "order_id required"}), 400
+    try:
+        from aras.erp.erp_sup.services.purchase_order_service import confirm_order
+        confirm_order(int(order_id))
+        return jsonify({"ok": True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+def _handle_purchase_order_create_invoice():
+    from flask import request, jsonify
+    from arasCore.lib.core.extensions import db
+    data = request.get_json() or {}
+    order_id = data.get("order_id") or data.get("obj_id")
+    if not order_id:
+        return jsonify({"ok": False, "error": "order_id required"}), 400
+    try:
+        from aras.erp.erp_sup.services.purchase_order_service import create_invoice_from_order
+        inv = create_invoice_from_order(int(order_id))
+        return jsonify({"ok": True, "invoice_id": inv.id, "invoice_name": inv.name})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+# ── Payment handlers ──────────────────────────────────────────────────────────
+
+def _handle_payment_post():
+    from flask import request, jsonify
+    from arasCore.lib.core.extensions import db
+    data = request.get_json() or {}
+    payment_id = data.get("payment_id") or data.get("obj_id")
+    if not payment_id:
+        return jsonify({"ok": False, "error": "payment_id required"}), 400
+    try:
+        from aras.erp.erp_acc.services.payment_service import post_payment
+        post_payment(int(payment_id))
+        return jsonify({"ok": True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+def _handle_payment_allocate():
+    from flask import request, jsonify
+    from arasCore.lib.core.extensions import db
+    data = request.get_json() or {}
+    payment_id   = data.get("payment_id")
+    invoice_type = data.get("invoice_type")   # "sales" or "purchase"
+    invoice_id   = data.get("invoice_id")
+    amount       = data.get("amount")
+    if not all([payment_id, invoice_type, invoice_id, amount]):
+        return jsonify({"ok": False, "error": "payment_id, invoice_type, invoice_id, amount required"}), 400
+    try:
+        from aras.erp.erp_acc.services.payment_service import allocate
+        alloc = allocate(int(payment_id), invoice_type, int(invoice_id), float(amount))
+        return jsonify({"ok": True, "allocation_id": alloc.id})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+# ── CRM lead convert handler ──────────────────────────────────────────────────
+
+def _handle_lead_convert():
+    from flask import request, jsonify
+    from arasCore.lib.core.extensions import db
+    data    = request.get_json() or {}
+    lead_id = data.get("lead_id") or data.get("obj_id")
+    code    = data.get("customer_code")
+    if not lead_id:
+        return jsonify({"ok": False, "error": "lead_id required"}), 400
+    try:
+        from aras.erp.erp_crm.services.lead_service import convert_to_customer
+        customer = convert_to_customer(int(lead_id), customer_code=code)
+        return jsonify({"ok": True, "customer_id": customer.id, "customer_name": customer.name})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+# ── Delivery handlers ─────────────────────────────────────────────────────────
+
+def _handle_delivery_assign_trip():
+    from flask import request, jsonify
+    from arasCore.lib.core.extensions import db
+    data = request.get_json() or {}
+    delivery_id = data.get("delivery_id") or data.get("obj_id")
+    trip_id     = data.get("trip_id")
+    if not delivery_id or not trip_id:
+        return jsonify({"ok": False, "error": "delivery_id and trip_id required"}), 400
+    try:
+        from aras.erp.erp_stock.services.delivery_service import assign_to_trip
+        assign_to_trip(int(delivery_id), int(trip_id))
+        return jsonify({"ok": True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+def _handle_delivery_mark_delivered():
+    from flask import request, jsonify
+    from arasCore.lib.core.extensions import db
+    data = request.get_json() or {}
+    delivery_id = data.get("delivery_id") or data.get("obj_id")
+    if not delivery_id:
+        return jsonify({"ok": False, "error": "delivery_id required"}), 400
+    try:
+        from aras.erp.erp_stock.services.delivery_service import mark_delivered
+        mark_delivered(int(delivery_id))
+        return jsonify({"ok": True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
 # ── Wrapper functions untuk CustomRoute (menerima URL args dari Flask) ────────
 
 def _handle_pos_products(session_id):
@@ -455,6 +651,11 @@ helper = AppHelper(
             ResourceDef("acc/line",         AccJournalLine,   admin_list=False, is_child_table=True),
             ResourceDef("acc/analytic-tag", AccAnalyticTag,   admin_list=True,
                         menu_title="Analytic Tags", menu_icon="fa-tag"),
+            ResourceDef("acc/sales-order",        SalesOrder,       admin_list=True,
+                        handler=SalesOrderHandler(),
+                        menu_title="Sales Orders", menu_icon="fa-file-text"),
+            ResourceDef("acc/sales-order-line",   SalesOrderLine,   admin_list=False, is_child_table=True),
+            ResourceDef("acc/sales-order-charge", SalesOrderCharge, admin_list=False, is_child_table=True),
             ResourceDef("acc/sales-invoice",          AccSalesInvoice,        admin_list=True,
                         handler=PostableInvoiceHandler("/api/erp/acc/sales-invoice/post"),
                         menu_title="Sales Invoices", menu_icon="fa-file-text-o"),
@@ -465,6 +666,9 @@ helper = AppHelper(
                         menu_title="Purchase Invoices", menu_icon="fa-file-o"),
             ResourceDef("acc/purchase-invoice-line",  AccPurchaseInvoiceLine, admin_list=False, is_child_table=True),
             ResourceDef("acc/purchase-invoice-charge",AccPurchaseInvoiceCharge,admin_list=False, is_child_table=True),
+            ResourceDef("acc/payment",            AccPayment,           admin_list=True,
+                        menu_title="Payments", menu_icon="fa-money"),
+            ResourceDef("acc/payment-allocation", AccPaymentAllocation, admin_list=False, is_child_table=True),
         ]),
 
         # ── CRM ─────────────────────────────────────────────────────────────────
@@ -474,6 +678,7 @@ helper = AppHelper(
                         menu_title="Customers", menu_icon="fa-user-circle"),
             ResourceDef("crm/contact",   CrmContact,   admin_list=False, is_child_table=True),
             ResourceDef("crm/lead",      CrmLead,      admin_list=True,
+                        handler=LeadHandler(),
                         menu_title="Leads", menu_icon="fa-filter"),
             ResourceDef("crm/pipeline",  CrmPipeline,  admin_list=True,
                         menu_title="Pipelines", menu_icon="fa-random"),
@@ -483,8 +688,13 @@ helper = AppHelper(
 
         # ── Supplier ────────────────────────────────────────────────────────────
         MenuGroup("Supplier", "fa-truck", order=3, resources=[
-            ResourceDef("sup/supplier", SupSupplier, admin_list=True,
+            ResourceDef("sup/supplier",             SupSupplier,         admin_list=True,
                         menu_title="Suppliers", menu_icon="fa-truck"),
+            ResourceDef("sup/purchase-order",       PurchaseOrder,       admin_list=True,
+                        handler=PurchaseOrderHandler(),
+                        menu_title="Purchase Orders", menu_icon="fa-shopping-basket"),
+            ResourceDef("sup/purchase-order-line",  PurchaseOrderLine,   admin_list=False, is_child_table=True),
+            ResourceDef("sup/purchase-order-charge",PurchaseOrderCharge, admin_list=False, is_child_table=True),
         ]),
 
         # ── POS ─────────────────────────────────────────────────────────────────
@@ -531,16 +741,30 @@ helper = AppHelper(
             ResourceDef("stock/movement-line",    StockMovementLine,    admin_list=False, is_child_table=True),
             ResourceDef("stock/valuation",        StockValuation,       admin_list=True,
                         menu_title="Stock Valuation", menu_icon="fa-bar-chart"),
+            ResourceDef("stock/delivery-trip",    DeliveryTrip,         admin_list=True,
+                        menu_title="Delivery Trips", menu_icon="fa-road"),
+            ResourceDef("stock/delivery-order",   DeliveryOrder,        admin_list=True,
+                        menu_title="Delivery Orders", menu_icon="fa-map-marker"),
+            ResourceDef("stock/delivery-order-line", DeliveryOrderLine, admin_list=False, is_child_table=True),
         ]),
     ],
     custom_routes=[
-        CustomRoute("/acc/entry/post",                          _handle_post_journal,          methods=["POST"], require_auth=True),
-        CustomRoute("/acc/sales-invoice/post",                  _handle_sales_invoice_post,    methods=["POST"], require_auth=True),
-        CustomRoute("/acc/purchase-invoice/post",               _handle_purchase_invoice_post, methods=["POST"], require_auth=True),
-        CustomRoute("/invoice/product-price",                   _handle_product_price,         methods=["GET"],  require_auth=True),
-        CustomRoute("/pos/session/<int:session_id>/products",   _handle_pos_products,          methods=["GET"],  require_auth=True),
-        CustomRoute("/pos/session/<int:session_id>/stock/<int:product_id>", _handle_pos_stock, methods=["GET"],  require_auth=True),
-        CustomRoute("/pos/session/<int:session_id>/order",      _handle_pos_order,             methods=["POST"], require_auth=True),
+        CustomRoute("/acc/entry/post",                          _handle_post_journal,                   methods=["POST"], require_auth=True),
+        CustomRoute("/acc/sales-invoice/post",                  _handle_sales_invoice_post,             methods=["POST"], require_auth=True),
+        CustomRoute("/acc/purchase-invoice/post",               _handle_purchase_invoice_post,          methods=["POST"], require_auth=True),
+        CustomRoute("/acc/sales-order/confirm",                 _handle_sales_order_confirm,            methods=["POST"], require_auth=True),
+        CustomRoute("/acc/sales-order/create-invoice",          _handle_sales_order_create_invoice,     methods=["POST"], require_auth=True),
+        CustomRoute("/sup/purchase-order/confirm",              _handle_purchase_order_confirm,         methods=["POST"], require_auth=True),
+        CustomRoute("/sup/purchase-order/create-invoice",       _handle_purchase_order_create_invoice,  methods=["POST"], require_auth=True),
+        CustomRoute("/acc/payment/post",                        _handle_payment_post,                   methods=["POST"], require_auth=True),
+        CustomRoute("/acc/payment/allocate",                    _handle_payment_allocate,               methods=["POST"], require_auth=True),
+        CustomRoute("/crm/lead/convert-customer",               _handle_lead_convert,                   methods=["POST"], require_auth=True),
+        CustomRoute("/stk/delivery/assign-trip",                _handle_delivery_assign_trip,           methods=["POST"], require_auth=True),
+        CustomRoute("/stk/delivery/mark-delivered",             _handle_delivery_mark_delivered,        methods=["POST"], require_auth=True),
+        CustomRoute("/invoice/product-price",                   _handle_product_price,                  methods=["GET"],  require_auth=True),
+        CustomRoute("/pos/session/<int:session_id>/products",   _handle_pos_products,                   methods=["GET"],  require_auth=True),
+        CustomRoute("/pos/session/<int:session_id>/stock/<int:product_id>", _handle_pos_stock,          methods=["GET"],  require_auth=True),
+        CustomRoute("/pos/session/<int:session_id>/order",      _handle_pos_order,                      methods=["POST"], require_auth=True),
     ],
     settings_schema=[
         # General

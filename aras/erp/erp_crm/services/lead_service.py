@@ -1,6 +1,6 @@
 from datetime import datetime
 from arasCore.lib.core.extensions import db
-from aras.erp.erp_crm.models import CrmLead, CrmActivity
+from aras.erp.erp_crm.models import CrmLead, CrmActivity, CrmCustomer
 
 
 def convert_to_opportunity(lead_id: int, pipeline_id: int, stage_id: int) -> CrmLead:
@@ -31,3 +31,31 @@ def log_activity(lead_id: int, type: str, summary: str,
 def mark_activity_done(activity_id: int) -> CrmActivity:
     act = CrmActivity.get_or_404(activity_id)
     return act.update_self({"is_done": True, "date_done": datetime.utcnow()})
+
+
+def convert_to_customer(lead_id: int, customer_code: str = None) -> CrmCustomer:
+    """Convert a lead/opportunity into a CrmCustomer. Marks lead as won."""
+    lead = CrmLead.get_or_404(lead_id)
+    if lead.state == "won" and lead.customer_id:
+        return CrmCustomer.get_or_404(lead.customer_id)
+
+    code = customer_code or f"CUST-{lead.id:05d}"
+
+    existing = CrmCustomer.find(company_id=lead.company_id, code=code)
+    if existing:
+        customer = existing
+    else:
+        customer = CrmCustomer.create({
+            "company_id": lead.company_id,
+            "code":       code,
+            "name":       lead.name,
+            "email":      lead.contact_email,
+            "phone":      lead.contact_phone,
+        })
+
+    lead.update_self({
+        "customer_id": customer.id,
+        "state":       "won",
+        "date_closed": datetime.utcnow(),
+    })
+    return customer

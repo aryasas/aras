@@ -75,6 +75,15 @@ def _register_helper(flask_app, helper):
         if res.admin_list:
             _mount_admin_resource(helper_bp, res, adm_prefix, helper)
 
+    # Auto-register models with origin_model column for linked-doc detection
+    try:
+        from arasCore.lib.models.deletion_models import register_origin_model
+        for res in helper.resources:
+            if res.model and hasattr(res.model, "origin_model"):
+                register_origin_model(res.model.__tablename__, res.model)
+    except Exception:
+        pass
+
     # ── 2. Custom routes → /api/<app>/<path>/ ────────────────────────────────
     for cr in helper.custom_routes:
         rel_path = cr.path.strip("/")

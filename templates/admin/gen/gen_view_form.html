@@ -44,6 +44,12 @@ form view with timeline activity and optimized child-table interactions.
                 <button type="button" class="aras-btn aras-btn--outline" id="btnDuplicate" title="Duplicate this record">
                     <i class="fa fa-copy"></i> <span class="d-none d-md-inline">Duplicate</span>
                 </button>
+                <button type="button" class="aras-btn aras-btn--outline text-danger" id="btnDeleteRecord"
+                        data-delete-url="{{ delete_url | default('') }}"
+                        data-linked-docs-url="{{ linked_docs_url | default('') }}"
+                        title="Delete this record">
+                    <i class="fa fa-trash"></i> <span class="d-none d-md-inline">Delete</span>
+                </button>
                 {% endif %}
                 {% if post_url is defined and post_url %}
                 <button type="submit" form="mainForm" class="aras-btn aras-btn--outline">
@@ -208,6 +214,7 @@ form view with timeline activity and optimized child-table interactions.
         </div>
     </div>
 </div>
+{% include 'admin/gen/modal_delete_confirm.html' %}
 {% endblock %} {% block script %} {{ super() }}
 <script src="{{ url_for('static', filename='js/adm_form.js') }}"></script>
 <script>

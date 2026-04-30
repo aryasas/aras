@@ -50,13 +50,14 @@ ORDER BY si.invoice_date DESC""",
         "render_mode": "list",
         "script": """SELECT
   pi.name as invoice_no,
-  pi.vendor_name as vendor,
+  COALESCE(s.name, '') as vendor,
   pi.invoice_date as date,
   pi.subtotal,
   pi.charge_amt,
   pi.total,
   pi.state
 FROM acc_purchase_invoice pi
+LEFT JOIN sup_supplier s ON s.id = pi.supplier_id
 WHERE pi.company_id = :company_id
   AND (:date_from IS NULL OR pi.invoice_date >= :date_from)
   AND (:date_to IS NULL OR pi.invoice_date <= :date_to)

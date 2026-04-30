@@ -14,6 +14,66 @@ from aras.erp.erp_acc.models import AccJournalEntry, AccJournalLine
 logger = logging.getLogger(__name__)
 
 
+def recalculate_valuation(company_id: int, product_id: int, location_id: int) -> None:
+    """
+    Replay all posted movements for (company, product, location) from scratch
+    to rebuild StockValuation. Called after a movement is deleted.
+    """
+    from datetime import date as date_type
+
+    val = StockValuation.find(company_id=company_id, product_id=product_id, location_id=location_id)
+    if not val:
+        return
+
+    # Reset to zero
+    val.qty_on_hand = Decimal("0")
+    val.avg_cost    = Decimal("0")
+    val.total_value = Decimal("0")
+
+    from sqlalchemy import or_
+    from aras.erp.erp_stock.models.movement import StockMovementLine
+
+    # Fetch all remaining posted movements affecting this product+location, ordered by date
+    mv_ids = db.session.query(StockMovementLine.movement_id).filter(
+        StockMovementLine.product_id == product_id
+    ).scalar_subquery()
+    rows = (
+        StockMovement.query
+        .filter(
+            StockMovement.company_id == company_id,
+            StockMovement.state      == "posted",
+            StockMovement.id.in_(mv_ids),
+            or_(
+                StockMovement.src_location_id == location_id,
+                StockMovement.dst_location_id == location_id,
+            )
+        )
+        .order_by(StockMovement.date_move, StockMovement.id)
+        .all()
+    )
+
+    for mv in rows:
+        for line in mv.lines:
+            if line.product_id != product_id:
+                continue
+            qty_base = Decimal(str(line.qty_base))
+            cost     = Decimal(str(line.unit_cost))
+
+            if mv.move_type in ("receipt", "opening", "adjustment") and mv.dst_location_id == location_id:
+                _update_avg_cost(val, qty_base, cost)
+
+            elif mv.move_type in ("delivery", "scrap") and mv.src_location_id == location_id:
+                val.qty_on_hand = max(Decimal("0"), Decimal(str(val.qty_on_hand)) - qty_base)
+                val.total_value = val.qty_on_hand * Decimal(str(val.avg_cost))
+
+            elif mv.move_type == "internal":
+                if mv.src_location_id == location_id:
+                    val.qty_on_hand = max(Decimal("0"), Decimal(str(val.qty_on_hand)) - qty_base)
+                    val.total_value = val.qty_on_hand * Decimal(str(val.avg_cost))
+                elif mv.dst_location_id == location_id:
+                    _update_avg_cost(val, qty_base, cost)
+
+
 def _valuation(company_id, product_id, location_id):
     val, _ = StockValuation.get_or_create(
         {"qty_on_hand": 0, "avg_cost": 0, "total_value": 0},

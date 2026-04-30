@@ -1,0 +1,144 @@
+{% extends 'admin/base_index.html' %}
+
+{% block page_content %}
+<div class="aras-studio-theme">
+    <div class="aras-page-header">
+        <div>
+            <h2 class="aras-page-title"><i class="fa fa-trash mr-2"></i>Trash</h2>
+            <small class="text-muted">Deleted documents — restore or permanently delete</small>
+        </div>
+    </div>
+
+    <div class="aras-card mt-3">
+        {% if not groups %}
+        <div style="padding:40px;text-align:center;color:var(--text-muted);">
+            <i class="fa fa-trash-o" style="font-size:36px;opacity:.3;"></i>
+            <p class="mt-3">Trash is empty.</p>
+        </div>
+        {% else %}
+        <table class="aras-table">
+            <thead>
+                <tr>
+                    <th>Document</th>
+                    <th>Type</th>
+                    <th>Records</th>
+                    <th>Deleted At</th>
+                    <th>Deleted By</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for g in groups %}
+                <tr>
+                    <td>
+                        {% if g.root and g.root.admin_url %}
+                        <a href="{{ g.root.admin_url }}" target="_blank">{{ g.root.doc_type }} #{{ g.root.doc_id }}</a>
+                        {% elif g.root %}
+                        {{ g.root.doc_type }} #{{ g.root.doc_id }}
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    <td><small class="aras-badge">{{ g.root.doc_type if g.root else '—' }}</small></td>
+                    <td>{{ g.doc_count }}</td>
+                    <td>{{ g.deleted_at.strftime('%d %b %Y %H:%M') if g.deleted_at else '—' }}</td>
+                    <td>{{ g.deleted_by_name or '—' }}</td>
+                    <td style="white-space:nowrap;">
+                        <button class="aras-btn aras-btn--sm aras-btn--outline"
+                                onclick="previewRestore('{{ g.group_id }}')"
+                                title="Restore">
+                            <i class="fa fa-undo"></i> Restore
+                        </button>
+                        <form method="POST"
+                              action="{{ url_for('admin.trash_permanent_delete', group_id=g.group_id) }}"
+                              style="display:inline;"
+                              onsubmit="return confirm('Permanently delete this group? This cannot be undone.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="aras-btn aras-btn--sm text-danger aras-btn--outline">
+                                <i class="fa fa-times"></i> Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if pagination and pagination.pages > 1 %}
+        <div style="padding:12px 16px;">
+            {% for p in pagination.iter_pages() %}
+                {% if p %}
+                <a href="{{ url_for('admin.trash_list', page=p) }}"
+                   class="aras-btn aras-btn--sm {% if p == pagination.page %}aras-btn--primary{% else %}aras-btn--outline{% endif %}">{{ p }}</a>
+                {% else %}…{% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Restore Preview Modal -->
+<div id="arasRestoreModal" class="aras-modal" style="display:none;">
+    <div class="aras-modal__overlay" id="arasRestoreModalOverlay"></div>
+    <div class="aras-modal__content" style="max-width:520px;">
+        <div class="aras-modal-header" style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+            <strong style="font-size:14px;"><i class="fa fa-undo text-success mr-2"></i> Confirm Restore</strong>
+            <button id="arasRestoreModalClose" class="aras-btn aras-btn--sm" style="padding:4px 8px;">&times;</button>
+        </div>
+        <div id="arasRestoreModalBody" style="padding:20px;"></div>
+        <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;">
+            <form id="arasRestoreForm" method="POST" style="flex:1;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="aras-btn aras-btn--primary w-100">
+                    <i class="fa fa-undo"></i> Restore All
+                </button>
+            </form>
+            <button id="arasRestoreModalCancel" class="aras-btn aras-btn--outline">Cancel</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}{{ super() }}
+<script>
+function previewRestore(groupId) {
+    var modal  = document.getElementById("arasRestoreModal");
+    var body   = document.getElementById("arasRestoreModalBody");
+    var form   = document.getElementById("arasRestoreForm");
+
+    body.innerHTML = "<i class='fa fa-spinner fa-spin'></i> Loading...";
+    modal.style.display = "";
+    form.action = "/admin/trash/" + groupId + "/restore/";
+
+    fetch("/admin/trash/" + groupId + "/inspect/", {
+        headers: { "X-Requested-With": "XMLHttpRequest" }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        var docs = data.docs || [];
+        var html = "<p class='text-success mb-2'><strong>" + docs.length + " record(s) will be restored:</strong></p>"
+                 + "<ul style='list-style:none;padding:0;margin:0 0 12px;'>";
+        docs.forEach(function(d) {
+            html += "<li style='padding:3px 0;'><i class='fa fa-file-o mr-1 text-muted'></i>"
+                  + d.doc_type + " #" + d.doc_id + "</li>";
+        });
+        html += "</ul><small class='text-muted'>Records will be inserted in dependency order.</small>";
+        body.innerHTML = html;
+    })
+    .catch(function() {
+        body.innerHTML = "<p>Could not load preview. Proceed to restore?</p>";
+    });
+}
+
+document.getElementById("arasRestoreModalClose").addEventListener("click", function() {
+    document.getElementById("arasRestoreModal").style.display = "none";
+});
+document.getElementById("arasRestoreModalCancel").addEventListener("click", function() {
+    document.getElementById("arasRestoreModal").style.display = "none";
+});
+document.getElementById("arasRestoreModalOverlay").addEventListener("click", function() {
+    document.getElementById("arasRestoreModal").style.display = "none";
+});
+</script>
+{% endblock %}

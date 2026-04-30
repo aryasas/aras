@@ -144,6 +144,12 @@ def create_app(config_type=None):
         except Exception as _me:
             app.logger.warning(f"[arasCore] migration m014 skipped: {_me}")
 
+        try:
+            from .lib.migrations import m015_deleted_docs
+            m015_deleted_docs.run(app)
+        except Exception as _me:
+            app.logger.warning(f"[arasCore] migration m015 skipped: {_me}")
+
         # App modules from aras/ gated by DB install status + admin last
         from .lib.services.blueprints import register_app_modules
         register_app_modules(app)
