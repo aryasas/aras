@@ -217,7 +217,7 @@ _COA: list[tuple] = [
 def seed_coa(company_id: int) -> dict:
     """
     Upsert all CoA rows for company_id.
-    Returns dict of slug → AccAccount for key accounts.
+    Returns dict of slug → AccAccount for key accounts used by seed helpers.
     """
     # First pass: build code → (row, slug) index & create/update all
     code_map: dict[str, AccAccount] = {}
@@ -225,7 +225,7 @@ def seed_coa(company_id: int) -> dict:
 
     # Insert in definition order (parents first)
     for code, name, acct_type, is_group, parent_code, slug in _COA:
-        parent_id = code_map[parent_code].id if parent_code else None
+        parent_id = code_map[parent_code].id if parent_code and parent_code in code_map else None
         acc, _ = AccAccount.get_or_create(
             {
                 "name": name,

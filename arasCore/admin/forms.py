@@ -161,6 +161,10 @@ class AppManagerColumnForm(ArasForm):
     relation_display_col  = StringField("Display Column", validators=[Optional(), Length(max=100)],
                                         description="Column shown in dropdown, e.g. name or username")
     cascade_delete        = BooleanField("Cascade Delete")
+    default_section       = SelectField("Default Section",
+                                        choices=[('header','Header'),('content','Content'),
+                                                 ('extra','Extra'),('footer','Footer')],
+                                        default='content')
     submit = SubmitField("Add Column")
 
     def __init__(self, app_id=None, *args, **kwargs):

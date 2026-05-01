@@ -7,6 +7,12 @@
         </div>
         <div class="aras-modal-body" id="arasDeleteModalBody" style="padding:20px;">
         </div>
+        <div id="arasDeleteProgressWrap" style="display:none; padding: 0 20px 20px;">
+            <div class="aras-progress-bar-bg" style="background:rgba(0,0,0,0.05); height:10px; border-radius:5px; overflow:hidden; position:relative;">
+                <div id="arasDeleteProgressBar" style="background:var(--danger, #dc3545); width:0%; height:100%; transition: width 0.2s ease-out;"></div>
+            </div>
+            <div id="arasDeleteProgressText" style="font-size:12px; margin-top:6px; text-align:center; font-weight: 500; color:var(--text-muted);">Deleting: 0/0</div>
+        </div>
         <div class="aras-modal-footer" style="padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;">
             <button id="arasDeleteModalConfirm" class="aras-btn aras-btn--danger" style="flex:1;">
                 <i class="fa fa-trash"></i> Delete All

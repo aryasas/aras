@@ -120,13 +120,8 @@ def post_sales_invoice(invoice_id: int) -> "AccSalesInvoice":
 
     company_id = inv.company_id
 
-    # Recompute totals from lines if header totals are zero (e.g. created programmatically)
-    computed_subtotal = sum(Decimal(str(il.subtotal or 0)) for il in inv.lines)
-    if Decimal(str(inv.total or 0)) == 0 and computed_subtotal > 0:
-        inv.subtotal = float(computed_subtotal)
-        inv.total    = float(computed_subtotal)
-
     lines = []
+    computed_subtotal = Decimal("0")
 
     # ── Revenue + COGS per line ───────────────────────────────────────────────
     for il in inv.lines:
@@ -135,6 +130,7 @@ def post_sales_invoice(invoice_id: int) -> "AccSalesInvoice":
         if subtotal == 0:
             continue
 
+        computed_subtotal += subtotal
         rev_acc = (
             getattr(il, "account_id", None)
             or (resolve_revenue_account(product, company_id) if product else None)
@@ -150,37 +146,45 @@ def post_sales_invoice(invoice_id: int) -> "AccSalesInvoice":
             acc_cogs  = resolve_cogs_account(product, company_id)
             acc_stock = resolve_stock_account(product, company_id)
             if acc_cogs and acc_stock:
-                cost   = compute_avg_cost(product.id, company_id=company_id)
+                cost   = Decimal(str(compute_avg_cost(product.id, company_id=company_id)))
                 qty    = Decimal(str(il.qty or 0))
-                amount = qty * cost
+                amount = round(qty * cost, 2)
                 if amount > 0:
                     lines.append({"account_id": acc_cogs,  "debit": float(amount), "credit": 0,
                                   "description": f"HPP {product.name}"})
                     lines.append({"account_id": acc_stock, "debit": 0, "credit": float(amount),
                                   "description": f"Persediaan keluar {product.name}"})
 
-    # ── Tax / PPN output ─────────────────────────────────────────────────────
+    # ── Tax / PPN output (exclusive only) ────────────────────────────────────
+    # Inclusive tax is already inside line subtotals — no extra CR needed.
+    # Only post a PPN line when charge_amt > 0 (exclusive tax added on top).
     charge_amt = Decimal(str(inv.charge_amt or 0))
+    posted_charge = Decimal("0")
     if charge_amt > 0:
         try:
             tax_acc = get_default_account(company_id, "tax_output_ppn")
             lines.append({"account_id": tax_acc, "debit": 0, "credit": float(charge_amt),
                           "description": "PPN Keluaran"})
+            posted_charge = charge_amt
         except ValueError:
             pass
 
     # ── Sales discount (DR) ──────────────────────────────────────────────────
     discount_amt = Decimal(str(inv.discount_amt or 0))
+    posted_discount = Decimal("0")
     if discount_amt > 0:
         try:
             disc_acc = get_default_account(company_id, "payment_discount")
             lines.append({"account_id": disc_acc, "debit": float(discount_amt), "credit": 0,
                           "description": "Diskon penjualan"})
+            posted_discount = discount_amt
         except ValueError:
-            pass  # no discount account configured — skip
+            pass  # no discount account — exclude discount from AR total too
 
-    # ── Accounts Receivable (DR) ─────────────────────────────────────────────
-    total  = Decimal(str(inv.total or 0))
+    # ── Accounts Receivable (DR) — always derived from actual line subtotals ──
+    total  = computed_subtotal + posted_charge - posted_discount
+    inv.subtotal = float(computed_subtotal)
+    inv.total    = float(total)
     ar_acc = get_default_account(company_id, "receivable_default")
     lines.append({"account_id": ar_acc, "debit": float(total), "credit": 0,
                   "partner_type": "customer", "partner_id": inv.customer_id,
@@ -329,13 +333,14 @@ def _merge_lines(lines: list) -> list:
 def get_default_account(company_id: int, key: str) -> int:
     """Resolve a default account ID from Company fields (e.g. key='cash_default' → acc_cash_default_id)."""
     from aras.erp.erp_core.models.company import Company
+    from aras.erp.erp_acc.models.account import AccAccount
     company = Company.get(company_id)
     if not company:
         raise ValueError(f"Company {company_id} not found")
     field = f"acc_{key}_id"
     acc_id = getattr(company, field, None)
-    if not acc_id:
-        raise ValueError(f"Default account '{key}' not configured for company {company_id}")
+    if not acc_id or not AccAccount.exists(id=acc_id):
+        raise ValueError(f"Default account '{key}' not configured or missing in COA for company {company_id}")
     return acc_id
 
 

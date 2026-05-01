@@ -24,7 +24,7 @@
     }
 })();
 
-function fillEditForm(colId, name, label, fieldType, order, required, showInList, showInForm, searchable, readonly, unique, length, default_value, placeholder, help_text, min_value, max_value, max_length, choices, relation_table_id, relation_system_table, relation_display_col, cascade_delete) {
+function fillEditForm(colId, name, label, fieldType, order, required, showInList, showInForm, searchable, readonly, unique, length, default_value, placeholder, help_text, min_value, max_value, max_length, choices, relation_table_id, relation_system_table, relation_display_col, cascade_delete, defaultSection) {
     var form = document.getElementById('col-form');
     form.action = window.EDIT_URL.replace('__COL_ID__', colId);
     document.getElementById('col-edit-id').value = colId;
@@ -59,6 +59,8 @@ function fillEditForm(colId, name, label, fieldType, order, required, showInList
     setToggle('readonly', readonly);
     setToggle('unique', unique);
     setToggle('cascade_delete', cascade_delete);
+    var dsSel = document.getElementById('default_section_sel');
+    if (dsSel) dsSel.value = defaultSection || 'content';
 
     document.getElementById('col-form-title').innerHTML =
         '<i class="fa fa-pencil icon--accent-mr-2"></i>Edit Point: <b>' + label + '</b>';

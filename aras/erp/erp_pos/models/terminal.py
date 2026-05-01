@@ -52,9 +52,8 @@ class PosSession(ArasModel):
     closed_at       = db.Column(db.DateTime, nullable=True)
     notes           = db.Column(db.Text, nullable=True)
 
-    cashier = db.relationship("User", foreign_keys=[cashier_id])
-    orders  = db.relationship("PosOrder", backref="session", lazy="dynamic")
-    entries = db.relationship("PosShiftEntry", backref="session", lazy="dynamic",
+    cashier  = db.relationship("User", foreign_keys=[cashier_id])
+    entries  = db.relationship("PosShiftEntry", backref="session", lazy="dynamic",
                               cascade="all, delete-orphan")
 
     def __repr__(self):

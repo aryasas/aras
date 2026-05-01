@@ -449,6 +449,7 @@ def apps_columns(app_id, table_id):
             relation_system_table=form.relation_system_table.data or None,
             relation_display_col=form.relation_display_col.data or None,
             cascade_delete=form.cascade_delete.data,
+            default_section=form.default_section.data or 'content',
         )
         db.session.add(col)
         db.session.commit()
@@ -469,17 +470,33 @@ def apps_columns(app_id, table_id):
 
     # ── Find Child Tables to pass to Form Designer ──
     child_table_defs = []
+    seen_child_names = set()
+
+    # 1. Dynamic tables: find FK columns pointing to this table
     for potential_child in all_tables_in_app:
         if potential_child.id == table_id:
             continue
-        # Check if this table has a column that is a relation to the *current* table
         fk_cols = [c for c in potential_child.columns if c.field_type == 'relation' and c.relation_table_id == table_id]
         if fk_cols:
-            child_table_defs.append({
-                "name": potential_child.name,
-                "label": potential_child.title,
-                "type": "child_table"
-            })
+            child_table_defs.append({"name": potential_child.name, "label": potential_child.title, "type": "child_table"})
+            seen_child_names.add(potential_child.name)
+
+    # 2. Code-based models: detect via SQLAlchemy relationships on the live model
+    try:
+        from arasCore.admin.crud_factory import _get_child_tables_for_model
+        from arasCore.lib.services.api_handler import get_api_registry
+        tbl_name_norm = tbl.name.replace("/", "_").replace("-", "_")
+        registry = get_api_registry()
+        model_cls = next((v["model"] for v in registry.values()
+                          if getattr(v.get("model"), "__tablename__", None) == tbl_name_norm), None)
+        if model_cls:
+            for cd in _get_child_tables_for_model(model_cls):
+                cname = cd.get("model_name") or cd["model"].__tablename__
+                if cname not in seen_child_names:
+                    child_table_defs.append({"name": cname, "label": cd.get("title", cname), "type": "child_table"})
+                    seen_child_names.add(cname)
+    except Exception:
+        pass
 
     # Pending schema migrations for this table
     pending_migrations = []
@@ -506,12 +523,15 @@ def apps_columns(app_id, table_id):
 @admin_bp.route("/apps/<int:app_id>/tables/<int:table_id>/columns/<int:col_id>/delete", methods=["POST"])
 @login_required
 def apps_column_delete(app_id, table_id, col_id):
-    from arasCore.admin.models import AppManagerColumn, AppManagerApp
+    from arasCore.admin.models import AppManagerColumn, AppManagerApp, AppManagerTable
     from arasCore.admin.services import clear_cache
     col     = AppManagerColumn.query.get_or_404(col_id)
     app_obj = AppManagerApp.query.get_or_404(app_id)
     label   = col.label
+    tbl     = AppManagerTable.query.get(table_id)
     db.session.delete(col)
+    if tbl:
+        tbl.layout_json = None  # force regeneration without deleted column
     db.session.commit()
     clear_cache(app_obj.slug)
     flash(f"Column '{label}' deleted.", "warning")
@@ -543,6 +563,8 @@ def apps_column_edit(app_id, table_id, col_id):
     col.max_length    = int(request.form.get("max_length")) if request.form.get("max_length") else None
     col.min_value     = request.form.get("min_value") or None
     col.max_value     = request.form.get("max_value") or None
+    _ds = request.form.get("default_section", "content")
+    col.default_section = _ds if _ds in ('header', 'content', 'extra', 'footer') else 'content'
     db.session.commit()
     clear_cache(app_obj.slug)
     flash(f"Column '{col.label}' updated.", "success")
@@ -570,10 +592,22 @@ def apps_table_layout_save(app_id, table_id):
     if layout is None:
         return {"ok": False, "error": "No layout provided"}, 400
     
-    # The `layout_json` column is a JSON type, so we pass the dict directly.
-    # SQLAlchemy will handle the serialization.
-    tbl.layout_json = layout
+    tbl.layout_json = json.dumps(layout) if not isinstance(layout, str) else layout
     db.session.add(tbl)
+    db.session.commit()
+    clear_cache(app_obj.slug)
+    return {"ok": True}
+
+
+@admin_bp.route("/apps/<int:app_id>/tables/<int:table_id>/layout/reset", methods=["POST"])
+@login_required
+def apps_table_layout_reset(app_id, table_id):
+    """Clear layout_json so the next form open regenerates and saves a fresh default."""
+    from arasCore.admin.models import AppManagerTable, AppManagerApp
+    from arasCore.admin.services import clear_cache
+    app_obj = AppManagerApp.query.get_or_404(app_id)
+    tbl     = AppManagerTable.query.get_or_404(table_id)
+    tbl.layout_json = None
     db.session.commit()
     clear_cache(app_obj.slug)
     return {"ok": True}

@@ -569,7 +569,12 @@ class AdminResourceMounter:
                 flash("Record deleted.", "warning")
             except Exception as ex:
                 db.session.rollback()
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return {"success": False, "message": str(ex)}, 400
                 flash(str(ex), "danger")
+            
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return {"success": True, "message": "Record deleted."}
             return redirect(f"{base_url}/")
         return view
 
@@ -584,6 +589,9 @@ class AdminResourceMounter:
             if not self._rbac("delete"):
                 abort(403)
             raw = request.form.get("ids", "")
+            if not raw and request.is_json:
+                raw = request.json.get("ids", "")
+            
             ids = [i.strip() for i in raw.split(",") if i.strip().isdigit()]
             deleted = 0
             errors  = []
@@ -600,6 +608,15 @@ class AdminResourceMounter:
                     except Exception as ex:
                         db.session.rollback()
                         errors.append(str(ex))
+            
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return {
+                    "success": len(errors) == 0,
+                    "deleted": deleted,
+                    "errors": errors,
+                    "message": f"{deleted} record(s) deleted."
+                }
+
             if deleted:
                 flash(f"{deleted} record(s) deleted.", "warning")
             for err in errors:

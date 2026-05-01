@@ -12,6 +12,14 @@ from aras.erp.erp_core.models import (
     ErpReport,
 )
 from aras.erp.erp_core.models.payment_mode import ModeOfPayment
+from aras.erp.erp_crm.models import (
+    CrmCustomer, CrmContact,
+    CrmLead, CrmPipeline, CrmStage, CrmActivity,
+)
+from aras.erp.erp_sup.models import (
+    SupSupplier,
+    PurchaseOrder, PurchaseOrderLine, PurchaseOrderCharge,
+)
 from aras.erp.erp_acc.models import (
     AccAccount,
     AccJournalEntry, AccJournalLine,
@@ -20,14 +28,6 @@ from aras.erp.erp_acc.models import (
     AccSalesInvoice, AccSalesInvoiceLine, AccSalesInvoiceCharge,
     AccPurchaseInvoice, AccPurchaseInvoiceLine, AccPurchaseInvoiceCharge,
     AccPayment, AccPaymentAllocation,
-)
-from aras.erp.erp_crm.models import (
-    CrmCustomer, CrmContact,
-    CrmLead, CrmPipeline, CrmStage, CrmActivity,
-)
-from aras.erp.erp_sup.models import (
-    SupSupplier,
-    PurchaseOrder, PurchaseOrderLine, PurchaseOrderCharge,
 )
 from aras.erp.erp_pos.models import (
     PosTerminal, PosSession, PosShiftEntry,
@@ -311,6 +311,7 @@ def _pos_create_order(session_id: int):
     lines_data    = data.get("lines", [])
     payments_data = data.get("payments", [])
     customer_id   = data.get("customer_id") or None
+    supplier_id   = data.get("supplier_id") or None
 
     if not lines_data:
         return jsonify({"ok": False, "error": "No items"}), 400
@@ -318,10 +319,22 @@ def _pos_create_order(session_id: int):
     terminal    = PosTerminal.get(session.terminal_id)
     location_id = terminal.location_id if terminal else None
 
-    if location_id:
+    terminal_mode = terminal.transaction_mode if terminal else "income"
+    ui_mode       = data.get("ui_mode", "in")  # "in" or "out" from frontend toggle
+    if terminal_mode == "both":
+        tx_mode = "income" if ui_mode == "in" else "outcome"
+    else:
+        tx_mode = terminal_mode
+
+    # Stock check only for sales (income); purchases receive stock, no check needed
+    if location_id and tx_mode == "income":
         from aras.erp.erp_stock.models.warehouse import StockLocation
+        from aras.erp.erp_stock.services.stock_compute import compute_qty
+        from aras.erp.erp_core.models.company import Company
+        from decimal import Decimal
         child_ids = [l.id for l in StockLocation.find_all(parent_id=location_id, is_active=True)]
         loc_ids   = tuple([location_id] + child_ids) or (0,)
+        _company  = Company.get(terminal.company_id) if terminal else None
         for l in lines_data:
             pid = l.get("product_id")
             if not pid:
@@ -329,26 +342,32 @@ def _pos_create_order(session_id: int):
             p = StockProduct.get(pid)
             if not p or not getattr(p, "is_stock_item", True):
                 continue
+            # Resolve allow_zero_stock: product → category → company
+            azs = p.allow_zero_stock
+            if azs is None and p.category:
+                azs = p.category.allow_zero_stock
+            if azs is None and _company:
+                azs = _company.allow_zero_stock
+            if azs:
+                continue
             qty_base = float(l.get("qty_base") or l.get("qty", 1))
-            from aras.erp.erp_stock.services.stock_compute import compute_qty
-            from decimal import Decimal
             stock = sum(compute_qty(pid, location_id=lid) for lid in loc_ids)
             if float(stock) < qty_base:
                 return jsonify({"ok": False, "error": f"Stok {p.name} tidak cukup (tersedia: {float(stock):.2f})"}), 400
 
-    tx_mode = terminal.transaction_mode if terminal else "income"
-
     try:
-        from aras.erp.erp_pos.services.order_service import create_order, pay_order
-        order = create_order(
+        from aras.erp.erp_pos.services.order_service import create_and_pay
+        inv, change = create_and_pay(
             session_id=session_id,
             cashier_id=current_user.id,
             lines=lines_data,
+            payments=payments_data,
             customer_id=customer_id,
+            supplier_id=supplier_id,
             note=data.get("note", ""),
+            tx_mode=tx_mode,
         )
-        order = pay_order(order.id, payments_data, tx_mode=tx_mode)
-        return jsonify({"ok": True, "order_id": order.id, "name": order.name, "change": float(order.change_amt), "tx_mode": tx_mode})
+        return jsonify({"ok": True, "invoice_id": inv.id, "name": inv.name, "change": float(change), "tx_mode": tx_mode})
     except Exception as e:
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 400

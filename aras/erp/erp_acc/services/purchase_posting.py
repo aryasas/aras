@@ -28,6 +28,12 @@ def post_purchase_invoice(invoice_id: int, location_id: int = None) -> AccPurcha
     journal_lines = []
     stock_lines   = []
 
+    # Recompute totals from lines if header totals are zero
+    computed_sub = sum(Decimal(str(l.subtotal or 0)) for l in inv.lines)
+    if Decimal(str(inv.total or 0)) == 0 and computed_sub > 0:
+        inv.subtotal = float(computed_sub)
+        inv.total    = float(computed_sub)
+
     for line in inv.lines:
         qty      = Decimal(str(line.qty or 0))
         price    = Decimal(str(line.unit_price or 0))
@@ -38,17 +44,20 @@ def post_purchase_invoice(invoice_id: int, location_id: int = None) -> AccPurcha
         if product:
             acc_stock    = resolve_stock_account(product, company_id)
             acc_purchase = resolve_purchase_account(product, company_id)
+            if not acc_stock:
+                acc_stock = get_default_account(company_id, "stock_default")
+            if not acc_purchase:
+                acc_purchase = get_default_account(company_id, "payable_default")
         else:
             acc_stock    = get_default_account(company_id, "stock_default")
             acc_purchase = get_default_account(company_id, "payable_default")
 
-        if acc_stock:
-            journal_lines.append({"account_id": acc_stock,    "debit": float(subtotal), "credit": 0})
-        if acc_purchase:
-            journal_lines.append({"account_id": acc_purchase, "debit": 0, "credit": float(subtotal)})
+        journal_lines.append({"account_id": acc_stock,    "debit": float(subtotal), "credit": 0})
+        journal_lines.append({"account_id": acc_purchase, "debit": 0, "credit": float(subtotal)})
 
         if product and getattr(product, "is_stock_item", True):
-            stock_lines.append({"product_id": line.product_id, "uom_id": line.uom_id,
+            uom_id = line.uom_id or product.uom_id
+            stock_lines.append({"product_id": line.product_id, "uom_id": uom_id,
                                  "qty": qty, "unit_cost": price})
 
     if journal_lines:

@@ -65,43 +65,38 @@ def execute_deletion(obj, user_id=None) -> str:
 
     rows_to_delete = []  # (depth, instance)
 
-    # Write backup for root
-    db.session.add(DeletedDoc(
-        group_id      = group_id,
-        deleted_at    = now,
-        deleted_by_id = user_id,
-        doc_type      = type(obj).__name__,
-        doc_id        = root_id,
-        doc_data      = _snapshot(obj),
-        depth         = 0,
-        app_slug      = root_app,
-        resource_slug = root_res,
-        admin_url     = root_admin_url,
-    ))
-    rows_to_delete.append((0, obj))
-
-    # Write backup for linked docs (already deepest-first)
-    for node in nodes:
+    def _add_doc(doc_type, doc_id, data, depth, app_slug, resource_slug, admin_url):
         db.session.add(DeletedDoc(
             group_id      = group_id,
             deleted_at    = now,
             deleted_by_id = user_id,
-            doc_type      = node.doc_type,
-            doc_id        = node.doc_id,
-            doc_data      = _snapshot(node.instance),
-            depth         = node.depth,
-            app_slug      = node.app_slug,
-            resource_slug = node.resource_slug,
-            admin_url     = node.admin_url,
+            doc_type      = doc_type,
+            doc_id        = doc_id,
+            doc_data      = data,
+            depth         = depth,
+            app_slug      = app_slug,
+            resource_slug = resource_slug,
+            admin_url     = admin_url,
         ))
+        db.session.flush()  # one row at a time to avoid large-packet errors
+
+    # Write backup for root
+    _add_doc(type(obj).__name__, root_id, _snapshot(obj), 0,
+             root_app, root_res, root_admin_url)
+    rows_to_delete.append((0, obj))
+
+    # Write backup for linked docs
+    for node in nodes:
+        _add_doc(node.doc_type, node.doc_id, _snapshot(node.instance), node.depth,
+                 node.app_slug, node.resource_slug, node.admin_url)
         rows_to_delete.append((node.depth, node.instance))
 
-    # Delete deepest-first
+    # Delete deepest-first inside no_autoflush to prevent premature FK violations
     rows_to_delete.sort(key=lambda x: -x[0])
-    for _, instance in rows_to_delete:
-        if hasattr(instance, "delete_self") and callable(instance.delete_self):
-            instance.delete_self(user_id=user_id)
-        else:
+    with db.session.no_autoflush:
+        for _, instance in rows_to_delete:
+            if hasattr(instance, "before_delete") and callable(instance.before_delete):
+                instance.before_delete(user_id=user_id)
             db.session.delete(instance)
 
     db.session.commit()

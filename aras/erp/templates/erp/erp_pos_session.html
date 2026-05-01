@@ -20,17 +20,30 @@
         </div>
       </div>
 
-      <div class="pos-customer-select" @click.stop>
+      <!-- Customer selector (mode IN) -->
+      <div class="pos-customer-select" v-if="mode === 'in'" @click.stop>
         <input type="text" class="pos-customer-input" v-model="customerSearch"
-               @focus="showCustomerDropdown = true"
-               :placeholder="mode === 'in' ? 'Select Customer...' : 'Select Vendor...'">
+               @focus="showCustomerDropdown = true" placeholder="Select Customer...">
         <div class="pos-customer-dropdown" :class="{show: showCustomerDropdown}">
           <div class="pos-customer-option" v-for="cust in filteredCustomers" :key="cust.id"
                @click="selectCustomer(cust)">
             [[ cust.name ]]
-            <div style="font-size: 11px; color: var(--aras-ink-3); margin-top: 2px;">[[ cust.phone ]]</div>
           </div>
           <div class="pos-customer-option" v-if="filteredCustomers.length === 0"
+               style="color: var(--aras-ink-3); font-style: italic;">No matches found.</div>
+        </div>
+      </div>
+
+      <!-- Supplier selector (mode OUT) -->
+      <div class="pos-customer-select" v-if="mode === 'out'" @click.stop>
+        <input type="text" class="pos-customer-input" v-model="supplierSearch"
+               @focus="showSupplierDropdown = true" placeholder="Select Supplier...">
+        <div class="pos-customer-dropdown" :class="{show: showSupplierDropdown}">
+          <div class="pos-customer-option" v-for="supp in filteredSuppliers" :key="supp.id"
+               @click="selectSupplier(supp)">
+            [[ supp.name ]]
+          </div>
+          <div class="pos-customer-option" v-if="filteredSuppliers.length === 0"
                style="color: var(--aras-ink-3); font-style: italic;">No matches found.</div>
         </div>
       </div>
@@ -215,6 +228,8 @@
         const mode = ref('in');
         const customerSearch = ref('');
         const showCustomerDropdown = ref(false);
+        const supplierSearch = ref('');
+        const showSupplierDropdown = ref(false);
         const productSearch = ref('');
         const cart = ref([]);
         const showPaymentModal = ref(false);
@@ -222,17 +237,23 @@
         const payments = ref([]);
         const newMethod = ref('cash');
         const newAmount = ref(null);
-        const lastOrderId = ref(null);
+        const lastInvoiceId = ref(null);
 
         const TAX_RATE = {{ tax_rate | default(0) }};
         const TAX_INCLUSIVE = {{ 'true' if tax_inclusive else 'false' }};
 
-        const taxRate = computed(() => TAX_RATE);
+        const taxRate = computed(() => TAX_RATE * 100);
         const taxInclusive = computed(() => TAX_INCLUSIVE);
 
         const customers = ref([
           {% for c in customers %}
           { id: {{ c.id }}, name: "{{ c.name | e }}", phone: '{{ c.phone | default("") | e }}' }{{ "," if not loop.last else "" }}
+          {% endfor %}
+        ]);
+
+        const suppliers = ref([
+          {% for s in suppliers %}
+          { id: {{ s.id }}, name: "{{ s.name | e }}" }{{ "," if not loop.last else "" }}
           {% endfor %}
         ]);
 
@@ -256,6 +277,11 @@
           return customers.value.filter(c => c.name.toLowerCase().includes(customerSearch.value.toLowerCase()));
         });
 
+        const filteredSuppliers = computed(() => {
+          if (!supplierSearch.value) return suppliers.value;
+          return suppliers.value.filter(s => s.name.toLowerCase().includes(supplierSearch.value.toLowerCase()));
+        });
+
         const filteredProducts = computed(() => {
           if (!productSearch.value) return products.value;
           return products.value.filter(p => p.name.toLowerCase().includes(productSearch.value.toLowerCase()));
@@ -266,10 +292,10 @@
           cart.value.reduce((s, i) => s + i.price * i.qty, 0)
         );
 
-        // When tax inclusive: net = total / (1 + rate/100), tax = total - net
+        // rate stored as decimal fraction (0.1 = 10%); net = total / (1 + rate), tax = total - net
         const taxTotal = computed(() => {
           if (!TAX_INCLUSIVE || TAX_RATE <= 0) return 0;
-          return grandTotal.value - grandTotal.value / (1 + TAX_RATE / 100);
+          return grandTotal.value - grandTotal.value / (1 + TAX_RATE);
         });
 
         const netSubtotal = computed(() => grandTotal.value - taxTotal.value);
@@ -282,6 +308,11 @@
         const selectCustomer = (cust) => {
           customerSearch.value = cust.name;
           showCustomerDropdown.value = false;
+        };
+
+        const selectSupplier = (supp) => {
+          supplierSearch.value = supp.name;
+          showSupplierDropdown.value = false;
         };
 
         const addToCart = (prod) => {
@@ -307,7 +338,8 @@
 
         const openPaymentModal = () => {
           if (cart.value.length === 0) { alert('Cart is empty!'); return; }
-          if (!customerSearch.value) { alert(`Please select a ${mode.value === 'in' ? 'customer' : 'vendor'}.`); return; }
+          const _partnerSet = mode.value === 'out' ? supplierSearch.value : customerSearch.value;
+          if (!_partnerSet) { alert(`Please select a ${mode.value === 'in' ? 'customer' : 'vendor'}.`); return; }
           payments.value = [];
           newMethod.value = 'cash';
           newAmount.value = grandTotal.value;
@@ -323,14 +355,16 @@
         const confirmPayment = async () => {
           if (payments.value.length === 0) return;
 
-          const match = customers.value.find(c => c.name === customerSearch.value);
-          const selectedCustId = match ? match.id : null;
+          const custMatch = customers.value.find(c => c.name === customerSearch.value);
+          const selectedCustId = custMatch ? custMatch.id : null;
+          const suppMatch = suppliers.value.find(s => s.name === supplierSearch.value);
+          const selectedSuppId = suppMatch ? suppMatch.id : null;
 
           // Build line tax_amt for inclusive pricing
           const lines = cart.value.map(i => {
             const lineTotal = i.price * i.qty;
             const lineTax = TAX_INCLUSIVE && TAX_RATE > 0
-              ? lineTotal - lineTotal / (1 + TAX_RATE / 100) : 0;
+              ? lineTotal - lineTotal / (1 + TAX_RATE) : 0;
             return {
               product_id: i.id, qty: i.qty, uom_id: i.uom_id || null,
               unit_price: i.price, subtotal: lineTotal, tax_amt: lineTax,
@@ -348,11 +382,11 @@
             const res = await fetch(`/api/erp/pos/session/${SID}/order/`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-              body: JSON.stringify({ lines, payments: payloadsToSend, customer_id: selectedCustId })
+              body: JSON.stringify({ lines, payments: payloadsToSend, customer_id: selectedCustId, supplier_id: selectedSuppId, ui_mode: mode.value })
             });
             const data = await res.json();
             if (data.ok) {
-              lastOrderId.value = data.order_id;
+              lastInvoiceId.value = data.invoice_id;
               paymentStep.value = 'success';
             } else {
               alert('Error: ' + data.error);
@@ -371,22 +405,23 @@
         };
 
         const printReceipt = () => {
-          if (lastOrderId.value) window.open(`/admin/erp/pos/order/${lastOrderId.value}/receipt`, '_blank');
+          if (lastInvoiceId.value) window.open(`/admin/erp/pos/invoice/${lastInvoiceId.value}/print`, '_blank');
         };
         const exportPDF = () => {
-          if (lastOrderId.value) window.open(`/admin/erp/pos/order/${lastOrderId.value}/receipt.pdf`, '_blank');
+          if (lastInvoiceId.value) window.open(`/admin/erp/pos/invoice/${lastInvoiceId.value}/print.pdf`, '_blank');
         };
 
-        const closeDropdown = () => { showCustomerDropdown.value = false; };
+        const closeDropdown = () => { showCustomerDropdown.value = false; showSupplierDropdown.value = false; };
         onMounted(() => document.addEventListener('click', closeDropdown));
         onUnmounted(() => document.removeEventListener('click', closeDropdown));
 
         return {
           mode, customerSearch, showCustomerDropdown, filteredCustomers,
+          supplierSearch, showSupplierDropdown, filteredSuppliers,
           productSearch, filteredProducts, cart, grandTotal, netSubtotal, taxTotal, taxRate, taxInclusive,
           showPaymentModal, paymentStep, payments, newMethod, newAmount,
           totalPaid, remaining, hasCredit,
-          selectCustomer, addToCart, updateQty, addPayment, removePayment,
+          selectCustomer, selectSupplier, addToCart, updateQty, addPayment, removePayment,
           openPaymentModal, closePaymentModal, confirmPayment, newTransaction, printReceipt, exportPDF
         };
       }

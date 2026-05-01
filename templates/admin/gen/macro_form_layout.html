@@ -1,5 +1,6 @@
 {# ─────────────────────────────────────────────────────────────────────────────
-   base_form_layout.html — Midnight Editorial Layout Engine
+   macro_form_layout.html — Form Layout Engine
+   Supports: multi-tab, sections, inline child tables, and open_in_tab child tables.
    ─────────────────────────────────────────────────────────────────────────── #}
 
 {% macro internal_render_field(field) %}
@@ -33,49 +34,82 @@
   {% endif %}
 {% endmacro %}
 
+{# Collect all open_in_tab child tables across all tabs for the bottom tab strip #}
+{% set _tab_cts = [] %}
+{% if layout_tabs %}
+  {% for tab in layout_tabs %}
+    {% for section in tab.sections %}
+      {% for f in section.fields %}
+        {% if f.type == 'child_table' and f.open_in_tab %}
+          {% set _ = _tab_cts.append(f.ct) %}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+  {% endfor %}
+  {# Also collect unplaced child tables that have open_in_tab #}
+  {% if child_table_tabs %}
+    {% for ct in child_table_tabs %}
+      {% if not ct.get('_is_placed') and ct.get('open_in_tab') %}
+        {% set _ = _tab_cts.append(ct) %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endif %}
+
 <div class="aras-tabs-wrapper">
   {% if layout_tabs %}
     <ul class="nav nav-tabs" id="formTabs" role="tablist">
       {% for tab in layout_tabs %}
         <li class="nav-item">
-          <a class="nav-link {{ 'active' if loop.first else '' }}" 
-             id="tab-{{ loop.index }}-link" 
-             data-toggle="tab" 
-             href="#tab-{{ loop.index }}" 
+          <a class="nav-link {{ 'active' if loop.first else '' }}"
+             id="tab-{{ loop.index }}-link"
+             data-toggle="tab"
+             href="#tab-{{ loop.index }}"
              role="tab">{{ tab.label or 'General' }}</a>
+        </li>
+      {% endfor %}
+      {# open_in_tab child tables become extra tabs #}
+      {% for ct in _tab_cts %}
+        <li class="nav-item">
+          <a class="nav-link"
+             id="ct-tab-{{ loop.index }}-link"
+             data-toggle="tab"
+             href="#ct-tab-{{ loop.index }}"
+             role="tab">
+            <i class="fa fa-table mr-1 opacity-75"></i>{{ ct.title }}
+          </a>
         </li>
       {% endfor %}
     </ul>
 
     <div class="tab-content p-4 border border-top-0 rounded-bottom bg-white">
       {% for tab in layout_tabs %}
-        <div class="tab-pane fade {{ 'show active' if loop.first else '' }}" 
-             id="tab-{{ loop.index }}" 
+        <div class="tab-pane fade {{ 'show active' if loop.first else '' }}"
+             id="tab-{{ loop.index }}"
              role="tabpanel">
           <div class="row">
             {% for section in tab.sections %}
               <div class="col-md-{{ section.width or 12 }}">
                 <div class="aras-form-section mb-4">
                   {% if section.label %}
-                    <h5 class="aras-section-title">
-                      {{ section.label }}
-                    </h5>
+                    <h5 class="aras-section-title">{{ section.label }}</h5>
                   {% endif %}
-                  
                   <div class="row">
                     {% for f in section.fields %}
-                       <div class="col-md-{{ f.width or 12 }}">
-                         {% if f.type == 'child_table' %}
+                      {% if not f.open_in_tab %}
+                        <div class="col-md-{{ f.width or 12 }}">
+                          {% if f.type == 'child_table' %}
                             {% set ct = f.ct %}
                             <div class="mb-4">
-                               {% include 'admin/gen/gen_view_form_child_table.html' %}
+                              {% include 'admin/gen/gen_view_form_child_table.html' %}
                             </div>
-                         {% elif f.field is defined %}
+                          {% elif f.field is defined %}
                             {{ internal_render_field(f.field) }}
-                         {% else %}
+                          {% else %}
                             {{ internal_render_field(f) }}
-                         {% endif %}
-                       </div>
+                          {% endif %}
+                        </div>
+                      {% endif %}
                     {% endfor %}
                   </div>
                 </div>
@@ -83,10 +117,10 @@
             {% endfor %}
           </div>
 
-          {# ── Append unplaced child tables to the first tab (Details) ── #}
+          {# Unplaced inline child tables appended to first tab #}
           {% if loop.first and child_table_tabs %}
             {% for ct in child_table_tabs %}
-              {% if not ct.get('_is_placed') %}
+              {% if not ct.get('_is_placed') and not ct.get('open_in_tab') %}
                 <div class="aras-child-tables-section mt-4 pt-4 border-top">
                   {% include 'admin/gen/gen_view_form_child_table.html' %}
                 </div>
@@ -95,12 +129,21 @@
           {% endif %}
         </div>
       {% endfor %}
+
+      {# open_in_tab child table panes #}
+      {% for ct in _tab_cts %}
+        <div class="tab-pane fade"
+             id="ct-tab-{{ loop.index }}"
+             role="tabpanel">
+          {% include 'admin/gen/gen_view_form_child_table.html' %}
+        </div>
+      {% endfor %}
     </div>
   {% else %}
     <div class="aras-card shadow-sm p-4">
-       {% for field in form %}
-          {{ internal_render_field(field) }}
-       {% endfor %}
+      {% for field in form %}
+        {{ internal_render_field(field) }}
+      {% endfor %}
     </div>
   {% endif %}
 </div>

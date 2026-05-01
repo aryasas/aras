@@ -20,7 +20,6 @@
             if (!target) return;
 
             if (target.id === "arasDeleteModalConfirm") {
-                hideModal();
                 if (_onConfirm) {
                     var cb = _onConfirm;
                     _onConfirm = null; // reset
@@ -41,7 +40,18 @@
 
     function showModal() {
         var modal = getEl("arasDeleteModal");
-        if (modal) modal.style.display = "";
+        if (modal) {
+            modal.style.display = "";
+            // Reset UI states
+            var progressWrap = getEl("arasDeleteProgressWrap");
+            if (progressWrap) progressWrap.style.display = "none";
+            var confirmBtn = getEl("arasDeleteModalConfirm");
+            if (confirmBtn) confirmBtn.disabled = false;
+            var cancelBtn = getEl("arasDeleteModalCancel");
+            if (cancelBtn) cancelBtn.style.display = "";
+            var bodyEl = getEl("arasDeleteModalBody");
+            if (bodyEl) bodyEl.style.opacity = "1";
+        }
     }
 
     function hideModal() {
@@ -101,9 +111,19 @@
 
             if (!deleteUrl) return;
 
+            function triggerSingleDelete() {
+                var bodyEl = getEl("arasDeleteModalBody");
+                if (bodyEl) {
+                    bodyEl.innerHTML = "<p>Are you sure you want to delete this record?</p>";
+                    _onConfirm = function () { submitDeleteAjax(deleteUrl); };
+                    showModal();
+                } else {
+                    if (confirm("Delete this record?")) submitDeleteAjax(deleteUrl);
+                }
+            }
+
             if (!linkedDocsUrl) {
-                if (!confirm("Delete this record?")) return;
-                submitDeletePost(deleteUrl);
+                triggerSingleDelete();
                 return;
             }
 
@@ -123,7 +143,7 @@
                 var bodyEl = getEl("arasDeleteModalBody");
                 if (bodyEl) {
                     bodyEl.innerHTML = renderTree(tree);
-                    _onConfirm = function () { submitDeletePost(deleteUrl); };
+                    _onConfirm = function () { submitDeleteAjax(deleteUrl); };
                     wireLinkedDocButtons(bodyEl);
                     showModal();
                 }
@@ -131,7 +151,7 @@
             .catch(function () {
                 btn.disabled  = false;
                 btn.innerHTML = origHtml;
-                if (confirm("Delete this record?")) submitDeletePost(deleteUrl);
+                triggerSingleDelete();
             });
         });
     }
@@ -144,25 +164,84 @@
                 if (!url) return;
                 if (!confirm("Delete this linked document individually?")) return;
                 hideModal();
-                submitDeletePost(url);
+                submitDeleteAjax(url);
             });
         });
     }
 
-    function submitDeletePost(deleteUrl) {
-        var form = document.createElement("form");
-        form.method = "POST";
-        form.action = deleteUrl;
-        var csrf = document.createElement("input");
-        csrf.type  = "hidden";
-        csrf.name  = "csrf_token";
-        csrf.value = getCsrf();
-        form.appendChild(csrf);
-        document.body.appendChild(form);
-        form.submit();
+    function submitDeleteAjax(deleteUrl, multiple) {
+        var progressWrap = getEl("arasDeleteProgressWrap");
+        var progressBar  = getEl("arasDeleteProgressBar");
+        var progressText = getEl("arasDeleteProgressText");
+        var confirmBtn   = getEl("arasDeleteModalConfirm");
+        var cancelBtn    = getEl("arasDeleteModalCancel");
+        var bodyEl       = getEl("arasDeleteModalBody");
+
+        if (progressWrap) progressWrap.style.display = "block";
+        if (confirmBtn) confirmBtn.disabled = true;
+        if (cancelBtn) cancelBtn.style.display = "none";
+        if (bodyEl && !multiple) bodyEl.style.opacity = "0.5";
+
+        var urls = Array.isArray(deleteUrl) ? deleteUrl : [deleteUrl];
+        var total = urls.length;
+        var completed = 0;
+        var lastRedirect = null;
+
+        function updateProgress(done) {
+            if (!progressBar || !progressText) return;
+            var pct = Math.round((done / total) * 100);
+            progressBar.style.width = pct + "%";
+            var actionText = total > 1 ? "Moving to Trash: " : "Processing: ";
+            progressText.textContent = actionText + done + " / " + total;
+        }
+
+        updateProgress(0);
+
+        function next() {
+            if (completed >= total) {
+                if (lastRedirect) {
+                    window.location.href = lastRedirect;
+                } else {
+                    window.location.reload();
+                }
+                return;
+            }
+
+            var url = urls[completed];
+            fetch(url, {
+                method: "POST",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "X-CSRFToken": getCsrf(),
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: "csrf_token=" + encodeURIComponent(getCsrf())
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.success || data.deleted) {
+                    if (data.redirect) lastRedirect = data.redirect;
+                    completed++;
+                    updateProgress(completed);
+                    setTimeout(next, total > 1 ? 50 : 200);
+                } else {
+                    alert("Error: " + (data.message || "Failed to delete record."));
+                    window.location.reload();
+                }
+            })
+            .catch(function (err) {
+                console.error("Delete failed", err);
+                alert("Network error or server failure.");
+                window.location.reload();
+            });
+        }
+
+        next();
     }
 
-    // Set globally for list_view.js and others to use the same callback mechanism
+    // Set globally for list_view.js and others to use
+    window._arasSubmitDeleteAjax = submitDeleteAjax;
+
     window._arasSetDeleteConfirm = function (cb) {
         _onConfirm = cb;
     };

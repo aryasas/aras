@@ -25,14 +25,14 @@ def _wkhtmltoimage_available() -> bool:
         return False
 
 
-def render_receipt_html(order_id: int, template_html: str = None, css: str = None) -> str:
-    """Return rendered HTML string for a POS order receipt."""
-    from aras.erp.erp_pos.models.order import PosOrder
+def render_receipt_html(invoice_id: int, template_html: str = None, css: str = None) -> str:
+    """Return rendered HTML string for a POS receipt (from AccSalesInvoice)."""
+    from aras.erp.erp_acc.models.invoice import AccSalesInvoice
 
-    order = PosOrder.get_or_404(order_id)
-    session = order.session
-    terminal = session.terminal
-    company = terminal.company if terminal else None
+    inv     = AccSalesInvoice.get_or_404(invoice_id)
+    session = inv.pos_session if hasattr(inv, "pos_session") else None
+    terminal = session.terminal if session else None
+    company  = terminal.company if terminal else None
 
     default_tpl = _default_receipt_template()
     body = template_html or default_tpl
@@ -40,12 +40,12 @@ def render_receipt_html(order_id: int, template_html: str = None, css: str = Non
     env = Environment(autoescape=True)
     tpl = env.from_string(body)
     rendered_body = tpl.render(
-        order=order,
+        invoice=inv,
         session=session,
         terminal=terminal,
         company=company,
-        lines=list(order.lines),
-        payments=list(order.payments),
+        lines=list(inv.lines),
+        payments=[a.payment for a in inv.allocations if a.payment],
     )
 
     receipt_css = css or _default_receipt_css()

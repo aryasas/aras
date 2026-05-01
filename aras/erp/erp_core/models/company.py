@@ -18,6 +18,7 @@ class Company(ArasModel):
     base_currency_id        = db.Column(db.Integer, db.ForeignKey("currency.id"), nullable=True)
     fiscal_year_start_month = db.Column(db.SmallInteger, default=1)
     default_charge_id       = db.Column(db.Integer, db.ForeignKey("charge.id"), nullable=True)
+    default_charge_enable   = db.Column(db.Boolean, default=False, nullable=False)
     default_coa_template    = db.Column(db.String(50), nullable=True)
 
     # Multi-company / group structure
@@ -31,6 +32,7 @@ class Company(ArasModel):
     enable_perpetual_inventory       = db.Column(db.Boolean, default=False, nullable=False)
     enable_provisional_non_stock     = db.Column(db.Boolean, default=False, nullable=False)
     avg_cost_by_location             = db.Column(db.Boolean, default=False, nullable=False)
+    allow_zero_stock                 = db.Column(db.Boolean, default=False, nullable=False)
 
     # Default Accounts
     acc_bank_default_id              = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)

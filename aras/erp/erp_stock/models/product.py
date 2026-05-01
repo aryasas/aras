@@ -12,6 +12,7 @@ class StockProductCategory(ArasModel):
     account_purchase_id  = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
     account_variance_id  = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
     valuation_method     = db.Column(db.Enum("standard", "average", "fifo"), nullable=False, default="average")
+    allow_zero_stock     = db.Column(db.Boolean, nullable=True)  # None = inherit from company
 
     parent           = db.relationship("StockProductCategory", remote_side="StockProductCategory.id",
                                        backref="children")
@@ -40,6 +41,7 @@ class StockProduct(ArasModel):
     for_sales           = db.Column(db.Boolean, default=True, nullable=False)
     for_purchase        = db.Column(db.Boolean, default=True, nullable=False)
     use_price_table     = db.Column(db.Boolean, default=False, nullable=False)
+    allow_zero_stock    = db.Column(db.Boolean, nullable=True)  # None = inherit from category/company
     account_revenue_id  = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
     account_purchase_id = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
     account_cogs_id     = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)

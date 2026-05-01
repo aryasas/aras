@@ -24,6 +24,15 @@ class AccJournalEntry(ArasModel):
 
     lines = db.relationship("AccJournalLine", backref="entry", cascade="all, delete-orphan")
 
+    def before_delete(self, user_id=None):
+        # Null out FK on stock_movement before deleting to avoid FK constraint errors
+        from aras.erp.erp_stock.models.movement import StockMovement
+        db.session.execute(
+            db.text("UPDATE stock_movement SET journal_entry_id=NULL WHERE journal_entry_id=:id"),
+            {"id": self.id},
+        )
+        db.session.flush()
+
 
 class AccJournalLine(ArasModel):
     __tablename__ = "acc_journal_line"

@@ -81,10 +81,24 @@
       var checked = getChecked();
       if (!checked.length) return;
       var idsVal  = checked.map(function (c) { return c.value; }).join(',');
+      var ids     = checked.map(function (c) { return c.value; });
       var idsInput = document.getElementById('bulkDeleteIds' + LID);
       var form     = document.getElementById('bulkDeleteForm' + LID);
       if (!idsInput || !form) return;
-      function doSubmit() { idsInput.value = idsVal; form.submit(); }
+
+      function doSubmit() {
+        if (window._arasSubmitDeleteAjax && editUrlBase) {
+            var urls = ids.map(function(id) {
+                // Ensure no double slashes and correct path
+                var base = editUrlBase.replace(/\/$/, "");
+                return base + "/" + id + "/delete/";
+            });
+            window._arasSubmitDeleteAjax(urls, true);
+        } else {
+            idsInput.value = idsVal; 
+            form.submit();
+        }
+      }
 
       function showBulkModal(bodyHtml) {
         var modal      = document.getElementById('arasDeleteModal');

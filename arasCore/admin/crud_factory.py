@@ -342,32 +342,9 @@ def _get_inline_columns(child_model, fk_col: str) -> list:
 # ── Layout helper ─────────────────────────────────────────────────────────────
 
 def _parse_layout_tabs(tname, layout_json, form, table_id=None, child_tables=None):
-    """
-    Resolves the layout structure for the form.
-    If table_id is provided, it attempts to fetch the latest layout from DB
-    to ensure immediate feedback after saves.
-    """
-    actual_layout = layout_json
-    
-    if table_id:
-        try:
-            from arasCore.admin.models import AppManagerTable
-            # Ensure we are not using a cached version of the object
-            tbl = db.session.query(AppManagerTable).filter_by(id=table_id).first()
-            if tbl and tbl.layout_json:
-                actual_layout = tbl.layout_json
-                logger.info(f"[crud_factory] Successfully fetched dynamic layout for {tname} (table_id: {table_id})")
-            else:
-                logger.debug(f"[crud_factory] No custom layout found in DB for {tname}, using snapshot.")
-        except Exception as e:
-            logger.warning(f"[crud_factory] Dynamic layout fetch failed for table {table_id}: {e}")
-
     try:
         from arasCore.lib.ui.layout import _parse_layout_tabs as _do_parse
-        result = _do_parse(tname, actual_layout, form, table_id=table_id, child_tables=child_tables)
-        if result:
-            logger.debug(f"[crud_factory] Parsed {len(result)} tab(s) for {tname}")
-        return result
+        return _do_parse(tname, layout_json, form, table_id=table_id, child_tables=child_tables)
     except Exception as e:
         logger.error(f"[crud_factory] Layout parsing failed for {tname}: {e}", exc_info=True)
         return None
@@ -494,13 +471,23 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
         @login_required
         def view(item_id):
             _check_access()
+            from flask import request as _req, jsonify
             obj = model.query.get_or_404(item_id)
             from arasCore.lib.services.audit import maybe_log, _snapshot
             maybe_log(obj, action="delete", before=_snapshot(obj))
             from arasCore.lib.services.deletion_service import execute_deletion
             from flask_login import current_user as _cu
-            execute_deletion(obj, user_id=getattr(_cu, "id", None))
-            _emit("delete", obj)
+            try:
+                execute_deletion(obj, user_id=getattr(_cu, "id", None))
+                _emit("delete", obj)
+            except Exception as e:
+                db.session.rollback()
+                if _req.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return jsonify({"success": False, "message": str(e)}), 400
+                flash(str(e), "danger")
+                return redirect(f"{burl}/{item_id}/")
+            if _req.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"success": True, "redirect": f"{burl}/"})
             flash("Record deleted.", "warning")
             return redirect(f"{burl}/")
         return view

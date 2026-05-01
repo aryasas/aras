@@ -3,7 +3,7 @@ from arasCore.lib.core.base_model import ArasModel, db
 
 class AccSalesInvoice(ArasModel):
     __tablename__ = "acc_sales_invoice"
-    __readonly_fields__ = {"subtotal", "discount_amt", "charge_amt", "total", "journal_entry_id", "pos_order_id"}
+    __readonly_fields__ = {"subtotal", "discount_amt", "charge_amt", "total", "journal_entry_id", "pos_session_id"}
     __linked_docs__ = [
         {"model_name": "AccJournalEntry", "fk_field": "journal_entry_id", "fk_on_self": True},
     ]
@@ -19,6 +19,7 @@ class AccSalesInvoice(ArasModel):
     customer_id      = db.Column(db.Integer, db.ForeignKey("crm_customer.id"), nullable=True)
     location_id      = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=True)
     origin_order_id  = db.Column(db.BigInteger, db.ForeignKey("acc_sales_order.id"), nullable=True)
+    pos_session_id   = db.Column(db.Integer, db.ForeignKey("pos_session.id"), nullable=True)
     invoice_date     = db.Column(db.Date, nullable=False)
     due_date         = db.Column(db.Date, nullable=True)
     currency_id      = db.Column(db.Integer, db.ForeignKey("currency.id"), nullable=False)
@@ -34,13 +35,13 @@ class AccSalesInvoice(ArasModel):
     notes            = db.Column(db.Text, nullable=True)
     price_list_id    = db.Column(db.Integer, db.ForeignKey("stock_price_list.id"), nullable=True)
     journal_entry_id = db.Column(db.BigInteger, db.ForeignKey("acc_journal_entry.id"), nullable=True)
-    pos_order_id     = db.Column(db.BigInteger, db.ForeignKey("pos_order.id"), nullable=True)
 
     company       = db.relationship("Company")
     customer      = db.relationship("CrmCustomer")
     currency      = db.relationship("Currency")
     location      = db.relationship("StockLocation", foreign_keys=[location_id])
     origin_order  = db.relationship("SalesOrder", foreign_keys=[origin_order_id])
+    pos_session   = db.relationship("PosSession", foreign_keys=[pos_session_id])
     price_list    = db.relationship("StockPriceList", foreign_keys=[price_list_id])
     journal_entry = db.relationship("AccJournalEntry")
     lines         = db.relationship("AccSalesInvoiceLine", backref="invoice",
@@ -105,7 +106,7 @@ class AccSalesInvoiceCharge(ArasModel):
 
 class AccPurchaseInvoice(ArasModel):
     __tablename__ = "acc_purchase_invoice"
-    __readonly_fields__ = {"subtotal", "discount_amt", "charge_amt", "total", "journal_entry_id", "pos_order_id"}
+    __readonly_fields__ = {"subtotal", "discount_amt", "charge_amt", "total", "journal_entry_id", "pos_session_id"}
     __linked_docs__ = [
         {"model_name": "AccJournalEntry", "fk_field": "journal_entry_id", "fk_on_self": True},
     ]
@@ -119,6 +120,7 @@ class AccPurchaseInvoice(ArasModel):
     supplier_id      = db.Column(db.Integer, db.ForeignKey("sup_supplier.id"), nullable=True)
     location_id      = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=True)
     origin_order_id  = db.Column(db.BigInteger, db.ForeignKey("sup_purchase_order.id"), nullable=True)
+    pos_session_id   = db.Column(db.Integer, db.ForeignKey("pos_session.id"), nullable=True)
     name             = db.Column(db.String(50), nullable=False)
     invoice_date     = db.Column(db.Date, nullable=False)
     due_date         = db.Column(db.Date, nullable=True)
@@ -134,12 +136,12 @@ class AccPurchaseInvoice(ArasModel):
     notes            = db.Column(db.Text, nullable=True)
     price_list_id    = db.Column(db.Integer, db.ForeignKey("stock_price_list.id"), nullable=True)
     journal_entry_id = db.Column(db.BigInteger, db.ForeignKey("acc_journal_entry.id"), nullable=True)
-    pos_order_id     = db.Column(db.BigInteger, db.ForeignKey("pos_order.id"), nullable=True)
 
     company       = db.relationship("Company")
-    supplier      = db.relationship("SupSupplier", foreign_keys=[supplier_id])
+    supplier      = db.relationship("SupSupplier", foreign_keys=[supplier_id], lazy="select")
     location      = db.relationship("StockLocation", foreign_keys=[location_id])
     origin_order  = db.relationship("PurchaseOrder", foreign_keys=[origin_order_id])
+    pos_session   = db.relationship("PosSession", foreign_keys=[pos_session_id])
     currency      = db.relationship("Currency")
     price_list    = db.relationship("StockPriceList", foreign_keys=[price_list_id])
     journal_entry = db.relationship("AccJournalEntry")

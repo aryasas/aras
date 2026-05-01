@@ -14,6 +14,8 @@ const { useState, useEffect, useCallback, useRef } = React;
         const [dragOverSection, setDragOverSection] = useState(null);
         const [dragOverItem, setDragOverItem] = useState(null);
         const [draggedItem, setDraggedItem] = useState(null);
+        const [draggedSection, setDraggedSection] = useState(null);
+        const [dragOverSectionIdx, setDragOverSectionIdx] = useState(null);
 
         const refreshData = useCallback(() => {
             const tableId = window.FORM_BUILDER_TABLE_ID;
@@ -67,13 +69,25 @@ const { useState, useEffect, useCallback, useRef } = React;
                     // 2. BOOTSTRAP DEFAULT LAYOUT IF EMPTY
                     if (!Array.isArray(initialLayout) || initialLayout.length === 0) {
                         const nonChildFields = fetchedCols.filter(c => c.type !== 'child_table');
+                        const childTableFields = fetchedCols.filter(c => c.type === 'child_table');
+                        const SECTION_ORDER = ['header', 'content', 'extra', 'footer'];
+                        const grouped = {};
+                        SECTION_ORDER.forEach(k => { grouped[k] = []; });
+                        nonChildFields.forEach(c => {
+                            const sec = SECTION_ORDER.includes(c.default_section) ? c.default_section : 'content';
+                            grouped[sec].push({ name: c.name, width: 6, type: 'field' });
+                        });
+                        const sections = SECTION_ORDER
+                            .filter(k => grouped[k].length > 0)
+                            .map(k => ({ type: 'section', label: k.charAt(0).toUpperCase() + k.slice(1), width: 12, fields: grouped[k] }));
+                        // Append each child table as its own full-width section
+                        childTableFields.forEach(ct => {
+                            sections.push({ type: 'section', label: ct.label || ct.name, width: 12, fields: [{ name: ct.name, width: 12, type: 'child_table' }] });
+                        });
                         initialLayout = [{
                             type: 'tab',
                             label: tableData.title || 'General',
-                            sections: [{
-                                type: 'section', label: 'Main Details', width: 12,
-                                fields: nonChildFields.slice(0, 10).map(c => ({ name: c.name, width: 6, type: 'field' }))
-                            }]
+                            sections: sections.length ? sections : [{ type: 'section', label: 'Details', width: 12, fields: nonChildFields.slice(0, 10).map(c => ({ name: c.name, width: 6, type: 'field' })) }]
                         }];
                     } else {
                         // Validate and heal existing layout
@@ -93,6 +107,16 @@ const { useState, useEffect, useCallback, useRef } = React;
                                 fields: (s.fields || []).map(normField).filter(f => colMap.has(f.name))
                             }))
                         }));
+                        // Inject any child tables not yet placed in the layout
+                        const placedNames = new Set();
+                        initialLayout.forEach(t => (t.sections || []).forEach(s => (s.fields || []).forEach(f => placedNames.add(f.name))));
+                        const unplacedChildren = fetchedCols.filter(c => c.type === 'child_table' && !placedNames.has(c.name));
+                        if (unplacedChildren.length > 0) {
+                            const lastTab = initialLayout[initialLayout.length - 1];
+                            unplacedChildren.forEach(ct => {
+                                lastTab.sections.push({ type: 'section', label: ct.label || ct.name, width: 12, fields: [{ name: ct.name, width: 12, type: 'child_table' }] });
+                            });
+                        }
                     }
                     setLayout(initialLayout);
                     console.log("Layout Synced:", initialLayout);
@@ -156,7 +180,8 @@ const { useState, useEffect, useCallback, useRef } = React;
                 const nl = JSON.parse(JSON.stringify(prev));
                 let itemToMove;
                 if (currentDragged.type === 'new') {
-                    itemToMove = { name: currentDragged.field.name, width: 12, type: currentDragged.field.type };
+                    const isChildTable = currentDragged.field.type === 'child_table';
+                    itemToMove = { name: currentDragged.field.name, width: 12, type: currentDragged.field.type, ...(isChildTable ? { open_in_tab: false } : {}) };
                 } else {
                     const sourceFields = nl[currentDragged.tIdx].sections[currentDragged.sIdx].fields;
                     itemToMove = sourceFields.splice(currentDragged.fIdx, 1)[0];
@@ -175,10 +200,45 @@ const { useState, useEffect, useCallback, useRef } = React;
             });
         };
 
+        const onSectionDragStart = (e, tIdx, sIdx) => {
+            e.stopPropagation();
+            setDraggedSection({ tIdx, sIdx });
+            setDraggedItem(null);
+        };
+
+        const onSectionDragOverIdx = (e, sIdx) => {
+            e.preventDefault(); e.stopPropagation();
+            setDragOverSectionIdx(sIdx);
+        };
+
+        const onSectionDrop = (e, tIdx, targetSIdx) => {
+            e.preventDefault(); e.stopPropagation();
+            const src = draggedSection;
+            setDraggedSection(null); setDragOverSectionIdx(null);
+            if (!src || src.tIdx !== tIdx || src.sIdx === targetSIdx) return;
+            setLayout(prev => {
+                const nl = JSON.parse(JSON.stringify(prev));
+                const sections = nl[tIdx].sections;
+                const [moved] = sections.splice(src.sIdx, 1);
+                const insertAt = src.sIdx < targetSIdx ? targetSIdx - 1 : targetSIdx;
+                sections.splice(insertAt, 0, moved);
+                return nl;
+            });
+        };
+
         const updateFieldWidth = (tIdx, sIdx, fIdx, width) => {
             setLayout(prev => {
                 const nl = JSON.parse(JSON.stringify(prev));
                 nl[tIdx].sections[sIdx].fields[fIdx].width = width;
+                return nl;
+            });
+        };
+
+        const toggleOpenInTab = (tIdx, sIdx, fIdx) => {
+            setLayout(prev => {
+                const nl = JSON.parse(JSON.stringify(prev));
+                const f = nl[tIdx].sections[sIdx].fields[fIdx];
+                f.open_in_tab = !f.open_in_tab;
                 return nl;
             });
         };
@@ -264,7 +324,8 @@ const { useState, useEffect, useCallback, useRef } = React;
                         fields: (s.fields || []).map(f => ({
                             name: f.name,
                             width: f.width || 12,
-                            type: f.type || 'field' // Ensure type is saved
+                            type: f.type || 'field',
+                            ...(f.type === 'child_table' ? { open_in_tab: f.open_in_tab || false } : {})
                         }))
                     }))
                 })).filter(t => t.label);
@@ -302,6 +363,33 @@ const { useState, useEffect, useCallback, useRef } = React;
             }
         };
 
+        const resetLayout = async () => {
+            const confirm = await Swal.fire({
+                icon: 'warning',
+                title: 'Reset Layout?',
+                text: 'This will clear the saved layout. The next form open will regenerate a fresh default.',
+                showCancelButton: true,
+                confirmButtonText: 'Reset',
+                confirmButtonColor: '#e53e3e',
+            });
+            if (!confirm.isConfirmed) return;
+            try {
+                const res = await fetch(window.LAYOUT_RESET_URL, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCsrf() }
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    Swal.fire({ icon: 'success', title: 'Layout Reset', text: 'Reload the form to see the regenerated default.', timer: 2000, showConfirmButton: false, toast: true, position: 'top-end' });
+                    refreshData();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Reset Failed', text: data.error });
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'System Error', text: err.message });
+            }
+        };
+
         const MockInput = ({ col }) => {
             // Mock for Child Table
             if (col.type === 'child_table') {
@@ -331,7 +419,10 @@ const { useState, useEffect, useCallback, useRef } = React;
                             </div>
                         ))}
                     </div>
-                    <div className="p-3 border-top bg-light"><button className="btn btn-block py-2 shadow-sm" style={ {background:'var(--aras-accent)', color:'#fff', fontWeight:600} } onClick={saveLayout}><i className="fa fa-save me-2"></i> Commit Architecture</button></div>
+                    <div className="p-3 border-top bg-light d-flex gap-2">
+                        <button className="btn flex-grow-1 py-2 shadow-sm" style={ {background:'var(--aras-accent)', color:'#fff', fontWeight:600} } onClick={saveLayout}><i className="fa fa-save me-2"></i> Commit Architecture</button>
+                        <button className="btn py-2 shadow-sm" style={ {border:'1px solid #e53e3e', color:'#e53e3e', fontWeight:600} } title="Reset to default layout" onClick={resetLayout}><i className="fa fa-undo"></i></button>
+                    </div>
                 </aside>
 
                 <main className="builder-canvas">
@@ -362,9 +453,10 @@ const { useState, useEffect, useCallback, useRef } = React;
                                             const sWidth = sec.width || 12;
                                             return (
                                                 <div key={sIdx} className={`col-md-${sWidth}`}>
-                                                    <div className={`mock-section ${dragOverSection === sectionId ? 'drag-over' : ''}`} onDragOver={(e) => onSectionDragOver(e, sectionId)} onDragLeave={() => setDragOverSection(null)} onDrop={(e) => onDrop(e, activeTabIdx, sIdx)}>
-                                                        <div className="section-title-wrap">
+                                                    <div className={`mock-section ${dragOverSection === sectionId ? 'drag-over' : ''} ${dragOverSectionIdx === sIdx && draggedSection?.sIdx !== sIdx ? 'section-drag-target' : ''}`} draggable onDragStart={(e) => onSectionDragStart(e, activeTabIdx, sIdx)} onDragOver={(e) => { onSectionDragOver(e, sectionId); onSectionDragOverIdx(e, sIdx); }} onDragLeave={() => { setDragOverSection(null); setDragOverSectionIdx(null); }} onDrop={(e) => { onDrop(e, activeTabIdx, sIdx); onSectionDrop(e, activeTabIdx, sIdx); }}>
+                                                        <div className="section-title-wrap" style={ {cursor: 'grab'} }>
                                                             <div className="d-flex align-items-center gap-3 flex-grow-1">
+                                                                <i className="fa fa-grip-vertical text-muted me-1" style={ {opacity:0.4} }></i>
                                                                 <input className="section-title-input" value={sec.label || ''} placeholder="SECTION IDENTIFIER" onChange={(e) => updateSectionLabel(activeTabIdx, sIdx, e.target.value)} />
                                                                 <div className="width-picker">
                                                                     <button className={`width-btn ${sWidth === 12 ? 'active' : ''}`} onClick={() => updateSectionWidth(activeTabIdx, sIdx, 12)}>FULL</button>
@@ -384,10 +476,18 @@ const { useState, useEffect, useCallback, useRef } = React;
                                                                             <div className="mock-aras-label">{col.label}</div>
                                                                             <div className="flex-grow-1"><MockInput col={col} /></div>
                                                                             <div className="field-actions">
-                                                                                <div className="width-picker">
-                                                                                    <button className={`width-btn ${fWidth === 12 ? 'active' : ''}`} onClick={() => updateFieldWidth(activeTabIdx, sIdx, fIdx, 12)}>W:12</button>
-                                                                                    <button className={`width-btn ${fWidth === 6 ? 'active' : ''}`} onClick={() => updateFieldWidth(activeTabIdx, sIdx, fIdx, 6)}>W:6</button>
-                                                                                </div>
+                                                                                {col.type === 'child_table' ? (
+                                                                                    <button
+                                                                                        className={`width-btn ${field.open_in_tab ? 'active' : ''}`}
+                                                                                        title="Open in Tab"
+                                                                                        onClick={() => toggleOpenInTab(activeTabIdx, sIdx, fIdx)}
+                                                                                    ><i className="fa fa-columns"></i> Tab</button>
+                                                                                ) : (
+                                                                                    <div className="width-picker">
+                                                                                        <button className={`width-btn ${fWidth === 12 ? 'active' : ''}`} onClick={() => updateFieldWidth(activeTabIdx, sIdx, fIdx, 12)}>W:12</button>
+                                                                                        <button className={`width-btn ${fWidth === 6 ? 'active' : ''}`} onClick={() => updateFieldWidth(activeTabIdx, sIdx, fIdx, 6)}>W:6</button>
+                                                                                    </div>
+                                                                                )}
                                                                                 <button className="btn btn-xs btn-outline-danger rounded" onClick={() => deleteField(activeTabIdx, sIdx, fIdx)}><i className="fa fa-trash"></i></button>
                                                                             </div>
                                                                         </div>

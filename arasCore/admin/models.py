@@ -245,7 +245,8 @@ class AppManagerColumn(ArasModel):
 
     # Child table tab — if True and this field is a relation pointing to a child table,
     # the child records are auto-loaded into a dedicated tab on the parent form view
-    view_in_tab = db.Column(db.Boolean, default=False)
+    view_in_tab      = db.Column(db.Boolean, default=False)
+    default_section  = db.Column(db.String(20), nullable=False, default='content')
 
     # Validation
     regex_pattern = db.Column(db.String(300), nullable=True)
@@ -289,6 +290,7 @@ class AppManagerColumn(ArasModel):
             "choices":               self.choices,
             "formula":               self.formula,
             "view_in_tab":           self.view_in_tab,
+            "default_section":       self.default_section or 'content',
             "regex_pattern":         self.regex_pattern,
             "relation_table_id":     self.relation_table_id,
             "relation_system_table": self.relation_system_table,

@@ -15,8 +15,8 @@ class ArasModel(db.Model):
 
     id            = db.Column(db.Integer, primary_key=True, autoincrement=True)
     is_active     = db.Column(db.Boolean, default=True, nullable=False)
-    created_at    = db.Column(db.DateTime, default=_now, nullable=False)
-    updated_at    = db.Column(db.DateTime, default=_now, onupdate=_now, nullable=False)
+    created_at    = db.Column(db.DateTime, default=_now, server_default=db.func.now(), nullable=False)
+    updated_at    = db.Column(db.DateTime, default=_now, onupdate=_now, server_default=db.func.now(), nullable=False)
     created_by_id = db.Column(db.Integer, db.ForeignKey("auth_users.id"), nullable=True)
     updated_by_id = db.Column(db.Integer, db.ForeignKey("auth_users.id"), nullable=True)
 
@@ -255,7 +255,12 @@ class ArasModel(db.Model):
         current = getattr(self, field)
         return self.set_field(field, not current, user_id=user_id)
 
+    def before_delete(self, user_id: int = None):
+        """Override in subclasses for pre-delete side effects (no commit here)."""
+        pass
+
     def delete_self(self, user_id: int = None):
+        self.before_delete(user_id=user_id)
         if self.__soft_delete__ and self.deleted_at is None:
             self.deleted_at = _now()
             if user_id:

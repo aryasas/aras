@@ -61,17 +61,23 @@ def _post_shift_journal(entry: PosShiftEntry, session: PosSession,
 
 
 def get_shift_report(session_id: int) -> dict:
-    session = PosSession.get_or_404(session_id)
-    orders  = list(session.orders.filter(db.text("state IN ('paid','invoiced')")).all())
+    from aras.erp.erp_acc.models.invoice import AccSalesInvoice, AccPurchaseInvoice
 
-    total_sales    = sum(float(o.total)        for o in orders)
-    total_tax      = sum(float(o.tax_amt)      for o in orders)
-    total_discount = sum(float(o.discount_amt) for o in orders)
+    session   = PosSession.get_or_404(session_id)
+    sales_inv = AccSalesInvoice.find_all(pos_session_id=session_id)
+    pur_inv   = AccPurchaseInvoice.find_all(pos_session_id=session_id)
 
-    payment_summary = {}
-    for o in orders:
-        for p in o.payments:
-            payment_summary[p.method] = payment_summary.get(p.method, 0) + float(p.amount)
+    total_sales    = sum(float(i.total)      for i in sales_inv)
+    total_purchase = sum(float(i.total)      for i in pur_inv)
+    total_tax      = sum(float(i.charge_amt) for i in sales_inv + pur_inv)
+    total_discount = sum(float(i.discount_amt) for i in sales_inv + pur_inv)
+
+    payment_summary: dict = {}
+    for inv in sales_inv + pur_inv:
+        for alloc in inv.allocations:
+            if alloc.payment:
+                m = alloc.payment.method or "cash"
+                payment_summary[m] = payment_summary.get(m, 0) + float(alloc.amount)
 
     entries       = list(session.entries)
     opening_float = sum(float(e.amount) for e in entries if e.entry_type == "opening")
@@ -80,8 +86,10 @@ def get_shift_report(session_id: int) -> dict:
     cash_sales    = payment_summary.get("cash", 0)
 
     return {
-        "session": session, "terminal": session.terminal, "orders": orders,
-        "order_count": len(orders), "total_sales": total_sales,
+        "session": session, "terminal": session.terminal,
+        "sales_invoices": sales_inv, "purchase_invoices": pur_inv,
+        "invoice_count": len(sales_inv) + len(pur_inv),
+        "total_sales": total_sales, "total_purchase": total_purchase,
         "total_tax": total_tax, "total_discount": total_discount,
         "payment_summary": payment_summary,
         "opening_float": opening_float, "cash_in": cash_in, "cash_out": cash_out,

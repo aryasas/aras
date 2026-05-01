@@ -3,7 +3,7 @@ from flask import render_template, redirect, url_for, request, jsonify, flash, R
 from flask_login import login_required, current_user
 from arasCore.lib.core.extensions import db
 from . import app_bp
-from aras.erp.erp_pos.models import PosTerminal, PosSession, PosOrder
+from aras.erp.erp_pos.models import PosTerminal, PosSession
 from aras.erp.erp_stock.models import StockProduct
 from aras.erp.erp_crm.models import CrmCustomer
 
@@ -86,12 +86,14 @@ def pos_session(session_id):
         if cur and cur.symbol:
             currency_symbol = cur.symbol
 
-    customers = CrmCustomer.query.filter_by(is_active=True).order_by(CrmCustomer.name).all()
+    customers = CrmCustomer.query.order_by(CrmCustomer.name).all()
+    from aras.erp.erp_sup.models.supplier import SupSupplier
+    suppliers = SupSupplier.query.order_by(SupSupplier.name).all()
 
     # Tax/charge info for frontend price-inclusive calculation
     tax_rate   = 0.0
     tax_inclusive = False
-    if company and company.default_charge_id:
+    if company and company.default_charge_enable and company.default_charge_id:
         from aras.erp.erp_core.models.tax import Charge
         charge = Charge.query.get(company.default_charge_id)
         if charge:
@@ -104,6 +106,7 @@ def pos_session(session_id):
         terminal=session.terminal,
         products=products,
         customers=customers,
+        suppliers=suppliers,
         currency_symbol=currency_symbol,
         tax_rate=tax_rate,
         tax_inclusive=tax_inclusive,
@@ -127,7 +130,10 @@ def pos_close_session(session_id):
         db.session.commit()
         flash("Sesi POS ditutup.", "success")
         return redirect(url_for("erp_views.pos_session_shift_report", session_id=session.id))
-    return render_template("erp/erp_pos_close_session.html", session=session, main_title="Close Session")
+    from aras.erp.erp_acc.models.invoice import AccSalesInvoice
+    order_count = AccSalesInvoice.query.filter_by(pos_session_id=session_id).count()
+    return render_template("erp/erp_pos_close_session.html", session=session,
+                           order_count=order_count, main_title="Close Session")
 
 
 # ── Cash In / Out ─────────────────────────────────────────────────────────────
@@ -171,69 +177,58 @@ def pos_session_shift_report(session_id):
 
 # ── Print / Export ────────────────────────────────────────────────────────────
 
-@app_bp.route("/pos/order/<int:order_id>/receipt")
+@app_bp.route("/pos/invoice/<int:invoice_id>/receipt")
 @login_required
-def pos_receipt_html(order_id):
+def pos_receipt_html(invoice_id):
     """Return styled HTML receipt (browser print view)."""
     from aras.erp.erp_pos.services.print_service import render_receipt_html, _get_print_template
-    order = PosOrder.query.get_or_404(order_id)
-    terminal = order.session.terminal if order.session else None
-    company_id = terminal.company_id if terminal else None
-
-    tpl = None
-    if company_id:
-        tpl = _get_print_template("pos.receipt", company_id)
-
-    html = render_receipt_html(
-        order_id,
-        template_html=tpl.body_html if tpl else None,
-        css=tpl.css if tpl else None,
-    )
+    from aras.erp.erp_acc.models.invoice import AccSalesInvoice
+    inv = AccSalesInvoice.query.get_or_404(invoice_id)
+    tpl = _get_print_template("pos.receipt", inv.company_id) if inv.company_id else None
+    html = render_receipt_html(invoice_id,
+                               template_html=tpl.body_html if tpl else None,
+                               css=tpl.css if tpl else None)
     return Response(html, mimetype="text/html")
 
 
-@app_bp.route("/pos/order/<int:order_id>/receipt.pdf")
+@app_bp.route("/pos/invoice/<int:invoice_id>/receipt.pdf")
 @login_required
-def pos_receipt_pdf(order_id):
+def pos_receipt_pdf(invoice_id):
     """Download PDF receipt via wkhtmltopdf."""
     from aras.erp.erp_pos.services.print_service import render_receipt_html, html_to_pdf, _get_print_template
-    order = PosOrder.query.get_or_404(order_id)
-    terminal = order.session.terminal if order.session else None
-    company_id = terminal.company_id if terminal else None
-
-    tpl = _get_print_template("pos.receipt", company_id) if company_id else None
-    html = render_receipt_html(order_id,
+    from aras.erp.erp_acc.models.invoice import AccSalesInvoice
+    inv = AccSalesInvoice.query.get_or_404(invoice_id)
+    tpl = _get_print_template("pos.receipt", inv.company_id) if inv.company_id else None
+    html = render_receipt_html(invoice_id,
                                template_html=tpl.body_html if tpl else None,
                                css=tpl.css if tpl else None)
     try:
         pdf_bytes = html_to_pdf(html, paper_size="A5")
         return Response(pdf_bytes, mimetype="application/pdf",
-                        headers={"Content-Disposition": f'attachment; filename="receipt-{order.name}.pdf"'})
+                        headers={"Content-Disposition": f'attachment; filename="receipt-{inv.name}.pdf"'})
     except RuntimeError as e:
         flash(str(e) + " — showing HTML instead.", "warning")
         return Response(html, mimetype="text/html")
 
 
-@app_bp.route("/pos/order/<int:order_id>/receipt.jpg")
+@app_bp.route("/pos/invoice/<int:invoice_id>/receipt.jpg")
 @login_required
-def pos_receipt_jpg(order_id):
+def pos_receipt_jpg(invoice_id):
     """Download JPG image of receipt via wkhtmltoimage."""
     from aras.erp.erp_pos.services.print_service import render_receipt_html, html_to_jpg, _get_print_template
-    order = PosOrder.query.get_or_404(order_id)
-    terminal = order.session.terminal if order.session else None
-    company_id = terminal.company_id if terminal else None
-
-    tpl = _get_print_template("pos.receipt", company_id) if company_id else None
-    html = render_receipt_html(order_id,
+    from aras.erp.erp_acc.models.invoice import AccSalesInvoice
+    inv = AccSalesInvoice.query.get_or_404(invoice_id)
+    tpl = _get_print_template("pos.receipt", inv.company_id) if inv.company_id else None
+    html = render_receipt_html(invoice_id,
                                template_html=tpl.body_html if tpl else None,
                                css=tpl.css if tpl else None)
     try:
         jpg_bytes = html_to_jpg(html, width=400)
         return Response(jpg_bytes, mimetype="image/jpeg",
-                        headers={"Content-Disposition": f'attachment; filename="receipt-{order.name}.jpg"'})
+                        headers={"Content-Disposition": f'attachment; filename="receipt-{inv.name}.jpg"'})
     except RuntimeError as e:
         flash(str(e), "warning")
-        return redirect(url_for("erp_views.pos_receipt_html", order_id=order_id))
+        return redirect(url_for("erp_views.pos_receipt_html", invoice_id=invoice_id))
 
 
 @app_bp.route("/pos/invoice/<int:invoice_id>/print")

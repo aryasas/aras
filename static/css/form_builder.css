@@ -189,6 +189,10 @@
   background: var(--studio-accent-50);
 }
 
+.mock-section.section-drag-target {
+  border-top: 3px solid var(--studio-accent);
+}
+
 .section-title-wrap {
   margin-bottom: 24px;
   padding-bottom: 12px;
