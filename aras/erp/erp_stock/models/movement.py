@@ -52,35 +52,12 @@ class StockMovementLine(ArasModel):
     uom_id        = db.Column(db.Integer, db.ForeignKey("stock_uom.id"), nullable=False)
     qty           = db.Column(db.Numeric(18, 4), nullable=False)
     qty_base      = db.Column(db.Numeric(18, 4), nullable=False)   # qty converted to base UOM
-    unit_cost     = db.Column(db.Numeric(18, 4), default=0, nullable=False)
-    total_cost    = db.Column(db.Numeric(18, 4), default=0, nullable=False)
+    unit_cost         = db.Column(db.Numeric(18, 4), default=0, nullable=False)
+    total_cost        = db.Column(db.Numeric(18, 4), default=0, nullable=False)
+    running_avg_cost  = db.Column(db.Numeric(18, 4), default=0, nullable=False)  # WAC snapshot at post time
     lot_number    = db.Column(db.String(50))
     serial_number = db.Column(db.String(100))
     notes         = db.Column(db.String(200))
 
     product = db.relationship("StockProduct")
     uom     = db.relationship("StockUom")
-
-
-class StockValuation(ArasModel):
-    """
-    Running stock balance per product per location.
-    Updated on every posted movement.
-    """
-    __tablename__ = "stock_valuation"
-    __table_args__ = (
-        db.UniqueConstraint("company_id", "product_id", "location_id", name="uq_stock_valuation"),
-    )
-    __view_in_tab__   = True
-    __footer_totals__ = ["qty_on_hand", "total_value"]
-
-    id          = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    company_id  = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
-    product_id  = db.Column(db.Integer, db.ForeignKey("stock_product.id"), nullable=False)
-    location_id = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=False)
-    qty_on_hand = db.Column(db.Numeric(18, 4), default=0, nullable=False)
-    avg_cost    = db.Column(db.Numeric(18, 4), default=0, nullable=False)
-    total_value = db.Column(db.Numeric(18, 4), default=0, nullable=False)
-    updated_at  = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
-
-    location = db.relationship("StockLocation")

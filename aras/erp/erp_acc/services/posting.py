@@ -109,7 +109,7 @@ def post_sales_invoice(invoice_id: int) -> "AccSalesInvoice":
       CR  Inventory / Persediaan     qty × avg_cost  (self-balancing with COGS)
     """
     from aras.erp.erp_acc.models.invoice import AccSalesInvoice
-    from aras.erp.erp_stock.models import StockValuation
+    from aras.erp.erp_stock.services.stock_compute import compute_avg_cost
     from aras.erp.erp_stock.services.coa_resolver import (
         resolve_revenue_account, resolve_cogs_account, resolve_stock_account,
     )
@@ -150,8 +150,7 @@ def post_sales_invoice(invoice_id: int) -> "AccSalesInvoice":
             acc_cogs  = resolve_cogs_account(product, company_id)
             acc_stock = resolve_stock_account(product, company_id)
             if acc_cogs and acc_stock:
-                val    = StockValuation.find(product_id=product.id, company_id=company_id)
-                cost   = Decimal(str(val.avg_cost if val else 0))
+                cost   = compute_avg_cost(product.id, company_id=company_id)
                 qty    = Decimal(str(il.qty or 0))
                 amount = qty * cost
                 if amount > 0:
@@ -242,9 +241,8 @@ def _post_sales_delivery(inv, company_id: int, location_id: int):
         qty = il.qty or 0
         if qty <= 0:
             continue
-        from aras.erp.erp_stock.models import StockValuation
-        val  = StockValuation.find(product_id=product.id, company_id=company_id)
-        cost = Decimal(str(val.avg_cost if val else 0))
+        from aras.erp.erp_stock.services.stock_compute import compute_avg_cost
+        cost = compute_avg_cost(product.id, company_id=company_id)
         db.session.add(StockMovementLine(
             movement_id=mv.id,
             product_id=product.id,

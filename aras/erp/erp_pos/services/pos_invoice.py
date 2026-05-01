@@ -97,7 +97,7 @@ def _post_pos_journal(inv: AccSalesInvoice, order: PosOrder, company_id: int):
       DR COGS / CR Stock (for storable products, per product category accounts)
     """
     from aras.erp.erp_stock.services.coa_resolver import resolve_revenue_account, resolve_cogs_account, resolve_stock_account
-    from aras.erp.erp_stock.models import StockValuation
+    from aras.erp.erp_stock.services.stock_compute import compute_avg_cost
 
     income_id = get_default_account(company_id, "income_default")
     charge_amt = Decimal(str(inv.charge_amt or 0))
@@ -178,8 +178,7 @@ def _post_pos_journal(inv: AccSalesInvoice, order: PosOrder, company_id: int):
         acc_stock = resolve_stock_account(product, company_id)
         if not acc_cogs or not acc_stock:
             continue
-        val = StockValuation.find(product_id=product.id, company_id=company_id)
-        cost = Decimal(str(val.avg_cost if val else 0))
+        cost = compute_avg_cost(product.id, company_id=company_id)
         qty  = Decimal(str(ol.qty_base or ol.qty))
         amount = qty * cost
         if amount <= 0:

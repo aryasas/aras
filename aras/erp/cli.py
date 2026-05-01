@@ -198,6 +198,89 @@ def register_erp_commands(aras):
             m026.run(app); _ok("026 done")
             click.echo(click.style("\nMigrations complete.", bold=True, fg="green"))
 
+    @erp_group.command("migrate-stock-compute", help="Add running_avg_cost to stock_movement_line; add avg_cost_by_location to company; drop stock_valuation")
+    def erp_migrate_stock_compute():
+        import flask
+        from arasCore.lib.core.extensions import db
+        app = flask.current_app._get_current_object()
+        with app.app_context():
+            _hdr("Stock Compute Migration")
+            with db.engine.connect() as conn:
+                conn.execute(db.text(
+                    "ALTER TABLE stock_movement_line ADD COLUMN IF NOT EXISTS "
+                    "running_avg_cost DECIMAL(18,4) NOT NULL DEFAULT 0"
+                ))
+                conn.execute(db.text(
+                    "ALTER TABLE company ADD COLUMN IF NOT EXISTS "
+                    "avg_cost_by_location TINYINT(1) NOT NULL DEFAULT 0"
+                ))
+                conn.commit()
+            _ok("Added running_avg_cost + avg_cost_by_location")
+            click.echo(click.style("\nMigration complete. Run backfill-running-avg-cost next.", bold=True, fg="green"))
+
+    @erp_group.command("backfill-running-avg-cost", help="Replay posted movements to fill running_avg_cost on StockMovementLine")
+    def erp_backfill_running_avg_cost():
+        import flask
+        from decimal import Decimal
+        from arasCore.lib.core.extensions import db
+        from aras.erp.erp_stock.models import StockMovement, StockMovementLine
+        app = flask.current_app._get_current_object()
+        with app.app_context():
+            _hdr("Backfill running_avg_cost")
+            IN_TYPES = ("receipt", "opening", "adjustment", "return")
+            # Process per (company, product)
+            pairs = db.session.execute(db.text(
+                "SELECT DISTINCT sm.company_id, sml.product_id "
+                "FROM stock_movement sm JOIN stock_movement_line sml ON sml.movement_id = sm.id "
+                "WHERE sm.state = 'posted' ORDER BY sm.company_id, sml.product_id"
+            )).fetchall()
+            updated = 0
+            for company_id, product_id in pairs:
+                running_qty  = Decimal("0")
+                running_cost = Decimal("0")
+                mvs = (
+                    StockMovement.query
+                    .join(StockMovementLine, StockMovementLine.movement_id == StockMovement.id)
+                    .filter(
+                        StockMovement.company_id == company_id,
+                        StockMovement.state == "posted",
+                        StockMovementLine.product_id == product_id,
+                    )
+                    .order_by(StockMovement.date_move, StockMovement.id)
+                    .all()
+                )
+                for mv in mvs:
+                    for line in mv.lines:
+                        if line.product_id != product_id:
+                            continue
+                        qty  = Decimal(str(line.qty_base))
+                        cost = Decimal(str(line.unit_cost))
+                        if mv.move_type in IN_TYPES:
+                            old_total = running_qty * running_cost
+                            new_total = qty * cost
+                            running_qty  = running_qty + qty
+                            if running_qty > 0:
+                                running_cost = (old_total + new_total) / running_qty
+                            line.running_avg_cost = running_cost
+                            updated += 1
+                        elif mv.move_type == "internal" and mv.dst_location_id:
+                            line.running_avg_cost = running_cost
+                            updated += 1
+            db.session.commit()
+            click.echo(click.style(f"\nBackfilled {updated} lines.", bold=True, fg="green"))
+
+    @erp_group.command("drop-stock-valuation", help="Drop stock_valuation table after migration")
+    def erp_drop_stock_valuation():
+        import flask
+        from arasCore.lib.core.extensions import db
+        app = flask.current_app._get_current_object()
+        with app.app_context():
+            _hdr("Drop stock_valuation table")
+            with db.engine.connect() as conn:
+                conn.execute(db.text("DROP TABLE IF EXISTS stock_valuation"))
+                conn.commit()
+            _ok("stock_valuation table dropped")
+
     @erp_group.command("seed", help="Seed full international CoA, warehouse, product, POS terminal")
     def erp_seed():
         import flask
@@ -288,7 +371,7 @@ def _run_test_flow(count: int, verbose: bool):
     from aras.erp.erp_core.models.company import Company
     from aras.erp.erp_stock.models.product import StockProduct
     from aras.erp.erp_stock.models.warehouse import StockLocation
-    from aras.erp.erp_stock.models import StockValuation
+    from aras.erp.erp_stock.services.stock_compute import compute_qty
     from aras.erp.erp_acc.models.journal import AccJournalEntry, AccJournalLine
     from aras.erp.erp_acc.models.invoice import (
         AccPurchaseInvoice, AccPurchaseInvoiceLine, AccSalesInvoice,
@@ -360,8 +443,7 @@ def _run_test_flow(count: int, verbose: bool):
             if verbose: _ok(f"{label} Prices from table: buy={buy_price} sell={sell_price}")
 
             # ── Step 2: Purchase invoice (1 row, is_stock_item=True) ───────
-            pre_val = StockValuation.find(company_id=cid, product_id=prod.id)
-            pre_qty = Decimal(str(pre_val.qty_on_hand)) if pre_val else Decimal("0")
+            pre_qty = compute_qty(prod.id, company_id=cid)
 
             buy_qty = Decimal("1")
             buy_amt = buy_qty * buy_price
@@ -389,8 +471,7 @@ def _run_test_flow(count: int, verbose: bool):
             assert posted_pinv.state == "posted",        f"Purchase state={posted_pinv.state}"
             assert posted_pinv.journal_entry_id,          "Purchase journal entry missing"
 
-            post_val = StockValuation.find(company_id=cid, product_id=prod.id)
-            post_qty = Decimal(str(post_val.qty_on_hand))
+            post_qty = compute_qty(prod.id, company_id=cid)
             assert post_qty == pre_qty + buy_qty, f"Stock expected {pre_qty+buy_qty} got {post_qty}"
 
             pj    = AccJournalEntry.get(posted_pinv.journal_entry_id)
@@ -486,8 +567,7 @@ def _run_test_flow(count: int, verbose: bool):
                         f"cumulative balance={ar_balance:.0f}")
 
             # ── Step 6: Stock deducted ────────────────────────────────────
-            after_val = StockValuation.find(company_id=cid, product_id=prod.id)
-            after_qty = Decimal(str(after_val.qty_on_hand))
+            after_qty = compute_qty(prod.id, company_id=cid)
             assert after_qty == post_qty - sell_qty, \
                 f"Stock after sale: expected {post_qty-sell_qty} got {after_qty}"
             if verbose: _ok(f"{label} Stock: {post_qty}→{after_qty}")

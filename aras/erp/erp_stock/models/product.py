@@ -58,8 +58,25 @@ class StockProduct(ArasModel):
         "StockProductBundle", foreign_keys="StockProductBundle.bundle_id",
         backref="bundle", cascade="all, delete-orphan"
     )
-    valuations = db.relationship("StockValuation", foreign_keys="StockValuation.product_id",
-                                 cascade="all, delete-orphan")
+
+    @property
+    def qty_on_hand(self) -> "Decimal":
+        from aras.erp.erp_stock.services.stock_compute import compute_qty
+        return compute_qty(product_id=self.id, company_id=self.company_id)
+
+    def qty_at_location(self, location_id: int) -> "Decimal":
+        from aras.erp.erp_stock.services.stock_compute import compute_qty
+        return compute_qty(product_id=self.id, location_id=location_id, company_id=self.company_id)
+
+    @property
+    def avg_cost(self) -> "Decimal":
+        from aras.erp.erp_stock.services.stock_compute import compute_avg_cost
+        return compute_avg_cost(product_id=self.id, company_id=self.company_id)
+
+    @property
+    def total_value(self) -> "Decimal":
+        from aras.erp.erp_stock.services.stock_compute import compute_total_value
+        return compute_total_value(product_id=self.id, company_id=self.company_id)
 
 
 class StockProductUom(ArasModel):

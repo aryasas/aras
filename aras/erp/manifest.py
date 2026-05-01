@@ -38,7 +38,7 @@ from aras.erp.erp_stock.models import (
     StockProductPrice, StockProductBundle, StockProductAccountLink,
     StockPriceList,
     StockLocation, StockProductLocation,
-    StockMovement, StockMovementLine, StockValuation,
+    StockMovement, StockMovementLine,
     DeliveryTrip, DeliveryOrder, DeliveryOrderLine,
 )
 
@@ -102,24 +102,29 @@ class StockProductHandler(SubHandler):
         if not obj:
             return {}
         try:
-            from arasCore.lib.core.extensions import db
-            rows = db.session.execute(db.text(
-                "SELECT sl.name, sv.qty_on_hand, sv.avg_cost, "
-                "       (sv.qty_on_hand * sv.avg_cost) AS total_value "
-                "FROM stock_valuation sv "
-                "JOIN stock_location sl ON sl.id = sv.location_id "
-                "WHERE sv.product_id = :pid AND sv.qty_on_hand != 0 "
-                "ORDER BY sl.name"
-            ), {"pid": obj.id}).fetchall()
-            total_qty   = sum(float(r.qty_on_hand) for r in rows)
-            total_value = sum(float(r.total_value)  for r in rows)
-            avg_cost    = (total_value / total_qty) if total_qty else 0.0
-            stock_rows  = [{"label": r.name, "value": f"{float(r.qty_on_hand):,.4g}"} for r in rows]
+            from aras.erp.erp_stock.services.stock_compute import (
+                compute_qty_by_location, compute_avg_cost, compute_qty
+            )
+            from aras.erp.erp_stock.models.warehouse import StockLocation
+
+            loc_qtys = compute_qty_by_location(obj.id, company_id=obj.company_id)
+            stock_rows = []
+            for loc_id, qty in sorted(loc_qtys.items(), key=lambda x: x[0]):
+                if qty == 0:
+                    continue
+                loc = StockLocation.get(loc_id)
+                loc_name = loc.name if loc else f"Loc#{loc_id}"
+                stock_rows.append({"label": loc_name, "value": f"{float(qty):,.4g}"})
+
+            total_qty   = float(compute_qty(obj.id, company_id=obj.company_id))
+            avg_cost    = float(compute_avg_cost(obj.id, company_id=obj.company_id))
+            total_value = total_qty * avg_cost
+
             stock_rows += [
                 {"label": "─────────", "value": ""},
-                {"label": "Total Qty",    "value": f"{total_qty:,.4g}"},
-                {"label": "Avg Cost",     "value": f"{avg_cost:,.2f}"},
-                {"label": "Total Value",  "value": f"{total_value:,.2f}"},
+                {"label": "Total Qty",   "value": f"{total_qty:,.4g}"},
+                {"label": "Avg Cost",    "value": f"{avg_cost:,.2f}"},
+                {"label": "Total Value", "value": f"{total_value:,.2f}"},
             ]
             return {"sidebar_cards": [{"title": "Stock & Valuation", "rows": stock_rows}]}
         except Exception:
@@ -180,7 +185,7 @@ def _pos_products(session_id: int):
     from decimal import Decimal
     from aras.erp.erp_pos.models import PosSession
     from aras.erp.erp_pos.models.terminal import PosTerminal
-    from aras.erp.erp_stock.models import StockProduct, StockValuation
+    from aras.erp.erp_stock.models import StockProduct
     from aras.erp.erp_stock.models.warehouse import StockLocation
     from aras.erp.erp_stock.services.price_service import get_price
     from arasCore.lib.core.extensions import db
@@ -214,14 +219,12 @@ def _pos_products(session_id: int):
 
         qty_on_hand = None
         if p.is_stock_item and loc_ids:
-            row = db.session.execute(
-                db.text(
-                    "SELECT COALESCE(SUM(qty_on_hand),0) FROM stock_valuation "
-                    "WHERE product_id=:pid AND location_id IN :lids"
-                ).bindparams(db.bindparam("lids", expanding=True)),
-                {"pid": p.id, "lids": tuple(loc_ids)}
-            ).scalar()
-            qty_on_hand = float(row or 0)
+            from aras.erp.erp_stock.services.stock_compute import compute_qty
+            from decimal import Decimal
+            total = Decimal("0")
+            for lid in loc_ids:
+                total += compute_qty(p.id, location_id=lid, company_id=p.company_id)
+            qty_on_hand = float(total)
 
         uom_alts = []
         for alt in (p.uom_alts or []):
@@ -280,11 +283,12 @@ def _pos_stock_check(session_id: int, product_id: int):
 
     child_ids = [l.id for l in StockLocation.find_all(parent_id=location_id, is_active=True)]
     loc_ids   = tuple([location_id] + child_ids) or (0,)
-    qty = db.session.execute(
-        db.text("SELECT COALESCE(SUM(qty_on_hand),0) FROM stock_valuation WHERE product_id=:pid AND location_id IN :lids").bindparams(db.bindparam("lids", expanding=True)),
-        {"pid": product_id, "lids": loc_ids}
-    ).scalar()
-    return jsonify({"qty_on_hand": float(qty or 0), "storable": True})
+    from aras.erp.erp_stock.services.stock_compute import compute_qty
+    from decimal import Decimal
+    total = Decimal("0")
+    for lid in loc_ids:
+        total += compute_qty(product_id, location_id=lid)
+    return jsonify({"qty_on_hand": float(total), "storable": True})
 
 
 def _pos_create_order(session_id: int):
@@ -326,12 +330,11 @@ def _pos_create_order(session_id: int):
             if not p or not getattr(p, "is_stock_item", True):
                 continue
             qty_base = float(l.get("qty_base") or l.get("qty", 1))
-            stock = db.session.execute(
-                db.text("SELECT COALESCE(SUM(qty_on_hand),0) FROM stock_valuation WHERE product_id=:pid AND location_id IN :lids").bindparams(db.bindparam("lids", expanding=True)),
-                {"pid": pid, "lids": loc_ids}
-            ).scalar()
-            if float(stock or 0) < qty_base:
-                return jsonify({"ok": False, "error": f"Stok {p.name} tidak cukup (tersedia: {float(stock or 0):.2f})"}), 400
+            from aras.erp.erp_stock.services.stock_compute import compute_qty
+            from decimal import Decimal
+            stock = sum(compute_qty(pid, location_id=lid) for lid in loc_ids)
+            if float(stock) < qty_base:
+                return jsonify({"ok": False, "error": f"Stok {p.name} tidak cukup (tersedia: {float(stock):.2f})"}), 400
 
     tx_mode = terminal.transaction_mode if terminal else "income"
 
@@ -739,7 +742,6 @@ helper = AppHelper(
             ResourceDef("stock/movement",         StockMovement,        admin_list=True,
                         menu_title="Stock Movements", menu_icon="fa-exchange"),
             ResourceDef("stock/movement-line",    StockMovementLine,    admin_list=False, is_child_table=True),
-            ResourceDef("stock/valuation",        StockValuation,       admin_list=False, is_child_table=True),
             ResourceDef("stock/delivery-trip",    DeliveryTrip,         admin_list=True,
                         menu_title="Delivery Trips", menu_icon="fa-road"),
             ResourceDef("stock/delivery-order",   DeliveryOrder,        admin_list=True,

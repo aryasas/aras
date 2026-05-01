@@ -30,6 +30,7 @@ class Company(ArasModel):
     # Accounting mode
     enable_perpetual_inventory       = db.Column(db.Boolean, default=False, nullable=False)
     enable_provisional_non_stock     = db.Column(db.Boolean, default=False, nullable=False)
+    avg_cost_by_location             = db.Column(db.Boolean, default=False, nullable=False)
 
     # Default Accounts
     acc_bank_default_id              = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)

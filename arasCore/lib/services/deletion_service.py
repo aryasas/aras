@@ -96,29 +96,6 @@ def execute_deletion(obj, user_id=None) -> str:
         ))
         rows_to_delete.append((node.depth, node.instance))
 
-    # Collect StockMovement context before deletion (for valuation recalc after)
-    stock_movements_deleted = []
-    for _, instance in rows_to_delete:
-        cls_name = type(instance).__name__
-        if cls_name == "StockMovement":
-            # For StockMovement, we need product_id and location_id
-            # Lines might have product_id
-            product_id = getattr(instance, "product_id", None)
-            location_id = instance.src_location_id or instance.dst_location_id
-            if not product_id and hasattr(instance, "lines"):
-                for line in instance.lines:
-                    stock_movements_deleted.append({
-                        "company_id":  instance.company_id,
-                        "product_id":  line.product_id,
-                        "location_id": location_id,
-                    })
-            elif product_id:
-                stock_movements_deleted.append({
-                    "company_id":  instance.company_id,
-                    "product_id":  product_id,
-                    "location_id": location_id,
-                })
-
     # Delete deepest-first
     rows_to_delete.sort(key=lambda x: -x[0])
     for _, instance in rows_to_delete:
@@ -126,22 +103,6 @@ def execute_deletion(obj, user_id=None) -> str:
             instance.delete_self(user_id=user_id)
         else:
             db.session.delete(instance)
-
-    # Flush before recalc so deleted movements are gone from queries
-    db.session.flush()
-
-    # Recalculate StockValuation for each affected product/location
-    if stock_movements_deleted:
-        try:
-            from aras.erp.erp_stock.services.posting import recalculate_valuation
-            seen = set()
-            for info in stock_movements_deleted:
-                key = (info["company_id"], info["product_id"], info["location_id"])
-                if key not in seen and info["location_id"] and info["product_id"]:
-                    seen.add(key)
-                    recalculate_valuation(*key)
-        except Exception as e:
-            logger.error(f"Error recalculating valuation: {e}")
 
     db.session.commit()
     return group_id
@@ -173,7 +134,6 @@ def execute_restore(group_id: str, user_id=None) -> None:
         _cls_map[mapper.class_.__name__] = mapper.class_
 
     restored_docs = []
-    affected_valuation_keys = []
 
     for doc in docs:
         cls = _cls_map.get(doc.doc_type)
@@ -191,9 +151,7 @@ def execute_restore(group_id: str, user_id=None) -> None:
         ).fetchone()
 
         if existing:
-            # If soft-delete model, restore by clearing deleted_at
             if hasattr(cls, "__soft_delete__") and cls.__soft_delete__:
-                # Use query.get() bypasses _q() soft-delete filter
                 obj = cls.query.get(pk_val)
                 if obj and getattr(obj, "deleted_at", None) is not None:
                     obj.deleted_at = None
@@ -210,38 +168,12 @@ def execute_restore(group_id: str, user_id=None) -> None:
         ).fetchall()}
         data = {k: v for k, v in doc.doc_data.items() if k in db_cols}
 
-        # Use raw insert to preserve ID
         try:
             db.session.execute(table.insert().values(**data))
-            
-            # Queue valuation recalc from StockMovementLine (product lives on the line)
-            if doc.doc_type == "StockMovementLine":
-                mv_doc = next((d for d in docs if d.doc_type == "StockMovement"
-                               and d.doc_id == data.get("movement_id")), None)
-                mv_data = mv_doc.doc_data if mv_doc else {}
-                affected_valuation_keys.append({
-                    "company_id": mv_data.get("company_id"),
-                    "product_id": data.get("product_id"),
-                    "location_id": mv_data.get("src_location_id") or mv_data.get("dst_location_id"),
-                })
-            
             restored_docs.append(doc)
         except Exception as e:
             logger.error(f"Restore: Failed to insert {doc.doc_type} #{pk_val}: {e}")
             raise
-
-    # Trigger valuation recalc for restored movements
-    if affected_valuation_keys:
-        try:
-            from aras.erp.erp_stock.services.posting import recalculate_valuation
-            seen = set()
-            for info in affected_valuation_keys:
-                key = (info["company_id"], info["product_id"], info["location_id"])
-                if key not in seen and all(key):
-                    seen.add(key)
-                    recalculate_valuation(*key)
-        except Exception:
-            pass
 
     # Remove backup rows for successfully restored docs
     for doc in restored_docs:

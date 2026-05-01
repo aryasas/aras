@@ -75,9 +75,8 @@ def deduct_stock_from_order(order_id: int) -> StockMovement | None:
     for line in storable_lines:
         qty    = Decimal(str(line.qty_base)) if line.qty_base else Decimal(str(line.qty))
         uom_id = line.product.uom_id
-        from aras.erp.erp_stock.models import StockValuation
-        val  = StockValuation.find(product_id=line.product_id, company_id=company_id)
-        cost = Decimal(str(val.avg_cost if val else 0))
+        from aras.erp.erp_stock.services.stock_compute import compute_avg_cost
+        cost = compute_avg_cost(line.product_id, company_id=company_id)
         db.session.add(StockMovementLine(
             movement_id=mv.id,
             product_id=line.product_id,
