@@ -108,9 +108,9 @@ class DevelopmentConfig(Config):
     DEBUG_TB_TEMPLATE_EDITOR_ENABLED = False
     ASSETS_DEBUG = False  # Don't bundle/minify static assets
     SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI")
-    USE_DEBUGER = (False,)
-    USE_RELOADER = (False,)
-    PASSTHROUGH_ERROR = False
+    USE_DEBUGER = (True,)
+    USE_RELOADER = (True,)
+    PASSTHROUGH_ERROR = True
     CELERY_ALWAYS_EAGER = False
     JSON_AS_ASCII = False
     LOGGING_LEVEL = logging.WARNING

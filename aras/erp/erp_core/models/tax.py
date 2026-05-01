@@ -1,6 +1,5 @@
 from arasCore.lib.core.base_model import ArasModel, ArasSoftModel, db
 
-
 class Charge(ArasSoftModel):
     """Universal charge/tax/fee — percent or fixed amount, for sales/purchase/both."""
     __tablename__ = "charge"

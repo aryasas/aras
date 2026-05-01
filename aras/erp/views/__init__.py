@@ -12,11 +12,15 @@ app_bp = Blueprint(
 )
 
 # Register models with SQLAlchemy before db.create_all()
-import aras.erp.erp_core.models   # noqa
-import aras.erp.erp_acc.models    # noqa
-import aras.erp.erp_crm.models    # noqa
-import aras.erp.erp_pos.models    # noqa
-import aras.erp.erp_stock.models  # noqa
+# Important: AccAccount must be imported before Charge (in erp_core) 
+# because Charge has a relationship to AccAccount.
+import aras.erp.erp_acc.models.account  # noqa
+import aras.erp.erp_acc.models          # noqa
+import aras.erp.erp_core.models.tax      # noqa
+import aras.erp.erp_core.models         # noqa
+import aras.erp.erp_crm.models          # noqa
+import aras.erp.erp_pos.models          # noqa
+import aras.erp.erp_stock.models        # noqa
 
 from . import core  # noqa
 from . import pos   # noqa

@@ -191,30 +191,28 @@
 
 {# ── Edit Modal ── #}
 {% if ct.api_url and ct.inline_columns %}
-<div class="ct-modal-backdrop d-none" id="ct-modal-{{ _li }}" onclick="ctCloseModal('{{ _li }}', event)" style="position: fixed; inset: 0; background: rgba(15, 27, 45, 0.4); backdrop-filter: blur(8px); z-index: 1200; display: flex; align-items: center; justify-content: center;">
-  <div class="ct-modal" style="background: #fff; border-radius: 8px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); width: 100%; max-width: 560px; max-height: 90vh; display: flex; flex-direction: column;">
-    <div class="ct-modal__head" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--studio-cream);">
-      <span class="ct-modal__title" style="font-family: var(--aras-font-serif); font-weight: 700; font-size: 18px; color: var(--studio-ink);">Edit {{ ct.title }}</span>
-      <button type="button" class="ct-modal__close" onclick="ctCloseModal('{{ _li }}')" style="background: none; border: none; cursor: pointer; padding: 4px 6px; color: var(--aras-ink-3); font-size: 18px;"><i class="fa fa-times"></i></button>
+<div class="ct-modal-backdrop" id="ct-modal-{{ _li }}" onclick="ctCloseModal('{{ _li }}', event)">
+  <div class="ct-modal">
+    <div class="ct-modal__head">
+      <span class="ct-modal__title">Edit {{ ct.title }}</span>
+      <button type="button" class="ct-modal__close" onclick="ctCloseModal('{{ _li }}')"><i class="fa fa-times"></i></button>
     </div>
-    <div class="ct-modal__body" style="padding: 24px; overflow-y: auto; flex: 1;">
+    <div class="ct-modal__body">
       <input type="hidden" id="ct-modal-id-{{ _li }}" value="">
       {% for col in ct.inline_columns %}
-      <div class="aras-form-row" style="display: grid; grid-template-columns: 140px 1fr; gap: 20px; padding: 12px 0; border-bottom: 1px solid var(--studio-cream); align-items: center;">
-        <label class="aras-form-label" style="font-weight: 600; font-size: 13px; color: var(--studio-ink); margin: 0;">{{ col.label }}</label>
+      <div class="aras-form-row">
+        <label class="aras-form-label">{{ col.label }}</label>
         <div class="aras-form-control-wrap">
         {% if col.type == 'select' %}
           <select name="{{ col.name }}" id="ct-modal-{{ _li }}-{{ col.name }}" class="aras-form-select"
-                  {% if col.name == 'product_id' %}onchange="ctOnProductChangeModal('{{ _li }}', this)"{% endif %}
-                  style="width: 100%; padding: 8px 12px; border: 1px solid var(--aras-line-2); border-radius: 4px; outline: none; font-size: 13px;">
+                  {% if col.name == 'product_id' %}onchange="ctOnProductChangeModal('{{ _li }}', this)"{% endif %}>
             <option value="">—</option>
             {% for opt in col.fk_options %}
               <option value="{{ opt.id }}">{{ opt.label }}</option>
             {% endfor %}
           </select>
         {% elif col.type == 'textarea' %}
-          <textarea name="{{ col.name }}" id="ct-modal-{{ _li }}-{{ col.name }}" class="aras-form-textarea" rows="3"
-                    style="width: 100%; padding: 8px 12px; border: 1px solid var(--aras-line-2); border-radius: 4px; outline: none; font-size: 13px; min-height: 80px;"></textarea>
+          <textarea name="{{ col.name }}" id="ct-modal-{{ _li }}-{{ col.name }}" class="aras-form-textarea" rows="3"></textarea>
         {% elif col.type == 'checkbox' %}
           <div class="aras-form-check">
             <input type="checkbox" name="{{ col.name }}" id="ct-modal-{{ _li }}-{{ col.name }}" class="aras-form-check-input">
@@ -222,14 +220,13 @@
         {% else %}
           <input type="{{ col.type }}" name="{{ col.name }}" id="ct-modal-{{ _li }}-{{ col.name }}" class="aras-form-input"
                  {% if col.name in ('subtotal','total','amount') %}data-calc="true" readonly{% endif %}
-                 {% if col.required %}required{% endif %}
-                 style="width: 100%; padding: 8px 12px; border: 1px solid var(--aras-line-2); border-radius: 4px; outline: none; font-size: 13px;">
+                 {% if col.required %}required{% endif %}>
         {% endif %}
         </div>
       </div>
       {% endfor %}
     </div>
-    <div class="ct-modal__foot" style="padding: 16px 24px; border-top: 1px solid var(--studio-cream); display: flex; gap: 12px; justify-content: flex-end; background: var(--studio-paper);">
+    <div class="ct-modal__foot">
       <button type="button" class="aras-btn aras-btn--primary" onclick="ctSaveModal('{{ _li }}', '{{ ct.api_url }}', '{{ ct.fk_col }}', '{{ ct.parent_id }}')">
         <i class="fa fa-save"></i> Save changes
       </button>

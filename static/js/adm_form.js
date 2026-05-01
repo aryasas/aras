@@ -101,10 +101,10 @@ function legacyCtSaveRow(ctId, apiUrl, fkCol, parentId) {
     fetch(url, { method: method, headers: { "Content-Type": "application/json", "X-CSRFToken": legacyCtGetCsrf() }, body: JSON.stringify(data) })
         .then(function (r) {
             saveBtn.disabled = false; saveBtn.innerHTML = oldHtml;
-            if (!r.ok) return r.json().then(function (e) { alert("Error: " + (e.error || r.status)); });
+            if (!r.ok) return r.json().then(function (e) { arasNotify("Error: " + (e.error || r.status), "error"); });
             return r.json().then(function (obj) { legacyCtRenderRow(ctId, obj, editingId); legacyCtCancelRow(ctId); legacyCtUpdateCount(ctId); });
         })
-        .catch(function (e) { saveBtn.disabled = false; saveBtn.innerHTML = oldHtml; alert("Network error: " + e); });
+        .catch(function (e) { saveBtn.disabled = false; saveBtn.innerHTML = oldHtml; arasNotify("Network error: " + e, "error"); });
 }
 
 function legacyCtRenderRow(ctId, obj, editingId) {
@@ -129,11 +129,11 @@ function legacyCtDeleteRow(ctId, btn) {
     var row = btn.closest("tr"), rowId = row.dataset.id;
     var form = document.getElementById("ct-form-" + ctId);
     var apiUrl = form ? form.dataset.apiUrl : null;
-    if (!apiUrl) { alert("Cannot determine API URL"); return; }
+    if (!apiUrl) { arasNotify("Cannot determine API URL", "error"); return; }
     fetch(apiUrl.replace(/\/$/, "") + "/" + rowId + "/", { method: "DELETE", headers: { "X-CSRFToken": legacyCtGetCsrf() } })
         .then(function (r) {
-            if (!r.ok) return r.json().then(function (e) { alert("Error: " + (e.error || r.status)); });
+            if (!r.ok) return r.json().then(function (e) { arasNotify("Error: " + (e.error || r.status), "error"); });
             row.remove(); legacyCtUpdateCount(ctId);
         })
-        .catch(function (e) { alert("Network error: " + e); });
+        .catch(function (e) { arasNotify("Network error: " + e, "error"); });
 }

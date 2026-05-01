@@ -350,8 +350,8 @@ var ME = (function(){
       if(d.ok){
         btn.innerHTML='<i class="ti-check mr-1"></i>Saved!';
         setTimeout(function(){ btn.innerHTML='<i class="ti-save mr-1"></i>Save Changes'; },2000);
-      } else { alert('Save error: '+(d.error||'unknown')); }
-    }).catch(function(err){ btn.disabled=false; btn.innerHTML='<i class="ti-save mr-1"></i>Save Changes'; alert('Save failed: '+String(err)); });
+      } else { arasNotify('Save error: '+(d.error||'unknown'), 'error'); }
+    }).catch(function(err){ btn.disabled=false; btn.innerHTML='<i class="ti-save mr-1"></i>Save Changes'; arasNotify('Save failed: '+String(err), 'error'); });
   }
 
   function load(){
@@ -386,11 +386,11 @@ var ME = (function(){
     var type = document.getElementById('meAdd_type').value;
     var body = {app_id: parseInt(document.getElementById('meAdd_app').value), title: document.getElementById('meAdd_title').value.trim(), icon: document.getElementById('meAdd_icon').value.trim()};
     if(type === 'page'){ body.url_suffix = document.getElementById('meAdd_url').value.trim(); body.parent_id = parseInt(document.getElementById('meAdd_parent').value)||null; }
-    if(!body.title || (type==='page' && !body.url_suffix)){ alert('Required fields missing.'); return; }
+    if(!body.title || (type==='page' && !body.url_suffix)){ arasNotify('Required fields missing.', 'error'); return; }
     var csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     fetch(type==='group'?'/admin/settings/menu/add-group':'/admin/settings/menu/add-page', {
       method: 'POST', headers: {'Content-Type':'application/json','X-CSRFToken': csrf}, body: JSON.stringify(body)
-    }).then(function(r){ return r.json(); }).then(function(d){ if(d.ok){ closeAddModal(); load(); } else { alert('Error: '+(d.error||'unknown')); } });
+    }).then(function(r){ return r.json(); }).then(function(d){ if(d.ok){ closeAddModal(); load(); } else { arasNotify('Error: '+(d.error||'unknown'), 'error'); } });
   }
 
   function deleteItem(e, id){

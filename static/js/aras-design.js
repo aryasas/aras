@@ -184,4 +184,36 @@
     } else {
         ArasStudio.init();
     }
+
+    // Global Notification System
+    window.arasNotify = function(msg, type) {
+        type = type || 'info';
+        var wrap = document.querySelector('.aras-alert-toast-wrap');
+        if (!wrap) {
+            wrap = document.createElement('div');
+            wrap.className = 'aras-alert-toast-wrap';
+            document.body.appendChild(wrap);
+        }
+        var toast = document.createElement('div');
+        toast.className = 'aras-alert-toast aras-badge--' + (type === 'error' || type === 'danger' ? 'danger' : type);
+        
+        var icon = 'fa-info-circle';
+        if (type === 'success') icon = 'fa-check-circle';
+        if (type === 'error' || type === 'danger') icon = 'fa-exclamation-circle';
+        
+        toast.innerHTML = '<i class="fa ' + icon + ' mt-1"></i>' +
+                         '<span style="flex:1">' + msg + '</span>' +
+                         '<button type="button" style="background:none;border:none;color:inherit;opacity:0.5;cursor:pointer;font-size:18px;line-height:1;margin-left:8px;" onclick="this.parentElement.remove()">&times;</button>';
+        
+        wrap.appendChild(toast);
+        
+        // Auto-remove after 5s
+        setTimeout(function() {
+            if (!toast.parentElement) return;
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(20px)';
+            toast.style.transition = 'all 0.3s ease';
+            setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
+        }, 5000);
+    };
 })();

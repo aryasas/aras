@@ -18,8 +18,13 @@ def run_startup_checks(flask_app) -> dict:
         try:
             from arasCore.admin.models import AppManagerApp, AppManagerTable
             from arasCore.admin.services import make_table_model, make_table_form
+            from arasCore.lib.services.blueprints import get_helper_registry
+            helper_registry = get_helper_registry()
+
             active_apps = AppManagerApp.query.filter_by(is_active=True).all()
             for app_obj in active_apps:
+                if app_obj.slug in helper_registry:
+                    continue
                 tables = AppManagerTable.query.filter_by(app_id=app_obj.id, is_active=True).all()
                 for tbl in tables:
                     label = f"{app_obj.slug}/{tbl.name}"

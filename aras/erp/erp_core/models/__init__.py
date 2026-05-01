@@ -12,6 +12,7 @@ from .notification import ErpNotification, EmailTemplate
 from .audit import AuditLog
 from .list_view import ErpListViewSetting, ErpReportSetting
 from .report import ErpReport, ErpReportFavorite
+from .payment_mode import ModeOfPayment, CompanyPaymentAccount
 
 __all__ = [
     "Company",
@@ -28,4 +29,5 @@ __all__ = [
     "AuditLog",
     "ErpListViewSetting", "ErpReportSetting",
     "ErpReport", "ErpReportFavorite",
+    "ModeOfPayment", "CompanyPaymentAccount",
 ]

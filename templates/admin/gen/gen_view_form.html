@@ -274,13 +274,13 @@ form view with timeline activity and optimized child-table interactions.
             if (data.ok) {
                 window.location.reload();
             } else {
-                alert('Error: ' + (data.error || 'Unknown error'));
+                arasNotify(data.error || 'Unknown error', 'error');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa fa-paper-plane"></i> Post / Submit';
             }
         })
         .catch(function (e) {
-            alert('Network error: ' + e);
+            arasNotify('Network error: ' + e, 'error');
             btn.disabled = false;
             btn.innerHTML = '<i class="fa fa-paper-plane"></i> Post / Submit';
         });

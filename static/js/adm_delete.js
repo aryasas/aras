@@ -225,13 +225,13 @@
                     updateProgress(completed);
                     setTimeout(next, total > 1 ? 50 : 200);
                 } else {
-                    alert("Error: " + (data.message || "Failed to delete record."));
+                    arasNotify("Error: " + (data.message || "Failed to delete record."), "error");
                     window.location.reload();
                 }
             })
             .catch(function (err) {
                 console.error("Delete failed", err);
-                alert("Network error or server failure.");
+                arasNotify("Network error or server failure.", "error");
                 window.location.reload();
             });
         }

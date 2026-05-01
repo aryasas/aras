@@ -53,6 +53,8 @@ def run_seed(app):
         _seed_role(company)
         _seed_sequences(company)
         _seed_settings()
+        _seed_customer(company)
+        _seed_supplier(company)
         seed_reports()
         db.session.commit()
         print("[seed] core data seeded.")
@@ -90,3 +92,19 @@ def _seed_settings():
             {"value_type": vtype, "value": value},
             scope="global", scope_id=None, key=key,
         )
+
+
+def _seed_customer(company):
+    from aras.erp.erp_crm.models import CrmCustomer
+    CrmCustomer.get_or_create(
+        {"name": "Walk-in Customer", "type": "individual"},
+        company_id=company.id, code="CUST-001",
+    )
+
+
+def _seed_supplier(company):
+    from aras.erp.erp_sup.models import SupSupplier
+    SupSupplier.get_or_create(
+        {"name": "Default Supplier", "type": "company"},
+        company_id=company.id, code="SUP-001",
+    )

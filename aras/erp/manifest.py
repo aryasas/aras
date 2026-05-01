@@ -1,10 +1,20 @@
 # -*- coding: utf-8 -*-
 from arasCore.lib.services.app_helper import AppHelper, MenuGroup, ResourceDef, SubHandler, CustomRoute
 
+# Important: Import AccAccount before core/tax models because of relationships
+from aras.erp.erp_acc.models.account import AccAccount
+from aras.erp.erp_acc.models import (
+    AccJournalEntry, AccJournalLine,
+    AccAnalyticTag,
+    SalesOrder, SalesOrderLine, SalesOrderCharge,
+    AccSalesInvoice, AccSalesInvoiceLine, AccSalesInvoiceCharge,
+    AccPurchaseInvoice, AccPurchaseInvoiceLine, AccPurchaseInvoiceCharge,
+    AccPayment, AccPaymentAllocation,
+)
+from aras.erp.erp_core.models.tax import Charge
 from aras.erp.erp_core.models import (
     Company,
     Currency, FxRate,
-    Charge,
     Setting, Sequence,
     FiscalYear, FiscalPeriod,
     ErpRole, ErpPermission,
@@ -19,15 +29,6 @@ from aras.erp.erp_crm.models import (
 from aras.erp.erp_sup.models import (
     SupSupplier,
     PurchaseOrder, PurchaseOrderLine, PurchaseOrderCharge,
-)
-from aras.erp.erp_acc.models import (
-    AccAccount,
-    AccJournalEntry, AccJournalLine,
-    AccAnalyticTag,
-    SalesOrder, SalesOrderLine, SalesOrderCharge,
-    AccSalesInvoice, AccSalesInvoiceLine, AccSalesInvoiceCharge,
-    AccPurchaseInvoice, AccPurchaseInvoiceLine, AccPurchaseInvoiceCharge,
-    AccPayment, AccPaymentAllocation,
 )
 from aras.erp.erp_pos.models import (
     PosTerminal, PosSession, PosShiftEntry,

@@ -165,13 +165,15 @@ function ctOpenModal(idx, btn, isNew) {
     var meta  = _ctGetMeta(idx);
     var MN    = meta.model_name || '';
     var modal = document.getElementById('ct-modal-' + idx);
+    if (!modal) return;
 
     var setupModal = function(obj) {
         document.querySelectorAll('#ct-modal-' + idx + ' [name]').forEach(function(el) {
             var v = obj[el.name];
-            if (v === undefined || v === null) return;
+            if (v === undefined || v === null) v = '';
             if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
         });
+        modal.classList.remove('d-none');
         modal.style.display = 'flex';
         setTimeout(function() { modal.classList.add('is-visible'); }, 10);
     };
@@ -179,7 +181,7 @@ function ctOpenModal(idx, btn, isNew) {
     if (isNew) {
         document.getElementById('ct-modal-id-' + idx).value = '';
         var data = {};
-        tr.querySelectorAll('[data-field] .ct-cell-input').forEach(function(inp) {
+        tr.querySelectorAll('.ct-cell-input').forEach(function(inp) {
             data[inp.name] = inp.type === 'checkbox' ? inp.checked : inp.value;
         });
         setupModal(data);
@@ -189,7 +191,7 @@ function ctOpenModal(idx, btn, isNew) {
     var id = tr.dataset.id;
     document.getElementById('ct-modal-id-' + idx).value = id;
 
-    if (String(id).startsWith('local_')) {
+    if (id && String(id).startsWith('local_')) {
         var arr = _getCtLocalData(idx);
         var item = arr.find(function(x) { return x.id === id; }) || {};
         setupModal(item);
@@ -209,37 +211,78 @@ function ctOpenModal(idx, btn, isNew) {
 
 function ctCloseModal(idx, e) {
     var modal = document.getElementById('ct-modal-' + idx);
+    if (!modal) return;
     if (e && e.target !== modal) return;
     modal.classList.remove('is-visible');
-    setTimeout(function() { modal.style.display = 'none'; }, 200);
+    setTimeout(function() { 
+        modal.style.display = 'none'; 
+        modal.classList.add('d-none');
+    }, 200);
 }
 
 function ctSaveModal(idx, apiUrl, fkCol, parentId) {
     var id   = document.getElementById('ct-modal-id-' + idx).value;
     var meta = _ctGetMeta(idx);
+    
+    // Normalize params
+    var _apiUrl = (apiUrl === 'None' || apiUrl === 'null' || !apiUrl) ? meta.api_url : apiUrl;
+    var _parentId = (parentId === 'None' || parentId === 'null') ? null : parentId;
+
     var data = {};
-    data[fkCol] = parentId;
+    if (_parentId) data[fkCol] = _parentId;
+    
     document.querySelectorAll('#ct-modal-' + idx + ' [name]').forEach(function(el) {
+        if (!el.name) return;
         if (el.type === 'checkbox') data[el.name] = el.checked;
-        else if (el.value !== '') data[el.name] = el.value;
+        else data[el.name] = el.value; // Send empty string instead of omitting
     });
-    if (!data['qty'])           data['qty']           = '1';
-    if (!data['unit_price'])    data['unit_price']    = '0';
-    if (!data['discount_pct'])  data['discount_pct']  = '0';
-    if (!data['description'] && data['product_id']) {
-        var prodSel = document.querySelector('#ct-modal-' + idx + ' [name="product_id"]');
-        if (prodSel && prodSel.selectedIndex > 0)
-            data['description'] = prodSel.options[prodSel.selectedIndex].text;
+
+    // Capture labels from modal selects for instant UI update
+    var modalLabels = {};
+    document.querySelectorAll('#ct-modal-' + idx + ' select[name]').forEach(function(sel) {
+        if (sel.selectedIndex >= 0) {
+            var txt = sel.options[sel.selectedIndex].text;
+            if (txt && txt !== '—') modalLabels[sel.name] = txt;
+        }
+    });
+
+    // Apply defaults for common numeric fields if empty
+    ['qty', 'unit_price', 'discount_pct', 'amount', 'subtotal'].forEach(function(f) {
+        if (data[f] === undefined) {
+            var el = document.getElementById('ct-modal-' + idx + '-' + f);
+            if (el) data[f] = (f === 'qty') ? '1' : '0';
+        }
+    });
+    
+    if (!data['description'] && data['product_id'] && modalLabels['product_id']) {
+        data['description'] = modalLabels['product_id'];
     }
 
-    if (!id && (!parentId || parentId === 'None' || parentId === 'null')) {
+    var updateRowUI = function(tr, obj) {
+        var allCols = meta.all_vcols || meta.vcols || [];
+        allCols.forEach(function(field) {
+            var td = tr.querySelector('td[data-field="' + field + '"]');
+            if (!td) return;
+            var raw = obj[field];
+            if (raw === undefined && id && !String(id).startsWith('local_')) {
+                raw = td.dataset.raw;
+            }
+            var display = (meta.rel_maps && meta.rel_maps[field] && raw != null)
+                ? (meta.rel_maps[field][String(raw)] || raw) 
+                : (modalLabels[field] || raw);
+            
+            td.dataset.raw = raw != null ? raw : '';
+            td.textContent = (display != null && display !== '') ? display : '—';
+        });
+    };
+
+    if (!id && (!_parentId || !_apiUrl)) {
         var fakeId = 'local_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
         data.id = fakeId;
         var arr = _getCtLocalData(idx);
         arr.push(data);
         _setCtLocalData(idx, arr);
-        
-        _ctAppendRow(idx, data);
+        _ctAppendRow(idx, data, modalLabels);
         _ctClearInputRow(idx);
         ctHideInputRow(idx);
         ctCloseModal(idx);
@@ -253,41 +296,25 @@ function ctSaveModal(idx, apiUrl, fkCol, parentId) {
         if (item) {
             Object.assign(item, data);
             _setCtLocalData(idx, arr);
-            
             var tr = document.querySelector('#ct-tbody-' + idx + ' tr[data-id="' + id + '"]');
-            if (tr) {
-                (meta.all_vcols || meta.vcols || []).forEach(function(field) {
-                    var td = tr.querySelector('td[data-field="' + field + '"]');
-                    if (!td) return;
-                    var raw = item[field];
-                    var display = (meta.rel_maps && meta.rel_maps[field] && raw != null)
-                        ? (meta.rel_maps[field][String(raw)] || raw) : raw;
-                    td.dataset.raw = raw != null ? raw : '';
-                    td.textContent = display != null ? display : '—';
-                });
-            }
+            if (tr) updateRowUI(tr, item);
             ctCloseModal(idx);
             _ctRecalcFooter(idx);
         }
         return;
     }
 
-    _ctApiSave(apiUrl, id || null, data, idx, function(saved) {
+    if (!_apiUrl) { 
+        arasNotify('Error: No API URL found for this child table. If you are adding a new record, please ensure the parent is saved first.', 'error'); 
+        return; 
+    }
+
+    _ctApiSave(_apiUrl, id || null, data, idx, function(saved) {
         if (id) {
             var tr = document.querySelector('#ct-tbody-' + idx + ' tr[data-id="' + id + '"]');
-            if (tr) {
-                (meta.all_vcols || meta.vcols || []).forEach(function(field) {
-                    var td = tr.querySelector('td[data-field="' + field + '"]');
-                    if (!td) return;
-                    var raw = saved[field];
-                    var display = (meta.rel_maps && meta.rel_maps[field] && raw != null)
-                        ? (meta.rel_maps[field][String(raw)] || raw) : raw;
-                    td.dataset.raw = raw != null ? raw : '';
-                    td.textContent = display != null ? display : '—';
-                });
-            }
+            if (tr) updateRowUI(tr, saved);
         } else {
-            _ctAppendRow(idx, saved);
+            _ctAppendRow(idx, saved, modalLabels);
             ctHideInputRow(idx);
             _ctClearInputRow(idx);
         }
@@ -440,7 +467,7 @@ function _ctResolveDisplay(idx, field, raw) {
     return raw;
 }
 
-function _ctAppendRow(idx, obj) {
+function _ctAppendRow(idx, obj, extraLabels) {
     var meta   = _ctGetMeta(idx);
     var tbody  = document.getElementById('ct-tbody-' + idx);
     var empty  = document.getElementById('ct-empty-' + idx);
@@ -450,8 +477,8 @@ function _ctAppendRow(idx, obj) {
     tr.dataset.id = obj.id;
 
     var seqTd = document.createElement('td');
-    seqTd.className = 'ct-td-seq';
-    seqTd.style.cssText = 'color:var(--aras-ink-3);font-size:11px;';
+    seqTd.className = 'ct-td-seq text-center text-muted-aras fs-11';
+    seqTd.style.padding = '14px 20px';
     seqTd.textContent = seq;
     tr.appendChild(seqTd);
 
@@ -462,16 +489,25 @@ function _ctAppendRow(idx, obj) {
         var raw = obj[field];
         td.dataset.field = field;
         td.dataset.raw   = raw != null ? raw : '';
+        
         var display = _ctResolveDisplay(idx, field, raw);
+        if ((display === raw || display == null) && extraLabels && extraLabels[field]) {
+            display = extraLabels[field];
+        }
+        
         td.textContent = display != null ? display : '—';
         if (!visCols.has(field)) td.style.display = 'none';
+        td.style.padding = '14px 20px';
+        td.style.borderBottom = '1px solid var(--studio-cream)';
         tr.appendChild(td);
     });
 
     var actTd = document.createElement('td');
-    actTd.className = 'ct-td-actions';
-    actTd.innerHTML = '<button type="button" class="ct-btn-edit" title="Edit" onclick="ctOpenModal(\'' + idx + '\', this)"><i class="fa fa-pencil"></i></button>'
-                    + '<button type="button" class="ct-btn-del" title="Delete" onclick="ctDeleteRow(\'' + idx + '\', this)"><i class="fa fa-trash"></i></button>';
+    actTd.className = 'ct-td-actions text-right';
+    actTd.style.padding = '8px 20px';
+    actTd.style.borderBottom = '1px solid var(--studio-cream)';
+    actTd.innerHTML = '<button type="button" class="ct-btn-edit" title="Edit" onclick="ctOpenModal(\'' + idx + '\', this)" style="background:none;border:none;padding:6px;cursor:pointer;color:var(--aras-ink-3);"><i class="fa fa-pencil"></i></button>'
+                    + '<button type="button" class="ct-btn-del" title="Delete" onclick="ctDeleteRow(\'' + idx + '\', this)" style="background:none;border:none;padding:6px;cursor:pointer;color:var(--aras-ink-3);"><i class="fa fa-trash"></i></button>';
     tr.appendChild(actTd);
 
     var inputRow = document.getElementById('ct-input-row-' + idx);
@@ -480,18 +516,34 @@ function _ctAppendRow(idx, obj) {
 }
 
 function _ctApiSave(apiUrl, id, data, idx, cb) {
-    var url = id ? apiUrl + id + '/' : apiUrl;
+    var base = apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
+    var url = id ? base + id + '/' : base;
+    
     fetch(url, {
         method: id ? 'PUT' : 'POST',
         headers: {'Content-Type': 'application/json', 'X-CSRFToken': _ctGetCsrf()},
         body: JSON.stringify(data)
-    }).then(function(r) { return r.json(); }).then(function(d) {
-        if (d.ok === false) { alert(d.error || 'Error saving'); return; }
+    }).then(function(r) { 
+        if (!r.ok) {
+            return r.text().then(function(text) {
+                var err;
+                try { err = JSON.parse(text); } catch(e) { err = {error: text}; }
+                throw new Error(err.error || err.message || ('Server error ' + r.status + ': ' + text.substring(0, 100)));
+            });
+        }
+        return r.json(); 
+    }).then(function(d) {
+        if (d.ok === false) { arasNotify(d.error || 'Error saving', 'error'); return; }
         cb(d.data || d);
-    }).catch(function(e) { alert('Network error: ' + e); });
+    }).catch(function(e) { 
+        arasNotify('Save failed: ' + e.message, 'error'); 
+        console.error('Child table save error:', e);
+    });
 }
 
 function _ctGetCsrf() {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta) return meta.content;
     var m = document.cookie.match(/csrf_token=([^;]+)/);
     return m ? decodeURIComponent(m[1]) : '';
 }
