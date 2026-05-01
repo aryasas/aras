@@ -184,31 +184,45 @@ def execute_restore(group_id: str, user_id=None) -> None:
         table = cls.__table__
         pk_val = doc.doc_id
 
-        # Check if PK already exists
+        # Check if PK already exists (could be soft-deleted)
         existing = db.session.execute(
             text(f"SELECT id FROM {table.name} WHERE id = :id"),
             {"id": pk_val}
         ).fetchone()
-        
+
         if existing:
+            # If soft-delete model, restore by clearing deleted_at
+            if hasattr(cls, "__soft_delete__") and cls.__soft_delete__:
+                # Use query.get() bypasses _q() soft-delete filter
+                obj = cls.query.get(pk_val)
+                if obj and getattr(obj, "deleted_at", None) is not None:
+                    obj.deleted_at = None
+                    restored_docs.append(doc)
+                    continue
             logger.info(f"Restore: Record {doc.doc_type} #{pk_val} already exists. Skipping.")
-            restored_docs.append(doc) # Mark as "done" so it gets removed from Trash
+            restored_docs.append(doc)
             continue
 
-        # Filter data to only known columns
-        col_names = {c.name for c in table.columns}
-        data = {k: v for k, v in doc.doc_data.items() if k in col_names}
+        # Filter data to only columns that exist in the actual DB table
+        db_cols = {row[0] for row in db.session.execute(
+            text("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = :t AND TABLE_SCHEMA = DATABASE()"),
+            {"t": table.name}
+        ).fetchall()}
+        data = {k: v for k, v in doc.doc_data.items() if k in db_cols}
 
         # Use raw insert to preserve ID
         try:
             db.session.execute(table.insert().values(**data))
             
-            # If it's a StockMovement, queue valuation recalc
-            if doc.doc_type == "StockMovement":
+            # Queue valuation recalc from StockMovementLine (product lives on the line)
+            if doc.doc_type == "StockMovementLine":
+                mv_doc = next((d for d in docs if d.doc_type == "StockMovement"
+                               and d.doc_id == data.get("movement_id")), None)
+                mv_data = mv_doc.doc_data if mv_doc else {}
                 affected_valuation_keys.append({
-                    "company_id": data.get("company_id"),
+                    "company_id": mv_data.get("company_id"),
                     "product_id": data.get("product_id"),
-                    "location_id": data.get("src_location_id") or data.get("dst_location_id")
+                    "location_id": mv_data.get("src_location_id") or mv_data.get("dst_location_id"),
                 })
             
             restored_docs.append(doc)

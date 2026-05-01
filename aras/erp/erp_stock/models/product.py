@@ -58,6 +58,8 @@ class StockProduct(ArasModel):
         "StockProductBundle", foreign_keys="StockProductBundle.bundle_id",
         backref="bundle", cascade="all, delete-orphan"
     )
+    valuations = db.relationship("StockValuation", foreign_keys="StockValuation.product_id",
+                                 cascade="all, delete-orphan")
 
 
 class StockProductUom(ArasModel):

@@ -71,6 +71,8 @@ class StockValuation(ArasModel):
     __table_args__ = (
         db.UniqueConstraint("company_id", "product_id", "location_id", name="uq_stock_valuation"),
     )
+    __view_in_tab__   = True
+    __footer_totals__ = ["qty_on_hand", "total_value"]
 
     id          = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     company_id  = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
@@ -81,5 +83,4 @@ class StockValuation(ArasModel):
     total_value = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     updated_at  = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
 
-    product  = db.relationship("StockProduct")
     location = db.relationship("StockLocation")
