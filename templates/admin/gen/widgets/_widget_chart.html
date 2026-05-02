@@ -1,29 +1,34 @@
-{# Chart widget — bar chart via Chart.js #}
+{# Chart widget — precision redesign 5.0 #}
 {% if not skip_col %}
 <div class="col-md-{{ widget.width|default(6) }}">
 {% endif %}
-  <div class="aras-card" style="grid-column: span {{ widget.width|default(6) }};">
-    <div class="aras-card__header">
-      <h3 class="aras-card__title">
-        <i class="{{ widget.icon|default('fa fa-chart-bar') }} icon--aras-accent-mr-2"></i>
-        {{ widget.title }}
-      </h3>
-    </div>
-    <div class="aras-card__body">
-      <canvas id="chart-{{ widget.id }}" height="120"></canvas>
-    </div>
+
+<div class="aras-card" style="grid-column: span {{ widget.width|default(6) }};" data-widget-id="{{ widget.id }}">
+  <div class="aras-card__header">
+    <h3 class="aras-card__title">
+      <i class="{{ widget.icon|default('ti-bar-chart') }}"></i>{{ widget.title }}
+    </h3>
   </div>
+  <div class="aras-card__body">
+    <canvas id="chart-{{ widget.id }}" height="110"></canvas>
+  </div>
+</div>
+
 {% if not skip_col %}
 </div>
 {% endif %}
+
 <script>
 (function(){
   var ctx = document.getElementById('chart-{{ widget.id }}');
   if (!ctx || typeof Chart === 'undefined') return;
-  
-  // Use CSS variable colors if possible, else fallback
-  var primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--aras-primary').trim() || '#2d4a6b';
-  var primaryHover = getComputedStyle(document.documentElement).getPropertyValue('--aras-primary-600').trim() || '#23395a';
+
+  var cs = getComputedStyle(document.documentElement);
+  var ink     = cs.getPropertyValue('--studio-ink').trim()   || '#0f1b2d';
+  var ochre   = cs.getPropertyValue('--studio-ochre').trim() || '#c9a568';
+  var line    = cs.getPropertyValue('--aras-line').trim()    || '#eef0f2';
+  var ink3    = cs.getPropertyValue('--aras-ink-3').trim()   || '#9aacb8';
+  var primary = cs.getPropertyValue('--aras-primary').trim() || '#2d4a6b';
 
   new Chart(ctx, {
     type: 'bar',
@@ -32,35 +37,55 @@
       datasets: [{
         label: {{ widget.title|tojson }},
         data: {{ widget.data|tojson }},
-        backgroundColor: primaryColor,
-        hoverBackgroundColor: primaryHover,
-        borderRadius: 2,
-        barThickness: 'flex',
-        maxBarThickness: 30
+        backgroundColor: function(ctx) {
+          var gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 160);
+          gradient.addColorStop(0, primary);
+          gradient.addColorStop(1, primary + '88');
+          return gradient;
+        },
+        hoverBackgroundColor: ochre,
+        borderRadius: 3,
+        borderSkipped: false,
+        maxBarThickness: 28
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { 
+      animation: { duration: 600, easing: 'easeOutQuart' },
+      plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#0f1b2d',
-          titleFont: { family: 'Bricolage Grotesque', size: 12 },
-          bodyFont: { family: 'Bricolage Grotesque', size: 12 },
-          padding: 10,
-          cornerRadius: 4
+          backgroundColor: ink,
+          titleColor: 'rgba(255,255,255,0.5)',
+          bodyColor: '#fff',
+          titleFont: { family: 'Bricolage Grotesque', size: 11, weight: '600' },
+          bodyFont: { family: 'Bricolage Grotesque', size: 13, weight: '700' },
+          padding: { x: 14, y: 10 },
+          cornerRadius: 6,
+          displayColors: false
         }
       },
-      scales: { 
-        y: { 
+      scales: {
+        y: {
           beginAtZero: true,
-          grid: { color: '#eef0f2' },
-          ticks: { font: { family: 'ui-monospace', size: 10 }, color: '#9aacb8' }
+          border: { display: false },
+          grid: { color: line, lineWidth: 1 },
+          ticks: {
+            font: { family: 'ui-monospace', size: 10 },
+            color: ink3,
+            maxTicksLimit: 5,
+            padding: 8
+          }
         },
         x: {
+          border: { display: false },
           grid: { display: false },
-          ticks: { font: { family: 'Bricolage Grotesque', size: 11 }, color: '#6c757d' }
+          ticks: {
+            font: { family: 'Bricolage Grotesque', size: 11 },
+            color: ink3,
+            padding: 6
+          }
         }
       }
     }

@@ -16,34 +16,42 @@
             <input
                 type="text"
                 id="arasTopSearchInput"
-                placeholder="Search resources... (⌘K)"
+                placeholder="Search... (⌘K)"
                 autocomplete="off"
                 aria-label="Search resources"
             />
-            <div
-                id="arasTopSearchResults"
-                class="aras-top-search-results"
-                aria-live="polite"
-            ></div>
+            <div id="arasTopSearchResults" class="aras-top-search-results" aria-live="polite"></div>
         </div>
 
-        <div class="aras-top-bar__right-actions">
-            <button 
-                class="aras-btn aras-btn--sm" 
-                id="themeToggle" 
-                title="Toggle Dark Mode"
-                aria-label="Toggle Dark Mode"
-            >
-                <i class="fa fa-sun-o"></i>
-            </button>
-            <button 
-                class="aras-btn aras-btn--sm" 
-                id="rightSidebarToggle" 
-                title="Toggle Sidebar"
-                aria-label="Toggle Right Sidebar"
-            >
-                <i class="ti-layout-sidebar-right"></i>
-            </button>
+        {% if current_user.is_authenticated %}
+        <div class="aras-topbar-user" id="arasUserMenuToggle">
+            <div class="aras-topbar-user__avatar" aria-label="User menu">
+                {{ current_user.username[0]|upper }}
+            </div>
+            <div class="aras-topbar-user__info d-none d-lg-block">
+                <span class="aras-topbar-user__name">{{ current_user.username }}</span>
+                <span class="aras-topbar-user__role">Administrator</span>
+            </div>
+            <i class="ti-angle-down aras-topbar-user__caret"></i>
+
+            <div class="aras-topbar-user__menu" id="arasUserMenu">
+                <div class="aras-topbar-user__menu-header">
+                    <strong>{{ current_user.username }}</strong>
+                    <span>{{ current_user.email or 'Administrator' }}</span>
+                </div>
+                <div class="aras-topbar-user__menu-divider"></div>
+                <a href="{{ url_for('admin.settings') }}" class="aras-topbar-user__menu-item">
+                    <i class="ti-settings"></i> Settings
+                </a>
+                <button class="aras-topbar-user__menu-item" id="themeToggle">
+                    <i class="fa fa-sun-o"></i> Toggle Theme
+                </button>
+                <div class="aras-topbar-user__menu-divider"></div>
+                <a href="{{ url_for('auth.logout_view') }}" class="aras-topbar-user__menu-item aras-topbar-user__menu-item--danger">
+                    <i class="ti-power-off"></i> Sign Out
+                </a>
+            </div>
         </div>
+        {% endif %}
     </div>
 </header>

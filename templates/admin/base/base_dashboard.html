@@ -1,136 +1,121 @@
-{% extends extends_layout if extends_layout else 'admin/base_index.html' %} {%
-from "admin/macro/macro_main.html" import render_fields, render_field %} {% block submenu %} {%
-if g.gmenu %}
-<div
-    class="page-title-area page-title-area--dashboard"
->
+{% extends extends_layout if extends_layout else 'admin/base_index.html' %}
+{% from "admin/macro/macro_main.html" import render_fields, render_field %}
+
+{% block submenu %}
+{% if g.gmenu %}
+<div class="page-title-area page-title-area--dashboard">
     {% include 'admin/base/base_partial_dashboard_nav.html' %}
 </div>
-{% endif %} {% endblock %} {% block head %} {{ super() }} {% endblock %}
+{% endif %}
+{% endblock %}
+
+{% block head %}{{ super() }}{% endblock %}
+
 {% block page_content %}
 <div class="aras-studio-theme">
-<!-- Main content -->
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="aras-h2 mb-0">{{ main_title }}</h2>
+  <!-- Dashboard Header -->
+  <div class="dash-header">
+    <div>
+      <h2 class="dash-title">{{ main_title }}</h2>
+      <div class="dash-subtitle">Overview · Updated just now</div>
+    </div>
     {% if builder_enabled %}
     <div id="dashboard-controls">
-        <button id="btn-edit-dashboard" class="aras-btn aras-btn--sm aras-btn--outline">
-            <i class="ti-pencil"></i> Customize
+      <button id="btn-edit-dashboard" class="aras-btn aras-btn--sm aras-btn--outline">
+        <i class="ti-pencil"></i> Customize
+      </button>
+      <div id="edit-actions" class="d-none d-flex gap-2">
+        <button id="btn-add-widget" class="aras-btn aras-btn--sm aras-btn--outline">
+          <i class="ti-plus"></i> Add Widget
         </button>
-        <div id="edit-actions" class="d-none d-flex gap-2">
-            <button id="btn-add-widget" class="aras-btn aras-btn--sm aras-btn--outline">
-                <i class="ti-plus"></i> Add Widget
-            </button>
-            <button id="btn-save-dashboard" class="aras-btn aras-btn--sm aras-btn--primary">
-                <i class="ti-save"></i> Save Layout
-            </button>
-            <button id="btn-cancel-dashboard" class="aras-btn aras-btn--sm aras-btn--link">
-                Cancel
-            </button>
-        </div>
+        <button id="btn-save-dashboard" class="aras-btn aras-btn--sm aras-btn--primary">
+          <i class="ti-save"></i> Save
+        </button>
+        <button id="btn-cancel-dashboard" class="aras-btn aras-btn--sm aras-btn--link">
+          Cancel
+        </button>
+      </div>
     </div>
     {% endif %}
-</div>
+  </div>
 
-<!-- Dashboard Widgets -->
-<div id="dashboard-grid" class="aras-grid-dashboard mt-2">
-  {% if widgets %}
-    {% for w in widgets %}
-      {% set widget = w %}
-      {% set wtype = widget.widget_type|default('count') %}
-      <div class="dashboard-widget-container" 
-           style="grid-column: span {{ widget.width|default(3) }};"
-           data-id="{{ widget.id }}" data-db-id="{{ widget.db_id|default('') }}">
-        <div class="widget-edit-overlay d-none">
-            <button class="btn-widget-delete" title="Remove Widget"><i class="ti-close"></i></button>
+  <!-- Widget Grid -->
+  <div id="dashboard-grid" class="aras-grid-dashboard">
+    {% if widgets %}
+      {% for w in widgets %}
+        {% set widget = w %}
+        {% set wtype = widget.widget_type|default('count') %}
+        <div class="dashboard-widget-container"
+             style="grid-column: span {{ widget.width|default(3) }};"
+             data-id="{{ widget.id }}" data-db-id="{{ widget.db_id|default('') }}">
+          <div class="widget-edit-overlay d-none">
+            <button class="btn-widget-delete" title="Remove"><i class="ti-close"></i></button>
             <div class="widget-move-controls">
-                <button class="btn-widget-move-left" title="Move Left"><i class="ti-angle-left"></i></button>
-                <button class="btn-widget-move-right" title="Move Right"><i class="ti-angle-right"></i></button>
+              <button class="btn-widget-move-left" title="Move Left"><i class="ti-angle-left"></i></button>
+              <button class="btn-widget-move-right" title="Move Right"><i class="ti-angle-right"></i></button>
             </div>
+          </div>
+          {% set skip_col = True %}
+          {% if wtype == 'chart' %}
+            {% include 'admin/gen/widgets/_widget_chart.html' %}
+          {% elif wtype == 'sum' %}
+            {% include 'admin/gen/widgets/_widget_sum.html' %}
+          {% else %}
+            {% include 'admin/gen/widgets/_widget_count.html' %}
+          {% endif %}
         </div>
-        {% set skip_col = True %}
-        {% if wtype == 'chart' %}
-          {% include 'admin/gen/widgets/_widget_chart.html' %}
-        {% elif wtype == 'sum' %}
-          {% include 'admin/gen/widgets/_widget_sum.html' %}
-        {% else %}
-          {% include 'admin/gen/widgets/_widget_count.html' %}
+      {% endfor %}
+    {% else %}
+      <div class="dash-empty">
+        <div class="dash-empty__icon"><i class="ti-layout-grid2-alt"></i></div>
+        <div class="dash-empty__text">Your dashboard is empty.</div>
+        {% if builder_enabled %}
+          <div class="dash-empty__hint">Click <strong>Customize</strong> to add your first widget.</div>
         {% endif %}
       </div>
-    {% endfor %}
-  {% else %}
-    <div style="grid-column: span 12;" class="text-center py-5">
-        <p class="text-muted italic">No widgets found. Click "Customize" to add some.</p>
-    </div>
-  {% endif %}
-</div>
+    {% endif %}
+  </div>
 
-<!-- Add Widget Modal -->
-<div class="modal fade" id="addWidgetModal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Add Dashboard Widget</h5>
-        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
+  <!-- Add Widget Modal -->
+  <div class="modal fade" id="addWidgetModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Widget</h5>
+          <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group mb-3">
             <label>Widget Label</label>
             <input type="text" id="w-label" class="form-control" placeholder="e.g. Total Sales">
-        </div>
-        <div class="form-group">
+          </div>
+          <div class="form-group mb-3">
             <label>Widget Type</label>
             <select id="w-type" class="form-control">
-                <option value="count">Count (Total Rows)</option>
-                <option value="sum">Sum (Column Total)</option>
-                <option value="chart">Chart (Grouped Data)</option>
+              <option value="count">Count — Total Rows</option>
+              <option value="sum">Sum — Column Total</option>
+              <option value="chart">Chart — Grouped Data</option>
             </select>
-        </div>
-        <div class="form-group">
+          </div>
+          <div class="form-group mb-3">
             <label>Data Source (Table)</label>
             <input type="text" id="w-source" class="form-control" placeholder="e.g. erp_sales_invoice">
-        </div>
-        <div class="form-group" id="group-sum-col" style="display:none;">
+          </div>
+          <div class="form-group mb-0" id="group-sum-col" style="display:none;">
             <label>Sum Column</label>
             <input type="text" id="w-sum-col" class="form-control" placeholder="e.g. grand_total">
+          </div>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="aras-btn aras-btn--outline" data-dismiss="modal">Cancel</button>
-        <button type="button" id="btn-confirm-add-widget" class="aras-btn aras-btn--primary">Add Widget</button>
+        <div class="modal-footer">
+          <button type="button" class="aras-btn aras-btn--outline" data-dismiss="modal">Cancel</button>
+          <button type="button" id="btn-confirm-add-widget" class="aras-btn aras-btn--primary">Add Widget</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
-</div>
 
-<style>
-.dashboard-widget-container { position: relative; transition: all 0.2s; }
-.widget-edit-overlay {
-    position: absolute; top: 10px; right: 25px; left: 25px; bottom: 10px;
-    background: rgba(255,255,255,0.8); border: 2px dashed var(--studio-ochre);
-    z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    border-radius: 8px;
-}
-.btn-widget-delete {
-    position: absolute; top: -10px; right: -10px;
-    width: 24px; height: 24px; border-radius: 50%; background: #f44336; color: #fff;
-    border: none; display: flex; align-items: center; justify-content: center; font-size: 10px;
-    cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-.widget-move-controls { display: flex; gap: 10px; }
-.widget-move-controls button {
-    background: var(--studio-ink); color: #fff; border: none; border-radius: 4px;
-    padding: 5px 10px; cursor: pointer;
-}
-.dashboard-widget-container > div:not(.widget-edit-overlay) {
-    transition: opacity 0.2s;
-}
-.editing .dashboard-widget-container > div:not(.widget-edit-overlay) {
-    opacity: 0.4; pointer-events: none;
-}
-</style>
+</div>
 {% endblock %}
 
 {% block script %}
@@ -139,4 +124,3 @@ if g.gmenu %}
 <script src="{{ url_for('static', filename='js/dashboard_builder.js') }}"></script>
 {% endif %}
 {% endblock %}
-

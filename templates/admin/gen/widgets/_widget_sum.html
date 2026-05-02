@@ -1,31 +1,32 @@
-{# Sum widget — redesigned for Aras Design System #}
+{# Sum widget — precision redesign 5.0 #}
 {% if not skip_col %}
 <div class="col-md-{{ widget.width|default(3) }}">
 {% endif %}
-  <div class="aras-w" data-widget-id="{{ widget.id }}" style="grid-column: span {{ widget.width|default(3) }};">
-    <span class="aras-w__cap">{{ widget.title }}</span>
-    
-    <div class="aras-w__figrow">
-      <span class="aras-w__val">{{ widget.value|default(0)|round(2) }}</span>
-      {% if widget.unit %}
-        <span class="aras-w__note aras-w__unit">{{ widget.unit }}</span>
-      {% endif %}
-    </div>
 
-    {# Subtle sum icon indicator #}
-    <div class="aras-w__icon-sum">
-       <i class="{{ widget.icon|default('fa fa-calculator') }}"></i>
-    </div>
-
-    <hr class="aras-w__rule">
-    
-    <div class="aras-w__foot">
-      <span class="aras-w__note">Total Sum</span>
-      {% if widget.link %}
-        <a href="{{ widget.link }}" class="aras-w__lnk">Details</a>
-      {% endif %}
-    </div>
+<div class="aras-w" data-widget-id="{{ widget.id }}" style="grid-column: span {{ widget.width|default(3) }};">
+  <div class="aras-w__icon-sum">
+    <i class="{{ widget.icon|default('ti-stats-up') }}"></i>
   </div>
+
+  <span class="aras-w__cap">{{ widget.title }}</span>
+
+  <div class="aras-w__figrow">
+    <span class="aras-w__val">{{ widget.value|default(0)|round(2) }}</span>
+    {% if widget.unit %}
+      <span class="aras-w__unit">{{ widget.unit }}</span>
+    {% endif %}
+  </div>
+
+  <hr class="aras-w__rule">
+
+  <div class="aras-w__foot">
+    <span class="aras-w__note">Cumulative total</span>
+    {% if widget.link %}
+      <a href="{{ widget.link }}" class="aras-w__lnk">Details →</a>
+    {% endif %}
+  </div>
+</div>
+
 {% if not skip_col %}
 </div>
 {% endif %}

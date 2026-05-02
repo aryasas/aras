@@ -1,15 +1,53 @@
-{# 
-  com_hero.html — Standard Hero/Title Section for Aras Admin
-  Refactored from adm_app_home.html to be reusable across all admin views.
+{#
+  base_partial_hero.html — Page hero with inline breadcrumb above title
 #}
 
-{# Prioritize 'title' as requested, fallback to hero_title then main_title #}
 {% set _title = title if title is defined else (hero_title if hero_title is defined else main_title) %}
-
-{# Description/Subtitle mapping #}
 {% set _desc  = hero_desc if hero_desc is defined else (description if description is defined else (app_description if app_description is defined else '')) %}
 {% set _icon  = hero_icon if hero_icon is defined else (app_icon if app_icon is defined else 'fa-cube') %}
 {% set _back  = back_url if back_url is defined else none %}
+
+{# ── Inline breadcrumb — part of the page, not the chrome ── #}
+{% if g.gmenu %}
+{% set _path = request.path %}
+{% set _bc = namespace(app=none, child=none) %}
+{% for app in g.gmenu %}
+  {% set _slug = app.app_slug or '' %}
+  {% set _prefix = '/admin/' ~ _slug %}
+  {% if _slug and (_path == _prefix or _path == _prefix ~ '/' or _path.startswith(_prefix ~ '/')) %}
+    {% set _bc.app = app %}
+  {% elif app.url and (_path == app.url or _path.startswith(app.url)) and app.url != '/admin/' %}
+    {% set _bc.app = app %}
+  {% endif %}
+{% endfor %}
+{% if _bc.app %}
+  {% for child in _bc.app.children %}
+    {% if child.url and _path.startswith(child.url) %}
+      {% set _bc.child = child %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+<nav class="aras-inline-bc" aria-label="Breadcrumb">
+  <a href="{{ url_for('admin.dashboard') }}" class="aras-inline-bc__item">Home</a>
+  {% if _bc.app %}
+    <span class="aras-inline-bc__sep">›</span>
+    <a href="{{ _bc.app.url }}" class="aras-inline-bc__item">{{ _bc.app.title }}</a>
+    {% if _bc.child %}
+      <span class="aras-inline-bc__sep">›</span>
+      {% if _back %}
+        <a href="{{ _bc.child.url }}" class="aras-inline-bc__item">{{ _bc.child.title }}</a>
+      {% else %}
+        <span class="aras-inline-bc__item aras-inline-bc__item--current">{{ _bc.child.title }}</span>
+      {% endif %}
+    {% endif %}
+    {% if _back %}
+      <span class="aras-inline-bc__sep">›</span>
+      <span class="aras-inline-bc__item aras-inline-bc__item--current">{{ _title }}</span>
+    {% endif %}
+  {% endif %}
+</nav>
+{% endif %}
 
 <header class="aras-app-hero aras-hero--standard">
   {% if _icon %}
@@ -17,10 +55,9 @@
       <i class="fa {{ _icon }}"></i>
     </div>
   {% endif %}
-  
+
   <div class="aras-app-hero__content">
     <h1 class="aras-app-hero__title">{{ _title }}</h1>
-    
     {% if _back %}
       <p class="aras-app-hero__desc">
         Part of <a href="{{ _back }}" class="app-hero-link">{{ app_title if app_title is defined else 'Parent Module' }}</a>
@@ -29,7 +66,7 @@
       <p class="aras-app-hero__desc">{{ _desc }}</p>
     {% endif %}
   </div>
-  
+
   <div class="aras-hero-actions" style="margin-left: auto; display: flex; gap: 12px; align-items: center;">
     {% if extra_buttons %}
       {% for btn in extra_buttons %}
@@ -50,11 +87,3 @@
     {% endif %}
   </div>
 </header>
-
-<style>
-  /* Move it down slightly from the top bar */
-  .aras-hero--standard {
-    margin-top: -8px;
-    margin-bottom: 32px;
-  }
-</style>

@@ -13,6 +13,7 @@
             this.initSidebarCollapse();
             this.initRightSidebar();
             this.initSearch();
+            this.initUserMenu();
             this.initComponentLibrary();
             this.initFormLoading();
         },
@@ -89,6 +90,23 @@
                         }, 10);
                     }
                 }
+            });
+        },
+
+        initUserMenu: function() {
+            var toggle = document.getElementById('arasUserMenuToggle');
+            var menu   = document.getElementById('arasUserMenu');
+            if (!toggle || !menu) return;
+
+            toggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var open = menu.classList.toggle('is-open');
+                toggle.classList.toggle('is-open', open);
+            });
+
+            document.addEventListener('click', function() {
+                menu.classList.remove('is-open');
+                toggle.classList.remove('is-open');
             });
         },
 
