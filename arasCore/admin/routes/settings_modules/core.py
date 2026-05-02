@@ -110,6 +110,18 @@ def settings():
 
     from arasCore.lib.services.workflow import _workflow_registry
     from arasCore.lib.core.health import _last_result as health_data
+
+    # Fetch theme tokens from ArasSystemSetting
+    theme_tokens_json = ArasSystemSetting.get("core.theme_tokens", "{}")
+    if isinstance(theme_tokens_json, str):
+        import json
+        try:
+            theme_tokens = json.loads(theme_tokens_json)
+        except:
+            theme_tokens = {}
+    else:
+        theme_tokens = theme_tokens_json
+
     return render_template(
         "admin/setting/setting_settings.html",
         title="Settings", main_title="Settings",
@@ -123,5 +135,54 @@ def settings():
         system_settings=ArasSystemSetting.query.order_by(ArasSystemSetting.section, ArasSystemSetting.key).all(),
         webhook_endpoints=WebhookEndpoint.query.all(),
         server_scripts=SrvScript.query.all(),
-        upload_folders={k: current_app.config.get(k, "") for k in ["UPLOAD_FOLDER", "UPLOAD_IMAGE_FOLDER", "UPLOAD_DOC_FOLDER", "UPLOAD_PDF_FOLDER", "UPLOAD_AUDIO_FOLDER"]}
+        upload_folders={k: current_app.config.get(k, "") for k in ["UPLOAD_FOLDER", "UPLOAD_IMAGE_FOLDER", "UPLOAD_DOC_FOLDER", "UPLOAD_PDF_FOLDER", "UPLOAD_AUDIO_FOLDER"]},
+        theme_tokens=theme_tokens
     )
+
+
+@admin_bp.route("/settings/theme")
+@login_required
+def settings_theme():
+    from arasCore.admin.models import ArasSystemSetting
+    import json
+    
+    tokens_raw = ArasSystemSetting.get("core.theme_tokens", "{}")
+    if isinstance(tokens_raw, str):
+        try:
+            tokens = json.loads(tokens_raw)
+        except:
+            tokens = {}
+    else:
+        tokens = tokens_raw
+        
+    return render_template(
+        "admin/setting/setting_theme.html",
+        main_title="Theme Customizer",
+        tokens=tokens
+    )
+
+
+@admin_bp.route("/settings/theme/preview")
+@login_required
+def settings_theme_preview():
+    return render_template("admin/setting/setting_theme_preview.html")
+
+
+@admin_bp.route("/api/settings/theme/save", methods=["POST"])
+@login_required
+def api_settings_theme_save():
+    from arasCore.admin.models import ArasSystemSetting
+    from flask import jsonify
+    
+    data = request.json or {}
+    # Validation could be added here
+    
+    ArasSystemSetting.set(
+        "core.theme_tokens", 
+        data, 
+        value_type="json", 
+        label="Theme Design Tokens",
+        section="appearance"
+    )
+    
+    return jsonify({"success": True})

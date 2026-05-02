@@ -110,6 +110,34 @@
           <h3 class="settings-panel-title"><i class="ti-palette"></i>Studio (DnD)</h3>
           <p class="settings-panel-desc">Interactive Visual Designer for Forms and Table Layouts.</p>
         </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-md-6">
+                <div class="aras-card h-100 border-0 shadow-sm" style="background: linear-gradient(135deg, var(--studio-ink) 0%, #1c2d44 100%);">
+                    <div class="aras-card-body p-4 text-center">
+                        <div class="mb-3">
+                            <i class="ti-palette text-white" style="font-size: 3rem; color: var(--studio-ochre) !important;"></i>
+                        </div>
+                        <h4 class="text-white mb-2">Theme Customizer</h4>
+                        <p class="text-white-50 small mb-4">Edit brand colors, typography, and border radius across the entire Aras Studio.</p>
+                        <a href="{{ url_for('admin.settings_theme') }}" class="btn btn-aras-primary w-100">Launch Design Studio</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="aras-card h-100 border-0 shadow-sm" style="background: var(--studio-cream);">
+                    <div class="aras-card-body p-4 text-center">
+                        <div class="mb-3">
+                            <i class="ti-layout text-dark" style="font-size: 3rem; color: var(--studio-ink) !important;"></i>
+                        </div>
+                        <h4 class="mb-2">Layout Builder</h4>
+                        <p class="text-muted small mb-4">Arrange fields and sections for your DocTypes using drag-and-drop.</p>
+                        <button class="btn btn-outline-dark w-100" onclick="activatePanel('panel-doctypes')">Go to DocTypes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="aras-card overflow-hidden">
           <div class="bg-dark p-4 text-center">
             <h4 class="text-white mb-1">Visual Studio Engine</h4>

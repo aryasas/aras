@@ -32,6 +32,19 @@
   /* Quill Aras Polish */
   .ql-toolbar { border-color: var(--aras-line-2) !important; border-top-left-radius: 4px; border-top-right-radius: 4px; background: var(--studio-paper); }
   .ql-container { border-color: var(--aras-line-2) !important; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; font-family: var(--aras-font-sans) !important; font-size: 13.5px !important; min-height: 150px; }
+
+  {% if aras_theme_tokens %}
+  :root {
+    {% if aras_theme_tokens.get('studio_ink') %}--studio-ink: {{ aras_theme_tokens.studio_ink }};{% endif %}
+    {% if aras_theme_tokens.get('studio_cream') %}--studio-cream: {{ aras_theme_tokens.studio_cream }};{% endif %}
+    {% if aras_theme_tokens.get('studio_paper') %}--studio-paper: {{ aras_theme_tokens.studio_paper }};{% endif %}
+    {% if aras_theme_tokens.get('studio_ochre') %}--studio-ochre: {{ aras_theme_tokens.studio_ochre }};{% endif %}
+    {% if aras_theme_tokens.get('studio_accent') %}--studio-accent: {{ aras_theme_tokens.studio_accent }};{% endif %}
+    {% if aras_theme_tokens.get('radius') %}--aras-radius: {{ aras_theme_tokens.radius }}px;{% endif %}
+    {% if aras_theme_tokens.get('font_display') %}--aras-font-display: "{{ aras_theme_tokens.font_display }}", serif;{% endif %}
+    {% if aras_theme_tokens.get('font_sans') %}--aras-font-sans: "{{ aras_theme_tokens.font_sans }}", system-ui, sans-serif;{% endif %}
+  }
+  {% endif %}
 </style>
 
 <script>

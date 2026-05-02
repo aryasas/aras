@@ -1,0 +1,200 @@
+{% extends "admin/base_index.html" %}
+
+{% block content %}
+<div class="settings-panel" id="panel-theme">
+    <div class="settings-panel-header mb-4">
+        <h3 class="settings-panel-title"><i class="ti-palette"></i> Theme Customizer</h3>
+        <p class="settings-panel-desc">Customize the design tokens for Aras Studio Editorial Design System.</p>
+    </div>
+
+    <div class="row">
+        <!-- Editor Column -->
+        <div class="col-md-5">
+            <div class="aras-card">
+                <div class="aras-card-header">
+                    <h3 class="aras-card-title">Design Tokens</h3>
+                </div>
+                <div class="aras-card-body">
+                    <form id="theme-form">
+                        <div class="mb-4">
+                            <label class="fs-11 fw-bold text-uppercase text-muted d-block mb-3">Color Palette</label>
+                            
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <label class="small text-muted">Studio Ink (Text/Sidebar)</label>
+                                    <input type="color" name="studio_ink" class="form-control form-control-color w-100" 
+                                           value="{{ tokens.studio_ink or '#0f1b2d' }}">
+                                </div>
+                                <div class="col-6">
+                                    <label class="small text-muted">Studio Ochre (Brand)</label>
+                                    <input type="color" name="studio_ochre" class="form-control form-control-color w-100" 
+                                           value="{{ tokens.studio_ochre or '#c9a568' }}">
+                                </div>
+                                <div class="col-6">
+                                    <label class="small text-muted">Studio Cream (Surface)</label>
+                                    <input type="color" name="studio_cream" class="form-control form-control-color w-100" 
+                                           value="{{ tokens.studio_cream or '#f4f2ee' }}">
+                                </div>
+                                <div class="col-6">
+                                    <label class="small text-muted">Studio Paper (Background)</label>
+                                    <input type="color" name="studio_paper" class="form-control form-control-color w-100" 
+                                           value="{{ tokens.studio_paper or '#faf8f3' }}">
+                                </div>
+                                <div class="col-6">
+                                    <label class="small text-muted">Studio Accent (Oxblood)</label>
+                                    <input type="color" name="studio_accent" class="form-control form-control-color w-100" 
+                                           value="{{ tokens.studio_accent or '#6b2c2c' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="fs-11 fw-bold text-uppercase text-muted d-block mb-3">Typography & Shapes</label>
+                            
+                            <div class="mb-3">
+                                <label class="small text-muted">Display Font (Serif)</label>
+                                <select name="font_display" class="form-select fs-13">
+                                    <option value="Libre Baskerville" {% if tokens.font_display == 'Libre Baskerville' %}selected{% endif %}>Libre Baskerville</option>
+                                    <option value="Playfair Display" {% if tokens.font_display == 'Playfair Display' %}selected{% endif %}>Playfair Display</option>
+                                    <option value="Lora" {% if tokens.font_display == 'Lora' %}selected{% endif %}>Lora</option>
+                                    <option value="serif" {% if tokens.font_display == 'serif' %}selected{% endif %}>System Serif</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="small text-muted">UI Font (Sans)</label>
+                                <select name="font_sans" class="form-select fs-13">
+                                    <option value="Bricolage Grotesque" {% if tokens.font_sans == 'Bricolage Grotesque' %}selected{% endif %}>Bricolage Grotesque</option>
+                                    <option value="Inter" {% if tokens.font_sans == 'Inter' %}selected{% endif %}>Inter</option>
+                                    <option value="Roboto" {% if tokens.font_sans == 'Roboto' %}selected{% endif %}>Roboto</option>
+                                    <option value="sans-serif" {% if tokens.font_sans == 'sans-serif' %}selected{% endif %}>System Sans</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="small text-muted">Border Radius (px)</label>
+                                <div class="d-flex align-items-center gap-3">
+                                    <input type="range" name="radius" class="form-range flex-grow-1" 
+                                           min="0" max="30" step="2" value="{{ tokens.radius or 10 }}">
+                                    <span id="radius-val" class="aras-badge aras-badge--outline" style="width: 40px;">{{ tokens.radius or 10 }}px</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-dark w-100">
+                                <i class="fa fa-save mr-2"></i> Save Changes
+                            </button>
+                            <button type="button" id="btn-reset" class="btn btn-outline-secondary">
+                                <i class="fa fa-undo"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Column -->
+        <div class="col-md-7">
+            <div class="aras-card sticky-top" style="top: 20px;">
+                <div class="aras-card-header d-flex justify-content-between align-items-center">
+                    <h3 class="aras-card-title">Live Preview</h3>
+                    <span class="aras-badge aras-badge--info fs-10">Real-time update</span>
+                </div>
+                <div class="aras-card-body p-0">
+                    <iframe id="preview-frame" src="{{ url_for('admin.settings_theme_preview') }}" 
+                            style="width: 100%; height: 500px; border: none;"></iframe>
+                </div>
+            </div>
+            
+            <div class="mt-4 p-3 bg-light rounded small text-muted">
+                <i class="fa fa-info-circle mr-1"></i> Changes are applied globally across the entire admin studio once saved. Live preview allows testing without affecting other users.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('theme-form');
+    const iframe = document.getElementById('preview-frame');
+    const radiusInput = form.querySelector('[name="radius"]');
+    const radiusVal = document.getElementById('radius-val');
+
+    function updatePreview() {
+        const formData = new FormData(form);
+        const tokens = {};
+        formData.forEach((value, key) => {
+            tokens[key] = value;
+        });
+        
+        if (iframe.contentWindow) {
+            iframe.contentWindow.postMessage(tokens, '*');
+        }
+    }
+
+    // Radius label update
+    radiusInput.addEventListener('input', function() {
+        radiusVal.textContent = this.value + 'px';
+    });
+
+    // Live update on any input
+    form.querySelectorAll('input, select').forEach(input => {
+        input.addEventListener('input', updatePreview);
+    });
+
+    // Form submit
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const tokens = {};
+        formData.forEach((value, key) => {
+            tokens[key] = value;
+        });
+
+        fetch('/admin/api/settings/theme/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(tokens)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                Aras.toast("Theme saved successfully. Reloading to apply globally...", "success");
+                setTimeout(() => window.location.reload(), 1500);
+            }
+        });
+    });
+
+    // Reset button
+    document.getElementById('btn-reset').addEventListener('click', function() {
+        if (confirm('Reset to default Aras Studio theme?')) {
+            const defaults = {
+                studio_ink: '#0f1b2d',
+                studio_ochre: '#c9a568',
+                studio_cream: '#f4f2ee',
+                studio_paper: '#faf8f3',
+                studio_accent: '#6b2c2c',
+                radius: 10,
+                font_display: 'Libre Baskerville',
+                font_sans: 'Bricolage Grotesque'
+            };
+            
+            Object.keys(defaults).forEach(key => {
+                const input = form.querySelector(`[name="${key}"]`);
+                if (input) {
+                    input.value = defaults[key];
+                    if (key === 'radius') radiusVal.textContent = defaults[key] + 'px';
+                }
+            });
+            updatePreview();
+        }
+    });
+
+    // Initial preview load wait
+    iframe.onload = updatePreview;
+});
+</script>
+{% endblock %}

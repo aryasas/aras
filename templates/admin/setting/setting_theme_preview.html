@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/aras_design.css') }}">
+    <style>
+        body { background: var(--studio-paper); padding: 20px; transition: all 0.3s; }
+        .preview-card { background: var(--aras-surface); border-radius: var(--aras-radius); padding: 20px; box-shadow: var(--aras-shadow-drop); }
+        .preview-title { font-family: var(--aras-font-display); color: var(--studio-ink); margin-bottom: 15px; }
+        .preview-text { font-family: var(--aras-font-sans); color: var(--aras-text); font-size: 14px; line-height: 1.6; }
+        .preview-btn { background: var(--studio-ochre); color: white; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; }
+        .preview-accent { color: var(--studio-accent); font-weight: bold; }
+        .preview-cream { background: var(--studio-cream); padding: 10px; border-radius: 4px; margin-top: 15px; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="preview-card">
+        <h2 class="preview-title">Editorial Design Preview</h2>
+        <p class="preview-text">
+            This is how your chosen <span class="preview-accent">Oxblood Accent</span> and <span style="color: var(--studio-ochre)">Ochre Brand</span> colors look against the <span style="background: var(--studio-cream); padding: 2px 4px;">Cream surfaces</span>. 
+            The base typography uses <strong style="font-family: var(--aras-font-display)">Libre Baskerville</strong> for elegance.
+        </p>
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <button class="preview-btn">Primary Action</button>
+            <span class="text-muted small">v3.0 Editorial</span>
+        </div>
+        <div class="preview-cream">
+            Secondary information block with Cream background.
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('message', function(event) {
+            const tokens = event.data;
+            if (tokens.studio_ink) document.documentElement.style.setProperty('--studio-ink', tokens.studio_ink);
+            if (tokens.studio_cream) document.documentElement.style.setProperty('--studio-cream', tokens.studio_cream);
+            if (tokens.studio_paper) document.documentElement.style.setProperty('--studio-paper', tokens.studio_paper);
+            if (tokens.studio_ochre) document.documentElement.style.setProperty('--studio-ochre', tokens.studio_ochre);
+            if (tokens.studio_accent) document.documentElement.style.setProperty('--studio-accent', tokens.studio_accent);
+            if (tokens.radius) document.documentElement.style.setProperty('--aras-radius', tokens.radius + 'px');
+            if (tokens.font_display) document.documentElement.style.setProperty('--aras-font-display', '"' + tokens.font_display + '", serif');
+            if (tokens.font_sans) document.documentElement.style.setProperty('--aras-font-sans', '"' + tokens.font_sans + '", system-ui, sans-serif');
+        });
+    </script>
+</body>
+</html>
