@@ -1,48 +1,43 @@
-{% extends 'admin/base_index.html' %}
-{% block page_content %}
-<div class="aras-studio-theme mt-4">
-    <div class="d-flex align-items-center mb-4 gap-3">
-      <a href="{{ url_for('admin.settings') }}#panel-dev" class="aras-btn aras-btn--outline aras-btn--sm">
-        <i class="fa fa-arrow-left"></i> Back to Settings
-      </a>
-      <h3 class="aras-page-title"><i class="ti-dashboard mr-2 text-accent"></i>Developer Tools</h3>
-    </div>
+<div class="settings-panel d-none" id="panel-dev">
+  <div class="settings-panel-header">
+    <h3 class="settings-panel-title"><i class="ti-dashboard"></i>Developer Tools</h3>
+    <p class="settings-panel-desc">Advanced debugging information, system internals, and registered route mapping.</p>
+  </div>
 
-    <div class="aras-card mb-4">
-      <div class="aras-card-header">
-        <h3 class="aras-card-title">Registered Routes <span class="aras-badge aras-badge--info ml-2">{{ routes|length }}</span></h3>
-      </div>
-      <div class="aras-card-body p-0">
-        <div class="overflow-y-auto" style="max-height:500px;">
-          <div class="aras-table-wrap">
-            <table class="aras-table fs-12">
-              <thead><tr><th>Rule</th><th>Methods</th><th>Endpoint</th></tr></thead>
-              <tbody>
-              {% for r in routes %}
-              <tr>
-                <td><code class="aras-mono">{{ r.rule }}</code></td>
-                <td><span class="text-muted-aras">{{ r.methods }}</span></td>
-                <td class="fs-11 text-muted-aras">{{ r.endpoint }}</td>
-              </tr>
-              {% endfor %}
-              </tbody>
-            </table>
-          </div>
+  <div class="aras-card mb-4">
+    <div class="aras-card-header">
+      <h3 class="aras-card-title">Registered Routes <span class="aras-badge aras-badge--info ml-2">{{ routes|length }}</span></h3>
+    </div>
+    <div class="aras-card-body p-0">
+      <div class="overflow-y-auto" style="max-height:500px;">
+        <div class="aras-table-wrap">
+          <table class="aras-table fs-12">
+            <thead><tr><th>Rule</th><th>Methods</th><th>Endpoint</th></tr></thead>
+            <tbody>
+            {% for r in routes %}
+            <tr>
+              <td><code class="aras-mono">{{ r.rule }}</code></td>
+              <td><span class="text-muted-aras">{{ r.methods }}</span></td>
+              <td class="fs-11 text-muted-aras">{{ r.endpoint }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="aras-card">
-      <div class="aras-card-header">
-        <h3 class="aras-card-title">Loaded aras Modules <span class="aras-badge aras-badge--info ml-2">{{ modules|length }}</span></h3>
-      </div>
-      <div class="aras-card-body">
-        <div class="fs-11" style="columns:3;">
-          {% for m in modules %}
-          <div class="mb-1"><code class="aras-mono">{{ m }}</code></div>
-          {% endfor %}
-        </div>
+  <div class="aras-card">
+    <div class="aras-card-header">
+      <h3 class="aras-card-title">Loaded aras Modules <span class="aras-badge aras-badge--info ml-2">{{ modules|length }}</span></h3>
+    </div>
+    <div class="aras-card-body">
+      <div class="fs-11" style="columns:3;">
+        {% for m in modules %}
+        <div class="mb-1"><code class="aras-mono">{{ m }}</code></div>
+        {% endfor %}
       </div>
     </div>
+  </div>
 </div>
-{% endblock %}

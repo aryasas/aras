@@ -9,6 +9,8 @@
     var ArasStudio = {
         init: function() {
             this.initSidebar();
+            this.initSidebarCollapse();
+            this.initRightSidebar();
             this.initSearch();
             this.initCustomSelects();
         },
@@ -28,6 +30,55 @@
                     !sidebar.contains(e.target) && 
                     !toggle.contains(e.target)) {
                     sidebar.classList.remove('is-open');
+                }
+            });
+        },
+
+        initSidebarCollapse: function() {
+            var toggle = document.getElementById('sidebarCollapseToggle');
+            var html = document.documentElement;
+            if (!toggle) return;
+
+            // Note: State is now pre-loaded in base_partial_head.html for early detection
+            
+            toggle.addEventListener('click', function() {
+                html.classList.toggle('aras-mini-sidebar-active');
+                var collapsed = html.classList.contains('aras-mini-sidebar-active');
+                localStorage.setItem('aras-sidebar-mini', collapsed);
+                
+                // Update icon
+                toggle.querySelector('i').className = collapsed ? 'fa fa-angle-right' : 'fa fa-angle-left';
+            });
+        },
+
+        initRightSidebar: function() {
+            var toggle = document.getElementById('rightSidebarToggle');
+            var closeBtn = document.getElementById('closeRightSidebar');
+            var sidebar = document.getElementById('arasRightSidebar');
+            var frame = document.querySelector('.aras-frame');
+            
+            if (!toggle || !sidebar) return;
+
+            toggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                sidebar.classList.toggle('is-open');
+                if (frame) frame.classList.toggle('has-right-sidebar');
+            });
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function() {
+                    sidebar.classList.remove('is-open');
+                    if (frame) frame.classList.remove('has-right-sidebar');
+                });
+            }
+
+            // Close when clicking outside
+            document.addEventListener('click', function(e) {
+                if (sidebar.classList.contains('is-open') && 
+                    !sidebar.contains(e.target) && 
+                    !toggle.contains(e.target)) {
+                    sidebar.classList.remove('is-open');
+                    if (frame) frame.classList.remove('has-right-sidebar');
                 }
             });
         },

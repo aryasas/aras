@@ -1,9 +1,27 @@
-<footer class="aras-footer">
-    <div class="footer-area aras-footer__area">
-        <p class="aras-footer__text">
-            © {{ now.year if now is defined else '2025' }} ·
-            <span class="aras-footer__brand">Aras Framework</span>
-            · Bandung
+<!-- Aras Status Bar / Footer -->
+<footer class="aras-status-bar">
+    <div class="aras-status-bar__left">
+        <p class="aras-status-bar__item">
+            © {{ now.year if now is defined else '2026' }} ·
+            <span class="aras-status-bar__brand">Aras Framework</span>
         </p>
+        <span class="aras-status-bar__divider"></span>
+        <div class="aras-status-bar__item">
+            <i class="ti-location-pin mr-1"></i> Bandung
+        </div>
+    </div>
+
+    <div class="aras-status-bar__right">
+        {% if current_user.is_authenticated %}
+        <div class="aras-status-bar__user">
+            <div class="aras-status-bar__user-info">
+                <span class="aras-status-bar__user-name">{{ current_user.username }}</span>
+                <span class="aras-status-bar__user-role">Administrator</span>
+            </div>
+            <a href="{{ url_for('auth.logout_view') }}" class="aras-status-bar__logout" title="Log out">
+                <i class="ti-power-off"></i>
+            </a>
+        </div>
+        {% endif %}
     </div>
 </footer>

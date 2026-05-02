@@ -87,7 +87,7 @@
           {# Resolve value robustly for both dicts and objects #}
           {% set raw = row[field_name] if row[field_name] is defined else (row|attr(field_name) if row|attr(field_name) is defined else none) %}
           {% set _hidden_style = 'display:none; ' if field_name not in _ct_vcol_names else '' %}
-          
+
           <td data-raw="{{ raw if raw is not none else '' }}" data-field="{{ field_name }}" style="{{ _hidden_style }}border-bottom: 1px solid var(--studio-cream); padding: 14px 20px;">
             {%- if field_name in _ct_rel and raw is not none -%}
               {%- set raw_str = raw | string -%}

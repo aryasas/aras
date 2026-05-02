@@ -1,16 +1,50 @@
 <div class="settings-panel" id="panel-general">
-  <div class="panel-header">
+  <div class="settings-panel-header">
     <h3 class="settings-panel-title"><i class="ti-settings"></i>General Settings</h3>
-    <p class="text-muted">Global framework identity and environment configuration.</p>
+    <p class="settings-panel-desc">Global framework identity and environment configuration.</p>
   </div>
-  <div class="card">
-    <div class="card-body">
+  
+  <div class="aras-card">
+    <div class="aras-card-body">
       <div class="row">
-        <div class="col-6">
-          <p><b>App Name:</b> {{ config.get('APP_NAME', 'Aras') if config is defined else 'Aras' }}</p>
+        <div class="col-md-6 mb-4 mb-md-0">
+          <div class="aras-field-view">
+            <label class="aras-label">App Name</label>
+            <div class="aras-value font-weight-bold fs-18">
+              {{ config.get('APP_NAME', 'Aras') if config is defined else 'Aras' }}
+            </div>
+          </div>
         </div>
-        <div class="col-6">
-          <p><b>Environment:</b> {{ server_info.env if server_info is defined else '—' }}</p>
+        <div class="col-md-6">
+          <div class="aras-field-view">
+            <label class="aras-label">Environment</label>
+            <div class="aras-value">
+              <span class="aras-badge aras-badge--info text-uppercase">{{ server_info.env if server_info is defined else 'development' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-4 pt-4 border-top border-light">
+        <div class="row">
+          <div class="col-md-4">
+            <div class="aras-field-view">
+              <label class="aras-label">Framework Version</label>
+              <div class="aras-value aras-mono">v1.2.0-stable</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="aras-field-view">
+              <label class="aras-label">Database Type</label>
+              <div class="aras-value aras-mono">MariaDB / SQLAlchemy</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="aras-field-view">
+              <label class="aras-label">License</label>
+              <div class="aras-value">MIT Enterprise</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

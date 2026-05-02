@@ -1,45 +1,61 @@
 <div class="settings-panel d-none" id="panel-audit">
-  <div class="panel-header">
-    <h3 class="settings-panel-title"><i class="ti-eye"></i>System Audit Log</h3>
-    <p class="text-muted">Field-level change tracking and administrative action history.</p>
-  </div>
-  <div class="card">
-    <div class="card-body p-0">
-      <div class="d-flex align-items-center px-3 pt-3 pb-2 gap-8">
-        <span class="badge badge-secondary ml-2">{{ audit_logs|length }} entries</span>
-        <form method="GET" action="{{ url_for('admin.settings') }}" class="ml-auto d-flex gap-6">
+  <div class="settings-panel-header">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h3 class="settings-panel-title"><i class="ti-eye"></i>System Audit Log</h3>
+        <p class="settings-panel-desc">Field-level change tracking and administrative action history.</p>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <span class="aras-badge aras-badge--info">{{ audit_logs|length }} entries</span>
+        <form method="GET" action="{{ url_for('admin.settings') }}" class="d-flex gap-2">
           <input type="hidden" name="panel" value="panel-audit">
-          <input type="text" name="q_audit" value="{{ q_audit }}" placeholder="Search model / action…"
-                 class="form-control form-control-sm w-220">
-          <button type="submit" class="aras-btn aras-btn--sm">Search</button>
+          <div class="aras-top-search-input-wrap" style="width: 220px;">
+            <i class="ti-search"></i>
+            <input type="text" name="q_audit" value="{{ q_audit }}" placeholder="Search log...">
+          </div>
+          <button type="submit" class="aras-btn aras-btn--primary aras-btn--sm">Search</button>
         </form>
       </div>
-      {% if audit_logs %}
-      <div class="table-responsive">
-        <table class="aras-table">
-          <thead><tr>
-            <th>Time</th><th>User</th><th>Model</th><th>Record</th><th>Action</th>
-          </tr></thead>
-          <tbody>
-          {% for e in audit_logs %}
-          <tr>
-            <td style="white-space:nowrap;font-size:12px;">{{ e.ts.strftime('%Y-%m-%d %H:%M:%S') if e.ts else '—' }}</td>
-            <td>{{ e._username }}</td>
-            <td><code>{{ e.model_name }}</code></td>
-            <td>{{ e.record_id or '—' }}</td>
-            <td>
-              <span class="badge badge-{{ 'success' if e.action=='create' else ('warning' if e.action=='update' else 'danger') }}">
-                {{ e.action }}
-              </span>
-            </td>
-          </tr>
-          {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-      <div class="aras-empty-state py-4"><i class="ti-eye"></i><p>No audit entries yet.</p></div>
-      {% endif %}
     </div>
+  </div>
+
+  <div class="aras-table-wrap">
+    {% if audit_logs %}
+    <table class="aras-table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>User</th>
+          <th>Model</th>
+          <th>Record ID</th>
+          <th class="text-right">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in audit_logs %}
+        <tr>
+          <td class="aras-mono fs-12 text-muted-aras">{{ e.ts.strftime('%Y-%m-%d %H:%M:%S') if e.ts else '—' }}</td>
+          <td class="font-weight-bold">{{ e._username }}</td>
+          <td><code class="aras-mono fs-11">{{ e.model_name }}</code></td>
+          <td>{{ e.record_id or '—' }}</td>
+          <td class="text-right">
+            {% if e.action == 'create' %}
+              <span class="mk on"><span class="dot"></span> {{ e.action }}</span>
+            {% elif e.action == 'update' %}
+              <span class="mk warn"><span class="dot"></span> {{ e.action }}</span>
+            {% else %}
+              <span class="mk err"><span class="dot"></span> {{ e.action }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5">
+      <i class="ti-eye text-muted-aras mb-3 opacity-2" style="font-size: 3rem;"></i>
+      <p class="text-muted-aras aras-serif-italic">No audit entries found matching your criteria.</p>
+    </div>
+    {% endif %}
   </div>
 </div>

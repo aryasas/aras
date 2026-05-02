@@ -1,7 +1,7 @@
 <div class="settings-panel d-none" id="panel-roles">
-  <div class="panel-header">
+  <div class="settings-panel-header">
     <h3 class="settings-panel-title"><i class="ti-shield"></i>Roles & Permissions</h3>
-    <p class="text-muted">Define access levels and assign permissions to specific user roles.</p>
+    <p class="settings-panel-desc">Define access levels and assign permissions to specific user roles.</p>
   </div>
   {% set main_title      = "Roles" %}
   {% set items           = all_roles %}
@@ -19,6 +19,7 @@
        {"label":"New Role","url":"#new-role-form","icon":"fa-plus","style":"primary","onclick":"document.getElementById('new-role-form').classList.toggle('d-none');return false;"},
   ] %}
   {% set _list_id = "roles" %}
+  {% set skip_hero = True %}
   {% include 'admin/gen/gen_view_list_content.html' %}
   <div id="new-role-form" class="aras-table-wrap d-none mt-3" style="padding:16px;">
     <form method="POST" action="{{ url_for('admin.role_new') }}" class="form-inline gap-6 flex-wrap">

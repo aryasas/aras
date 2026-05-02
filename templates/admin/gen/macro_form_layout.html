@@ -91,9 +91,9 @@
             {% for section in tab.sections %}
               <div class="col-md-{{ section.width or 12 }}">
                 <div class="aras-form-section mb-4">
-                  {% if section.label %}
+                  <!--{% if section.label %}
                     <h5 class="aras-section-title">{{ section.label }}</h5>
-                  {% endif %}
+                  {% endif %}-->
                   <div class="row">
                     {% for f in section.fields %}
                       {% if not f.open_in_tab %}

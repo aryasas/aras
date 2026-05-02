@@ -19,7 +19,10 @@ render_data_table, render_tree_table, pagination_widget %} {# ── Page Hero T
 {% if active_filters %}
   {% set hero_desc = hero_desc ~ ' • ' ~ active_filters|length ~ ' filters applied' %}
 {% endif %}
-{% include 'admin/base/base_partial_hero.html' %}
+
+{% if not skip_hero %}
+  {% include 'admin/base/base_partial_hero.html' %}
+{% endif %}
 
 {# ── Toolbar ── #} {% include 'admin/gen/gen_view_list_toolbar.html' %}
 

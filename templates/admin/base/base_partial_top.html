@@ -27,22 +27,10 @@
             ></div>
         </div>
 
-        {% if current_user.is_authenticated %}
-        <div class="aras-top-bar__user">
-            <div class="aras-top-bar__user-info">
-                <div class="aras-top-bar__user-name">
-                    {{ current_user.username }}
-                </div>
-                <div class="kicker aras-top-bar__user-role">Administrator</div>
-            </div>
-            <a
-                href="{{ url_for('auth.logout_view') }}"
-                class="aras-btn aras-btn--sm"
-                title="Log out"
-            >
-                <i class="ti-power-off"></i>
-            </a>
+        <div class="aras-top-bar__right-actions">
+            <button class="aras-btn aras-btn--sm" id="rightSidebarToggle" title="Toggle Sidebar">
+                <i class="ti-layout-sidebar-right"></i>
+            </button>
         </div>
-        {% endif %}
     </div>
 </header>

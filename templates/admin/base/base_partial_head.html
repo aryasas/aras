@@ -17,4 +17,14 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/themify-icons.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/aras_design.css') }}">
 
+<script>
+    // Early detection to prevent sidebar flicker
+    (function() {
+        var isMini = localStorage.getItem('aras-sidebar-mini') === 'true';
+        if (isMini) {
+            document.documentElement.classList.add('aras-mini-sidebar-active');
+        }
+    })();
+</script>
+
 

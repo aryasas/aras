@@ -90,7 +90,7 @@ var ME = (function(){
           '<span class="me-handle" onclick="event.stopPropagation()"><i class="ti-menu-alt"></i></span>' +
           (hasKids ? '<span class="me-toggle open" id="tog_'+kidId+'" onclick="ME.toggleKids(event,\''+kidId+'\')"><i class="ti-angle-right"></i></span>' : '<span style="width:16px;flex-shrink:0"></span>') +
           iconEl(node.icon) + '<span class="me-label">'+esc(node.title)+'</span>' +
-          (hidden ? '<span class="badge badge-secondary me-badge">hidden</span>' : '') +
+          (hidden ? '<span class="aras-badge bg-light-aras text-muted-aras fs-10 ml-2">hidden</span>' : '') +
           '<span class="me-row-actions">' +
             (isCustom ? '<button class="me-del-btn" title="Delete" onclick="ME.deleteItem(event,'+node.id+')"><i class="ti-trash"></i></button>' : '') +
           '</span>' +
@@ -108,8 +108,8 @@ var ME = (function(){
         '<div class="me-app-header" ' + (isDbApp ? 'draggable="true" ' : '') + 'onclick="'+(isDbApp ? 'ME.rowClick(event,\'app\','+app.id+')' : 'ME.toggleApp(event,'+app.id+')')+'" ' +
              (isDbApp ? 'ondragstart="ME.dragStart(event,\'app\','+app.id+',null)" ondragend="ME.dragEnd(event)" ondragover="ME.dragOverApp(event,'+app.id+')" ondragleave="ME.dragLeaveApp(event)" ondrop="ME.dropApp(event,'+app.id+')"' : '') + '>' +
           (isDbApp ? '<i class="ti-menu-alt me-handle" onclick="event.stopPropagation()" style="font-size:12px;color:#8a9bb0"></i>' : '') +
-          iconEl(app.icon) + '<span style="flex:1;font-size:13px;font-weight:600">'+esc(app.title)+'</span>' +
-          (!app.in_sidebar ? '<span class="badge badge-secondary me-badge">hidden</span>' : '') +
+          iconEl(app.icon) + '<span style="flex:1;font-size:13px;font-weight:700;font-family:var(--aras-font-serif);font-style:italic;">'+esc(app.title)+'</span>' +
+          (!app.in_sidebar ? '<span class="aras-badge bg-light-aras text-muted-aras fs-10 mr-2">hidden</span>' : '') +
           (hasKids ? '<i class="ti-angle-right me-app-chevron open" id="appchev_'+app.id+'"></i>' : '') +
         '</div>' +
         '<div class="me-app-body" id="appbody_'+app.id+'">' + nodesHtml + '</div>' +
@@ -152,7 +152,7 @@ var ME = (function(){
 
     if(type==='app'){
       var app = _data.find(function(a){ return a.id===id; });
-      document.getElementById('meDrawer_title').textContent = 'Edit App: '+app.title;
+      document.getElementById('meDrawer_title').textContent = app.title;
       document.getElementById('medit_title').value = app.title;
       document.getElementById('medit_icon').value  = app.icon||'';
       document.getElementById('medit_in_sidebar').checked = app.in_sidebar!==false;
@@ -164,7 +164,7 @@ var ME = (function(){
         if(f){ found=f; foundApp=a; }
       });
       if(!found) return;
-      document.getElementById('meDrawer_title').textContent = 'Edit: '+found.title;
+      document.getElementById('meDrawer_title').textContent = found.title;
       document.getElementById('medit_title').value = found.title;
       document.getElementById('medit_icon').value  = found.icon||'';
       document.getElementById('medit_show').checked = found.show_in_menu!==false;
@@ -196,8 +196,10 @@ var ME = (function(){
 
   function _updateIconPreview(){
     var ic = document.getElementById('medit_icon').value.trim();
-    var prev = document.getElementById('medit_icon_preview');
-    prev.innerHTML = ic ? '<i class="'+iconCls(ic)+'" style="margin-right:6px"></i><span class="text-muted small">'+esc(ic)+'</span>' : '';
+    var iconElem = document.getElementById('medit_icon_preview_icon');
+    if(iconElem) {
+      iconElem.className = iconCls(ic);
+    }
   }
 
   function drawerClose(){
@@ -339,19 +341,20 @@ var ME = (function(){
   }
 
   function save(){
-    var btn = document.getElementById('menuSaveBtn');
+    var btn = document.querySelector('[onclick="ME.save()"]');
+    var oldHtml = btn.innerHTML;
     btn.disabled=true; btn.innerHTML='<i class="ti-reload mr-1"></i>Saving…';
     var csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     fetch('/admin/settings/menu/save',{
       method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrf},
       body: JSON.stringify({apps:_data})
     }).then(function(r){ return r.json(); }).then(function(d){
-      btn.disabled=false; btn.innerHTML='<i class="ti-save mr-1"></i>Save Changes';
+      btn.disabled=false; btn.innerHTML=oldHtml;
       if(d.ok){
         btn.innerHTML='<i class="ti-check mr-1"></i>Saved!';
-        setTimeout(function(){ btn.innerHTML='<i class="ti-save mr-1"></i>Save Changes'; },2000);
+        setTimeout(function(){ btn.innerHTML=oldHtml; },2000);
       } else { arasNotify('Save error: '+(d.error||'unknown'), 'error'); }
-    }).catch(function(err){ btn.disabled=false; btn.innerHTML='<i class="ti-save mr-1"></i>Save Changes'; arasNotify('Save failed: '+String(err), 'error'); });
+    }).catch(function(err){ btn.disabled=false; btn.innerHTML=oldHtml; arasNotify('Save failed: '+String(err), 'error'); });
   }
 
   function load(){

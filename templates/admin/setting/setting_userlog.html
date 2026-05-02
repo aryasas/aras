@@ -1,7 +1,7 @@
 <div class="settings-panel d-none" id="panel-userlog">
-  <div class="panel-header">
+  <div class="settings-panel-header">
     <h3 class="settings-panel-title"><i class="ti-time"></i>User Activity Log</h3>
-    <p class="text-muted">Track user logins, actions, and historical interactions within the system.</p>
+    <p class="settings-panel-desc">Track user logins, actions, and historical interactions within the system.</p>
   </div>
   {% set main_title         = "User Log" %}
   {% set items              = activities if activities is defined else [] %}
@@ -15,5 +15,6 @@
   {% set filter_cols     = view_columns %}
   {% set active_filters  = [] %}
   {% set _list_id = "userlog" %}
+  {% set skip_hero = True %}
   {% include 'admin/gen/gen_view_list_content.html' %}
 </div>

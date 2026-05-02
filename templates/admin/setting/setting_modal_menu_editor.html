@@ -1,82 +1,160 @@
       {# ── Edit drawer (inline, not modal) ── #}
       <div id="meDrawer" class="aras-drawer" style="display:none;">
-        <div class="aras-modal-header">
-          <strong class="fs-14" id="meDrawer_title">Edit Item</strong>
-          <button onclick="ME.drawerClose()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#6c757d;">&times;</button>
+        <div class="aras-drawer-header">
+          <div>
+            <h4 class="aras-drawer-title" id="meDrawer_title">Edit Item</h4>
+            <p class="text-muted-aras fs-11 mb-0">Update menu properties and hierarchy.</p>
+          </div>
+          <button onclick="ME.drawerClose()" class="aras-drawer-close">&times;</button>
         </div>
-        <div class="aras-modal-body flex-grow-1 overflow-y-auto">
+        <div class="aras-drawer-body">
           <input type="hidden" id="medit_type">
           <input type="hidden" id="medit_id">
-          <div class="form-group mb-3">
-            <label class="small font-weight-bold mb-1">Display Title</label>
-            <input type="text" class="form-control form-control-sm" id="medit_title" placeholder="Leave blank to use default">
+          
+          <div class="form-group mb-4">
+            <label class="aras-label">Display Title</label>
+            <input type="text" class="form-control" id="medit_title" placeholder="Leave blank to use default">
           </div>
-          <div class="form-group mb-3">
-            <label class="small font-weight-bold mb-1">Icon</label>
-            <input type="text" class="form-control form-control-sm" id="medit_icon" placeholder="e.g. fa-home or ti-star">
-            <div id="medit_icon_preview" class="fs-20 mt-2" style="color:#4e73df;min-height:28px;"></div>
+          
+          <div class="form-group mb-4">
+            <label class="aras-label">Icon Identifier</label>
+            <div class="input-group">
+              <input type="text" class="form-control aras-mono fs-12" id="medit_icon" placeholder="e.g. ti-star or fa-home">
+              <div class="input-group-append">
+                <span class="input-group-text bg-white" id="medit_icon_preview_wrap">
+                  <i id="medit_icon_preview_icon"></i>
+                </span>
+              </div>
+            </div>
+            <small class="text-muted-aras fs-11 mt-1 d-block italic">Supports Themify and FontAwesome.</small>
           </div>
-          <div class="form-group mb-3" id="medit_parent_row">
-            <label class="small font-weight-bold mb-1">Parent</label>
-            <select class="form-control form-control-sm" id="medit_parent"></select>
-            <small class="text-muted">Move this item under another page or to top level.</small>
+          
+          <div class="form-group mb-4" id="medit_parent_row">
+            <label class="aras-label">Parent Navigation</label>
+            <select class="form-control fs-13" id="medit_parent"></select>
           </div>
-          <div class="form-group mb-2" id="medit_show_row">
-            <div class="custom-control custom-switch">
-              <input type="checkbox" class="custom-control-input" id="medit_show">
-              <label class="custom-control-label small" for="medit_show">Show in sidebar</label>
+          
+          <div class="aras-field-view p-3 rounded border bg-light-aras mb-4" id="medit_show_row">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <label class="aras-label mb-0 fs-13">Visibility</label>
+                <p class="text-muted-aras fs-11 mb-0 italic">Show this item in the sidebar.</p>
+              </div>
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="medit_show">
+                <label class="custom-control-label" for="medit_show"></label>
+              </div>
             </div>
           </div>
-          <div class="form-group mb-0" id="medit_sidebar_row">
-            <div class="custom-control custom-switch">
-              <input type="checkbox" class="custom-control-input" id="medit_in_sidebar">
-              <label class="custom-control-label small" for="medit_in_sidebar">App visible in sidebar</label>
+
+          <div class="aras-field-view p-3 rounded border bg-light-aras mb-4" id="medit_sidebar_row">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <label class="aras-label mb-0 fs-13">App Visibility</label>
+                <p class="text-muted-aras fs-11 mb-0 italic">Show entire app in main sidebar.</p>
+              </div>
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="medit_in_sidebar">
+                <label class="custom-control-label" for="medit_in_sidebar"></label>
+              </div>
             </div>
           </div>
         </div>
-        <div class="aras-modal-footer">
-          <button class="btn btn-primary btn-sm flex-fill" onclick="ME.drawerApply()">Apply</button>
-          <button class="btn btn-outline-secondary btn-sm" onclick="ME.drawerClose()">Cancel</button>
+        <div class="aras-drawer-footer">
+          <button class="aras-btn aras-btn--primary btn-block" onclick="ME.drawerApply()">Apply Changes</button>
+          <button class="aras-btn aras-btn--outline btn-block mt-2" onclick="ME.drawerClose()">Cancel</button>
         </div>
       </div>
-      <div id="meOverlay" onclick="ME.drawerClose()"
-           style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.25);"></div>
+      <div id="meOverlay" onclick="ME.drawerClose()" class="aras-drawer-overlay" style="display:none;"></div>
 
       {# ── Add Group / Add Page modal ── #}
       <div id="meAddModal" class="aras-modal" style="display:none;">
         <div class="aras-modal__overlay" onclick="ME.closeAddModal()"></div>
-        <div class="aras-modal__content">
-          <div class="aras-modal-header">
-            <strong id="meAddModal_title" class="fs-14">Add Group</strong>
-            <button onclick="ME.closeAddModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#6c757d;">&times;</button>
+        <div class="aras-modal__content rounded-lg overflow-hidden shadow-lg border-0" style="max-width: 480px;">
+          <div class="aras-modal-header bg-light-aras px-4 py-3 border-bottom">
+            <h4 id="meAddModal_title" class="aras-card-title">Add Menu Group</h4>
+            <button onclick="ME.closeAddModal()" class="aras-drawer-close">&times;</button>
           </div>
-          <div class="aras-modal-body">
+          <div class="aras-modal-body p-4">
             <input type="hidden" id="meAdd_type">
-            <div class="form-group mb-3">
-              <label class="small font-weight-bold mb-1">App</label>
-              <select class="form-control form-control-sm" id="meAdd_app"></select>
+            
+            <div class="form-group mb-4">
+              <label class="aras-label">Target Application</label>
+              <select class="form-control" id="meAdd_app"></select>
             </div>
-            <div class="form-group mb-3">
-              <label class="small font-weight-bold mb-1">Title <span class="text-danger">*</span></label>
-              <input type="text" class="form-control form-control-sm" id="meAdd_title" placeholder="e.g. Reports">
+            
+            <div class="form-group mb-4">
+              <label class="aras-label">Title <span class="text-danger-aras">*</span></label>
+              <input type="text" class="form-control" id="meAdd_title" placeholder="e.g. Reports">
             </div>
-            <div class="form-group mb-3">
-              <label class="small font-weight-bold mb-1">Icon</label>
-              <input type="text" class="form-control form-control-sm" id="meAdd_icon" placeholder="e.g. fa-folder or ti-chart-bar">
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group mb-4">
+                  <label class="aras-label">Icon</label>
+                  <input type="text" class="form-control aras-mono fs-12" id="meAdd_icon" placeholder="e.g. fa-folder">
+                </div>
+              </div>
+              <div class="col-md-6" id="meAdd_parent_row">
+                <div class="form-group mb-4">
+                  <label class="aras-label">Parent Group</label>
+                  <select class="form-control fs-13" id="meAdd_parent"></select>
+                </div>
+              </div>
             </div>
-            <div class="form-group mb-3" id="meAdd_url_row" style="display:none;">
-              <label class="small font-weight-bold mb-1">URL suffix <span class="text-danger">*</span></label>
-              <input type="text" class="form-control form-control-sm" id="meAdd_url" placeholder="e.g. /my-page (relative to app url)">
-              <small class="text-muted">Path appended to the app's base URL.</small>
-            </div>
-            <div class="form-group mb-0" id="meAdd_parent_row" style="display:none;">
-              <label class="small font-weight-bold mb-1">Parent (optional)</label>
-              <select class="form-control form-control-sm" id="meAdd_parent"></select>
+            
+            <div class="form-group mb-0" id="meAdd_url_row" style="display:none;">
+              <label class="aras-label">URL Suffix <span class="text-danger-aras">*</span></label>
+              <div class="input-group">
+                <div class="input-group-prepend">
+                  <span class="input-group-text bg-light-aras fs-12 aras-mono">/</span>
+                </div>
+                <input type="text" class="form-control aras-mono fs-12" id="meAdd_url" placeholder="my-custom-page">
+              </div>
+              <small class="text-muted-aras fs-11 mt-1 d-block italic">Relative to app base URL.</small>
             </div>
           </div>
-          <div class="aras-modal-footer">
-            <button class="btn btn-primary btn-sm flex-fill" onclick="ME.submitAdd()">Create</button>
-            <button class="btn btn-outline-secondary btn-sm" onclick="ME.closeAddModal()">Cancel</button>
+          <div class="aras-modal-footer p-4 bg-light-aras border-top d-flex gap-2">
+            <button class="aras-btn aras-btn--primary flex-fill" onclick="ME.submitAdd()">Create Item</button>
+            <button class="aras-btn aras-btn--outline px-4" onclick="ME.closeAddModal()">Cancel</button>
           </div>
         </div>
       </div>
+
+<style>
+.aras-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 360px;
+  background: #fff; z-index: 10001; display: flex; flex-direction: column;
+  box-shadow: -10px 0 30px rgba(0,0,0,0.1);
+  animation: arasDrawerSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes arasDrawerSlide {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.aras-drawer-overlay {
+  position: fixed; inset: 0; background: rgba(15, 27, 45, 0.4);
+  backdrop-filter: blur(4px); z-index: 10000;
+}
+.aras-drawer-header { padding: 24px; border-bottom: 1px solid var(--studio-cream); display: flex; justify-content: space-between; align-items: center; }
+.aras-drawer-title { font-family: var(--aras-font-serif); font-weight: 700; font-size: 18px; margin: 0; color: var(--studio-ink); }
+.aras-drawer-close { background: none; border: none; font-size: 24px; color: var(--aras-ink-3); cursor: pointer; line-height: 1; }
+.aras-drawer-close:hover { color: var(--studio-accent); }
+.aras-drawer-body { padding: 24px; flex: 1; overflow-y: auto; }
+.aras-drawer-footer { padding: 24px; border-top: 1px solid var(--studio-cream); background: var(--studio-paper); }
+
+.aras-modal {
+  position: fixed; inset: 0; z-index: 10001; display: flex; align-items: center; justify-content: center;
+}
+.aras-modal__overlay {
+  position: absolute; inset: 0; background: rgba(15, 27, 45, 0.4); backdrop-filter: blur(4px);
+}
+.aras-modal__content {
+  position: relative; background: #fff; width: 100%; max-width: 500px; z-index: 1;
+  animation: arasModalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes arasModalPop {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+</style>
