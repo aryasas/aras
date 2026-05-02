@@ -328,6 +328,25 @@
           } catch { return null; }
         };
 
+        const applyBundlePromo = async () => {
+          const plId = mode.value === 'in' ? SELLING_PRICELIST_ID : PURCHASE_PRICELIST_ID;
+          if (!plId || !cart.value.length) return;
+          try {
+            const r = await fetch('/api/erp/stock/bundle-promo', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+              body: JSON.stringify({ pricelist_id: plId, items: cart.value.map(i => ({ product_id: i.id, qty: i.qty })) }),
+            });
+            const d = await r.json();
+            if (d.ok && d.prices) {
+              for (const item of cart.value) {
+                const bp = d.prices[String(item.id)];
+                if (bp != null) item.price = bp;
+              }
+            }
+          } catch { /* bundle promo is best-effort */ }
+        };
+
         const addToCart = async (prod) => {
           const basePrice = mode.value === 'in' ? prod.sales_price : prod.purchase_price;
           const existing = cart.value.find(i => i.id === prod.id);
@@ -341,6 +360,7 @@
             const item = cart.value.find(i => i.id === prod.id);
             if (item && p !== null) item.price = p;
           }
+          await applyBundlePromo();
         };
 
         const updateQty = async (item, delta) => {
@@ -348,6 +368,7 @@
           if (item.qty <= 0) { cart.value = cart.value.filter(i => i.id !== item.id); return; }
           const p = await fetchPrice(item.id, item.qty, mode.value);
           if (p !== null) item.price = p;
+          await applyBundlePromo();
         };
 
         const addPayment = () => {

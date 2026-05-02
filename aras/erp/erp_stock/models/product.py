@@ -100,21 +100,29 @@ class StockProductPrice(ArasModel):
     """Price table per product — supports both direct product prices and price-list-based prices."""
     __tablename__ = "stock_product_price"
 
-    product_id    = db.Column(db.Integer, db.ForeignKey("stock_product.id"), nullable=False)
-    price_list_id = db.Column(db.Integer, db.ForeignKey("stock_price_list.id"), nullable=True)
-    name          = db.Column(db.String(50), nullable=False)
-    price_type    = db.Column(db.Enum("sales", "purchase"), nullable=False, default="sales")
-    currency_id   = db.Column(db.Integer, db.ForeignKey("currency.id"), nullable=False)
-    uom_id        = db.Column(db.Integer, db.ForeignKey("stock_uom.id"), nullable=True)
-    price         = db.Column(db.Numeric(18, 4), nullable=False)
-    min_qty       = db.Column(db.Numeric(18, 4), default=0, nullable=False)
-    valid_from    = db.Column(db.Date, nullable=True)
-    valid_to      = db.Column(db.Date, nullable=True)
-    is_active     = db.Column(db.Boolean, default=True, nullable=False)
+    product_id          = db.Column(db.Integer, db.ForeignKey("stock_product.id"), nullable=True)
+    price_list_id       = db.Column(db.Integer, db.ForeignKey("stock_price_list.id"), nullable=True)
+    product_category_id = db.Column(db.Integer, db.ForeignKey("stock_product_category.id"), nullable=True)
+    location_id         = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=True)
+    terminal_id         = db.Column(db.Integer, db.ForeignKey("pos_terminal.id"), nullable=True)
+    is_blanket          = db.Column(db.Boolean, nullable=False, default=False)
+    name                = db.Column(db.String(50), nullable=False)
+    price_type          = db.Column(db.Enum("sales", "purchase"), nullable=False, default="sales")
+    currency_id         = db.Column(db.Integer, db.ForeignKey("currency.id"), nullable=False)
+    uom_id              = db.Column(db.Integer, db.ForeignKey("stock_uom.id"), nullable=True)
+    price               = db.Column(db.Numeric(18, 4), nullable=False, default=0)
+    discount_pct        = db.Column(db.Numeric(5, 2), nullable=True)
+    min_qty             = db.Column(db.Numeric(18, 4), default=0, nullable=False)
+    valid_from          = db.Column(db.Date, nullable=True)
+    valid_to            = db.Column(db.Date, nullable=True)
+    is_active           = db.Column(db.Boolean, default=True, nullable=False)
 
-    currency   = db.relationship("Currency")
-    uom        = db.relationship("StockUom")
-    price_list = db.relationship("StockPriceList", foreign_keys=[price_list_id], back_populates="items")
+    currency         = db.relationship("Currency")
+    uom              = db.relationship("StockUom")
+    price_list       = db.relationship("StockPriceList", foreign_keys=[price_list_id], back_populates="items")
+    product_category = db.relationship("StockProductCategory", foreign_keys=[product_category_id])
+    location         = db.relationship("StockLocation",        foreign_keys=[location_id])
+    terminal         = db.relationship("PosTerminal",          foreign_keys=[terminal_id])
 
 
 class StockProductBundle(ArasModel):

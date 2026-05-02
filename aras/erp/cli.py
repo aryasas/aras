@@ -177,7 +177,7 @@ def register_erp_commands(aras):
     def erp_group():
         pass
 
-    @erp_group.command("migrate", help="Run ERP schema migrations 021–034")
+    @erp_group.command("migrate", help="Run ERP schema migrations 021–035")
     def erp_migrate():
         import flask, importlib
         app = flask.current_app._get_current_object()
@@ -190,6 +190,7 @@ def register_erp_commands(aras):
             m026 = importlib.import_module("aras.erp.migrations.026_payment_order_delivery")
             m033 = importlib.import_module("aras.erp.migrations.033_pos_terminal_split_pricelist")
             m034 = importlib.import_module("aras.erp.migrations.034_drop_use_price_table")
+            m035 = importlib.import_module("aras.erp.migrations.035_promo_scope_columns")
             _hdr("ERP Migrations")
             m021.run(app); _ok("021 done")
             m022.run(app); _ok("022 done")
@@ -199,6 +200,7 @@ def register_erp_commands(aras):
             m026.run(app); _ok("026 done")
             m033.run(app); _ok("033 done")
             m034.run(app); _ok("034 done")
+            m035.run(app); _ok("035 done")
             click.echo(click.style("\nMigrations complete.", bold=True, fg="green"))
 
 

@@ -38,6 +38,7 @@ from aras.erp.erp_stock.models import (
     StockProductCategory, StockProduct, StockProductUom,
     StockProductPrice, StockProductBundle, StockProductAccountLink,
     StockPriceList,
+    StockPromoBundle, StockPromoBundleItem,
     StockLocation, StockProductLocation,
     StockMovement, StockMovementLine,
     DeliveryTrip, DeliveryOrder, DeliveryOrderLine,
@@ -421,6 +422,28 @@ def _handle_product_price():
     })
 
 
+def _handle_bundle_promo():
+    """POST /api/erp/stock/bundle-promo — check active promo bundles for cart items.
+    Body: {pricelist_id: int|null, items: [{product_id, qty}]}
+    Returns: {product_id: price} map for matched bundle products.
+    """
+    from flask import request, jsonify
+    from aras.erp.erp_stock.services.promo_service import get_bundle_promo
+
+    data          = request.get_json() or {}
+    pricelist_id  = data.get("pricelist_id")
+    cart_items    = data.get("items", [])
+
+    if not cart_items:
+        return jsonify({"ok": True, "prices": {}})
+
+    try:
+        prices = get_bundle_promo(cart_items, pricelist_id)
+        return jsonify({"ok": True, "prices": {str(k): float(v) for k, v in prices.items()}})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
 # ── Invoice: post (create journal entry from invoice) ────────────────────────
 
 def _handle_sales_invoice_post():
@@ -758,6 +781,9 @@ helper = AppHelper(
             ResourceDef("stock/pricelist",        StockPriceList,       admin_list=True,
                         menu_title="Price Lists", menu_icon="fa-tag"),
             ResourceDef("stock/pricelist-item",   StockProductPrice,    admin_list=False, is_child_table=True),
+            ResourceDef("stock/promo-bundle",     StockPromoBundle,     admin_list=True,
+                        menu_title="Promo Bundles", menu_icon="fa-gift"),
+            ResourceDef("stock/promo-bundle-item", StockPromoBundleItem, admin_list=False, is_child_table=True),
             ResourceDef("stock/location",          StockLocation,         admin_list=True,
                         menu_title="Locations", menu_icon="fa-building-o"),
             ResourceDef("stock/product-location",  StockProductLocation,  admin_list=False, is_child_table=True),
@@ -785,6 +811,7 @@ helper = AppHelper(
         CustomRoute("/stk/delivery/assign-trip",                _handle_delivery_assign_trip,           methods=["POST"], require_auth=True),
         CustomRoute("/stk/delivery/mark-delivered",             _handle_delivery_mark_delivered,        methods=["POST"], require_auth=True),
         CustomRoute("/invoice/product-price",                   _handle_product_price,                  methods=["GET"],  require_auth=True),
+        CustomRoute("/stock/bundle-promo",                       _handle_bundle_promo,                   methods=["POST"], require_auth=True),
         CustomRoute("/pos/session/<int:session_id>/products",   _handle_pos_products,                   methods=["GET"],  require_auth=True),
         CustomRoute("/pos/session/<int:session_id>/stock/<int:product_id>", _handle_pos_stock,          methods=["GET"],  require_auth=True),
         CustomRoute("/pos/session/<int:session_id>/order",      _handle_pos_order,                      methods=["POST"], require_auth=True),
