@@ -17,10 +17,10 @@ from aras.erp.erp_stock.services.coa_resolver import resolve_stock_account, reso
 
 def post_purchase_invoice(invoice_id: int, location_id: int = None) -> AccPurchaseInvoice:
     inv = AccPurchaseInvoice.query.get_or_404(invoice_id)
-    if inv.state != "draft":
-        raise ValueError(f"Invoice {inv.name} is already {inv.state}")
     if inv.journal_entry_id:
         raise ValueError(f"Invoice {inv.name} already has a journal entry")
+    if inv.state == "cancelled":
+        raise ValueError(f"Invoice {inv.name} is cancelled")
     if not location_id:
         location_id = inv.location_id
 

@@ -115,8 +115,10 @@ def post_sales_invoice(invoice_id: int) -> "AccSalesInvoice":
     )
 
     inv = AccSalesInvoice.query.get_or_404(invoice_id)
-    if inv.state != "draft":
-        raise ValueError(f"Invoice {inv.name} is already {inv.state}")
+    if inv.journal_entry_id:
+        raise ValueError(f"Invoice {inv.name} already has a journal entry")
+    if inv.state == "cancelled":
+        raise ValueError(f"Invoice {inv.name} is cancelled")
 
     company_id = inv.company_id
 

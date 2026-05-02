@@ -93,6 +93,31 @@ class PostableInvoiceHandler(SubHandler):
         if not obj:
             return {}
         state = getattr(obj, "state", None)
+
+        # ── Workflow Override Logic ──
+        from arasCore.lib.services.workflow import get_workflow, get_available_actions
+        from flask_login import current_user
+
+        # Map model name to resource key
+        cls_name = obj.__class__.__name__
+        res_key = None
+        if cls_name == "AccSalesInvoice":
+            res_key = "erp/acc/sales-invoice"
+        elif cls_name == "AccPurchaseInvoice":
+            res_key = "erp/acc/purchase-invoice"
+
+        if res_key:
+            wf = get_workflow(res_key)
+            if wf:
+                actions = get_available_actions(current_user, obj, wf)
+                return {
+                    "obj_state": state,
+                    "workflow_actions": actions,
+                    "workflow_resource_key": res_key,
+                    "obj_id": obj.id
+                }
+
+        # ── Fallback to standard behavior ──
         if state == "draft":
             return {"post_url": self._post_url, "obj_id": obj.id}
         return {"obj_state": state}
@@ -136,7 +161,7 @@ class LeadHandler(SubHandler):
     def detail_context(self, obj):
         if not obj or obj.state == "won":
             return {}
-        return {"convert_url": "/api/erp/crm/lead/convert-customer"}
+        return {"convert_url": "/api/erp/crm/lead/convert-customer/"}
 
 
 class SalesOrderHandler(SubHandler):
@@ -145,7 +170,7 @@ class SalesOrderHandler(SubHandler):
             return {}
         if obj.state == "confirmed":
             return {
-                "post_url": "/api/erp/acc/sales-order/create-invoice",
+                "post_url": "/api/erp/acc/sales-order/create-invoice/",
                 "obj_id":   obj.id,
             }
         return {"obj_state": obj.state}
@@ -157,7 +182,7 @@ class PurchaseOrderHandler(SubHandler):
             return {}
         if obj.state == "confirmed":
             return {
-                "post_url": "/api/erp/sup/purchase-order/create-invoice",
+                "post_url": "/api/erp/sup/purchase-order/create-invoice/",
                 "obj_id":   obj.id,
             }
         return {"obj_state": obj.state}
@@ -387,10 +412,11 @@ def _handle_product_price():
     from aras.erp.erp_stock.services.coa_resolver import resolve_revenue_account, resolve_purchase_account
 
     product_id    = request.args.get("product_id", type=int)
-    price_type_id = request.args.get("price_type_id", type=int)
+    price_type_id = request.args.get("price_type_id", type=int) or request.args.get("price_list_id", type=int)
     qty           = Decimal(str(request.args.get("qty", "1")))
     price_type    = request.args.get("price_type", "sales")
     company_id    = request.args.get("company_id", type=int)
+
 
     if not product_id:
         return jsonify({"ok": False, "error": "product_id required"}), 400
@@ -656,6 +682,75 @@ def _handle_pos_order(session_id):
     return _pos_create_order(session_id)
 
 
+# ── Workflow Event Listeners ──────────────────────────────────────────────────
+
+def register_erp_workflow_listeners():
+    from arasCore.lib.core.events import listener
+    from aras.erp.erp_acc.services.posting import post_sales_invoice
+    from aras.erp.erp_acc.services.purchase_posting import post_purchase_invoice
+    from arasCore.lib.core.extensions import db
+
+    @listener("erp/acc/sales-invoice.state_changed")
+    def on_sales_invoice_state_changed(obj, to_state, **kwargs):
+        if to_state == "posted":
+            try:
+                # obj is already updated to 'posted' state in DB, 
+                # but we need to ensure journal entries are created.
+                post_sales_invoice(obj.id)
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                raise e
+
+    @listener("erp/acc/purchase-invoice.state_changed")
+    def on_purchase_invoice_state_changed(obj, to_state, **kwargs):
+        if to_state == "posted":
+            try:
+                post_purchase_invoice(obj.id)
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                raise e
+
+# Initial registration
+register_erp_workflow_listeners()
+
+
+def register_invoice_workflows():
+    from arasCore.lib.services.workflow import WorkflowDef, TransitionDef, register_workflow
+    
+    # ── Sales Invoice Workflow ──
+    wf_sales = WorkflowDef(
+        name="Sales Invoice Workflow",
+        resource_key="erp/acc/sales-invoice",
+        states=["draft", "submitted", "posted", "cancelled"],
+        initial="draft",
+        transitions=[
+            TransitionDef("submit",    "draft",     "submitted", roles=["accountant"]),
+            TransitionDef("post",      "submitted", "posted",    roles=["manager"]),
+            TransitionDef("cancel",    ["draft", "submitted"], "cancelled", roles=["manager"]),
+        ]
+    )
+    register_workflow(wf_sales)
+
+    # ── Purchase Invoice Workflow ──
+    wf_pur = WorkflowDef(
+        name="Purchase Invoice Workflow",
+        resource_key="erp/acc/purchase-invoice",
+        states=["draft", "submitted", "posted", "cancelled"],
+        initial="draft",
+        transitions=[
+            TransitionDef("submit",    "draft",     "submitted", roles=["accountant"]),
+            TransitionDef("post",      "submitted", "posted",    roles=["manager"]),
+            TransitionDef("cancel",    ["draft", "submitted"], "cancelled", roles=["manager"]),
+        ]
+    )
+    register_workflow(wf_pur)
+
+# Register workflows
+register_invoice_workflows()
+
+
 helper = AppHelper(
     name="erp",
     title="ERP",
@@ -704,12 +799,12 @@ helper = AppHelper(
             ResourceDef("acc/sales-order-line",   SalesOrderLine,   admin_list=False, is_child_table=True),
             ResourceDef("acc/sales-order-charge", SalesOrderCharge, admin_list=False, is_child_table=True),
             ResourceDef("acc/sales-invoice",          AccSalesInvoice,        admin_list=True,
-                        handler=PostableInvoiceHandler("/api/erp/acc/sales-invoice/post"),
+                        handler=PostableInvoiceHandler("/api/erp/acc/sales-invoice/post/"),
                         menu_title="Sales Invoices", menu_icon="fa-file-text-o"),
             ResourceDef("acc/sales-invoice-line",     AccSalesInvoiceLine,    admin_list=False, is_child_table=True),
             ResourceDef("acc/sales-invoice-charge",   AccSalesInvoiceCharge,  admin_list=False, is_child_table=True),
             ResourceDef("acc/purchase-invoice",       AccPurchaseInvoice,     admin_list=True,
-                        handler=PostableInvoiceHandler("/api/erp/acc/purchase-invoice/post"),
+                        handler=PostableInvoiceHandler("/api/erp/acc/purchase-invoice/post/"),
                         menu_title="Purchase Invoices", menu_icon="fa-file-o"),
             ResourceDef("acc/purchase-invoice-line",  AccPurchaseInvoiceLine, admin_list=False, is_child_table=True),
             ResourceDef("acc/purchase-invoice-charge",AccPurchaseInvoiceCharge,admin_list=False, is_child_table=True),

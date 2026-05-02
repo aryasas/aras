@@ -533,6 +533,13 @@ def _build_api_blueprint() -> Blueprint:
         key = resource_key.strip("/")
         entry = _api_registry.get(key)
         if not entry:
+            # Fallback: try to find if the resource exists with an app prefix
+            for reg_key, reg_entry in _api_registry.items():
+                if reg_key.endswith("/" + key) or reg_key == key:
+                    entry = reg_entry
+                    break
+        
+        if not entry:
             return jsonify({"error": f"Resource '{resource_key}' not registered in API"}), 404
 
         obj = entry["model"].query.get_or_404(object_id)
@@ -556,6 +563,13 @@ def _build_api_blueprint() -> Blueprint:
 
         key = resource_key.strip("/")
         entry = _api_registry.get(key)
+        if not entry:
+            # Fallback: try to find if the resource exists with an app prefix
+            for reg_key, reg_entry in _api_registry.items():
+                if reg_key.endswith("/" + key) or reg_key == key:
+                    entry = reg_entry
+                    break
+                    
         if not entry:
             return jsonify({"error": "Resource not found"}), 404
 

@@ -51,7 +51,15 @@ form view with timeline activity and optimized child-table interactions.
                     <i class="fa fa-trash"></i> <span class="d-none d-md-inline">Delete</span>
                 </button>
                 {% endif %}
-                {% if post_url is defined and post_url %}
+                {% if workflow_actions is defined and workflow_actions %}
+                    {% for wa in workflow_actions %}
+                    <button type="button" class="aras-btn {{ 'aras-btn--primary' if loop.first else 'aras-btn--outline' }} btn-wf-action"
+                            data-action="{{ wa.action }}" data-res-key="{{ workflow_resource_key }}" data-obj-id="{{ obj_id }}"
+                            {{ 'disabled' if not wa.allowed }}>
+                        <i class="fa fa-share"></i> {{ wa.action|capitalize }}
+                    </button>
+                    {% endfor %}
+                {% elif post_url is defined and post_url %}
                 <button type="submit" form="mainForm" class="aras-btn aras-btn--outline">
                     <i class="fa fa-floppy-o"></i> Save Draft
                 </button>
@@ -254,6 +262,56 @@ form view with timeline activity and optimized child-table interactions.
     }
 })();
 
+// ── Workflow action buttons ──────────────────────────────────────────────────
+(function () {
+    document.querySelectorAll('.btn-wf-action').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var action = btn.dataset.action;
+            var resKey = btn.dataset.resKey;
+            var objId  = btn.dataset.objId;
+            if (!action || !resKey || !objId) return;
+
+            var note = prompt('Tambahkan catatan (opsional):');
+            if (note === null) return; // Cancelled
+
+            btn.disabled = true;
+            var oldHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing...';
+
+            fetch('/api/workflow/transition/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
+                body: JSON.stringify({
+                    resource_key: resKey,
+                    object_id: parseInt(objId),
+                    action: action,
+                    note: note
+                })
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.ok) {
+                    arasNotify('Action "' + action + '" executed.', 'success');
+                    setTimeout(function() { window.location.reload(); }, 1000);
+                } else {
+                    var errMsg = data.error;
+                    if (typeof errMsg === 'object' && errMsg !== null) {
+                        errMsg = errMsg.message || JSON.stringify(errMsg);
+                    }
+                    arasNotify(errMsg || 'Workflow error', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = oldHtml;
+                }
+            })
+            .catch(function (e) {
+                arasNotify('Network error: ' + e, 'error');
+                btn.disabled = false;
+                btn.innerHTML = oldHtml;
+            });
+        });
+    });
+})();
+
 // ── Post / Submit invoice button ──────────────────────────────────────────────
 (function () {
     var btn = document.getElementById('btnPostInvoice');
@@ -275,7 +333,11 @@ form view with timeline activity and optimized child-table interactions.
             if (data.ok) {
                 window.location.reload();
             } else {
-                arasNotify(data.error || 'Unknown error', 'error');
+                var errMsg = data.error;
+                if (typeof errMsg === 'object' && errMsg !== null) {
+                    errMsg = errMsg.message || JSON.stringify(errMsg);
+                }
+                arasNotify(errMsg || 'Unknown error', 'error');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa fa-paper-plane"></i> Post / Submit';
             }

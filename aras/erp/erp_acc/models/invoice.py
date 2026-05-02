@@ -28,7 +28,7 @@ class AccSalesInvoice(ArasModel):
     discount_amt     = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     charge_amt       = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     total            = db.Column(db.Numeric(18, 4), default=0, nullable=False)
-    state            = db.Column(db.Enum("draft", "posted", "partial", "paid", "cancelled"),
+    state            = db.Column(db.Enum("draft", "submitted", "posted", "partial", "paid", "cancelled"),
                                   default="draft", nullable=False)
     payment_term_days = db.Column(db.Integer, default=0)
     reference        = db.Column(db.String(100), nullable=True)
@@ -130,7 +130,7 @@ class AccPurchaseInvoice(ArasModel):
     discount_amt     = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     charge_amt       = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     total            = db.Column(db.Numeric(18, 4), default=0, nullable=False)
-    state            = db.Column(db.Enum("draft", "posted", "partial", "paid", "cancelled"),
+    state            = db.Column(db.Enum("draft", "submitted", "posted", "partial", "paid", "cancelled"),
                                   default="draft", nullable=False)
     payment_term_days = db.Column(db.Integer, default=0)
     notes            = db.Column(db.Text, nullable=True)

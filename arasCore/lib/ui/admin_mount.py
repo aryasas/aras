@@ -346,6 +346,8 @@ class AdminResourceMounter:
                         "model_name":              cd["model"].__tablename__,
                         "price_api_url":           cd.get("price_api_url"),
                         "price_type":              cd.get("price_type", "sales"),
+                        "parent_company_id":       None,
+                        "parent_price_list_field": "#price_type_id",
                         "app_id":                  _ct_app_id,
                         "table_id":                _ct_table_id,
                     })
@@ -502,7 +504,7 @@ class AdminResourceMounter:
                         "price_api_url":           cd.get("price_api_url"),
                         "price_type":              cd.get("price_type", "sales"),
                         "parent_company_id":       _parent_company_id,
-                        "parent_price_list_field": "#price_list_id",
+                        "parent_price_list_field": "#price_type_id",
                         "app_id":                  _ct_app_id,
                         "table_id":                _ct_table_id,
                     })
@@ -634,5 +636,13 @@ class AdminResourceMounter:
             self.bp.add_url_rule(f"{url}/<int:item_id>/",        endpoint=f"{ep}_edit",        view_func=self.make_edit(),        methods=["GET", "POST"])
             self.bp.add_url_rule(f"{url}/<int:item_id>/delete/", endpoint=f"{ep}_delete",      view_func=self.make_delete(),      methods=["POST"])
             self.bp.add_url_rule(f"{url}/bulk-delete/",          endpoint=f"{ep}_bulk_delete", view_func=self.make_bulk_delete(), methods=["POST"])
+            
+            from arasCore.lib.services.workflow import get_workflow
+            from arasCore.admin.crud_factory import make_adm_workflow
+            api_slug = self.helper.api_slug if getattr(self.helper, "api_slug", None) else self.helper.name
+            wf = get_workflow(f"{api_slug}/{self.res.name}")
+            if wf:
+                self.bp.add_url_rule(f"{url}/workflow/", endpoint=f"{ep}_workflow", view_func=make_adm_workflow(wf, self.res.menu_title or self.res.name, self.helper.title, None, None, [], url))
+
         except Exception as ex:
             logger.error(f"[admin_mount] failed to mount {url}: {ex}")

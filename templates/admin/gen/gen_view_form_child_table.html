@@ -244,16 +244,16 @@
 <script type="application/json" id="ct-meta-{{ _li }}">
 {
   "li":            {{ _li | tojson }},
-  "model_name":    {{ ct.model_name | tojson if ct.model_name is defined else '""' }},
-  "api_url":       {{ (ct.api_url | tojson) if ct.api_url is defined and ct.api_url else 'null' }},
-  "vcols":         [{{ ct.vcols | map(attribute=1) | map('tojson') | join(', ') }}],
-  "all_vcols":     [{{ _ct_all_render | map(attribute=1) | map('tojson') | join(', ') }}],
-  "rel_maps":      {{ ct.rel_maps | tojson if ct.rel_maps else '{}' }},
-  "footer_totals": {{ _ct_footer | tojson }},
-  "price_api":     {{ (ct.price_api_url | tojson) if ct.price_api_url is defined and ct.price_api_url else 'null' }},
-  "price_type":    {{ (ct.price_type | tojson) if ct.price_type is defined and ct.price_type else '"sales"' }},
-  "company_id":    {{ ct.parent_company_id if ct.parent_company_id is defined and ct.parent_company_id else 'null' }},
-  "price_list_field": {{ (ct.parent_price_list_field | tojson) if ct.parent_price_list_field is defined and ct.parent_price_list_field else 'null' }}
+  "model_name":    {{ ct.model_name | default('') | tojson }},
+  "api_url":       {{ ct.api_url | default(none) | tojson }},
+  "vcols":         [{% for _, fn in ct.vcols | default([]) %}{{ fn | tojson }}{{ ', ' if not loop.last }}{% endfor %}],
+  "all_vcols":     [{% for _, fn in _ct_all_render | default([]) %}{{ fn | tojson }}{{ ', ' if not loop.last }}{% endfor %}],
+  "rel_maps":      {{ ct.rel_maps | default({}) | tojson }},
+  "footer_totals": {{ _ct_footer | default([]) | tojson }},
+  "price_api":     {{ ct.price_api_url | default(none) | tojson }},
+  "price_type":    {{ ct.price_type | default('sales') | tojson }},
+  "company_id":    {{ ct.parent_company_id | default(none) | tojson }},
+  "price_list_field": {{ ct.parent_price_list_field | default(none) | tojson }}
 }
 </script>
 <script src="{{ url_for('static', filename='js/child_table.js') }}"></script>
