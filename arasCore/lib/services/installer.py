@@ -652,6 +652,33 @@ def sync_helper_to_db(helper, db, flask_app=None) -> "object":
     def _sync_resource(res, parent_id, order):
         """Upsert one ResourceDef into mgr_table + sync columns. Returns the record."""
         if not res.model:
+            # URL-only ResourceDef — create a link tile pointing to res.url
+            if res.url and res.admin_list:
+                suffix = res.url.replace("/admin" + app_rec.url_prefix, "").rstrip("/") or "/"
+                link_rec = AppManagerTable.query.filter_by(app_id=app_rec.id, name=res.name).first()
+                if not link_rec:
+                    link_rec = AppManagerTable(
+                        app_id=app_rec.id,
+                        name=res.name,
+                        title=res.get_menu_title(),
+                        url_suffix=suffix,
+                        db_table_name=None,
+                        menu_title=res.menu_title or res.get_menu_title(),
+                        menu_icon=res.menu_icon,
+                        show_in_menu=True,
+                        menu_order=order,
+                        parent_table_id=parent_id,
+                        page_type="link",
+                    )
+                    db.session.add(link_rec)
+                    db.session.flush()
+                    stats["tables_new"] += 1
+                    logger.info(f"[sync]   link tile: {res.name} -> {suffix}")
+                else:
+                    link_rec.parent_table_id = parent_id
+                    link_rec.menu_order      = order
+                    link_rec.url_suffix      = suffix
+                    stats["tables_existing"] += 1
             return None
         tbl_name = res.model.__tablename__
         tbl_rec = AppManagerTable.query.filter_by(app_id=app_rec.id, name=res.name).first()

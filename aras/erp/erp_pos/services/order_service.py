@@ -61,7 +61,9 @@ def create_and_pay(session_id: int, cashier_id: int, lines: list,
     session    = PosSession.query.get_or_404(session_id)
     terminal   = PosTerminal.get(session.terminal_id)
     company_id = terminal.company_id if terminal else None
-    pricelist_id = terminal.pricelist_id if terminal else None
+    selling_pricelist_id  = terminal.selling_pricelist_id if terminal else None
+    purchase_pricelist_id = terminal.purchase_pricelist_id if terminal else None
+    pricelist_id = purchase_pricelist_id if tx_mode == 'outcome' else selling_pricelist_id
 
     # Enrich lines: fill price, uom, qty_base, subtotal
     enriched = []
@@ -122,7 +124,7 @@ def _make_sales_invoice(session, terminal, lines, payments,
         customer_id   = customer_id,
         location_id   = terminal.location_id,
         pos_session_id= session.id,
-        price_list_id = terminal.pricelist_id,
+        price_list_id = terminal.selling_pricelist_id,
         invoice_date  = __import__("datetime").date.today(),
         due_date      = __import__("datetime").date.today(),
         currency_id   = currency.id if currency else 1,
@@ -190,7 +192,7 @@ def _make_purchase_invoice(session, terminal, lines, payments,
         supplier_id   = supplier_id,
         location_id   = terminal.location_id,
         pos_session_id= session.id,
-        price_list_id = terminal.pricelist_id,
+        price_list_id = terminal.purchase_pricelist_id,
         invoice_date  = __import__("datetime").date.today(),
         due_date      = __import__("datetime").date.today(),
         currency_id   = currency.id if currency else 1,

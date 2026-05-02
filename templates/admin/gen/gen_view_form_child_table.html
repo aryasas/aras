@@ -36,9 +36,13 @@
         <i class="fa fa-columns"></i>
       </button>
       {% if ct.app_id is defined and ct.app_id and ct.table_id is defined and ct.table_id %}
-      <a href="{{ url_for('admin.apps_columns', app_id=ct.app_id, table_id=ct.table_id) }}"
-         class="aras-btn aras-btn--outline aras-btn--sm" title="Customize Columns" style="padding: 6px 10px;">
-        <i class="fa fa-sliders"></i>
+      <a href="{{ url_for('admin.apps_columns', app_id=ct.app_id, table_id=ct.table_id) }}#fields-pane"
+         class="aras-btn aras-btn--outline aras-btn--sm" title="Architecture / Column Settings" style="padding: 6px 10px;">
+        <i class="fa fa-database"></i>
+      </a>
+      <a href="{{ url_for('admin.apps_columns', app_id=ct.app_id, table_id=ct.table_id) }}#designer-pane"
+         class="aras-btn aras-btn--outline aras-btn--sm" title="Form Designer" style="padding: 6px 10px;">
+        <i class="fa fa-magic"></i>
       </a>
       {% endif %}
       {% set _ct_picker_cols = ct.all_columns if (ct.all_columns is defined and ct.all_columns) else ct.vcols %}
@@ -120,10 +124,11 @@
             {% if col.type == 'select' %}
               <select name="{{ col.name }}" id="ct-{{ _li }}-{{ col.name }}" class="ct-cell-input"
                       {% if col.name == 'product_id' %}onchange="ctOnProductChange('{{ _li }}', this)"{% endif %}
+                      {% if col.name == 'price_type' %}onchange="ctFilterPriceList('{{ _li }}', this.value)"{% endif %}
                       style="width: 100%; min-width: 80px; padding: 6px 10px; font-size: 12px; border: 1px solid var(--studio-ochre); border-radius: 4px; background: #fff; outline: none;">
                 <option value="">—</option>
                 {% for opt in col.fk_options %}
-                  <option value="{{ opt.id }}">{{ opt.label }}</option>
+                  <option value="{{ opt.id }}" {% if opt.price_type is defined %}data-price-type="{{ opt.price_type }}"{% endif %}>{{ opt.label }}</option>
                 {% endfor %}
               </select>
             {% elif col.type == 'textarea' %}
@@ -205,10 +210,11 @@
         <div class="aras-form-control-wrap">
         {% if col.type == 'select' %}
           <select name="{{ col.name }}" id="ct-modal-{{ _li }}-{{ col.name }}" class="aras-form-select"
-                  {% if col.name == 'product_id' %}onchange="ctOnProductChangeModal('{{ _li }}', this)"{% endif %}>
+                  {% if col.name == 'product_id' %}onchange="ctOnProductChangeModal('{{ _li }}', this)"{% endif %}
+                  {% if col.name == 'price_type' %}onchange="ctFilterPriceListModal('{{ _li }}', this.value)"{% endif %}>
             <option value="">—</option>
             {% for opt in col.fk_options %}
-              <option value="{{ opt.id }}">{{ opt.label }}</option>
+              <option value="{{ opt.id }}" {% if opt.price_type is defined %}data-price-type="{{ opt.price_type }}"{% endif %}>{{ opt.label }}</option>
             {% endfor %}
           </select>
         {% elif col.type == 'textarea' %}

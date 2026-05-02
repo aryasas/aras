@@ -81,7 +81,6 @@ def _seed_product(company_id, category):
             "name": "Kopi Susu Test", "company_id": company_id,
             "category_id": category.id, "uom_id": uom.id,
             "for_sales": True, "for_purchase": True,
-            "is_stock_item": True, "use_price_table": True,
         },
         code="KST", company_id=company_id,
     )
@@ -178,7 +177,7 @@ def register_erp_commands(aras):
     def erp_group():
         pass
 
-    @erp_group.command("migrate", help="Run ERP schema migrations 021–026")
+    @erp_group.command("migrate", help="Run ERP schema migrations 021–034")
     def erp_migrate():
         import flask, importlib
         app = flask.current_app._get_current_object()
@@ -189,6 +188,8 @@ def register_erp_commands(aras):
             m024 = importlib.import_module("aras.erp.migrations.024_invoice_supplier_warehouse")
             m025 = importlib.import_module("aras.erp.migrations.025_warehouse_group_product_warehouse")
             m026 = importlib.import_module("aras.erp.migrations.026_payment_order_delivery")
+            m033 = importlib.import_module("aras.erp.migrations.033_pos_terminal_split_pricelist")
+            m034 = importlib.import_module("aras.erp.migrations.034_drop_use_price_table")
             _hdr("ERP Migrations")
             m021.run(app); _ok("021 done")
             m022.run(app); _ok("022 done")
@@ -196,7 +197,10 @@ def register_erp_commands(aras):
             m024.run(app); _ok("024 done")
             m025.run(app); _ok("025 done")
             m026.run(app); _ok("026 done")
+            m033.run(app); _ok("033 done")
+            m034.run(app); _ok("034 done")
             click.echo(click.style("\nMigrations complete.", bold=True, fg="green"))
+
 
     @erp_group.command("migrate-stock-compute", help="Add running_avg_cost to stock_movement_line; add avg_cost_by_location to company; drop stock_valuation")
     def erp_migrate_stock_compute():

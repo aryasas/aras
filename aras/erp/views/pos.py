@@ -60,20 +60,21 @@ def pos_session(session_id):
     )
 
     from aras.erp.erp_stock.services.price_service import get_price
-    pricelist_id = session.terminal.pricelist_id if session.terminal else None
+    selling_pricelist_id  = session.terminal.selling_pricelist_id if session.terminal else None
+    purchase_pricelist_id = session.terminal.purchase_pricelist_id if session.terminal else None
 
     for p in products:
         # Determine effective UOM for sales price
         effective_sales_uom_id = p.uom_sales_id or p.uom_id
         if effective_sales_uom_id:
-            p.sales_price = float(get_price(p.id, effective_sales_uom_id, Decimal("1"), pricelist_id, price_type="sales"))
+            p.sales_price = float(get_price(p.id, effective_sales_uom_id, Decimal("1"), selling_pricelist_id, price_type="sales"))
         else:
             p.sales_price = 0.0
 
         # Determine effective UOM for purchase price
         effective_purchase_uom_id = p.uom_purchase_id or p.uom_id
         if effective_purchase_uom_id:
-            p.purchase_price = float(get_price(p.id, effective_purchase_uom_id, Decimal("1"), pricelist_id, price_type="purchase"))
+            p.purchase_price = float(get_price(p.id, effective_purchase_uom_id, Decimal("1"), purchase_pricelist_id, price_type="purchase"))
         else:
             p.purchase_price = 0.0
 

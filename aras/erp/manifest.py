@@ -193,7 +193,9 @@ def _pos_products(session_id: int):
 
     session      = PosSession.get_or_404(session_id)
     terminal     = PosTerminal.get(session.terminal_id)
-    pricelist_id = terminal.pricelist_id if terminal else None
+    selling_pricelist_id  = terminal.selling_pricelist_id if terminal else None
+    purchase_pricelist_id = terminal.purchase_pricelist_id if terminal else None
+    pricelist_id = purchase_pricelist_id if (terminal and terminal.transaction_mode == 'outcome') else selling_pricelist_id
     location_id = terminal.location_id if terminal else None
     tx_mode     = terminal.transaction_mode if terminal else "income"
 
@@ -243,7 +245,7 @@ def _pos_products(session_id: int):
         if tx_mode == "outcome":
             active_uom    = p.uom_purchase or p.uom
             active_uom_id = active_uom.id if active_uom else p.uom_id
-            display_price = float(get_price(p.id, active_uom_id, Decimal("1"), pricelist_id, price_type="purchase"))
+            display_price = float(get_price(p.id, active_uom_id, Decimal("1"), purchase_pricelist_id, price_type="purchase"))
         else:
             active_uom_id = sales_uom_id
             active_uom    = sales_uom

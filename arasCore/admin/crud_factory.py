@@ -106,6 +106,8 @@ def _get_fk_display_col(model_tablename: str, field_name: str) -> str | None:
 
 
 def _populate_relation_choices(form, model):
+    # __fk_choices__: {field_name: callable(query) -> query} on model for per-field filtering
+    fk_choices_map = getattr(model, "__fk_choices__", {}) or {}
     for field in form:
         if hasattr(field, "coerce") and field.name.endswith("_id"):
             try:
@@ -113,11 +115,13 @@ def _populate_relation_choices(form, model):
                 ref_model = _find_ref_model(fk.column.table.name)
                 if ref_model:
                     display_col = _get_fk_display_col(model.__tablename__, field.name)
-                    # Allow model to declare a queryset filter for FK choices via __fk_filter__
-                    fk_filter = getattr(ref_model, "__fk_filter__", None)
                     q = ref_model.query
-                    if callable(fk_filter):
-                        q = fk_filter(q)
+                    if field.name in fk_choices_map:
+                        q = fk_choices_map[field.name](q)
+                    else:
+                        fk_filter = getattr(ref_model, "__fk_filter__", None)
+                        if callable(fk_filter):
+                            q = fk_filter(q)
                     rows = q.all()
                     if display_col:
                         choices = [(r.id, str(getattr(r, display_col, None) or r.id)) for r in rows]
@@ -254,6 +258,7 @@ def _save_local_child_data(obj, model):
 def _get_child_tables_for_model(model):
     from sqlalchemy import inspect as sa_inspect
     from arasCore.lib.services.api_handler import get_api_url_for_model
+    from arasCore.admin.models import AppManagerTable
     result = []
     try:
         for rel in sa_inspect(model).relationships:
@@ -271,6 +276,16 @@ def _get_child_tables_for_model(model):
             price_api_path = getattr(child_cls, "__price_api_path__", None)
             price_type     = getattr(child_cls, "__price_type__", "sales")
             rel_maps       = _build_fk_maps(vcols, child_cls)
+
+            # ── Find app_id and table_id for the child model ──
+            app_id = None
+            table_id = None
+            tname = child_cls.__tablename__
+            mgr_tbl = AppManagerTable.query.filter((AppManagerTable.name == tname) | (AppManagerTable.db_table_name == tname)).first()
+            if mgr_tbl:
+                app_id = mgr_tbl.app_id
+                table_id = mgr_tbl.id
+
             result.append({
                 "title":          child_cls.__tablename__.replace("_", " ").title(),
                 "model":          child_cls,
@@ -286,6 +301,8 @@ def _get_child_tables_for_model(model):
                 "price_type":     price_type,
                 "model_name":     child_cls.__tablename__,
                 "rel_maps":       rel_maps,
+                "app_id":         app_id,
+                "table_id":       table_id,
             })
     except Exception:
         pass
@@ -326,7 +343,11 @@ def _get_inline_columns(child_model, fk_col: str) -> list:
                 ref = _find_ref_model(fk_table)
                 if ref:
                     fk_api_url = get_api_url_for_model(ref)
-                    fk_options = [{"id": r.id, "label": row_display(r)} for r in ref.query.all()]
+                    fk_options = [
+                        {"id": r.id, "label": row_display(r),
+                         **({"price_type": r.price_type} if hasattr(r, "price_type") else {})}
+                        for r in ref.query.all()
+                    ]
             except Exception:
                 pass
             input_type = "select"

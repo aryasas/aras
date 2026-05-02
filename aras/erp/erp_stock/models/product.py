@@ -40,7 +40,6 @@ class StockProduct(ArasModel):
     is_stock_item       = db.Column(db.Boolean, default=True, nullable=False)
     for_sales           = db.Column(db.Boolean, default=True, nullable=False)
     for_purchase        = db.Column(db.Boolean, default=True, nullable=False)
-    use_price_table     = db.Column(db.Boolean, default=False, nullable=False)
     allow_zero_stock    = db.Column(db.Boolean, nullable=True)  # None = inherit from category/company
     account_revenue_id  = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
     account_purchase_id = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)

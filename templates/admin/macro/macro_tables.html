@@ -53,7 +53,7 @@
           {% set _hidden_style = 'display:none;' if _visible_fields is not none and field not in _visible_fields else '' %}
           {% if field in _rel and raw is not none %}
             <td data-field="{{ field }}" data-id="{{ item.id }}" data-rel="1" style="{{ _hidden_style }}">
-              {% if loop.first %}<span class="hash">{{ raw }}</span>{% else %}{{ _rel[field][raw] if raw in _rel[field] else raw }}{% endif %}
+              {% if loop.first %}<span class="hash">{{ raw }}</span>{% else %}{{ _rel[field][raw|string] if raw|string in _rel[field] else raw }}{% endif %}
             </td>
           {% else %}
             <td data-field="{{ field }}" data-id="{{ item.id }}" class="js-inline-cell{{ _lid }}" style="{{ _hidden_style }}">

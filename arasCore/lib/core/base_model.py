@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime, timezone
+from datetime import datetime, date, timezone
 from arasCore.lib.core.extensions import db
 
 
@@ -345,6 +345,7 @@ class ArasModel(db.Model):
             val = getattr(self, col.name, None)
             from decimal import Decimal
             if isinstance(val, datetime): result[col.name] = val.isoformat()
+            elif isinstance(val, date): result[col.name] = val.isoformat()
             elif isinstance(val, Decimal): result[col.name] = float(val)
             else: result[col.name] = val
         for out_key, (rel_attr, rel_field) in (self.__serialize_relations__ or {}).items():

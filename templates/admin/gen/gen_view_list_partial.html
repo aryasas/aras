@@ -404,7 +404,7 @@ search_param if search_param is defined else 'q' %} {# ── Page Hero Title (S
                     data-rel="1"
                 >
                     {% if loop.first %}<span class="hash">{{ raw }}</span>{%
-                    else %}{{ _rel[field][raw] if raw in _rel[field] else raw
+                    else %}{{ _rel[field][raw|string] if raw|string in _rel[field] else raw
                     }}{% endif %}
                 </td>
                 {% else %}

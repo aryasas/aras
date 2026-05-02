@@ -478,7 +478,13 @@ def apps_columns(app_id, table_id):
             continue
         fk_cols = [c for c in potential_child.columns if c.field_type == 'relation' and c.relation_table_id == table_id]
         if fk_cols:
-            child_table_defs.append({"name": potential_child.name, "label": potential_child.title, "type": "child_table"})
+            child_table_defs.append({
+                "name": potential_child.name, 
+                "label": potential_child.title, 
+                "type": "child_table",
+                "app_id": potential_child.app_id,
+                "table_id": potential_child.id
+            })
             seen_child_names.add(potential_child.name)
 
     # 2. Code-based models: detect via SQLAlchemy relationships on the live model
@@ -493,7 +499,13 @@ def apps_columns(app_id, table_id):
             for cd in _get_child_tables_for_model(model_cls):
                 cname = cd.get("model_name") or cd["model"].__tablename__
                 if cname not in seen_child_names:
-                    child_table_defs.append({"name": cname, "label": cd.get("title", cname), "type": "child_table"})
+                    child_table_defs.append({
+                        "name": cname, 
+                        "label": cd.get("title", cname), 
+                        "type": "child_table",
+                        "app_id": cd.get("app_id"),
+                        "table_id": cd.get("table_id")
+                    })
                     seen_child_names.add(cname)
     except Exception:
         pass

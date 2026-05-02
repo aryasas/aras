@@ -37,15 +37,14 @@ def get_price(product_id: int, uom_id: int, qty: Decimal,
         if item:
             return Decimal(str(item.price))
 
-    if product.use_price_table:
-        pp = (
-            base_q
-            .filter_by(price_type=price_type, price_list_id=None)
-            .filter((StockProductPrice.uom_id == uom_id) | (StockProductPrice.uom_id == None))
-            .order_by(StockProductPrice.uom_id.desc(), StockProductPrice.min_qty.desc())
-            .first()
-        )
-        if pp:
-            return Decimal(str(pp.price))
+    pp = (
+        base_q
+        .filter_by(price_type=price_type, price_list_id=None)
+        .filter((StockProductPrice.uom_id == uom_id) | (StockProductPrice.uom_id == None))
+        .order_by(StockProductPrice.uom_id.desc(), StockProductPrice.min_qty.desc())
+        .first()
+    )
+    if pp:
+        return Decimal(str(pp.price))
 
     return Decimal("0")

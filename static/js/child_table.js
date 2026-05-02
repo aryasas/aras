@@ -168,14 +168,53 @@ function ctOpenModal(idx, btn, isNew) {
     if (!modal) return;
 
     var setupModal = function(obj) {
+        if (!obj) return;
         document.querySelectorAll('#ct-modal-' + idx + ' [name]').forEach(function(el) {
-            var v = obj[el.name];
-            if (v === undefined || v === null) v = '';
-            if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
+            var name = el.name;
+            var v = obj[name];
+            
+            // Try alternatives for FK fields
+            if ((v === undefined || v === null || v === '') && name.endsWith('_id')) {
+                var baseName = name.substring(0, name.length - 3);
+                if (obj[baseName] !== undefined && obj[baseName] !== null && typeof obj[baseName] !== 'object') v = obj[baseName];
+            }
+            if ((v === undefined || v === null || v === '') && !name.endsWith('_id')) {
+                if (obj[name + '_id'] !== undefined) v = obj[name + '_id'];
+            }
+            
+            if (v === undefined || v === null) return; // Don't overwrite with null if we don't have to
+
+            if (el.type === 'checkbox') {
+                if (typeof v === 'string') {
+                    el.checked = (v.toLowerCase() === 'true' || v === '1' || v === 'True');
+                } else {
+                    el.checked = !!v;
+                }
+            } else {
+                if (el.type === 'date' && typeof v === 'string' && v.includes('T')) {
+                    v = v.split('T')[0];
+                }
+                el.value = v;
+                // Manually update the custom select UI without firing 'change' to avoid API fetch loops
+                if (el.tagName === 'SELECT') {
+                    var wrapper = el.closest('.aras-custom-select');
+                    if (wrapper) {
+                        var label = wrapper.querySelector('.aras-select-trigger span');
+                        if (label && el.selectedIndex >= 0) {
+                            label.textContent = el.options[el.selectedIndex].text;
+                        }
+                        wrapper.querySelectorAll('.aras-select-option').forEach(function(opt) {
+                            opt.classList.toggle('is-selected', opt.dataset.value === String(v));
+                        });
+                    }
+                }
+            }
         });
         modal.classList.remove('d-none');
         modal.style.display = 'flex';
-        setTimeout(function() { modal.classList.add('is-visible'); }, 10);
+        if (!modal.classList.contains('is-visible')) {
+            setTimeout(function() { modal.classList.add('is-visible'); }, 10);
+        }
     };
 
     if (isNew) {
@@ -191,21 +230,55 @@ function ctOpenModal(idx, btn, isNew) {
     var id = tr.dataset.id;
     document.getElementById('ct-modal-id-' + idx).value = id;
 
+    // Populate immediately from row data
+    var rowData = {};
+    tr.querySelectorAll('td[data-field]').forEach(function(td) {
+        var f = td.dataset.field;
+        var r = td.dataset.raw;
+        if (r !== undefined && r !== null) {
+            rowData[f] = r;
+            // Map display field to _id if it looks like an ID
+            if (!f.endsWith('_id') && !isNaN(parseInt(r)) && String(parseInt(r)) === String(r)) {
+                rowData[f + '_id'] = r;
+            }
+        }
+    });
+    
+    // Also merge from rel_maps if row data is missing something
+    if (meta.rel_maps) {
+        for (var f in meta.rel_maps) {
+            var td = tr.querySelector('td[data-field="' + f + '"]');
+            if (td && td.dataset.raw) {
+                if (!rowData[f]) rowData[f] = td.dataset.raw;
+                var fid = f.endsWith('_id') ? f : f + '_id';
+                if (!rowData[fid]) rowData[fid] = td.dataset.raw;
+            }
+        }
+    }
+
+    setupModal(rowData);
+
     if (id && String(id).startsWith('local_')) {
         var arr = _getCtLocalData(idx);
         var item = arr.find(function(x) { return x.id === id; }) || {};
-        setupModal(item);
+        setupModal(Object.assign({}, rowData, item));
         return;
     }
 
     var _apiBase = meta.api_url || ('/api/erp/' + MN.replace(/_/g, '-') + '/');
     var fetchUrl = _apiBase.replace(/\/$/, '') + '/' + id + '/';
     fetch(fetchUrl).then(function(r) { return r.json(); }).then(function(d) {
-        setupModal(d.data || d);
+        var apiData = d.data || d;
+        // Use a smart merge that doesn't overwrite with nulls
+        var finalData = Object.assign({}, rowData);
+        for (var key in apiData) {
+            if (apiData[key] !== null && apiData[key] !== undefined && apiData[key] !== '') {
+                finalData[key] = apiData[key];
+            }
+        }
+        setupModal(finalData);
     }).catch(function() {
-        var data = {};
-        tr.querySelectorAll('td[data-field]').forEach(function(td) { data[td.dataset.field] = td.dataset.raw; });
-        setupModal(data);
+        // Fallback already handled
     });
 }
 
@@ -487,8 +560,12 @@ function _ctAppendRow(idx, obj, extraLabels) {
     allCols.forEach(function(field) {
         var td  = document.createElement('td');
         var raw = obj[field];
+        // If field is like 'product' (display) but 'product_id' exists in obj, use that for data-raw
+        if ((raw === undefined || raw === null || typeof raw === 'object') && obj[field + '_id'] !== undefined) {
+            raw = obj[field + '_id'];
+        }
         td.dataset.field = field;
-        td.dataset.raw   = raw != null ? raw : '';
+        td.dataset.raw   = (raw != null && typeof raw !== 'object') ? raw : '';
         
         var display = _ctResolveDisplay(idx, field, raw);
         if ((display === raw || display == null) && extraLabels && extraLabels[field]) {
@@ -546,4 +623,26 @@ function _ctGetCsrf() {
     if (meta) return meta.content;
     var m = document.cookie.match(/csrf_token=([^;]+)/);
     return m ? decodeURIComponent(m[1]) : '';
+}
+
+function ctFilterPriceList(idx, priceType) {
+    var sel = document.getElementById('ct-' + idx + '-price_list_id');
+    if (!sel) return;
+    sel.value = '';
+    Array.from(sel.options).forEach(function(opt) {
+        if (!opt.value) return;
+        var pt = opt.getAttribute('data-price-type');
+        opt.style.display = (pt && priceType && pt !== priceType) ? 'none' : '';
+    });
+}
+
+function ctFilterPriceListModal(idx, priceType) {
+    var sel = document.getElementById('ct-modal-' + idx + '-price_list_id');
+    if (!sel) return;
+    sel.value = '';
+    Array.from(sel.options).forEach(function(opt) {
+        if (!opt.value) return;
+        var pt = opt.getAttribute('data-price-type');
+        opt.style.display = (pt && priceType && pt !== priceType) ? 'none' : '';
+    });
 }
