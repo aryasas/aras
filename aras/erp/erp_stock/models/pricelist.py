@@ -16,5 +16,5 @@ class StockPriceType(ArasModel):
     currency = db.relationship("Currency")
     items    = db.relationship("StockPriceList",
                                foreign_keys="StockPriceList.price_type_id",
-                               back_populates="price_type",
+                               back_populates="price_type_ref",
                                cascade="all, delete-orphan")
