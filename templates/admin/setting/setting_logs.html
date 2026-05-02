@@ -1,7 +1,7 @@
-{% extends "admin/base_index.html" %}
+{% extends "admin/base_index.html" if not skip_hero else "admin/base_empty.html" %}
 
 {% block content %}
-<div class="settings-panel" id="panel-logs">
+<div class="settings-panel {{ 'd-none' if skip_hero }}" id="panel-logs">
   {% include 'admin/setting/_setting_dev_nav.html' %}
 
   <div class="aras-card mb-4">

@@ -6,7 +6,7 @@
 <div class="settings-panel {{ 'd-none' if skip_hero }}" id="panel-dev">
   {% include 'admin/setting/_setting_dev_nav.html' %}
 
-  {% if request.endpoint == 'admin.dev' %}
+  {% if routes %}
   <div class="aras-card mb-4">
     <div class="aras-card-header d-flex justify-content-between align-items-center">
       <h3 class="aras-card-title">Registered Routes <span class="aras-badge aras-badge--info ml-2" id="route-count">{{ routes|length }}</span></h3>

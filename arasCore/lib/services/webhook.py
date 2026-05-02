@@ -15,6 +15,7 @@ import threading
 from datetime import datetime, timezone
 
 import requests as _requests
+from arasCore.lib.core.tasks import huey
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,9 @@ def _sign(payload_bytes: bytes, secret: str) -> str:
     return hmac.new(secret.encode(), payload_bytes, hashlib.sha256).hexdigest()  # type: ignore[attr-defined]
 
 
-def _dispatch(url: str, event: str, payload: dict, secret: str | None):
+@huey.task()
+def dispatch_webhook_task(url: str, event: str, payload: dict, secret: str | None):
+    """Background task to dispatch a single webhook POST."""
     body = json.dumps(payload, default=str).encode()
     headers = {
         "Content-Type": "application/json",
@@ -42,7 +45,7 @@ def _dispatch(url: str, event: str, payload: dict, secret: str | None):
 def fire_webhook(event: str, payload: dict):
     """
     Fire all active webhooks whose event pattern matches.
-    Runs each dispatch in a daemon thread (non-blocking).
+    Offloads each dispatch to the Huey background task queue.
     """
     try:
         from arasCore.lib.models.webhook_models import WebhookEndpoint
@@ -52,12 +55,7 @@ def fire_webhook(event: str, payload: dict):
     for ep in endpoints:
         if ep.event != "*" and ep.event != event:
             continue
-        t = threading.Thread(
-            target=_dispatch,
-            args=(ep.url, event, payload, ep.secret),
-            daemon=True,
-        )
-        t.start()
+        dispatch_webhook_task(ep.url, event, payload, ep.secret)
 
 
 def _global_event_handler(event_name: str, obj=None, **kwargs):

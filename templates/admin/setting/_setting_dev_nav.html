@@ -1,4 +1,6 @@
 {# Developer Tools Navigation Header #}
+{% set is_standalone = request.endpoint.startswith('admin.dev') %}
+
 <div class="settings-panel-header mb-4">
     <div class="d-flex justify-content-between align-items-center">
         <div>
@@ -6,20 +8,44 @@
             <p class="settings-panel-desc">Advanced debugging information, system internals, and registered route mapping.</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ url_for('admin.dev') }}" class="btn btn-sm {{ 'btn-dark' if request.endpoint == 'admin.dev' else 'btn-outline-dark' }}">
+            <a href="{{ url_for('admin.dev') if is_standalone else '#panel-dev' }}" 
+               class="btn btn-sm {{ 'btn-dark' if request.endpoint == 'admin.dev' or (not is_standalone and active_panel == 'panel-dev') else 'btn-outline-dark' }}"
+               {% if not is_standalone %}onclick="activatePanel('panel-dev'); return false;"{% endif %}>
                 <i class="fa fa-map-signs mr-1"></i> Routes
             </a>
-            <a href="{{ url_for('admin.dev_logs') }}" class="btn btn-sm {{ 'btn-dark' if request.endpoint == 'admin.dev_logs' else 'btn-outline-dark' }}">
+            
+            <a href="{{ url_for('admin.dev_logs') if is_standalone else '#panel-logs' }}" 
+               class="btn btn-sm {{ 'btn-dark' if request.endpoint == 'admin.dev_logs' or (not is_standalone and active_panel == 'panel-logs') else 'btn-outline-dark' }}"
+               {% if not is_standalone %}onclick="activatePanel('panel-logs'); return false;"{% endif %}>
                 <i class="fa fa-list-alt mr-1"></i> Logs
             </a>
-            <a href="{{ url_for('admin.dev_components') }}" class="btn btn-sm {{ 'btn-dark' if request.endpoint == 'admin.dev_components' else 'btn-outline-dark' }}">
-                <i class="fa fa-cube mr-1"></i> UI Kit
-            </a>
-            <a href="{{ url_for('admin.dev_sql') }}" class="btn btn-sm {{ 'btn-dark' if request.endpoint == 'admin.dev_sql' else 'btn-outline-dark' }}">
+
+            <a href="{{ url_for('admin.dev_sql') if is_standalone else '#panel-sql' }}" 
+               class="btn btn-sm {{ 'btn-dark' if request.endpoint == 'admin.dev_sql' or (not is_standalone and active_panel == 'panel-sql') else 'btn-outline-dark' }}"
+               {% if not is_standalone %}onclick="activatePanel('panel-sql'); return false;"{% endif %}>
                 <i class="fa fa-database mr-1"></i> SQL
             </a>
-            <a href="{{ url_for('admin.dev_sync') }}" class="btn btn-sm {{ 'btn-dark' if request.endpoint == 'admin.dev_sync' else 'btn-outline-dark' }}">
+
+            <a href="{{ url_for('admin.dev_cli') if is_standalone else '#panel-cli' }}" 
+               class="btn btn-sm {{ 'btn-dark' if request.endpoint == 'admin.dev_cli' or (not is_standalone and active_panel == 'panel-cli') else 'btn-outline-dark' }}"
+               {% if not is_standalone %}onclick="activatePanel('panel-cli'); return false;"{% endif %}>
+                <i class="fa fa-terminal mr-1"></i> CLI
+            </a>
+
+            <a href="{{ url_for('admin.dev_sync') if is_standalone else '#panel-sync' }}" 
+               class="btn btn-sm {{ 'btn-dark' if request.endpoint == 'admin.dev_sync' or (not is_standalone and active_panel == 'panel-sync') else 'btn-outline-dark' }}"
+               {% if not is_standalone %}onclick="activatePanel('panel-sync'); return false;"{% endif %}>
                 <i class="fa fa-refresh mr-1"></i> Sync
+            </a>
+            
+            <a href="{{ url_for('admin.dev_components') if is_standalone else '#panel-components' }}" 
+               class="btn btn-sm {{ 'btn-dark' if request.endpoint == 'admin.dev_components' or (not is_standalone and active_panel == 'panel-components') else 'btn-outline-dark' }}"
+               {% if not is_standalone %}onclick="activatePanel('panel-components'); return false;"{% endif %}>
+                <i class="fa fa-cube mr-1"></i> UI Kit
+            </a>
+
+            <a href="{{ url_for('aras_api.api_docs') }}" target="_blank" class="btn btn-sm btn-outline-info">
+                <i class="fa fa-book mr-1"></i> API Docs
             </a>
         </div>
     </div>

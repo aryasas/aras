@@ -122,6 +122,24 @@ def settings():
     else:
         theme_tokens = theme_tokens_json
 
+    import inspect as _inspect
+    routes = []
+    for rule in sorted(current_app.url_map.iter_rules(), key=lambda r: r.rule):
+        handler = current_app.view_functions.get(rule.endpoint)
+        doc = _inspect.getdoc(handler) or "No documentation."
+        parts = rule.endpoint.split(".")
+        blueprint = parts[0] if len(parts) > 1 else "root"
+        routes.append({
+            "rule":     rule.rule,
+            "endpoint": rule.endpoint,
+            "methods":  list(sorted(m for m in rule.methods if m not in ("HEAD", "OPTIONS"))),
+            "blueprint": blueprint,
+            "doc":       doc,
+            "file":      _inspect.getfile(handler) if handler else "unknown"
+        })
+    import sys as _sys
+    modules = sorted(k for k in _sys.modules if k.startswith("arasCore") or k.startswith("aras."))
+
     return render_template(
         "admin/setting/setting_settings.html",
         title="Settings", main_title="Settings",
@@ -130,7 +148,7 @@ def settings():
         server_info=server_info, server_cfg=server_cfg,
         db_tables=db_tables, activities=activities, audit_logs=audit_logs,
         q_audit=q_audit, health_data=health_data,
-        dev_routes=[], # Simplified for now
+        routes=routes, modules=modules,
         workflows=_workflow_registry,
         system_settings=ArasSystemSetting.query.order_by(ArasSystemSetting.section, ArasSystemSetting.key).all(),
         webhook_endpoints=WebhookEndpoint.query.all(),

@@ -1,0 +1,132 @@
+{% extends "admin/base_index.html" if not skip_hero else "admin/base_empty.html" %}
+
+{% block content %}
+<div class="settings-panel {{ 'd-none' if skip_hero }}" id="panel-cli">
+    {% include 'admin/setting/_setting_dev_nav.html' %}
+
+    <div class="aras-card" style="padding: 20px; background: #1e1e1e; border: none; box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="mb-1" style="color: var(--studio-ochre); font-weight: 700;">Aras Web CLI</h4>
+                <p class="text-muted small">Execute 'aras' commands directly in the app context.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <button id="btn-clear" class="btn btn-sm btn-outline-secondary">
+                    <i class="fa fa-eraser"></i> Clear
+                </button>
+                <button id="btn-run-cli" class="btn btn-sm" style="background: var(--studio-ochre); color: var(--studio-ink); font-weight: 700;">
+                    <i class="fa fa-terminal mr-1"></i> Run
+                </button>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <div id="cli-ace-editor" style="width: 100%; height: 60px; border: 1px solid #333; border-radius: 4px; background: #000;">aras --help</div>
+        </div>
+
+        <div id="cli-output" class="p-3 rounded" style="background: #000; color: #0f0; font-family: 'Fira Code', 'Courier New', monospace; font-size: 13px; height: 400px; overflow-y: auto; border: 1px solid #333;">
+            <div class="text-muted"># Aras Web Shell ready. Type a command (e.g. 'aras list-apps') and press Ctrl+Enter</div>
+        </div>
+
+        <div id="cli-loading" class="mt-3 text-center d-none">
+            <span class="spinner-border spinner-border-sm text-info"></span>
+            <span class="text-info ml-2 small">Processing...</span>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/aras_code_editor.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnRun = document.getElementById('btn-run-cli');
+    const btnClear = document.getElementById('btn-clear');
+    const cliOutput = document.getElementById('cli-output');
+    const cliLoading = document.getElementById('cli-loading');
+    let editor = null;
+
+    // Initialize Ace
+    if (window.ArasCodeEditor) {
+        ArasCodeEditor.loadAce(() => {
+            editor = ace.edit("cli-ace-editor");
+            editor.setTheme("ace/theme/monokai");
+            editor.session.setMode("ace/mode/sh");
+            editor.setOptions({
+                fontSize: "14px",
+                showPrintMargin: false,
+                useSoftTabs: true,
+                tabSize: 4,
+                highlightActiveLine: false,
+                showGutter: false
+            });
+            
+            // Ctrl+Enter to run
+            editor.commands.addCommand({
+                name: 'runCommand',
+                bindKey: {win: 'Ctrl-Enter',  mac: 'Command-Enter'},
+                exec: function(editor) {
+                    btnRun.click();
+                }
+            });
+        });
+    }
+
+    btnRun.addEventListener('click', function() {
+        const cmd = editor ? editor.getValue().trim() : '';
+        if (!cmd) return;
+
+        appendOutput(`\n> ${cmd}`, 'text-info');
+        cliLoading.classList.remove('d-none');
+
+        fetch('/admin/api/dev/cli/execute', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({ command: cmd })
+        })
+        .then(res => {
+            if (!res.ok) {
+                return res.json().then(errData => {
+                    throw new Error(errData.error || `HTTP ${res.status}: ${res.statusText}`);
+                }).catch(() => {
+                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                });
+            }
+            return res.json();
+        })
+        .then(data => {
+            cliLoading.classList.add('d-none');
+            if (data.error) {
+                appendOutput(`Error: ${data.error}`, 'text-danger');
+                return;
+            }
+
+            if (data.stdout) appendOutput(data.stdout, 'text-success');
+            if (data.stderr) appendOutput(data.stderr, 'text-warning');
+            
+            if (data.exit_code !== 0) {
+                appendOutput(`Process exited with code ${data.exit_code}`, 'text-danger');
+            }
+        })
+        .catch(err => {
+            cliLoading.classList.add('d-none');
+            appendOutput(`Network Error: ${err.message}`, 'text-danger');
+        });
+    });
+
+    btnClear.addEventListener('click', function() {
+        cliOutput.innerHTML = '<div class="text-muted"># Output cleared.</div>';
+    });
+
+    function appendOutput(text, className) {
+        const div = document.createElement('div');
+        div.className = className;
+        div.style.whiteSpace = 'pre-wrap';
+        div.textContent = text;
+        cliOutput.appendChild(div);
+        cliOutput.scrollTop = cliOutput.scrollHeight;
+    }
+});
+</script>
+{% endblock %}

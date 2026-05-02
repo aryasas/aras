@@ -30,6 +30,7 @@ Flask-Mail
 # Cache & Queue
 Flask-Caching
 rq
+huey
 
 # Utils
 Flask-Moment

@@ -54,6 +54,7 @@ from arasCore.admin.crud_factory import (  # noqa: E402
     make_adm_edit,
     make_adm_delete,
     make_adm_bulk_delete,
+    make_adm_workflow,
     make_web_list,
     make_web_add,
     make_web_edit,
@@ -275,6 +276,13 @@ def _register_table_routes(bp, snap, all_snaps):
     bp.add_url_rule(f"{adm_url}/<int:item_id>/", endpoint=f"{ep}_adm_edit",        view_func=make_adm_edit(model, form_cls, title, main_t, adm_url, app_title, app_id, table_id, sibling_tabs, adm_url, app_slug, req_role, tname, layout_json=layout_json, child_defs=child_defs), methods=["GET","POST"])
     bp.add_url_rule(f"{adm_url}/<int:item_id>/delete/", endpoint=f"{ep}_adm_delete", view_func=make_adm_delete(model, adm_url, app_slug, req_role, tname), methods=["POST"])
     bp.add_url_rule(f"{adm_url}/bulk-delete/",   endpoint=f"{ep}_adm_bulk_delete", view_func=make_adm_bulk_delete(model, adm_url, app_slug, req_role, tname), methods=["POST"])
+
+    # ── Workflow Visualization ──
+    from arasCore.lib.services.workflow import get_workflow
+    wf = get_workflow(burl.strip("/"))
+    if wf:
+        bp.add_url_rule(f"{adm_url}/workflow/", endpoint=f"{ep}_adm_workflow", 
+                        view_func=make_adm_workflow(wf, title, app_title, app_id, table_id, sibling_tabs, adm_url))
 
     try:
         from arasCore.lib.services.api_handler import register_api_model

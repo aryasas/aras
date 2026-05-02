@@ -30,3 +30,14 @@ def script_edit(sc_id):
         if field in d: setattr(sc, field, d[field])
     db.session.commit()
     return jsonify({"ok": True})
+
+@admin_bp.route("/settings/scripts/<int:sc_id>/delete", methods=["POST"])
+@login_required
+def script_delete(sc_id):
+    from arasCore.lib.models.script_models import SrvScript
+    sc = db.session.get(SrvScript, sc_id)
+    if sc:
+        db.session.delete(sc)
+        db.session.commit()
+        flash("Script deleted.", "warning")
+    return redirect(url_for("admin.settings") + "#panel-scripts")

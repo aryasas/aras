@@ -705,6 +705,12 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
 
         from arasCore.lib.services.api_handler import get_api_url_for_model
         _api_url = get_api_url_for_model(model)
+
+        # Check for workflow
+        from arasCore.lib.services.workflow import get_workflow
+        _res_key = adm_burl.replace("/admin/", "").strip("/")
+        _has_workflow = get_workflow(_res_key) is not None
+
         return render_template(
             "admin/gen/gen_view_list.html",
             title=title, main_title=main_t,
@@ -713,6 +719,7 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
             rel_maps=_build_fk_maps(eff_vcols, model),
             add_url=f"{adm_burl}/add/", edit_url_base=adm_burl, delete_url_base=adm_burl,
             linked_docs_url_base=_api_url,
+            workflow_url=f"{adm_burl}/workflow/" if _has_workflow else None,
             app_title=app_title, app_id=app_id, table_id=table_id,
             sibling_tabs=adm_tabs, current_tab_url=adm_burl,
             search_enabled=True, search_q=search_q,
@@ -751,6 +758,96 @@ def make_adm_delete(model, adm_burl, app_slug, req_role, tname):
 def make_adm_bulk_delete(model, adm_burl, app_slug, req_role, tname):
     return _make_crud_view("bulk_delete", model=model, burl=adm_burl,
                            app_slug=app_slug, req_role=req_role, tname=tname)
+
+
+def make_adm_workflow(wf, title, app_title, app_id, table_id, sibling_tabs, burl):
+    from flask import render_template_string
+    from flask_login import login_required
+    from arasCore.lib.services.workflow import generate_mermaid
+    
+    adm_tabs = [(t, f"/admin{u}") for t, u in sibling_tabs]
+    mermaid_code = generate_mermaid(wf)
+
+    @login_required
+    def view():
+        return render_template_string("""
+{% extends 'admin/base_index.html' %}
+{% block page_content %}
+<div class="aras-studio-theme">
+    <div class="container-fluid px-0">
+        <div class="aras-header-sticky">
+            <div class="aras-header-left">
+                <a href="{{ list_url }}" class="aras-back-link"><i class="fa fa-arrow-left"></i></a>
+                <h2 class="aras-page-title">Workflow: {{ title }}</h2>
+            </div>
+            <div class="aras-header-right">
+                <a href="{{ list_url }}" class="aras-btn">Back to List</a>
+            </div>
+        </div>
+        
+        <div class="aras-card shadow-sm mt-4">
+            <div class="aras-card-header">
+                <h3 class="aras-card-title">Visual Workflow Designer</h3>
+            </div>
+            <div class="aras-card-body text-center py-5">
+                <pre class="mermaid" style="background: transparent; border: none;">
+{{ mermaid_code }}
+                </pre>
+            </div>
+        </div>
+        
+        <div class="aras-card shadow-sm mt-4">
+            <div class="aras-card-header">
+                <h3 class="aras-card-title">Definition Details</h3>
+            </div>
+            <div class="aras-card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <p><strong>Initial State:</strong> <span class="badge badge-primary">{{ wf.initial }}</span></p>
+                        <p><strong>States:</strong> {{ wf.states | join(', ') }}</p>
+                    </div>
+                    <div class="col-md-8">
+                        <h5>Transitions</h5>
+                        <table class="table table-sm fs-13">
+                            <thead>
+                                <tr>
+                                    <th>Action</th>
+                                    <th>From</th>
+                                    <th>To</th>
+                                    <th>Roles</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tr in wf.transitions %}
+                                <tr>
+                                    <td><code>{{ tr.action }}</code></td>
+                                    <td>{{ tr.from_states | join(', ') }}</td>
+                                    <td><span class="badge badge-info">{{ tr.to_state }}</span></td>
+                                    <td>{{ tr.roles | join(', ') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+</script>
+{% endblock %}
+        """, 
+        wf=wf, title=title, app_title=app_title, app_id=app_id, table_id=table_id,
+        sibling_tabs=adm_tabs, list_url=f"{burl}/", mermaid_code=mermaid_code)
+        
+    return view
 
 
 def make_web_list(model, title, main_t, vcols, burl, app_title, app_id, table_id, sibling_tabs, cur_burl):

@@ -1,59 +1,132 @@
-{% extends "admin/base_index.html" %}
+{% extends "admin/base_index.html" if not skip_hero else "admin/base_empty.html" %}
 
 {% block content %}
-<div class="settings-panel" id="panel-sql">
+<div class="settings-panel {{ 'd-none' if skip_hero }}" id="panel-sql">
     {% include 'admin/setting/_setting_dev_nav.html' %}
 
-    <div class="aras-card" style="padding: 20px;">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h4 class="mb-1" style="color: var(--studio-ink);">SQL Console</h4>
-                <p class="text-muted small">Read-only SQL runner (SELECT queries only). Limited to 1000 rows.</p>
+    <div class="row">
+        <!-- Sidebar: Schema Browser -->
+        <div class="col-md-3">
+            <div class="aras-card" style="height: calc(100vh - 230px); display: flex; flex-direction: column; overflow: hidden;">
+                <div class="p-3 border-bottom bg-light">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0 font-weight-bold" style="font-size: 11px; color: var(--studio-ink); text-transform: uppercase; letter-spacing: 1px;">Schema Browser</h6>
+                        <button id="btn-refresh-schema" class="btn btn-xs btn-link p-0 text-muted" title="Refresh Schema">
+                            <i class="fa fa-refresh"></i>
+                        </button>
+                    </div>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white border-end-0 p-1"><i class="fa fa-search text-muted" style="font-size: 10px;"></i></span>
+                        <input type="text" id="schema-search" class="form-control border-start-0 ps-1" style="font-size: 12px;" placeholder="Filter tables...">
+                    </div>
+                </div>
+                <div id="schema-list" class="flex-grow-1 p-1" style="font-family: var(--aras-font-sans); font-size: 13px; overflow-y: auto; background: #fafafa;">
+                    <div class="text-center py-4 text-muted small">Loading schema...</div>
+                </div>
             </div>
-            <div>
-                <button id="btn-run" class="btn" style="background: var(--studio-ink); color: #fff;">
-                    <i class="fa fa-play mr-2"></i> Run Query
-                </button>
+        </div>
+
+        <!-- Main: Editor and Results -->
+        <div class="col-md-9">
+            <div class="aras-card" style="padding: 20px; min-height: calc(100vh - 250px);">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h4 class="mb-1" style="color: var(--studio-ink);">SQL Console</h4>
+                        <p class="text-muted small">Read-only SQL runner (SELECT queries only). Limited to 1000 rows.</p>
+                    </div>
+                    <div>
+                        <button id="btn-run" class="btn" style="background: var(--studio-ink); color: #fff;">
+                            <i class="fa fa-play mr-2"></i> Run Query
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="small font-weight-bold" style="color: var(--studio-ink);">SQL QUERY</label>
+                    <div id="sql-ace-editor" style="width: 100%; height: 180px; border: 1px solid #ddd; border-radius: 4px;">SELECT * FROM auth_users LIMIT 10;</div>
+                    <textarea id="sql-query" name="query" class="d-none"></textarea>
+                </div>
+
+                <div id="sql-error" class="alert alert-danger d-none"></div>
+
+                <div id="sql-results-container" class="d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div id="sql-meta" class="small text-muted"></div>
+                        <button id="btn-export" class="btn btn-sm btn-outline-secondary">
+                            <i class="fa fa-download mr-1"></i> Export CSV
+                        </button>
+                    </div>
+                    <div class="table-responsive" style="max-height: 400px; border: 1px solid #eee; border-radius: 4px;">
+                        <table id="sql-table" class="table table-sm table-hover table-bordered mb-0" style="font-size: 13px;">
+                            <thead style="background: #f4f4f4; position: sticky; top: 0; z-index: 10;">
+                                <tr id="sql-header"></tr>
+                            </thead>
+                            <tbody id="sql-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="sql-loading" class="text-center py-5 d-none">
+                    <div class="spinner-border text-secondary" role="status"></div>
+                    <div class="mt-2 small text-muted">Executing query...</div>
+                </div>
+                
+                <div id="sql-empty" class="text-center py-5">
+                    <i class="fa fa-database fa-3x mb-3" style="color: #eee;"></i>
+                    <p class="text-muted">Enter a query or select a table from the sidebar.</p>
+                </div>
             </div>
         </div>
-
-    <div class="mb-4">
-        <label class="small font-weight-bold" style="color: var(--studio-ink);">SQL QUERY</label>
-        <textarea id="sql-query" class="form-control" rows="6" 
-            style="font-family: 'Courier New', monospace; font-size: 14px; background: #f8f9fa; border: 1px solid #ddd;"
-            placeholder="SELECT * FROM auth_users LIMIT 10;">SELECT * FROM auth_users LIMIT 10;</textarea>
-    </div>
-
-    <div id="sql-error" class="alert alert-danger d-none"></div>
-
-    <div id="sql-results-container" class="d-none">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <div id="sql-meta" class="small text-muted"></div>
-            <button id="btn-export" class="btn btn-sm btn-outline-secondary">
-                <i class="fa fa-download mr-1"></i> Export CSV
-            </button>
-        </div>
-        <div class="table-responsive" style="max-height: 500px; border: 1px solid #eee; border-radius: 4px;">
-            <table id="sql-table" class="table table-sm table-hover table-bordered mb-0" style="font-size: 13px;">
-                <thead style="background: #f4f4f4; position: sticky; top: 0; z-index: 10;">
-                    <tr id="sql-header"></tr>
-                </thead>
-                <tbody id="sql-body"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <div id="sql-loading" class="text-center py-5 d-none">
-        <div class="spinner-border text-secondary" role="status"></div>
-        <div class="mt-2 small text-muted">Executing query...</div>
-    </div>
-    
-    <div id="sql-empty" class="text-center py-5">
-        <i class="fa fa-database fa-3x mb-3" style="color: #eee;"></i>
-        <p class="text-muted">Enter a query and click Run Query to see results.</p>
     </div>
 </div>
 
+<style>
+    .schema-table-group { margin-bottom: 2px; }
+    .schema-table-item { 
+        cursor: pointer; 
+        padding: 4px 8px; 
+        border-radius: 4px; 
+        transition: all 0.2s; 
+        font-weight: 500;
+        font-size: 12.5px;
+        color: #444;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .schema-table-item:hover { background: #eee; }
+    .schema-table-item.active { background: var(--studio-cream); color: var(--studio-ink); }
+    
+    .schema-table-name { display: flex; align-items: center; gap: 8px; flex-grow: 1; }
+    .btn-run-table { opacity: 0; transition: opacity 0.2s; color: var(--studio-ochre); padding: 0 4px; }
+    .schema-table-item:hover .btn-run-table { opacity: 1; }
+
+    .column-list { 
+        display: none; 
+        padding-left: 24px; 
+        margin-top: 2px; 
+        margin-bottom: 8px;
+        border-left: 1px solid #ddd;
+        margin-left: 12px;
+    }
+    .column-item { 
+        padding: 2px 0; 
+        font-size: 11px; 
+        color: #777; 
+        display: flex; 
+        justify-content: space-between;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .column-item:last-child { border-bottom: none; }
+    .column-type { font-size: 10px; color: #aaa; font-style: italic; }
+    
+    .schema-table-group.expanded .column-list { display: block; }
+    .schema-table-group.expanded .fa-chevron-right { transform: rotate(90deg); }
+    .fa-chevron-right { transition: transform 0.2s; font-size: 9px; }
+</style>
+</div>
+
+<script src="{{ url_for('static', filename='js/aras_code_editor.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const btnRun = document.getElementById('btn-run');
@@ -66,11 +139,143 @@ document.addEventListener('DOMContentLoaded', function() {
     const sqlHeader = document.getElementById('sql-header');
     const sqlBody = document.getElementById('sql-body');
     const sqlMeta = document.getElementById('sql-meta');
+    const schemaList = document.getElementById('schema-list');
+    const schemaSearch = document.getElementById('schema-search');
+    const btnRefreshSchema = document.getElementById('btn-refresh-schema');
 
     let currentResults = null;
+    let editor = null;
+    let fullSchema = null;
+
+    // Fetch Schema
+    function loadSchema() {
+        schemaList.innerHTML = '<div class="text-center py-4 text-muted small"><i class="fa fa-spinner fa-spin mr-1"></i> Loading schema...</div>';
+        fetch('/admin/api/dev/sql/schema')
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    schemaList.innerHTML = `<div class="text-danger small p-2">${data.error}</div>`;
+                    return;
+                }
+                fullSchema = data.schema;
+                renderSchema(fullSchema);
+            })
+            .catch(() => {
+                schemaList.innerHTML = '<div class="text-danger small p-2">Failed to load schema.</div>';
+            });
+    }
+
+    function renderSchema(schema, filter = '') {
+        schemaList.innerHTML = '';
+        const tables = Object.keys(schema).sort();
+        
+        tables.forEach(table => {
+            if (filter && !table.toLowerCase().includes(filter.toLowerCase())) return;
+
+            const group = document.createElement('div');
+            group.className = 'schema-table-group';
+
+            const item = document.createElement('div');
+            item.className = 'schema-table-item';
+            
+            item.innerHTML = `
+                <div class="schema-table-name">
+                    <i class="fa fa-chevron-right text-muted"></i>
+                    <i class="fa fa-table text-muted" style="font-size: 11px;"></i>
+                    <span>${table}</span>
+                    <span class="badge badge-light text-muted fw-normal" style="font-size: 9px; padding: 2px 4px;">${schema[table].length}</span>
+                </div>
+                <button class="btn btn-link btn-run-table" title="Select Top 50">
+                    <i class="fa fa-play-circle"></i>
+                </button>
+            `;
+
+            const colList = document.createElement('div');
+            colList.className = 'column-list';
+            
+            schema[table].forEach(col => {
+                const colItem = document.createElement('div');
+                colItem.className = 'column-item';
+                colItem.innerHTML = `
+                    <span class="column-name">${col.name}</span>
+                    <span class="column-type">${col.type}</span>
+                `;
+                colList.appendChild(colItem);
+            });
+            
+            item.addEventListener('click', (e) => {
+                // If clicked the run button, don't toggle
+                if (e.target.closest('.btn-run-table')) return;
+
+                // Toggle expansion
+                const isExpanded = group.classList.toggle('expanded');
+                
+                // Highlight active
+                document.querySelectorAll('.schema-table-item').forEach(el => el.classList.remove('active'));
+                item.classList.add('active');
+            });
+
+            const runBtn = item.querySelector('.btn-run-table');
+            runBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (editor) {
+                    editor.setValue(`SELECT * FROM ${table} LIMIT 50;`);
+                    editor.focus();
+                    editor.navigateFileEnd();
+                    btnRun.click(); // Auto-run on play click
+                }
+            });
+
+            group.appendChild(item);
+            group.appendChild(colList);
+            schemaList.appendChild(group);
+        });
+
+        if (schemaList.innerHTML === '') {
+            schemaList.innerHTML = '<div class="text-muted small p-2">No tables found.</div>';
+        }
+    }
+
+    schemaSearch.addEventListener('input', (e) => {
+        if (fullSchema) renderSchema(fullSchema, e.target.value);
+    });
+
+    if (btnRefreshSchema) {
+        btnRefreshSchema.addEventListener('click', loadSchema);
+    }
+
+    // Initial load
+    loadSchema();
+
+    // Initialize Ace
+    if (window.ArasCodeEditor) {
+        ArasCodeEditor.loadAce(() => {
+            editor = ace.edit("sql-ace-editor");
+            editor.setTheme("ace/theme/monokai");
+            editor.session.setMode("ace/mode/sql");
+            editor.setOptions({
+                fontSize: "14px",
+                showPrintMargin: false,
+                useSoftTabs: true,
+                tabSize: 4,
+                enableBasicAutocompletion: true,
+                enableLiveAutocompletion: true
+            });
+            
+            // Ctrl+Enter to run from editor
+            editor.commands.addCommand({
+                name: 'runQuery',
+                bindKey: {win: 'Ctrl-Enter',  mac: 'Command-Enter'},
+                exec: function(editor) {
+                    btnRun.click();
+                },
+                readOnly: false
+            });
+        });
+    }
 
     btnRun.addEventListener('click', function() {
-        const query = sqlQuery.value.trim();
+        const query = editor ? editor.getValue().trim() : sqlQuery.value.trim();
         if (!query) return;
 
         // Reset UI
@@ -83,10 +288,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
         fetch('/admin/api/dev/sql/execute', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
             body: JSON.stringify({ query: query })
         })
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) {
+                return res.json().then(errData => {
+                    throw new Error(errData.error || `HTTP ${res.status}: ${res.statusText}`);
+                }).catch(() => {
+                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                });
+            }
+            return res.json();
+        })
         .then(data => {
             sqlLoading.classList.add('d-none');
             if (data.error) {
@@ -148,13 +365,6 @@ document.addEventListener('DOMContentLoaded', function() {
         a.href = url;
         a.download = `sql_export_${new Date().getTime()}.csv`;
         a.click();
-    });
-    
-    // Ctrl+Enter to run
-    sqlQuery.addEventListener('keydown', function(e) {
-        if (e.ctrlKey && e.key === 'Enter') {
-            btnRun.click();
-        }
     });
 });
 </script>

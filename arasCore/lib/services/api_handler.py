@@ -160,8 +160,59 @@ def _build_api_blueprint() -> Blueprint:
         return jsonify({
             "api_version": "1.0",
             "endpoints":   endpoints,
+            "docs":        f"{base}/api/docs/",
+            "openapi":     f"{base}/api/openapi.json",
             "total":       len(endpoints),
         }), 200
+
+    @api_bp.route("/api/openapi.json", methods=["GET"])
+    def openapi_json():
+        """GET /api/openapi.json — generate OpenAPI 3.0 spec."""
+        from arasCore.lib.services.openapi import generate_openapi_spec
+        return jsonify(generate_openapi_spec()), 200
+
+    @api_bp.route("/api/docs/", methods=["GET"])
+    def api_docs():
+        """GET /api/docs/ — Swagger UI."""
+        from flask import render_template_string
+        return render_template_string("""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Aras API Documentation</title>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui.css" >
+    <style>
+        html { box-sizing: border-box; overflow: -moz-scrollbars-vertical; overflow-y: scroll; }
+        *, *:before, *:after { box-sizing: inherit; }
+        body { margin: 0; background: #fafafa; }
+    </style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-bundle.js"> </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-standalone-preset.js"> </script>
+    <script>
+    window.onload = function() {
+      const ui = SwaggerUIBundle({
+        url: "/api/openapi.json",
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout"
+      });
+      window.ui = ui;
+    };
+    </script>
+</body>
+</html>
+        """), 200
 
     @api_bp.route("/api/<path:resource_path>/_schema/", methods=["GET"])
     @login_required

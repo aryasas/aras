@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+import os
 from flask import render_template, request, jsonify, current_app, flash, redirect, url_for
 from flask_login import login_required, current_user
 from sqlalchemy import text, inspect
@@ -125,6 +126,28 @@ def dev_sql():
         "admin/setting/setting_sql_console.html",
         main_title="SQL Console"
     )
+
+
+@admin_bp.route("/api/dev/sql/schema")
+@login_required
+def api_dev_sql_schema():
+    if not _is_dev_authorized():
+        return jsonify({"error": "Unauthorized"}), 403
+    
+    try:
+        inspector = inspect(db.engine)
+        schema = {}
+        for table_name in inspector.get_table_names():
+            columns = []
+            for col in inspector.get_columns(table_name):
+                columns.append({
+                    "name": col["name"],
+                    "type": str(col["type"])
+                })
+            schema[table_name] = columns
+        return jsonify({"schema": schema})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @admin_bp.route("/api/dev/sql/execute", methods=["POST"])
@@ -273,3 +296,77 @@ def api_dev_sync_app(app_id):
         return jsonify({"success": True, "stats": stats})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/dev/cli")
+@login_required
+def dev_cli():
+    if not _is_dev_authorized():
+        flash("Unauthorized. Debug mode or SUPERADMIN role required.", "danger")
+        return redirect(url_for("admin.dev"))
+    return render_template(
+        "admin/setting/setting_cli.html",
+        main_title="Web CLI"
+    )
+
+
+@admin_bp.route("/api/dev/cli/execute", methods=["POST"])
+@login_required
+def api_dev_cli_execute():
+    if not _is_dev_authorized():
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.json or {}
+    command = (data.get("command") or "").strip()
+    
+    if not command:
+        return jsonify({"error": "Command is empty"}), 400
+
+    # Only allow 'aras' commands or 'flask aras'
+    if not (command.startswith("aras") or command.startswith("flask aras")):
+        return jsonify({"error": "Only 'aras' or 'flask aras' commands are allowed for safety."}), 400
+
+    import subprocess
+    import shlex
+    
+    # Prepend 'flask' if it's just 'aras'
+    full_cmd = command
+    if command == "aras" or command.startswith("aras "):
+        full_cmd = "flask " + command
+    elif command.startswith("aras"):
+        # Handle cases like aras--help or aras-something (though mostly it's aras --help)
+        # If it's aras--help it might be a typo, but let's be flexible
+        full_cmd = "flask " + command
+
+    try:
+        # Run command in project root
+        project_root = current_app.root_path
+        if os.path.basename(project_root) == "arasCore":
+            project_root = os.path.dirname(project_root)
+            
+        process = subprocess.Popen(
+            shlex.split(full_cmd),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=project_root,
+            env={**os.environ, "FLASK_APP": "run:app"}
+        )
+        stdout, stderr = process.communicate(timeout=30)
+        
+        return jsonify({
+            "stdout": stdout.decode("utf-8"),
+            "stderr": stderr.decode("utf-8"),
+            "exit_code": process.returncode
+        })
+    except subprocess.TimeoutExpired:
+        process.kill()
+        return jsonify({"error": "Command timed out after 30 seconds."}), 504
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/dev/api/docs")
+@login_required
+def dev_api_docs_redirect():
+    """Redirect /admin/dev/api/docs to root /api/docs/"""
+    return redirect(url_for("aras_api.api_docs"))

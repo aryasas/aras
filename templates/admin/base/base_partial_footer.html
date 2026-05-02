@@ -14,6 +14,11 @@
     <div class="aras-status-bar__right">
         {% if current_user.is_authenticated %}
         <div class="aras-status-bar__user">
+            {% if config.DEBUG %}
+            <a href="{{ url_for('admin.dev') }}" class="aras-status-bar__item" title="Developer Tools" style="color: var(--studio-ochre); border: 1px solid rgba(212, 175, 55, 0.3); padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; text-decoration: none;">
+                <i class="ti-panel mr-1"></i> DEV
+            </a>
+            {% endif %}
             <div class="aras-status-bar__user-info">
                 <span class="aras-status-bar__user-name">{{ current_user.username }}</span>
                 <span class="aras-status-bar__user-role">Administrator</span>

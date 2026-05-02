@@ -273,6 +273,12 @@
     </a>
     {% endif %}
 
+    {% if workflow_url %}
+    <a href="{{ workflow_url }}" class="aras-btn aras-btn--outline aras-btn--sm" title="Visual Workflow Designer">
+      <i class="fa fa-sitemap"></i>
+    </a>
+    {% endif %}
+
     {% if _has_extra %}
       {% for btn in extra_buttons %}
         <a href="{{ btn.url }}" class="aras-btn aras-btn--outline aras-btn--sm" title="{{ btn.title if btn.title is defined else '' }}">

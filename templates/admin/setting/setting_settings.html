@@ -176,7 +176,15 @@
       {% include 'admin/setting/setting_system.html' %}
       {% include 'admin/setting/setting_webhooks.html' %}
       {% include 'admin/setting/setting_scripts.html' %}
-      {% include 'admin/setting/setting_dev.html' %}
+      {% set skip_hero = True %}
+      {% include 'admin/setting/setting_dev.html' with context %}
+      
+      {# Dev Tools Sub-Panels #}
+      {% include 'admin/setting/setting_logs.html' with context %}
+      {% include 'admin/setting/setting_sql_console.html' with context %}
+      {% include 'admin/setting/setting_cli.html' with context %}
+      {% include 'admin/setting/setting_sync.html' with context %}
+      {% include 'admin/setting/setting_components.html' with context %}
     </main>
   </div>
 </div>
@@ -270,7 +278,14 @@ document.addEventListener('change', function(e) {
     var urlParams = new URLSearchParams(window.location.search);
     var panelParam = urlParams.get('panel');
     var hash = window.location.hash.replace('#', '');
-    activatePanel(panelParam || hash || 'panel-general');
+    var target = panelParam || hash || 'panel-general';
+    
+    // Safety check: ensure target exists, else fallback
+    if (!document.getElementById(target)) {
+        target = 'panel-general';
+    }
+    
+    activatePanel(target);
   })();
 </script>
 {% endblock %}

@@ -189,3 +189,21 @@ def get_available_actions(user, obj, wf: WorkflowDef) -> list[dict]:
         ok, _ = can_transition(user, obj, tr.action, wf)
         result.append({"action": tr.action, "to_state": tr.to_state, "allowed": ok})
     return result
+
+
+def generate_mermaid(wf: WorkflowDef) -> str:
+    """Generate Mermaid state diagram code for the workflow."""
+    lines = ["stateDiagram-v2"]
+    lines.append(f"    [*] --> {wf.initial}")
+    
+    # Track states to ensure all are included even if no transitions
+    all_states = set(wf.states)
+    
+    for tr in wf.transitions:
+        for from_state in tr.from_states:
+            roles_str = f" [{', '.join(tr.roles)}]" if tr.roles else ""
+            lines.append(f"    {from_state} --> {tr.to_state}: {tr.action}{roles_str}")
+            all_states.add(from_state)
+            all_states.add(tr.to_state)
+            
+    return "\n".join(lines)
