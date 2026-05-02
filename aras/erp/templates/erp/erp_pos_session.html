@@ -322,7 +322,7 @@
           const priceType = mode === 'in' ? 'sales' : 'purchase';
           if (!plId) return null;
           try {
-            const r = await fetch(`/api/erp/invoice/product-price?product_id=${productId}&price_list_id=${plId}&qty=${qty}&price_type=${priceType}`);
+            const r = await fetch(`/api/erp/invoice/product-price?product_id=${productId}&price_type_id=${plId}&qty=${qty}&price_type=${priceType}`);
             const d = await r.json();
             return (d.ok && d.unit_price != null) ? d.unit_price : null;
           } catch { return null; }

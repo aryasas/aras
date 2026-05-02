@@ -23,8 +23,8 @@ def get_bundle_promo(cart_items: list, pricelist_id: int = None) -> dict:
     )
     if pricelist_id:
         q = q.filter(
-            (StockPromoBundle.price_list_id == pricelist_id) |
-            (StockPromoBundle.price_list_id == None)
+            (StockPromoBundle.price_type_id == pricelist_id) |
+            (StockPromoBundle.price_type_id == None)
         )
 
     result = {}

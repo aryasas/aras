@@ -29,7 +29,7 @@ def create_invoice_from_order(order_id: int) -> AccSalesInvoice:
         origin_order_id = order.id,
         invoice_date    = db.func.current_date(),
         currency_id     = order.currency_id,
-        price_list_id   = order.price_list_id,
+        price_type_id   = order.price_type_id,
         subtotal        = order.subtotal,
         discount_amt    = order.discount_amt,
         charge_amt      = order.charge_amt,

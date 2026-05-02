@@ -53,7 +53,7 @@ class StockProduct(ArasModel):
     account_purchase = db.relationship("AccAccount", foreign_keys=[account_purchase_id])
     account_cogs     = db.relationship("AccAccount", foreign_keys=[account_cogs_id])
     uom_alts         = db.relationship("StockProductUom", backref="product", cascade="all, delete-orphan")
-    prices           = db.relationship("StockProductPrice", backref="product", cascade="all, delete-orphan")
+    prices           = db.relationship("StockPriceList", backref="product", cascade="all, delete-orphan")
     account_links    = db.relationship("StockProductAccountLink", backref="product", cascade="all, delete-orphan")
     bundle_components = db.relationship(
         "StockProductBundle", foreign_keys="StockProductBundle.bundle_id",
@@ -96,12 +96,12 @@ class StockProductUom(ArasModel):
     uom = db.relationship("StockUom")
 
 
-class StockProductPrice(ArasModel):
-    """Price table per product — supports both direct product prices and price-list-based prices."""
-    __tablename__ = "stock_product_price"
+class StockPriceList(ArasModel):
+    """Price rule row — per product/category/blanket under a price type."""
+    __tablename__ = "stock_price_list"
 
     product_id          = db.Column(db.Integer, db.ForeignKey("stock_product.id"), nullable=True)
-    price_list_id       = db.Column(db.Integer, db.ForeignKey("stock_price_list.id"), nullable=True)
+    price_type_id       = db.Column(db.Integer, db.ForeignKey("stock_price_type.id"), nullable=True)
     product_category_id = db.Column(db.Integer, db.ForeignKey("stock_product_category.id"), nullable=True)
     location_id         = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=True)
     terminal_id         = db.Column(db.Integer, db.ForeignKey("pos_terminal.id"), nullable=True)
@@ -119,7 +119,7 @@ class StockProductPrice(ArasModel):
 
     currency         = db.relationship("Currency")
     uom              = db.relationship("StockUom")
-    price_list       = db.relationship("StockPriceList", foreign_keys=[price_list_id], back_populates="items")
+    price_type_ref   = db.relationship("StockPriceType", foreign_keys=[price_type_id], back_populates="items")
     product_category = db.relationship("StockProductCategory", foreign_keys=[product_category_id])
     location         = db.relationship("StockLocation",        foreign_keys=[location_id])
     terminal         = db.relationship("PosTerminal",          foreign_keys=[terminal_id])

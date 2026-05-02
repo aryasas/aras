@@ -33,7 +33,7 @@ class AccSalesInvoice(ArasModel):
     payment_term_days = db.Column(db.Integer, default=0)
     reference        = db.Column(db.String(100), nullable=True)
     notes            = db.Column(db.Text, nullable=True)
-    price_list_id    = db.Column(db.Integer, db.ForeignKey("stock_price_list.id"), nullable=True)
+    price_type_id    = db.Column(db.Integer, db.ForeignKey("stock_price_type.id"), nullable=True)
     journal_entry_id = db.Column(db.BigInteger, db.ForeignKey("acc_journal_entry.id"), nullable=True)
 
     company       = db.relationship("Company")
@@ -42,7 +42,7 @@ class AccSalesInvoice(ArasModel):
     location      = db.relationship("StockLocation", foreign_keys=[location_id])
     origin_order  = db.relationship("SalesOrder", foreign_keys=[origin_order_id])
     pos_session   = db.relationship("PosSession", foreign_keys=[pos_session_id])
-    price_list    = db.relationship("StockPriceList", foreign_keys=[price_list_id])
+    price_type    = db.relationship("StockPriceType", foreign_keys=[price_type_id])
     journal_entry = db.relationship("AccJournalEntry")
     lines         = db.relationship("AccSalesInvoiceLine", backref="invoice",
                                     cascade="all, delete-orphan")
@@ -134,7 +134,7 @@ class AccPurchaseInvoice(ArasModel):
                                   default="draft", nullable=False)
     payment_term_days = db.Column(db.Integer, default=0)
     notes            = db.Column(db.Text, nullable=True)
-    price_list_id    = db.Column(db.Integer, db.ForeignKey("stock_price_list.id"), nullable=True)
+    price_type_id    = db.Column(db.Integer, db.ForeignKey("stock_price_type.id"), nullable=True)
     journal_entry_id = db.Column(db.BigInteger, db.ForeignKey("acc_journal_entry.id"), nullable=True)
 
     company       = db.relationship("Company")
@@ -143,7 +143,7 @@ class AccPurchaseInvoice(ArasModel):
     origin_order  = db.relationship("PurchaseOrder", foreign_keys=[origin_order_id])
     pos_session   = db.relationship("PosSession", foreign_keys=[pos_session_id])
     currency      = db.relationship("Currency")
-    price_list    = db.relationship("StockPriceList", foreign_keys=[price_list_id])
+    price_type    = db.relationship("StockPriceType", foreign_keys=[price_type_id])
     journal_entry = db.relationship("AccJournalEntry")
     lines         = db.relationship("AccPurchaseInvoiceLine", backref="invoice",
                                     cascade="all, delete-orphan")

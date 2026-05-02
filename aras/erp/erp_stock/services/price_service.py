@@ -1,8 +1,8 @@
 from datetime import date
 from decimal import Decimal
-from aras.erp.erp_stock.models.product import StockProduct, StockProductPrice
+from aras.erp.erp_stock.models.product import StockProduct, StockPriceList
 
-SPP = StockProductPrice
+SPP = StockPriceList
 
 
 def get_price(product_id: int, uom_id: int, qty: Decimal,
@@ -47,7 +47,7 @@ def get_price(product_id: int, uom_id: int, qty: Decimal,
     def _standalone_price(pid, uid, q, pt) -> Decimal:
         pp = (
             _base_q()
-            .filter_by(product_id=pid, price_type=pt, price_list_id=None)
+            .filter_by(product_id=pid, price_type=pt, price_type_id=None)
             .filter((SPP.uom_id == uid) | (SPP.uom_id == None))
             .order_by(SPP.uom_id.desc(), SPP.min_qty.desc())
             .first()
@@ -55,7 +55,7 @@ def get_price(product_id: int, uom_id: int, qty: Decimal,
         return Decimal(str(pp.price)) if pp else Decimal("0")
 
     if pricelist_id:
-        q = _base_q().filter_by(price_list_id=pricelist_id)
+        q = _base_q().filter_by(price_type_id=pricelist_id)
 
         # 1. item-level
         row = q.filter_by(product_id=product_id).order_by(SPP.min_qty.desc()).first()

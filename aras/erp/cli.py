@@ -72,7 +72,7 @@ def _seed_warehouse(company_id):
 
 
 def _seed_product(company_id, category):
-    from aras.erp.erp_stock.models.product import StockProduct, StockProductPrice
+    from aras.erp.erp_stock.models.product import StockProduct, StockPriceList
     from aras.erp.erp_stock.models.uom import StockUom
     from aras.erp.erp_core.models.currency import Currency
     uom, _ = StockUom.get_or_create({"name": "Pcs", "ratio": 1}, code="PCS")
@@ -85,12 +85,12 @@ def _seed_product(company_id, category):
         code="KST", company_id=company_id,
     )
     currency = Currency.find(code="IDR") or Currency.query.first()
-    StockProductPrice.get_or_create(
+    StockPriceList.get_or_create(
         {"name": "Retail", "price": Decimal("25000"), "price_type": "sales",
          "min_qty": 1, "uom_id": uom.id, "is_active": True, "currency_id": currency.id},
         product_id=prod.id, price_type="sales", uom_id=uom.id,
     )
-    StockProductPrice.get_or_create(
+    StockPriceList.get_or_create(
         {"name": "Beli", "price": Decimal("10000"), "price_type": "purchase",
          "min_qty": 1, "uom_id": uom.id, "is_active": True, "currency_id": currency.id},
         product_id=prod.id, price_type="purchase", uom_id=uom.id,
@@ -177,7 +177,7 @@ def register_erp_commands(aras):
     def erp_group():
         pass
 
-    @erp_group.command("migrate", help="Run ERP schema migrations 021–035")
+    @erp_group.command("migrate", help="Run ERP schema migrations 021–036")
     def erp_migrate():
         import flask, importlib
         app = flask.current_app._get_current_object()
@@ -191,6 +191,7 @@ def register_erp_commands(aras):
             m033 = importlib.import_module("aras.erp.migrations.033_pos_terminal_split_pricelist")
             m034 = importlib.import_module("aras.erp.migrations.034_drop_use_price_table")
             m035 = importlib.import_module("aras.erp.migrations.035_promo_scope_columns")
+            m036 = importlib.import_module("aras.erp.migrations.036_rename_pricelist_tables")
             _hdr("ERP Migrations")
             m021.run(app); _ok("021 done")
             m022.run(app); _ok("022 done")
@@ -201,6 +202,7 @@ def register_erp_commands(aras):
             m033.run(app); _ok("033 done")
             m034.run(app); _ok("034 done")
             m035.run(app); _ok("035 done")
+            m036.run(app); _ok("036 done")
             click.echo(click.style("\nMigrations complete.", bold=True, fg="green"))
 
 
@@ -366,7 +368,7 @@ def _run_test_flow(count: int, verbose: bool):
 
     Flow per iteration:
       1. Resolve seed data (product, warehouse, terminal, MOPs, accounts) from DB
-      2. Read buy/sell prices from StockProductPrice table
+      2. Read buy/sell prices from StockPriceList table
       3. Purchase invoice (1 row, is_stock_item=True) → post → stock receipt + journal
       4. POS sale: split payment cash + QRIS + bank (each 5,000); remainder → AR credit
       5. Assert: invoice state=partial (if credit>0), journal balanced, AR debit line correct
@@ -440,12 +442,12 @@ def _run_test_flow(count: int, verbose: bool):
     for i in range(1, count + 1):
         label = f"[{i}/{count}]"
         try:
-            # ── Step 1: Read prices from StockProductPrice (generic) ───────
+            # ── Step 1: Read prices from StockPriceList (generic) ───────
             from aras.erp.erp_stock.services.price_service import get_price
             sell_price = get_price(prod.id, uom_id, Decimal("1"), price_type="sales")
             buy_price  = get_price(prod.id, uom_id, Decimal("1"), price_type="purchase")
-            assert sell_price > 0, f"sell_price={sell_price} — add a StockProductPrice row"
-            assert buy_price  > 0, f"buy_price={buy_price} — add a StockProductPrice row"
+            assert sell_price > 0, f"sell_price={sell_price} — add a StockPriceList row"
+            assert buy_price  > 0, f"buy_price={buy_price} — add a StockPriceList row"
             if verbose: _ok(f"{label} Prices from table: buy={buy_price} sell={sell_price}")
 
             # ── Step 2: Purchase invoice (1 row, is_stock_item=True) ───────
@@ -499,7 +501,7 @@ def _run_test_flow(count: int, verbose: bool):
 
             assert credit_bal >= 0, (
                 f"sell_price={sell_price} < 15,000 — "
-                "update StockProductPrice or adjust payment amounts"
+                "update StockPriceList or adjust payment amounts"
             )
 
             session    = open_session(terminal.id, cashier_id, Decimal("0"))

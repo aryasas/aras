@@ -17,7 +17,7 @@ class PurchaseOrder(ArasModel):
     order_date    = db.Column(db.Date, nullable=False)
     expected_date = db.Column(db.Date, nullable=True)
     currency_id   = db.Column(db.Integer, db.ForeignKey("currency.id"), nullable=False)
-    price_list_id = db.Column(db.Integer, db.ForeignKey("stock_price_list.id"), nullable=True)
+    price_type_id = db.Column(db.Integer, db.ForeignKey("stock_price_type.id"), nullable=True)
     subtotal      = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     discount_amt  = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     charge_amt    = db.Column(db.Numeric(18, 4), default=0, nullable=False)
@@ -31,7 +31,7 @@ class PurchaseOrder(ArasModel):
     supplier   = db.relationship("SupSupplier", foreign_keys=[supplier_id])
     location   = db.relationship("StockLocation", foreign_keys=[location_id])
     currency   = db.relationship("Currency")
-    price_list = db.relationship("StockPriceList", foreign_keys=[price_list_id])
+    price_type = db.relationship("StockPriceType", foreign_keys=[price_type_id])
     lines      = db.relationship("PurchaseOrderLine", backref="order",
                                   cascade="all, delete-orphan")
     charges    = db.relationship("PurchaseOrderCharge", backref="order",

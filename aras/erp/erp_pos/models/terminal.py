@@ -14,8 +14,8 @@ class PosTerminal(ArasModel):
     sequence_id         = db.Column(db.Integer, db.ForeignKey("sequence.id"), nullable=True)
     invoice_sequence_id = db.Column(db.Integer, db.ForeignKey("sequence.id"), nullable=True)
     location_id         = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=True)
-    selling_pricelist_id  = db.Column(db.Integer, db.ForeignKey("stock_price_list.id"), nullable=True)
-    purchase_pricelist_id = db.Column(db.Integer, db.ForeignKey("stock_price_list.id"), nullable=True)
+    selling_pricelist_id  = db.Column(db.Integer, db.ForeignKey("stock_price_type.id"), nullable=True)
+    purchase_pricelist_id = db.Column(db.Integer, db.ForeignKey("stock_price_type.id"), nullable=True)
     transaction_mode    = db.Column(db.Enum("income", "outcome", "both"), nullable=False, default="income")
     default_tax_id      = db.Column(db.Integer, db.ForeignKey("charge.id"), nullable=True)
     receipt_header      = db.Column(db.Text, nullable=True)
@@ -24,15 +24,9 @@ class PosTerminal(ArasModel):
     allow_discount      = db.Column(db.Boolean, default=True)
     max_discount_pct    = db.Column(db.Numeric(5, 2), default=100)
 
-    # FK dropdown choices: filter by price_type so each field shows only relevant pricelists
-    __fk_choices__ = {
-        "selling_pricelist_id":  lambda q: q.filter_by(price_type="sales"),
-        "purchase_pricelist_id": lambda q: q.filter_by(price_type="purchase"),
-    }
-
     location           = db.relationship("StockLocation", foreign_keys=[location_id])
-    selling_pricelist  = db.relationship("StockPriceList", foreign_keys=[selling_pricelist_id])
-    purchase_pricelist = db.relationship("StockPriceList", foreign_keys=[purchase_pricelist_id])
+    selling_pricelist  = db.relationship("StockPriceType", foreign_keys=[selling_pricelist_id])
+    purchase_pricelist = db.relationship("StockPriceType", foreign_keys=[purchase_pricelist_id])
     print_template = db.relationship("PrintTemplate", foreign_keys=[print_template_id])
     sessions       = db.relationship("PosSession", backref="terminal", lazy="dynamic")
 

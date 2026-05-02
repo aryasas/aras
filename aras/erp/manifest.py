@@ -36,8 +36,7 @@ from aras.erp.erp_pos.models import (
 from aras.erp.erp_stock.models import (
     StockUomCategory, StockUom, StockUomConversion,
     StockProductCategory, StockProduct, StockProductUom,
-    StockProductPrice, StockProductBundle, StockProductAccountLink,
-    StockPriceList,
+    StockPriceType, StockPriceList, StockProductBundle, StockProductAccountLink,
     StockPromoBundle, StockPromoBundleItem,
     StockLocation, StockProductLocation,
     StockMovement, StockMovementLine,
@@ -380,7 +379,7 @@ def _pos_create_order(session_id: int):
 # ── Invoice: product price lookup ────────────────────────────────────────────
 
 def _handle_product_price():
-    """GET /api/erp/invoice/product-price?product_id=X&price_list_id=Y&qty=Z&price_type=sales"""
+    """GET /api/erp/invoice/product-price?product_id=X&price_type_id=Y&qty=Z&price_type=sales"""
     from flask import request, jsonify
     from decimal import Decimal
     from aras.erp.erp_stock.models.product import StockProduct
@@ -388,7 +387,7 @@ def _handle_product_price():
     from aras.erp.erp_stock.services.coa_resolver import resolve_revenue_account, resolve_purchase_account
 
     product_id    = request.args.get("product_id", type=int)
-    price_list_id = request.args.get("price_list_id", type=int)
+    price_type_id = request.args.get("price_type_id", type=int)
     qty           = Decimal(str(request.args.get("qty", "1")))
     price_type    = request.args.get("price_type", "sales")
     company_id    = request.args.get("company_id", type=int)
@@ -404,7 +403,7 @@ def _handle_product_price():
     if not uom_id:
         uom_id = product.uom_id
 
-    price = get_price(product_id, uom_id, qty, price_list_id, price_type)
+    price = get_price(product_id, uom_id, qty, price_type_id, price_type)
 
     acc_id = None
     if company_id:
@@ -774,13 +773,12 @@ helper = AppHelper(
                         menu_title="Products", menu_icon="fa-cube",
                         handler=StockProductHandler()),
             ResourceDef("stock/product-uom",      StockProductUom,      admin_list=False, is_child_table=True),
-            ResourceDef("stock/product-price",    StockProductPrice,    admin_list=False, is_child_table=True),
             ResourceDef("stock/product-bundle",   StockProductBundle,   admin_list=True,
                         menu_title="Product Bundles", menu_icon="fa-cubes"),
             ResourceDef("stock/product-account",  StockProductAccountLink, admin_list=False, is_child_table=True),
-            ResourceDef("stock/pricelist",        StockPriceList,       admin_list=True,
+            ResourceDef("stock/price-type",       StockPriceType,       admin_list=True,
                         menu_title="Price Lists", menu_icon="fa-tag"),
-            ResourceDef("stock/pricelist-item",   StockProductPrice,    admin_list=False, is_child_table=True),
+            ResourceDef("stock/price-list-item",  StockPriceList,       admin_list=False, is_child_table=True),
             ResourceDef("stock/promo-bundle",     StockPromoBundle,     admin_list=True,
                         menu_title="Promo Bundles", menu_icon="fa-gift"),
             ResourceDef("stock/promo-bundle-item", StockPromoBundleItem, admin_list=False, is_child_table=True),

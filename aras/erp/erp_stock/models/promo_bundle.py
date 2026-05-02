@@ -5,14 +5,14 @@ class StockPromoBundle(ArasModel):
     """Promo bundle header — buy N items together at special prices."""
     __tablename__ = "stock_promo_bundle"
 
-    price_list_id = db.Column(db.Integer, db.ForeignKey("stock_price_list.id"), nullable=True)
+    price_type_id = db.Column(db.Integer, db.ForeignKey("stock_price_type.id"), nullable=True)
     name          = db.Column(db.String(100), nullable=False)
     valid_from    = db.Column(db.Date, nullable=True)
     valid_to      = db.Column(db.Date, nullable=True)
     is_active     = db.Column(db.Boolean, nullable=False, default=True)
     notes         = db.Column(db.Text, nullable=True)
 
-    price_list = db.relationship("StockPriceList", foreign_keys=[price_list_id])
+    price_type = db.relationship("StockPriceType", foreign_keys=[price_type_id])
     items      = db.relationship("StockPromoBundleItem", back_populates="promo_bundle",
                                  cascade="all, delete-orphan")
 
