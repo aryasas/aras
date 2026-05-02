@@ -38,6 +38,18 @@
   --aras-surface-alt:    var(--studio-cream);
   --aras-bg:             var(--studio-paper);
 
+  /* Semantic Theme Variables */
+  --aras-text:           var(--aras-ink);
+  --aras-text-muted:     var(--aras-ink-2);
+  --aras-text-subtle:    var(--aras-ink-3);
+  --aras-border:         var(--aras-line-2);
+  --aras-border-subtle:  var(--aras-line);
+  --aras-bg-alt:         var(--aras-line-3);
+  --aras-card-bg:        var(--aras-surface);
+  --aras-topbar-bg:      var(--aras-surface);
+  --aras-sidebar-bg:     var(--studio-ink);
+  --aras-sidebar-text:   #ffffff;
+
   --aras-radius:         10px;
   --aras-shadow-sm:      0 1px 2px rgba(20, 27, 45, .04);
   --aras-shadow-drop:    0 4px 12px rgba(0, 0, 0, .08);
@@ -51,6 +63,54 @@
   --aras-space-4:        16px;
   --aras-space-5:        24px;
 }
+
+[data-theme="dark"] {
+  --studio-ink:    #f4f2ee;
+  --studio-cream:  #1c2128;
+  --studio-paper:  #0d1117;
+  --studio-ochre:  #d9b882;
+  --studio-accent: #e5534b;
+  --studio-accent-50: #2a1b1b;
+
+  --aras-brand:          #ffffff;
+  --aras-primary:        #4d7fb3;
+  --aras-primary-600:    #6b9ccf;
+  --aras-primary-50:     #16212e;
+  
+  --aras-ink:            #adbac7;
+  --aras-ink-2:          #768390;
+  --aras-ink-3:          #545d68;
+  --aras-line:           #373e47;
+  --aras-line-2:         #444c56;
+  --aras-line-3:         #22272e;
+  --aras-surface:        #22272e;
+  --aras-surface-alt:    #1c2128;
+  --aras-bg:             #0d1117;
+  
+  --aras-sidebar-bg:     #1c2128;
+  --aras-sidebar-text:   #adbac7;
+
+  --aras-shadow-sm:      0 1px 2px rgba(0, 0, 0, .5);
+  --aras-shadow-drop:    0 8px 24px rgba(0, 0, 0, .4);
+}
+
+/* Accessibility Foundation */
+:focus-visible {
+  outline: 2px solid var(--studio-ochre);
+  outline-offset: 2px;
+}
+
+.aras-skip-link {
+  position: absolute;
+  top: -100px; left: 0;
+  background: var(--studio-accent);
+  color: #fff;
+  padding: 8px 16px;
+  z-index: 9999;
+  font-weight: 600;
+  transition: top 0.2s;
+}
+.aras-skip-link:focus { top: 0; }
 
 /* ============================================================
    App Shell Layout — Frame / Sidebar / Pane
@@ -80,8 +140,8 @@
 /* ── Sidebar ── */
 .aras-sidebar {
   width: var(--sidebar-w);
-  background: var(--studio-ink);
-  color: #fff;
+  background: var(--aras-sidebar-bg);
+  color: var(--aras-sidebar-text);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -631,7 +691,7 @@ code {
 .aras-studio-tile__meta { font-family: var(--aras-font-serif); font-style: italic; font-size: 12px; color: var(--aras-ink-3); }
 
 /* Aras Components */
-.aras-card { background: #fff; border-radius: 4px; border: 1px solid var(--studio-cream); box-shadow: var(--aras-shadow-sm); overflow: hidden; margin-bottom: 24px; }
+.aras-card { background: var(--aras-card-bg); border-radius: 4px; border: 1px solid var(--aras-border-subtle); box-shadow: var(--aras-shadow-sm); overflow: hidden; margin-bottom: 24px; }
 .aras-card-header { padding: 18px 24px; border-bottom: 1px solid var(--studio-cream); display: flex; justify-content: space-between; align-items: baseline; }
 .aras-card-title { font-family: var(--aras-font-serif); font-weight: 700; font-size: 17px; margin: 0; }
 .aras-card-body { padding: 24px; }

@@ -8,6 +8,8 @@
     </head>
 
     <body>
+        <a href="#main-content" class="aras-skip-link">Skip to content</a>
+
         <!-- Aras Design System Frame (v3 Editorial) -->
         <div class="aras-frame">
             
@@ -15,14 +17,14 @@
             {% include 'admin/base/base_partial_sidebar.html' %}
 
             <!-- Main Pane -->
-            <div class="aras-pane">
+            <div class="aras-pane" role="main">
                 
                 <!-- Top Bar -->
                 {% include "admin/base/base_partial_top.html" %}
                 {% include "admin/base/base_partial_menu_bar.html" %}
 
                 <!-- Main Scrollable Content Area -->
-                <div class="aras-pane-content">
+                <div class="aras-pane-content" id="main-content">
                     {% block content %} 
                         {% block top_page_content%}{% endblock top_page_content %} 
                         {% block page_content %}{% endblock page_content%} 

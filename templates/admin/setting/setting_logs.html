@@ -1,0 +1,158 @@
+{% extends "admin/base_index.html" %}
+
+{% block content %}
+<div class="settings-panel" id="panel-logs">
+  {% include 'admin/setting/_setting_dev_nav.html' %}
+
+  <div class="aras-card mb-4">
+    <div class="aras-card-header d-flex justify-content-between align-items-center">
+      <h3 class="aras-card-title">System Logs <span class="aras-badge aras-badge--info ml-2" id="log-count">0</span></h3>
+      <div class="d-flex gap-2 align-items-center">
+          <div class="form-check form-switch me-3">
+              <input class="form-check-input" type="checkbox" id="auto-refresh" checked>
+              <label class="form-check-label fs-11 fw-bold text-uppercase" for="auto-refresh" style="cursor: pointer;">Auto Refresh (5s)</label>
+          </div>
+          <button id="refresh-now" class="btn btn-sm btn-outline-dark"><i class="ti-reload mr-1"></i> Refresh Now</button>
+          
+          <div class="vr mx-2" style="height: 20px;"></div>
+
+          <input type="text" id="log-search" class="form-control form-control-sm" placeholder="Search message..." style="width: 200px;">
+          <select id="log-filter-level" class="form-select form-select-sm" style="width: 120px;">
+              <option value="">All Levels</option>
+              <option value="DEBUG">DEBUG</option>
+              <option value="INFO">INFO</option>
+              <option value="WARNING">WARNING</option>
+              <option value="ERROR">ERROR</option>
+              <option value="CRITICAL">CRITICAL</option>
+          </select>
+          <select id="log-limit" class="form-select form-select-sm" style="width: 100px;">
+              <option value="50">50 lines</option>
+              <option value="100" selected>100 lines</option>
+              <option value="200">200 lines</option>
+              <option value="500">500 lines</option>
+          </select>
+      </div>
+    </div>
+    <div class="aras-card-body p-0">
+      <div class="overflow-y-auto" style="max-height: calc(100vh - 350px); min-height: 400px;">
+        <div class="aras-table-wrap">
+          <table class="aras-table fs-11" id="log-table">
+            <thead class="sticky-top bg-white shadow-sm">
+                <tr>
+                    <th style="width: 180px;">Timestamp</th>
+                    <th style="width: 100px;">Level</th>
+                    <th style="width: 150px;">Logger</th>
+                    <th style="width: 150px;">Source</th>
+                    <th>Message</th>
+                </tr>
+            </thead>
+            <tbody id="log-tbody">
+                <tr>
+                    <td colspan="5" class="text-center py-5">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <span class="ms-2">Loading logs...</span>
+                    </td>
+                </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+    .log-level-error { color: #dc3545; font-weight: bold; }
+    .log-level-warning { color: #fd7e14; font-weight: bold; }
+    .log-level-info { color: #0d6efd; }
+    .log-level-debug { color: #6c757d; }
+    .aras-mono { font-family: 'Fira Code', 'Roboto Mono', monospace; }
+</style>
+
+<script>
+(function() {
+    let refreshTimer = null;
+    const tbody = document.getElementById('log-tbody');
+    const logCount = document.getElementById('log-count');
+    const autoRefreshInput = document.getElementById('auto-refresh');
+    
+    async function fetchLogs() {
+        const level = document.getElementById('log-filter-level').value;
+        const search = document.getElementById('log-search').value;
+        const limit = document.getElementById('log-limit').value;
+        
+        try {
+            const response = await fetch(`/admin/api/dev/logs?level=${level}&search=${encodeURIComponent(search)}&limit=${limit}`);
+            const data = await response.json();
+            
+            if (data.error) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4">${data.error}</td></tr>`;
+                return;
+            }
+            
+            renderLogs(data.logs);
+        } catch (err) {
+            console.error('Failed to fetch logs:', err);
+            // Don't overwrite with error if we already have data and it's just a transient network error
+            if (tbody.rows.length <= 1) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4">Failed to connect to server</td></tr>`;
+            }
+        }
+    }
+    
+    function renderLogs(logs) {
+        if (logs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No logs found matching criteria</td></tr>`;
+            logCount.textContent = '0';
+            return;
+        }
+        
+        let html = '';
+        logs.forEach(log => {
+            const levelClass = `log-level-${log.level.toLowerCase()}`;
+            html += `
+                <tr>
+                    <td class="aras-mono fs-10 text-muted-aras">${log.timestamp}</td>
+                    <td><span class="aras-badge aras-badge--outline fs-9 ${levelClass}">${log.level}</span></td>
+                    <td class="fs-10 text-muted">${log.logger}</td>
+                    <td class="fs-10 aras-mono">${log.source}</td>
+                    <td class="fs-11 fw-medium">${escapeHtml(log.message)}</td>
+                </tr>
+            `;
+        });
+        
+        tbody.innerHTML = html;
+        logCount.textContent = logs.length;
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    function startAutoRefresh() {
+        if (refreshTimer) clearInterval(refreshTimer);
+        if (autoRefreshInput.checked) {
+            refreshTimer = setInterval(fetchLogs, 5000);
+        }
+    }
+    
+    // Initial fetch
+    fetchLogs();
+    startAutoRefresh();
+    
+    // Event listeners
+    document.getElementById('refresh-now').addEventListener('click', fetchLogs);
+    autoRefreshInput.addEventListener('change', startAutoRefresh);
+    document.getElementById('log-filter-level').addEventListener('change', fetchLogs);
+    document.getElementById('log-limit').addEventListener('change', fetchLogs);
+    
+    let searchDebounce = null;
+    document.getElementById('log-search').addEventListener('input', () => {
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(fetchLogs, 500);
+    });
+})();
+</script>
+{% endblock %}

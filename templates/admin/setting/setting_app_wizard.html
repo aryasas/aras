@@ -1,0 +1,349 @@
+{% extends "admin/base_index.html" %}
+
+{% block content %}
+<div class="settings-panel" id="panel-app-wizard">
+  <div class="settings-panel-header">
+    <h3 class="settings-panel-title"><i class="ti-wand"></i> App Scaffolder Wizard</h3>
+    <p class="settings-panel-desc">Fast-track your application development by defining the core structure in minutes.</p>
+  </div>
+
+  <div class="aras-card">
+    <div class="aras-card-header bg-light">
+        <div class="d-flex justify-content-between align-items-center w-100">
+            <div class="wizard-steps d-flex gap-4">
+                <div class="wizard-step active" data-step="1">
+                    <span class="step-num">1</span> <span class="step-label">App Info</span>
+                </div>
+                <div class="wizard-step" data-step="2">
+                    <span class="step-num">2</span> <span class="step-label">Tables</span>
+                </div>
+                <div class="wizard-step" data-step="3">
+                    <span class="step-num">3</span> <span class="step-label">Columns</span>
+                </div>
+            </div>
+            <div id="wizard-actions">
+                <button id="btn-prev" class="btn btn-outline-secondary d-none">Previous</button>
+                <button id="btn-next" class="btn btn-aras-primary">Next: Tables</button>
+                <button id="btn-finish" class="btn btn-success d-none">Build Application</button>
+            </div>
+        </div>
+    </div>
+    <div class="aras-card-body p-4">
+        {# Step 1: App Info #}
+        <div class="wizard-content" id="step-1-content">
+            <h4 class="mb-4">General Application Settings</h4>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">App Title</label>
+                    <input type="text" id="app-title" class="form-control" placeholder="e.g. Inventory Management">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">URL Slug</label>
+                    <input type="text" id="app-url" class="form-control" placeholder="e.g. inventory">
+                </div>
+                <div class="col-md-12 mb-3">
+                    <label class="form-label fw-bold">Description</label>
+                    <textarea id="app-desc" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Icon (FontAwesome)</label>
+                    <input type="text" id="app-icon" class="form-control" value="fa-cubes">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Color Theme</label>
+                    <input type="color" id="app-color" class="form-control form-control-color w-100" value="#3498db">
+                </div>
+            </div>
+        </div>
+
+        {# Step 2: Tables #}
+        <div class="wizard-content d-none" id="step-2-content">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4>Define Application Tables</h4>
+                <button id="add-table" class="btn btn-sm btn-outline-primary"><i class="ti-plus"></i> Add Table</button>
+            </div>
+            <div id="tables-container">
+                <!-- Tables will be added here -->
+            </div>
+            <div id="empty-tables" class="text-center py-5 bg-light rounded border border-dashed">
+                <p class="text-muted">No tables defined yet. Click "Add Table" to begin.</p>
+            </div>
+        </div>
+
+        {# Step 3: Columns #}
+        <div class="wizard-content d-none" id="step-3-content">
+            <h4 class="mb-4">Define Columns for Each Table</h4>
+            <div id="columns-tables-container">
+                <!-- Per-table column editors will be added here -->
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
+
+<style>
+    .wizard-step { opacity: 0.5; font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+    .wizard-step.active { opacity: 1; color: var(--aras-primary); }
+    .wizard-step.completed { opacity: 1; color: var(--aras-success); }
+    .step-num { width: 24px; height: 24px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; font-size: 11px; border: 1px solid #ddd; }
+    .wizard-step.active .step-num { background: var(--aras-primary); color: white; border-color: var(--aras-primary); }
+    .wizard-step.completed .step-num { background: var(--aras-success); color: white; border-color: var(--aras-success); }
+    
+    .table-entry { position: relative; }
+    .btn-remove-table { position: absolute; right: 10px; top: 10px; }
+    
+    .column-row { background: #f9f9f9; border-radius: 4px; padding: 10px; margin-bottom: 10px; border-left: 3px solid #ddd; transition: all 0.2s; }
+    .column-row:hover { border-left-color: var(--aras-primary); background: #f0f7ff; }
+</style>
+
+<script>
+(function() {
+    let currentStep = 1;
+    let tables = [];
+
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const btnFinish = document.getElementById('btn-finish');
+    const steps = document.querySelectorAll('.wizard-step');
+    const stepContents = document.querySelectorAll('.wizard-content');
+
+    // Step 2 Logic
+    const tablesContainer = document.getElementById('tables-container');
+    const addTableBtn = document.getElementById('add-table');
+    const emptyTablesMsg = document.getElementById('empty-tables');
+
+    addTableBtn.addEventListener('click', () => {
+        addTable();
+    });
+
+    function addTable(data = { name: '', title: '' }) {
+        const id = Date.now();
+        const div = document.createElement('div');
+        div.className = 'aras-card mb-3 table-entry';
+        div.id = `table-${id}`;
+        div.innerHTML = `
+            <div class="aras-card-body">
+                <button class="btn btn-xs btn-outline-danger btn-remove-table"><i class="ti-trash"></i></button>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label fs-11 fw-bold text-uppercase">Table Title</label>
+                        <input type="text" class="form-control t-title" value="${data.title}" placeholder="e.g. Products">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fs-11 fw-bold text-uppercase">Table Name (slug)</label>
+                        <input type="text" class="form-control t-name" value="${data.name}" placeholder="e.g. product">
+                    </div>
+                </div>
+            </div>
+        `;
+        tablesContainer.appendChild(div);
+        emptyTablesMsg.classList.add('d-none');
+
+        div.querySelector('.btn-remove-table').addEventListener('click', () => {
+            div.remove();
+            if (tablesContainer.children.length === 0) emptyTablesMsg.classList.remove('d-none');
+        });
+
+        const titleInput = div.querySelector('.t-title');
+        const nameInput = div.querySelector('.t-name');
+        titleInput.addEventListener('input', () => {
+            if (!nameInput.dataset.manual) {
+                nameInput.value = titleInput.value.toLowerCase().replace(/ /g, '_');
+            }
+        });
+        nameInput.addEventListener('input', () => nameInput.dataset.manual = true);
+    }
+
+    // Step 3 Logic
+    const columnsTablesContainer = document.getElementById('columns-tables-container');
+
+    function prepareStep3() {
+        columnsTablesContainer.innerHTML = '';
+        // Extract current tables from UI
+        tables = [];
+        document.querySelectorAll('.table-entry').forEach(el => {
+            tables.push({
+                title: el.querySelector('.t-title').value,
+                name: el.querySelector('.t-name').value,
+                columns: [{ name: 'name', label: 'Name', field_type: 'string', required: true }]
+            });
+        });
+
+        tables.forEach((table, tIdx) => {
+            const div = document.createElement('div');
+            div.className = 'aras-card mb-4';
+            div.innerHTML = `
+                <div class="aras-card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="ti-layout-grid2"></i> ${table.title} <small class="text-muted">(${table.name})</small></h5>
+                    <button class="btn btn-xs btn-outline-primary btn-add-col" data-tidx="${tIdx}"><i class="ti-plus"></i> Add Column</button>
+                </div>
+                <div class="aras-card-body col-container" id="cols-for-${tIdx}">
+                    <!-- Columns here -->
+                </div>
+            `;
+            columnsTablesContainer.appendChild(div);
+            
+            const colContainer = div.querySelector('.col-container');
+            table.columns.forEach(col => addColumnUI(colContainer, col));
+
+            div.querySelector('.btn-add-col').addEventListener('click', () => {
+                addColumnUI(colContainer);
+            });
+        });
+    }
+
+    function addColumnUI(container, data = { name: '', label: '', field_type: 'string', required: false }) {
+        const div = document.createElement('div');
+        div.className = 'column-row';
+        div.innerHTML = `
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <label class="fs-10 fw-bold text-uppercase text-muted">Label / Name</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control c-label" value="${data.label}" placeholder="Label">
+                        <input type="text" class="form-control c-name fs-10" value="${data.name}" placeholder="slug">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="fs-10 fw-bold text-uppercase text-muted">Field Type</label>
+                    <select class="form-select form-select-sm c-type">
+                        <option value="string" ${data.field_type == 'string' ? 'selected' : ''}>String</option>
+                        <option value="text" ${data.field_type == 'text' ? 'selected' : ''}>Text</option>
+                        <option value="integer" ${data.field_type == 'integer' ? 'selected' : ''}>Integer</option>
+                        <option value="decimal" ${data.field_type == 'decimal' ? 'selected' : ''}>Decimal</option>
+                        <option value="boolean" ${data.field_type == 'boolean' ? 'selected' : ''}>Boolean</option>
+                        <option value="date" ${data.field_type == 'date' ? 'selected' : ''}>Date</option>
+                        <option value="select" ${data.field_type == 'select' ? 'selected' : ''}>Select</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-check pt-4">
+                        <input class="form-check-input c-required" type="checkbox" ${data.required ? 'checked' : ''}>
+                        <label class="form-check-label fs-11">Required</label>
+                    </div>
+                </div>
+                <div class="col-md-3 text-right">
+                    <button class="btn btn-xs btn-outline-danger mt-3 btn-remove-col"><i class="ti-trash"></i></button>
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+        
+        const labelIn = div.querySelector('.c-label');
+        const nameIn = div.querySelector('.c-name');
+        labelIn.addEventListener('input', () => {
+            if (!nameIn.dataset.manual) nameIn.value = labelIn.value.toLowerCase().replace(/ /g, '_');
+        });
+        nameIn.addEventListener('input', () => nameIn.dataset.manual = true);
+        div.querySelector('.btn-remove-col').addEventListener('click', () => div.remove());
+    }
+
+    // Navigation
+    function updateWizard() {
+        steps.forEach(s => {
+            const stepNum = parseInt(s.dataset.step);
+            s.classList.toggle('active', stepNum === currentStep);
+            s.classList.toggle('completed', stepNum < currentStep);
+        });
+
+        stepContents.forEach((c, idx) => {
+            c.classList.toggle('d-none', (idx + 1) !== currentStep);
+        });
+
+        btnPrev.classList.toggle('d-none', currentStep === 1);
+        
+        if (currentStep === 3) {
+            btnNext.classList.add('d-none');
+            btnFinish.classList.remove('d-none');
+            prepareStep3();
+        } else {
+            btnNext.classList.remove('d-none');
+            btnFinish.classList.add('d-none');
+            btnNext.textContent = currentStep === 1 ? 'Next: Tables' : 'Next: Columns';
+        }
+    }
+
+    btnNext.addEventListener('click', () => {
+        if (currentStep === 1) {
+            if (!document.getElementById('app-title').value || !document.getElementById('app-url').value) {
+                alert('App Title and URL are required');
+                return;
+            }
+        }
+        if (currentStep === 2) {
+            if (tablesContainer.children.length === 0) {
+                alert('Please add at least one table');
+                return;
+            }
+        }
+        currentStep++;
+        updateWizard();
+    });
+
+    btnPrev.addEventListener('click', () => {
+        currentStep--;
+        updateWizard();
+    });
+
+    btnFinish.addEventListener('click', async () => {
+        // Collect everything
+        const payload = {
+            app: {
+                title: document.getElementById('app-title').value,
+                url: document.getElementById('app-url').value,
+                description: document.getElementById('app-desc').value,
+                icon: document.getElementById('app-icon').value,
+                color_theme: document.getElementById('app-color').value,
+            },
+            tables: []
+        };
+
+        const tableSections = columnsTablesContainer.querySelectorAll('.aras-card');
+        tableSections.forEach((section, idx) => {
+            const table = tables[idx];
+            const cols = [];
+            section.querySelectorAll('.column-row').forEach(row => {
+                cols.push({
+                    label: row.querySelector('.c-label').value,
+                    name: row.querySelector('.c-name').value,
+                    field_type: row.querySelector('.c-type').value,
+                    required: row.querySelector('.c-required').checked
+                });
+            });
+            payload.tables.push({
+                title: table.title,
+                name: table.name,
+                columns: cols
+            });
+        });
+
+        btnFinish.disabled = true;
+        btnFinish.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Building...';
+
+        try {
+            const response = await fetch('/admin/apps/wizard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (result.ok) {
+                window.location.href = result.redirect;
+            } else {
+                alert('Error: ' + result.error);
+                btnFinish.disabled = false;
+                btnFinish.textContent = 'Build Application';
+            }
+        } catch (err) {
+            alert('Failed to connect to server');
+            btnFinish.disabled = false;
+            btnFinish.textContent = 'Build Application';
+        }
+    });
+
+    // Start with one table
+    addTable();
+
+})();
+</script>
+{% endblock %}

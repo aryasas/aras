@@ -37,17 +37,20 @@ def run(flask_app):
             logger.info("[024] added warehouse_id to acc_sales_invoice")
 
         # ── stock_product_price: price_list_id ───────────────────────────────
-        pp_cols = {c["name"] for c in insp.get_columns("stock_product_price")}
-        if "price_list_id" not in pp_cols:
-            db.session.execute(text(
-                "ALTER TABLE stock_product_price ADD COLUMN price_list_id INT NULL"
-                " AFTER product_id"
-            ))
-            logger.info("[024] added price_list_id to stock_product_price")
+        tables = insp.get_table_names()
+        spp_table = "stock_product_price" if "stock_product_price" in tables else ("stock_price_list" if "stock_price_list" in tables else None)
+        
+        if spp_table:
+            pp_cols = {c["name"] for c in insp.get_columns(spp_table)}
+            if "price_list_id" not in pp_cols:
+                db.session.execute(text(
+                    f"ALTER TABLE {spp_table} ADD COLUMN price_list_id INT NULL"
+                    " AFTER product_id"
+                ))
+                logger.info(f"[024] added price_list_id to {spp_table}")
 
         # ── migrate stock_price_list_item → stock_product_price ──────────────
-        tables = insp.get_table_names()
-        if "stock_price_list_item" in tables:
+        if "stock_price_list_item" in tables and spp_table:
             rows = db.session.execute(text(
                 "SELECT price_list_id, product_id, uom_id, price, min_qty,"
                 "       discount_pct, valid_from, valid_to FROM stock_price_list_item"
@@ -55,12 +58,13 @@ def run(flask_app):
             migrated = 0
             for r in rows:
                 exists = db.session.execute(text(
-                    "SELECT id FROM stock_product_price"
+                    f"SELECT id FROM {spp_table}"
                     " WHERE product_id=:pid AND price_list_id=:plid AND uom_id=:uid AND min_qty=:mq"
                 ), {"pid": r[1], "plid": r[0], "uid": r[2], "mq": r[4]}).fetchone()
                 if not exists:
+                    # Note: We assume stock_price_list already exists if we're migrating into it or stock_product_price
                     db.session.execute(text(
-                        "INSERT INTO stock_product_price"
+                        f"INSERT INTO {spp_table}"
                         " (product_id, price_list_id, name, price_type, currency_id,"
                         "  uom_id, price, min_qty, valid_from, valid_to, is_active)"
                         " SELECT :pid, :plid, pl.name, pl.price_type, pl.currency_id,"
@@ -71,7 +75,7 @@ def run(flask_app):
                         "price": r[3], "mq": r[4], "vf": r[6], "vt": r[7],
                     })
                     migrated += 1
-            logger.info(f"[024] migrated {migrated} rows from stock_price_list_item")
+            logger.info(f"[024] migrated {migrated} rows from stock_price_list_item into {spp_table}")
             db.session.execute(text("DROP TABLE stock_price_list_item"))
             logger.info("[024] dropped stock_price_list_item")
 

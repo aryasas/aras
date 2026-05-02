@@ -1,0 +1,48 @@
+{% extends "admin/base_index.html" %}
+
+{% block content %}
+<div class="aras-card">
+    <div class="aras-card-header d-flex justify-content-between align-items-center">
+        <h3 class="aras-card-title">Dynamic Schema ER Diagram</h3>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-secondary" onclick="downloadSVG()"><i class="fa fa-download me-1"></i> SVG</button>
+            <button class="btn btn-sm btn-primary" onclick="location.reload()"><i class="fa fa-sync me-1"></i> Refresh</button>
+        </div>
+    </div>
+    <div class="aras-card-body">
+        <div class="alert alert-info py-2 fs-12 mb-4">
+            <i class="fa fa-info-circle me-1"></i> This diagram represents the <strong>dynamic metadata models</strong> (AppManagerTable/Column).
+        </div>
+        
+        <div id="mermaid-container" class="mermaid bg-white p-3 border rounded overflow-auto" style="min-height: 600px;">
+{{ mermaid_code }}
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default',
+        securityLevel: 'loose',
+        er: {
+            useMaxWidth: false
+        }
+    });
+
+    function downloadSVG() {
+        const svg = document.querySelector('#mermaid-container svg');
+        if (!svg) return;
+        const svgData = new XMLSerializer().serializeToString(svg);
+        const svgBlob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
+        const svgUrl = URL.createObjectURL(svgBlob);
+        const downloadLink = document.createElement("a");
+        downloadLink.href = svgUrl;
+        downloadLink.download = "aras_schema_diagram.svg";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    }
+</script>
+{% endblock %}

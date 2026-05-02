@@ -1,0 +1,290 @@
+{% extends "admin/base_index.html" %}
+
+{% block content %}
+<div class="settings-panel" id="panel-components">
+  {% include 'admin/setting/_setting_dev_nav.html' %}
+
+  <div class="row">
+    {# Sidebar Navigation #}
+    <div class="col-md-3">
+        <div class="aras-card sticky-top" style="top: 20px;">
+            <div class="aras-card-body p-0">
+                <div class="list-group list-group-flush fs-13">
+                    <a href="#section-badges" class="list-group-item list-group-item-action py-3"><i class="ti-tag me-2"></i> Badges & Status</a>
+                    <a href="#section-buttons" class="list-group-item list-group-item-action py-3"><i class="ti-mouse-alt me-2"></i> Buttons & Actions</a>
+                    <a href="#section-cards" class="list-group-item list-group-item-action py-3"><i class="ti-layout-grid2 me-2"></i> Cards & Layout</a>
+                    <a href="#section-forms" class="list-group-item list-group-item-action py-3"><i class="ti-pencil-alt me-2"></i> Form Controls</a>
+                    <a href="#section-tables" class="list-group-item list-group-item-action py-3"><i class="ti-view-list me-2"></i> Tables & Lists</a>
+                    <a href="#section-feedback" class="list-group-item list-group-item-action py-3"><i class="ti-info-alt me-2"></i> Feedback & Toasts</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Main Content #}
+    <div class="col-md-9">
+        
+        <!-- SECTION: BADGES -->
+        <section id="section-badges" class="mb-5">
+            <h4 class="mb-3">Badges & Status</h4>
+            <div class="aras-card">
+                <div class="aras-card-body">
+                    <div class="mb-4">
+                        <label class="fs-11 fw-bold text-uppercase text-muted d-block mb-2">Solid Badges</label>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <span class="aras-badge aras-badge--primary">Primary</span>
+                            <span class="aras-badge aras-badge--info">Info</span>
+                            <span class="aras-badge aras-badge--success">Success</span>
+                            <span class="aras-badge aras-badge--warning">Warning</span>
+                            <span class="aras-badge aras-badge--danger">Danger</span>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="fs-11 fw-bold text-uppercase text-muted d-block mb-2">Outline Badges</label>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <span class="aras-badge aras-badge--outline">Default</span>
+                            <span class="aras-badge aras-badge--outline aras-badge--success">Success</span>
+                            <span class="aras-badge aras-badge--outline aras-badge--danger">Danger</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="fs-11 fw-bold text-uppercase text-muted d-block mb-2">Markup</label>
+                        <pre class="bg-dark text-light p-3 rounded fs-11"><code>&lt;span class="aras-badge aras-badge--primary"&gt;Badge&lt;/span&gt;
+&lt;span class="aras-badge aras-badge--outline"&gt;Outline&lt;/span&gt;</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION: BUTTONS -->
+        <section id="section-buttons" class="mb-5">
+            <h4 class="mb-3">Buttons & Actions</h4>
+            <div class="aras-card">
+                <div class="aras-card-body">
+                    <div class="mb-4">
+                        <label class="fs-11 fw-bold text-uppercase text-muted d-block mb-2">Variants</label>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button class="btn btn-aras-primary">Aras Primary</button>
+                            <button class="btn btn-secondary">Secondary</button>
+                            <button class="btn btn-success">Success</button>
+                            <button class="btn btn-danger">Danger</button>
+                            <button class="btn btn-outline-primary">Outline Primary</button>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="fs-11 fw-bold text-uppercase text-muted d-block mb-2">Sizes</label>
+                        <div class="d-flex gap-2 align-items-center">
+                            <button class="btn btn-lg btn-aras-primary">Large</button>
+                            <button class="btn btn-aras-primary">Normal</button>
+                            <button class="btn btn-sm btn-aras-primary">Small</button>
+                            <button class="btn btn-xs btn-aras-primary">X-Small</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="fs-11 fw-bold text-uppercase text-muted d-block mb-2">Markup</label>
+                        <pre class="bg-dark text-light p-3 rounded fs-11"><code>&lt;button class="btn btn-aras-primary"&gt;Primary&lt;/button&gt;
+&lt;button class="btn btn-sm btn-outline-secondary"&gt;Small Outline&lt;/button&gt;</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION: CARDS -->
+        <section id="section-cards" class="mb-5">
+            <h4 class="mb-3">Cards & Layout</h4>
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="aras-card">
+                        <div class="aras-card-header">
+                            <h3 class="aras-card-title">Standard Card</h3>
+                        </div>
+                        <div class="aras-card-body">
+                            <p class="fs-13">Basic content block with established padding and typography.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="aras-card">
+                        <div class="aras-card-header d-flex justify-content-between align-items-center">
+                            <h3 class="aras-card-title">Card with Actions</h3>
+                            <button class="btn btn-xs btn-outline-primary">Action</button>
+                        </div>
+                        <div class="aras-card-body">
+                            <p class="fs-13">Header with flexbox alignment for actions.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="aras-card">
+                <div class="aras-card-body">
+                    <label class="fs-11 fw-bold text-uppercase text-muted d-block mb-2">Markup</label>
+                    <pre class="bg-dark text-light p-3 rounded fs-11"><code>&lt;div class="aras-card"&gt;
+  &lt;div class="aras-card-header"&gt;
+    &lt;h3 class="aras-card-title"&gt;Title&lt;/h3&gt;
+  &lt;/div&gt;
+  &lt;div class="aras-card-body"&gt;
+    Content here...
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION: FORMS -->
+        <section id="section-forms" class="mb-5">
+            <h4 class="mb-3">Form Controls</h4>
+            <div class="aras-card">
+                <div class="aras-card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Text Input</label>
+                            <input type="text" class="form-control" placeholder="Enter text...">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Select Dropdown</label>
+                            <select class="form-select">
+                                <option>Option 1</option>
+                                <option>Option 2</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-bold">Textarea</label>
+                            <textarea class="form-control" rows="3" placeholder="Longer text..."></textarea>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="ex-switch" checked>
+                                <label class="form-check-label" for="ex-switch">Toggle Switch</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="ex-check">
+                                <label class="form-check-label" for="ex-check">Standard Checkbox</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="fs-11 fw-bold text-uppercase text-muted d-block mb-2">Markup</label>
+                        <pre class="bg-dark text-light p-3 rounded fs-11"><code>&lt;label class="form-label fw-bold"&gt;Label&lt;/label&gt;
+&lt;input type="text" class="form-control"&gt;
+
+&lt;div class="form-check form-switch"&gt;
+  &lt;input class="form-check-input" type="checkbox"&gt;
+  &lt;label class="form-check-label"&gt;Toggle&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION: TABLES -->
+        <section id="section-tables" class="mb-5">
+            <h4 class="mb-3">Tables & Lists</h4>
+            <div class="aras-card">
+                <div class="aras-card-body p-0">
+                    <div class="aras-table-wrap">
+                        <table class="aras-table fs-12">
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Code</th>
+                                    <th>Name</th>
+                                    <th class="text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="aras-badge aras-badge--success">Active</span></td>
+                                    <td><code class="aras-mono">INV-001</code></td>
+                                    <td>Monthly Subscription</td>
+                                    <td class="text-right">
+                                        <button class="btn btn-xs btn-outline-secondary"><i class="fa fa-edit"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><span class="aras-badge aras-badge--warning">Pending</span></td>
+                                    <td><code class="aras-mono">INV-002</code></td>
+                                    <td>Setup Fee</td>
+                                    <td class="text-right">
+                                        <button class="btn btn-xs btn-outline-secondary"><i class="fa fa-edit"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="aras-card mt-3">
+                <div class="aras-card-body">
+                    <label class="fs-11 fw-bold text-uppercase text-muted d-block mb-2">Markup</label>
+                    <pre class="bg-dark text-light p-3 rounded fs-11"><code>&lt;div class="aras-table-wrap"&gt;
+  &lt;table class="aras-table fs-12"&gt;
+    &lt;thead&gt; ... &lt;/thead&gt;
+    &lt;tbody&gt; ... &lt;/tbody&gt;
+  &lt;/table&gt;
+&lt;/div&gt;</code></pre>
+                </div>
+            </div>
+        </section>
+
+    </div>
+  </div>
+</div>
+
+<style>
+    section h4 { 
+        font-family: var(--aras-font-display);
+        border-left: 4px solid var(--aras-accent);
+        padding-left: 15px;
+        margin-top: 40px;
+    }
+    .list-group-item-action:hover {
+        background-color: var(--aras-primary-50);
+        color: var(--aras-primary);
+    }
+    .list-group-item.active {
+        background-color: var(--aras-primary);
+        border-color: var(--aras-primary);
+    }
+    pre code { color: #f8f8f2 !important; }
+</style>
+
+<script>
+(function() {
+    // Smooth scrolling for sidebar links
+    document.querySelectorAll('.list-group-item-action').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href');
+            document.querySelector(targetId).scrollIntoView({
+                behavior: 'smooth'
+            });
+            
+            // Update active state
+            document.querySelectorAll('.list-group-item-action').forEach(item => item.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+
+    // Simple scrollspy-like active state update
+    window.addEventListener('scroll', () => {
+        let current = "";
+        const sections = document.querySelectorAll('section');
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            if (pageYOffset >= sectionTop - 100) {
+                current = section.getAttribute('id');
+            }
+        });
+
+        document.querySelectorAll('.list-group-item-action').forEach(item => {
+            item.classList.remove('active');
+            if (item.getAttribute('href') === `#${current}`) {
+                item.classList.add('active');
+            }
+        });
+    });
+})();
+</script>
+{% endblock %}

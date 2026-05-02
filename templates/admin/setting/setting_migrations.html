@@ -1,66 +1,118 @@
-{% extends 'admin/base_index.html' %}
+{% extends "admin/base_index.html" %}
 
-{% block page_content %}
-<div class="aras-studio-theme mt-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="aras-page-title">Schema Migrations — {{ app_def.title }}</h3>
+{% block content %}
+<div class="settings-panel" id="panel-migrations">
+  <div class="settings-panel-header d-flex justify-content-between align-items-center">
+    <div>
+        <h3 class="settings-panel-title"><i class="ti-layers-alt"></i> Schema Migrations — {{ app_def.title }}</h3>
+        <p class="settings-panel-desc">Review and apply database schema changes for this application.</p>
+    </div>
     <div class="d-flex gap-2">
-      <a href="{{ url_for('admin.apps_tables', app_id=app_def.id) }}" class="aras-btn aras-btn--outline aras-btn--sm">
-        <i class="fa fa-arrow-left"></i> Back to Tables
-      </a>
+        {% if pending %}
+        <form method="POST" action="{{ url_for('admin.apps_migrations_apply', app_id=app_def.id) }}">
+            <button type="submit" class="btn btn-sm btn-outline-success"><i class="fa fa-shield"></i> Apply Safe Only</button>
+        </form>
+        <form method="POST" action="{{ url_for('admin.apps_migrations_apply_all', app_id=app_def.id) }}" onsubmit="return confirm('WARNING: This will apply all pending migrations, including column deletions and type changes. Data loss is possible. Continue?');">
+            <button type="submit" class="btn btn-sm btn-danger"><i class="fa fa-play"></i> Apply All (Unsafe)</button>
+        </form>
+        {% endif %}
+        <a href="{{ url_for('admin.apps_tables', app_id=app_def.id) }}" class="btn btn-sm btn-secondary">Back to Tables</a>
+    </div>
+  </div>
+
+  <div class="aras-card mb-4">
+    <div class="aras-card-header">
+      <h3 class="aras-card-title">Pending Migrations <span class="aras-badge aras-badge--{{ 'warning' if pending else 'success' }} ml-2">{{ pending|length }}</span></h3>
+    </div>
+    <div class="aras-card-body p-0">
       {% if pending %}
-      <form method="POST" action="{{ url_for('admin.apps_migrations_apply', app_id=app_def.id) }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="aras-btn aras-btn--sm aras-btn--primary"
-                onclick="return confirm('Apply {{ pending|length }} safe migration(s)?')">
-          <i class="fa fa-play"></i> Apply Safe Migrations
-        </button>
-      </form>
+      <div class="aras-table-wrap">
+        <table class="aras-table fs-12">
+          <thead>
+            <tr>
+              <th style="width: 150px;">Action</th>
+              <th>Table</th>
+              <th>Column</th>
+              <th>SQL Statement</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in pending %}
+            {% set action_class = 'migration-add' if m.action == 'add_column' else ('migration-drop' if m.action == 'drop_column' else 'migration-change') %}
+            <tr class="{{ action_class }}">
+              <td>
+                  <span class="aras-badge aras-badge--{{ 'success' if m.action == 'add_column' else ('danger' if m.action == 'drop_column' else 'warning') }} fs-10">
+                      {{ m.action|upper }}
+                  </span>
+              </td>
+              <td class="aras-mono fs-11">{{ m.table_name }}</td>
+              <td class="fw-bold">{{ m.column_name }}</td>
+              <td><code class="aras-mono fs-10 text-muted-aras">{{ m.sql_stmt }}</code></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-5">
+          <i class="ti-check-box fs-40 text-success mb-3 d-block"></i>
+          <p class="fs-14 fw-medium">Schema is up to date.</p>
+          <p class="text-muted-aras fs-12">No pending migrations found for this app.</p>
+      </div>
       {% endif %}
     </div>
   </div>
 
-  {% if pending %}
-  <div class="aras-card shadow-sm">
+  <div class="aras-card">
     <div class="aras-card-header">
-      <h3 class="aras-card-title">Pending Migrations ({{ pending|length }})</h3>
+      <h3 class="aras-card-title">Migration History</h3>
     </div>
-    <div class="aras-table-wrap">
-      <table class="aras-table">
-        <thead>
-          <tr>
-            <th>Table</th>
-            <th>Column</th>
-            <th>Action</th>
-            <th>SQL</th>
-            <th>Safe?</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for m in pending %}
-          <tr>
-            <td class="font-weight-bold">{{ m.table_name }}</td>
-            <td><code class="aras-mono">{{ m.column_name }}</code></td>
-            <td><span class="aras-badge aras-badge--info">{{ m.action }}</span></td>
-            <td class="fs-11 aras-mono text-muted-aras">{{ m.sql_stmt }}</td>
-            <td>
-              {% if m.action == 'add_column' %}
-              <span class="mk on"><span class="dot"></span> SAFE</span>
-              {% else %}
-              <span class="mk warn"><span class="dot"></span> MANUAL</span>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="aras-card-body p-0">
+      <div class="aras-table-wrap">
+        <table class="aras-table fs-11">
+          <thead>
+            <tr>
+              <th style="width: 100px;">Status</th>
+              <th>Details</th>
+              <th>Applied At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for h in history %}
+            <tr>
+              <td>
+                  <span class="aras-badge aras-badge--{{ 'outline-success' if h.status == 'applied' else 'outline-danger' }} fs-9">
+                      {{ h.status|upper }}
+                  </span>
+              </td>
+              <td>
+                  <div class="fw-bold">{{ h.table_name }}.{{ h.column_name }} ({{ h.action }})</div>
+                  <code class="aras-mono fs-9 text-muted d-block mt-1">{{ h.sql_stmt }}</code>
+                  {% if h.error_msg %}
+                  <div class="text-danger fs-10 mt-1"><i class="fa fa-warning"></i> {{ h.error_msg }}</div>
+                  {% endif %}
+              </td>
+              <td class="text-muted fs-10">{{ h.applied_at or h.created_at }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="3" class="text-center py-4 text-muted">No migration history found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
-  {% else %}
-  <div class="text-center py-5 bg-white rounded shadow-sm">
-    <div class="mb-3"><i class="fa fa-check-circle text-success-aras fs-60 opacity-8"></i></div>
-    <p class="aras-serif-italic text-muted-aras">Schema is up to date — no pending migrations.</p>
-  </div>
-  {% endif %}
 </div>
+
+<style>
+    .migration-add { background-color: rgba(40, 167, 69, 0.05); }
+    .migration-drop { background-color: rgba(220, 53, 69, 0.05); }
+    .migration-change { background-color: rgba(255, 193, 7, 0.05); }
+    
+    .migration-add:hover { background-color: rgba(40, 167, 69, 0.1); }
+    .migration-drop:hover { background-color: rgba(220, 53, 69, 0.1); }
+    .migration-change:hover { background-color: rgba(255, 193, 7, 0.1); }
+</style>
 {% endblock %}

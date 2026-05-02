@@ -1,5 +1,6 @@
 """Migration 035 — Promo scope columns on stock_product_price + promo bundle tables."""
 from arasCore.lib.core.extensions import db
+from sqlalchemy import text, inspect
 
 
 def run(flask_app):
@@ -9,22 +10,39 @@ def run(flask_app):
 
 def up():
     conn  = db.engine.connect()
+    insp  = inspect(db.engine)
+    tables = insp.get_table_names()
+    
+    # Handle rename from 036 (if it ran already)
+    spp_table = "stock_product_price" if "stock_product_price" in tables else ("stock_price_list" if "stock_price_list" in tables else None)
+    
+    if not spp_table:
+        # If neither exists, we might be in a fresh DB where 021-024 haven't created it yet
+        # but db.create_all() might have created 'stock_price_list' if it's the current model name.
+        # We'll skip and let other migrations handle it if not found.
+        return
+
     trans = conn.begin()
     try:
-        # 1. Make product_id nullable on stock_product_price
-        conn.execute(db.text(
-            "ALTER TABLE stock_product_price MODIFY COLUMN product_id INT NULL"
+        # 1. Make product_id nullable
+        conn.execute(text(
+            f"ALTER TABLE {spp_table} MODIFY COLUMN product_id INT NULL"
         ))
 
         # 2. Add scope + discount columns
-        for col_def in [
-            "ADD COLUMN IF NOT EXISTS product_category_id INT NULL",
-            "ADD COLUMN IF NOT EXISTS location_id         INT NULL",
-            "ADD COLUMN IF NOT EXISTS terminal_id         INT NULL",
-            "ADD COLUMN IF NOT EXISTS is_blanket          TINYINT(1) NOT NULL DEFAULT 0",
-            "ADD COLUMN IF NOT EXISTS discount_pct        DECIMAL(5,2) NULL",
-        ]:
-            conn.execute(db.text(f"ALTER TABLE stock_product_price {col_def}"))
+        cols = {c["name"] for c in insp.get_columns(spp_table)}
+        
+        new_cols = [
+            ("product_category_id", "INT NULL"),
+            ("location_id",         "INT NULL"),
+            ("terminal_id",         "INT NULL"),
+            ("is_blanket",          "TINYINT(1) NOT NULL DEFAULT 0"),
+            ("discount_pct",        "DECIMAL(5,2) NULL"),
+        ]
+        
+        for col_name, col_def in new_cols:
+            if col_name not in cols:
+                conn.execute(text(f"ALTER TABLE {spp_table} ADD COLUMN {col_name} {col_def}"))
 
         # 3. FK constraints
         fk_defs = [
@@ -33,31 +51,34 @@ def up():
             ("fk_spp_terminal",  "terminal_id",          "pos_terminal",           "id"),
         ]
         for name, col, ref_table, ref_col in fk_defs:
-            exists = conn.execute(db.text(
+            if ref_table not in tables:
+                continue
+                
+            exists = conn.execute(text(
                 "SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS "
-                "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'stock_product_price' "
+                f"WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{spp_table}' "
                 f"AND CONSTRAINT_NAME = '{name}'"
             )).scalar()
             if not exists:
-                conn.execute(db.text(
-                    f"ALTER TABLE stock_product_price ADD CONSTRAINT {name} "
+                conn.execute(text(
+                    f"ALTER TABLE {spp_table} ADD CONSTRAINT {name} "
                     f"FOREIGN KEY ({col}) REFERENCES {ref_table}({ref_col}) ON DELETE SET NULL"
                 ))
 
         # 4. Performance index
-        idx_exists = conn.execute(db.text(
+        idx_exists = conn.execute(text(
             "SELECT COUNT(*) FROM information_schema.STATISTICS "
-            "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'stock_product_price' "
+            f"WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{spp_table}' "
             "AND INDEX_NAME = 'idx_spp_scope'"
         )).scalar()
         if not idx_exists:
-            conn.execute(db.text(
-                "CREATE INDEX idx_spp_scope ON stock_product_price "
+            conn.execute(text(
+                f"CREATE INDEX idx_spp_scope ON {spp_table} "
                 "(price_list_id, is_active, is_blanket, product_id, product_category_id)"
             ))
 
         # 5. Create stock_promo_bundle
-        conn.execute(db.text("""
+        conn.execute(text("""
             CREATE TABLE IF NOT EXISTS stock_promo_bundle (
                 id            INT AUTO_INCREMENT PRIMARY KEY,
                 price_list_id INT NULL,
@@ -74,7 +95,7 @@ def up():
         """))
 
         # 6. Create stock_promo_bundle_item
-        conn.execute(db.text("""
+        conn.execute(text("""
             CREATE TABLE IF NOT EXISTS stock_promo_bundle_item (
                 id              INT AUTO_INCREMENT PRIMARY KEY,
                 promo_bundle_id INT NOT NULL,

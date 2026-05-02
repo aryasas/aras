@@ -81,35 +81,89 @@ def diff_app(app_id: int, flask_app=None):
     inspector = sa_inspect(db.engine)
     records = []
 
-    for tbl in AppManagerTable.query.filter_by(app_id=app_id, is_active=True).all():
+    # Get all active tables for this app
+    app_tables = AppManagerTable.query.filter_by(app_id=app_id, is_active=True).all()
+    
+    for tbl in app_tables:
         tbl_name = tbl.db_table_name or f"ab_{app_obj.slug}_{tbl.name}"
 
         # Get live columns
         try:
-            live_cols = {c["name"] for c in inspector.get_columns(tbl_name)}
+            live_cols_raw = inspector.get_columns(tbl_name)
+            live_cols = {c["name"]: c for c in live_cols_raw}
         except Exception:
-            live_cols = set()
+            # Table might not exist yet (db.create_all hasn't run or failed)
+            continue
 
-        for col in AppManagerColumn.query.filter_by(table_id=tbl.id).order_by(AppManagerColumn.order).all():
-            if col.name in live_cols:
+        # 1. Check for NEW columns or TYPE CHANGES
+        mgr_cols = AppManagerColumn.query.filter_by(table_id=tbl.id).order_by(AppManagerColumn.order).all()
+        mgr_col_names = set()
+        
+        for col in mgr_cols:
+            mgr_col_names.add(col.name)
+            col_sql_type = _col_sql(col.__dict__)
+            
+            if col.name not in live_cols:
+                # NEW COLUMN
+                existing = _get_migration_record(app_obj.slug, tbl_name, col.name, "add_column")
+                if not existing:
+                    sql_stmt = f"ALTER TABLE `{tbl_name}` ADD COLUMN `{col.name}` {col_sql_type}"
+                    rec = _create_migration_record(
+                        app_name=app_obj.slug,
+                        table_name=tbl_name,
+                        column_name=col.name,
+                        action="add_column",
+                        sql_stmt=sql_stmt,
+                        db=db,
+                    )
+                    records.append(rec)
+            else:
+                # Check for type change (simplified)
+                # This is a bit naive but catches obvious changes
+                live_type = str(live_cols[col.name]["type"]).upper()
+                target_type = col_sql_type.split(" ")[0].upper()
+                
+                # Basic normalization for comparison
+                if "VARCHAR" in live_type and "VARCHAR" in target_type:
+                    # Ignore length diff for now or implement deeper check
+                    pass
+                elif "INT" in live_type and "INT" in target_type:
+                    pass
+                elif live_type != target_type and not (live_type.startswith(target_type) or target_type.startswith(live_type)):
+                    # Possible type change
+                    existing = _get_migration_record(app_obj.slug, tbl_name, col.name, "change_type")
+                    if not existing:
+                        # Unsafe operation: use CHANGE or MODIFY
+                        sql_stmt = f"ALTER TABLE `{tbl_name}` MODIFY COLUMN `{col.name}` {col_sql_type}"
+                        rec = _create_migration_record(
+                            app_name=app_obj.slug,
+                            table_name=tbl_name,
+                            column_name=col.name,
+                            action="change_type",
+                            sql_stmt=sql_stmt,
+                            db=db,
+                        )
+                        records.append(rec)
+
+        # 2. Check for DROPPED columns (In DB but not in Manager)
+        for live_col_name in live_cols:
+            # Skip system columns usually
+            if live_col_name in ("id", "created_at", "updated_at", "owner_id", "is_deleted", "deleted_at"):
                 continue
-
-            # Check not already recorded
-            existing = _get_migration_record(app_obj.slug, tbl_name, col.name)
-            if existing:
-                continue
-
-            sql_stmt = f"ALTER TABLE `{tbl_name}` ADD COLUMN `{col.name}` {_col_sql(col.__dict__)}"
-            rec = _create_migration_record(
-                app_name=app_obj.slug,
-                table_name=tbl_name,
-                column_name=col.name,
-                action="add_column",
-                sql_stmt=sql_stmt,
-                db=db,
-            )
-            records.append(rec)
-            logger.info(f"[schema_migrator] diff found: {tbl_name}.{col.name} — queued")
+                
+            if live_col_name not in mgr_col_names:
+                existing = _get_migration_record(app_obj.slug, tbl_name, live_col_name, "drop_column")
+                if not existing:
+                    sql_stmt = f"ALTER TABLE `{tbl_name}` DROP COLUMN `{live_col_name}`"
+                    rec = _create_migration_record(
+                        app_name=app_obj.slug,
+                        table_name=tbl_name,
+                        column_name=live_col_name,
+                        action="drop_column",
+                        sql_stmt=sql_stmt,
+                        db=db,
+                    )
+                    records.append(rec)
 
     if records:
         db.session.commit()
@@ -138,6 +192,7 @@ def apply_pending(app_id: int, flask_app=None, safe_only: bool = True):
     applied, skipped = [], []
 
     for row in pending:
+        # action is 'add_column', 'drop_column', or 'change_type'
         if safe_only and row["action"] not in _SAFE_ACTIONS:
             skipped.append(row)
             continue
@@ -168,16 +223,41 @@ def get_pending(app_id: int):
     return _list_pending(app_obj.slug, db)
 
 
+def get_history(app_id: int, limit: int = 50):
+    """Return list of recently applied or failed migration dicts for app_id."""
+    from arasCore.lib.core.extensions import db
+    from arasCore.admin.models import AppManagerApp
+    from sqlalchemy import text
+
+    app_obj = AppManagerApp.query.get(app_id)
+    if not app_obj:
+        return []
+        
+    try:
+        rows = db.session.execute(text(
+            "SELECT id, app_name, table_name, column_name, action, status, sql_stmt, error_msg, applied_at, created_at "
+            "FROM mgr_schema_migration WHERE app_name=:a AND status != 'pending' "
+            "ORDER BY COALESCE(applied_at, created_at) DESC LIMIT :limit"
+        ), {"a": app_obj.slug, "limit": limit}).fetchall()
+        return [dict(r._mapping) for r in rows]
+    except Exception as e:
+        logger.error(f"get_history error: {e}")
+        return []
+
+
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
-def _get_migration_record(app_name, table_name, column_name):
+def _get_migration_record(app_name, table_name, column_name, action=None):
     from arasCore.lib.core.extensions import db
     from sqlalchemy import text
     try:
-        row = db.session.execute(text(
-            "SELECT id FROM mgr_schema_migration "
-            "WHERE app_name=:a AND table_name=:t AND column_name=:c"
-        ), {"a": app_name, "t": table_name, "c": column_name}).fetchone()
+        query = "SELECT id FROM mgr_schema_migration WHERE app_name=:a AND table_name=:t AND column_name=:c"
+        params = {"a": app_name, "t": table_name, "c": column_name}
+        if action:
+            query += " AND action=:act"
+            params["act"] = action
+            
+        row = db.session.execute(text(query), params).fetchone()
         return row
     except Exception:
         return None

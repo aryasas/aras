@@ -8,12 +8,41 @@
 
     var ArasStudio = {
         init: function() {
+            this.initTheme();
             this.initSidebar();
             this.initSidebarCollapse();
             this.initRightSidebar();
             this.initSearch();
             this.initComponentLibrary();
             this.initFormLoading();
+        },
+
+        initTheme: function() {
+            var toggle = document.getElementById('themeToggle');
+            var html = document.documentElement;
+            
+            if (!toggle) return;
+
+            // Set initial icon
+            var initialTheme = html.getAttribute('data-theme') || 'light';
+            var icon = toggle.querySelector('i');
+            if (icon) {
+                icon.className = initialTheme === 'dark' ? 'fa fa-moon-o' : 'fa fa-sun-o';
+            }
+
+            toggle.addEventListener('click', function() {
+                var current = html.getAttribute('data-theme');
+                var next = current === 'dark' ? 'light' : 'dark';
+                
+                html.setAttribute('data-theme', next);
+                localStorage.setItem('aras-theme', next);
+                
+                // Update icon
+                var icon = toggle.querySelector('i');
+                if (icon) {
+                    icon.className = next === 'dark' ? 'fa fa-moon-o' : 'fa fa-sun-o';
+                }
+            });
         },
 
         initSidebar: function() {
@@ -240,12 +269,15 @@
             if (!wrap) {
                 wrap = document.createElement('div');
                 wrap.className = 'aras-alert-toast-wrap';
+                wrap.setAttribute('role', 'log');
+                wrap.setAttribute('aria-live', 'polite');
                 document.body.appendChild(wrap);
             }
             var toast = document.createElement('div');
             // Support both aras-badge-- classes and new aras-alert-toast-- classes
             var categoryClass = (type === 'error' || type === 'danger') ? 'danger' : type;
             toast.className = 'aras-alert-toast aras-alert-toast-' + type + ' aras-badge--' + categoryClass;
+            toast.setAttribute('role', 'alert');
             
             var icon = 'fa-info-circle';
             if (type === 'success') icon = 'fa-check-circle';

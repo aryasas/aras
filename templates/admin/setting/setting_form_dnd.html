@@ -1,25 +1,125 @@
 {# 
-  Generic Visual Form Builder — High-Fidelity WYSIWYG Mock
-  Renders fields as they appear in the actual Aras Admin forms.
+  Framework Dev GUI — Visual Layout Designer (Phase B.1)
+  Provides a high-fidelity WYSIWYG editor for form layouts.
 #}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/form_builder.css') }}">
+<style>
+    :root {
+        --designer-sidebar-w: 260px;
+        --designer-preview-w: 400px;
+    }
+    #aras-layout-designer-root {
+        height: calc(100vh - 120px);
+        display: flex;
+        flex-direction: column;
+        background: var(--aras-bg-alt);
+        margin: -20px;
+        overflow: hidden;
+    }
+    .designer-toolbar {
+        height: 50px;
+        background: var(--aras-card-bg);
+        border-bottom: 1px solid var(--aras-border);
+        display: flex;
+        align-items: center;
+        padding: 0 20px;
+        justify-content: space-between;
+        z-index: 10;
+    }
+    .designer-main {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+    }
+    .designer-sidebar {
+        width: var(--designer-sidebar-w);
+        border-right: 1px solid var(--aras-border);
+        background: var(--aras-card-bg);
+        overflow-y: auto;
+    }
+    .designer-canvas {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        background: var(--aras-bg-alt);
+    }
+    .designer-preview-pane {
+        width: var(--designer-preview-w);
+        border-left: 1px solid var(--aras-border);
+        background: var(--aras-card-bg);
+        display: flex;
+        flex-direction: column;
+        transition: width 0.3s ease;
+    }
+    .designer-preview-pane.collapsed {
+        width: 0;
+        overflow: hidden;
+        border-left: none;
+    }
+    .preview-header {
+        padding: 10px 15px;
+        border-bottom: 1px solid var(--aras-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 600;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .preview-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+    }
+    .json-editor-pane {
+        height: 40%;
+        border-top: 1px solid var(--aras-border);
+        display: flex;
+        flex-direction: column;
+    }
+    #json-editor-textarea {
+        flex: 1;
+        font-family: var(--aras-font-mono);
+        font-size: 11px;
+        padding: 10px;
+        border: none;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        resize: none;
+        outline: none;
+    }
 
-<div id="aras-form-builder-root">
+    /* Designer Specific Overrides */
+    .mock-form-card {
+        background: var(--aras-card-bg);
+        border: 1px solid var(--aras-border);
+        border-radius: 8px;
+        box-shadow: var(--aras-shadow-sm);
+        min-height: 100%;
+    }
+</style>
+
+<div id="aras-layout-designer-root">
     <div class="text-center py-5">
         <div class="spinner-grow" style="color: var(--aras-accent);" role="status"></div>
-        <p class="mt-3 text-muted fw-bold">Synchronizing Form Architecture...</p>
+        <p class="mt-3 text-muted fw-bold">Initializing Layout Engine...</p>
     </div>
 </div>
 
 <script>
 window.FORM_BUILDER_TABLE_ID    = {{ tbl.id }};
+window.FORM_BUILDER_APP_ID      = {{ app_def.id }};
 window.FORM_BUILDER_CHILD_TABLES = {{ (child_tables or [])|tojson|safe }};
 window.LAYOUT_RESET_URL          = "{{ url_for('admin.apps_table_layout_reset', app_id=app_def.id, table_id=tbl.id) }}";
 </script>
+
+{# Standard React stack #}
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<script type="text/babel" src="{{ url_for('static', filename='js/form_builder.js') }}"></script>
+{# The new Designer Script #}
+<script type="text/babel" src="{{ url_for('static', filename='js/layout-designer.js') }}"></script>

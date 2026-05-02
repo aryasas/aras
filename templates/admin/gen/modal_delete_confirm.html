@@ -1,9 +1,9 @@
-<div id="arasDeleteModal" class="aras-modal" style="display:none;">
+<div id="arasDeleteModal" class="aras-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="arasDeleteModalTitle">
     <div class="aras-modal__overlay" id="arasDeleteModalOverlay"></div>
     <div class="aras-modal__content">
         <div class="aras-modal-header" style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-            <strong style="font-size:14px;"><i class="fa fa-trash text-danger mr-2"></i> Confirm Deletion</strong>
-            <button id="arasDeleteModalClose" class="aras-btn aras-btn--sm" style="padding:4px 8px;line-height:1;">&times;</button>
+            <strong id="arasDeleteModalTitle" style="font-size:14px;"><i class="fa fa-trash text-danger mr-2"></i> Confirm Deletion</strong>
+            <button id="arasDeleteModalClose" class="aras-btn aras-btn--sm" style="padding:4px 8px;line-height:1;" aria-label="Close modal">&times;</button>
         </div>
         <div class="aras-modal-body" id="arasDeleteModalBody" style="padding:20px;">
         </div>

@@ -69,10 +69,15 @@
             <div class="px-12 py-8 fs-12 text-muted italic">No saved views</div>
           {% endfor %}
           <div class="border-top mt-4 pt-4">
+            {% if table_id is defined and table_id %}
             <button type="button" class="aras-popover-item w-100 border-0 bg-transparent text-left cursor-pointer" id="saveCurrentViewBtn{{ _lid }}">
               <i class="fa fa-plus-circle w-20 text-success"></i> Save Current as View
             </button>
+            {% else %}
+            <div class="px-12 py-4 fs-10 text-muted italic">Save view disabled (multiple tables)</div>
+            {% endif %}
           </div>
+
         </div>
       </div>
     </div>
@@ -184,7 +189,7 @@
             const columns = Array.from(document.querySelectorAll('.js-col-vis{{ _lid }}:checked')).map(cb => cb.dataset.field);
             
             const payload = {
-              table_id: {{ table_id | tojson }},
+              table_id: {{ (table_id | tojson) if table_id is defined else 'null' }},
               name: name,
               label: name,
               filter: {}, // TODO: Extract filters from URL or DOM

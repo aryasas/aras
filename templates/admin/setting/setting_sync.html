@@ -1,0 +1,165 @@
+{% extends "admin/base_index.html" %}
+
+{% block content %}
+<div class="settings-panel" id="panel-sync">
+    {% include 'admin/setting/_setting_dev_nav.html' %}
+
+    <div class="aras-card" style="padding: 20px;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="mb-1" style="color: var(--studio-ink);">Manifest ↔ DB Sync</h4>
+                <p class="text-muted small">Synchronize Python Manifest (AppHelper) definitions with database metadata.</p>
+            </div>
+            <div>
+                <button id="btn-sync-all" class="btn btn-outline-dark">
+                    <i class="fa fa-refresh mr-2"></i> Sync All Apps
+                </button>
+            </div>
+        </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead style="background: #f8f9fa;">
+                <tr>
+                    <th style="width: 250px;">App Name</th>
+                    <th>Status</th>
+                    <th>Details</th>
+                    <th style="width: 150px;" class="text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for app in apps %}
+                <tr>
+                    <td>
+                        <div class="font-weight-bold" style="color: var(--studio-ink);">{{ app.title }}</div>
+                        <div class="text-muted small">aras.{{ app.slug }}</div>
+                    </td>
+                    <td>
+                        {% if app.status == 'Synced' %}
+                            <span class="badge badge-success px-2 py-1">
+                                <i class="fa fa-check-circle mr-1"></i> Synced
+                            </span>
+                        {% elif app.status == 'Drift' %}
+                            <span class="badge badge-warning px-2 py-1">
+                                <i class="fa fa-exclamation-triangle mr-1"></i> Drift
+                            </span>
+                        {% else %}
+                            <span class="badge badge-light px-2 py-1" style="color: #999;">
+                                <i class="fa fa-minus-circle mr-1"></i> No Manifest
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if app.drift_details %}
+                            <ul class="mb-0 small text-danger pl-3">
+                                {% for detail in app.drift_details %}
+                                    <li>{{ detail }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% elif app.status == 'Synced' %}
+                            <span class="small text-muted italic">Metadata matches manifest resources.</span>
+                        {% elif app.status == 'No Manifest' %}
+                            <span class="small text-muted italic">No <code>manifest.py</code> found in app package.</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-right">
+                        {% if app.has_helper %}
+                        <button class="btn btn-sm btn-outline-secondary btn-sync" 
+                                data-id="{{ app.id }}" data-slug="{{ app.slug }}">
+                            <i class="fa fa-refresh mr-1"></i> Sync
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnSyncAll = document.getElementById('btn-sync-all');
+    const btnsSync = document.querySelectorAll('.btn-sync');
+
+    function syncApp(appId, appSlug, btn) {
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+
+        fetch(`/admin/api/dev/sync/app/${appId}`, {
+            method: 'POST'
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const s = data.stats;
+                alert(`Sync Success [${appSlug}]:\n` + 
+                      `- ${s.tables_new} new tables\n` +
+                      `- ${s.cols_new} new columns\n` +
+                      `- ${s.tables_removed} stale tables removed`);
+                window.location.reload();
+            } else {
+                alert(`Sync Failed: ${data.error}`);
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        })
+        .catch(err => {
+            alert('Network error.');
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        });
+    }
+
+    btnsSync.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const appId = this.getAttribute('data-id');
+            const appSlug = this.getAttribute('data-slug');
+            syncApp(appId, appSlug, this);
+        });
+    });
+
+    btnSyncAll.addEventListener('click', function() {
+        if (!confirm('This will sync all apps with manifests. Continue?')) return;
+        
+        // We just trigger them one by one or we could have a single API. 
+        // For simplicity, let's just loop through buttons.
+        let count = 0;
+        const toSync = Array.from(btnsSync);
+        
+        if (toSync.length === 0) {
+            alert('No apps with manifests found.');
+            return;
+        }
+
+        btnSyncAll.disabled = true;
+        btnSyncAll.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> Syncing...';
+
+        function next() {
+            if (count >= toSync.length) {
+                window.location.reload();
+                return;
+            }
+            const btn = toSync[count];
+            const appId = btn.getAttribute('data-id');
+            const appSlug = btn.getAttribute('data-slug');
+            
+            fetch(`/admin/api/dev/sync/app/${appId}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(() => {
+                count++;
+                next();
+            })
+            .catch(() => {
+                count++;
+                next();
+            });
+        }
+        
+        next();
+    });
+});
+</script>
+</div>
+{% endblock %}

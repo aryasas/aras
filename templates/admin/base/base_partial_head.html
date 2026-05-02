@@ -35,12 +35,15 @@
 </style>
 
 <script>
-    // Early detection to prevent sidebar flicker
+    // Early detection to prevent UI flicker
     (function() {
         var isMini = localStorage.getItem('aras-sidebar-mini') === 'true';
         if (isMini) {
             document.documentElement.classList.add('aras-mini-sidebar-active');
         }
+        
+        var theme = localStorage.getItem('aras-theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
     })();
 </script>
 

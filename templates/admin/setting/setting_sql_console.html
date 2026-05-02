@@ -1,0 +1,162 @@
+{% extends "admin/base_index.html" %}
+
+{% block content %}
+<div class="settings-panel" id="panel-sql">
+    {% include 'admin/setting/_setting_dev_nav.html' %}
+
+    <div class="aras-card" style="padding: 20px;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="mb-1" style="color: var(--studio-ink);">SQL Console</h4>
+                <p class="text-muted small">Read-only SQL runner (SELECT queries only). Limited to 1000 rows.</p>
+            </div>
+            <div>
+                <button id="btn-run" class="btn" style="background: var(--studio-ink); color: #fff;">
+                    <i class="fa fa-play mr-2"></i> Run Query
+                </button>
+            </div>
+        </div>
+
+    <div class="mb-4">
+        <label class="small font-weight-bold" style="color: var(--studio-ink);">SQL QUERY</label>
+        <textarea id="sql-query" class="form-control" rows="6" 
+            style="font-family: 'Courier New', monospace; font-size: 14px; background: #f8f9fa; border: 1px solid #ddd;"
+            placeholder="SELECT * FROM auth_users LIMIT 10;">SELECT * FROM auth_users LIMIT 10;</textarea>
+    </div>
+
+    <div id="sql-error" class="alert alert-danger d-none"></div>
+
+    <div id="sql-results-container" class="d-none">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div id="sql-meta" class="small text-muted"></div>
+            <button id="btn-export" class="btn btn-sm btn-outline-secondary">
+                <i class="fa fa-download mr-1"></i> Export CSV
+            </button>
+        </div>
+        <div class="table-responsive" style="max-height: 500px; border: 1px solid #eee; border-radius: 4px;">
+            <table id="sql-table" class="table table-sm table-hover table-bordered mb-0" style="font-size: 13px;">
+                <thead style="background: #f4f4f4; position: sticky; top: 0; z-index: 10;">
+                    <tr id="sql-header"></tr>
+                </thead>
+                <tbody id="sql-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="sql-loading" class="text-center py-5 d-none">
+        <div class="spinner-border text-secondary" role="status"></div>
+        <div class="mt-2 small text-muted">Executing query...</div>
+    </div>
+    
+    <div id="sql-empty" class="text-center py-5">
+        <i class="fa fa-database fa-3x mb-3" style="color: #eee;"></i>
+        <p class="text-muted">Enter a query and click Run Query to see results.</p>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnRun = document.getElementById('btn-run');
+    const btnExport = document.getElementById('btn-export');
+    const sqlQuery = document.getElementById('sql-query');
+    const sqlError = document.getElementById('sql-error');
+    const sqlResults = document.getElementById('sql-results-container');
+    const sqlLoading = document.getElementById('sql-loading');
+    const sqlEmpty = document.getElementById('sql-empty');
+    const sqlHeader = document.getElementById('sql-header');
+    const sqlBody = document.getElementById('sql-body');
+    const sqlMeta = document.getElementById('sql-meta');
+
+    let currentResults = null;
+
+    btnRun.addEventListener('click', function() {
+        const query = sqlQuery.value.trim();
+        if (!query) return;
+
+        // Reset UI
+        sqlError.classList.add('d-none');
+        sqlResults.classList.add('d-none');
+        sqlEmpty.classList.add('d-none');
+        sqlLoading.classList.remove('d-none');
+        sqlHeader.innerHTML = '';
+        sqlBody.innerHTML = '';
+
+        fetch('/admin/api/dev/sql/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: query })
+        })
+        .then(res => res.json())
+        .then(data => {
+            sqlLoading.classList.add('d-none');
+            if (data.error) {
+                sqlError.textContent = data.error;
+                sqlError.classList.remove('d-none');
+                return;
+            }
+
+            currentResults = data;
+            
+            // Build header
+            data.columns.forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col;
+                th.style.whiteSpace = 'nowrap';
+                sqlHeader.appendChild(th);
+            });
+
+            // Build body
+            data.rows.forEach(row => {
+                const tr = document.createElement('tr');
+                data.columns.forEach(col => {
+                    const td = document.createElement('td');
+                    const val = row[col];
+                    td.textContent = val === null ? 'NULL' : val;
+                    if (val === null) td.style.color = '#ccc';
+                    td.style.whiteSpace = 'nowrap';
+                    tr.appendChild(td);
+                });
+                sqlBody.appendChild(tr);
+            });
+
+            sqlMeta.textContent = `Found ${data.count} rows. ${data.truncated ? '(Truncated to 1000)' : ''}`;
+            sqlResults.classList.remove('d-none');
+        })
+        .catch(err => {
+            sqlLoading.classList.add('d-none');
+            sqlError.textContent = 'Network error or server crash.';
+            sqlError.classList.remove('d-none');
+        });
+    });
+
+    btnExport.addEventListener('click', function() {
+        if (!currentResults) return;
+        
+        let csv = currentResults.columns.join(',') + '\n';
+        currentResults.rows.forEach(row => {
+            csv += currentResults.columns.map(col => {
+                let val = row[col];
+                if (val === null) return '';
+                val = String(val).replace(/"/g, '""');
+                return `"${val}"`;
+            }).join(',') + '\n';
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sql_export_${new Date().getTime()}.csv`;
+        a.click();
+    });
+    
+    // Ctrl+Enter to run
+    sqlQuery.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'Enter') {
+            btnRun.click();
+        }
+    });
+});
+</script>
+</div>
+{% endblock %}

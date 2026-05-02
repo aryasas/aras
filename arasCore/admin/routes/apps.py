@@ -87,6 +87,79 @@ def apps_doctypes():
     )
 
 
+@admin_bp.route("/apps/wizard", methods=["GET", "POST"])
+@login_required
+def apps_wizard():
+    if request.method == "POST":
+        data = request.get_json() or {}
+        
+        # Step 1: Create App
+        app_data = data.get("app", {})
+        if not app_data.get("title") or not app_data.get("url"):
+            return jsonify({"ok": False, "error": "App title and URL are required"}), 400
+            
+        from arasCore.admin.models import AppManagerApp, AppManagerTable, AppManagerColumn
+        
+        try:
+            _slug = app_data["url"].strip().strip("/").lower().replace(" ", "_")
+            app_obj = AppManagerApp(
+                url=_slug,
+                title=app_data["title"],
+                description=app_data.get("description"),
+                icon=app_data.get("icon", "fa-cubes"),
+                color_theme=app_data.get("color_theme"),
+                is_active=True,
+                in_sidebar=True,
+                require_login=True,
+                api_enabled=True,
+                items_per_page=20,
+            )
+            db.session.add(app_obj)
+            db.session.flush() # Get app_obj.id
+            
+            # Step 2: Create Tables
+            tables_data = data.get("tables", [])
+            for t_data in tables_data:
+                tbl = AppManagerTable(
+                    app_id=app_obj.id,
+                    name=t_data["name"].strip().lower().replace(" ", "_"),
+                    title=t_data["title"],
+                    url_suffix=f"/{t_data['name'].strip().lower()}",
+                    is_active=True,
+                    show_in_menu=True,
+                    allow_create=True,
+                    allow_edit=True,
+                    allow_delete=True
+                )
+                db.session.add(tbl)
+                db.session.flush() # Get tbl.id
+                
+                # Step 3: Create Columns for this table
+                cols_data = t_data.get("columns", [])
+                for i, c_data in enumerate(cols_data):
+                    col = AppManagerColumn(
+                        table_id=tbl.id,
+                        name=c_data["name"].strip().lower().replace(" ", "_"),
+                        label=c_data["label"],
+                        field_type=c_data.get("field_type", "string"),
+                        required=bool(c_data.get("required")),
+                        order=i,
+                        show_in_list=True,
+                        show_in_form=True
+                    )
+                    db.session.add(col)
+            
+            db.session.commit()
+            flash(f"App '{app_obj.title}' created successfully via wizard.", "success")
+            return jsonify({"ok": True, "redirect": url_for("admin.apps_tables", app_id=app_obj.id)})
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"ok": False, "error": str(e)}), 500
+            
+    return render_template("admin/setting/setting_app_wizard.html", title="App Wizard", main_title="App Wizard")
+
+
 @admin_bp.route("/apps/new", methods=["GET", "POST"])
 @login_required
 def apps_new():
@@ -631,16 +704,18 @@ def apps_table_layout_reset(app_id, table_id):
 @login_required
 def apps_migrations(app_id):
     from arasCore.admin.models import AppManagerApp
-    from arasCore.lib.services.schema_migrator import diff_app, get_pending
+    from arasCore.lib.services.schema_migrator import diff_app, get_pending, get_history
     app_obj = AppManagerApp.query.get_or_404(app_id)
     diff_app(app_id)
     pending = get_pending(app_id)
+    history = get_history(app_id)
     return render_template(
         "admin/setting/setting_migrations.html",
         title=f"Migrations — {app_obj.title}",
         main_title=app_obj.title,
         app_def=app_obj,
         pending=pending,
+        history=history,
     )
 
 
@@ -652,9 +727,23 @@ def apps_migrations_apply(app_id):
     app_obj = AppManagerApp.query.get_or_404(app_id)
     applied, skipped = apply_pending(app_id, safe_only=True)
     flash(
-        f"Applied {len(applied)} migration(s). {len(skipped)} skipped (unsafe or error).",
+        f"Applied {len(applied)} safe migration(s). {len(skipped)} skipped (unsafe or error).",
         "success" if applied else "info",
     )
+    return redirect(url_for("admin.apps_migrations", app_id=app_id))
+
+
+@admin_bp.route("/apps/<int:app_id>/migrations/apply-all", methods=["POST"])
+@login_required
+def apps_migrations_apply_all(app_id):
+    from arasCore.admin.models import AppManagerApp
+    from arasCore.lib.services.schema_migrator import apply_pending
+    app_obj = AppManagerApp.query.get_or_404(app_id)
+    applied, skipped = apply_pending(app_id, safe_only=False)
+    if skipped:
+        flash(f"Applied {len(applied)} migration(s), but {len(skipped)} failed.", "warning")
+    else:
+        flash(f"Successfully applied all {len(applied)} migration(s).", "success")
     return redirect(url_for("admin.apps_migrations", app_id=app_id))
 
 
