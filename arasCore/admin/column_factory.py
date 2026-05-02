@@ -50,7 +50,8 @@ def _make_wtf_field(col):
 
     label      = col.label if col.label and col.label != col.name else _humanize_label(col.name)
     validators = [DataRequired()] if col.required else [Opt()]
-    render_kw  = {}
+    ft = col.field_type
+    render_kw  = {"field_type": ft}
     description = getattr(col, "help_text", None) or ""
 
     max_len = getattr(col, "max_length", None)

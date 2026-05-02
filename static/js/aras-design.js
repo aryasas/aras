@@ -12,7 +12,8 @@
             this.initSidebarCollapse();
             this.initRightSidebar();
             this.initSearch();
-            this.initCustomSelects();
+            this.initComponentLibrary();
+            this.initFormLoading();
         },
 
         initSidebar: function() {
@@ -32,6 +33,90 @@
                     sidebar.classList.remove('is-open');
                 }
             });
+        },
+
+        initFormLoading: function() {
+            document.addEventListener('submit', function(e) {
+                var form = e.target;
+                if (form.tagName === 'FORM') {
+                    var btn = form.querySelector('button[type="submit"], input[type="submit"]');
+                    if (btn) {
+                        // Sync Rich Text editors before submit
+                        form.querySelectorAll('.ql-container').forEach(function(qlCont) {
+                            var quill = Quill.find(qlCont);
+                            if (quill) {
+                                var textarea = qlCont.previousElementSibling;
+                                if (textarea && textarea.tagName === 'TEXTAREA') {
+                                    textarea.value = quill.root.innerHTML;
+                                }
+                            }
+                        });
+
+                        // Delay slightly to allow native validation to kick in if any
+                        setTimeout(function() {
+                            if (form.checkValidity()) {
+                                btn.classList.add('is-loading');
+                            }
+                        }, 10);
+                    }
+                }
+            });
+        },
+
+        initComponentLibrary: function() {
+            // ── Tom Select (Typeahead) ──
+            if (window.TomSelect) {
+                document.querySelectorAll('select.data-typeahead, select[data-typeahead]').forEach(function(el) {
+                    if (el.dataset.tomSelect) return;
+                    new TomSelect(el, {
+                        create: false,
+                        sortField: { field: "text", direction: "asc" },
+                        allowEmptyOption: true,
+                        plugins: ['dropdown_input']
+                    });
+                    el.dataset.tomSelect = "true";
+                });
+            }
+
+            // ── Flatpickr (Datepicker) ──
+            if (window.flatpickr) {
+                flatpickr('input[type="date"], .aras-datepicker', {
+                    altInput: true,
+                    altFormat: "F j, Y",
+                    dateFormat: "Y-m-d",
+                    allowInput: true
+                });
+            }
+
+            // ── Quill (Rich Text) ──
+            if (window.Quill) {
+                document.querySelectorAll('textarea.richtext').forEach(function(el) {
+                    if (el.style.display === 'none') return;
+                    
+                    var container = document.createElement('div');
+                    container.className = 'quill-editor-wrapper';
+                    el.parentNode.insertBefore(container, el);
+                    
+                    var quill = new Quill(container, {
+                        theme: 'snow',
+                        modules: {
+                            toolbar: [
+                                [{'header': [1, 2, 3, false]}],
+                                ['bold', 'italic', 'underline', 'strike'],
+                                [{'list': 'ordered'}, {'list': 'bullet'}],
+                                ['link', 'clean']
+                            ]
+                        }
+                    });
+                    
+                    quill.root.innerHTML = el.value;
+                    el.style.display = 'none';
+                    
+                    quill.on('text-change', function() {
+                        el.value = quill.root.innerHTML;
+                    });
+                });
+            }
         },
 
         initSidebarCollapse: function() {
@@ -80,95 +165,6 @@
                     sidebar.classList.remove('is-open');
                     if (frame) frame.classList.remove('has-right-sidebar');
                 }
-            });
-        },
-
-        initCustomSelects: function() {
-            var selects = document.querySelectorAll('.aras-form-select, .aras-fsel');
-            selects.forEach(function(select) {
-                if (select.closest('.aras-custom-select') || select.classList.contains('is-hidden')) return;
-                
-                var wrapper = document.createElement('div');
-                wrapper.className = 'aras-custom-select';
-                if (select.classList.contains('aras-fsel')) wrapper.classList.add('aras-fsel-wrapper');
-                
-                var trigger = document.createElement('div');
-                trigger.className = 'aras-select-trigger';
-                
-                var label = document.createElement('span');
-                label.textContent = select.options[select.selectedIndex] ? select.options[select.selectedIndex].text : 'Select...';
-                
-                var icon = document.createElement('i');
-                icon.className = 'fa fa-chevron-down';
-                
-                trigger.appendChild(label);
-                trigger.appendChild(icon);
-                
-                var optionsContainer = document.createElement('div');
-                optionsContainer.className = 'aras-select-options';
-                
-                function buildOptions() {
-                    optionsContainer.innerHTML = '';
-                    Array.from(select.options).forEach(function(opt) {
-                        var o = document.createElement('div');
-                        o.className = 'aras-select-option';
-                        if (opt.selected) o.classList.add('is-selected');
-                        o.textContent = opt.text;
-                        o.dataset.value = opt.value;
-                        
-                        o.addEventListener('click', function(e) {
-                            e.stopPropagation();
-                            select.value = opt.value;
-                            label.textContent = opt.text;
-                            
-                            updateSelectedState();
-                            wrapper.classList.remove('is-open');
-                            
-                            var event = new Event('change', { bubbles: true });
-                            select.dispatchEvent(event);
-                        });
-                        optionsContainer.appendChild(o);
-                    });
-                }
-
-                function updateSelectedState() {
-                    var val = select.value;
-                    optionsContainer.querySelectorAll('.aras-select-option').forEach(function(el) {
-                        el.classList.toggle('is-selected', el.dataset.value === val);
-                    });
-                    label.textContent = select.options[select.selectedIndex] ? select.options[select.selectedIndex].text : 'Select...';
-                }
-                
-                buildOptions();
-                
-                wrapper.appendChild(trigger);
-                wrapper.appendChild(optionsContainer);
-                
-                select.parentNode.insertBefore(wrapper, select);
-                select.classList.add('is-hidden');
-                wrapper.appendChild(select);
-                
-                trigger.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    document.querySelectorAll('.aras-custom-select.is-open').forEach(function(openSelect) {
-                        if (openSelect !== wrapper) openSelect.classList.remove('is-open');
-                    });
-                    wrapper.classList.toggle('is-open');
-                });
-
-                select.addEventListener('change', updateSelectedState);
-                
-                var observer = new MutationObserver(function() {
-                    buildOptions();
-                    updateSelectedState();
-                });
-                observer.observe(select, { childList: true });
-            });
-            
-            document.addEventListener('click', function() {
-                document.querySelectorAll('.aras-custom-select.is-open').forEach(function(el) {
-                    el.classList.remove('is-open');
-                });
             });
         },
 
@@ -236,35 +232,42 @@
         ArasStudio.init();
     }
 
-    // Global Notification System
-    window.arasNotify = function(msg, type) {
-        type = type || 'info';
-        var wrap = document.querySelector('.aras-alert-toast-wrap');
-        if (!wrap) {
-            wrap = document.createElement('div');
-            wrap.className = 'aras-alert-toast-wrap';
-            document.body.appendChild(wrap);
+    // Global Aras Object
+    window.Aras = {
+        toast: function(msg, type) {
+            type = type || 'info';
+            var wrap = document.querySelector('.aras-alert-toast-wrap');
+            if (!wrap) {
+                wrap = document.createElement('div');
+                wrap.className = 'aras-alert-toast-wrap';
+                document.body.appendChild(wrap);
+            }
+            var toast = document.createElement('div');
+            // Support both aras-badge-- classes and new aras-alert-toast-- classes
+            var categoryClass = (type === 'error' || type === 'danger') ? 'danger' : type;
+            toast.className = 'aras-alert-toast aras-alert-toast-' + type + ' aras-badge--' + categoryClass;
+            
+            var icon = 'fa-info-circle';
+            if (type === 'success') icon = 'fa-check-circle';
+            if (type === 'error' || type === 'danger') icon = 'fa-exclamation-circle';
+            if (type === 'warning') icon = 'fa-warning';
+            
+            toast.innerHTML = '<i class="fa ' + icon + ' mt-1"></i>' +
+                             '<span style="flex:1">' + msg + '</span>' +
+                             '<button type="button" onclick="this.parentElement.remove()">&times;</button>';
+            
+            wrap.appendChild(toast);
+            
+            // Auto-remove after 4s
+            setTimeout(function() {
+                if (!toast.parentElement) return;
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(20px)';
+                setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
+            }, 4000);
         }
-        var toast = document.createElement('div');
-        toast.className = 'aras-alert-toast aras-badge--' + (type === 'error' || type === 'danger' ? 'danger' : type);
-        
-        var icon = 'fa-info-circle';
-        if (type === 'success') icon = 'fa-check-circle';
-        if (type === 'error' || type === 'danger') icon = 'fa-exclamation-circle';
-        
-        toast.innerHTML = '<i class="fa ' + icon + ' mt-1"></i>' +
-                         '<span style="flex:1">' + msg + '</span>' +
-                         '<button type="button" style="background:none;border:none;color:inherit;opacity:0.5;cursor:pointer;font-size:18px;line-height:1;margin-left:8px;" onclick="this.parentElement.remove()">&times;</button>';
-        
-        wrap.appendChild(toast);
-        
-        // Auto-remove after 5s
-        setTimeout(function() {
-            if (!toast.parentElement) return;
-            toast.style.opacity = '0';
-            toast.style.transform = 'translateX(20px)';
-            toast.style.transition = 'all 0.3s ease';
-            setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
-        }, 5000);
     };
+
+    // Backward compatibility
+    window.arasNotify = window.Aras.toast;
 })();

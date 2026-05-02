@@ -50,6 +50,34 @@
     </button>
     {% endif %}
 
+    {# ── Saved Views Dropdown ── #}
+    {% if table_id %}
+    <div class="position-relative d-inline-block">
+      <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" id="savedViewsBtn{{ _lid }}" title="Saved Views">
+        <i class="fa fa-star-o mr-1"></i> Views
+        <i class="fa fa-caret-down ml-1 fs-10"></i>
+      </button>
+      <div id="savedViewsPopover{{ _lid }}" class="aras-popover" style="display:none;min-width:200px; right:0; top:100%; margin-top:5px; z-index:100;">
+        <div class="d-flex flex-column" style="padding:4px 0;">
+          <div class="px-12 py-8 border-bottom bg-light fs-11 text-muted font-weight-bold uppercase tracking-wider">My Views</div>
+          {% for v in saved_views %}
+            <a class="aras-popover-item" href="{{ url_for(request.endpoint, view_id=v.id, **request.view_args) }}">
+              <i class="fa fa-file-text-o w-20"></i> {{ v.label }}
+              {% if v.is_shared %}<i class="fa fa-users ml-auto fs-10 text-muted" title="Shared"></i>{% endif %}
+            </a>
+          {% else %}
+            <div class="px-12 py-8 fs-12 text-muted italic">No saved views</div>
+          {% endfor %}
+          <div class="border-top mt-4 pt-4">
+            <button type="button" class="aras-popover-item w-100 border-0 bg-transparent text-left cursor-pointer" id="saveCurrentViewBtn{{ _lid }}">
+              <i class="fa fa-plus-circle w-20 text-success"></i> Save Current as View
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     {# ── Totals toggle ── #}
     <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" id="totalsToggleBtn{{ _lid }}" title="Show column totals" data-active="false">
       <i class="fa fa-calculator"></i>
@@ -131,6 +159,60 @@
             e.stopPropagation();
           });
         }
+
+        // Saved Views logic
+        const svBtn = document.getElementById('savedViewsBtn{{ _lid }}');
+        const svPop = document.getElementById('savedViewsPopover{{ _lid }}');
+        if (svBtn && svPop) {
+          svBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isVisible = svPop.style.display === 'block';
+            document.querySelectorAll('.aras-popover').forEach(p => p.style.display = 'none');
+            svPop.style.display = isVisible ? 'none' : 'block';
+          });
+          svPop.addEventListener('click', function(e) { e.stopPropagation(); });
+        }
+
+        const saveBtn = document.getElementById('saveCurrentViewBtn{{ _lid }}');
+        if (saveBtn) {
+          saveBtn.addEventListener('click', function() {
+            const name = prompt("Enter a name for this view:");
+            if (!name) return;
+            
+            // Collect current filters, sort, and visible columns
+            const urlParams = new URLSearchParams(window.location.search);
+            const columns = Array.from(document.querySelectorAll('.js-col-vis{{ _lid }}:checked')).map(cb => cb.dataset.field);
+            
+            const payload = {
+              table_id: {{ table_id | tojson }},
+              name: name,
+              label: name,
+              filter: {}, // TODO: Extract filters from URL or DOM
+              sort: {
+                col: urlParams.get('sort'),
+                dir: urlParams.get('dir')
+              },
+              columns: columns
+            };
+            
+            fetch('/admin/api/page-view/save', {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+              },
+              body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+              if (data.ok) {
+                location.reload();
+              } else {
+                alert("Error saving view: " + data.error);
+              }
+            });
+          });
+        }
       })();
       </script>
 
@@ -163,7 +245,16 @@
         .w-20 { width: 20px; text-align: center; margin-right: 10px; }
       </style>
 
-      {% if _has_customize and app_id and table_id %}
+    {% if linked_docs_url_base %}
+    {% set csv_args = request.args.copy() %}
+    {% do csv_args.setlist('format', ['csv']) %}
+    <a href="{{ linked_docs_url_base }}?{{ csv_args | urlencode }}" 
+       class="aras-btn aras-btn--outline aras-btn--sm" title="Export CSV">
+      <i class="fa fa-download"></i>
+    </a>
+    {% endif %}
+
+    {% if _has_customize and app_id and table_id %}
 
     <a href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}"
        class="aras-btn aras-btn--outline aras-btn--sm" title="Customize Fields">

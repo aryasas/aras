@@ -1,6 +1,8 @@
 {# Count widget — redesigned for Aras Design System #}
+{% if not skip_col %}
 <div class="col-md-{{ widget.width|default(3) }}">
-  <div class="stat-card" data-widget-id="{{ widget.id }}">
+{% endif %}
+  <div class="stat-card" data-widget-id="{{ widget.id }}" style="grid-column: span {{ widget.width|default(3) }};">
     <span class="label">{{ widget.title }}</span>
     
     <div class="aras-w__figrow">
@@ -28,4 +30,6 @@
       {% endif %}
     </div>
   </div>
+{% if not skip_col %}
 </div>
+{% endif %}

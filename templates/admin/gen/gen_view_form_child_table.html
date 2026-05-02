@@ -206,7 +206,7 @@
       <input type="hidden" id="ct-modal-id-{{ _li }}" value="">
       {% for col in ct.inline_columns %}
       <div class="aras-form-row">
-        <label class="aras-form-label">{{ col.label }}</label>
+        <label class="aras-form-label {% if col.required %}is-required{% endif %}">{{ col.label }}</label>
         <div class="aras-form-control-wrap">
         {% if col.type == 'select' %}
           <select name="{{ col.name }}" id="ct-modal-{{ _li }}-{{ col.name }}" class="aras-form-select"

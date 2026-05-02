@@ -940,3 +940,41 @@ def list_pref_save():
     except Exception as e:
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/page-view/save", methods=["POST"])
+@login_required
+def page_view_save():
+    """Saves a named AppManagerPageView (filter + sort + columns)."""
+    import json
+    from arasCore.admin.models import AppManagerPageView, AppManagerTable
+    data = request.get_json() or {}
+    
+    table_id = data.get("table_id")
+    name     = data.get("name")
+    label    = data.get("label") or name
+    
+    if not table_id or not name:
+        return jsonify({"ok": False, "error": "Missing table_id or name"}), 400
+        
+    try:
+        view = AppManagerPageView.query.filter_by(
+            table_id=table_id, name=name, owner_id=current_user.id
+        ).first()
+        
+        if not view:
+            view = AppManagerPageView(
+                table_id=table_id, name=name, label=label, owner_id=current_user.id
+            )
+            db.session.add(view)
+            
+        view.filter_json = json.dumps(data.get("filter", {}))
+        view.sort_json   = json.dumps(data.get("sort", {}))
+        view.columns_csv = ",".join(data.get("columns", []))
+        view.is_shared   = bool(data.get("is_shared"))
+        
+        db.session.commit()
+        return jsonify({"ok": True, "view_id": view.id})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(e)}), 500

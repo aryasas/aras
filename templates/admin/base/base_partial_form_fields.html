@@ -10,7 +10,7 @@
     {% if field.type not in ['HiddenField', 'CSRFTokenField', 'SubmitField'] %}
       {% set _is_ro = field.name in _ro_fields %}
       <div class="aras-form-row {% if field.type == 'BooleanField' %}is-bool{% endif %}">
-        <label class="aras-form-label">
+        <label class="aras-form-label {% if field.flags.required %}is-required{% endif %}">
           {{ field.label }}
           {% if _is_ro %}<span class="aras-badge aras-badge--muted aras-badge--auto">auto</span>{% endif %}
         </label>
@@ -22,11 +22,13 @@
               <span class="aras-toggle-label">{{ field.label.text }}</span>
             </label>
           {% elif field.type == 'TextAreaField' %}
-            {{ field(class_="aras-form-textarea" + (" aras-form-control is-calc" if _is_ro else ""), **({'readonly': True, 'tabindex': '-1'} if _is_ro else {})) }}
+            {% set is_richtext = (field.render_kw and field.render_kw.get('field_type') == 'richtext') %}
+            {{ field(class_="aras-form-textarea" + (" aras-form-control is-calc" if _is_ro else "") + (" richtext" if is_richtext else ""), **({'readonly': True, 'tabindex': '-1'} if _is_ro else {})) }}
           {% elif field.type == 'SelectField' %}
-            {{ field(class_="aras-form-select", **({'disabled': True} if _is_ro else {})) }}
+            {{ field(class_="aras-form-select" + ("" if _is_ro else " data-typeahead"), **({'disabled': True} if _is_ro else {})) }}
           {% else %}
-            {{ field(class_="aras-form-input" + (" aras-form-control is-calc" if _is_ro else ""), **({'readonly': True, 'tabindex': '-1'} if _is_ro else {})) }}
+            {% set _field_type = field.render_kw.get('field_type') if field.render_kw else '' %}
+            {{ field(class_="aras-form-input" + (" aras-form-control is-calc" if _is_ro else ""), type="date" if _field_type == 'date' else field.type == 'DateField', **({'readonly': True, 'tabindex': '-1'} if _is_ro else {})) }}
           {% endif %}
           {% if field.errors %}
             {% for err in field.errors %}

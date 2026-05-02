@@ -32,7 +32,7 @@
             <div class="aras-card-body">
               <div class="aras-form-fields">
                 <div class="aras-form-row">
-                  <label class="aras-form-label">{{ form.name.label }}</label>
+                  <label class="aras-form-label {% if form.name.flags.required %}is-required{% endif %}">{{ form.name.label }}</label>
                   <div>
                     {{ form.name(class_="aras-form-input", placeholder="e.g. products") }}
                     <small class="aras-form-help">Slug: lowercase, no spaces. Becomes DB table suffix.</small>
@@ -40,14 +40,14 @@
                   </div>
                 </div>
                 <div class="aras-form-row">
-                  <label class="aras-form-label">{{ form.title.label }}</label>
+                  <label class="aras-form-label {% if form.title.flags.required %}is-required{% endif %}">{{ form.title.label }}</label>
                   <div>
                     {{ form.title(class_="aras-form-input", placeholder="e.g. Products") }}
                     {% for e in form.title.errors %}<span class="aras-form-error">{{ e }}</span>{% endfor %}
                   </div>
                 </div>
                 <div class="aras-form-row">
-                  <label class="aras-form-label">{{ form.url_suffix.label }}</label>
+                  <label class="aras-form-label {% if form.url_suffix.flags.required %}is-required{% endif %}">{{ form.url_suffix.label }}</label>
                   <div>
                     <div style="display:flex;">
                       <span style="background:var(--aras-line-3); border:1px solid var(--aras-line-2); border-right:none; padding:8px 12px; font-size:12px; color:var(--aras-ink-3); border-radius:4px 0 0 4px;">{{ app_def.url }}</span>

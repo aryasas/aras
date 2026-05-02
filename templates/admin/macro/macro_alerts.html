@@ -22,8 +22,9 @@
     {% if messages %}
       <div class="aras-alert-toast-wrap">
         {% for category, message in messages %}
-          <div class="aras-alert-toast aras-badge--{{ category if category != 'danger' else 'danger' }}">
-            <i class="fa {% if category == 'success' %}fa-check-circle{% elif category == 'danger' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %} mt-1"></i>
+          {% set cat = category if category != 'message' else 'info' %}
+          <div class="aras-alert-toast aras-alert-toast-{{ cat }} aras-badge--{{ 'danger' if cat == 'error' or cat == 'danger' else cat }}">
+            <i class="fa {% if cat == 'success' %}fa-check-circle{% elif cat == 'error' or cat == 'danger' %}fa-exclamation-circle{% elif cat == 'warning' %}fa-warning{% else %}fa-info-circle{% endif %} mt-1"></i>
             <span class="flex-grow-1">{{ message }}</span>
             <button type="button" onclick="this.parentElement.remove()">&times;</button>
           </div>

@@ -1,6 +1,8 @@
 {# Chart widget — bar chart via Chart.js #}
+{% if not skip_col %}
 <div class="col-md-{{ widget.width|default(6) }}">
-  <div class="aras-card">
+{% endif %}
+  <div class="aras-card" style="grid-column: span {{ widget.width|default(6) }};">
     <div class="aras-card__header">
       <h3 class="aras-card__title">
         <i class="{{ widget.icon|default('fa fa-chart-bar') }} icon--aras-accent-mr-2"></i>
@@ -11,7 +13,9 @@
       <canvas id="chart-{{ widget.id }}" height="120"></canvas>
     </div>
   </div>
+{% if not skip_col %}
 </div>
+{% endif %}
 <script>
 (function(){
   var ctx = document.getElementById('chart-{{ widget.id }}');

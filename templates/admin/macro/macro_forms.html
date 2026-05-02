@@ -33,7 +33,7 @@
   {% for field in form %}
     {% if field.type not in ['HiddenField', 'CSRFTokenField', 'SubmitField'] %}
       <div class="aras-form-row {% if field.type == 'BooleanField' %}is-bool{% endif %}">
-        <label class="aras-form-label">{{ field.label }}</label>
+        <label class="aras-form-label {% if field.flags.required %}is-required{% endif %}">{{ field.label }}</label>
         <div>
           {% if field.type == 'BooleanField' %}
             <label class="aras-toggle">

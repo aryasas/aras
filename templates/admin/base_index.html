@@ -48,13 +48,13 @@
 
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
-            <div class="flash-messages">
-              {% for category, message in messages %}
-                <div class="alert alert-{{ category if category != 'message' else 'info' }}">
-                    {{ message }}
-                </div>
-              {% endfor %}
-            </div>
+            <script>
+                window.addEventListener('DOMContentLoaded', function() {
+                    {% for category, message in messages %}
+                        Aras.toast("{{ message|safe }}", "{{ category if category != 'message' else 'info' }}");
+                    {% endfor %}
+                });
+            </script>
           {% endif %}
         {% endwith %}
 
@@ -62,7 +62,6 @@
         <script src="{{ url_for('static', filename='js/adm_delete.js') }}"></script>
         {% block script_src %}{% endblock script_src %}
 
-        <script src="{{ url_for('static', filename='js/aras-design.js') }}"></script>
         <script src="{{ url_for('static', filename='js/aras_tweaks.js') }}"></script>
 
         {% block script %} 

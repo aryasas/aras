@@ -312,81 +312,85 @@ def load_all_built_apps(flask_app):
 def get_dashboard_widgets(user, app_id: int = None):
     """
     Return list of widget dicts for the admin dashboard.
-    When app_id is provided, returns DB-driven widgets for that app
-    filtered by user/role scope. Falls back to built-in system widgets.
+    When app_id is provided, returns DB-driven widgets for that app.
+    When app_id is None, returns global DB-driven widgets (where app_id is NULL).
+    Falls back to / Appends built-in system widgets.
     """
     from arasCore.auth import User
     from arasCore.permissions import UserRole
 
     widgets = []
 
-    # DB-driven widgets (app-specific or global via app_id)
-    if app_id is not None:
+    # DB-driven widgets
+    try:
+        from arasCore.admin.models import AppManagerDashboard
+        from arasCore.lib.ui.widget_registry import resolve_widget
+        from sqlalchemy import or_
+
+        # Collect user's role IDs
+        user_role_ids = [
+            r.role_id for r in UserRole.query.filter_by(user_id=user.id).all()
+        ] if user.is_authenticated else []
+
+        # Filter by app_id (can be NULL/None)
+        q = AppManagerDashboard.query.filter_by(app_id=app_id, is_active=True)
+        q = q.filter(or_(
+            AppManagerDashboard.user_id == None,   # noqa: E711
+            AppManagerDashboard.user_id == user.id,
+            AppManagerDashboard.role_id.in_(user_role_ids) if user_role_ids else False,
+        ))
+        db_widgets = q.order_by(AppManagerDashboard.order).all()
+        for w in db_widgets:
+            try:
+                data = resolve_widget(w)
+                widgets.append({
+                    "id":          f"db_{w.id}",
+                    "db_id":       w.id,
+                    "title":       w.label,
+                    "widget_type": w.widget_type,
+                    "icon":        w.icon or "fa fa-chart-bar",
+                    "color":       w.color or "primary",
+                    "link":        w.link_url,
+                    "width":       w.width or 3,
+                    "order":       w.order,
+                    **data,
+                })
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    # Always append built-in system widgets ONLY if we are on global dashboard
+    if app_id is None:
         try:
-            from arasCore.admin.models import AppManagerDashboard
-            from arasCore.lib.ui.widget_registry import resolve_widget
-            from sqlalchemy import or_
-
-            # Collect user's role IDs
-            user_role_ids = [
-                r.role_id for r in UserRole.query.filter_by(user_id=user.id).all()
-            ] if user.is_authenticated else []
-
-            q = AppManagerDashboard.query.filter_by(app_id=app_id, is_active=True)
-            q = q.filter(or_(
-                AppManagerDashboard.user_id == None,   # noqa: E711
-                AppManagerDashboard.user_id == user.id,
-                AppManagerDashboard.role_id.in_(user_role_ids) if user_role_ids else False,
-            ))
-            db_widgets = q.order_by(AppManagerDashboard.order).all()
-            for w in db_widgets:
-                try:
-                    data = resolve_widget(w)
-                    widgets.append({
-                        "id":          f"db_{w.id}",
-                        "title":       w.label,
-                        "widget_type": w.widget_type,
-                        "icon":        w.icon or "fa fa-chart-bar",
-                        "color":       w.color or "primary",
-                        "link":        w.link_url,
-                        "width":       w.width or 3,
-                        **data,
-                    })
-                except Exception:
-                    pass
+            total_users = User.query.count()
+            widgets.append({
+                "id": "total_users", "title": "Total Users", "value": total_users,
+                "icon": "fa fa-users", "color": "primary",
+                "link": "/admin/users", "link_label": "View all",
+            })
         except Exception:
             pass
 
-    # Always append built-in system widgets
-    try:
-        total_users = User.query.count()
-        widgets.append({
-            "id": "total_users", "title": "Total Users", "value": total_users,
-            "icon": "fa fa-users", "color": "primary",
-            "link": "/admin/users", "link_label": "View all",
-        })
-    except Exception:
-        pass
+        try:
+            unread_act = user.new_activities() if hasattr(user, "new_activities") else 0
+            widgets.append({
+                "id": "new_activities", "title": "New Log Entries", "value": unread_act,
+                "icon": "fa fa-bolt", "color": "info",
+                "link": "/admin/user-log", "link_label": "View log",
+            })
+        except Exception:
+            pass
 
-    try:
-        unread_act = user.new_activities() if hasattr(user, "new_activities") else 0
-        widgets.append({
-            "id": "new_activities", "title": "New Log Entries", "value": unread_act,
-            "icon": "fa fa-bolt", "color": "info",
-            "link": "/admin/user-log", "link_label": "View log",
-        })
-    except Exception:
-        pass
-
-    try:
-        from arasCore.admin.models import AppManagerApp
-        total_apps = AppManagerApp.query.filter_by(is_active=True).count()
-        widgets.append({
-            "id": "active_apps", "title": "Active Apps", "value": total_apps,
-            "icon": "fa fa-cubes", "color": "secondary",
-            "link": "/admin/apps", "link_label": "Manage",
-        })
-    except Exception:
-        pass
+        try:
+            from arasCore.admin.models import AppManagerApp
+            total_apps = AppManagerApp.query.filter_by(is_active=True).count()
+            widgets.append({
+                "id": "active_apps", "title": "Active Apps", "value": total_apps,
+                "icon": "fa fa-cubes", "color": "secondary",
+                "link": "/admin/apps", "link_label": "Manage",
+            })
+        except Exception:
+            pass
 
     return widgets

@@ -615,7 +615,50 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
                 if fname in model.__table__.c
                 and hasattr(model.__table__.c[fname].type, "length")
             ][:5]
-        q_obj, active_filters, search_q = apply_search_fn(model.query.order_by(model.id.desc()), model, search_cols, _req)
+        
+        # Fetch saved views for this table
+        saved_views = []
+        applied_view = None
+        try:
+            from arasCore.admin.models import AppManagerPageView
+            from sqlalchemy import or_
+            saved_views = AppManagerPageView.query.filter_by(table_id=table_id).filter(
+                or_(AppManagerPageView.owner_id == current_user.id, AppManagerPageView.is_shared == True)
+            ).order_by(AppManagerPageView.label).all()
+            
+            view_id = _req.args.get("view_id", type=int)
+            if view_id:
+                applied_view = AppManagerPageView.query.get(view_id)
+        except Exception:
+            pass
+
+        # ── Sorting logic ──
+        sort_col = _req.args.get("sort")
+        sort_dir = _req.args.get("dir", "asc")
+        
+        if applied_view and not sort_col:
+            import json
+            try:
+                s_json = json.loads(applied_view.sort_json or "{}")
+                sort_col = s_json.get("col")
+                sort_dir = s_json.get("dir", "asc")
+            except Exception: pass
+
+        base_q = model.query
+        if sort_col and hasattr(model, sort_col):
+            from sqlalchemy import asc, desc
+            col_attr = getattr(model, sort_col)
+            base_q = base_q.order_by(desc(col_attr) if sort_dir == "desc" else asc(col_attr))
+        else:
+            if hasattr(model, "id"):
+                base_q = base_q.order_by(model.id.desc())
+
+        q_obj, active_filters, search_q = apply_search_fn(base_q, model, search_cols, _req)
+        
+        # Apply filters from view if not already filtered by user
+        if applied_view and not active_filters and not search_q:
+            # TODO: Future enhancement — apply complex filters from applied_view.filter_json
+            pass
         
         current_view = _req.args.get('view', 'list')
         if current_view == 'tree':
@@ -646,14 +689,20 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
             pass
         all_cols = _all_model_columns(model)
         
-        # Apply saved column selection if user has a preference
-        if saved_columns:
+        # Apply saved column selection if user has a preference or applied view
+        if applied_view and applied_view.columns_csv:
+            saved_set = set(applied_view.columns_csv.split(","))
+            eff_vcols = [(lbl, fn) for lbl, fn in all_cols if fn in saved_set]
+            if not eff_vcols:
+                eff_vcols = vcols
+        elif saved_columns:
             saved_set = set(saved_columns)
             eff_vcols = [(lbl, fn) for lbl, fn in all_cols if fn in saved_set]
             if not eff_vcols:
                 eff_vcols = vcols
         else:
             eff_vcols = vcols
+
         from arasCore.lib.services.api_handler import get_api_url_for_model
         _api_url = get_api_url_for_model(model)
         return render_template(
@@ -672,6 +721,7 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
             linked_report_url=linked_report_url,
             doctype_key=_doctype_key, saved_columns=saved_columns,
             all_columns=all_cols,
+            saved_views=saved_views,
         )
     return view
 

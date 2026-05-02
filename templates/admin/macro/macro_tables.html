@@ -26,7 +26,25 @@
         </th>
         {% endif %}
         {% for label, field in view_columns %}
-        <th data-field="{{ field }}" {% if _visible_fields is not none and field not in _visible_fields %}style="display:none;"{% endif %}>{{ label }}</th>
+        <th data-field="{{ field }}" {% if _visible_fields is not none and field not in _visible_fields %}style="display:none;"{% endif %}>
+          {% set current_sort = request.args.get('sort') %}
+          {% set current_dir = request.args.get('dir', 'asc') %}
+          {% set next_dir = 'desc' if current_sort == field and current_dir == 'asc' else 'asc' %}
+          
+          {# Build URL with current args updated for sort #}
+          {% set url_args = request.args.copy() %}
+          {% do url_args.setlist('sort', [field]) %}
+          {% do url_args.setlist('dir', [next_dir]) %}
+          
+          <a href="?{{ url_args | urlencode }}" class="aras-table-sort">
+            {{ label }}
+            {% if current_sort == field %}
+              <i class="fa fa-caret-{{ 'up' if current_dir == 'asc' else 'down' }} ml-1"></i>
+            {% else %}
+              <i class="fa fa-sort text-light ml-1 fs-10"></i>
+            {% endif %}
+          </a>
+        </th>
         {% endfor %}
       </tr>
     </thead>

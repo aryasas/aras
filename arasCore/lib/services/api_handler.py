@@ -16,6 +16,7 @@ Cara pakai (di create_app, setelah semua blueprint terdaftar):
     register_universal_api(app)
 """
 import logging
+from datetime import datetime
 from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 from sqlalchemy.exc import SQLAlchemyError
@@ -250,6 +251,34 @@ def _build_api_blueprint() -> Blueprint:
             searchable = entry.get("searchable") or []
             filters_allowed = entry.get("filters") or []
             aq = ArasQuery(model, request.args, searchable=searchable, filters=filters_allowed)
+            
+            # ── CSV Export ──
+            if request.args.get("format") == "csv":
+                import csv
+                import io
+                from flask import Response
+                
+                q = aq._apply_filters_and_sort(base_q)
+                items = q.all()
+                
+                output = io.StringIO()
+                writer = csv.writer(output)
+                
+                # Header
+                columns = [c.name for c in model.__table__.columns]
+                writer.writerow(columns)
+                
+                # Data
+                for item in items:
+                    writer.writerow([getattr(item, col) for col in columns])
+                
+                filename = f"{key.replace('/', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                return Response(
+                    output.getvalue(),
+                    mimetype="text/csv",
+                    headers={"Content-Disposition": f"attachment;filename={filename}"}
+                )
+
             # Run query only for pagination/filter — serialize via handler chain
             q = aq._apply_filters_and_sort(base_q)
             page = max(1, request.args.get("page", 1, type=int))

@@ -369,7 +369,7 @@ class AppManagerDashboard(ArasModel):
 
     WIDGET_TYPES = ("count", "sum", "chart", "list", "html")
 
-    app_id      = db.Column(db.Integer, db.ForeignKey("mgr_app.id"), nullable=False)
+    app_id      = db.Column(db.Integer, db.ForeignKey("mgr_app.id"), nullable=True)
     name        = db.Column(db.String(100), nullable=False)
     label       = db.Column(db.String(200), nullable=False)
     widget_type = db.Column(db.String(20),  default="count")
