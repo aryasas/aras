@@ -271,6 +271,8 @@
 
         const SID = {{ session.id }};
         const CSRF = "{{ csrf_token() }}";
+        const SELLING_PRICELIST_ID = {{ selling_pricelist_id | default('null') }};
+        const PURCHASE_PRICELIST_ID = {{ purchase_pricelist_id | default('null') }};
 
         const filteredCustomers = computed(() => {
           if (!customerSearch.value) return customers.value;
@@ -315,15 +317,37 @@
           showSupplierDropdown.value = false;
         };
 
-        const addToCart = (prod) => {
-          const price = mode.value === 'in' ? prod.sales_price : prod.purchase_price;
-          const existing = cart.value.find(i => i.id === prod.id);
-          if (existing) { existing.qty++; } else { cart.value.push({ ...prod, qty: 1, price }); }
+        const fetchPrice = async (productId, qty, mode) => {
+          const plId = mode === 'in' ? SELLING_PRICELIST_ID : PURCHASE_PRICELIST_ID;
+          const priceType = mode === 'in' ? 'sales' : 'purchase';
+          if (!plId) return null;
+          try {
+            const r = await fetch(`/api/erp/invoice/product-price?product_id=${productId}&price_list_id=${plId}&qty=${qty}&price_type=${priceType}`);
+            const d = await r.json();
+            return (d.ok && d.unit_price != null) ? d.unit_price : null;
+          } catch { return null; }
         };
 
-        const updateQty = (item, delta) => {
+        const addToCart = async (prod) => {
+          const basePrice = mode.value === 'in' ? prod.sales_price : prod.purchase_price;
+          const existing = cart.value.find(i => i.id === prod.id);
+          if (existing) {
+            existing.qty++;
+            const p = await fetchPrice(prod.id, existing.qty, mode.value);
+            if (p !== null) existing.price = p;
+          } else {
+            cart.value.push({ ...prod, qty: 1, price: basePrice });
+            const p = await fetchPrice(prod.id, 1, mode.value);
+            const item = cart.value.find(i => i.id === prod.id);
+            if (item && p !== null) item.price = p;
+          }
+        };
+
+        const updateQty = async (item, delta) => {
           item.qty += delta;
-          if (item.qty <= 0) cart.value = cart.value.filter(i => i.id !== item.id);
+          if (item.qty <= 0) { cart.value = cart.value.filter(i => i.id !== item.id); return; }
+          const p = await fetchPrice(item.id, item.qty, mode.value);
+          if (p !== null) item.price = p;
         };
 
         const addPayment = () => {

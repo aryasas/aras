@@ -111,6 +111,8 @@ def pos_session(session_id):
         currency_symbol=currency_symbol,
         tax_rate=tax_rate,
         tax_inclusive=tax_inclusive,
+        selling_pricelist_id=selling_pricelist_id,
+        purchase_pricelist_id=purchase_pricelist_id,
         main_title="POS",
     )
 
