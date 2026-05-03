@@ -25,7 +25,9 @@
             {% set is_richtext = (field.render_kw and field.render_kw.get('field_type') == 'richtext') %}
             {{ field(class_="aras-form-textarea" + (" aras-form-control is-calc" if _is_ro else "") + (" richtext" if is_richtext else ""), **({'readonly': True, 'tabindex': '-1'} if _is_ro else {})) }}
           {% elif field.type == 'SelectField' %}
-            {{ field(class_="aras-form-select" + ("" if _is_ro else " data-typeahead"), **({'disabled': True} if _is_ro else {})) }}
+            {% set _add_url = field.render_kw.get('data-rel-add-url') if field.render_kw else none %}
+            {% set _sel_kw = {'disabled': True} if _is_ro else ({} if not _add_url else {'data-rel-add-url': _add_url}) %}
+            {{ field(class_="aras-form-select" + ("" if _is_ro else " aras-searchable"), **_sel_kw) }}
           {% else %}
             {% set _field_type = field.render_kw.get('field_type') if field.render_kw else '' %}
             {{ field(class_="aras-form-input" + (" aras-form-control is-calc" if _is_ro else ""), type="date" if _field_type == 'date' else field.type == 'DateField', **({'readonly': True, 'tabindex': '-1'} if _is_ro else {})) }}

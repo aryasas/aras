@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """CRUD view factories, relation helpers, activity log loader."""
 import logging
+
 from arasCore.lib.core.extensions import db
 from arasCore.lib.ui.label_utils import row_display, find_ref_model as _find_ref_model, humanize as _humanize_label
 
@@ -170,16 +171,16 @@ def _merge_vcols_into_all_cols(all_cols: list, vcols: list) -> list:
     _all_dict = {fn: lbl for lbl, fn in all_cols}
     for lbl, fn in vcols:
         _all_dict[fn] = lbl
-        
+
     _merged_all_cols = []
     for _, fn in all_cols:
         _merged_all_cols.append((_all_dict[fn], fn))
-        
+
     _existing_fns = {fn for _, fn in all_cols}
     for lbl, fn in vcols:
         if fn not in _existing_fns:
             _merged_all_cols.append((lbl, fn))
-            
+
     return _merged_all_cols
 
 
@@ -213,14 +214,14 @@ def _get_local_child_rows(li_name):
         raw = request.form.get(k)
         if raw:
             break
-            
+
     if not raw:
         # Last resort: partial match
         for k in request.form.keys():
             if k.startswith("ct_local_") and li_name.lower() in k.lower():
                 raw = request.form.get(k)
                 break
-                
+
     if not raw:
         return []
     try:
@@ -337,6 +338,7 @@ def _get_inline_columns(child_model, fk_col: str) -> list:
 
         raw_fk = (list(col.foreign_keys)[0].column.table.name if col.foreign_keys
                   else rel_fk_map.get(col.name))
+        rel_add_url = None
         if raw_fk and raw_fk != "auth_users":
             fk_table = raw_fk
             try:
@@ -348,6 +350,15 @@ def _get_inline_columns(child_model, fk_col: str) -> list:
                          **({"price_type": r.price_type} if hasattr(r, "price_type") else {})}
                         for r in ref.query.all()
                     ]
+                    # Build admin add URL for the referenced table
+                    from arasCore.admin.models import AppManagerTable as _AMT, AppManagerApp as _AMA
+                    _ref_tbl = _AMT.query.filter(
+                        (_AMT.name == raw_fk) | (_AMT.db_table_name == raw_fk)
+                    ).first()
+                    if _ref_tbl:
+                        _ref_app = _AMA.query.get(_ref_tbl.app_id)
+                        if _ref_app:
+                            rel_add_url = f"/admin{_ref_app.url_prefix}{_ref_tbl.get_full_url(_ref_app.url_prefix)}/add/"
             except Exception:
                 pass
             input_type = "select"
@@ -356,6 +367,7 @@ def _get_inline_columns(child_model, fk_col: str) -> list:
             "name": col.name, "label": _humanize_label(col.name),
             "type": input_type, "required": not col.nullable and col.default is None,
             "fk_table": fk_table, "fk_api_url": fk_api_url, "fk_options": fk_options,
+            "rel_add_url": rel_add_url,
         })
     return cols
 
@@ -426,7 +438,7 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
                 for field_name, errors in form.errors.items():
                     for error in errors:
                         flash(f"Error in {getattr(form, field_name).label.text}: {error}", "danger")
-            
+
             # Populate rows from ct_local for re-render or GET if needed
             if child_defs:
                 for cd in child_defs:
@@ -453,7 +465,7 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
             _populate_relation_choices(form, model)
             if form.validate_on_submit():
                 bh, ah = _invoke_hooks(obj, is_new=False)
-                bh(); form.populate_obj(obj); 
+                bh(); form.populate_obj(obj);
                 _save_local_child_data(obj, model)
                 db.session.commit(); ah()
                 _emit("edit", obj)
@@ -463,7 +475,7 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
                 for field_name, errors in form.errors.items():
                     for error in errors:
                         flash(f"Error in {getattr(form, field_name).label.text}: {error}", "danger")
-            
+
             # Merge DB rows and local rows for re-render
             if child_defs:
                 for cd in child_defs:
@@ -615,7 +627,7 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
                 if fname in model.__table__.c
                 and hasattr(model.__table__.c[fname].type, "length")
             ][:5]
-        
+
         # Fetch saved views for this table
         saved_views = []
         applied_view = None
@@ -625,7 +637,7 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
             saved_views = AppManagerPageView.query.filter_by(table_id=table_id).filter(
                 or_(AppManagerPageView.owner_id == current_user.id, AppManagerPageView.is_shared == True)
             ).order_by(AppManagerPageView.label).all()
-            
+
             view_id = _req.args.get("view_id", type=int)
             if view_id:
                 applied_view = AppManagerPageView.query.get(view_id)
@@ -635,7 +647,7 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
         # ── Sorting logic ──
         sort_col = _req.args.get("sort")
         sort_dir = _req.args.get("dir", "asc")
-        
+
         if applied_view and not sort_col:
             import json
             try:
@@ -654,12 +666,12 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
                 base_q = base_q.order_by(model.id.desc())
 
         q_obj, active_filters, search_q = apply_search_fn(base_q, model, search_cols, _req)
-        
+
         # Apply filters from view if not already filtered by user
         if applied_view and not active_filters and not search_q:
             # TODO: Future enhancement — apply complex filters from applied_view.filter_json
             pass
-        
+
         current_view = _req.args.get('view', 'list')
         if current_view == 'tree':
             # Force sort by code or id to keep tree consistent
@@ -688,7 +700,7 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
         except Exception:
             pass
         all_cols = _all_model_columns(model)
-        
+
         # Apply saved column selection if user has a preference or applied view
         if applied_view and applied_view.columns_csv:
             saved_set = set(applied_view.columns_csv.split(","))
@@ -764,7 +776,7 @@ def make_adm_workflow(wf, title, app_title, app_id, table_id, sibling_tabs, burl
     from flask import render_template_string
     from flask_login import login_required
     from arasCore.lib.services.workflow import generate_mermaid
-    
+
     adm_tabs = [(t, f"/admin{u}") for t, u in sibling_tabs]
     mermaid_code = generate_mermaid(wf)
 
@@ -784,7 +796,7 @@ def make_adm_workflow(wf, title, app_title, app_id, table_id, sibling_tabs, burl
                 <a href="{{ list_url }}" class="aras-btn">Back to List</a>
             </div>
         </div>
-        
+
         <div class="aras-card shadow-sm mt-4">
             <div class="aras-card-header">
                 <h3 class="aras-card-title">Visual Workflow Designer</h3>
@@ -795,7 +807,7 @@ def make_adm_workflow(wf, title, app_title, app_id, table_id, sibling_tabs, burl
                 </pre>
             </div>
         </div>
-        
+
         <div class="aras-card shadow-sm mt-4">
             <div class="aras-card-header">
                 <h3 class="aras-card-title">Definition Details</h3>
@@ -843,10 +855,10 @@ def make_adm_workflow(wf, title, app_title, app_id, table_id, sibling_tabs, burl
     mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
 </script>
 {% endblock %}
-        """, 
+        """,
         wf=wf, title=title, app_title=app_title, app_id=app_id, table_id=table_id,
         sibling_tabs=adm_tabs, list_url=f"{burl}/", mermaid_code=mermaid_code)
-        
+
     return view
 
 

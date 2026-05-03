@@ -1,17 +1,19 @@
-{# ── Toolbar ── #}
-<div class="aras-toolbar" id="listToolbar{{ _lid }}">
+{# ── Toolbar (Editorial v6.1 — flat color, regrouped) ── #}
+<div class="aras-toolbar aras-toolbar--editorial" id="listToolbar{{ _lid }}">
+
+  {# ─── LEFT: primary action + search + bulk ─── #}
   <div class="aras-toolbar__left">
     {% if _has_add %}
-    <a href="{{ add_url }}" class="aras-btn aras-btn--primary aras-btn--sm">
-      <i class="fa fa-plus"></i> New
+    <a href="{{ add_url }}" class="aras-btn aras-btn--primary aras-btn--sm aras-btn--lead">
+      <i class="fa fa-plus"></i><span>New</span>
     </a>
     {% endif %}
 
     {% if _has_search %}
-    <form method="GET" id="searchForm{{ _lid }}" class="m-0 flex-grow-1 max-w-400">
-      <div class="aras-search-wrap w-100">
-        <i class="ti-search text-accent"></i>
-        <input type="text" name="{{ _qparam }}" placeholder="Search…" value="{{ search_q or '' }}" autocomplete="off">
+    <form method="GET" id="searchForm{{ _lid }}" class="aras-toolbar__search">
+      <div class="aras-search-wrap">
+        <i class="ti-search"></i>
+        <input type="text" name="{{ _qparam }}" placeholder="Search the ledger…" value="{{ search_q or '' }}" autocomplete="off">
       </div>
       {% for f in (active_filters or []) %}
         <input type="hidden" name="f_col[]" value="{{ f.col }}">
@@ -22,270 +24,232 @@
     {% endif %}
 
     <div id="bulkWrapInline{{ _lid }}" class="aras-toolbar__bulk" style="display:none;">
-      <span class="aras-badge aras-badge--info aras-badge--xs">
+      <span class="aras-toolbar__bulk-count">
         <span id="bulkCountInline{{ _lid }}">0</span> selected
       </span>
-      <button type="button" class="aras-btn aras-btn--sm js-bulk-delete{{ _lid }} text-danger border-danger">
-        <i class="fa fa-trash"></i> Delete
+      <button type="button" class="aras-btn aras-btn--danger aras-btn--sm js-bulk-delete{{ _lid }}">
+        <i class="fa fa-trash"></i><span>Delete</span>
       </button>
     </div>
   </div>
 
+  {# ─── RIGHT: paging · views · table tools · exports ─── #}
   <div class="aras-toolbar__right">
+
+    {# ── Cluster 1 · Per-page ── #}
     {% if _has_pag %}
-    <div class="d-flex align-items-center gap-8 fs-12 text-muted">
-      <span>Show</span>
-      <select id="perPageSelect{{ _lid }}" class="aras-form-select py-4 px-8 h-auto w-auto fs-12" style="min-width: 60px;">
-        <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
-        <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+    <div class="aras-toolbar__cluster">
+      <span class="aras-toolbar__hint">Show</span>
+      <select id="perPageSelect{{ _lid }}" class="aras-toolbar__select">
+        <option value="20"  {% if per_page == 20  %}selected{% endif %}>20</option>
+        <option value="50"  {% if per_page == 50  %}selected{% endif %}>50</option>
         <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
       </select>
     </div>
-    {% endif %}
-    {% if _has_filter %}
-    <button type="button" class="aras-btn aras-btn--outline aras-btn--sm {% if active_filters %}active{% endif %}"
-            id="filterToggleBtn{{ _lid }}" title="Filters">
-      <i class="ti-filter"></i>
-      {% if active_filters %}<span class="badge badge-primary ml-1">{{ active_filters|length }}</span>{% endif %}
-    </button>
+    <span class="aras-toolbar__divider" aria-hidden="true"></span>
     {% endif %}
 
-    {# ── Saved Views Dropdown ── #}
-    {% if table_id %}
-    <div class="position-relative d-inline-block">
-      <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" id="savedViewsBtn{{ _lid }}" title="Saved Views">
-        <i class="fa fa-star-o mr-1"></i> Views
-        <i class="fa fa-caret-down ml-1 fs-10"></i>
+    {# ── Cluster 2 · Filter + Saved Views + View Switcher ── #}
+    <div class="aras-toolbar__cluster">
+      {% if _has_filter %}
+      <button type="button"
+              class="aras-iconbtn {% if active_filters %}is-active{% endif %}"
+              id="filterToggleBtn{{ _lid }}" title="Filters">
+        <i class="ti-filter"></i>
+        {% if active_filters %}<span class="aras-iconbtn__dot">{{ active_filters|length }}</span>{% endif %}
       </button>
-      <div id="savedViewsPopover{{ _lid }}" class="aras-popover" style="display:none;min-width:200px; right:0; top:100%; margin-top:5px; z-index:100;">
-        <div class="d-flex flex-column" style="padding:4px 0;">
-          <div class="px-12 py-8 border-bottom bg-light fs-11 text-muted font-weight-bold uppercase tracking-wider">My Views</div>
-          {% for v in saved_views %}
-            <a class="aras-popover-item" href="{{ url_for(request.endpoint, view_id=v.id, **request.view_args) }}">
-              <i class="fa fa-file-text-o w-20"></i> {{ v.label }}
-              {% if v.is_shared %}<i class="fa fa-users ml-auto fs-10 text-muted" title="Shared"></i>{% endif %}
-            </a>
-          {% else %}
-            <div class="px-12 py-8 fs-12 text-muted italic">No saved views</div>
-          {% endfor %}
-          <div class="border-top mt-4 pt-4">
+      {% endif %}
+
+      {% if table_id %}
+      <div class="aras-toolbar__menu">
+        <button type="button" class="aras-iconbtn aras-iconbtn--label" id="savedViewsBtn{{ _lid }}" title="Saved Views">
+          <i class="fa fa-bookmark-o"></i><span>Views</span>
+          <i class="fa fa-caret-down aras-iconbtn__caret"></i>
+        </button>
+        <div id="savedViewsPopover{{ _lid }}" class="aras-popover aras-popover--right" style="display:none;min-width:220px;">
+          <div class="aras-popover__title">My Views</div>
+          <div class="aras-popover__list">
+            {% for v in saved_views %}
+              <a class="aras-popover__row" href="{{ url_for(request.endpoint, view_id=v.id, **request.view_args) }}">
+                <i class="fa fa-file-text-o"></i>
+                <span>{{ v.label }}</span>
+                {% if v.is_shared %}<i class="fa fa-users aras-popover__meta" title="Shared"></i>{% endif %}
+              </a>
+            {% else %}
+              <div class="aras-popover__empty">No saved views</div>
+            {% endfor %}
+          </div>
+          <div class="aras-popover__foot">
             {% if table_id is defined and table_id %}
-            <button type="button" class="aras-popover-item w-100 border-0 bg-transparent text-left cursor-pointer" id="saveCurrentViewBtn{{ _lid }}">
-              <i class="fa fa-plus-circle w-20 text-success"></i> Save Current as View
+            <button type="button" class="aras-popover__row aras-popover__row--btn" id="saveCurrentViewBtn{{ _lid }}">
+              <i class="fa fa-plus-circle"></i><span>Save current as view</span>
             </button>
             {% else %}
-            <div class="px-12 py-4 fs-10 text-muted italic">Save view disabled (multiple tables)</div>
+            <div class="aras-popover__empty">Save view disabled (multiple tables)</div>
             {% endif %}
           </div>
-
         </div>
       </div>
-    </div>
-    {% endif %}
+      {% endif %}
 
-    {# ── Totals toggle ── #}
-    <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" id="totalsToggleBtn{{ _lid }}" title="Show column totals" data-active="false">
-      <i class="fa fa-calculator"></i>
-    </button>
-
-    {# ── Column picker ── #}
-    {% set _picker_cols = all_columns if (all_columns is defined and all_columns) else view_columns %}
-    {% set _visible_fields = view_columns | map(attribute=1) | list %}
-    <div class="position-relative">
-      <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" id="colToggleBtn{{ _lid }}" title="Columns">
-        <i class="fa fa-columns"></i>
-      </button>
-      <div id="colTogglePopover{{ _lid }}" class="aras-popover" style="display:none;min-width:160px;max-height:300px;overflow-y:auto;">
-        <div class="d-flex flex-column gap-8" style="padding:8px 0;">
-          {% for label, field in _picker_cols %}
-          {% set _is_visible = field in _visible_fields %}
-          <label class="d-flex align-items-center gap-8 fs-13 cursor-pointer m-0 px-12 user-select-none">
-            <input type="checkbox" class="js-col-vis{{ _lid }}" data-field="{{ field }}" {% if _is_visible %}checked{% endif %}>
-            {{ label }}
-          </label>
-          {% endfor %}
-        </div>
-      </div>
-      </div>
-
-      {# ── View Switcher Popover ── #}
       {% set current_view = request.args.get('view', 'list') %}
       {% set _has_tree_view = false %}
       {% if all_columns and 'parent_id' in all_columns | map(attribute=1) | list %}
         {% set _has_tree_view = true %}
       {% endif %}
 
-      <div class="position-relative d-inline-block">
-        <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" id="viewToggleBtn{{ _lid }}" title="Change View">
+      <div class="aras-toolbar__menu">
+        <button type="button" class="aras-iconbtn aras-iconbtn--label" id="viewToggleBtn{{ _lid }}" title="Change View">
           {% if current_view == 'tree' %}
-            <i class="fa fa-sitemap mr-1"></i> Tree
+            <i class="fa fa-sitemap"></i><span>Tree</span>
           {% elif current_view == 'report' %}
-            <i class="ti-stats-up mr-1"></i> Report
+            <i class="ti-stats-up"></i><span>Report</span>
           {% else %}
-            <i class="fa fa-list mr-1"></i> List
+            <i class="fa fa-list"></i><span>List</span>
           {% endif %}
-          <i class="fa fa-caret-down ml-1 fs-10"></i>
+          <i class="fa fa-caret-down aras-iconbtn__caret"></i>
         </button>
-
-        <div id="viewTogglePopover{{ _lid }}" class="aras-popover" style="display:none;min-width:160px; right:0; top:100%; margin-top:5px; z-index:100;">
-          <div class="d-flex flex-column" style="padding:4px 0;">
-            <a class="aras-popover-item {% if current_view == 'list' %}active{% endif %}" href="{{ url_for(request.endpoint, view='list', **request.view_args) }}">
-              <i class="fa fa-list w-20"></i> List View
+        <div id="viewTogglePopover{{ _lid }}" class="aras-popover aras-popover--right" style="display:none;min-width:180px;">
+          <div class="aras-popover__list">
+            <a class="aras-popover__row {% if current_view == 'list' %}is-active{% endif %}" href="{{ url_for(request.endpoint, view='list', **request.view_args) }}">
+              <i class="fa fa-list"></i><span>List view</span>
             </a>
             {% if _has_tree_view %}
-            <a class="aras-popover-item {% if current_view == 'tree' %}active{% endif %}" href="{{ url_for(request.endpoint, view='tree', **request.view_args) }}">
-              <i class="fa fa-sitemap w-20"></i> Tree View
+            <a class="aras-popover__row {% if current_view == 'tree' %}is-active{% endif %}" href="{{ url_for(request.endpoint, view='tree', **request.view_args) }}">
+              <i class="fa fa-sitemap"></i><span>Tree view</span>
             </a>
             {% endif %}
             {% if linked_report_url %}
-            <a class="aras-popover-item {% if current_view == 'report' %}active{% endif %}" href="{{ linked_report_url }}">
-              <i class="ti-stats-up w-20"></i> Report View
+            <a class="aras-popover__row {% if current_view == 'report' %}is-active{% endif %}" href="{{ linked_report_url }}">
+              <i class="ti-stats-up"></i><span>Report view</span>
             </a>
             {% endif %}
           </div>
         </div>
       </div>
+    </div>
 
-      <script>
-      (function() {
-        const btn = document.getElementById('viewToggleBtn{{ _lid }}');
-        const pop = document.getElementById('viewTogglePopover{{ _lid }}');
-        if (btn && pop) {
-          btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const isVisible = pop.style.display === 'block';
-            document.querySelectorAll('.aras-popover').forEach(p => p.style.display = 'none');
-            pop.style.display = isVisible ? 'none' : 'block';
-          });
-          document.addEventListener('click', function() {
-            pop.style.display = 'none';
-          });
-          pop.addEventListener('click', function(e) {
-            e.stopPropagation();
-          });
-        }
+    <span class="aras-toolbar__divider" aria-hidden="true"></span>
 
-        // Saved Views logic
-        const svBtn = document.getElementById('savedViewsBtn{{ _lid }}');
-        const svPop = document.getElementById('savedViewsPopover{{ _lid }}');
-        if (svBtn && svPop) {
-          svBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const isVisible = svPop.style.display === 'block';
-            document.querySelectorAll('.aras-popover').forEach(p => p.style.display = 'none');
-            svPop.style.display = isVisible ? 'none' : 'block';
-          });
-          svPop.addEventListener('click', function(e) { e.stopPropagation(); });
-        }
+    {# ── Cluster 3 · Table tools (totals, columns) ── #}
+    <div class="aras-toolbar__cluster">
+      <button type="button" class="aras-iconbtn" id="totalsToggleBtn{{ _lid }}" title="Show column totals" data-active="false">
+        <i class="fa fa-calculator"></i>
+      </button>
 
-        const saveBtn = document.getElementById('saveCurrentViewBtn{{ _lid }}');
-        if (saveBtn) {
-          saveBtn.addEventListener('click', function() {
-            const name = prompt("Enter a name for this view:");
-            if (!name) return;
-            
-            // Collect current filters, sort, and visible columns
-            const urlParams = new URLSearchParams(window.location.search);
-            const columns = Array.from(document.querySelectorAll('.js-col-vis{{ _lid }}:checked')).map(cb => cb.dataset.field);
-            
-            const payload = {
-              table_id: {{ (table_id | tojson) if table_id is defined else 'null' }},
-              name: name,
-              label: name,
-              filter: {}, // TODO: Extract filters from URL or DOM
-              sort: {
-                col: urlParams.get('sort'),
-                dir: urlParams.get('dir')
-              },
-              columns: columns
-            };
-            
-            fetch('/admin/api/page-view/save', {
-              method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token() }}'
-              },
-              body: JSON.stringify(payload)
-            })
-            .then(res => res.json())
-            .then(data => {
-              if (data.ok) {
-                location.reload();
-              } else {
-                alert("Error saving view: " + data.error);
-              }
-            });
-          });
-        }
-      })();
-      </script>
+      {% set _picker_cols = all_columns if (all_columns is defined and all_columns) else view_columns %}
+      {% set _visible_fields = view_columns | map(attribute=1) | list %}
+      <div class="aras-toolbar__menu">
+        <button type="button" class="aras-iconbtn" id="colToggleBtn{{ _lid }}" title="Columns">
+          <i class="fa fa-columns"></i>
+        </button>
+        <div id="colTogglePopover{{ _lid }}" class="aras-popover aras-popover--right aras-popover--cols" style="display:none;">
+          <div class="aras-popover__title">Visible Columns</div>
+          <div class="aras-popover__list aras-popover__list--scroll">
+            {% for label, field in _picker_cols %}
+            {% set _is_visible = field in _visible_fields %}
+            <label class="aras-popover__row">
+              <input type="checkbox" class="js-col-vis{{ _lid }}" data-field="{{ field }}" {% if _is_visible %}checked{% endif %}>
+              <span>{{ label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
 
-      <style>
-        .aras-popover {
-          position: absolute;
-          background: #fff;
-          border-radius: 8px;
-          box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-          border: 1px solid #eee;
-        }
-        .aras-popover-item {
-          display: flex;
-          align-items: center;
-          padding: 10px 16px;
-          color: #444;
-          text-decoration: none !important;
-          font-size: 13px;
-          transition: all 0.2s;
-        }
-        .aras-popover-item:hover {
-          background: #f8f9fa;
-          color: var(--aras-accent, #7266ba);
-        }
-        .aras-popover-item.active {
-          background: #f0edff;
-          color: var(--aras-accent, #7266ba);
-          font-weight: 600;
-        }
-        .w-20 { width: 20px; text-align: center; margin-right: 10px; }
-      </style>
+    {# ── Cluster 4 · Exports & extras ── #}
+    {% set _has_extras_cluster = linked_docs_url_base or (_has_customize and app_id and table_id) or _has_report or workflow_url or _has_extra %}
+    {% if _has_extras_cluster %}
+    <span class="aras-toolbar__divider" aria-hidden="true"></span>
+    <div class="aras-toolbar__cluster">
+      {% if linked_docs_url_base %}
+      {% set csv_args = request.args.copy() %}
+      {% do csv_args.setlist('format', ['csv']) %}
+      <a href="{{ linked_docs_url_base }}?{{ csv_args | urlencode }}"
+         class="aras-iconbtn" title="Export CSV">
+        <i class="fa fa-download"></i>
+      </a>
+      {% endif %}
 
-    {% if linked_docs_url_base %}
-    {% set csv_args = request.args.copy() %}
-    {% do csv_args.setlist('format', ['csv']) %}
-    <a href="{{ linked_docs_url_base }}?{{ csv_args | urlencode }}" 
-       class="aras-btn aras-btn--outline aras-btn--sm" title="Export CSV">
-      <i class="fa fa-download"></i>
-    </a>
+      {% if _has_customize and app_id and table_id %}
+      <a href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}"
+         class="aras-iconbtn" title="Customize Fields">
+        <i class="ti-layout-column4"></i>
+      </a>
+      {% endif %}
+
+      {% if _has_report %}
+      <a href="{{ linked_report_url }}" class="aras-iconbtn" title="View Report">
+        <i class="ti-stats-up"></i>
+      </a>
+      {% endif %}
+
+      {% if workflow_url %}
+      <a href="{{ workflow_url }}" class="aras-iconbtn" title="Visual Workflow Designer">
+        <i class="fa fa-sitemap"></i>
+      </a>
+      {% endif %}
+
+      {% if _has_extra %}
+        {% for btn in extra_buttons %}
+          <a href="{{ btn.url }}" class="aras-iconbtn aras-iconbtn--label" title="{{ btn.title if btn.title is defined else '' }}">
+            {% if btn.icon is defined %}<i class="fa {{ btn.icon }}"></i>{% endif %}
+            {% if btn.label is defined %}<span>{{ btn.label }}</span>{% endif %}
+          </a>
+        {% endfor %}
+      {% endif %}
+    </div>
     {% endif %}
 
-    {% if _has_customize and app_id and table_id %}
-
-    <a href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}"
-       class="aras-btn aras-btn--outline aras-btn--sm" title="Customize Fields">
-      <i class="ti-layout-column4"></i>
-    </a>
-    {% endif %}
-
-    {% if _has_report %}
-    <a href="{{ linked_report_url }}" class="aras-btn aras-btn--outline aras-btn--sm" title="View Report">
-      <i class="ti-stats-up"></i>
-    </a>
-    {% endif %}
-
-    {% if workflow_url %}
-    <a href="{{ workflow_url }}" class="aras-btn aras-btn--outline aras-btn--sm" title="Visual Workflow Designer">
-      <i class="fa fa-sitemap"></i>
-    </a>
-    {% endif %}
-
-    {% if _has_extra %}
-      {% for btn in extra_buttons %}
-        <a href="{{ btn.url }}" class="aras-btn aras-btn--outline aras-btn--sm" title="{{ btn.title if btn.title is defined else '' }}">
-          {% if btn.icon is defined %}<i class="fa {{ btn.icon }}"></i>{% endif %}
-          {{ btn.label if btn.label is defined else '' }}
-        </a>
-      {% endfor %}
-    {% endif %}
   </div>
 </div>
+
+{# ── Popover open/close (preserved IDs: viewToggleBtn / savedViewsBtn / saveCurrentViewBtn) ── #}
+<script>
+(function() {
+  const lid = '{{ _lid }}';
+  const wireMenu = (btnId, popId) => {
+    const btn = document.getElementById(btnId);
+    const pop = document.getElementById(popId);
+    if (!btn || !pop) return;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const visible = pop.style.display === 'block';
+      document.querySelectorAll('.aras-popover').forEach(p => p.style.display = 'none');
+      pop.style.display = visible ? 'none' : 'block';
+    });
+    pop.addEventListener('click', (e) => e.stopPropagation());
+  };
+  wireMenu('viewToggleBtn'  + lid, 'viewTogglePopover'  + lid);
+  wireMenu('savedViewsBtn'  + lid, 'savedViewsPopover'  + lid);
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.aras-popover').forEach(p => p.style.display = 'none');
+  });
+
+  const saveBtn = document.getElementById('saveCurrentViewBtn' + lid);
+  if (saveBtn) {
+    saveBtn.addEventListener('click', function() {
+      const name = prompt("Enter a name for this view:");
+      if (!name) return;
+      const urlParams = new URLSearchParams(window.location.search);
+      const columns = Array.from(document.querySelectorAll('.js-col-vis' + lid + ':checked')).map(cb => cb.dataset.field);
+      const payload = {
+        table_id: {{ (table_id | tojson) if table_id is defined else 'null' }},
+        name: name,
+        label: name,
+        filter: {},
+        sort: { col: urlParams.get('sort'), dir: urlParams.get('dir') },
+        columns: columns
+      };
+      fetch('/admin/api/page-view/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => { if (data.ok) location.reload(); else alert("Error saving view: " + data.error); });
+    });
+  }
+})();
+</script>

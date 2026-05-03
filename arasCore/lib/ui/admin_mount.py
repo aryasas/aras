@@ -58,9 +58,24 @@ def _build_model_form(model, obj=None):
 
         if col.foreign_keys:
             choices = _fk_choices(col)
+            # Build admin add URL for the referenced table
+            _fk_rel_add_url = None
+            try:
+                _fk_ref_tname = list(col.foreign_keys)[0].column.table.name
+                from arasCore.admin.models import AppManagerTable as _AMT, AppManagerApp as _AMA
+                _fk_tbl = _AMT.query.filter(
+                    (_AMT.name == _fk_ref_tname) | (_AMT.db_table_name == _fk_ref_tname)
+                ).first()
+                if _fk_tbl:
+                    _fk_app = _AMA.query.get(_fk_tbl.app_id)
+                    if _fk_app:
+                        _fk_rel_add_url = f"/admin{_fk_app.url_prefix}{_fk_tbl.get_full_url(_fk_app.url_prefix)}/add/"
+            except Exception:
+                pass
+            _fk_rk = {"data-rel-add-url": _fk_rel_add_url} if _fk_rel_add_url else {}
             attrs[col_name] = SelectField(lbl, coerce=_fk_coerce,
                                           choices=choices, validators=[_Opt()],
-                                          validate_choice=False)
+                                          validate_choice=False, render_kw=_fk_rk)
         elif isinstance(col.type, _sa.Boolean):
             attrs[col_name] = BooleanField(lbl)
         elif isinstance(col.type, (_sa.Integer, _sa.BigInteger, _sa.SmallInteger)):
@@ -513,13 +528,23 @@ class AdminResourceMounter:
 
             from arasCore.admin.services import _load_activity_log
             activity_log = _load_activity_log(model.__tablename__, item_id)
+            handler   = getattr(self.res, "handler", None)
             extra_ctx = {}
             try:
-                handler = getattr(self.res, "handler", None)
                 if handler and hasattr(handler, "detail_context"):
                     extra_ctx = handler.detail_context(obj) or {}
-            except Exception:
-                pass
+                # Inject custom_actions list into extra_ctx for generic toolbar rendering
+                if "custom_actions" not in extra_ctx:
+                    extra_ctx["custom_actions"] = extra_ctx.pop("custom_actions", [])
+            except Exception as _e:
+                import logging; logging.getLogger(__name__).warning(f"[admin_mount] detail_context error: {_e}")
+            # Inject child_table_actions per child table
+            if handler and hasattr(handler, "child_table_actions"):
+                for _cd in child_tables:
+                    try:
+                        _cd["custom_actions"] = handler.child_table_actions(_cd["model_name"], obj) or []
+                    except Exception:
+                        _cd["custom_actions"] = []
 
             _app_id, _table_id = self._resolve_app_table_ids()
             

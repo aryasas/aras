@@ -44,7 +44,7 @@
           {% elif field.type == 'TextAreaField' %}
             {{ field(class_="aras-form-textarea") }}
           {% elif field.type == 'SelectField' %}
-            {{ field(class_="aras-form-select") }}
+            {{ field(class_="aras-form-select aras-searchable") }}
           {% else %}
             {{ field(class_="aras-form-input") }}
           {% endif %}

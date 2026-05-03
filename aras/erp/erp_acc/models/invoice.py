@@ -48,9 +48,10 @@ class AccSalesInvoice(ArasModel):
                                     cascade="all, delete-orphan")
     charges       = db.relationship("AccSalesInvoiceCharge", backref="invoice",
                                     cascade="all, delete-orphan")
-    allocations   = db.relationship("AccPaymentAllocation",
-                                    primaryjoin="AccPaymentAllocation.sales_invoice_id==AccSalesInvoice.id",
-                                    cascade="all, delete-orphan")
+    @property
+    def allocations(self):
+        from aras.erp.erp_acc.models.payment import AccPaymentAllocation
+        return AccPaymentAllocation.query.filter_by(invoice_type='sales', invoice_id=self.id).all()
 
     @property
     def amount_paid(self):
@@ -149,9 +150,10 @@ class AccPurchaseInvoice(ArasModel):
                                     cascade="all, delete-orphan")
     charges       = db.relationship("AccPurchaseInvoiceCharge", backref="invoice",
                                     cascade="all, delete-orphan")
-    allocations   = db.relationship("AccPaymentAllocation",
-                                    primaryjoin="AccPaymentAllocation.purchase_invoice_id==AccPurchaseInvoice.id",
-                                    cascade="all, delete-orphan")
+    @property
+    def allocations(self):
+        from aras.erp.erp_acc.models.payment import AccPaymentAllocation
+        return AccPaymentAllocation.query.filter_by(invoice_type='purchase', invoice_id=self.id).all()
 
     @property
     def amount_paid(self):

@@ -111,17 +111,52 @@
         },
 
         initComponentLibrary: function() {
-            // ── Tom Select (Typeahead) ──
+            // ── Tom Select (Searchable Combobox + "Add new" footer) ──
             if (window.TomSelect) {
-                document.querySelectorAll('select.data-typeahead, select[data-typeahead]').forEach(function(el) {
+                var sel = 'select.aras-form-select:not([disabled]):not([data-tom-select])'
+                    + ', select.aras-searchable:not([disabled]):not([data-tom-select])'
+                    + ', select.ct-cell-input:not([disabled]):not([data-tom-select])'
+                    + ', select.data-typeahead:not([data-tom-select])'
+                    + ', select[data-typeahead]:not([data-tom-select])';
+                document.querySelectorAll(sel).forEach(function(el) {
                     if (el.dataset.tomSelect) return;
-                    new TomSelect(el, {
+                    if (el.multiple) return;  // leave multi-selects alone
+                    var addUrl = el.getAttribute('data-rel-add-url') || '';
+                    var ts = new TomSelect(el, {
                         create: false,
-                        sortField: { field: "text", direction: "asc" },
                         allowEmptyOption: true,
-                        plugins: ['dropdown_input']
+                        plugins: ['dropdown_input'],
+                        render: {
+                            no_results: function (data, escape) {
+                                return '<div class="ts-no-results">No matches for "' + escape(data.input) + '"</div>';
+                            }
+                        }
                     });
                     el.dataset.tomSelect = "true";
+
+                    // Inject "+ Add new" footer when this select points to a relation table.
+                    if (addUrl) {
+                        var attachAddNew = function () {
+                            if (ts.dropdown.querySelector('.ts-add-new')) return;
+                            var foot = document.createElement('a');
+                            foot.className = 'ts-add-new';
+                            foot.href = addUrl;
+                            foot.target = '_blank';
+                            foot.innerHTML = '<i class="fa fa-plus"></i><span>Add new</span>';
+                            foot.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                            foot.addEventListener('click', function() {
+                                setTimeout(function(){ try { ts.close(); } catch(_){} }, 0);
+                            });
+                            var inputWrap = ts.dropdown.querySelector('.dropdown-input-wrap');
+                            if (inputWrap) {
+                                inputWrap.parentNode.insertBefore(foot, inputWrap.nextSibling);
+                            } else {
+                                ts.dropdown.insertBefore(foot, ts.dropdown.firstChild);
+                            }
+                        };
+                        attachAddNew();
+                        ts.on('dropdown_open', attachAddNew);
+                    }
                 });
             }
 

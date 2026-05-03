@@ -240,7 +240,7 @@
                             {% if col.unique %}<span class="badge badge-info aras-badge--xs aras-badge--uniq">UNIQ</span>{% endif %}
                             {% if not col.show_in_list %}<span class="badge badge-light aras-badge--xs">HID-L</span>{% endif %}
                             {% if col.readonly %}<span class="badge badge-warning aras-badge--xs aras-badge--ro">R/O</span>{% endif %}
-                            {% if col.default_section and col.default_section != 'content' %}<span class="badge badge-secondary aras-badge--xs">§{{ col.default_section|upper }}</span>{% endif %}
+                            {% if col.default_section and col.default_section != 'content' %}<span class="badge badge-secondary aras-badge--xs">{{ col.default_section|upper }}</span>{% endif %}
                           </div>
                       </td>
                       <td class="text-center">

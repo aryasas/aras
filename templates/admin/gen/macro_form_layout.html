@@ -1,35 +1,55 @@
 {# ─────────────────────────────────────────────────────────────────────────────
-   macro_form_layout.html — Form Layout Engine
-   Supports: multi-tab, sections, inline child tables, and open_in_tab child tables.
+   macro_form_layout.html — Engraved Ledger Form Layout
+   Supports: multi-tab, sections, inline child tables, open_in_tab child tables.
+   Public contract preserved: layout_tabs, child_table_tabs, internal_render_field.
    ─────────────────────────────────────────────────────────────────────────── #}
+
+{# Roman numeral helper for tab index #}
+{% set _roman = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI'] %}
 
 {% macro internal_render_field(field) %}
   {% if field and field.type not in ['HiddenField', 'CSRFTokenField', 'SubmitField'] %}
-    <div class="aras-form-row {% if field.type == 'BooleanField' %}is-bool{% endif %}">
-      <label class="aras-form-label {% if field.flags.required %}is-required{% endif %}">{{ field.label }}</label>
-      <div>
-        {% if field.type == 'BooleanField' %}
-          <label class="aras-toggle">
+    {% set _is_bool = field.type == 'BooleanField' %}
+    {% set _is_text = field.type == 'TextAreaField' %}
+    {% set _is_sel  = field.type == 'SelectField' %}
+    <div class="ledger-field {% if _is_bool %}ledger-field--bool{% endif %} {% if field.errors %}has-error{% endif %}">
+      {% if _is_bool %}
+        <label class="ledger-toggle">
+          <span class="ledger-toggle__switch">
             {{ field() }}
-            <span class="aras-toggle-track"><span class="aras-toggle-thumb"></span></span>
-            <span class="aras-toggle-label">{{ field.label.text }}</span>
-          </label>
-        {% elif field.type == 'TextAreaField' %}
-          {{ field(class_="aras-form-textarea") }}
-        {% elif field.type == 'SelectField' %}
-          {{ field(class_="aras-form-select") }}
-        {% else %}
-          {{ field(class_="aras-form-input") }}
+            <span class="ledger-toggle__track"><span class="ledger-toggle__thumb"></span></span>
+          </span>
+          <span class="ledger-toggle__copy">
+            <span class="ledger-toggle__label">{{ field.label.text }}</span>
+            {% if field.description %}<small class="ledger-toggle__hint">{{ field.description }}</small>{% endif %}
+          </span>
+        </label>
+      {% else %}
+        <div class="ledger-field__rule" aria-hidden="true"></div>
+        <label class="ledger-field__label {% if field.flags.required %}is-required{% endif %}" for="{{ field.id }}">
+          <span class="ledger-field__label-text">{{ field.label.text }}</span>
+          {% if field.flags.required %}<span class="ledger-field__req" aria-hidden="true">*</span>{% endif %}
+        </label>
+        <div class="ledger-field__control">
+          {% if _is_text %}
+            {{ field(class_="aras-form-textarea ledger-input ledger-input--area", placeholder=" ") }}
+          {% elif _is_sel %}
+            {% set _add_url = field.render_kw.get('data-rel-add-url') if field.render_kw else none %}
+            {{ field(class_="aras-form-select aras-searchable ledger-input ledger-input--select", **({'data-rel-add-url': _add_url} if _add_url else {})) }}
+          {% else %}
+            {{ field(class_="aras-form-input ledger-input", placeholder=" ") }}
+          {% endif %}
+          <span class="ledger-field__underline" aria-hidden="true"></span>
+        </div>
+        {% if field.description %}
+          <small class="ledger-field__help">{{ field.description }}</small>
         {% endif %}
         {% if field.errors %}
-          {% for err in field.errors %}
-            <span class="aras-form-error">{{ err }}</span>
-          {% endfor %}
+          <div class="ledger-field__errors" role="alert">
+            {% for err in field.errors %}<span class="ledger-field__error">{{ err }}</span>{% endfor %}
+          </div>
         {% endif %}
-        {% if field.description %}
-          <small class="aras-form-help">{{ field.description }}</small>
-        {% endif %}
-      </div>
+      {% endif %}
     </div>
   {% endif %}
 {% endmacro %}
@@ -46,7 +66,6 @@
       {% endfor %}
     {% endfor %}
   {% endfor %}
-  {# Also collect unplaced child tables that have open_in_tab #}
   {% if child_table_tabs %}
     {% for ct in child_table_tabs %}
       {% if not ct.get('_is_placed') and ct.get('open_in_tab') %}
@@ -56,64 +75,76 @@
   {% endif %}
 {% endif %}
 
-<div class="aras-tabs-wrapper">
+<div class="ledger-form aras-tabs-wrapper">
   {% if layout_tabs %}
-    <ul class="nav nav-tabs" id="formTabs" role="tablist">
-      {% for tab in layout_tabs %}
-        <li class="nav-item">
-          <a class="nav-link {{ 'active' if loop.first else '' }}"
-             id="tab-{{ loop.index }}-link"
-             data-toggle="tab"
-             href="#tab-{{ loop.index }}"
-             role="tab">{{ tab.label or 'General' }}</a>
-        </li>
-      {% endfor %}
-      {# open_in_tab child tables become extra tabs #}
-      {% for ct in _tab_cts %}
-        <li class="nav-item">
-          <a class="nav-link"
-             id="ct-tab-{{ loop.index }}-link"
-             data-toggle="tab"
-             href="#ct-tab-{{ loop.index }}"
-             role="tab">
-            <i class="fa fa-table mr-1 opacity-75"></i>{{ ct.title }}
-          </a>
-        </li>
-      {% endfor %}
-    </ul>
+    {# ── Engraved tab index ── #}
+    <div class="ledger-tabs">
+      <ul class="nav nav-tabs ledger-tabs__list" id="formTabs" role="tablist">
+        {% for tab in layout_tabs %}
+          {% set _idx = loop.index %}
+          <li class="nav-item">
+            <a class="nav-link ledger-tabs__link {{ 'active' if loop.first else '' }}"
+               id="tab-{{ _idx }}-link"
+               data-toggle="tab"
+               href="#tab-{{ _idx }}"
+               role="tab">
+              <span class="ledger-tabs__num">{{ _roman[_idx-1] if _idx <= _roman|length else _idx }}</span>
+              <span class="ledger-tabs__label">{{ tab.label or 'General' }}</span>
+            </a>
+          </li>
+        {% endfor %}
+        {% for ct in _tab_cts %}
+          {% set _ridx = layout_tabs|length + loop.index %}
+          <li class="nav-item">
+            <a class="nav-link ledger-tabs__link ledger-tabs__link--ct"
+               id="ct-tab-{{ loop.index }}-link"
+               data-toggle="tab"
+               href="#ct-tab-{{ loop.index }}"
+               role="tab">
+              <span class="ledger-tabs__num">{{ _roman[_ridx-1] if _ridx <= _roman|length else _ridx }}</span>
+              <span class="ledger-tabs__label"><i class="fa fa-table"></i> {{ ct.title }}</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+      <span class="ledger-tabs__rule" aria-hidden="true"></span>
+    </div>
 
-    <div class="tab-content p-4 border border-top-0 rounded-bottom bg-white">
+    <div class="tab-content ledger-tabs__panes">
       {% for tab in layout_tabs %}
         <div class="tab-pane fade {{ 'show active' if loop.first else '' }}"
              id="tab-{{ loop.index }}"
              role="tabpanel">
-          <div class="row">
+          <div class="ledger-sheet">
             {% for section in tab.sections %}
-              <div class="col-md-{{ section.width or 12 }}">
-                <div class="aras-form-section mb-4">
-                  <!--{% if section.label %}
-                    <h5 class="aras-section-title">{{ section.label }}</h5>
-                  {% endif %}-->
-                  <div class="row">
-                    {% for f in section.fields %}
-                      {% if not f.open_in_tab %}
-                        <div class="col-md-{{ f.width or 12 }}">
-                          {% if f.type == 'child_table' %}
-                            {% set ct = f.ct %}
-                            <div class="mb-4">
-                              {% include 'admin/gen/gen_view_form_child_table.html' %}
-                            </div>
-                          {% elif f.field is defined %}
-                            {{ internal_render_field(f.field) }}
-                          {% else %}
-                            {{ internal_render_field(f) }}
-                          {% endif %}
-                        </div>
-                      {% endif %}
-                    {% endfor %}
-                  </div>
+              {% set _scol = section.width or 12 %}
+              <section class="ledger-section ledger-section--w{{ _scol }}">
+                {% if section.label %}
+                  <header class="ledger-section__head">
+                    <span class="ledger-section__sigil">{{ '%02d' | format(loop.index) }}</span>
+                    <!--<h5 class="ledger-section__title">{{ section.label }}</h5>-->
+                    <span class="ledger-section__hairline" aria-hidden="true"></span>
+                  </header>
+                {% endif %}
+                <div class="ledger-section__grid">
+                  {% for f in section.fields %}
+                    {% if not f.open_in_tab %}
+                      <div class="ledger-section__cell ledger-section__cell--w{{ f.width or 12 }}">
+                        {% if f.type == 'child_table' %}
+                          {% set ct = f.ct %}
+                          <div class="ledger-childtable">
+                            {% include 'admin/gen/gen_view_form_child_table.html' %}
+                          </div>
+                        {% elif f.field is defined %}
+                          {{ internal_render_field(f.field) }}
+                        {% else %}
+                          {{ internal_render_field(f) }}
+                        {% endif %}
+                      </div>
+                    {% endif %}
+                  {% endfor %}
                 </div>
-              </div>
+              </section>
             {% endfor %}
           </div>
 
@@ -121,7 +152,7 @@
           {% if loop.first and child_table_tabs %}
             {% for ct in child_table_tabs %}
               {% if not ct.get('_is_placed') and not ct.get('open_in_tab') %}
-                <div class="aras-child-tables-section mt-4 pt-4 border-top">
+                <div class="ledger-childtable ledger-childtable--appended">
                   {% include 'admin/gen/gen_view_form_child_table.html' %}
                 </div>
               {% endif %}
@@ -135,15 +166,23 @@
         <div class="tab-pane fade"
              id="ct-tab-{{ loop.index }}"
              role="tabpanel">
-          {% include 'admin/gen/gen_view_form_child_table.html' %}
+          <div class="ledger-childtable">
+            {% include 'admin/gen/gen_view_form_child_table.html' %}
+          </div>
         </div>
       {% endfor %}
     </div>
   {% else %}
-    <div class="aras-card shadow-sm p-4">
-      {% for field in form %}
-        {{ internal_render_field(field) }}
-      {% endfor %}
+    <div class="ledger-sheet ledger-sheet--single">
+      <section class="ledger-section">
+        <div class="ledger-section__grid">
+          {% for field in form %}
+            <div class="ledger-section__cell ledger-section__cell--w12">
+              {{ internal_render_field(field) }}
+            </div>
+          {% endfor %}
+        </div>
+      </section>
     </div>
   {% endif %}
 </div>

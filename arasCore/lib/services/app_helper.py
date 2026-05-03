@@ -103,6 +103,18 @@ class SubHandler:
         """Override untuk custom serialization. Return None untuk pakai default."""
         return None
 
+    def detail_context(self, obj) -> dict:
+        """Extra template vars injected into the form view. Return {} to pass nothing."""
+        return {}
+
+    def child_table_actions(self, child_model_name: str, parent_obj) -> list:
+        """
+        Custom action buttons for a child table.
+        Return list of dicts: [{label, url, icon, style, id}]
+        Buttons are rendered in the child table toolbar.
+        """
+        return []
+
 
 @dataclass
 class ResourceDef:

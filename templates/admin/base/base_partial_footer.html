@@ -1,32 +1,39 @@
-<!-- Aras Status Bar / Footer -->
-<footer class="aras-status-bar">
-    <div class="aras-status-bar__left">
-        <p class="aras-status-bar__item">
-            © {{ now.year if now is defined else '2026' }} ·
-            <span class="aras-status-bar__brand">Aras Framework</span>
-        </p>
-        <span class="aras-status-bar__divider"></span>
-        <div class="aras-status-bar__item">
-            <i class="ti-location-pin mr-1"></i> Bandung
-        </div>
-    </div>
+{# Editorial Status Bar / Footer (v6.0) #}
+<footer class="aras-status-bar aras-status-bar--editorial">
+  <span class="aras-status-bar__rule" aria-hidden="true"></span>
 
-    <div class="aras-status-bar__right">
-        {% if current_user.is_authenticated %}
-        <div class="aras-status-bar__user">
-            {% if config.DEBUG %}
-            <a href="{{ url_for('admin.dev') }}" class="aras-status-bar__item" title="Developer Tools" style="color: var(--studio-ochre); border: 1px solid rgba(212, 175, 55, 0.3); padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; text-decoration: none;">
-                <i class="ti-panel mr-1"></i> DEV
-            </a>
-            {% endif %}
-            <div class="aras-status-bar__user-info">
-                <span class="aras-status-bar__user-name">{{ current_user.username }}</span>
-                <span class="aras-status-bar__user-role">Administrator</span>
-            </div>
-            <a href="{{ url_for('auth.logout_view') }}" class="aras-status-bar__logout" title="Log out">
-                <i class="ti-power-off"></i>
-            </a>
-        </div>
+  <div class="aras-status-bar__left">
+    <span class="aras-status-bar__mark">A</span>
+    <p class="aras-status-bar__item aras-status-bar__copy">
+      <em>Aras Framework</em>
+      <span class="aras-status-bar__sep">·</span>
+      <span class="aras-status-bar__year">{{ now.year if now is defined else '2026' }}</span>
+    </p>
+    <span class="aras-status-bar__divider"></span>
+    <span class="aras-status-bar__item aras-status-bar__loc">
+      <i class="ti-location-pin"></i> Bandung
+    </span>
+  </div>
+
+  <div class="aras-status-bar__right">
+    {% if current_user.is_authenticated %}
+    <div class="aras-status-bar__user">
+      <span class="aras-status-pill aras-status-pill--editorial"
+            title="{{ current_user.username }} · Administrator{% if config.DEBUG %} · DEV mode{% endif %}">
+        <span class="aras-status-pill__dot {% if config.DEBUG %}aras-status-pill__dot--dev{% else %}aras-status-pill__dot--prod{% endif %}"></span>
+        {% if config.DEBUG %}
+          <a href="{{ url_for('admin.dev') }}" class="aras-status-pill__env">DEV</a>
+          <span class="aras-status-pill__sep">/</span>
+        {% else %}
+          <span class="aras-status-pill__env">LIVE</span>
+          <span class="aras-status-pill__sep">/</span>
         {% endif %}
+        <span class="aras-status-pill__user">{{ current_user.username }}</span>
+      </span>
+      <a href="{{ url_for('auth.logout_view') }}" class="aras-status-bar__logout" title="Sign out">
+        <i class="ti-power-off"></i>
+      </a>
     </div>
+    {% endif %}
+  </div>
 </footer>

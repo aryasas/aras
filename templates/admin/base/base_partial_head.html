@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/themify-icons.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/aras_design.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/aras_design.css') }}?v=1.1">
 
 <!-- Third Party Components -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -23,11 +23,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css">
 
 <style>
-  /* Tom Select Aras Polish */
-  .ts-control { border: 1px solid var(--aras-line-2) !important; border-radius: 4px !important; padding: 9px 12px !important; font-size: 13.5px !important; transition: all 0.2s !important; }
-  .ts-control:focus { border-color: var(--studio-ochre) !important; box-shadow: 0 0 0 3px rgba(201, 165, 104, 0.1) !important; }
-  .ts-dropdown { border: 1px solid var(--studio-ochre) !important; border-radius: 4px !important; box-shadow: var(--aras-shadow-drop) !important; }
-  .ts-dropdown .active { background-color: var(--studio-cream) !important; color: var(--studio-ink) !important; }
+  /* Tom Select Aras Polish — defer styling to aras_design.css (no !important overrides) */
   
   /* Quill Aras Polish */
   .ql-toolbar { border-color: var(--aras-line-2) !important; border-top-left-radius: 4px; border-top-right-radius: 4px; background: var(--studio-paper); }

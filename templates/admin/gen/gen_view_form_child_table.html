@@ -11,6 +11,7 @@
 {% set _ct_all_render = ct.all_columns if (ct.all_columns is defined and ct.all_columns) else ct.vcols %}
 {% set _ct_vcol_names = ct.vcols | map(attribute=1) | list %}
 
+
 <div class="aras-child-table-wrap" id="ctw-{{ _li }}">
   <input type="hidden" name="ct_local_{{ _li }}" id="ct-local-input-{{ _li }}" value="{{ request.form.get('ct_local_' + _li) or '' }}">
 
@@ -45,6 +46,22 @@
         <i class="fa fa-magic"></i>
       </a>
       {% endif %}
+      {# ── Custom action buttons from SubHandler.child_table_actions() ── #}
+      {% if ct.custom_actions is defined and ct.custom_actions %}
+      {% for _act in ct.custom_actions %}
+      <button type="button"
+              class="aras-btn aras-btn--sm {{ _act.style | default('aras-btn--outline') }}"
+              id="{{ _act.id | default('') }}"
+              data-custom-action="{{ _act.id | default('btn') }}"
+              data-url="{{ _act.url | default('') }}"
+              data-obj-id="{{ ct.parent_id | default('') }}"
+              {% if _act.confirm is defined %}data-confirm="{{ _act.confirm }}"{% endif %}
+              {% if _act.data is defined %}{% for k, v in _act.data.items() %}data-payload-{{ k }}="{{ v }}" {% endfor %}{% endif %}>
+        {% if _act.icon is defined and _act.icon %}<i class="fa {{ _act.icon }}"></i>{% endif %}
+        <span>{{ _act.label }}</span>
+      </button>
+      {% endfor %}
+      {% endif %}
       {% set _ct_picker_cols = ct.all_columns if (ct.all_columns is defined and ct.all_columns) else ct.vcols %}
       {% set _ct_visible_fields = ct.vcols | map(attribute=1) | list %}
       <div id="ct-settings-{{ _li }}" class="aras-popover" style="display:none; top: 40px; border: 1px solid var(--studio-ochre); border-radius: 4px; box-shadow: var(--aras-shadow-drop);">
@@ -74,18 +91,27 @@
         <th class="ct-th-actions w-70 text-right" style="background: var(--studio-paper); border-bottom: 1px solid var(--studio-cream); padding: 12px 20px;"></th>
         {% endif %}
       </tr>
+
     </thead>
     <tbody id="ct-tbody-{{ _li }}">
       {% for row in ct.rows %}
       {# Determine ID robustly #}
-      {% set row_id = row['id'] if row['id'] is defined else (row.id if row.id is defined else '') %}
+      {% if row is mapping %}
+        {% set row_id = row.get('id', '') %}
+      {% else %}
+        {% set row_id = row.id if row.id is not none else '' %}
+      {% endif %}
       <tr data-id="{{ row_id }}" class="ct-data-row{% if ct.adm_url and not ct.api_url %} is-clickable{% endif %}"
           {% if ct.adm_url and not ct.api_url %}onclick="window.location='{{ ct.adm_url }}/{{ row_id }}/';"{% endif %}>
         <td class="ct-td-seq text-center text-muted-aras fs-11" style="border-bottom: 1px solid var(--studio-cream); padding: 14px 20px;">{{ loop.index }}</td>
         {% set _ct_rel = ct.rel_maps if ct.rel_maps is defined else {} %}
         {% for _, field_name in _ct_all_render %}
           {# Resolve value robustly for both dicts and objects #}
-          {% set raw = row[field_name] if row[field_name] is defined else (row|attr(field_name) if row|attr(field_name) is defined else none) %}
+          {% if row is mapping %}
+            {% set raw = row.get(field_name) %}
+          {% else %}
+            {% set raw = row|attr(field_name) if row|attr(field_name) is defined else none %}
+          {% endif %}
           {% set _hidden_style = 'display:none; ' if field_name not in _ct_vcol_names else '' %}
 
           <td data-raw="{{ raw if raw is not none else '' }}" data-field="{{ field_name }}" style="{{ _hidden_style }}border-bottom: 1px solid var(--studio-cream); padding: 14px 20px;">
@@ -174,7 +200,11 @@
             {%- if field_name in _ct_footer -%}
               {%- set _total = namespace(v=0) -%}
               {%- for row in ct.rows -%}
-                {%- set _val = row[field_name] if row[field_name] is defined else (row|attr(field_name) if row|attr(field_name) is defined else none) -%}
+                {%- if row is mapping -%}
+                  {%- set _val = row.get(field_name) -%}
+                {%- else -%}
+                  {%- set _val = row|attr(field_name) if row|attr(field_name) is defined else none -%}
+                {%- endif -%}
                 {%- if _val is not none -%}{%- set _total.v = _total.v + (_val | float) -%}{%- endif -%}
               {%- endfor -%}
               <strong>{{ "%.2f"|format(_total.v) }}</strong>
@@ -210,6 +240,7 @@
         <div class="aras-form-control-wrap">
         {% if col.type == 'select' %}
           <select name="{{ col.name }}" id="ct-modal-{{ _li }}-{{ col.name }}" class="aras-form-select"
+                  {% if col.rel_add_url %}data-rel-add-url="{{ col.rel_add_url }}"{% endif %}
                   {% if col.name == 'product_id' %}onchange="ctOnProductChangeModal('{{ _li }}', this)"{% endif %}
                   {% if col.name == 'price_type' %}onchange="ctFilterPriceListModal('{{ _li }}', this.value)"{% endif %}>
             <option value="">—</option>

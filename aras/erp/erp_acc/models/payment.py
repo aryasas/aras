@@ -43,19 +43,20 @@ class AccPayment(ArasModel):
 
 
 class AccPaymentAllocation(ArasModel):
-    """Links one payment to one invoice with a specific amount (partial supported)."""
+    """Links one payment to one invoice (sales or purchase) with a specific amount."""
     __tablename__ = "acc_payment_allocation"
 
-    id                  = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    payment_id          = db.Column(db.BigInteger, db.ForeignKey("acc_payment.id"), nullable=False)
-    sales_invoice_id    = db.Column(db.BigInteger, db.ForeignKey("acc_sales_invoice.id"), nullable=True)
-    purchase_invoice_id = db.Column(db.BigInteger, db.ForeignKey("acc_purchase_invoice.id"), nullable=True)
-    amount              = db.Column(db.Numeric(18, 4), nullable=False)
-    notes               = db.Column(db.String(255), nullable=True)
+    id           = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    payment_id   = db.Column(db.BigInteger, db.ForeignKey("acc_payment.id"), nullable=False)
+    invoice_type = db.Column(db.Enum("sales", "purchase"), nullable=False)
+    invoice_id   = db.Column(db.BigInteger, nullable=False)
+    amount       = db.Column(db.Numeric(18, 4), nullable=False)
+    notes        = db.Column(db.String(255), nullable=True)
 
-    sales_invoice    = db.relationship("AccSalesInvoice",
-                                       primaryjoin="AccPaymentAllocation.sales_invoice_id==AccSalesInvoice.id",
-                                       overlaps="allocations")
-    purchase_invoice = db.relationship("AccPurchaseInvoice",
-                                       primaryjoin="AccPaymentAllocation.purchase_invoice_id==AccPurchaseInvoice.id",
-                                       overlaps="allocations")
+    @property
+    def invoice(self):
+        if self.invoice_type == "sales":
+            from aras.erp.erp_acc.models.invoice import AccSalesInvoice
+            return AccSalesInvoice.get(self.invoice_id)
+        from aras.erp.erp_acc.models.invoice import AccPurchaseInvoice
+        return AccPurchaseInvoice.get(self.invoice_id)

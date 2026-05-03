@@ -179,10 +179,20 @@ def _get_page_tiles(app_name: str, registry_key: str = None):
         page_type = getattr(t, "page_type", "list") or "list"
         if page_type in ("settings",):
             continue  # settings link shown separately
-        child_count = (AppManagerTable.query
-                       .filter_by(app_id=app_row.id, parent_table_id=t.id, is_active=True)
-                       .count())
-        
+        children = (AppManagerTable.query
+                    .filter_by(app_id=app_row.id, parent_table_id=t.id, is_active=True)
+                    .order_by(AppManagerTable.menu_order)
+                    .all()) if page_type == "group" else []
+        child_count = len(children) if page_type == "group" else 0
+
+        # Peek line: first 3 child titles, e.g. "Company · Users · Roles"
+        peek = None
+        if children:
+            names = [c.get_menu_title() for c in children[:3]]
+            peek = " · ".join(names)
+            if child_count > 3:
+                peek += f" · +{child_count - 3} more"
+
         # Determine group name if this tile belongs to a group (even if top-level, it might have a category)
         group_name = None
         if t.parent_table_id:
@@ -199,6 +209,7 @@ def _get_page_tiles(app_name: str, registry_key: str = None):
             "group":       group_name,
             "count":       _count_rows(t.get_db_table_name(db_key)) if page_type == "list" else None,
             "tile_count":  f"{child_count} resources" if page_type == "group" else None,
+            "peek":        peek,
         })
     return tiles
 

@@ -213,7 +213,38 @@ function ctOpenModal(idx, btn, isNew) {
         modal.classList.remove('d-none');
         modal.style.display = 'flex';
         if (!modal.classList.contains('is-visible')) {
-            setTimeout(function() { modal.classList.add('is-visible'); }, 10);
+            setTimeout(function() {
+                modal.classList.add('is-visible');
+                // Init TomSelect on modal selects that haven't been initialized yet
+                if (window.TomSelect && window.ArasDesign) {
+                    ArasDesign.initComponentLibrary();
+                } else if (window.TomSelect) {
+                    modal.querySelectorAll('select:not([data-tom-select])').forEach(function(sel) {
+                        if (sel.dataset.tomSelect || sel.multiple || sel.disabled) return;
+                        var addUrl = sel.getAttribute('data-rel-add-url') || '';
+                        var ts = new TomSelect(sel, {
+                            create: false, allowEmptyOption: true,
+                            plugins: ['dropdown_input'],
+                            render: { no_results: function(d, e) { return '<div class="ts-no-results">No matches for "' + e(d.input) + '"</div>'; } }
+                        });
+                        sel.dataset.tomSelect = "true";
+                        if (addUrl) {
+                            var attach = function() {
+                                if (ts.dropdown.querySelector('.ts-add-new')) return;
+                                var foot = document.createElement('a');
+                                foot.className = 'ts-add-new'; foot.href = addUrl; foot.target = '_blank';
+                                foot.innerHTML = '<i class="fa fa-plus"></i><span>Add new</span>';
+                                foot.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                                foot.addEventListener('click', function() { setTimeout(function(){ try{ts.close();}catch(_){} }, 0); });
+                                var iw = ts.dropdown.querySelector('.dropdown-input-wrap');
+                                if (iw) iw.parentNode.insertBefore(foot, iw.nextSibling);
+                                else ts.dropdown.insertBefore(foot, ts.dropdown.firstChild);
+                            };
+                            attach(); ts.on('dropdown_open', attach);
+                        }
+                    });
+                }
+            }, 10);
         }
     };
 

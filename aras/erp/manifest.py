@@ -188,6 +188,34 @@ class PurchaseOrderHandler(SubHandler):
         return {"obj_state": obj.state}
 
 
+class PaymentHandler(SubHandler):
+    def detail_context(self, obj):
+        if not obj:
+            return {}
+        return {"obj_id": obj.id, "obj_state": obj.state}
+
+    def child_table_actions(self, child_model_name, parent_obj):
+        if child_model_name != "acc_payment_allocation":
+            return []
+        return [
+            {
+                "id":      "btnLoadInvoices",
+                "label":   "Load Invoices",
+                "icon":    "fa-refresh",
+                "style":   "aras-btn--outline",
+                "url":     "/api/erp/acc/payment/load-invoices/",
+            },
+            {
+                "id":      "btnAutoAllocate",
+                "label":   "Auto Allocate",
+                "icon":    "fa-magic",
+                "style":   "aras-btn--lead",
+                "url":     "/api/erp/acc/payment/auto-allocate/",
+                "confirm": "Auto-allocate payment to unpaid invoices (FIFO)?",
+            },
+        ]
+
+
 def _handle_post_journal():
     from flask import request, jsonify
     from arasCore.lib.core.extensions import db
@@ -602,7 +630,7 @@ def _handle_payment_allocate():
     from arasCore.lib.core.extensions import db
     data = request.get_json() or {}
     payment_id   = data.get("payment_id")
-    invoice_type = data.get("invoice_type")   # "sales" or "purchase"
+    invoice_type = data.get("invoice_type")
     invoice_id   = data.get("invoice_id")
     amount       = data.get("amount")
     if not all([payment_id, invoice_type, invoice_id, amount]):
@@ -611,6 +639,75 @@ def _handle_payment_allocate():
         from aras.erp.erp_acc.services.payment_service import allocate
         alloc = allocate(int(payment_id), invoice_type, int(invoice_id), float(amount))
         return jsonify({"ok": True, "allocation_id": alloc.id})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+def _handle_payment_load_invoices():
+    """Return unpaid invoices as modal_html for generic custom_action renderer."""
+    from flask import request, jsonify
+    data = request.get_json() or {}
+    payment_id = data.get("payment_id") or data.get("obj_id")
+    if not payment_id:
+        return jsonify({"ok": False, "error": "payment_id required"}), 400
+    try:
+        from aras.erp.erp_acc.models.payment import AccPayment
+        from aras.erp.erp_acc.services.payment_service import get_unpaid_invoices
+        payment  = AccPayment.get_or_404(int(payment_id))
+        invoices = get_unpaid_invoices(payment)
+        unalloc  = float(payment.unallocated_amount)
+        rows_html = ""
+        for inv in invoices:
+            suggested = min(inv["amount_due"], unalloc)
+            rows_html += (
+                f'<tr>'
+                f'<td>{inv["name"]}</td>'
+                f'<td style="text-align:right">{inv["total"]:.2f}</td>'
+                f'<td style="text-align:right">{inv["amount_due"]:.2f}</td>'
+                f'<td><input type="number" class="aras-form-control alloc-amt" step="0.01" min="0" '
+                f'max="{inv["amount_due"]}" value="{suggested:.2f}" '
+                f'data-type="{inv["invoice_type"]}" data-id="{inv["invoice_id"]}"></td>'
+                f'</tr>'
+            )
+        if not rows_html:
+            rows_html = '<tr><td colspan="4" style="text-align:center;padding:1rem;">No unpaid invoices.</td></tr>'
+        modal_html = (
+            f'<div style="background:#fff;border-radius:8px;padding:1.5rem;min-width:560px;max-width:90vw;max-height:80vh;overflow:auto;">'
+            f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">'
+            f'<strong>Allocate Payment — Unallocated: {unalloc:.2f}</strong>'
+            f'<button data-modal-close style="background:none;border:none;font-size:1.2rem;cursor:pointer;">&times;</button>'
+            f'</div>'
+            f'<table style="width:100%;border-collapse:collapse;font-size:.9rem;">'
+            f'<thead><tr style="background:#f5f5f5;">'
+            f'<th style="padding:8px;text-align:left;">Invoice</th>'
+            f'<th style="padding:8px;text-align:right;">Total</th>'
+            f'<th style="padding:8px;text-align:right;">Amount Due</th>'
+            f'<th style="padding:8px;">Allocate</th>'
+            f'</tr></thead><tbody>{rows_html}</tbody></table>'
+            f'<div style="margin-top:1rem;display:flex;gap:.5rem;justify-content:flex-end;">'
+            f'<button data-modal-close class="aras-btn aras-btn--sm aras-btn--outline">Cancel</button>'
+            f'<button data-alloc-save class="aras-btn aras-btn--sm aras-btn--lead">Save Allocations</button>'
+            f'</div></div>'
+        )
+        return jsonify({"ok": True, "modal_html": modal_html, "payment_id": int(payment_id)})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+def _handle_payment_auto_allocate():
+    """Auto-allocate payment to partner's unpaid invoices FIFO."""
+    from flask import request, jsonify
+    from arasCore.lib.core.extensions import db
+    data = request.get_json() or {}
+    payment_id = data.get("payment_id") or data.get("obj_id")
+    if not payment_id:
+        return jsonify({"ok": False, "error": "payment_id required"}), 400
+    try:
+        from aras.erp.erp_acc.services.payment_service import auto_allocate
+        allocs = auto_allocate(int(payment_id))
+        return jsonify({"ok": True, "reload": True, "message": f"Allocated {len(allocs)} invoice(s).",
+                        "count": len(allocs)})
     except Exception as e:
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 400
@@ -809,6 +906,7 @@ helper = AppHelper(
             ResourceDef("acc/purchase-invoice-line",  AccPurchaseInvoiceLine, admin_list=False, is_child_table=True),
             ResourceDef("acc/purchase-invoice-charge",AccPurchaseInvoiceCharge,admin_list=False, is_child_table=True),
             ResourceDef("acc/payment",            AccPayment,           admin_list=True,
+                        handler=PaymentHandler(),
                         menu_title="Payments", menu_icon="fa-money"),
             ResourceDef("acc/payment-allocation", AccPaymentAllocation, admin_list=False, is_child_table=True),
         ]),
@@ -900,6 +998,8 @@ helper = AppHelper(
         CustomRoute("/sup/purchase-order/create-invoice",       _handle_purchase_order_create_invoice,  methods=["POST"], require_auth=True),
         CustomRoute("/acc/payment/post",                        _handle_payment_post,                   methods=["POST"], require_auth=True),
         CustomRoute("/acc/payment/allocate",                    _handle_payment_allocate,               methods=["POST"], require_auth=True),
+        CustomRoute("/acc/payment/load-invoices",               _handle_payment_load_invoices,          methods=["POST"], require_auth=True),
+        CustomRoute("/acc/payment/auto-allocate",               _handle_payment_auto_allocate,          methods=["POST"], require_auth=True),
         CustomRoute("/crm/lead/convert-customer",               _handle_lead_convert,                   methods=["POST"], require_auth=True),
         CustomRoute("/stk/delivery/assign-trip",                _handle_delivery_assign_trip,           methods=["POST"], require_auth=True),
         CustomRoute("/stk/delivery/mark-delivered",             _handle_delivery_mark_delivered,        methods=["POST"], require_auth=True),

@@ -1,228 +1,262 @@
-{% extends extends_layout if extends_layout else 'admin/base_index.html'
-%} {% from 'admin/macro/macro_main.html' import render_card, render_button, render_form_fields
-%} {#
-================================================================================
-gen_view_form.html — Midnight Editorial Redesign for Aras Admin
-form view with timeline activity and optimized child-table interactions.
-================================================================================
-#} {% set _has_customize = app_id and table_id %} {% block page_content %}
-<div class="aras-studio-theme">
-    <div class="container-fluid px-0">
-        {# ── Action Header ── #}
-        <div class="aras-header-sticky">
-            <div class="aras-header-left">
-                <a
-                    href="{{ list_url }}"
-                    class="aras-back-link"
-                    title="Back to list"
-                >
-                    <i class="fa fa-arrow-left"></i>
-                </a>
-                <h2 class="aras-page-title">{{ title }}</h2>
-            </div>
-            <div class="aras-header-right">
-                {% if _has_customize %}
-                <a
-                    href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}"
-                    class="aras-btn aras-btn--outline aras-btn--sm aras-btn--accent ml-2"
-                    title="Customize Form Fields"
-                >
-                    <i class="fa fa-sliders"></i>
-                    <span class="d-none d-md-inline">Fields</span>
-                </a>
-                <a
-                    href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}#designer-pane"
-                    class="aras-btn aras-btn--outline aras-btn--sm aras-btn--accent ml-2"
-                    title="Visual Form Designer"
-                >
-                    <i class="fa fa-magic"></i>
-                    <span class="d-none d-md-inline">Design</span>
-                </a>
-                {% endif %}
-                <a href="{{ list_url }}" class="aras-btn">Cancel</a>
-                {% if action and '/add/' not in action %}
-                <button type="button" class="aras-btn aras-btn--outline" id="btnDuplicate" title="Duplicate this record">
-                    <i class="fa fa-copy"></i> <span class="d-none d-md-inline">Duplicate</span>
-                </button>
-                <button type="button" class="aras-btn aras-btn--outline text-danger" id="btnDeleteRecord"
-                        data-delete-url="{{ delete_url | default('') }}"
-                        data-linked-docs-url="{{ linked_docs_url | default('') }}"
-                        title="Delete this record">
-                    <i class="fa fa-trash"></i> <span class="d-none d-md-inline">Delete</span>
-                </button>
-                {% endif %}
-                {% if workflow_actions is defined and workflow_actions %}
-                    {% for wa in workflow_actions %}
-                    <button type="button" class="aras-btn {{ 'aras-btn--primary' if loop.first else 'aras-btn--outline' }} btn-wf-action"
-                            data-action="{{ wa.action }}" data-res-key="{{ workflow_resource_key }}" data-obj-id="{{ obj_id }}"
-                            {{ 'disabled' if not wa.allowed }}>
-                        <i class="fa fa-share"></i> {{ wa.action|capitalize }}
-                    </button>
-                    {% endfor %}
-                {% elif post_url is defined and post_url %}
-                <button type="submit" form="mainForm" class="aras-btn aras-btn--outline">
-                    <i class="fa fa-floppy-o"></i> Save Draft
-                </button>
-                <button type="button" class="aras-btn aras-btn--primary" id="btnPostInvoice"
-                        data-post-url="{{ post_url }}" data-obj-id="{{ obj_id }}">
-                    <i class="fa fa-paper-plane"></i> Post / Submit
-                </button>
-                {% elif show_save_btn is not defined or show_save_btn %}
-                <button
-                    type="submit"
-                    form="mainForm"
-                    class="aras-btn aras-btn--primary"
-                >
-                    <i class="fa fa-check"></i> Save
-                </button>
-                {% endif %}
-            </div>
+{% extends extends_layout if extends_layout else 'admin/base_index.html' %}
+{% from 'admin/macro/macro_main.html' import render_card, render_button, render_form_fields %}
+{# ============================================================================
+  gen_view_form.html — Engraved Ledger Edition
+  Editorial form layout with typeset header, ledger sheet body, sidebar dossier.
+  All Jinja contracts and JS behaviors preserved.
+  ============================================================================ #}
+{% set _has_customize = app_id and table_id %}
+{% set _is_add = action and '/add/' in action %}
+
+{% block page_content %}
+<div class="aras-studio-theme ledger-page">
+  <div class="container-fluid px-0">
+
+    {# ── Engraved action header ── #}
+    <div class="aras-header-sticky ledger-header">
+      <div class="aras-header-left ledger-header__left">
+        <a href="{{ list_url }}" class="aras-back-link ledger-back" title="Back to list" aria-label="Back to list">
+          <i class="fa fa-arrow-left"></i>
+        </a>
+        <div class="ledger-header__title-block">
+          <span class="ledger-header__eyebrow">
+            {% if _is_add %}New entry{% else %}Document{% endif %}
+            {% if table_id %}<span class="ledger-header__divider">·</span><code class="ledger-header__code">{{ table_id }}</code>{% endif %}
+          </span>
+          <h2 class="aras-page-title ledger-header__title">{{ title }}</h2>
         </div>
+      </div>
+      <div class="aras-header-right ledger-header__right aras-toolbar--editorial">
 
-        <div class="aras-form-layout">
-            <div class="aras-main-column">
-                {# Separate inline vs tab child tables #} {% set _all_ct =
-                child_tables if child_tables is defined else [] %} {% set
-                _inline_cts = _all_ct | rejectattr("view_in_tab", "equalto",
-                true) | list %} {% set _tab_cts = _all_ct |
-                selectattr("view_in_tab", "equalto", true) | list %} {# ── Main
-                Form Card ── #}
-                <div class="aras-card shadow-sm">
-                    <div class="aras-card-body">
-                        <form method="POST" action="{{ action }}" id="mainForm" novalidate>
-                            {{ form.hidden_tag() if form.hidden_tag is defined
-                            }} {% if layout_tabs is defined and layout_tabs %}
-                            {# Pass all child tables so the layout engine can arrange them #}
-                            {% set child_table_tabs = _all_ct %} 
-                            {% include 'admin/gen/macro_form_layout.html' %} 
-                            {% else %}
-                            {{ render_form_fields(form) }} {% endif %}
-
-                            {# ── Fallback for Unplaced Child Tables (only if layout_tabs is NOT defined) ── #}
-                            {% if not (layout_tabs is defined and layout_tabs) %}
-                                {% for ct in _all_ct %}
-                                    {% if not ct.get('_is_placed') %}
-                                    <div class="aras-child-tables-section mt-5 pt-4 border-top">
-                                        {% include 'admin/gen/gen_view_form_child_table.html' %}
-                                    </div>
-                                    {% endif %}
-                                {% endfor %}
-                            {% endif %}
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <div class="aras-sidebar-sticky">
-                {# ── Meta Info ── #}
-                <div class="aras-card shadow-sm">
-                    <div class="aras-card-header">
-                        <h3 class="aras-card-title m-0">Details</h3>
-                    </div>
-                    <div class="aras-card-body py-3">
-                        <div class="aras-meta-list d-flex flex-column gap-12">
-                            <div class="aras-meta-item d-flex justify-content-between fs-12-5">
-                                <span class="label text-muted">Status</span>
-                                <span class="value"
-                                    ><span class="badge badge-pill badge-info"
-                                        >Draft</span
-                                    ></span
-                                >
-                            </div>
-                            {% if table_id %}
-                            <div class="aras-meta-item d-flex justify-content-between fs-12-5">
-                                <span class="label text-muted">Resource</span>
-                                <span class="value"
-                                    ><code>{{ table_id }}</code></span
-                                >
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                {# ── Extra sidebar cards from SubHandler.detail_context() ── #}
-                {% if sidebar_cards is defined and sidebar_cards %} {% for card
-                in sidebar_cards %}
-                <div class="aras-card shadow-sm">
-                    <div class="aras-card-header">
-                        <h3 class="aras-card-title m-0">{{ card.title }}</h3>
-                    </div>
-                    <div class="aras-card-body py-3">
-                        <div class="aras-meta-list d-flex flex-column gap-10">
-                            {% for row in card.rows %}
-                            <div class="aras-meta-item d-flex justify-content-between fs-12-5">
-                                <span class="label text-muted">{{ row.label }}</span>
-                                <span class="value font-weight-bold">{{ row.value }}</span>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-                {% endfor %} {% endif %} {# ── Activity Timeline ── #} {% if
-                activity_log is defined and activity_log %}
-                <div class="aras-card shadow-sm">
-                    <div class="aras-card-header">
-                        <h3 class="aras-card-title m-0">Activity</h3>
-                    </div>
-                    <div class="aras-card-body">
-                        <div class="aras-timeline">
-                            {% for entry in activity_log %}
-                            <div class="aras-timeline-item">
-                                <div
-                                    class="aras-timeline-dot {{ entry.action }}"
-                                ></div>
-                                <div class="aras-timeline-content">
-                                    <div class="aras-timeline-header">
-                                        <span class="aras-timeline-user"
-                                            >{{ entry.user }}</span
-                                        >
-                                        <span
-                                            class="aras-timeline-time"
-                                            data-ts="{{ entry.ts.isoformat() if entry.ts else '' }}"
-                                        >
-                                            {{ entry.ts.strftime('%H:%M') if
-                                            entry.ts else '' }}
-                                        </span>
-                                    </div>
-                                    <div class="aras-timeline-body">
-                                        {% if entry.action == 'create' %}
-                                        Created this record. {% elif
-                                        entry.action == 'delete' %} Deleted this
-                                        record. {% elif entry.action == 'update'
-                                        %} Updated this record. {% if
-                                        entry.changes %}
-                                        <div class="aras-timeline-changes">
-                                            {% for field, change in
-                                            entry.changes.items() %}
-                                            <span
-                                                >{{ field }}:
-                                                <code>{{ change.old }}</code> →
-                                                <code
-                                                    >{{ change.new }}</code
-                                                ></span
-                                            >
-                                            {% endfor %}
-                                        </div>
-                                        {% endif %} {% else %} {{
-                                        entry.action|capitalize }} {% endif %}
-                                    </div>
-                                    <div class="aras-timeline-date">
-                                        {{ entry.ts.strftime('%d %b %Y') if
-                                        entry.ts else '' }}
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
+        {# Cluster 1 · Designer (icon-only utilities, mirrors listview tools cluster) #}
+        {% if _has_customize %}
+        <div class="aras-toolbar__cluster">
+          <a href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}"
+             class="aras-iconbtn" title="Customize Form Fields">
+            <i class="fa fa-sliders"></i>
+          </a>
+          <a href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}#designer-pane"
+             class="aras-iconbtn" title="Visual Form Designer">
+            <i class="fa fa-magic"></i>
+          </a>
         </div>
+        <span class="aras-toolbar__divider" aria-hidden="true"></span>
+        {% endif %}
+
+        {# Cluster 2 · Record actions (duplicate / delete) — only on edit #}
+        {% if action and '/add/' not in action %}
+        <div class="aras-toolbar__cluster">
+          <button type="button" class="aras-iconbtn" id="btnDuplicate" title="Duplicate this record">
+            <i class="fa fa-copy"></i>
+          </button>
+          <button type="button" class="aras-iconbtn aras-iconbtn--danger" id="btnDeleteRecord"
+                  data-delete-url="{{ delete_url | default('') }}"
+                  data-linked-docs-url="{{ linked_docs_url | default('') }}"
+                  title="Delete this record">
+            <i class="fa fa-trash"></i>
+          </button>
+        </div>
+        <span class="aras-toolbar__divider" aria-hidden="true"></span>
+        {% endif %}
+
+        {# Cluster 2.5 · Generic custom_actions from SubHandler.detail_context() #}
+        {% if custom_actions is defined and custom_actions %}
+        <div class="aras-toolbar__cluster">
+          {% for _act in custom_actions %}
+          <button type="button"
+                  class="aras-btn aras-btn--sm {{ _act.style | default('aras-btn--outline') }}"
+                  id="{{ _act.id | default('') }}"
+                  data-custom-action="{{ _act.id | default('btn') }}"
+                  data-url="{{ _act.url | default('') }}"
+                  data-obj-id="{{ obj_id | default('') }}"
+                  {% if _act.confirm is defined %}data-confirm="{{ _act.confirm }}"{% endif %}
+                  {% if _act.data is defined %}{% for k, v in _act.data.items() %}data-payload-{{ k }}="{{ v }}" {% endfor %}{% endif %}>
+            {% if _act.icon is defined and _act.icon %}<i class="fa {{ _act.icon }}"></i>{% endif %}
+            <span>{{ _act.label }}</span>
+          </button>
+          {% endfor %}
+        </div>
+        <span class="aras-toolbar__divider" aria-hidden="true"></span>
+        {% endif %}
+
+        {# Cluster 3 · Primary commit (Cancel + Save / Post / Workflow) — mirrors listview "New" lead #}
+        <div class="aras-toolbar__cluster">
+          <a href="{{ list_url }}" class="aras-iconbtn aras-iconbtn--label" title="Cancel">
+            <span>Cancel</span>
+          </a>
+
+          {% if workflow_actions is defined and workflow_actions %}
+            {% for wa in workflow_actions %}
+              <button type="button"
+                      class="aras-btn aras-btn--sm {{ 'aras-btn--lead' if loop.first else 'aras-btn--outline' }} btn-wf-action"
+                      data-action="{{ wa.action }}" data-res-key="{{ workflow_resource_key }}" data-obj-id="{{ obj_id }}"
+                      {{ 'disabled' if not wa.allowed }}>
+                <i class="fa fa-share"></i><span>{{ wa.action|capitalize }}</span>
+              </button>
+            {% endfor %}
+          {% elif post_url is defined and post_url %}
+            <button type="submit" form="mainForm" class="aras-iconbtn aras-iconbtn--label" title="Save as Draft">
+              <i class="fa fa-floppy-o"></i><span>Draft</span>
+            </button>
+            <button type="button" class="aras-btn aras-btn--sm aras-btn--lead" id="btnPostInvoice"
+                    data-post-url="{{ post_url }}" data-obj-id="{{ obj_id }}">
+              <i class="fa fa-paper-plane"></i><span>Post</span>
+            </button>
+          {% elif show_save_btn is not defined or show_save_btn %}
+            <button type="submit" form="mainForm" class="aras-btn aras-btn--sm aras-btn--lead">
+              <i class="fa fa-check"></i><span>Save</span>
+            </button>
+          {% endif %}
+        </div>
+      </div>
     </div>
+
+    <div class="aras-form-layout ledger-layout">
+      <div class="aras-main-column ledger-main">
+
+        {# Separate inline vs tab child tables #}
+        {% set _all_ct = child_tables if child_tables is defined else [] %}
+        {% set _inline_cts = _all_ct | rejectattr("view_in_tab", "equalto", true) | list %}
+        {% set _tab_cts = _all_ct | selectattr("view_in_tab", "equalto", true) | list %}
+
+        {# ── Ledger Sheet ── #}
+        <article class="aras-card ledger-card ledger-card--sheet">
+          <div class="ledger-card__corner ledger-card__corner--tl" aria-hidden="true"></div>
+          <div class="ledger-card__corner ledger-card__corner--tr" aria-hidden="true"></div>
+          <div class="ledger-card__corner ledger-card__corner--bl" aria-hidden="true"></div>
+          <div class="ledger-card__corner ledger-card__corner--br" aria-hidden="true"></div>
+
+          <div class="aras-card-body ledger-card__body">
+            <form method="POST" action="{{ action }}" id="mainForm" novalidate>
+              {{ form.hidden_tag() if form.hidden_tag is defined }}
+              {% if layout_tabs is defined and layout_tabs %}
+                {% set child_table_tabs = _all_ct %}
+                {% include 'admin/gen/macro_form_layout.html' %}
+              {% else %}
+                <div class="ledger-form ledger-form--plain">
+                  {{ render_form_fields(form) }}
+                </div>
+              {% endif %}
+
+              {# Fallback for unplaced child tables (only if layout_tabs is NOT defined) #}
+              {% if not (layout_tabs is defined and layout_tabs) %}
+                {% for ct in _all_ct %}
+                  {% if not ct.get('_is_placed') %}
+                    <div class="ledger-childtable ledger-childtable--appended">
+                      {% include 'admin/gen/gen_view_form_child_table.html' %}
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+            </form>
+          </div>
+        </article>
+      </div>
+
+      {# ── Dossier sidebar ── #}
+      <aside class="aras-sidebar-sticky ledger-sidebar">
+
+        <section class="aras-card ledger-card ledger-card--dossier">
+          <header class="aras-card-header ledger-dossier__head">
+            <span class="ledger-dossier__eyebrow">Dossier</span>
+            <h3 class="aras-card-title m-0 ledger-dossier__title">Details</h3>
+          </header>
+          <div class="aras-card-body py-3 ledger-dossier__body">
+            <dl class="ledger-meta">
+              <div class="ledger-meta__row">
+                <dt class="ledger-meta__label">Status</dt>
+                <dd class="ledger-meta__value">
+                  <span class="ledger-pill ledger-pill--draft"><span class="ledger-pill__dot"></span>Draft</span>
+                </dd>
+              </div>
+              {% if table_id %}
+              <div class="ledger-meta__row">
+                <dt class="ledger-meta__label">Resource</dt>
+                <dd class="ledger-meta__value"><code class="ledger-code">{{ table_id }}</code></dd>
+              </div>
+              {% endif %}
+            </dl>
+          </div>
+        </section>
+
+        {% if sidebar_cards is defined and sidebar_cards %}
+          {% for card in sidebar_cards %}
+            <section class="aras-card ledger-card ledger-card--dossier">
+              <header class="aras-card-header ledger-dossier__head">
+                <span class="ledger-dossier__eyebrow">Annex {{ '%02d' | format(loop.index) }}</span>
+                <h3 class="aras-card-title m-0 ledger-dossier__title">{{ card.title }}</h3>
+              </header>
+              <div class="aras-card-body py-3 ledger-dossier__body">
+                <dl class="ledger-meta">
+                  {% for row in card.rows %}
+                    <div class="ledger-meta__row">
+                      <dt class="ledger-meta__label">{{ row.label }}</dt>
+                      <dd class="ledger-meta__value ledger-meta__value--strong">{{ row.value }}</dd>
+                    </div>
+                  {% endfor %}
+                </dl>
+              </div>
+            </section>
+          {% endfor %}
+        {% endif %}
+
+        {% if activity_log is defined and activity_log %}
+          <section class="aras-card ledger-card ledger-card--dossier">
+            <header class="aras-card-header ledger-dossier__head">
+              <span class="ledger-dossier__eyebrow">Marginalia</span>
+              <h3 class="aras-card-title m-0 ledger-dossier__title">Activity</h3>
+            </header>
+            <div class="aras-card-body ledger-dossier__body">
+              <ol class="aras-timeline ledger-timeline">
+                {% for entry in activity_log %}
+                  <li class="aras-timeline-item ledger-timeline__item">
+                    <span class="aras-timeline-dot {{ entry.action }} ledger-timeline__dot" aria-hidden="true"></span>
+                    <div class="aras-timeline-content ledger-timeline__content">
+                      <div class="aras-timeline-header ledger-timeline__header">
+                        <span class="aras-timeline-user ledger-timeline__user">{{ entry.user }}</span>
+                        <span class="aras-timeline-time ledger-timeline__time" data-ts="{{ entry.ts.isoformat() if entry.ts else '' }}">
+                          {{ entry.ts.strftime('%H:%M') if entry.ts else '' }}
+                        </span>
+                      </div>
+                      <div class="aras-timeline-body ledger-timeline__body">
+                        {% if entry.action == 'create' %}
+                          Created this record.
+                        {% elif entry.action == 'delete' %}
+                          Deleted this record.
+                        {% elif entry.action == 'update' %}
+                          Updated this record.
+                          {% if entry.changes %}
+                            <div class="aras-timeline-changes ledger-timeline__changes">
+                              {% for field, change in entry.changes.items() %}
+                                <span class="ledger-timeline__change">
+                                  <em>{{ field }}:</em>
+                                  <code>{{ change.old }}</code> → <code>{{ change.new }}</code>
+                                </span>
+                              {% endfor %}
+                            </div>
+                          {% endif %}
+                        {% else %}
+                          {{ entry.action|capitalize }}
+                        {% endif %}
+                      </div>
+                      <div class="aras-timeline-date ledger-timeline__date">
+                        {{ entry.ts.strftime('%d %b %Y') if entry.ts else '' }}
+                      </div>
+                    </div>
+                  </li>
+                {% endfor %}
+              </ol>
+            </div>
+          </section>
+        {% endif %}
+      </aside>
+    </div>
+  </div>
 </div>
-{% endblock %} {% block script %} {{ super() }}
+{% endblock %}
+
+{% block script %}
+{{ super() }}
 <script src="{{ url_for('static', filename='js/adm_form.js') }}"></script>
 <script src="{{ url_for('static', filename='js/aras_code_editor.js') }}"></script>
 <script>
@@ -272,7 +306,7 @@ form view with timeline activity and optimized child-table interactions.
             if (!action || !resKey || !objId) return;
 
             var note = prompt('Tambahkan catatan (opsional):');
-            if (note === null) return; // Cancelled
+            if (note === null) return;
 
             btn.disabled = true;
             var oldHtml = btn.innerHTML;
@@ -348,6 +382,88 @@ form view with timeline activity and optimized child-table interactions.
             btn.innerHTML = '<i class="fa fa-paper-plane"></i> Post / Submit';
         });
     });
+})();
+
+// ── Generic custom_actions buttons (from SubHandler.detail_context / child_table_actions) ──
+(function () {
+    var CSRF = '{{ csrf_token() }}';
+    document.querySelectorAll('[data-custom-action]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var url    = btn.dataset.url;
+            var objId  = btn.dataset.objId;
+            var action = btn.dataset.customAction;
+            var label  = btn.querySelector('span') ? btn.querySelector('span').textContent : btn.textContent;
+            var body   = {obj_id: objId ? parseInt(objId) : null};
+            // merge extra data-* attrs prefixed data-payload-*
+            btn.getAttributeNames().forEach(function (a) {
+                if (a.startsWith('data-payload-')) body[a.slice(13)] = btn.getAttribute(a);
+            });
+            if (btn.dataset.confirm && !confirm(btn.dataset.confirm)) return;
+            btn.disabled = true;
+            if (btn.querySelector('span')) btn.querySelector('span').textContent = '...';
+            fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+                body: JSON.stringify(body)
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                btn.disabled = false;
+                if (btn.querySelector('span')) btn.querySelector('span').textContent = label;
+                if (!data || !data.ok) { arasNotify((data && data.error) || 'Error', 'error'); return; }
+                if (data.reload) { arasNotify(data.message || 'Done.', 'success'); setTimeout(function () { window.location.reload(); }, 700); return; }
+                if (data.modal_html) { _showHtmlModal(data.modal_html, data); return; }
+                if (data.message) arasNotify(data.message, 'success');
+            })
+            .catch(function (e) {
+                arasNotify('Network error: ' + e, 'error');
+                btn.disabled = false;
+                if (btn.querySelector('span')) btn.querySelector('span').textContent = label;
+            });
+        });
+    });
+
+    function _showHtmlModal(html, data) {
+        var existing = document.getElementById('arasCustomModal');
+        if (existing) existing.remove();
+        var wrap = document.createElement('div');
+        wrap.id = 'arasCustomModal';
+        wrap.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        wrap.innerHTML = html;
+        document.body.appendChild(wrap);
+        wrap.querySelector('[data-modal-close]') && (wrap.querySelector('[data-modal-close]').onclick = function () { wrap.remove(); });
+        // Wire allocate save if present
+        var saveBtn = wrap.querySelector('[data-alloc-save]');
+        if (saveBtn) _wireAllocSave(wrap, saveBtn, data);
+    }
+
+    function _wireAllocSave(modal, saveBtn, data) {
+        var CSRF2 = '{{ csrf_token() }}';
+        saveBtn.addEventListener('click', function () {
+            var allocations = [];
+            modal.querySelectorAll('.alloc-amt').forEach(function (inp) {
+                var amt = parseFloat(inp.value);
+                if (amt > 0) allocations.push({invoice_type: inp.dataset.type, invoice_id: parseInt(inp.dataset.id), amount: amt});
+            });
+            if (!allocations.length) { arasNotify('No allocation entered.', 'warning'); return; }
+            saveBtn.disabled = true;
+            var chain = Promise.resolve();
+            allocations.forEach(function (a) {
+                chain = chain.then(function () {
+                    return fetch('/api/erp/acc/payment/allocate/', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF2},
+                        body: JSON.stringify({payment_id: parseInt(data.payment_id), invoice_type: a.invoice_type, invoice_id: a.invoice_id, amount: a.amount})
+                    }).then(function (r) { return r.json(); });
+                });
+            });
+            chain.then(function () {
+                modal.remove();
+                arasNotify('Allocations saved.', 'success');
+                setTimeout(function () { window.location.reload(); }, 600);
+            }).catch(function (e) { arasNotify('Error: ' + e, 'error'); saveBtn.disabled = false; });
+        });
+    }
 })();
 </script>
 {% endblock %}

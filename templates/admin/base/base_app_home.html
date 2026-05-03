@@ -35,21 +35,30 @@
       {% macro render_studio_tile(t) %}
         <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
           <a href="{{ t.url }}" class="aras-studio-tile">
-            <div class="aras-studio-tile__icon">
-              <i class="fa {{ t.icon }}"></i>
+            <div class="aras-studio-tile__head">
+              <div class="aras-studio-tile__icon"><i class="fa {{ t.icon }}"></i></div>
+              <span class="aras-studio-tile__count">
+                {% if t.page_type == 'group' %}{{ t.tile_count|default('Collection') }}
+                {% else %}{{ t.count|default(0) }} record{{ '' if t.count == 1 else 's' }}{% endif %}
+              </span>
             </div>
             <div class="aras-studio-tile__title">{{ t.title }}</div>
-            
-            {% if t.description %}
-              <div class="aras-studio-tile__meta aras-studio-tile__meta--small">{{ t.description }}</div>
+            {% if t.peek %}
+              <div class="aras-studio-tile__peek">{{ t.peek }}</div>
+            {% elif t.description %}
+              <div class="aras-studio-tile__peek">{{ t.description }}</div>
             {% endif %}
+            <div class="aras-studio-tile__open">Open <span class="aras-studio-tile__arrow">&rarr;</span></div>
+          </a>
+        </div>
+      {% endmacro %}
 
-            <div class="aras-studio-tile__meta">
-              {% if t.page_type == 'group' %}
-                {{ t.tile_count|default('Collection') }}
-              {% else %}
-                {{ t.count|default(0) }} record{{ '' if t.count == 1 else 's' }}
-              {% endif %}
+      {% macro render_ghost_tile() %}
+        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+          <a href="/admin/apps" class="aras-studio-tile aras-studio-tile--ghost">
+            <div class="aras-studio-tile__ghost-inner">
+              <i class="fa fa-plus"></i>
+              <span>Add module</span>
             </div>
           </a>
         </div>
@@ -72,7 +81,10 @@
         {% endfor %}
 
         {% if ungrouped %}
-          <div class="row">{% for t in ungrouped %}{{ render_studio_tile(t) }}{% endfor %}</div>
+          <div class="row">
+            {% for t in ungrouped %}{{ render_studio_tile(t) }}{% endfor %}
+            {% if is_dynamic and ungrouped|length % 4 != 0 %}{{ render_ghost_tile() }}{% endif %}
+          </div>
         {% endif %}
 
         {% for grp_name, grp_tiles in grouped.items() %}
