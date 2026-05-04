@@ -38,7 +38,7 @@ def run(flask_app):
 
         # ── stock_product_price: price_list_id ───────────────────────────────
         tables = insp.get_table_names()
-        spp_table = "stock_price_list" if "stock_price_list" in tables else None
+        spp_table = "stock_price_list" if "stock_price_list" in tables else ("stock_product_price" if "stock_product_price" in tables else None)
         
         if spp_table:
             pp_cols = {c["name"] for c in insp.get_columns(spp_table)}

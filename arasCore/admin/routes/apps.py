@@ -188,24 +188,21 @@ def child_table_save(model_name):
             # As a fallback for simple forms, we use the last value.
             raw_data[key] = val[-1] if val else None
 
-    # Filter to only keep keys that belong to this model's table to prevent cross-row pollution
-    model_columns = {col.name for col in child_model.__table__.columns}
-    sanitized_data = {}
-    for k, v in raw_data.items():
-        if k in model_columns:
-            if isinstance(v, list):
-                v = v[-1] if v else None
-            sanitized_data[k] = v
-
-    data = sanitized_data
-    
     # Data cleanup and validation
     for k, v in data.items():
         col = child_model.__table__.columns.get(k)
         
-        # Handle specific case for uom_id: if it's an empty string, treat as None
-        if k == 'uom_id' and v == '':
-            data[k] = None
+        # Handle specific case for uom_id:
+        if k == 'uom_id':
+            if v == '': # If empty string
+                if col is not None and not col.nullable: # And it's non-nullable
+                    return jsonify({"error": "Unit of Measure (uom_id) is required."}), 400
+                else: # If nullable, then None is fine
+                    data[k] = None
+            elif v is None or str(v).lower() in ("none", "null", "__pid__"): # Handle None or explicit null strings
+                 if col is not None and col.nullable:
+                    data[k] = None
+            # else: keep the value as is (it's a valid string or integer)
             continue
 
         # Handle boolean conversion for checkbox fields
@@ -213,37 +210,13 @@ def child_table_save(model_name):
             data[k] = True if v == 'on' else False
             continue
 
-        # Handle empty/null strings for other fields
-        if v in ("", "None", "null", "__PID__", None):
+        # Handle empty/null strings for other fields that are nullable
+        elif v in ("", "None", "null", "__PID__", None):
             if col is not None and col.nullable:
                 data[k] = None
-            # If not nullable and empty/None, we'll catch it in the next validation step
+            # If not nullable and empty/None, it will be caught by the general validation loop below.
             continue
-
-    # Specific validation for required fields for the current model (e.g., stock_product_uom)
-    # This is to catch cases where fields are non-nullable but were submitted as empty or None.
-    for col in child_model.__table__.columns:
-        # Skip primary key if it's autoincrement
-        if col.primary_key and col.autoincrement:
-            continue
-        
-        # Check for missing values in non-nullable fields
-        if not col.nullable:
-            # Check if the field is missing from data or if its value is None/empty string
-            is_missing_or_empty = (
-                col.name not in data or
-                data[col.name] is None or
-                (isinstance(data[col.name], str) and not data[col.name].strip()) # Also check for empty strings after stripping
-            )
-            
-            # Allow default values to be set by the DB if they exist
-            if col.default is None and col.server_default is None and is_missing_or_empty:
-                 return jsonify({"error": f"Missing required field: {col.name}"}), 400
-
-    # Inject parent FK from URL params if body sent "None"/empty for it
-    if fk_col_param and parent_id_param and parent_id_param not in ("None", "null", "", "__PID__"):
-        if not data.get(fk_col_param):
-            data[fk_col_param] = parent_id_param
+        # else: keep the value as is
 
 
 

@@ -57,7 +57,7 @@ def up(flask_app):
             conn.execute(text("DROP TABLE stock_price_list"))
 
         # ── Step 2: rename rule table to stock_price_list ──────────────────
-        if _table_exists("stock_product_price"):
+if _table_exists("stock_product_price"):
             conn.execute(text("ALTER TABLE stock_product_price RENAME TO stock_price_list"))
 
         # Rename price_list_id → price_type_id
