@@ -34,7 +34,7 @@ from aras.erp.erp_pos.models import (
     PosTerminal, PosSession, PosShiftEntry,
 )
 from aras.erp.erp_stock.models import (
-    StockUomCategory, StockUom, StockUomConversion,
+    StockUom,
     StockProductCategory, StockProduct, StockProductUom,
     StockPriceType, StockPriceList, StockProductBundle, StockProductAccountLink,
     StockPromoBundle, StockPromoBundleItem,
@@ -969,10 +969,8 @@ helper = AppHelper(
 
         # ── Stock ───────────────────────────────────────────────────────────────
         MenuGroup("Stock", "fa-cubes", order=6, resources=[
-            ResourceDef("stock/uom-category",     StockUomCategory,     admin_list=False),
             ResourceDef("stock/uom",              StockUom,             admin_list=True,
                         menu_title="Units of Measure", menu_icon="fa-balance-scale"),
-            ResourceDef("stock/uom-conversion",   StockUomConversion,   admin_list=False, is_child_table=True),
             ResourceDef("stock/product-category", StockProductCategory, admin_list=True,
                         menu_title="Product Categories", menu_icon="fa-folder-o"),
             ResourceDef("stock/product",          StockProduct,         admin_list=True,

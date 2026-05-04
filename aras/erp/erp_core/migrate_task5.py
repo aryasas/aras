@@ -22,14 +22,14 @@ def _add_col(table, col, definition):
 
 def _seq_exists(company_id, code):
     row = db.session.execute(db.text(
-        "SELECT COUNT(*) FROM core_sequence WHERE company_id=:c AND code=:code"
+        "SELECT COUNT(*) FROM sequence WHERE company_id=:c AND code=:code"
     ), {"c": company_id, "code": code}).scalar()
     return row > 0
 
 
 def _get_hq_company_id():
     row = db.session.execute(db.text(
-        "SELECT id FROM core_company ORDER BY id LIMIT 1"
+        "SELECT id FROM company ORDER BY id LIMIT 1"
     )).fetchone()
     return row[0] if row else None
 
@@ -45,7 +45,7 @@ def run(app):
         cid = _get_hq_company_id()
         if cid and not _seq_exists(cid, "stock.move"):
             db.session.execute(db.text(
-                "INSERT INTO core_sequence (company_id, code, prefix, padding, reset_period, next_value) "
+                "INSERT INTO sequence (company_id, code, prefix, padding, reset_period, next_value) "
                 "VALUES (:cid, 'stock.move', 'SM', 5, 'yearly', 0)"
             ), {"cid": cid})
             db.session.commit()

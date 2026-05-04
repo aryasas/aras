@@ -6,8 +6,8 @@ def upgrade():
     conn = db.engine.connect()
     try:
         # PosTerminal new columns
-        _add_column(conn, "pos_terminal", "invoice_sequence_id", "INTEGER REFERENCES core_sequence(id)")
-        _add_column(conn, "pos_terminal", "print_template_id",   "INTEGER REFERENCES core_print_template(id)")
+        _add_column(conn, "pos_terminal", "invoice_sequence_id", "INTEGER REFERENCES sequence(id)")
+        _add_column(conn, "pos_terminal", "print_template_id",   "INTEGER REFERENCES print_template(id)")
         _add_column(conn, "pos_terminal", "opening_journal_id",  "INTEGER REFERENCES acc_journal(id)")
 
         # PosShiftEntry table

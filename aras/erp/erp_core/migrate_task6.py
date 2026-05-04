@@ -22,7 +22,7 @@ def _add_col(table, col, definition):
 
 def _setting_exists(key):
     return db.session.execute(db.text(
-        "SELECT COUNT(*) FROM core_setting WHERE scope='global' AND `key`=:k"
+        "SELECT COUNT(*) FROM setting WHERE scope='global' AND `key`=:k"
     ), {"k": key}).scalar() > 0
 
 
@@ -42,7 +42,7 @@ def run(app):
         ]:
             if not _setting_exists(key):
                 db.session.execute(db.text(
-                    "INSERT INTO core_setting (scope, scope_id, `key`, value_type, value) "
+                    "INSERT INTO setting (scope, scope_id, `key`, value_type, value) "
                     "VALUES ('global', NULL, :k, :vt, :v)"
                 ), {"k": key, "vt": vtype, "v": value})
         db.session.commit()

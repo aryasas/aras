@@ -25,8 +25,8 @@ def convert_qty(product_id: int, qty: Decimal, from_uom_id: int, to_uom_id: int)
     if not to_uom:
         raise ValueError(f"To UOM with ID {to_uom_id} not found.")
 
-    from_factor = Decimal(str(src.factor)) if src else (Decimal(str(from_uom.ratio)) if from_uom else Decimal("1"))
-    to_factor   = Decimal(str(dst.factor)) if dst else (Decimal(str(to_uom.ratio))   if to_uom   else Decimal("1"))
+    from_factor = Decimal(str(src.factor)) if src else Decimal("1")
+    to_factor   = Decimal(str(dst.factor)) if dst else Decimal("1")
 
     return qty if to_factor == 0 else qty * from_factor / to_factor
 

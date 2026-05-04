@@ -2,23 +2,20 @@
 from arasCore.lib.core.extensions import db
 
 
-UOM_CATEGORIES = ["Unit", "Berat", "Volume", "Panjang", "Waktu"]
-
 UOMS = [
-    # (name, code, category, uom_type, ratio)
-    ("Pcs",     "pcs",  "Unit",   "reference", 1),
-    ("Lusin",   "lsn",  "Unit",   "bigger",    12),
-    ("Kodi",    "kdi",  "Unit",   "bigger",    20),
-    ("Rim",     "rim",  "Unit",   "bigger",    500),
-    ("Kg",      "kg",   "Berat",  "reference", 1),
-    ("Gram",    "g",    "Berat",  "smaller",   0.001),
-    ("Ton",     "ton",  "Berat",  "bigger",    1000),
-    ("Liter",   "ltr",  "Volume", "reference", 1),
-    ("ML",      "ml",   "Volume", "smaller",   0.001),
-    ("Meter",   "m",    "Panjang","reference", 1),
-    ("CM",      "cm",   "Panjang","smaller",   0.01),
-    ("Jam",     "jam",  "Waktu",  "reference", 1),
-    ("Menit",   "mnt",  "Waktu",  "smaller",   0.016667),
+    "Pcs",
+    "Lusin",
+    "Kodi",
+    "Rim",
+    "Kg",
+    "Gram",
+    "Ton",
+    "Liter",
+    "ML",
+    "Meter",
+    "CM",
+    "Jam",
+    "Menit",
 ]
 
 PRODUCT_CATEGORIES = [
@@ -30,24 +27,23 @@ PRODUCT_CATEGORIES = [
     ("Jasa", None),
 ]
 
-# Produk sample — (code, name, category, uom_code, type, cost, price)
+# Produk sample — (code, name, category, uom_name, type, cost, price)
 SAMPLE_PRODUCTS = [
-    ("KS001", "Kopi Susu",          "Makanan & Minuman", "pcs", "consumable", 8000,   20000),
-    ("CR001", "Croissant",          "Makanan & Minuman", "pcs", "consumable", 7000,   15000),
-    ("JG001", "Jus Mangga",         "Makanan & Minuman", "pcs", "consumable", 6000,   18000),
-    ("RT001", "Roti Bakar",         "Makanan & Minuman", "pcs", "consumable", 5000,   12000),
-    ("NB001", "Notebook A5",        "Alat Tulis Kantor", "pcs", "storable",   8000,   15000),
-    ("PN001", "Pulpen Ballpoint",   "Alat Tulis Kantor", "pcs", "storable",   2000,    5000),
-    ("SP001", "Stapler Mini",       "Alat Tulis Kantor", "pcs", "storable",   15000,  35000),
-    ("CB001", "Charger USB-C",      "Elektronik",        "pcs", "storable",   50000, 120000),
-    ("HS001", "Headset Bluetooth",  "Elektronik",        "pcs", "storable",   80000, 200000),
-    ("JAS001","Jasa Konsultasi",    "Jasa",              "jam", "service",    0,     150000),
+    ("KS001", "Kopi Susu",          "Makanan & Minuman", "Pcs", "consumable", 8000,   20000),
+    ("CR001", "Croissant",          "Makanan & Minuman", "Pcs", "consumable", 7000,   15000),
+    ("JG001", "Jus Mangga",         "Makanan & Minuman", "Pcs", "consumable", 6000,   18000),
+    ("RT001", "Roti Bakar",         "Makanan & Minuman", "Pcs", "consumable", 5000,   12000),
+    ("NB001", "Notebook A5",        "Alat Tulis Kantor", "Pcs", "storable",   8000,   15000),
+    ("PN001", "Pulpen Ballpoint",   "Alat Tulis Kantor", "Pcs", "storable",   2000,    5000),
+    ("SP001", "Stapler Mini",       "Alat Tulis Kantor", "Pcs", "storable",   15000,  35000),
+    ("CB001", "Charger USB-C",      "Elektronik",        "Pcs", "storable",   50000, 120000),
+    ("HS001", "Headset Bluetooth",  "Elektronik",        "Pcs", "storable",   80000, 200000),
+    ("JAS001","Jasa Konsultasi",    "Jasa",              "Jam", "service",    0,     150000),
 ]
 
 
 def run_seed(app, company_id: int):
     with app.app_context():
-        _seed_uom_categories()
         _seed_uoms()
         db.session.flush()
         _seed_product_categories(company_id)
@@ -57,22 +53,12 @@ def run_seed(app, company_id: int):
         print("[seed] stock & product data seeded.")
 
 
-def _seed_uom_categories():
-    from aras.erp.erp_stock.models.uom import StockUomCategory
-    for name in UOM_CATEGORIES:
-        StockUomCategory.get_or_create({"is_active": True}, name=name)
-
-
 def _seed_uoms():
-    from aras.erp.erp_stock.models.uom import StockUom, StockUomCategory
-    for name, code, cat_name, uom_type, ratio in UOMS:
-        cat = StockUomCategory.find(name=cat_name)
-        if not cat:
-            continue
+    from aras.erp.erp_stock.models.uom import StockUom
+    for name in UOMS:
         StockUom.get_or_create(
-            {"name": name, "category_id": cat.id, "uom_type": uom_type,
-             "ratio": ratio, "rounding": 0.01, "is_active": True},
-            code=code,
+            {},
+            name=name,
         )
 
 
@@ -102,13 +88,12 @@ def _seed_product_categories(company_id: int):
 def _seed_products(company_id: int):
     from aras.erp.erp_stock.models.product import StockProduct, StockProductCategory
     from aras.erp.erp_stock.models.uom import StockUom
-    from aras.erp.erp_core.models.currency import Currency
 
-    for code, name, cat_name, uom_code, ptype, cost, price in SAMPLE_PRODUCTS:
+    for code, name, cat_name, uom_name, ptype, cost, price in SAMPLE_PRODUCTS:
         if StockProduct.exists(company_id=company_id, code=code):
             continue
         cat = StockProductCategory.find(name=cat_name)
-        uom = StockUom.find(code=uom_code)
+        uom = StockUom.find(name=uom_name)
         if not uom:
             continue
         StockProduct.create({

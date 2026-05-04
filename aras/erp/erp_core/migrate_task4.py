@@ -33,15 +33,15 @@ def _insert_pos_shift_sequence():
     engine = db.engine
     with engine.connect() as conn:
         result = conn.execute(text(
-            "SELECT COUNT(*) FROM core_sequence WHERE code = 'pos.shift'"
+            "SELECT COUNT(*) FROM sequence WHERE code = 'pos.shift'"
         ))
         if result.scalar() == 0:
             company = conn.execute(text(
-                "SELECT id FROM core_company WHERE code = 'HQ' LIMIT 1"
+                "SELECT id FROM company WHERE code = 'HQ' LIMIT 1"
             )).fetchone()
             if company:
                 conn.execute(text(
-                    "INSERT INTO core_sequence (company_id, code, prefix, padding, reset_period, next_value) "
+                    "INSERT INTO sequence (company_id, code, prefix, padding, reset_period, next_value) "
                     "VALUES (:cid, 'pos.shift', 'SHIFT', 5, 'yearly', 0)"
                 ), {"cid": company[0]})
                 conn.commit()
