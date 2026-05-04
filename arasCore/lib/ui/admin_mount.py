@@ -365,6 +365,7 @@ class AdminResourceMounter:
                         "parent_price_list_field": "#price_type_id",
                         "app_id":                  _ct_app_id,
                         "table_id":                _ct_table_id,
+                        "parent_model_name":       model.__tablename__,
                     })
                 except Exception:
                     pass
@@ -522,6 +523,7 @@ class AdminResourceMounter:
                         "parent_price_list_field": "#price_type_id",
                         "app_id":                  _ct_app_id,
                         "table_id":                _ct_table_id,
+                        "parent_model_name":       model.__tablename__,
                     })
                 except Exception:
                     pass

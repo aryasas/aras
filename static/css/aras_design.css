@@ -2547,18 +2547,75 @@ select.aras-fsel.is-hidden {
 .aras-modal__content {
   position: relative;
   z-index: 1;
-  background: var(--surface, #fff);
-  border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  background: var(--aras-surface);
+  border-radius: var(--aras-radius);
+  box-shadow: var(--aras-shadow-drop);
   width: 90%;
-  max-width: 520px;
+  max-width: 480px;
   max-height: 85vh;
-  overflow-y: auto;
-  animation: arasModalIn 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: arasModalIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
+
+.aras-dialog-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--aras-border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--aras-surface-alt);
+}
+
+.aras-dialog-title {
+  font-family: var(--aras-font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--aras-brand);
+  margin: 0;
+}
+
+.aras-dialog-body {
+  padding: 24px;
+  font-family: var(--aras-font-serif);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--aras-text);
+  overflow-y: auto;
+}
+
+.aras-dialog-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--aras-border-subtle);
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  background: var(--aras-surface-alt);
+}
+
+.aras-dialog-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--aras-border);
+  border-radius: 6px;
+  font-family: var(--aras-font-sans);
+  font-size: 14px;
+  margin-top: 12px;
+  background: var(--aras-surface);
+  color: var(--aras-text);
+  transition: border-color 0.2s;
+}
+
+.aras-dialog-input:focus {
+  outline: none;
+  border-color: var(--aras-primary);
+  box-shadow: 0 0 0 3px var(--aras-primary-50);
+}
+
 @keyframes arasModalIn {
-  from { opacity: 0; transform: translateY(-12px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);    }
 }
 
 /* ============================================================

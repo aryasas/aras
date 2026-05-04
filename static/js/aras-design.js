@@ -350,7 +350,121 @@
                 toast.style.transform = 'translateX(20px)';
                 setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
             }, 4000);
+        },
+
+        dialog: function(options) {
+            return new Promise(function(resolve) {
+                var type = options.type || 'alert'; // alert, confirm, prompt
+                var title = options.title || (type === 'alert' ? 'Notification' : (type === 'confirm' ? 'Confirmation' : 'Input Required'));
+                var message = options.message || '';
+                var defaultValue = options.defaultValue || '';
+                var okText = options.okText || 'OK';
+                var cancelText = options.cancelText || 'Cancel';
+
+                var modal = document.createElement('div');
+                modal.className = 'aras-modal';
+                
+                var overlay = document.createElement('div');
+                overlay.className = 'aras-modal__overlay';
+                
+                var content = document.createElement('div');
+                content.className = 'aras-modal__content';
+                
+                var html = '<div class="aras-dialog-header">' +
+                           '<h4 class="aras-dialog-title">' + title + '</h4>' +
+                           '</div>' +
+                           '<div class="aras-dialog-body">' +
+                           '<div>' + message.replace(/\n/g, '<br>') + '</div>';
+                
+                if (type === 'prompt') {
+                    html += '<input type="text" class="aras-dialog-input" value="' + defaultValue + '">';
+                }
+                
+                html += '</div>' +
+                        '<div class="aras-dialog-footer">';
+                
+                if (type !== 'alert') {
+                    html += '<button class="aras-btn aras-btn--outline aras-dialog-cancel">' + cancelText + '</button>';
+                }
+                
+                html += '<button class="aras-btn aras-btn--primary aras-dialog-ok">' + okText + '</button>' +
+                        '</div>';
+                
+                content.innerHTML = html;
+                modal.appendChild(overlay);
+                modal.appendChild(content);
+                document.body.appendChild(modal);
+
+                var okBtn = content.querySelector('.aras-dialog-ok');
+                var cancelBtn = content.querySelector('.aras-dialog-cancel');
+                var input = content.querySelector('.aras-dialog-input');
+
+                if (input) {
+                    input.focus();
+                    input.select();
+                } else {
+                    okBtn.focus();
+                }
+
+                var close = function(result) {
+                    modal.style.opacity = '0';
+                    content.style.transform = 'scale(0.95) translateY(10px)';
+                    setTimeout(function() {
+                        modal.remove();
+                        resolve(result);
+                    }, 200);
+                };
+
+                content.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        if (cancelBtn) cancelBtn.click();
+                        else okBtn.click();
+                    }
+                    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                        okBtn.click();
+                    }
+                });
+
+                okBtn.addEventListener('click', function() {
+                    var val = input ? input.value : true;
+                    close(val);
+                });
+
+                if (cancelBtn) {
+                    cancelBtn.addEventListener('click', function() {
+                        close(type === 'prompt' ? null : false);
+                    });
+                }
+
+                overlay.addEventListener('click', function() {
+                    if (type === 'alert') okBtn.click();
+                    else if (cancelBtn) cancelBtn.click();
+                });
+            });
+        },
+
+        alert: function(msg, title) {
+            return Aras.dialog({ type: 'alert', message: msg, title: title });
+        },
+
+        confirm: function(msg, title) {
+            return Aras.dialog({ type: 'confirm', message: msg, title: title });
+        },
+
+        prompt: function(msg, defaultValue, title) {
+            return Aras.dialog({ type: 'prompt', message: msg, defaultValue: defaultValue, title: title });
         }
+    };
+
+    // Override native browser dialogs
+    window.alert = function(msg) { Aras.alert(msg); };
+    window.confirm = function(msg) { 
+        console.warn("Native confirm() overridden by Aras.dialog. This is asynchronous and may break legacy synchronous code.");
+        return Aras.confirm(msg); 
+    };
+    window.prompt = function(msg, def) { 
+        console.warn("Native prompt() overridden by Aras.dialog. This is asynchronous and may break legacy synchronous code.");
+        return Aras.prompt(msg, def); 
     };
 
     // Backward compatibility

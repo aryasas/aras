@@ -47,6 +47,7 @@ def dev():
     modules = sorted(k for k in _sys.modules if k.startswith("arasCore") or k.startswith("aras."))
     return render_template(
         "admin/setting/setting_dev_standalone.html",
+        dev_partial="admin/setting/setting_dev.html",
         main_title="Developer Tools",
         routes=routes,
         modules=modules,
@@ -66,7 +67,8 @@ def dev_components():
 @login_required
 def dev_logs():
     return render_template(
-        "admin/setting/setting_logs.html",
+        "admin/setting/setting_dev_standalone.html",
+        dev_partial="admin/setting/setting_logs.html",
         main_title="Log Viewer"
     )
 
@@ -123,7 +125,8 @@ def dev_sql():
         flash("Unauthorized. Debug mode or SUPERADMIN role required.", "danger")
         return redirect(url_for("admin.dev"))
     return render_template(
-        "admin/setting/setting_sql_console.html",
+        "admin/setting/setting_dev_standalone.html",
+        dev_partial="admin/setting/setting_sql_console.html",
         main_title="SQL Console"
     )
 
@@ -260,7 +263,8 @@ def dev_sync():
         })
         
     return render_template(
-        "admin/setting/setting_sync.html",
+        "admin/setting/setting_dev_standalone.html",
+        dev_partial="admin/setting/setting_sync.html",
         main_title="Manifest Sync",
         apps=app_list
     )
@@ -305,7 +309,8 @@ def dev_cli():
         flash("Unauthorized. Debug mode or SUPERADMIN role required.", "danger")
         return redirect(url_for("admin.dev"))
     return render_template(
-        "admin/setting/setting_cli.html",
+        "admin/setting/setting_dev_standalone.html",
+        dev_partial="admin/setting/setting_cli.html",
         main_title="Web CLI"
     )
 
@@ -370,3 +375,30 @@ def api_dev_cli_execute():
 def dev_api_docs_redirect():
     """Redirect /admin/dev/api/docs to root /api/docs/"""
     return redirect(url_for("aras_api.api_docs"))
+
+
+@admin_bp.route("/dev/audit/", strict_slashes=False)
+@login_required
+def dev_audit():
+    if not _is_dev_authorized():
+        flash("Unauthorized. Debug mode or SUPERADMIN role required.", "danger")
+        return redirect(url_for("admin.dev"))
+    return render_template(
+        "admin/setting/setting_dev_standalone.html",
+        dev_partial="admin/setting/setting_audit.html",
+        main_title="System Audit"
+    )
+
+
+@admin_bp.route("/dev/audit/data/", strict_slashes=False)
+@login_required
+def api_dev_audit():
+    if not _is_dev_authorized():
+        return jsonify({"error": "Unauthorized"}), 403
+    
+    try:
+        from arasCore.lib.services.system_audit import SystemAudit
+        report = SystemAudit.run_all()
+        return jsonify(report)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

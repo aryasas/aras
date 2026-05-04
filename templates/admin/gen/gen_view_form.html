@@ -447,6 +447,9 @@
             });
             if (!allocations.length) { arasNotify('No allocation entered.', 'warning'); return; }
             saveBtn.disabled = true;
+            var origLabel = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving…';
+            var saved = 0;
             var chain = Promise.resolve();
             allocations.forEach(function (a) {
                 chain = chain.then(function () {
@@ -454,14 +457,21 @@
                         method: 'POST',
                         headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF2},
                         body: JSON.stringify({payment_id: parseInt(data.payment_id), invoice_type: a.invoice_type, invoice_id: a.invoice_id, amount: a.amount})
-                    }).then(function (r) { return r.json(); });
+                    }).then(function (r) { return r.json(); }).then(function (d) {
+                        if (!d.ok) throw new Error(d.error || 'Allocation failed');
+                        saved++;
+                    });
                 });
             });
             chain.then(function () {
                 modal.remove();
-                arasNotify('Allocations saved.', 'success');
+                arasNotify(saved + ' allocation(s) saved.', 'success');
                 setTimeout(function () { window.location.reload(); }, 600);
-            }).catch(function (e) { arasNotify('Error: ' + e, 'error'); saveBtn.disabled = false; });
+            }).catch(function (e) {
+                arasNotify('Error: ' + e.message, 'error');
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = origLabel;
+            });
         });
     }
 })();

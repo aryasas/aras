@@ -1,61 +1,74 @@
-<div class="settings-panel d-none" id="panel-audit">
-  <div class="settings-panel-header">
-    <div class="d-flex justify-content-between align-items-center">
-      <div>
-        <h3 class="settings-panel-title"><i class="ti-eye"></i>System Audit Log</h3>
-        <p class="settings-panel-desc">Field-level change tracking and administrative action history.</p>
-      </div>
-      <div class="d-flex align-items-center gap-3">
-        <span class="aras-badge aras-badge--info">{{ audit_logs|length }} entries</span>
-        <form method="GET" action="{{ url_for('admin.settings') }}" class="d-flex gap-2">
-          <input type="hidden" name="panel" value="panel-audit">
-          <div class="aras-top-search-input-wrap" style="width: 220px;">
-            <i class="ti-search"></i>
-            <input type="text" name="q_audit" value="{{ q_audit }}" placeholder="Search log...">
-          </div>
-          <button type="submit" class="aras-btn aras-btn--primary aras-btn--sm">Search</button>
-        </form>
-      </div>
+{# Redesigned Audit Partial #}
+{% include 'admin/setting/_setting_dev_nav.html' %}
+<div class="hitech-card">
+    <div class="hitech-card-header">
+        <h3 class="hitech-card-title">SYSTEM_DIAGNOSTIC_AUDIT</h3>
+        <button class="hitech-btn hitech-btn-primary" onclick="runAudit()">
+            <i class="fa fa-stethoscope"></i> RUN_DIAGNOSTICS
+        </button>
     </div>
-  </div>
-
-  <div class="aras-table-wrap">
-    {% if audit_logs %}
-    <table class="aras-table">
-      <thead>
-        <tr>
-          <th>Time</th>
-          <th>User</th>
-          <th>Model</th>
-          <th>Record ID</th>
-          <th class="text-right">Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for e in audit_logs %}
-        <tr>
-          <td class="aras-mono fs-12 text-muted-aras">{{ e.ts.strftime('%Y-%m-%d %H:%M:%S') if e.ts else '—' }}</td>
-          <td class="font-weight-bold">{{ e._username }}</td>
-          <td><code class="aras-mono fs-11">{{ e.model_name }}</code></td>
-          <td>{{ e.record_id or '—' }}</td>
-          <td class="text-right">
-            {% if e.action == 'create' %}
-              <span class="mk on"><span class="dot"></span> {{ e.action }}</span>
-            {% elif e.action == 'update' %}
-              <span class="mk warn"><span class="dot"></span> {{ e.action }}</span>
-            {% else %}
-              <span class="mk err"><span class="dot"></span> {{ e.action }}</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <div class="text-center py-5">
-      <i class="ti-eye text-muted-aras mb-3 opacity-2" style="font-size: 3rem;"></i>
-      <p class="text-muted-aras aras-serif-italic">No audit entries found matching your criteria.</p>
+    <div class="hitech-card-body" style="padding: 0;">
+        <div id="audit-results" class="hitech-mono" style="padding: 1.5rem; font-size: 0.8rem; min-height: 400px; max-height: 700px; overflow-y: auto; background: #000;">
+            <div style="color: var(--hitech-text-dim);">Click 'RUN_DIAGNOSTICS' to start system health check.</div>
+        </div>
     </div>
-    {% endif %}
-  </div>
 </div>
+
+<script>
+    async function runAudit() {
+        const results = document.getElementById('audit-results');
+        if (!results) return;
+        results.innerHTML = '<div style="color: var(--hitech-accent-cyan);">Initializing system scan...</div>';
+        
+        try {
+            const resp = await fetch('/admin/dev/audit/data/');
+            const data = await resp.json();
+            
+            let html = '';
+            for (const [key, report] of Object.entries(data)) {
+                const status = report.status || (report.errors && report.errors.length > 0 ? 'FAIL' : 'PASS');
+                const statusColor = status === 'PASS' ? 'var(--hitech-success)' : (status === 'WARN' ? 'var(--hitech-warning)' : 'var(--hitech-danger)');
+                
+                html += `
+                    <div style="margin-bottom: 2rem; border: 1px solid var(--hitech-border); border-radius: 4px; overflow: hidden;">
+                        <div style="background: var(--hitech-card-bg); padding: 0.75rem; border-bottom: 1px solid var(--hitech-border); display: flex; justify-content: space-between;">
+                            <span style="font-weight: 600; color: var(--hitech-accent);">${key.toUpperCase()}</span>
+                            <span style="font-weight: 600; color: ${statusColor};">[${status}]</span>
+                        </div>
+                        <div style="padding: 1rem; background: #050505;">
+                `;
+                
+                if (report.summary) {
+                    html += `<div style="color: var(--hitech-text); margin-bottom: 1rem; border-bottom: 1px dashed #333; padding-bottom: 0.5rem;">${report.summary}</div>`;
+                }
+                
+                if (report.details && Object.keys(report.details).length > 0) {
+                    html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">';
+                    for (const [dk, dv] of Object.entries(report.details)) {
+                        html += `<div><span style="color: var(--hitech-text-dim);">${dk}:</span> <span style="color: var(--hitech-accent-cyan);">${dv}</span></div>`;
+                    }
+                    html += '</div>';
+                }
+                
+                if (report.errors && report.errors.length > 0) {
+                    html += '<div style="color: var(--hitech-danger); margin-top: 1rem;">';
+                    html += '<div style="font-weight: bold; margin-bottom: 0.5rem;">ERRORS DETECTED:</div>';
+                    report.errors.forEach(err => html += `<div style="padding-left: 1rem;">- ${err}</div>`);
+                    html += '</div>';
+                }
+
+                if (report.recommendations && report.recommendations.length > 0) {
+                    html += '<div style="color: var(--hitech-warning); margin-top: 1rem;">';
+                    html += '<div style="font-weight: bold; margin-bottom: 0.5rem;">RECOMMENDATIONS:</div>';
+                    report.recommendations.forEach(rec => html += `<div style="padding-left: 1rem;">- ${rec}</div>`);
+                    html += '</div>';
+                }
+                
+                html += '</div></div>';
+            }
+            results.innerHTML = html;
+        } catch (e) {
+            results.innerHTML = `<div style="color: var(--hitech-danger);">DIAGNOSTIC_FAILURE: ${e.message}</div>`;
+        }
+    }
+</script>

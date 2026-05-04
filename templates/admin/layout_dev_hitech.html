@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ main_title|default('Aras DevTools') }}</title>
+    
+    <!-- External Dependencies -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themify-icons.css') }}">
+    
+    <!-- High Tech Design -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/aras_dev_hitech.css') }}">
+    
+    {% block head %}{% endblock %}
+</head>
+<body class="hitech-theme">
+
+    <div class="hitech-container">
+        <header class="hitech-header">
+            <h1 class="hitech-title">
+                <i class="ti-pulse"></i> ARAS_CORE::DEV_OS
+            </h1>
+        </header>
+
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Modals Placeholder -->
+    <div id="hitech-modal-container"></div>
+
+    <!-- Minimal JS for UI interactions -->
+    <script>
+        function showHitechModal(title, content) {
+            const container = document.getElementById('hitech-modal-container');
+            const modalHtml = `
+                <div class="hitech-modal-overlay active" id="modal-overlay">
+                    <div class="hitech-modal">
+                        <button class="hitech-modal-close" onclick="closeHitechModal()">&times;</button>
+                        <h2 class="hitech-card-title mb-4" style="font-size: 1.2rem; color: var(--hitech-accent-cyan)">${title}</h2>
+                        <div class="hitech-modal-content">
+                            ${content}
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = modalHtml;
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeHitechModal() {
+            const overlay = document.getElementById('modal-overlay');
+            if (overlay) {
+                overlay.classList.remove('active');
+                setTimeout(() => {
+                    document.getElementById('hitech-modal-container').innerHTML = '';
+                    document.body.style.overflow = '';
+                }, 300);
+            }
+        }
+
+        // Close on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeHitechModal();
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

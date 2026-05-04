@@ -1,22 +1,20 @@
+from flask import Flask, render_template
 
-from run import app
-from flask import url_for, request
+app = Flask(__name__, template_folder='../templates')
 
-with app.test_request_context('/admin/dev'):
+@app.route('/')
+def test_render():
     try:
-        print(f"Endpoint: {request.endpoint}")
-        # Try to build the problematic URL
-        url = url_for('admin.dev_cli')
-        print(f"Successfully built URL for admin.dev_cli: {url}")
-    except Exception as e:
-        print(f"Failed to build URL for admin.dev_cli: {e}")
-
-with app.test_request_context('/admin/dev'):
-    from flask import render_template
-    try:
-        # Simulate the template rendering
-        # Note: we need to mock 'routes' and 'modules' because they are passed in the real view
-        html = render_template('admin/setting/setting_dev_standalone.html', routes=[], modules=[], main_title="Test")
+        # Pass the missing variable
+        html = render_template('admin/setting/setting_dev_standalone.html', 
+                               partial_template='admin/setting/setting_dev.html',
+                               routes=[], modules=[], main_title="Test")
         print("Successfully rendered setting_dev_standalone.html")
+        return html
     except Exception as e:
         print(f"Failed to render setting_dev_standalone.html: {e}")
+        return str(e)
+
+if __name__ == "__main__":
+    with app.app_context():
+        test_render()

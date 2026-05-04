@@ -1,110 +1,71 @@
 {# 
   Framework Dev GUI — Route Map (Phase B.3)
-  Fragment version for inclusion in settings or standalone.
+  Hitech Redesign
 #}
 
-<div class="settings-panel {{ 'd-none' if skip_hero }}" id="panel-dev">
-  {% include 'admin/setting/_setting_dev_nav.html' %}
+{% include 'admin/setting/_setting_dev_nav.html' %}
 
-  {% if routes %}
-  <div class="aras-card mb-4">
-    <div class="aras-card-header d-flex justify-content-between align-items-center">
-      <h3 class="aras-card-title">Registered Routes <span class="aras-badge aras-badge--info ml-2" id="route-count">{{ routes|length }}</span></h3>
-      <div class="d-flex gap-2">
-          <input type="text" id="route-search" class="form-control form-control-sm" placeholder="Search routes..." style="width: 200px;">
-          <select id="route-filter-method" class="form-select form-select-sm" style="width: 100px;">
-              <option value="">Methods</option>
-              <option value="GET">GET</option>
-              <option value="POST">POST</option>
-          </select>
-          <select id="route-filter-prefix" class="form-select form-select-sm" style="width: 100px;">
-              <option value="">Prefix</option>
-              <option value="/api/">/api/</option>
-              <option value="/admin/">/admin/</option>
-          </select>
-      </div>
-    </div>
-    <div class="aras-card-body p-0">
-      <div class="overflow-y-auto" style="max-height:600px;">
-        <div class="aras-table-wrap">
-          <table class="aras-table fs-12" id="route-table">
-            <thead>
-                <tr>
-                    <th>Blueprint</th>
-                    <th>Rule</th>
-                    <th>Methods</th>
-                    <th>Endpoint</th>
-                    <th class="text-right">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for r in routes %}
-            <tr class="route-row" data-rule="{{ r.rule }}" data-methods="{{ r.methods|join(',') }}" data-prefix="{{ '/api/' if r.rule.startswith('/api/') else ('/admin/' if r.rule.startswith('/admin/') else 'other') }}" data-blueprint="{{ r.blueprint }}">
-              <td><span class="aras-badge aras-badge--outline fs-10">{{ r.blueprint }}</span></td>
-              <td><code class="aras-mono fw-bold" style="color: var(--aras-accent);">{{ r.rule }}</code></td>
-              <td>
-                  {% for m in r.methods %}
-                  <span class="badge {{ 'bg-success' if m == 'GET' else ('bg-primary' if m == 'POST' else 'bg-secondary') }} fs-9">{{ m }}</span>
-                  {% endfor %}
-              </td>
-              <td class="fs-11 text-muted-aras">{{ r.endpoint }}</td>
-              <td class="text-right">
-                  <button class="btn btn-xs btn-outline-secondary" onclick='showRouteDetail({{ r|tojson|safe }})'><i class="fa fa-info-circle"></i></button>
-              </td>
-            </tr>
-            {% endfor %}
-            </tbody>
-          </table>
+{% if routes %}
+<div class="hitech-card">
+    <div class="hitech-card-header">
+        <h3 class="hitech-card-title">REGISTERED_ROUTES [{{ routes|length }}]</h3>
+        <div style="display: flex; gap: 0.5rem;">
+            <input type="text" id="route-search" class="hitech-input" placeholder="Search routes..." style="width: 200px;">
+            <select id="route-filter-method" class="hitech-select">
+                <option value="">ALL_METHODS</option>
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+            </select>
+            <select id="route-filter-prefix" class="hitech-select">
+                <option value="">ALL_PREFIX</option>
+                <option value="/api/">/API/</option>
+                <option value="/admin/">/ADMIN/</option>
+            </select>
         </div>
-      </div>
     </div>
-  </div>
-
-  <div class="aras-card">
-    <div class="aras-card-header">
-      <h3 class="aras-card-title">Loaded aras Modules <span class="aras-badge aras-badge--info ml-2">{{ modules|length }}</span></h3>
+    <div class="hitech-card-body" style="padding: 0;">
+        <div style="max-height: 600px; overflow-y: auto;">
+            <table class="hitech-table" id="route-table">
+                <thead>
+                    <tr>
+                        <th>BLUEPRINT</th>
+                        <th>RULE</th>
+                        <th>METHODS</th>
+                        <th>ENDPOINT</th>
+                        <th style="text-align: right;">INFO</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in routes %}
+                    <tr class="route-row" data-rule="{{ r.rule }}" data-methods="{{ r.methods|join(',') }}" data-prefix="{{ '/api/' if r.rule.startswith('/api/') else ('/admin/' if r.rule.startswith('/admin/') else 'other') }}" data-blueprint="{{ r.blueprint }}">
+                        <td><span class="hitech-badge hitech-badge-info">{{ r.blueprint }}</span></td>
+                        <td><code class="hitech-mono">{{ r.rule }}</code></td>
+                        <td>
+                            {% for m in r.methods %}
+                            <span class="hitech-badge {{ 'hitech-badge-success' if m == 'GET' else ('hitech-badge-info' if m == 'POST' else 'hitech-badge-warning') }}">{{ m }}</span>
+                            {% endfor %}
+                        </td>
+                        <td style="color: var(--hitech-text-dim); font-size: 0.75rem;">{{ r.endpoint }}</td>
+                        <td style="text-align: right;">
+                            <button class="hitech-btn hitech-btn-outline" onclick='showRouteDetail({{ r|tojson|safe }})'><i class="fa fa-info-circle"></i></button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-    <div class="aras-card-body">
-      <div class="fs-11" style="columns:3;">
-        {% for m in modules %}
-        <div class="mb-1"><code class="aras-mono">{{ m }}</code></div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
 </div>
 
-{# Route Detail Modal #}
-<div class="modal fade" id="routeDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-light">
-                <h5 class="modal-title fw-bold" id="rd-title">Route Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-4">
-                    <label class="fs-11 fw-bold text-muted text-uppercase">Endpoint</label>
-                    <div id="rd-endpoint" class="fs-16 fw-bold"></div>
-                </div>
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <label class="fs-11 fw-bold text-muted text-uppercase">Blueprint</label>
-                        <div id="rd-blueprint"></div>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="fs-11 fw-bold text-muted text-uppercase">File Path</label>
-                        <div id="rd-file" class="fs-11 aras-mono text-break bg-light p-2 rounded"></div>
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <label class="fs-11 fw-bold text-muted text-uppercase">Documentation (Docstring)</label>
-                    <pre id="rd-doc" class="bg-dark text-light p-3 rounded fs-12 mt-2" style="white-space: pre-wrap;"></pre>
-                </div>
-            </div>
-            <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
+<div class="hitech-card">
+    <div class="hitech-card-header">
+        <h3 class="hitech-card-title">LOADED_MODULES [{{ modules|length }}]</h3>
+    </div>
+    <div class="hitech-card-body">
+        <div style="columns: 3; font-size: 0.75rem;">
+            {% for m in modules %}
+            <div style="margin-bottom: 0.2rem;"><code class="hitech-mono">{{ m }}</code></div>
+            {% endfor %}
         </div>
     </div>
 </div>
@@ -118,13 +79,11 @@
         const methodFilter = document.getElementById('route-filter-method');
         const prefixFilter = document.getElementById('route-filter-prefix');
         const rows = document.querySelectorAll('.route-row');
-        const countBadge = document.getElementById('route-count');
 
         function filterRoutes() {
             const search = searchInput.value.toLowerCase();
             const method = methodFilter.value;
             const prefix = prefixFilter.value;
-            let visibleCount = 0;
 
             rows.forEach(row => {
                 const rule = row.dataset.rule.toLowerCase();
@@ -137,12 +96,10 @@
 
                 if (matchesSearch && matchesMethod && matchesPrefix) {
                     row.style.display = '';
-                    visibleCount++;
                 } else {
                     row.style.display = 'none';
                 }
             });
-            countBadge.textContent = visibleCount;
         }
 
         searchInput.addEventListener('input', filterRoutes);
@@ -158,14 +115,29 @@
 })();
 
 function showRouteDetail(route) {
-    document.getElementById('rd-title').textContent = route.rule;
-    document.getElementById('rd-endpoint').textContent = route.endpoint;
-    document.getElementById('rd-blueprint').textContent = route.blueprint;
-    document.getElementById('rd-file').textContent = route.file;
-    document.getElementById('rd-doc').textContent = route.doc;
-    
-    const modal = new bootstrap.Modal(document.getElementById('routeDetailModal'));
-    modal.show();
+    const content = `
+        <div style="display: grid; gap: 1.5rem;">
+            <div>
+                <label style="font-size: 0.7rem; color: var(--hitech-text-dim); text-transform: uppercase;">Endpoint</label>
+                <div style="font-size: 1.1rem; font-weight: 600; color: var(--hitech-accent)">${route.endpoint}</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1rem;">
+                <div>
+                    <label style="font-size: 0.7rem; color: var(--hitech-text-dim); text-transform: uppercase;">Blueprint</label>
+                    <div class="hitech-badge hitech-badge-info">${route.blueprint}</div>
+                </div>
+                <div>
+                    <label style="font-size: 0.7rem; color: var(--hitech-text-dim); text-transform: uppercase;">File Path</label>
+                    <div class="hitech-mono" style="word-break: break-all; font-size: 0.7rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 4px;">${route.file}</div>
+                </div>
+            </div>
+            <div>
+                <label style="font-size: 0.7rem; color: var(--hitech-text-dim); text-transform: uppercase;">Documentation</label>
+                <pre style="background: #000; color: #aaa; padding: 1rem; border-radius: 4px; font-size: 0.8rem; white-space: pre-wrap; margin-top: 0.5rem; border: 1px solid var(--hitech-border);">${route.doc}</pre>
+            </div>
+        </div>
+    `;
+    showHitechModal(route.rule, content);
 }
 </script>
 {% endif %}

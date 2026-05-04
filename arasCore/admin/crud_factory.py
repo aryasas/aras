@@ -328,9 +328,17 @@ def _get_inline_columns(child_model, fk_col: str) -> list:
         "boolean": "checkbox", "text": "textarea", "date": "date",
         "datetime": "datetime-local",
     }
+    # Columns that are auto-filled server-side — skip from inline input
+    _auto_fill_cols = set()
+    _col_names = {c.name for c in child_model.__table__.columns}
+    if "invoice_type" in _col_names and "invoice_id" in _col_names:
+        _auto_fill_cols.add("invoice_type")
+
     cols = []
     for col in child_model.__table__.columns:
         if col.primary_key or col.name in _SYSTEM_COLS or col.name == fk_col:
+            continue
+        if col.name in _auto_fill_cols:
             continue
         input_type = _type_map.get(str(col.type.__class__.__name__).lower(), "text")
         fk_table = fk_api_url = None

@@ -1,6 +1,7 @@
 {% extends extends_layout if extends_layout else 'admin/base_index.html' %}
 
 {% block page_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/aras_dev_hitech.css') }}">
 <div class="aras-studio-theme p-0">
   <div class="settings-container">
     
@@ -28,6 +29,7 @@
           ('panel-system',   'ti-control-knob', 'System'),
           ('panel-webhooks', 'ti-link',         'Webhooks'),
           ('panel-scripts',  'ti-code',         'Scripts'),
+          ('panel-components','ti-layout-media-overlay','UI Kit'),
           ('panel-dev',      'ti-dashboard',    'Dev')
         ] %}
         <a href="#{{ panel_id }}"
@@ -171,20 +173,34 @@
         </div>
       </div>
 
-      {% include 'admin/setting/setting_audit.html' %}
+      <div class="settings-panel d-none hitech-theme" id="panel-audit">
+        {% include 'admin/setting/setting_audit.html' %}
+      </div>
       {% include 'admin/setting/setting_health.html' %}
       {% include 'admin/setting/setting_system.html' %}
       {% include 'admin/setting/setting_webhooks.html' %}
       {% include 'admin/setting/setting_scripts.html' %}
       {% set skip_hero = True %}
-      {% include 'admin/setting/setting_dev.html' with context %}
+      <div class="settings-panel d-none hitech-theme" id="panel-dev">
+        {% include 'admin/setting/setting_dev.html' with context %}
+      </div>
       
       {# Dev Tools Sub-Panels #}
-      {% include 'admin/setting/setting_logs.html' with context %}
-      {% include 'admin/setting/setting_sql_console.html' with context %}
-      {% include 'admin/setting/setting_cli.html' with context %}
-      {% include 'admin/setting/setting_sync.html' with context %}
-      {% include 'admin/setting/setting_components.html' with context %}
+      <div class="settings-panel d-none hitech-theme" id="panel-logs">
+        {% include 'admin/setting/setting_logs.html' with context %}
+      </div>
+      <div class="settings-panel d-none hitech-theme" id="panel-sql">
+        {% include 'admin/setting/setting_sql_console.html' with context %}
+      </div>
+      <div class="settings-panel d-none hitech-theme" id="panel-cli">
+        {% include 'admin/setting/setting_cli.html' with context %}
+      </div>
+      <div class="settings-panel d-none hitech-theme" id="panel-sync">
+        {% include 'admin/setting/setting_sync.html' with context %}
+      </div>
+      <div class="settings-panel d-none" id="panel-components">
+        {% include 'admin/setting/setting_components.html' with context %}
+      </div>
     </main>
   </div>
 </div>

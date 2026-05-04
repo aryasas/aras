@@ -46,12 +46,17 @@ class AccSalesInvoice(ArasModel):
     journal_entry = db.relationship("AccJournalEntry")
     lines         = db.relationship("AccSalesInvoiceLine", backref="invoice",
                                     cascade="all, delete-orphan")
-    charges       = db.relationship("AccSalesInvoiceCharge", backref="invoice",
+    charges             = db.relationship("AccSalesInvoiceCharge", backref="invoice",
                                     cascade="all, delete-orphan")
+    payment_allocations = db.relationship(
+        "AccPaymentAllocation",
+        primaryjoin="and_(AccPaymentAllocation.invoice_type=='sales', foreign(AccPaymentAllocation.invoice_id)==AccSalesInvoice.id)",
+        lazy="dynamic",
+        viewonly=True,
+    )
     @property
     def allocations(self):
-        from aras.erp.erp_acc.models.payment import AccPaymentAllocation
-        return AccPaymentAllocation.query.filter_by(invoice_type='sales', invoice_id=self.id).all()
+        return self.payment_allocations.all()
 
     @property
     def amount_paid(self):
@@ -148,12 +153,17 @@ class AccPurchaseInvoice(ArasModel):
     journal_entry = db.relationship("AccJournalEntry")
     lines         = db.relationship("AccPurchaseInvoiceLine", backref="invoice",
                                     cascade="all, delete-orphan")
-    charges       = db.relationship("AccPurchaseInvoiceCharge", backref="invoice",
+    charges             = db.relationship("AccPurchaseInvoiceCharge", backref="invoice",
                                     cascade="all, delete-orphan")
+    payment_allocations = db.relationship(
+        "AccPaymentAllocation",
+        primaryjoin="and_(AccPaymentAllocation.invoice_type=='purchase', foreign(AccPaymentAllocation.invoice_id)==AccPurchaseInvoice.id)",
+        lazy="dynamic",
+        viewonly=True,
+    )
     @property
     def allocations(self):
-        from aras.erp.erp_acc.models.payment import AccPaymentAllocation
-        return AccPaymentAllocation.query.filter_by(invoice_type='purchase', invoice_id=self.id).all()
+        return self.payment_allocations.all()
 
     @property
     def amount_paid(self):

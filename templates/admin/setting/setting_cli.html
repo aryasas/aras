@@ -1,132 +1,99 @@
-{% extends "admin/base_index.html" if not skip_hero else "admin/base_empty.html" %}
-
-{% block content %}
-<div class="settings-panel {{ 'd-none' if skip_hero }}" id="panel-cli">
-    {% include 'admin/setting/_setting_dev_nav.html' %}
-
-    <div class="aras-card" style="padding: 20px; background: #1e1e1e; border: none; box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h4 class="mb-1" style="color: var(--studio-ochre); font-weight: 700;">Aras Web CLI</h4>
-                <p class="text-muted small">Execute 'aras' commands directly in the app context.</p>
-            </div>
-            <div class="d-flex gap-2">
-                <button id="btn-clear" class="btn btn-sm btn-outline-secondary">
-                    <i class="fa fa-eraser"></i> Clear
-                </button>
-                <button id="btn-run-cli" class="btn btn-sm" style="background: var(--studio-ochre); color: var(--studio-ink); font-weight: 700;">
-                    <i class="fa fa-terminal mr-1"></i> Run
-                </button>
-            </div>
+{# Redesigned CLI Partial #}
+{% include 'admin/setting/_setting_dev_nav.html' %}
+<div class="hitech-card">
+    <div class="hitech-card-header">
+        <h3 class="hitech-card-title">WEB_CLI_TERMINAL</h3>
+        <span class="hitech-badge hitech-badge-info">MODE::FLASK_ARAS</span>
+    </div>
+    <div class="hitech-card-body" style="padding: 0;">
+        <div class="hitech-console" id="cli-output" style="height: 500px; border: none; border-radius: 0; padding-bottom: 3rem;">
+            <div style="color: var(--hitech-accent-cyan);">ARAS OS v2.0.0 Ready.</div>
+            <div style="color: var(--hitech-text-dim);">Type 'aras --help' to see available commands.</div>
         </div>
-
-        <div class="mb-3">
-            <div id="cli-ace-editor" style="width: 100%; height: 60px; border: 1px solid #333; border-radius: 4px; background: #000;">aras --help</div>
-        </div>
-
-        <div id="cli-output" class="p-3 rounded" style="background: #000; color: #0f0; font-family: 'Fira Code', 'Courier New', monospace; font-size: 13px; height: 400px; overflow-y: auto; border: 1px solid #333;">
-            <div class="text-muted"># Aras Web Shell ready. Type a command (e.g. 'aras list-apps') and press Ctrl+Enter</div>
-        </div>
-
-        <div id="cli-loading" class="mt-3 text-center d-none">
-            <span class="spinner-border spinner-border-sm text-info"></span>
-            <span class="text-info ml-2 small">Processing...</span>
+        <div class="hitech-console-input-wrap">
+            <span class="hitech-console-prompt">aras_cli></span>
+            <input type="text" id="cli-input" class="hitech-console-input" placeholder="Enter command..." autofocus>
         </div>
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/aras_code_editor.js') }}"></script>
+<div class="hitech-card mt-4" style="border-style: dashed; opacity: 0.7;">
+    <div class="hitech-card-body" style="font-size: 0.75rem; color: var(--hitech-text-dim);">
+        <i class="fa fa-info-circle"></i> For safety, only <code>aras</code> and <code>flask aras</code> commands are permitted. Output is limited and timeout is set to 30s.
+    </div>
+</div>
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const btnRun = document.getElementById('btn-run-cli');
-    const btnClear = document.getElementById('btn-clear');
-    const cliOutput = document.getElementById('cli-output');
-    const cliLoading = document.getElementById('cli-loading');
-    let editor = null;
+(function() {
+    const input = document.getElementById('cli-input');
+    const output = document.getElementById('cli-output');
+    if (!input || !output) return;
 
-    // Initialize Ace
-    if (window.ArasCodeEditor) {
-        ArasCodeEditor.loadAce(() => {
-            editor = ace.edit("cli-ace-editor");
-            editor.setTheme("ace/theme/monokai");
-            editor.session.setMode("ace/mode/sh");
-            editor.setOptions({
-                fontSize: "14px",
-                showPrintMargin: false,
-                useSoftTabs: true,
-                tabSize: 4,
-                highlightActiveLine: false,
-                showGutter: false
-            });
+    let history = [];
+    let historyIndex = -1;
+
+    input.addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter') {
+            const command = input.value.trim();
+            if (!command) return;
             
-            // Ctrl+Enter to run
-            editor.commands.addCommand({
-                name: 'runCommand',
-                bindKey: {win: 'Ctrl-Enter',  mac: 'Command-Enter'},
-                exec: function(editor) {
-                    btnRun.click();
-                }
-            });
-        });
-    }
-
-    btnRun.addEventListener('click', function() {
-        const cmd = editor ? editor.getValue().trim() : '';
-        if (!cmd) return;
-
-        appendOutput(`\n> ${cmd}`, 'text-info');
-        cliLoading.classList.remove('d-none');
-
-        fetch('/admin/api/dev/cli/execute', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify({ command: cmd })
-        })
-        .then(res => {
-            if (!res.ok) {
-                return res.json().then(errData => {
-                    throw new Error(errData.error || `HTTP ${res.status}: ${res.statusText}`);
-                }).catch(() => {
-                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-                });
-            }
-            return res.json();
-        })
-        .then(data => {
-            cliLoading.classList.add('d-none');
-            if (data.error) {
-                appendOutput(`Error: ${data.error}`, 'text-danger');
+            // Add to history
+            history.push(command);
+            historyIndex = history.length;
+            
+            // Echo
+            appendOutput(`\n<span style="color: var(--hitech-accent-cyan);">aras_cli></span> ${command}`);
+            input.value = '';
+            
+            if (command === 'clear') {
+                output.innerHTML = '';
                 return;
             }
 
-            if (data.stdout) appendOutput(data.stdout, 'text-success');
-            if (data.stderr) appendOutput(data.stderr, 'text-warning');
-            
-            if (data.exit_code !== 0) {
-                appendOutput(`Process exited with code ${data.exit_code}`, 'text-danger');
+            try {
+                const resp = await fetch('/admin/api/dev/cli/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command })
+                });
+                const data = await resp.json();
+                
+                if (data.error) {
+                    appendOutput(`<span style="color: var(--hitech-danger);">${data.error}</span>`);
+                } else {
+                    if (data.stdout) appendOutput(data.stdout);
+                    if (data.stderr) appendOutput(`<span style="color: var(--hitech-warning);">${data.stderr}</span>`);
+                    appendOutput(`<span style="color: #444;">Process exited with code ${data.exit_code}</span>`);
+                }
+            } catch (err) {
+                appendOutput(`<span style="color: var(--hitech-danger);">FETCH_ERROR: ${err.message}</span>`);
             }
-        })
-        .catch(err => {
-            cliLoading.classList.add('d-none');
-            appendOutput(`Network Error: ${err.message}`, 'text-danger');
-        });
+            
+            output.scrollTop = output.scrollHeight;
+        } else if (e.key === 'ArrowUp') {
+            if (historyIndex > 0) {
+                historyIndex--;
+                input.value = history[historyIndex];
+            }
+            e.preventDefault();
+        } else if (e.key === 'ArrowDown') {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                input.value = history[historyIndex];
+            } else {
+                historyIndex = history.length;
+                input.value = '';
+            }
+            e.preventDefault();
+        }
     });
 
-    btnClear.addEventListener('click', function() {
-        cliOutput.innerHTML = '<div class="text-muted"># Output cleared.</div>';
-    });
-
-    function appendOutput(text, className) {
+    function appendOutput(text) {
         const div = document.createElement('div');
-        div.className = className;
         div.style.whiteSpace = 'pre-wrap';
-        div.textContent = text;
-        cliOutput.appendChild(div);
-        cliOutput.scrollTop = cliOutput.scrollHeight;
+        div.innerHTML = text;
+        output.appendChild(div);
+        output.scrollTop = output.scrollHeight;
     }
-});
+})();
 </script>
-{% endblock %}

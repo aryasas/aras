@@ -123,9 +123,10 @@ def register_db_commands(aras):
 
         click.echo("[remigrate] all done.")
 
-    @aras.command("fix-db", help="Auto-discover all models and add missing columns to live DB")
+    @aras.command("fix-db", help="Auto-discover all models and fix mismatches (missing columns, type drifts)")
     @click.option("--dry-run", is_flag=True, help="Print what would change without applying")
-    def fix_db(dry_run):
+    @click.option("--verbose", is_flag=True, help="Show more detail about checks")
+    def fix_db(dry_run, verbose):
         import flask
         from sqlalchemy import inspect as sa_inspect
 
@@ -142,60 +143,116 @@ def register_db_commands(aras):
                     seen[tbl] = cls
             models = seen.values()
 
-            added = dropped = errors = 0
+            added = altered = dropped = errors = 0
             with db.engine.connect() as conn:
                 for model in sorted(models, key=lambda m: m.__tablename__):
                     tbl_name = model.__tablename__
                     if tbl_name not in existing_tables:
-                        click.echo(f"  MISSING TABLE  {tbl_name}")
+                        if verbose: click.echo(f"  SKIP       {tbl_name} (table not in DB)")
                         continue
 
-                    live_cols = {c["name"] for c in inspector.get_columns(tbl_name)}
+                    live_cols_raw = inspector.get_columns(tbl_name)
+                    live_cols = {c["name"]: c for c in live_cols_raw}
+                    live_indexes = inspector.get_indexes(tbl_name)
+                    live_idx_cols = set()
+                    for idx in live_indexes:
+                        for cname in idx["column_names"]: live_idx_cols.add(cname)
+
                     sa_table = model.__table__
 
                     for col in sa_table.columns:
-                        if col.name in live_cols:
-                            continue
-                        try:
-                            col_ddl = col.type.compile(dialect=db.engine.dialect)
-                        except Exception:
-                            col_ddl = str(col.type)
-
-                        parts = [f"`{col.name}`", col_ddl]
-                        if not col.nullable: parts.append("NOT NULL")
-                        
-                        if col.server_default is not None:
-                            clause = getattr(col.server_default, "arg", None)
-                            if clause is not None: parts.append(f"DEFAULT {clause}")
-                        elif col.default is not None and hasattr(col.default, "arg"):
-                            arg = col.default.arg
-                            if not callable(arg): parts.append(f"DEFAULT {arg!r}")
-                        elif col.nullable:
-                            parts.append("DEFAULT NULL")
-
-                        ddl = f"ALTER TABLE `{tbl_name}` ADD COLUMN {' '.join(parts)}"
-                        if dry_run:
-                            click.echo(f"  WOULD ADD  {tbl_name}.{col.name}")
-                            added += 1
-                        else:
+                        if col.name not in live_cols:
+                            # 1. MISSING COLUMN
                             try:
-                                conn.execute(db.text(ddl))
-                                click.echo(f"  ADDED      {tbl_name}.{col.name}")
-                                added += 1
-                            except Exception as e:
-                                click.echo(f"  ERROR      {tbl_name}.{col.name}: {e}")
-                                errors += 1
+                                col_ddl = col.type.compile(dialect=db.engine.dialect)
+                            except Exception:
+                                col_ddl = str(col.type)
 
+                            parts = [f"`{col.name}`", col_ddl]
+                            if not col.nullable: parts.append("NOT NULL")
+                            
+                            if col.server_default is not None:
+                                clause = getattr(col.server_default, "arg", None)
+                                if clause is not None: parts.append(f"DEFAULT {clause}")
+                            elif col.default is not None and hasattr(col.default, "arg"):
+                                arg = col.default.arg
+                                if not callable(arg): parts.append(f"DEFAULT {arg!r}")
+                            elif col.nullable:
+                                parts.append("DEFAULT NULL")
+
+                            ddl = f"ALTER TABLE `{tbl_name}` ADD COLUMN {' '.join(parts)}"
+                            if dry_run:
+                                click.echo(f"  WOULD ADD  {tbl_name}.{col.name}")
+                                added += 1
+                            else:
+                                try:
+                                    conn.execute(db.text(ddl))
+                                    click.echo(f"  ADDED      {tbl_name}.{col.name}")
+                                    added += 1
+                                except Exception as e:
+                                    click.echo(f"  ERROR ADD  {tbl_name}.{col.name}: {e}")
+                                    errors += 1
+                        else:
+                            # 2. TYPE MISMATCH check (Simplified)
+                            live_col = live_cols[col.name]
+                            live_type_str = str(live_col["type"]).upper()
+                            try:
+                                target_type_str = col.type.compile(dialect=db.engine.dialect).upper()
+                            except Exception:
+                                target_type_str = str(col.type).upper()
+
+                            # Normalize common aliases (MARIADB/MYSQL)
+                            norm_live = live_type_str.replace("TINYINT(1)", "BOOLEAN").replace("INTEGER", "INT")
+                            norm_target = target_type_str.replace("TINYINT(1)", "BOOLEAN").replace("INTEGER", "INT")
+                            
+                            # Stripping lengths for a basic check if they match mostly
+                            if norm_live != norm_target and not (norm_live.startswith(norm_target) or norm_target.startswith(norm_live)):
+                                if verbose: click.echo(f"  DRIFT      {tbl_name}.{col.name}: {live_type_str} -> {target_type_str}")
+                                # Generating MODIFY column
+                                ddl = f"ALTER TABLE `{tbl_name}` MODIFY COLUMN `{col.name}` {target_type_str}"
+                                if not col.nullable: ddl += " NOT NULL"
+                                
+                                if dry_run:
+                                    click.echo(f"  WOULD MOD  {tbl_name}.{col.name} type")
+                                    altered += 1
+                                else:
+                                    try:
+                                        conn.execute(db.text(ddl))
+                                        click.echo(f"  MODIFIED   {tbl_name}.{col.name} type")
+                                        altered += 1
+                                    except Exception as e:
+                                        click.echo(f"  ERROR MOD  {tbl_name}.{col.name}: {e}")
+                                        errors += 1
+                            
+                            # 3. INDEX MISMATCH check
+                            if col.index and col.name not in live_idx_cols:
+                                idx_name = f"ix_{tbl_name}_{col.name}"
+                                ddl = f"CREATE INDEX `{idx_name}` ON `{tbl_name}` (`{col.name}`)"
+                                if dry_run:
+                                    click.echo(f"  WOULD IDX  {tbl_name}.{col.name}")
+                                    altered += 1
+                                else:
+                                    try:
+                                        conn.execute(db.text(ddl))
+                                        click.echo(f"  INDEXED    {tbl_name}.{col.name}")
+                                        altered += 1
+                                    except Exception as e:
+                                        click.echo(f"  ERROR IDX  {tbl_name}.{col.name}: {e}")
+                                        errors += 1
+
+                    # 4. HACK: Cleanup legacy columns
                     if "created_by" in live_cols and "created_by_id" in live_cols:
                         if dry_run:
+                            click.echo(f"  WOULD DROP {tbl_name}.created_by (legacy)")
                             dropped += 1
                         else:
                             try:
                                 conn.execute(db.text(f"ALTER TABLE `{tbl_name}` DROP COLUMN `created_by`"))
+                                click.echo(f"  DROPPED    {tbl_name}.created_by")
                                 dropped += 1
                             except Exception:
                                 errors += 1
                 if not dry_run: conn.commit()
 
         tag = "[fix-db dry-run]" if dry_run else "[fix-db]"
-        click.echo(f"{tag} added={added} dropped={dropped} errors={errors}")
+        click.echo(f"{tag} added={added} altered={altered} dropped={dropped} errors={errors}")

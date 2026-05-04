@@ -202,6 +202,13 @@ def create_app(config_type=None):
         from .lib.cli.cli import register_cli
         register_cli(app)
 
+        # Pre-flight schema check (development only)
+        try:
+            from .lib.core.preflight import run_preflight_check
+            run_preflight_check(app)
+        except Exception as _pe:
+            app.logger.debug(f"[preflight] check skipped: {_pe}")
+
         # Jinja env
         set_jinja_env(app)
 

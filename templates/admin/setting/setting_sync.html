@@ -1,73 +1,52 @@
-{% extends "admin/base_index.html" if not skip_hero else "admin/base_empty.html" %}
-
-{% block content %}
-<div class="settings-panel {{ 'd-none' if skip_hero }}" id="panel-sync">
-    {% include 'admin/setting/_setting_dev_nav.html' %}
-
-    <div class="aras-card" style="padding: 20px;">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h4 class="mb-1" style="color: var(--studio-ink);">Manifest ↔ DB Sync</h4>
-                <p class="text-muted small">Synchronize Python Manifest (AppHelper) definitions with database metadata.</p>
-            </div>
-            <div>
-                <button id="btn-sync-all" class="btn btn-outline-dark">
-                    <i class="fa fa-refresh mr-2"></i> Sync All Apps
-                </button>
-            </div>
-        </div>
-
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
-            <thead style="background: #f8f9fa;">
+{# Redesigned Sync Partial #}
+{% include 'admin/setting/_setting_dev_nav.html' %}
+<div class="hitech-card">
+    <div class="hitech-card-header">
+        <h3 class="hitech-card-title">MANIFEST_DB_SYNC_MANAGER</h3>
+        <p style="font-size: 0.75rem; color: var(--hitech-text-dim); margin: 0;">Syncing application manifests with database metadata.</p>
+    </div>
+    <div class="hitech-card-body" style="padding: 0;">
+        <table class="hitech-table">
+            <thead>
                 <tr>
-                    <th style="width: 250px;">App Name</th>
-                    <th>Status</th>
-                    <th>Details</th>
-                    <th style="width: 150px;" class="text-right">Actions</th>
+                    <th>APP_SLUG</th>
+                    <th>TITLE</th>
+                    <th>STATUS</th>
+                    <th>DRIFT_DETAILS</th>
+                    <th style="text-align: right;">ACTIONS</th>
                 </tr>
             </thead>
             <tbody>
-                {% for app in apps %}
+                {% for a in apps %}
                 <tr>
+                    <td><code class="hitech-mono">{{ a.slug }}</code></td>
+                    <td style="font-weight: 500;">{{ a.title }}</td>
                     <td>
-                        <div class="font-weight-bold" style="color: var(--studio-ink);">{{ app.title }}</div>
-                        <div class="text-muted small">aras.{{ app.slug }}</div>
+                        {% set status = a.status|default('Unknown') %}
+                        <span class="hitech-badge {{ 'hitech-badge-success' if status == 'Synced' else ('hitech-badge-warning' if status == 'Drift' else 'hitech-badge-danger') }}">
+                            {{ status.upper() }}
+                        </span>
                     </td>
-                    <td>
-                        {% if app.status == 'Synced' %}
-                            <span class="badge badge-success px-2 py-1">
-                                <i class="fa fa-check-circle mr-1"></i> Synced
-                            </span>
-                        {% elif app.status == 'Drift' %}
-                            <span class="badge badge-warning px-2 py-1">
-                                <i class="fa fa-exclamation-triangle mr-1"></i> Drift
-                            </span>
-                        {% else %}
-                            <span class="badge badge-light px-2 py-1" style="color: #999;">
-                                <i class="fa fa-minus-circle mr-1"></i> No Manifest
-                            </span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if app.drift_details %}
-                            <ul class="mb-0 small text-danger pl-3">
-                                {% for detail in app.drift_details %}
-                                    <li>{{ detail }}</li>
-                                {% endfor %}
+                    <td style="font-size: 0.75rem; color: var(--hitech-text-dim);">
+                        {% set drift = a.drift_details|default([]) %}
+                        {% if drift %}
+                            <ul style="margin: 0; padding-left: 1rem;">
+                            {% for d in drift %}
+                                <li>{{ d }}</li>
+                            {% endfor %}
                             </ul>
-                        {% elif app.status == 'Synced' %}
-                            <span class="small text-muted italic">Metadata matches manifest resources.</span>
-                        {% elif app.status == 'No Manifest' %}
-                            <span class="small text-muted italic">No <code>manifest.py</code> found in app package.</span>
+                        {% else %}
+                            <span style="opacity: 0.5;">No drift detected or not checked.</span>
                         {% endif %}
                     </td>
-                    <td class="text-right">
-                        {% if app.has_helper %}
-                        <button class="btn btn-sm btn-outline-secondary btn-sync" 
-                                data-id="{{ app.id }}" data-slug="{{ app.slug }}">
-                            <i class="fa fa-refresh mr-1"></i> Sync
+                    <td style="text-align: right;">
+                        {% set has_helper = a.has_helper if a.has_helper is defined else True %}
+                        {% if has_helper %}
+                        <button class="hitech-btn hitech-btn-primary" onclick="syncApp({{ a.id }}, '{{ a.slug }}')">
+                            <i class="fa fa-refresh"></i> SYNC_NOW
                         </button>
+                        {% else %}
+                        <span class="hitech-badge hitech-badge-danger">NO_MANIFEST</span>
                         {% endif %}
                     </td>
                 </tr>
@@ -78,96 +57,21 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const btnSyncAll = document.getElementById('btn-sync-all');
-    const btnsSync = document.querySelectorAll('.btn-sync');
-
-    function syncApp(appId, appSlug, btn) {
-        const originalHtml = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
-
-        fetch(`/admin/api/dev/sync/app/${appId}`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-            }
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                const s = data.stats;
-                alert(`Sync Success [${appSlug}]:\n` + 
-                      `- ${s.tables_new} new tables\n` +
-                      `- ${s.cols_new} new columns\n` +
-                      `- ${s.tables_removed} stale tables removed`);
-                window.location.reload();
-            } else {
-                alert(`Sync Failed: ${data.error}`);
-                btn.disabled = false;
-                btn.innerHTML = originalHtml;
-            }
-        })
-        .catch(err => {
-            alert('Network error.');
-            btn.disabled = false;
-            btn.innerHTML = originalHtml;
-        });
-    }
-
-    btnsSync.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const appId = this.getAttribute('data-id');
-            const appSlug = this.getAttribute('data-slug');
-            syncApp(appId, appSlug, this);
-        });
-    });
-
-    btnSyncAll.addEventListener('click', function() {
-        if (!confirm('This will sync all apps with manifests. Continue?')) return;
+    async function syncApp(appId, slug) {
+        if (!confirm(`Confirm sync for ${slug}? This will update database metadata to match the manifest.`)) return;
         
-        // We just trigger them one by one or we could have a single API. 
-        // For simplicity, let's just loop through buttons.
-        let count = 0;
-        const toSync = Array.from(btnsSync);
-        
-        if (toSync.length === 0) {
-            alert('No apps with manifests found.');
-            return;
-        }
-
-        btnSyncAll.disabled = true;
-        btnSyncAll.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> Syncing...';
-
-        function next() {
-            if (count >= toSync.length) {
-                window.location.reload();
-                return;
-            }
-            const btn = toSync[count];
-            const appId = btn.getAttribute('data-id');
-            const appSlug = btn.getAttribute('data-slug');
+        try {
+            const resp = await fetch(`/admin/api/dev/sync/app/${appId}`, { method: 'POST' });
+            const data = await resp.json();
             
-            fetch(`/admin/api/dev/sync/app/${appId}`, { 
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-                }
-            })
-            .then(res => res.json())
-            .then(() => {
-                count++;
-                next();
-            })
-            .catch(() => {
-                count++;
-                next();
-            });
+            if (data.success) {
+                alert(`Sync successful for ${slug}!\nTables: ${data.stats.tables_synced}\nResources: ${data.stats.resources_synced}`);
+                location.reload();
+            } else {
+                alert(`Sync failed: ${data.error}`);
+            }
+        } catch (e) {
+            alert(`Error: ${e.message}`);
         }
-        
-        next();
-    });
-});
+    }
 </script>
-</div>
-{% endblock %}

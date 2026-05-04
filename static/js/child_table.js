@@ -20,6 +20,27 @@ function initChildTable(li) {
     /* ── calc bindings ── */
     _ctBindCalc(li, 'ct-' + li + '-');
     _ctBindCalc(li, 'ct-modal-' + li + '-');
+
+    /* ── product change bindings (TomSelect-safe) ── */
+    function _bindProductSel(elId, handler) {
+        var el = document.getElementById(elId);
+        if (!el) return;
+        // If TomSelect is already init'd, hook its onChange; otherwise native change
+        if (el.tomselect) {
+            el.tomselect.on('change', function(v) { handler({value: v}); });
+        } else {
+            // Poll once for late TomSelect init (aras-design.js runs after this script)
+            setTimeout(function() {
+                if (el.tomselect) {
+                    el.tomselect.on('change', function(v) { handler({value: v}); });
+                } else {
+                    el.addEventListener('change', function() { handler(el); });
+                }
+            }, 300);
+        }
+    }
+    _bindProductSel('ct-' + li + '-product_id',       function(s) { ctOnProductChange(li, s); });
+    _bindProductSel('ct-modal-' + li + '-product_id', function(s) { ctOnProductChangeModal(li, s); });
 }
 
 /* ── Public API (called from HTML onclick attrs) ── */
@@ -138,7 +159,7 @@ function ctSaveInlineRow(idx, apiUrl, fkCol, parentId) {
     var disc  = parseFloat((discEl  && discEl.value)  || data['discount_pct'] || 0);
     data['subtotal'] = (qty * price * (1 - disc / 100)).toFixed(4);
 
-    if (!parentId || parentId === 'None' || parentId === 'null') {
+    if (!parentId || parentId === 'None' || parentId === 'null' || parentId === '__PID__') {
         var fakeId = 'local_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
         data.id = fakeId;
         var arr = _getCtLocalData(idx);
@@ -167,36 +188,57 @@ function ctOpenModal(idx, btn, isNew) {
     var modal = document.getElementById('ct-modal-' + idx);
     if (!modal) return;
 
-    var setupModal = function(obj) {
+    var setupModal = function(obj, isFirstCall) {
         if (!obj) return;
-        document.querySelectorAll('#ct-modal-' + idx + ' [name]').forEach(function(el) {
+        var modalContent = document.querySelector('#ct-modal-' + idx);
+        if (!modalContent) return;
+
+        modalContent.querySelectorAll('[name]').forEach(function(el) {
             var name = el.name;
+            if (isFirstCall) {
+                // Clear existing values on first call to avoid data leakage from previous row
+                if (el.type === 'checkbox') el.checked = false;
+                else el.value = '';
+            }
+
             var v = obj[name];
             
-            // Try alternatives for FK fields
+            // Try alternatives for FK fields (e.g. name='product_id' but data has 'product')
             if ((v === undefined || v === null || v === '') && name.endsWith('_id')) {
                 var baseName = name.substring(0, name.length - 3);
-                if (obj[baseName] !== undefined && obj[baseName] !== null && typeof obj[baseName] !== 'object') v = obj[baseName];
+                var baseVal = obj[baseName];
+                if (baseVal !== undefined && baseVal !== null) {
+                    if (typeof baseVal === 'object') v = baseVal.id || baseVal.value || baseVal.pk;
+                    else v = baseVal;
+                }
             }
+            // Reverse: name='product' but data has 'product_id'
             if ((v === undefined || v === null || v === '') && !name.endsWith('_id')) {
                 if (obj[name + '_id'] !== undefined) v = obj[name + '_id'];
             }
             
-            if (v === undefined || v === null) return; // Don't overwrite with null if we don't have to
+            if (v === undefined || v === null) return; 
 
             if (el.type === 'checkbox') {
                 if (typeof v === 'string') {
-                    el.checked = (v.toLowerCase() === 'true' || v === '1' || v === 'True');
+                    el.checked = (v.toLowerCase() === 'true' || v === '1' || v === 'true' || v === 'yes');
                 } else {
                     el.checked = !!v;
                 }
             } else {
-                if (el.type === 'date' && typeof v === 'string' && v.includes('T')) {
-                    v = v.split('T')[0];
+                if (el.type === 'date' && typeof v === 'string') {
+                    if (v.includes('T')) v = v.split('T')[0];
+                    else if (v.includes(' ')) v = v.split(' ')[0];
                 }
                 el.value = v;
-                // Manually update the custom select UI without firing 'change' to avoid API fetch loops
-                if (el.tagName === 'SELECT') {
+
+                // Sync TomSelect if it exists
+                if (el.tomselect) {
+                    el.tomselect.setValue(v, true);
+                }
+
+                // Legacy Custom Select Sync
+                if (el.tagName === 'SELECT' && !el.tomselect) {
                     var wrapper = el.closest('.aras-custom-select');
                     if (wrapper) {
                         var label = wrapper.querySelector('.aras-select-trigger span');
@@ -210,8 +252,53 @@ function ctOpenModal(idx, btn, isNew) {
                 }
             }
         });
+
+        // HTMX Modernization for Modal Save
+        var saveBtn = modalContent.querySelector('.ct-modal-save-btn');
+        if (saveBtn) {
+            var idVal = document.getElementById('ct-modal-id-' + idx).value;
+            var saveUrl = '/admin/api/child-table/' + MN + '/save?parent_model=' + (meta.parent_model_name || '') + '&li=' + idx;
+            
+            var pId = meta.parent_id;
+            // Try to find a real ID from the form action if parent_id is placeholder
+            if (!pId || pId === '__PID__' || pId === 'None') {
+                var form = document.querySelector('form[action]');
+                if (form) {
+                    var m = form.action.match(/\/([0-9]+)\//);
+                    if (m) pId = m[1];
+                }
+            }
+
+            if (!pId || pId === '__PID__' || pId === 'None') {
+                // FALLBACK: Local save
+                saveBtn.removeAttribute('hx-post');
+                saveBtn.removeAttribute('hx-target');
+                saveBtn.removeAttribute('hx-swap');
+                saveBtn.removeAttribute('hx-vals');
+                saveBtn.setAttribute('onclick', 'ctSaveModalRow(\'' + idx + '\')');
+            } else if (isNew || !idVal || String(idVal).startsWith('local_')) {
+                saveBtn.removeAttribute('onclick');
+                saveBtn.setAttribute('hx-post', saveUrl);
+                saveBtn.setAttribute('hx-target', '#ct-tbody-' + idx);
+                saveBtn.setAttribute('hx-swap', 'beforeend');
+                // Inject parent FK for new rows
+                if (meta.fk_col) {
+                    var vals = {}; vals[meta.fk_col] = pId;
+                    saveBtn.setAttribute('hx-vals', JSON.stringify(vals));
+                }
+            } else {
+                saveBtn.removeAttribute('onclick');
+                saveBtn.setAttribute('hx-post', saveUrl + '&id=' + idVal);
+                saveBtn.setAttribute('hx-target', '#ct-row-' + idx + '-' + idVal);
+                saveBtn.setAttribute('hx-swap', 'outerHTML');
+                saveBtn.removeAttribute('hx-vals');
+            }
+            if (window.htmx && saveBtn.hasAttribute('hx-post')) htmx.process(saveBtn);
+        }
+
         modal.classList.remove('d-none');
         modal.style.display = 'flex';
+
         if (!modal.classList.contains('is-visible')) {
             setTimeout(function() {
                 modal.classList.add('is-visible');
@@ -254,7 +341,7 @@ function ctOpenModal(idx, btn, isNew) {
         tr.querySelectorAll('.ct-cell-input').forEach(function(inp) {
             data[inp.name] = inp.type === 'checkbox' ? inp.checked : inp.value;
         });
-        setupModal(data);
+        setupModal(data, true);
         return;
     }
 
@@ -287,12 +374,12 @@ function ctOpenModal(idx, btn, isNew) {
         }
     }
 
-    setupModal(rowData);
+    setupModal(rowData, true);
 
     if (id && String(id).startsWith('local_')) {
         var arr = _getCtLocalData(idx);
         var item = arr.find(function(x) { return x.id === id; }) || {};
-        setupModal(Object.assign({}, rowData, item));
+        setupModal(Object.assign({}, rowData, item), false);
         return;
     }
 
@@ -307,7 +394,7 @@ function ctOpenModal(idx, btn, isNew) {
                 finalData[key] = apiData[key];
             }
         }
-        setupModal(finalData);
+        setupModal(finalData, false);
     }).catch(function() {
         // Fallback already handled
     });
@@ -324,140 +411,57 @@ function ctCloseModal(idx, e) {
     }, 200);
 }
 
-function ctSaveModal(idx, apiUrl, fkCol, parentId) {
-    var id   = document.getElementById('ct-modal-id-' + idx).value;
+function ctSaveModalRow(idx) {
+    var modal = document.getElementById('ct-modal-' + idx);
     var meta = _ctGetMeta(idx);
-    
-    // Normalize params
-    var _apiUrl = (apiUrl === 'None' || apiUrl === 'null' || !apiUrl) ? meta.api_url : apiUrl;
-    var _parentId = (parentId === 'None' || parentId === 'null') ? null : parentId;
-
+    var idVal = document.getElementById('ct-modal-id-' + idx).value;
     var data = {};
-    if (_parentId) data[fkCol] = _parentId;
     
-    document.querySelectorAll('#ct-modal-' + idx + ' [name]').forEach(function(el) {
-        if (!el.name) return;
+    modal.querySelectorAll('[name]').forEach(function(el) {
         if (el.type === 'checkbox') data[el.name] = el.checked;
-        else data[el.name] = el.value; // Send empty string instead of omitting
+        else if (el.value !== '') data[el.name] = el.value;
     });
 
-    // Capture labels from modal selects for instant UI update
-    var modalLabels = {};
-    document.querySelectorAll('#ct-modal-' + idx + ' select[name]').forEach(function(sel) {
-        if (sel.selectedIndex >= 0) {
-            var txt = sel.options[sel.selectedIndex].text;
-            if (txt && txt !== '—') modalLabels[sel.name] = txt;
+    /* Auto-fill description from product select text if empty */
+    if (!data['description']) {
+        var prodSel = document.getElementById('ct-modal-' + idx + '-product_id');
+        if (prodSel && prodSel.selectedIndex > 0) {
+            data['description'] = prodSel.options[prodSel.selectedIndex].text;
         }
-    });
-
-    // Apply defaults for common numeric fields if empty
-    ['qty', 'unit_price', 'discount_pct', 'amount', 'subtotal'].forEach(function(f) {
-        if (data[f] === undefined) {
-            var el = document.getElementById('ct-modal-' + idx + '-' + f);
-            if (el) data[f] = (f === 'qty') ? '1' : '0';
-        }
-    });
-    
-    if (!data['description'] && data['product_id'] && modalLabels['product_id']) {
-        data['description'] = modalLabels['product_id'];
     }
+    /* Apply numeric defaults so DB NOT NULL constraints are satisfied later */
+    if (!data['qty'])           data['qty']           = '1';
+    if (!data['unit_price'])    data['unit_price']    = '0';
+    if (!data['discount_pct'])  data['discount_pct']  = '0';
 
-    var updateRowUI = function(tr, obj) {
-        var allCols = meta.all_vcols || meta.vcols || [];
-        allCols.forEach(function(field) {
-            var td = tr.querySelector('td[data-field="' + field + '"]');
-            if (!td) return;
-            var raw = obj[field];
-            if (raw === undefined && id && !String(id).startsWith('local_')) {
-                raw = td.dataset.raw;
-            }
-            var display = (meta.rel_maps && meta.rel_maps[field] && raw != null)
-                ? (meta.rel_maps[field][String(raw)] || raw) 
-                : (modalLabels[field] || raw);
-            
-            td.dataset.raw = raw != null ? raw : '';
-            td.textContent = (display != null && display !== '') ? display : '—';
-        });
-    };
+    /* Recalc subtotal */
+    var qty   = parseFloat(data['qty'] || 1);
+    var price = parseFloat(data['unit_price'] || 0);
+    var disc  = parseFloat(data['discount_pct'] || 0);
+    data['subtotal'] = (qty * price * (1 - disc / 100)).toFixed(4);
 
-    if (!id && (!_parentId || !_apiUrl)) {
+    var arr = _getCtLocalData(idx);
+    if (idVal && String(idVal).startsWith('local_')) {
+        var existingIdx = arr.findIndex(function(x) { return x.id === idVal; });
+        if (existingIdx !== -1) {
+            data.id = idVal;
+            arr[existingIdx] = data;
+            // Remove the existing row from UI (it will be re-appended)
+            var tr = document.getElementById('ct-row-' + idx + '-' + idVal);
+            if (tr) tr.remove();
+        }
+    } else {
         var fakeId = 'local_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
         data.id = fakeId;
-        var arr = _getCtLocalData(idx);
         arr.push(data);
-        _setCtLocalData(idx, arr);
-        _ctAppendRow(idx, data, modalLabels);
-        _ctClearInputRow(idx);
-        ctHideInputRow(idx);
-        ctCloseModal(idx);
-        _ctRecalcFooter(idx);
-        return;
     }
-
-    if (id && String(id).startsWith('local_')) {
-        var arr = _getCtLocalData(idx);
-        var item = arr.find(function(x) { return x.id === id; });
-        if (item) {
-            Object.assign(item, data);
-            _setCtLocalData(idx, arr);
-            var tr = document.querySelector('#ct-tbody-' + idx + ' tr[data-id="' + id + '"]');
-            if (tr) updateRowUI(tr, item);
-            ctCloseModal(idx);
-            _ctRecalcFooter(idx);
-        }
-        return;
-    }
-
-    if (!_apiUrl) { 
-        arasNotify('Error: No API URL found for this child table. If you are adding a new record, please ensure the parent is saved first.', 'error'); 
-        return; 
-    }
-
-    _ctApiSave(_apiUrl, id || null, data, idx, function(saved) {
-        if (id) {
-            var tr = document.querySelector('#ct-tbody-' + idx + ' tr[data-id="' + id + '"]');
-            if (tr) updateRowUI(tr, saved);
-        } else {
-            _ctAppendRow(idx, saved, modalLabels);
-            ctHideInputRow(idx);
-            _ctClearInputRow(idx);
-        }
-        ctCloseModal(idx);
-        _ctRecalcFooter(idx);
-    });
-}
-
-function ctDeleteRow(idx, btn) {
-    var tr = btn.closest('tr');
-    var id = tr.dataset.id;
-    if (!confirm('Delete this row?')) return;
     
-    if (String(id).startsWith('local_')) {
-        var arr = _getCtLocalData(idx);
-        arr = arr.filter(function(x) { return x.id !== id; });
-        _setCtLocalData(idx, arr);
-        tr.remove();
-        _ctRecalcFooter(idx);
-        var tbody = document.getElementById('ct-tbody-' + idx);
-        var empty = document.getElementById('ct-empty-' + idx);
-        if (empty) empty.style.display = tbody.querySelectorAll('.ct-data-row').length === 0 ? '' : 'none';
-        return;
-    }
-
-    var meta   = _ctGetMeta(idx);
-    var MN     = meta.model_name || '';
-    var apiUrl = meta.api_url || ('/api/erp/' + MN.replace(/_/g, '-') + '/');
-    fetch(apiUrl.replace(/\/$/, '') + '/' + id + '/', {method: 'DELETE', headers: {'X-CSRFToken': _ctGetCsrf()}})
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-        if (d.ok !== false) {
-            tr.remove();
-            _ctRecalcFooter(idx);
-            var tbody = document.getElementById('ct-tbody-' + idx);
-            var empty = document.getElementById('ct-empty-' + idx);
-            if (empty) empty.style.display = tbody.querySelectorAll('.ct-data-row').length === 0 ? '' : 'none';
-        }
-    });
+    _setCtLocalData(idx, arr);
+    _ctAppendRow(idx, data);
+    ctCloseModal(idx);
+    _ctRecalcFooter(idx);
+    _ctUpdateSeq(idx);
+    if (window.Aras) Aras.toast('Saved locally', 'success');
 }
 
 function ctOnProductChange(idx, sel) {
@@ -478,7 +482,7 @@ function ctOnProductChangeModal(idx, sel) {
         document.getElementById(prefix + 'uom_id'), prefix);
 }
 
-/* ── Private helpers ── */
+/* ── Internal Helpers (Legacy/Transition) ── */
 
 function _ctGetMeta(idx) {
     try { return JSON.parse(document.getElementById('ct-meta-' + idx).textContent); }
@@ -514,7 +518,11 @@ function _ctLoadPrice(idx, productId, qtyEl, priceEl, descEl, uomEl, prefix) {
         if (!d.ok) return;
         if (priceEl && !priceEl.dataset.manualEdit) priceEl.value = d.unit_price || '';
         if (descEl  && !descEl.dataset.manualEdit)  descEl.value  = d.description || '';
-        if (uomEl) uomEl.value = d.uom_id || '';
+        if (uomEl) {
+            var uomVal = String(d.uom_id || '');
+            if (uomEl.tomselect) { uomEl.tomselect.setValue(uomVal, true); }
+            else { uomEl.value = uomVal; }
+        }
         var accEl = document.getElementById(prefix + 'account_id');
         if (accEl && d.account_id) accEl.value = d.account_id;
         _ctRecalcRow(idx, prefix);
@@ -577,6 +585,7 @@ function _ctAppendRow(idx, obj, extraLabels) {
     var empty  = document.getElementById('ct-empty-' + idx);
     var seq    = tbody.querySelectorAll('.ct-data-row').length + 1;
     var tr     = document.createElement('tr');
+    tr.id         = 'ct-row-' + idx + '-' + obj.id;
     tr.className  = 'ct-data-row';
     tr.dataset.id = obj.id;
 
@@ -621,6 +630,39 @@ function _ctAppendRow(idx, obj, extraLabels) {
     var inputRow = document.getElementById('ct-input-row-' + idx);
     if (inputRow) tbody.insertBefore(tr, inputRow); else tbody.appendChild(tr);
     if (empty) empty.style.display = 'none';
+}
+
+function ctDeleteRow(idx, btn) {
+    if (!confirm('Delete this row?')) return;
+    var tr = btn.closest('tr');
+    var id = tr.dataset.id;
+    var meta = _ctGetMeta(idx);
+
+    if (id && String(id).startsWith('local_')) {
+        var arr = _getCtLocalData(idx);
+        arr = arr.filter(function(x) { return x.id !== id; });
+        _setCtLocalData(idx, arr);
+        tr.remove();
+        _ctUpdateSeq(idx);
+        if (window.Aras) Aras.toast('Removed local row', 'info');
+        return;
+    }
+
+    var MN = meta.model_name || '';
+    var _apiBase = meta.api_url || ('/api/erp/' + MN.replace(/_/g, '-') + '/');
+    var url = _apiBase.replace(/\/$/, '') + '/' + id + '/';
+
+    fetch(url, {
+        method: 'DELETE',
+        headers: {'X-CSRFToken': _ctGetCsrf()}
+    }).then(function(r) {
+        if (!r.ok) throw new Error('Delete failed');
+        tr.remove();
+        _ctUpdateSeq(idx);
+        if (window.Aras) Aras.toast('Row deleted', 'success');
+    }).catch(function(e) {
+        if (window.Aras) Aras.toast('Delete error: ' + e.message, 'error');
+    });
 }
 
 function _ctApiSave(apiUrl, id, data, idx, cb) {
@@ -676,4 +718,23 @@ function ctFilterPriceListModal(idx, priceType) {
         var pt = opt.getAttribute('data-price-type');
         opt.style.display = (pt && priceType && pt !== priceType) ? 'none' : '';
     });
+}
+
+function _ctUpdateSeq(idx) {
+    var tbody = document.getElementById('ct-tbody-' + idx);
+    if (!tbody) return;
+    var rows = tbody.querySelectorAll('.ct-data-row');
+    rows.forEach(function(tr, i) {
+        var seq = tr.querySelector('.ct-td-seq');
+        if (seq) seq.textContent = i + 1;
+    });
+    
+    var empty = document.getElementById('ct-empty-' + idx);
+    if (empty) {
+        empty.style.display = rows.length > 0 ? 'none' : 'block';
+        if (rows.length === 0) empty.classList.remove('d-none');
+        else empty.classList.add('d-none');
+    }
+    
+    _ctRecalcFooter(idx);
 }

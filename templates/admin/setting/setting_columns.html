@@ -91,9 +91,10 @@
                     <small class="text-muted italic small-italic-muted">Comma separated values.</small>
                   </div>
 
-                  <div class="mb-3">
+                  <div class="mb-3" id="default-value-wrap">
                     <label class="small fw-bold text-muted mb-1">{{ form.default_value.label.text }}</label>
-                    {{ form.default_value(class_="aras-form-input", placeholder="optional default") }}
+                    {{ form.default_value(class_="aras-form-input", placeholder="optional default", id="default_value_input") }}
+                    <select id="default_value_fk_select" name="_default_fk_select" class="aras-form-select" style="display:none"></select>
                   </div>
 
                   <div class="row mb-3">
@@ -304,6 +305,10 @@
 <script>
 window.ADD_URL  = "{{ url_for('admin.apps_columns', app_id=app_def.id, table_id=tbl.id) }}";
 window.EDIT_URL = "{{ url_for('admin.apps_columns', app_id=app_def.id, table_id=tbl.id) }}".replace(/\/columns$/, '/columns/__COL_ID__/edit');
+window.FK_TABLE_MAP = {
+  {% for t in all_tables %}{{ t.id }}: {"db_name": "{{ t.db_table_name or t.name }}", "display_col": "{{ t.columns[0].name if t.columns else 'name' }}"}{% if not loop.last %},{% endif %}
+  {% endfor %}
+};
 </script>
 <script src="{{ url_for('static', filename='js/adm_columns.js') }}"></script>
 {% endblock %}

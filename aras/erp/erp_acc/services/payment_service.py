@@ -93,8 +93,8 @@ def auto_allocate(payment_id: int) -> list[AccPaymentAllocation]:
     Returns list of created allocations.
     """
     payment = AccPayment.get_or_404(payment_id)
-    if payment.state != "posted":
-        raise ValueError("Only posted payments can be allocated.")
+    if payment.state == "cancelled":
+        raise ValueError("Cannot auto-allocate a cancelled payment.")
 
     invoices = get_unpaid_invoices(payment)
     remaining = payment.unallocated_amount
@@ -115,10 +115,10 @@ def auto_allocate(payment_id: int) -> list[AccPaymentAllocation]:
 
 
 def allocate(payment_id: int, invoice_type: str, invoice_id: int, amount: float) -> AccPaymentAllocation:
-    """Allocate amount from payment to one invoice."""
+    """Allocate amount from payment to one invoice. Draft payments can pre-allocate."""
     payment = AccPayment.get_or_404(payment_id)
-    if payment.state != "posted":
-        raise ValueError("Only posted payments can be allocated.")
+    if payment.state == "cancelled":
+        raise ValueError("Cannot allocate a cancelled payment.")
 
     amount = float(amount)
     if amount <= 0:

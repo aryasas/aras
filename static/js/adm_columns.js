@@ -18,9 +18,75 @@
             document.getElementById('relation-options').style.display = (v === 'relation') ? 'block' : 'none';
             document.getElementById('select-options').style.display   = (v === 'select')   ? 'block' : 'none';
             document.getElementById('length-option').style.display    = (v === 'string' || v === 'email' || v === 'phone') ? 'block' : 'none';
+            if (v !== 'relation') _showDefaultInput();
         }
         sel.addEventListener('change', updateFieldOptions);
         updateFieldOptions();
+
+        // Watch relation_table_id and relation_system_table for changes
+        var relTblSel = document.querySelector('select[name="relation_table_id"]');
+        var relSysTbl = document.querySelector('input[name="relation_system_table"]');
+        var relDispCol = document.querySelector('input[name="relation_display_col"]');
+        if (relTblSel) relTblSel.addEventListener('change', function() {
+            // Auto-fill system_table and display_col from FK_TABLE_MAP
+            var tid = parseInt(relTblSel.value);
+            var map = window.FK_TABLE_MAP || {};
+            if (tid && map[tid]) {
+                if (relSysTbl && !relSysTbl.value) relSysTbl.value = map[tid].db_name || '';
+                if (relDispCol && !relDispCol.value) relDispCol.value = map[tid].display_col || '';
+            }
+            _loadFkChoices();
+        });
+        if (relSysTbl) {
+            relSysTbl.addEventListener('blur', function() { _loadFkChoices(); });
+            relSysTbl.addEventListener('change', function() { _loadFkChoices(); });
+        }
+    }
+    function _showDefaultInput() {
+        var inp = document.getElementById('default_value_input');
+        var fkSel = document.getElementById('default_value_fk_select');
+        if (!inp || !fkSel) return;
+        inp.style.display = '';
+        fkSel.style.display = 'none';
+        // Sync fk select value to input
+        if (fkSel.value) inp.value = fkSel.value;
+    }
+
+    function _loadFkChoices(currentDefault) {
+        var fkType = document.getElementById('field_type_sel');
+        if (!fkType || fkType.value !== 'relation') return;
+        var relTblSel = document.querySelector('select[name="relation_table_id"]');
+        var relSysTbl = document.querySelector('input[name="relation_system_table"]');
+        var relDispCol = document.querySelector('input[name="relation_display_col"]');
+        var tableId = relTblSel ? parseInt(relTblSel.value) : 0;
+        var sysTable = relSysTbl ? relSysTbl.value.trim() : '';
+        var dispCol = relDispCol ? relDispCol.value.trim() : '';
+        var inp = document.getElementById('default_value_input');
+        var fkSel = document.getElementById('default_value_fk_select');
+        if (!inp || !fkSel) return;
+
+        if (!tableId && !sysTable) { _showDefaultInput(); return; }
+
+        var url = '/admin/api/fk-choices/?';
+        if (tableId) url += 'table_id=' + tableId;
+        else url += 'system_table=' + encodeURIComponent(sysTable);
+        if (dispCol) url += '&display_col=' + encodeURIComponent(dispCol);
+
+        fetch(url).then(function(r) { return r.json(); }).then(function(d) {
+            if (!d.ok || !d.rows) { _showDefaultInput(); return; }
+            fkSel.innerHTML = '<option value="">-- no default --</option>';
+            d.rows.forEach(function(row) {
+                var opt = document.createElement('option');
+                opt.value = row.id;
+                opt.textContent = row.label + ' (' + row.id + ')';
+                fkSel.appendChild(opt);
+            });
+            var cv = currentDefault !== undefined ? currentDefault : inp.value;
+            if (cv) fkSel.value = String(cv);
+            inp.style.display = 'none';
+            fkSel.style.display = '';
+            fkSel.onchange = function() { inp.value = fkSel.value; };
+        }).catch(function() { _showDefaultInput(); });
     }
 })();
 
@@ -69,6 +135,7 @@ function fillEditForm(colId, name, label, fieldType, order, required, showInList
     document.getElementById('col-cancel-btn').style.display = 'inline-block';
 
     if (ftSel) ftSel.dispatchEvent(new Event('change'));
+    if (fieldType === 'relation') _loadFkChoices(default_value);
     document.getElementById('col-form').scrollIntoView({ behavior: 'smooth' });
 }
 

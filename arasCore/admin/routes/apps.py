@@ -87,6 +87,183 @@ def apps_doctypes():
     )
 
 
+@admin_bp.route("/api/render-child-row/<string:model_name>/<int:item_id>")
+@login_required
+def render_child_row(model_name, item_id):
+    from arasCore.admin.crud_factory import _get_child_tables_for_model
+    from arasCore.lib.services.api_handler import get_api_registry
+    
+    parent_model_name = request.args.get("parent_model")
+    li = request.args.get("li", "0")
+    
+    # 1. Find child model
+    registry = get_api_registry()
+    child_entry = None
+    for entry in registry.values():
+        if entry["model"].__tablename__ == model_name:
+            child_entry = entry
+            break
+            
+    if not child_entry:
+        return f"Child model {model_name} not found", 404
+        
+    child_model = child_entry["model"]
+    obj = child_model.query.get_or_404(item_id)
+    
+    # 2. Find parent model and its child table config
+    parent_model = None
+    if parent_model_name:
+        for entry in registry.values():
+            if entry["model"].__tablename__ == parent_model_name:
+                parent_model = entry["model"]
+                break
+    
+    if not parent_model:
+        return f"Parent model {parent_model_name} not found", 404
+        
+    cts = _get_child_tables_for_model(parent_model)
+    ct = None
+    for c in cts:
+        if c["model_name"] == model_name:
+            ct = c
+            break
+            
+    if not ct:
+        return f"Child table config for {model_name} not found in {parent_model_name}", 404
+        
+    # 3. Render the row
+    from arasCore.admin.crud_factory import _smart_vcols
+    _ct_vcol_names = ct["vcols"] | map(attribute=1) | list if isinstance(ct["vcols"], list) else []
+    # Actually _get_child_tables_for_model already did a lot of work.
+    # Let's just use what's in ct.
+    
+    # Re-calculate some helper vars needed by the template
+    _ct_all_render = ct["all_columns"]
+    _ct_vcol_names = [v[1] for v in ct["vcols"]]
+    
+    return render_template(
+        "admin/gen/_child_table_row.html",
+        row=obj,
+        ct=ct,
+        _li=li,
+        _ct_all_render=_ct_all_render,
+        _ct_vcol_names=_ct_vcol_names
+    )
+
+
+@admin_bp.route("/api/child-table/<string:model_name>/save", methods=["POST"])
+@login_required
+def child_table_save(model_name):
+    from arasCore.lib.services.api_handler import get_api_registry
+    from arasCore.admin.crud_factory import _get_child_tables_for_model
+    
+    parent_model_name = request.args.get("parent_model")
+    li = request.args.get("li", "0")
+    item_id = request.args.get("id")
+    fk_col_param = request.args.get("fk_col", "").strip()
+    parent_id_param = request.args.get("parent_id", "").strip()
+    
+    # 1. Find child model
+    registry = get_api_registry()
+    child_entry = None
+    for entry in registry.values():
+        if entry["model"].__tablename__ == model_name:
+            child_entry = entry
+            break
+            
+    if not child_entry:
+        return jsonify({"error": f"Child model {model_name} not found"}), 404
+        
+    child_model = child_entry["model"]
+    
+    # 2. Create or Update the record
+    raw_data = request.get_json(silent=True)
+    if raw_data is None:
+        raw_data = request.form.to_dict()
+    if not raw_data:
+        raw_data = {}
+    data = {}
+    for k, v in raw_data.items():
+        if v in ("", "None", "null", "__PID__", None):
+            # If the column is nullable, we can set it to None.
+            # If it's NOT nullable, we skip it to allow model defaults to take over (if new)
+            # or to avoid setting an invalid empty string.
+            col = child_model.__table__.columns.get(k)
+            if col is not None and col.nullable:
+                data[k] = None
+            continue
+        data[k] = v
+
+    # Inject parent FK from URL params if body sent "None"/empty for it
+    if fk_col_param and parent_id_param and parent_id_param not in ("None", "null", "", "__PID__"):
+        if not data.get(fk_col_param):
+            data[fk_col_param] = parent_id_param
+
+    # Auto-fill invoice_type for polymorphic FK tables (e.g. acc_payment_allocation)
+    if "invoice_type" in child_model.__table__.columns and not data.get("invoice_type"):
+        if parent_model_name and "sales" in parent_model_name:
+            data["invoice_type"] = "sales"
+        elif parent_model_name and "purchase" in parent_model_name:
+            data["invoice_type"] = "purchase"
+
+    try:
+        user_id = getattr(current_user, "id", None)
+        if item_id and not item_id.startswith("local_"):
+            obj = child_model.query.get_or_404(item_id)
+            obj.update_self(data, user_id=user_id)
+        else:
+            # Auto-fill description if missing and product_id is present
+            if not data.get("description") and data.get("product_id"):
+                try:
+                    from aras.erp.erp_stock.models.product import StockProduct
+                    p = StockProduct.query.get(data["product_id"])
+                    if p:
+                        data["description"] = p.name
+                except Exception:
+                    pass
+            obj = child_model.create(data, user_id=user_id)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        import logging
+        logging.getLogger(__name__).error(f"Error in child_table_save for {model_name}: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+        
+    # 3. Find parent model and its child table config for rendering
+    parent_model = None
+    if parent_model_name:
+        for entry in registry.values():
+            if entry["model"].__tablename__ == parent_model_name:
+                parent_model = entry["model"]
+                break
+    
+    if not parent_model:
+        return f"Parent model {parent_model_name} not found", 404
+        
+    cts = _get_child_tables_for_model(parent_model)
+    ct = None
+    for c in cts:
+        if c["model_name"] == model_name:
+            ct = c
+            break
+            
+    if not ct:
+        return f"Child table config for {model_name} not found in {parent_model_name}", 404
+        
+    # Re-calculate helper vars
+    _ct_all_render = ct["all_columns"]
+    _ct_vcol_names = [v[1] for v in ct["vcols"]]
+    
+    return render_template(
+        "admin/gen/_child_table_row.html",
+        row=obj,
+        ct=ct,
+        _li=li,
+        _ct_all_render=_ct_all_render,
+        _ct_vcol_names=_ct_vcol_names
+    )
+
+
 @admin_bp.route("/apps/wizard", methods=["GET", "POST"])
 @login_required
 def apps_wizard():
@@ -486,6 +663,46 @@ def apps_table_delete(app_id, table_id):
 
 
 # ── Columns ───────────────────────────────────────────────────────────────────
+
+@admin_bp.route("/api/fk-choices/", methods=["GET"])
+@login_required
+def api_fk_choices():
+    """Return [{id, label}] for a given relation_table_id or system table name."""
+    from flask import request, jsonify
+    from arasCore.admin.models import AppManagerTable, AppManagerColumn
+    table_id = request.args.get("table_id", type=int)
+    system_table = request.args.get("system_table", "").strip()
+    display_col = request.args.get("display_col", "").strip()
+
+    rows = []
+    try:
+        if table_id:
+            tbl = AppManagerTable.query.get(table_id)
+            if tbl:
+                from arasCore.admin.services import make_table_model
+                model = make_table_model(tbl, tbl.app.slug if tbl.app else "app",
+                                         AppManagerTable.query.filter_by(app_id=tbl.app_id).all())
+                label_col = display_col or (tbl.columns[0].name if tbl.columns else "id")
+                for obj in model.query.order_by(model.id).limit(200).all():
+                    rows.append({"id": obj.id, "label": str(getattr(obj, label_col, obj.id) or obj.id)})
+        elif system_table:
+            from sqlalchemy import text
+            from arasCore.lib.core.extensions import db
+            label_col = display_col or "name"
+            try:
+                result = db.session.execute(
+                    text(f"SELECT id, {label_col} FROM {system_table} ORDER BY id LIMIT 200")
+                )
+                for row in result:
+                    rows.append({"id": row[0], "label": str(row[1] or row[0])})
+            except Exception:
+                result = db.session.execute(text(f"SELECT id FROM {system_table} ORDER BY id LIMIT 200"))
+                rows = [{"id": row[0], "label": str(row[0])} for row in result]
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+    return jsonify({"ok": True, "rows": rows})
+
 
 @admin_bp.route("/apps/<int:app_id>/tables/<int:table_id>/columns", methods=["GET", "POST"])
 @login_required

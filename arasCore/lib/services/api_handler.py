@@ -503,6 +503,10 @@ def _build_api_blueprint() -> Blueprint:
                 emit_crud(_app_slug, _res_slug, "deleted", obj=obj)
             except Exception:
                 pass
+            
+            if request.headers.get("HX-Request"):
+                return "", 204
+                
             return jsonify({"message": "Deleted."}), 200
         except (SQLAlchemyError, ValueError, Exception) as ex:
             db.session.rollback()

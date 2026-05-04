@@ -13,5 +13,14 @@
 <!-- Aras Design System JS -->
 <script src="{{ url_for('static', filename='js/aras-design.js') }}?v=1.1"></script>
 
+<!-- HTMX -->
+<script src="https://unpkg.com/htmx.org@2.0.1"></script>
+<script src="https://unpkg.com/htmx-ext-json-enc@2.0.1/json-enc.js"></script>
+<script>
+    document.body.addEventListener('htmx:configRequest', (event) => {
+        event.detail.headers['X-CSRFToken'] = '{{ csrf_token() }}';
+    });
+</script>
+
 <!-- modernizr -->
 <script src="{{ url_for('static', filename='js/vendor/modernizr-2.8.3.min.js') }}"></script>

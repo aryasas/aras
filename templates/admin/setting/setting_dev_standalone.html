@@ -1,6 +1,11 @@
-{% extends "admin/base_index.html" %}
+{% extends "admin/layout_dev_hitech.html" %}
 
 {% block content %}
-    {% set skip_hero = False %}
-    {% include 'admin/setting/setting_dev.html' %}
+    <div class="hitech-theme">
+        {% if dev_partial %}
+            {% include dev_partial %}
+        {% else %}
+            {% include 'admin/setting/setting_dev.html' %}
+        {% endif %}
+    </div>
 {% endblock %}

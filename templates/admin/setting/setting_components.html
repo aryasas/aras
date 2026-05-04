@@ -1,16 +1,26 @@
 {% extends "admin/base_index.html" if not skip_hero else "admin/base_empty.html" %}
 
 {% block content %}
-<div class="settings-panel {{ 'd-none' if skip_hero }}" id="panel-components">
+{# We only show the wrapper and nav if NOT skip_hero (meaning it's the standalone page) 
+   If skip_hero is true, it's being included in setting_settings.html which provides the wrapper.
+#}
+{% if not skip_hero %}
+<div class="settings-panel" id="panel-components">
   {% include 'admin/setting/_setting_dev_nav.html' %}
+{% endif %}
+
+  <div class="settings-panel-header">
+      <h3 class="settings-panel-title"><i class="ti-layout-media-overlay"></i> Component Catalog</h3>
+      <p class="settings-panel-desc">Visual reference for Aras Studio Editorial Design System components.</p>
+  </div>
 
   <div class="row">
     {# Sidebar Navigation #}
     <div class="col-md-3">
         <div class="aras-card sticky-top" style="top: 20px;">
             <div class="aras-card-body p-0">
-                <div class="list-group list-group-flush fs-13">
-                    <a href="#section-badges" class="list-group-item list-group-item-action py-3"><i class="ti-tag me-2"></i> Badges & Status</a>
+                <div class="list-group list-group-flush fs-13" id="uikit-sidebar-nav">
+                    <a href="#section-badges" class="list-group-item list-group-item-action py-3 active"><i class="ti-tag me-2"></i> Badges & Status</a>
                     <a href="#section-buttons" class="list-group-item list-group-item-action py-3"><i class="ti-mouse-alt me-2"></i> Buttons & Actions</a>
                     <a href="#section-cards" class="list-group-item list-group-item-action py-3"><i class="ti-layout-grid2 me-2"></i> Cards & Layout</a>
                     <a href="#section-forms" class="list-group-item list-group-item-action py-3"><i class="ti-pencil-alt me-2"></i> Form Controls</a>
@@ -230,7 +240,10 @@
 
     </div>
   </div>
+
+{% if not skip_hero %}
 </div>
+{% endif %}
 
 <style>
     section h4 { 
@@ -253,37 +266,40 @@
 <script>
 (function() {
     // Smooth scrolling for sidebar links
-    document.querySelectorAll('.list-group-item-action').forEach(anchor => {
+    const uikitNavLinks = document.querySelectorAll('#uikit-sidebar-nav .list-group-item-action');
+    uikitNavLinks.forEach(anchor => {
         anchor.addEventListener('click', function(e) {
             e.preventDefault();
             const targetId = this.getAttribute('href');
-            document.querySelector(targetId).scrollIntoView({
-                behavior: 'smooth'
-            });
-            
-            // Update active state
-            document.querySelectorAll('.list-group-item-action').forEach(item => item.classList.remove('active'));
-            this.classList.add('active');
+            const targetEl = document.querySelector(targetId);
+            if (targetEl) {
+                targetEl.scrollIntoView({ behavior: 'smooth' });
+                // Update active state
+                uikitNavLinks.forEach(item => item.classList.remove('active'));
+                this.classList.add('active');
+            }
         });
     });
 
     // Simple scrollspy-like active state update
     window.addEventListener('scroll', () => {
         let current = "";
-        const sections = document.querySelectorAll('section');
+        const sections = document.querySelectorAll('#panel-components section');
         sections.forEach(section => {
             const sectionTop = section.offsetTop;
-            if (pageYOffset >= sectionTop - 100) {
+            if (pageYOffset >= sectionTop - 150) {
                 current = section.getAttribute('id');
             }
         });
 
-        document.querySelectorAll('.list-group-item-action').forEach(item => {
-            item.classList.remove('active');
-            if (item.getAttribute('href') === `#${current}`) {
-                item.classList.add('active');
-            }
-        });
+        if (current) {
+            uikitNavLinks.forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('href') === `#${current}`) {
+                    item.classList.add('active');
+                }
+            });
+        }
     });
 })();
 </script>

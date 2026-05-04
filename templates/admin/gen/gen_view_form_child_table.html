@@ -95,43 +95,7 @@
     </thead>
     <tbody id="ct-tbody-{{ _li }}">
       {% for row in ct.rows %}
-      {# Determine ID robustly #}
-      {% if row is mapping %}
-        {% set row_id = row.get('id', '') %}
-      {% else %}
-        {% set row_id = row.id if row.id is not none else '' %}
-      {% endif %}
-      <tr data-id="{{ row_id }}" class="ct-data-row{% if ct.adm_url and not ct.api_url %} is-clickable{% endif %}"
-          {% if ct.adm_url and not ct.api_url %}onclick="window.location='{{ ct.adm_url }}/{{ row_id }}/';"{% endif %}>
-        <td class="ct-td-seq text-center text-muted-aras fs-11" style="border-bottom: 1px solid var(--studio-cream); padding: 14px 20px;">{{ loop.index }}</td>
-        {% set _ct_rel = ct.rel_maps if ct.rel_maps is defined else {} %}
-        {% for _, field_name in _ct_all_render %}
-          {# Resolve value robustly for both dicts and objects #}
-          {% if row is mapping %}
-            {% set raw = row.get(field_name) %}
-          {% else %}
-            {% set raw = row|attr(field_name) if row|attr(field_name) is defined else none %}
-          {% endif %}
-          {% set _hidden_style = 'display:none; ' if field_name not in _ct_vcol_names else '' %}
-
-          <td data-raw="{{ raw if raw is not none else '' }}" data-field="{{ field_name }}" style="{{ _hidden_style }}border-bottom: 1px solid var(--studio-cream); padding: 14px 20px;">
-            {%- if field_name in _ct_rel and raw is not none -%}
-              {%- set raw_str = raw | string -%}
-              {{ _ct_rel[field_name][raw_str] if raw_str in _ct_rel[field_name] else raw }}
-            {%- else -%}
-              {{ raw if raw is not none else '—' }}
-            {%- endif -%}
-          </td>
-        {% endfor %}
-        {% if ct.api_url and ct.inline_columns %}
-        <td class="ct-td-actions text-right" style="border-bottom: 1px solid var(--studio-cream); padding: 8px 20px;">
-          <button type="button" class="ct-btn-edit" title="Edit" onclick="ctOpenModal('{{ _li }}', this)" style="background: none; border: none; padding: 6px; cursor: pointer; color: var(--aras-ink-3); transition: color 0.2s;"><i class="fa fa-pencil"></i></button>
-          <button type="button" class="ct-btn-del"  title="Delete" onclick="ctDeleteRow('{{ _li }}', this)" style="background: none; border: none; padding: 6px; cursor: pointer; color: var(--aras-ink-3); transition: color 0.2s;"><i class="fa fa-trash"></i></button>
-        </td>
-        {% else %}
-        <td class="td-arrow text-right" style="border-bottom: 1px solid var(--studio-cream); padding: 14px 20px;">{% if ct.adm_url %}<i class="fa fa-chevron-right row-arrow" style="color: var(--aras-ink-3); font-size: 11px;"></i>{% endif %}</td>
-        {% endif %}
-      </tr>
+        {% include 'admin/gen/_child_table_row.html' %}
       {% endfor %}
 
       {# ── Inline add row (hidden by default, appears as table row) ── #}
@@ -180,7 +144,24 @@
           <button type="button" class="ct-btn-edit" title="Edit Detail" onclick="ctOpenModal('{{ _li }}', this, true)" style="color: var(--studio-accent); background: none; border: none; padding: 6px; cursor: pointer;">
             <i class="fa fa-pencil"></i>
           </button>
-          <button type="button" class="ct-btn-save" title="Save" onclick="ctSaveInlineRow('{{ _li }}', '{{ ct.api_url }}', '{{ ct.fk_col }}', '{{ ct.parent_id }}')" style="color: #4f6f53; background: none; border: none; padding: 6px; cursor: pointer;">
+          <button type="button" class="ct-btn-save" title="Save"
+                  hx-post="/admin/api/child-table/{{ ct.model_name }}/save?parent_model={{ ct.parent_model_name }}&li={{ _li }}&fk_col={{ ct.fk_col }}&parent_id=__PID__"
+                  hx-ext="json-enc"
+                  hx-include="closest tr"
+                  hx-target="#ct-tbody-{{ _li }}"
+                  hx-swap="beforeend"
+                  hx-on:click="
+                    var pid = document.querySelector('form[action]').action.match(/\/([0-9]+)\//)?.[1] || '';
+                    if (pid) {
+                      this.setAttribute('hx-post', this.getAttribute('hx-post').replace('__PID__', pid));
+                    } else {
+                      event.preventDefault();
+                      event.stopImmediatePropagation();
+                      ctSaveInlineRow('{{ _li }}', '{{ ct.api_url }}', '{{ ct.fk_col }}', '__PID__');
+                    }
+                  "
+                  hx-on::after-request="if(event.detail.successful) { ctHideInputRow('{{ _li }}'); _ctUpdateSeq('{{ _li }}'); Aras.toast('Row added', 'success'); } else { Aras.toast('Error adding row', 'error'); }"
+                  style="color: #4f6f53; background: none; border: none; padding: 6px; cursor: pointer;">
             <i class="fa fa-check"></i>
           </button>
           <button type="button" class="ct-btn-cancel" title="Cancel" onclick="ctHideInputRow('{{ _li }}')" style="color: var(--aras-ink-3); background: none; border: none; padding: 6px; cursor: pointer;">
@@ -264,7 +245,10 @@
       {% endfor %}
     </div>
     <div class="ct-modal__foot">
-      <button type="button" class="aras-btn aras-btn--primary" onclick="ctSaveModal('{{ _li }}', '{{ ct.api_url }}', '{{ ct.fk_col }}', '{{ ct.parent_id }}')">
+      <button type="button" class="aras-btn aras-btn--primary ct-modal-save-btn"
+              hx-ext="json-enc"
+              hx-include="#ct-modal-{{ _li }} [name]"
+              hx-on::after-request="if(event.detail.successful) { ctCloseModal('{{ _li }}'); _ctUpdateSeq('{{ _li }}'); Aras.toast('Changes saved', 'success'); }">
         <i class="fa fa-save"></i> Save changes
       </button>
       <button type="button" class="aras-btn aras-btn--outline" onclick="ctCloseModal('{{ _li }}')">Cancel</button>
@@ -284,6 +268,9 @@
   "price_api":     {{ ct.price_api_url | default(none) | tojson }},
   "price_type":    {{ ct.price_type | default('sales') | tojson }},
   "company_id":    {{ ct.parent_company_id | default(none) | tojson }},
+  "parent_model_name": {{ ct.parent_model_name | default(none) | tojson }},
+  "fk_col": {{ ct.fk_col | default(none) | tojson }},
+  "parent_id": {{ ct.parent_id | default(none) | tojson }},
   "price_list_field": {{ ct.parent_price_list_field | default(none) | tojson }}
 }
 </script>
