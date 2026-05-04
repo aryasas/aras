@@ -110,6 +110,9 @@ claude_design/
 smart_read/
 arasd/
 skills/
+agents/
+agent_tools/
+
 
 # ── Dev Reference (local only) ────────────────────
 erpnext-develop/

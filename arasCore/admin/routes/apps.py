@@ -92,10 +92,10 @@ def apps_doctypes():
 def render_child_row(model_name, item_id):
     from arasCore.admin.crud_factory import _get_child_tables_for_model
     from arasCore.lib.services.api_handler import get_api_registry
-    
+
     parent_model_name = request.args.get("parent_model")
     li = request.args.get("li", "0")
-    
+
     # 1. Find child model
     registry = get_api_registry()
     child_entry = None
@@ -103,13 +103,13 @@ def render_child_row(model_name, item_id):
         if entry["model"].__tablename__ == model_name:
             child_entry = entry
             break
-            
+
     if not child_entry:
         return f"Child model {model_name} not found", 404
-        
+
     child_model = child_entry["model"]
     obj = child_model.query.get_or_404(item_id)
-    
+
     # 2. Find parent model and its child table config
     parent_model = None
     if parent_model_name:
@@ -117,30 +117,30 @@ def render_child_row(model_name, item_id):
             if entry["model"].__tablename__ == parent_model_name:
                 parent_model = entry["model"]
                 break
-    
+
     if not parent_model:
         return f"Parent model {parent_model_name} not found", 404
-        
+
     cts = _get_child_tables_for_model(parent_model)
     ct = None
     for c in cts:
         if c["model_name"] == model_name:
             ct = c
             break
-            
+
     if not ct:
         return f"Child table config for {model_name} not found in {parent_model_name}", 404
-        
+
     # 3. Render the row
     from arasCore.admin.crud_factory import _smart_vcols
     _ct_vcol_names = ct["vcols"] | map(attribute=1) | list if isinstance(ct["vcols"], list) else []
     # Actually _get_child_tables_for_model already did a lot of work.
     # Let's just use what's in ct.
-    
+
     # Re-calculate some helper vars needed by the template
     _ct_all_render = ct["all_columns"]
     _ct_vcol_names = [v[1] for v in ct["vcols"]]
-    
+
     return render_template(
         "admin/gen/_child_table_row.html",
         row=obj,
@@ -156,13 +156,13 @@ def render_child_row(model_name, item_id):
 def child_table_save(model_name):
     from arasCore.lib.services.api_handler import get_api_registry
     from arasCore.admin.crud_factory import _get_child_tables_for_model
-    
+
     parent_model_name = request.args.get("parent_model")
     li = request.args.get("li", "0")
     item_id = request.args.get("id")
     fk_col_param = request.args.get("fk_col", "").strip()
     parent_id_param = request.args.get("parent_id", "").strip()
-    
+
     # 1. Find child model
     registry = get_api_registry()
     child_entry = None
@@ -170,12 +170,12 @@ def child_table_save(model_name):
         if entry["model"].__tablename__ == model_name:
             child_entry = entry
             break
-            
+
     if not child_entry:
         return jsonify({"error": f"Child model {model_name} not found"}), 404
-        
+
     child_model = child_entry["model"]
-    
+
     # 2. Create or Update the record
     raw_data = request.get_json(silent=True)
     if raw_data is None:
@@ -183,41 +183,183 @@ def child_table_save(model_name):
         for key in request.form.keys():
             val = request.form.getlist(key)
             # Use the value that corresponds to the index of the child row being saved
-            # The client-side logic usually relies on list inputs. 
+            # The client-side logic usually relies on list inputs.
             # We attempt to find the value at the current index.
             # As a fallback for simple forms, we use the last value.
             raw_data[key] = val[-1] if val else None
+    else:
+        # If JSON data contains lists (from HTMX json-enc), extract the correct value
+        # Try to use the li parameter as index, or fall back to last non-empty value
+        processed_data = {}
+        for key, val in raw_data.items():
+            if isinstance(val, list):
+                # Try to get value at the li index if it's a valid integer
+                try:
+                    li_idx = int(li)
+                    if 0 <= li_idx < len(val):
+                        processed_data[key] = val[li_idx]
+                    else:
+                        # Fall back to last non-empty value
+                        non_empty = [v for v in val if v not in (None, '', [])]
+                        processed_data[key] = non_empty[-1] if non_empty else val[-1]
+                except (ValueError, TypeError):
+                    # li is not a valid integer, use last non-empty value
+                    non_empty = [v for v in val if v not in (None, '', [])]
+                    processed_data[key] = non_empty[-1] if non_empty else val[-1]
+            else:
+                processed_data[key] = val
+        raw_data = processed_data
 
     # Data cleanup and validation
-    for k, v in data.items():
+    for k, v in list(raw_data.items()):
         col = child_model.__table__.columns.get(k)
-        
-        # Handle specific case for uom_id:
-        if k == 'uom_id':
-            if v == '': # If empty string
-                if col is not None and not col.nullable: # And it's non-nullable
-                    return jsonify({"error": "Unit of Measure (uom_id) is required."}), 400
-                else: # If nullable, then None is fine
-                    data[k] = None
-            elif v is None or str(v).lower() in ("none", "null", "__pid__"): # Handle None or explicit null strings
-                 if col is not None and col.nullable:
-                    data[k] = None
-            # else: keep the value as is (it's a valid string or integer)
+        if col is None:
+            continue  # Skip unknown columns
+
+        # Skip id field - let DB handle it
+        if k == 'id':
             continue
 
         # Handle boolean conversion for checkbox fields
-        if col is not None and isinstance(col.type, db.Boolean):
-            data[k] = True if v == 'on' else False
+        if isinstance(col.type, db.Boolean):
+            raw_data[k] = True if v == 'on' else False
             continue
 
-        # Handle empty/null strings for other fields that are nullable
-        elif v in ("", "None", "null", "__PID__", None):
-            if col is not None and col.nullable:
-                data[k] = None
-            # If not nullable and empty/None, it will be caught by the general validation loop below.
-            continue
-        # else: keep the value as is
+        # Handle ENUM columns - validate against allowed values
+        if hasattr(col.type, 'enums'):
+            allowed = col.type.enums
+            if v in allowed:
+                continue
 
+            # Normalize common label variations to enum values
+            normalized = None
+            if isinstance(v, str):
+                v_lower = v.lower().strip()
+                if v_lower in ('buying', 'buy', 'purchase'):
+                    normalized = 'purchase' if 'purchase' in allowed else None
+                elif v_lower in ('selling', 'sell', 'sales'):
+                    normalized = 'sales' if 'sales' in allowed else None
+                elif v_lower in ('active', 'yes', 'true', '1') and 'active' in allowed:
+                    normalized = 'active'
+                elif v_lower in ('inactive', 'no', 'false', '0') and 'inactive' in allowed:
+                    normalized = 'inactive'
+
+            if normalized and normalized in allowed:
+                raw_data[k] = normalized
+                continue
+            elif v is None or str(v) in ("", "None", "null"):
+                # Use default or first enum value if non-nullable
+                if not col.nullable:
+                    raw_data[k] = allowed[0] if allowed else None
+                else:
+                    raw_data[k] = None
+            else:
+                # Invalid enum value - return error with valid options
+                return jsonify({"error": f"Field '{k}' must be one of: {', '.join(allowed)}. Got: '{v}'"}), 400
+            continue
+
+        # Empty/None value handling
+        is_empty = v in ("", "None", "null", "__PID__", None) or (isinstance(v, str) and v.strip() == '')
+
+        if is_empty:
+            if col.nullable:
+                raw_data[k] = None
+            elif isinstance(col.type, (db.Integer, db.BigInteger, db.SmallInteger)):
+                # For non-nullable integers, return error or try to infer from context
+                return jsonify({"error": f"Field '{k}' is required."}), 400
+            elif isinstance(col.type, db.Numeric):
+                # For non-nullable numerics, default to 0
+                raw_data[k] = 0
+            elif isinstance(col.type, db.String):
+                # For non-nullable strings, return error
+                return jsonify({"error": f"Field '{k}' is required."}), 400
+            else:
+                raw_data[k] = None
+            continue
+
+        # Numeric fields - try to convert to proper type
+        if isinstance(col.type, db.Numeric) and isinstance(v, str):
+            try:
+                raw_data[k] = float(v) if '.' in v else int(v)
+            except ValueError:
+                return jsonify({"error": f"Field '{k}' must be a number. Got: '{v}'"}), 400
+            continue
+
+        # Integer/Foreign key fields - try to convert
+        if isinstance(col.type, (db.Integer, db.BigInteger)) and isinstance(v, str):
+            try:
+                raw_data[k] = int(v)
+            except ValueError:
+                return jsonify({"error": f"Field '{k}' must be an integer. Got: '{v}'"}), 400
+            continue
+
+    # 3. Set foreign key if provided
+    if fk_col_param and parent_id_param:
+        raw_data[fk_col_param] = parent_id_param
+
+    # 4. Create or Update record
+    try:
+        if item_id:
+            # Update existing record
+            obj = child_model.query.get(item_id)
+            if not obj:
+                return jsonify({"error": f"Record {item_id} not found"}), 404
+            for k, v in raw_data.items():
+                if hasattr(obj, k) and k != 'id':
+                    setattr(obj, k, v)
+        else:
+            # Create new record
+            obj = child_model()
+            for k, v in raw_data.items():
+                if hasattr(obj, k):
+                    setattr(obj, k, v)
+            db.session.add(obj)
+
+        db.session.commit()
+
+        # 5. Build child table config for rendering the row
+        ct = None
+        if parent_model_name:
+            parent_model = None
+            for entry in registry.values():
+                if entry["model"].__tablename__ == parent_model_name:
+                    parent_model = entry["model"]
+                    break
+            if parent_model:
+                cts = _get_child_tables_for_model(parent_model)
+                current_app.logger.info(f"[child_table_save] Found {len(cts)} child tables for {parent_model_name}")
+                for c in cts:
+                    current_app.logger.info(f"[child_table_save] Checking child table: {c.get('model_name')} vs {model_name}")
+                    if c.get("model_name") == model_name or c.get("name") == model_name:
+                        ct = c
+                        break
+
+        if ct:
+            current_app.logger.info(f"[child_table_save] Rendering template for {model_name}")
+            _ct_all_render = ct.get("all_columns", [])
+            _ct_vcol_names = [v[1] for v in ct.get("vcols", [])]
+            return render_template(
+                "admin/gen/_child_table_row.html",
+                row=obj,
+                ct=ct,
+                _li=li,
+                _ct_all_render=_ct_all_render,
+                _ct_vcol_names=_ct_vcol_names
+            )
+        else:
+            current_app.logger.warning(f"[child_table_save] Could not find ct config for {model_name}, returning JSON fallback")
+            # Fallback: return JSON if we can't find the child table config
+            result = {}
+            for col in child_model.__table__.columns:
+                result[col.name] = getattr(obj, col.name)
+            return jsonify({"ok": True, "data": result})
+
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        current_app.logger.error(f"Child table save error: {str(e)}")
+        current_app.logger.error(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
 
 
 @admin_bp.route("/apps/wizard", methods=["GET", "POST"])
@@ -225,14 +367,14 @@ def child_table_save(model_name):
 def apps_wizard():
     if request.method == "POST":
         data = request.get_json() or {}
-        
+
         # Step 1: Create App
         app_data = data.get("app", {})
         if not app_data.get("title") or not app_data.get("url"):
             return jsonify({"ok": False, "error": "App title and URL are required"}), 400
-            
+
         from arasCore.admin.models import AppManagerApp, AppManagerTable, AppManagerColumn
-        
+
         try:
             _slug = app_data["url"].strip().strip("/").lower().replace(" ", "_")
             app_obj = AppManagerApp(
@@ -249,7 +391,7 @@ def apps_wizard():
             )
             db.session.add(app_obj)
             db.session.flush() # Get app_obj.id
-            
+
             # Step 2: Create Tables
             tables_data = data.get("tables", [])
             for t_data in tables_data:
@@ -266,7 +408,7 @@ def apps_wizard():
                 )
                 db.session.add(tbl)
                 db.session.flush() # Get tbl.id
-                
+
                 # Step 3: Create Columns for this table
                 cols_data = t_data.get("columns", [])
                 for i, c_data in enumerate(cols_data):
@@ -281,15 +423,15 @@ def apps_wizard():
                         show_in_form=True
                     )
                     db.session.add(col)
-            
+
             db.session.commit()
             flash(f"App '{app_obj.title}' created successfully via wizard.", "success")
             return jsonify({"ok": True, "redirect": url_for("admin.apps_tables", app_id=app_obj.id)})
-            
+
         except Exception as e:
             db.session.rollback()
             return jsonify({"ok": False, "error": str(e)}), 500
-            
+
     return render_template("admin/setting/setting_app_wizard.html", title="App Wizard", main_title="App Wizard")
 
 
@@ -693,7 +835,7 @@ def api_dependent_choices():
         if not handler:
             logger.warning(f"[api_dependent_choices] Handler not found for {res_name}")
             return jsonify({"ok": False, "error": "Handler not found"}), 404
-        
+
         if not hasattr(handler, "column_setup"):
             logger.warning(f"[api_dependent_choices] Handler for {res_name} has no column_setup")
             return jsonify({"ok": False, "error": "column_setup not found"}), 404
@@ -712,7 +854,7 @@ def api_dependent_choices():
                 if ":" in item:
                     k, v = item.split(":", 1)
                     mapping[k.strip()] = v.strip()
-        
+
         target_table = mapping.get(parent_value)
         logger.info(f"[api_dependent_choices] target_table={target_table} for val={parent_value}")
 
@@ -804,8 +946,8 @@ def apps_columns(app_id, table_id):
         fk_cols = [c for c in potential_child.columns if c.field_type == 'relation' and c.relation_table_id == table_id]
         if fk_cols:
             child_table_defs.append({
-                "name": potential_child.name, 
-                "label": potential_child.title, 
+                "name": potential_child.name,
+                "label": potential_child.title,
                 "type": "child_table",
                 "app_id": potential_child.app_id,
                 "table_id": potential_child.id
@@ -825,8 +967,8 @@ def apps_columns(app_id, table_id):
                 cname = cd.get("model_name") or cd["model"].__tablename__
                 if cname not in seen_child_names:
                     child_table_defs.append({
-                        "name": cname, 
-                        "label": cd.get("title", cname), 
+                        "name": cname,
+                        "label": cd.get("title", cname),
                         "type": "child_table",
                         "app_id": cd.get("app_id"),
                         "table_id": cd.get("table_id")
@@ -928,7 +1070,7 @@ def apps_table_layout_save(app_id, table_id):
     layout  = data.get("layout")
     if layout is None:
         return {"ok": False, "error": "No layout provided"}, 400
-    
+
     tbl.layout_json = json.dumps(layout) if not isinstance(layout, str) else layout
     db.session.add(tbl)
     db.session.commit()
@@ -1290,30 +1432,30 @@ def page_view_save():
     import json
     from arasCore.admin.models import AppManagerPageView, AppManagerTable
     data = request.get_json() or {}
-    
+
     table_id = data.get("table_id")
     name     = data.get("name")
     label    = data.get("label") or name
-    
+
     if not table_id or not name:
         return jsonify({"ok": False, "error": "Missing table_id or name"}), 400
-        
+
     try:
         view = AppManagerPageView.query.filter_by(
             table_id=table_id, name=name, owner_id=current_user.id
         ).first()
-        
+
         if not view:
             view = AppManagerPageView(
                 table_id=table_id, name=name, label=label, owner_id=current_user.id
             )
             db.session.add(view)
-            
+
         view.filter_json = json.dumps(data.get("filter", {}))
         view.sort_json   = json.dumps(data.get("sort", {}))
         view.columns_csv = ",".join(data.get("columns", []))
         view.is_shared   = bool(data.get("is_shared"))
-        
+
         db.session.commit()
         return jsonify({"ok": True, "view_id": view.id})
     except Exception as e:
