@@ -124,8 +124,8 @@ function legacyCtRenderRow(ctId, obj, editingId) {
     tbody.insertAdjacentHTML("beforeend", rowHtml);
 }
 
-function legacyCtDeleteRow(ctId, btn) {
-    if (!confirm("Delete this row?")) return;
+async function legacyCtDeleteRow(ctId, btn) {
+    if (!await confirm("Delete this row?")) return;
     var row = btn.closest("tr"), rowId = row.dataset.id;
     var form = document.getElementById("ct-form-" + ctId);
     var apiUrl = form ? form.dataset.apiUrl : null;

@@ -74,8 +74,8 @@
             }
         },
 
-        deleteWidget(container) {
-            if (!confirm('Are you sure you want to remove this widget?')) return;
+        async deleteWidget(container) {
+            if (!await confirm('Are you sure you want to remove this widget?')) return;
             const dbId = container.dataset.dbId;
             
             if (!dbId) {

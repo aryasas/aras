@@ -58,7 +58,7 @@
 
 <script>
     async function syncApp(appId, slug) {
-        if (!confirm(`Confirm sync for ${slug}? This will update database metadata to match the manifest.`)) return;
+        if (!await confirm(`Confirm sync for ${slug}? This will update database metadata to match the manifest.`)) return;
         
         try {
             const resp = await fetch(`/admin/api/dev/sync/app/${appId}`, { method: 'POST' });

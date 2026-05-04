@@ -34,16 +34,30 @@ def _get_display_fields(tablename: str) -> list:
     return fields
 
 
-def find_ref_model(ref_tname: str):
+def find_ref_model(ref_name: str):
     """
-    Return the canonical (non-dynamic) SQLAlchemy model class for a DB table name.
-    Prefers code-defined models over DynModel_* service models when duplicates exist.
+    Return the canonical SQLAlchemy model class for a given identifier.
+    identifier can be:
+      1. DB Table Name (e.g. "crm_customer")
+      2. Resource Name (e.g. "crm/customer" or "erp/crm/customer")
     """
+    from arasCore.lib.services.api_handler import get_api_registry
+    
+    # Try resolving via API registry first (resource names)
+    registry = get_api_registry()
+    if ref_name in registry:
+        return registry[ref_name].model
+    
+    # Try fuzzy match (suffix match) for resource names
+    for key, entry in registry.items():
+        if key.endswith("/" + ref_name.strip("/")):
+            return entry["model"]
+
     try:
         from arasCore.lib.core.extensions import db
         candidates = [
             m.class_ for m in db.Model.registry.mappers
-            if m.local_table.name == ref_tname
+            if m.local_table.name == ref_name
         ]
         for cls in candidates:
             if not cls.__name__.startswith("DynModel_"):

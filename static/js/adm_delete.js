@@ -111,14 +111,14 @@
 
             if (!deleteUrl) return;
 
-            function triggerSingleDelete() {
+            async function triggerSingleDelete() {
                 var bodyEl = getEl("arasDeleteModalBody");
                 if (bodyEl) {
                     bodyEl.innerHTML = "<p>Are you sure you want to delete this record?</p>";
                     _onConfirm = function () { submitDeleteAjax(deleteUrl); };
                     showModal();
                 } else {
-                    if (confirm("Delete this record?")) submitDeleteAjax(deleteUrl);
+                    if (await confirm("Delete this record?")) submitDeleteAjax(deleteUrl);
                 }
             }
 
@@ -158,11 +158,11 @@
 
     function wireLinkedDocButtons(container) {
         container.querySelectorAll(".js-linked-doc-delete").forEach(function (btn) {
-            btn.addEventListener("click", function (e) {
+            btn.addEventListener("click", async function (e) {
                 e.stopPropagation();
                 var url = btn.dataset.url;
                 if (!url) return;
-                if (!confirm("Delete this linked document individually?")) return;
+                if (!await confirm("Delete this linked document individually?")) return;
                 hideModal();
                 submitDeleteAjax(url);
             });

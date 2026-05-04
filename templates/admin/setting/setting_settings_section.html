@@ -191,8 +191,7 @@
                     <td><small class="text-muted">{{ s.get_value() if s.get_value() is not none else '—' }}</small></td>
                     <td>
                       <form method="POST" action="" style="display:inline;"
-                            onsubmit="return confirm('Delete {{ s.key }}?')">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            onsubmit="return Aras.ask(event, 'Delete {{ s.key }}?')">                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="_action" value="delete">
                         <input type="hidden" name="delete_key" value="{{ s.key }}">
                         <button type="submit" class="btn btn-xs btn-outline-danger">

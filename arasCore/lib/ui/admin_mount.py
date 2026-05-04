@@ -44,6 +44,17 @@ def _build_model_form(model, obj=None):
     from wtforms.validators import Optional as _Opt, DataRequired
     from arasCore.lib.ui.forms import _CORE_SYSTEM_INTERNAL
     
+    # Get overrides from handler if available
+    overrides = {}
+    try:
+        from arasCore.lib.services.blueprints import get_helper_registry
+        for h in get_helper_registry().values():
+            for r in h.resources:
+                if r.model is model and r.handler and hasattr(r.handler, "column_setup"):
+                    overrides = r.handler.column_setup() or {}
+                    break
+    except Exception: pass
+
     attrs = {}
     for lbl, col_name, col in model.form_columns():
         # Check if the column has a show_in_form attribute (e.g. from mgr_column)
@@ -53,11 +64,38 @@ def _build_model_form(model, obj=None):
         if not show_in_form or col_name in _CORE_SYSTEM_INTERNAL:
             continue
 
+        ov = overrides.get(col_name, {})
         req = not col.nullable and col.default is None and not col.server_default
+        if "required" in ov: req = ov["required"]
         v = [DataRequired()] if req else [_Opt()]
 
-        if col.foreign_keys:
+        ft = "string"
+        if col.foreign_keys: ft = "relation"
+        elif isinstance(col.type, _sa.Boolean): ft = "boolean"
+        elif isinstance(col.type, (_sa.Integer, _sa.BigInteger, _sa.SmallInteger)): ft = "integer"
+        elif isinstance(col.type, (_sa.Numeric, _sa.Float)): ft = "decimal"
+        elif isinstance(col.type, _sa.Text): ft = "text"
+        elif isinstance(col.type, _sa.Date): ft = "date"
+        elif isinstance(col.type, _sa.DateTime): ft = "datetime"
+        elif isinstance(col.type, _sa.Enum): ft = "enum"
+        
+        # Apply field_type override
+        if "field_type" in ov: ft = ov["field_type"]
+
+        render_kw = {}
+        if "depend_on_another_field" in ov:
+            render_kw["data-depend-on"] = ov["depend_on_another_field"]
+
+        if ft == "relation" or col.foreign_keys:
             choices = _fk_choices(col)
+            # If we are editing and have a value, ensure it's in choices even if not a standard FK
+            if obj and getattr(obj, col_name, None):
+                curr_val = getattr(obj, col_name)
+                if not any(str(c[0]) == str(curr_val) for c in choices):
+                    # We don't have the label here easily, but the ID is enough for TomSelect
+                    # to hold the value until dependent-choices API refreshes it.
+                    choices.append((curr_val, f"ID: {curr_val}"))
+
             # Build admin add URL for the referenced table
             _fk_rel_add_url = None
             try:
@@ -72,29 +110,46 @@ def _build_model_form(model, obj=None):
                         _fk_rel_add_url = f"/admin{_fk_app.url_prefix}{_fk_tbl.get_full_url(_fk_app.url_prefix)}/add/"
             except Exception:
                 pass
-            _fk_rk = {"data-rel-add-url": _fk_rel_add_url} if _fk_rel_add_url else {}
+            if _fk_rel_add_url: render_kw["data-rel-add-url"] = _fk_rel_add_url
+            
             attrs[col_name] = SelectField(lbl, coerce=_fk_coerce,
-                                          choices=choices, validators=[_Opt()],
-                                          validate_choice=False, render_kw=_fk_rk)
-        elif isinstance(col.type, _sa.Boolean):
+                                          choices=choices, validators=v,
+                                          validate_choice=False, render_kw=render_kw)
+        elif ft == "boolean":
             attrs[col_name] = BooleanField(lbl)
-        elif isinstance(col.type, (_sa.Integer, _sa.BigInteger, _sa.SmallInteger)):
-            attrs[col_name] = IntegerField(lbl, validators=v)
-        elif isinstance(col.type, (_sa.Numeric, _sa.Float)):
+        elif ft == "integer":
+            attrs[col_name] = IntegerField(lbl, validators=v, render_kw=render_kw)
+        elif ft in ("decimal", "float"):
             from wtforms import DecimalField
-            attrs[col_name] = DecimalField(lbl, validators=v, places=2)
-        elif isinstance(col.type, _sa.Text):
-            attrs[col_name] = TextAreaField(lbl, validators=v)
-        elif isinstance(col.type, _sa.Date):
-            attrs[col_name] = DateField(lbl, validators=v)
-        elif isinstance(col.type, _sa.DateTime):
+            attrs[col_name] = DecimalField(lbl, validators=v, places=2, render_kw=render_kw)
+        elif ft == "text":
+            attrs[col_name] = TextAreaField(lbl, validators=v, render_kw=render_kw)
+        elif ft == "date":
+            attrs[col_name] = DateField(lbl, validators=v, render_kw=render_kw)
+        elif ft == "datetime":
             from wtforms.fields import DateTimeLocalField
-            attrs[col_name] = DateTimeLocalField(lbl, validators=v)
-        elif isinstance(col.type, _sa.Enum):
-            choices = [(e, e) for e in col.type.enums]
-            attrs[col_name] = SelectField(lbl, choices=choices, validators=v)
+            attrs[col_name] = DateTimeLocalField(lbl, validators=v, render_kw=render_kw)
+        elif ft in ("select", "enum"):
+            choices = []
+            if "choices" in ov:
+                choices_str = ov["choices"]
+                if isinstance(choices_str, (list, tuple)):
+                    choices = choices_str
+                else:
+                    for c in choices_str.split(","):
+                        c = c.strip()
+                        if not c: continue
+                        if ":" in c:
+                            k, v_lbl = c.split(":", 1)
+                            choices.append((k.strip(), v_lbl.strip()))
+                        else:
+                            choices.append((c, c))
+            elif isinstance(col.type, _sa.Enum):
+                choices = [(e, e) for e in col.type.enums]
+            
+            attrs[col_name] = SelectField(lbl, choices=choices, validators=v, render_kw=render_kw)
         else:
-            attrs[col_name] = StringField(lbl, validators=v)
+            attrs[col_name] = StringField(lbl, validators=v, render_kw=render_kw)
 
     from arasCore.lib.ui.forms import ArasForm
     FormCls = type(f"ModelForm_{model.__tablename__}", (ArasForm,), attrs)
@@ -292,6 +347,7 @@ class AdminResourceMounter:
             if form.validate_on_submit():
                 try:
                     obj = model()
+                    logger.info(f"[admin_mount] Add {model.__tablename__}: partner_id={form.partner_id.data if hasattr(form, 'partner_id') else 'N/A'}")
                     before_hook, after_hook = _invoke_hooks(obj, is_new=True)
                     before_hook()
                     form.populate_obj(obj)
@@ -370,13 +426,21 @@ class AdminResourceMounter:
                 except Exception:
                     pass
 
+            handler   = getattr(self.res, "handler", None)
             extra_ctx = {}
             try:
-                handler = getattr(self.res, "handler", None)
                 if handler and hasattr(handler, "detail_context"):
                     extra_ctx = handler.detail_context(None) or {}
             except Exception:
                 pass
+
+            # Inject child_table_actions per child table
+            if handler and hasattr(handler, "child_table_actions"):
+                for _cd in child_tables:
+                    try:
+                        _cd["custom_actions"] = handler.child_table_actions(_cd["model_name"], None) or []
+                    except Exception:
+                        _cd["custom_actions"] = []
 
             _app_id, _table_id = self._resolve_app_table_ids()
             
@@ -419,6 +483,7 @@ class AdminResourceMounter:
             from arasCore.admin.services import _invoke_hooks, _get_child_tables_for_model
             if form.validate_on_submit():
                 try:
+                    logger.info(f"[admin_mount] Edit {model.__tablename__} {item_id}: partner_id={form.partner_id.data if hasattr(form, 'partner_id') else 'N/A'}")
                     before_hook, after_hook = _invoke_hooks(obj, is_new=False)
                     before_hook()
                     form.populate_obj(obj)

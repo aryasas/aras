@@ -66,7 +66,7 @@ function LayoutDesigner() {
 
     // Actions
     const addTab = () => setLayout([...layout, { label: 'New Tab', sections: [{ label: 'Section 1', width: 12, fields: [] }] }]);
-    const deleteTab = (idx) => { if(layout.length > 1 && confirm('Delete tab?')) setLayout(layout.filter((_, i) => i !== idx)); };
+    const deleteTab = async (idx) => { if(layout.length > 1 && await confirm('Delete tab?')) setLayout(layout.filter((_, i) => i !== idx)); };
     const addSection = (tIdx) => {
         const nl = [...layout];
         nl[tIdx].sections.push({ label: 'New Section', width: 12, fields: [] });

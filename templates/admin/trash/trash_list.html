@@ -52,7 +52,7 @@
                         <form method="POST"
                               action="{{ url_for('admin.trash_permanent_delete', group_id=g.group_id) }}"
                               style="display:inline;"
-                              onsubmit="return confirm('Permanently delete this group? This cannot be undone.');">
+                              onsubmit="return Aras.ask(event, 'Permanently delete this group? This cannot be undone.');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="aras-btn aras-btn--sm text-danger aras-btn--outline">
                                 <i class="fa fa-times"></i> Delete

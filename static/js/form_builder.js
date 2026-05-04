@@ -275,9 +275,9 @@ const { useState, useEffect, useCallback, useRef } = React;
             }
         };
 
-        const deleteTab = (tIdx) => {
+        const deleteTab = async (tIdx) => {
             if(layout.length <= 1) return;
-            if(!confirm('Archive this tab segment?')) return;
+            if(!await confirm('Archive this tab segment?')) return;
             setLayout(prev => {
                 const nl = JSON.parse(JSON.stringify(prev));
                 nl.splice(tIdx, 1);
@@ -294,8 +294,8 @@ const { useState, useEffect, useCallback, useRef } = React;
             });
         };
 
-        const deleteSection = (tIdx, sIdx) => {
-            if(!confirm('Remove section?')) return;
+        const deleteSection = async (tIdx, sIdx) => {
+            if(!await confirm('Remove section?')) return;
             setLayout(prev => {
                 const nl = JSON.parse(JSON.stringify(prev));
                 nl[tIdx].sections.splice(sIdx, 1);

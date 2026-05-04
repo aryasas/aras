@@ -396,8 +396,8 @@ var ME = (function(){
     }).then(function(r){ return r.json(); }).then(function(d){ if(d.ok){ closeAddModal(); load(); } else { arasNotify('Error: '+(d.error||'unknown'), 'error'); } });
   }
 
-  function deleteItem(e, id){
-    e.stopPropagation(); if(!confirm('Delete this menu item?')) return;
+  async function deleteItem(e, id){
+    e.stopPropagation(); if(!await confirm('Delete this menu item?')) return;
     var csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     fetch('/admin/settings/menu/delete/'+id, { method: 'POST', headers: {'X-CSRFToken': csrf} }).then(function(r){ return r.json(); }).then(function(d){ if(d.ok) load(); });
   }

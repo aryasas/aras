@@ -264,8 +264,7 @@ function ctOpenModal(idx, btn, isNew) {
             if (!pId || pId === '__PID__' || pId === 'None') {
                 var form = document.querySelector('form[action]');
                 if (form) {
-                    var m = form.action.match(/\/([0-9]+)\//);
-                    if (m) pId = m[1];
+                    pId = form.action.split('/').filter(x => x.match(/^[0-9]+$/)).pop() || '';
                 }
             }
 
@@ -632,8 +631,8 @@ function _ctAppendRow(idx, obj, extraLabels) {
     if (empty) empty.style.display = 'none';
 }
 
-function ctDeleteRow(idx, btn) {
-    if (!confirm('Delete this row?')) return;
+async function ctDeleteRow(idx, btn) {
+    if (!await confirm('Delete this row?')) return;
     var tr = btn.closest('tr');
     var id = tr.dataset.id;
     var meta = _ctGetMeta(idx);

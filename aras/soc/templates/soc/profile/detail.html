@@ -104,8 +104,8 @@ function rejectFriend(id) {
     method:'POST', headers:{'X-CSRFToken':getCsrf()}
   }).then(r=>r.json()).then(d=>{ if (d.ok) location.reload(); });
 }
-function unfriend(id) {
-  if (!confirm('Remove this friend?')) return;
+async function unfriend(id) {
+  if (!await confirm('Remove this friend?')) return;
   fetch('/soc/api/friends/' + id, {
     method:'DELETE', headers:{'X-CSRFToken':getCsrf()}
   }).then(r=>r.json()).then(d=>{ if (d.ok) location.reload(); });

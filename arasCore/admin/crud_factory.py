@@ -459,7 +459,7 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
                 app_title=app_title, app_id=app_id, table_id=table_id,
                 sibling_tabs=adm_tabs, current_tab_url=burl,
                 layout_tabs=_parse_layout_tabs(tname, layout_json, form, table_id=table_id, child_tables=child_defs),
-                child_tables=child_defs,
+                child_tables=child_defs, res_name=tname,
             )
         return view
 
@@ -487,6 +487,7 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
             # Merge DB rows and local rows for re-render
             if child_defs:
                 for cd in child_defs:
+                    cd["parent_id"] = item_id
                     db_rows = cd["model"].query.filter(getattr(cd["model"], cd["fk_col"]) == item_id).all()
                     local_rows = _get_local_child_rows(cd["model_name"])
                     cd["rows"] = db_rows + local_rows
@@ -503,7 +504,7 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
                 sibling_tabs=adm_tabs, current_tab_url=burl,
                 layout_tabs=_parse_layout_tabs(tname, layout_json, form, table_id=table_id, child_tables=child_defs),
                 activity_log=_load_activity_log(model.__tablename__, item_id),
-                child_tables=child_defs,
+                child_tables=child_defs, res_name=tname,
             )
         return view
 

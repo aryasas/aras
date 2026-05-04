@@ -8,6 +8,7 @@ class AccPayment(ArasModel):
     payment_type="outbound" = we pay supplier (AP).
     """
     __tablename__ = "acc_payment"
+    __display_fields__ = ("name", "partner_id")
     __table_args__ = (
         db.Index("ix_acc_pay_company_date", "company_id", "payment_date"),
         db.Index("ix_acc_pay_partner", "partner_type", "partner_id"),
@@ -45,6 +46,8 @@ class AccPayment(ArasModel):
 class AccPaymentAllocation(ArasModel):
     """Links one payment to one invoice (sales or purchase) with a specific amount."""
     __tablename__ = "acc_payment_allocation"
+    __serialize_relations__ = {"invoice_id": ("invoice", "name")}
+    __display_fields__ = ("invoice_id",)
 
     id           = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     payment_id   = db.Column(db.BigInteger, db.ForeignKey("acc_payment.id"), nullable=False)

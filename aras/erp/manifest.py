@@ -189,6 +189,16 @@ class PurchaseOrderHandler(SubHandler):
 
 
 class PaymentHandler(SubHandler):
+    def column_setup(self):
+        return {
+            "partner_id": {
+                "field_type": "relation",
+                "depend_on_another_field": "partner_type",
+                "choices": "customer:crm/customer, supplier:sup/supplier",
+                "required": True
+            }
+        }
+
     def detail_context(self, obj):
         if not obj:
             return {}
@@ -645,67 +655,55 @@ def _handle_payment_allocate():
 
 
 def _handle_payment_load_invoices():
-    """Return unpaid invoices modal with FIFO-suggested allocations and remainder diff."""
+    """Return proposed allocations as JSON for the frontend to append directly to the child table."""
     from flask import request, jsonify
     data = request.get_json() or {}
     payment_id = data.get("payment_id") or data.get("obj_id")
-    if not payment_id:
-        return jsonify({"ok": False, "error": "payment_id required"}), 400
+    
+    # Support unsaved payments
+    partner_id   = data.get("partner_id")
+    partner_type = data.get("partner_type")
+    total_amount = data.get("total_amount", 0)
+
     try:
         from aras.erp.erp_acc.models.payment import AccPayment
         from aras.erp.erp_acc.services.payment_service import get_unpaid_invoices
-        payment  = AccPayment.get_or_404(int(payment_id))
+        
+        if payment_id:
+            payment  = AccPayment.get_or_404(int(payment_id))
+            partner_id = payment.partner_id
+            partner_type = payment.partner_type
+            total_pay = float(payment.total_amount)
+            remaining = float(payment.unallocated_amount) if float(payment.unallocated_amount) > 0 else total_pay
+        else:
+            if not partner_id or not partner_type:
+                return jsonify({"ok": False, "error": "partner_id and partner_type required for new payments"}), 400
+            
+            # Mock payment for service
+            pay_type = "inbound" if partner_type == "customer" else "outbound"
+            payment = AccPayment(partner_id=int(partner_id), partner_type=partner_type, payment_type=pay_type)
+            total_pay = float(total_amount)
+            remaining = total_pay
+
         invoices = get_unpaid_invoices(payment)
-        total_pay = float(payment.total_amount)
-        remaining = float(payment.unallocated_amount) if float(payment.unallocated_amount) > 0 else total_pay
-        rows_html = ""
+        allocs = []
         for inv in invoices:
             suggested = min(inv["amount_due"], remaining)
             remaining = max(0.0, remaining - suggested)
-            rows_html += (
-                f'<tr>'
-                f'<td style="padding:8px">{inv["name"]}</td>'
-                f'<td style="padding:8px;text-align:right">{inv["total"]:.2f}</td>'
-                f'<td style="padding:8px;text-align:right">{inv["amount_due"]:.2f}</td>'
-                f'<td style="padding:8px"><input type="number" class="aras-form-control alloc-amt" step="0.01" min="0" '
-                f'max="{inv["amount_due"]}" value="{suggested:.2f}" '
-                f'data-type="{inv["invoice_type"]}" data-id="{inv["invoice_id"]}"></td>'
-                f'</tr>'
-            )
-        if not rows_html:
-            rows_html = '<tr><td colspan="4" style="text-align:center;padding:1rem;color:#888;">No unpaid invoices for this partner.</td></tr>'
-        diff_html = ""
-        if abs(remaining) > 0.001:
-            diff_html = (
-                f'<div style="margin-top:.75rem;padding:.6rem .8rem;border-radius:4px;'
-                f'background:{"#fff8e1" if remaining > 0 else "#fce4ec"};'
-                f'border:1px solid {"#ffe082" if remaining > 0 else "#ef9a9a"};font-size:.875rem;">'
-                f'<strong>Difference: {remaining:.2f}</strong> — '
-                f'{"Payment exceeds total invoices. Remainder stays unallocated." if remaining > 0 else "Invoices exceed payment amount."}'
-                f'</div>'
-            )
-        modal_html = (
-            f'<div style="background:#fff;border-radius:8px;padding:1.5rem;min-width:580px;max-width:92vw;max-height:82vh;overflow:auto;">'
-            f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">'
-            f'<div><strong style="font-size:1rem;">Load Invoices</strong>'
-            f'<div style="font-size:.8rem;color:#666;margin-top:2px;">Payment: {total_pay:.2f} — Partner allocations (FIFO)</div></div>'
-            f'<button data-modal-close style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#666;">&times;</button>'
-            f'</div>'
-            f'<table style="width:100%;border-collapse:collapse;font-size:.875rem;">'
-            f'<thead><tr style="background:#f8f8f8;border-bottom:2px solid #eee;">'
-            f'<th style="padding:8px;text-align:left;">Invoice</th>'
-            f'<th style="padding:8px;text-align:right;">Total</th>'
-            f'<th style="padding:8px;text-align:right;">Amount Due</th>'
-            f'<th style="padding:8px;text-align:right;">Allocate</th>'
-            f'</tr></thead><tbody>{rows_html}</tbody></table>'
-            f'{diff_html}'
-            f'<div style="margin-top:1rem;display:flex;gap:.5rem;justify-content:flex-end;">'
-            f'<button data-modal-close class="aras-btn aras-btn--sm aras-btn--outline">Cancel</button>'
-            f'<button data-alloc-save class="aras-btn aras-btn--sm aras-btn--lead"><i class="fa fa-check"></i> Save Allocations</button>'
-            f'</div></div>'
-        )
-        return jsonify({"ok": True, "modal_html": modal_html, "payment_id": int(payment_id),
-                        "payment_state": payment.state})
+            allocs.append({
+                "invoice_type": inv["invoice_type"],
+                "invoice_id":   inv["invoice_id"],
+                "name":         inv["name"],
+                "amount":       suggested,
+                "notes":        f"Auto-loaded from {inv['name']}"
+            })
+        
+        return jsonify({
+            "ok": True, 
+            "allocations": allocs, 
+            "payment_id": int(payment_id) if payment_id else None,
+            "message": f"Found {len(allocs)} unpaid invoice(s)." if allocs else "No unpaid invoices found."
+        })
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 400
 

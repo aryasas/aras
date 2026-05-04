@@ -169,8 +169,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Reset button
-    document.getElementById('btn-reset').addEventListener('click', function() {
-        if (confirm('Reset to default Aras Studio theme?')) {
+    document.getElementById('btn-reset').addEventListener('click', async function() {
+        if (await confirm('Reset to default Aras Studio theme?')) {
             const defaults = {
                 studio_ink: '#0f1b2d',
                 studio_ochre: '#c9a568',

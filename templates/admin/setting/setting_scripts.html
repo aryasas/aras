@@ -88,7 +88,7 @@
               <button class="btn btn-xs btn-outline-dark" onclick='openScriptEditor({{ sc|tojson|safe }})'>
                 <i class="fa fa-pencil"></i> Edit
               </button>
-              <form method="POST" action="{{ url_for('admin.script_delete', sc_id=sc.id) }}" class="d-inline" onsubmit="return confirm('Permanently delete this script?')">
+              <form method="POST" action="{{ url_for('admin.script_delete', sc_id=sc.id) }}" class="d-inline" onsubmit="return Aras.ask(event, 'Permanently delete this script?')">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button class="btn btn-xs btn-outline-danger"><i class="fa fa-trash"></i></button>
               </form>

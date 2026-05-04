@@ -261,7 +261,7 @@
                             </button>
                             <form method="POST"
                                   action="{{ url_for('admin.apps_column_delete', app_id=app_def.id, table_id=tbl.id, col_id=col.id) }}"
-                                  onsubmit="return confirm('Archive data point {{ col.name }}?')">
+                                  onsubmit="return Aras.ask(event, 'Archive data point {{ col.name }}?')">
                               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                               <button type="submit" class="btn btn-xs btn-outline-danger" title="Remove Segment">
                                 <i class="fa fa-trash"></i>
@@ -306,7 +306,9 @@
 window.ADD_URL  = "{{ url_for('admin.apps_columns', app_id=app_def.id, table_id=tbl.id) }}";
 window.EDIT_URL = "{{ url_for('admin.apps_columns', app_id=app_def.id, table_id=tbl.id) }}".replace(/\/columns$/, '/columns/__COL_ID__/edit');
 window.FK_TABLE_MAP = {
-  {% for t in all_tables %}{{ t.id }}: {"db_name": "{{ t.db_table_name or t.name }}", "display_col": "{{ t.columns[0].name if t.columns else 'name' }}"}{% if not loop.last %},{% endif %}
+  {% for t in all_tables %}
+    {% set first_col = t.columns.first() %}
+    {{ t.id }}: {"db_name": "{{ t.db_table_name or t.name }}", "display_col": "{{ first_col.name if first_col else 'name' }}"}{% if not loop.last %},{% endif %}
   {% endfor %}
 };
 </script>

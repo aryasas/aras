@@ -87,7 +87,7 @@
                       <i class="fa fa-pencil"></i>
                     </a>
                     <form method="POST" action="{{ url_for('admin.apps_table_delete', app_id=app_def.id, table_id=tbl.id) }}"
-                          class="d-inline" onsubmit="return confirm('Delete table {{ tbl.title }}?')">
+                          class="d-inline" onsubmit="return Aras.ask(event, 'Delete table {{ tbl.title }}?')">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                       <button type="submit" class="aras-btn aras-btn--sm aras-btn--outline text-danger-aras" title="Delete">
                         <i class="fa fa-trash"></i>

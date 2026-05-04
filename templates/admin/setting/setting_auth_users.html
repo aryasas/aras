@@ -64,7 +64,7 @@
                         <form method="POST" action="{{ url_for('admin.user_deactivate', user_id=u.id) }}" class="d-inline">
                           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                           <button type="submit" class="aras-btn aras-btn--sm aras-btn--outline text-danger-aras"
-                                  onclick="return confirm('Deactivate {{ u.username }}?')">Deactivate</button>
+                                  onclick="return Aras.ask(event, 'Deactivate {{ u.username }}?')">Deactivate</button>
                         </form>
                       {% else %}
                         <form method="POST" action="{{ url_for('admin.user_activate', user_id=u.id) }}" class="d-inline">
@@ -76,7 +76,7 @@
                       <form method="POST" action="{{ url_for('admin.user_toggle_admin', user_id=u.id) }}" class="d-inline">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="aras-btn aras-btn--sm aras-btn--outline {{ 'text-danger-aras' if u.is_admin else '' }}"
-                                onclick="return confirm('Toggle admin for {{ u.username }}?')">
+                                onclick="return Aras.ask(event, 'Toggle admin for {{ u.username }}?')">
                           {{ 'Revoke Admin' if u.is_admin else 'Make Admin' }}
                         </button>
                       </form>

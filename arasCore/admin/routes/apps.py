@@ -199,6 +199,13 @@ def child_table_save(model_name):
         if not data.get(fk_col_param):
             data[fk_col_param] = parent_id_param
 
+    # Validation: If this is a new record and fk_col is required, it MUST be present
+    if not item_id or item_id.startswith("local_"):
+        if fk_col_param and fk_col_param in child_model.__table__.columns:
+            col = child_model.__table__.columns[fk_col_param]
+            if not col.nullable and not data.get(fk_col_param):
+                return jsonify({"error": f"Missing required parent field: {fk_col_param}. Please save the parent record first."}), 400
+
     # Auto-fill invoice_type for polymorphic FK tables (e.g. acc_payment_allocation)
     if "invoice_type" in child_model.__table__.columns and not data.get("invoice_type"):
         if parent_model_name and "sales" in parent_model_name:
@@ -702,6 +709,85 @@ def api_fk_choices():
         return jsonify({"ok": False, "error": str(e)}), 400
 
     return jsonify({"ok": True, "rows": rows})
+
+
+@admin_bp.route("/api/dependent-choices/", methods=["GET"])
+@login_required
+def api_dependent_choices():
+    """Return choices for a field that depends on another field's value."""
+    from flask import request, jsonify
+    from arasCore.lib.ui.label_utils import find_ref_model as _find_ref_model, row_display
+    from arasCore.lib.services.blueprints import get_helper_registry
+
+    # res_name here is the URL slug of the resource, e.g. "acc/payment"
+    res_name = request.args.get("res_name")
+    field_name = request.args.get("field_name")
+    parent_value = request.args.get("parent_value")
+
+    import logging
+    logger = logging.getLogger("aras.admin")
+    logger.info(f"[api_dependent_choices] res={res_name} field={field_name} val={parent_value}")
+
+    if not all([res_name, field_name, parent_value]):
+        return jsonify({"ok": False, "error": "Missing parameters"}), 400
+
+    try:
+        # Find the resource and its handler
+        handler = None
+        for h in get_helper_registry().values():
+            for r in h.resources:
+                if r.name == res_name:
+                    handler = r.handler
+                    break
+            if handler: break
+
+        if not handler:
+            logger.warning(f"[api_dependent_choices] Handler not found for {res_name}")
+            return jsonify({"ok": False, "error": "Handler not found"}), 404
+        
+        if not hasattr(handler, "column_setup"):
+            logger.warning(f"[api_dependent_choices] Handler for {res_name} has no column_setup")
+            return jsonify({"ok": False, "error": "column_setup not found"}), 404
+
+        overrides = handler.column_setup() or {}
+        ov = overrides.get(field_name)
+        if not ov or "choices" not in ov:
+            logger.warning(f"[api_dependent_choices] No choices override for {field_name} in {res_name}")
+            return jsonify({"ok": False, "error": "Field choices mapping not found"}), 404
+
+        # Mapping format: "val1:table1, val2:table2"
+        mapping = {}
+        choices_str = ov["choices"]
+        if isinstance(choices_str, str):
+            for item in choices_str.split(","):
+                if ":" in item:
+                    k, v = item.split(":", 1)
+                    mapping[k.strip()] = v.strip()
+        
+        target_table = mapping.get(parent_value)
+        logger.info(f"[api_dependent_choices] target_table={target_table} for val={parent_value}")
+
+        if not target_table:
+            return jsonify({"ok": True, "rows": []})
+
+        ref_model = _find_ref_model(target_table)
+        if not ref_model:
+            logger.warning(f"[api_dependent_choices] Ref model {target_table} not found")
+            return jsonify({"ok": False, "error": f"Target model {target_table} not found"}), 404
+
+        rows = []
+        q = ref_model.query
+        fk_filter = getattr(ref_model, "__fk_filter__", None)
+        if callable(fk_filter):
+            q = fk_filter(q)
+
+        for obj in q.order_by(ref_model.id).all():
+            rows.append({"id": obj.id, "label": row_display(obj)})
+
+        logger.info(f"[api_dependent_choices] found {len(rows)} rows for {target_table}")
+        return jsonify({"ok": True, "rows": rows})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
 
 
 @admin_bp.route("/apps/<int:app_id>/tables/<int:table_id>/columns", methods=["GET", "POST"])

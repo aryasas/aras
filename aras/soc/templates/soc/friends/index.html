@@ -106,8 +106,8 @@ function rejectRequest(userId) {
     }
   });
 }
-function unfriend(userId, btn) {
-  if (!confirm('Remove this friend?')) return;
+async function unfriend(userId, btn) {
+  if (!await confirm('Remove this friend?')) return;
   fetch('/soc/api/friends/' + userId, {
     method:'DELETE', headers:{'X-CSRFToken':getCsrf()}
   }).then(r=>r.json()).then(d=>{ if (d.ok) location.reload(); });

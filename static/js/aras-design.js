@@ -453,6 +453,25 @@
 
         prompt: function(msg, defaultValue, title) {
             return Aras.dialog({ type: 'prompt', message: msg, defaultValue: defaultValue, title: title });
+        },
+
+        // Helper for inline onsubmit="return Aras.ask(event, '...') "
+        ask: function(e, msg) {
+            var target = e.currentTarget || e.target;
+            if (target._arasConfirmed) {
+                delete target._arasConfirmed;
+                return true;
+            }
+            e.preventDefault();
+            Aras.confirm(msg).then(function(ok) {
+                if (ok) {
+                    target._arasConfirmed = true;
+                    // Trigger native submit or click
+                    if (target.submit) target.submit();
+                    else target.click();
+                }
+            });
+            return false;
         }
     };
 

@@ -45,7 +45,7 @@
         </div>
         <div class="col-md-3 text-right border-left pl-4">
           <form method="POST" action="{{ url_for('admin.settings') }}"
-                onsubmit="return confirm('Restart server? Active connections will be dropped.')">
+                onsubmit="return Aras.ask(event, 'Restart server? Active connections will be dropped.')">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="aras-btn aras-btn--outline text-danger-aras btn-block">
               <i class="fa fa-refresh mr-1"></i> Restart Server

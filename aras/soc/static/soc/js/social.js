@@ -81,8 +81,8 @@ function sharePost(postId) {
 }
 
 /* ── Delete post ── */
-function deletePost(postId) {
-  if (!confirm('Delete this post?')) return;
+async function deletePost(postId) {
+  if (!await confirm('Delete this post?')) return;
   fetch('/soc/api/posts/' + postId, {
     method: 'DELETE', headers: {'X-CSRFToken': getCsrf()}
   }).then(r => r.json()).then(d => {

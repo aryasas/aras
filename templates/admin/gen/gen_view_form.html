@@ -350,11 +350,11 @@
 (function () {
     var btn = document.getElementById('btnPostInvoice');
     if (!btn) return;
-    btn.addEventListener('click', function () {
+    btn.addEventListener('click', async function () {
         var postUrl = btn.dataset.postUrl;
         var objId   = btn.dataset.objId;
         if (!postUrl || !objId) return;
-        if (!confirm('Post / submit dokumen ini? Aksi ini tidak bisa dibatalkan.')) return;
+        if (!await confirm('Post / submit dokumen ini? Aksi ini tidak bisa dibatalkan.')) return;
         btn.disabled = true;
         btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Posting...';
         fetch(postUrl, {
@@ -387,43 +387,126 @@
 // ── Generic custom_actions buttons (from SubHandler.detail_context / child_table_actions) ──
 (function () {
     var CSRF = '{{ csrf_token() }}';
-    document.querySelectorAll('[data-custom-action]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var url    = btn.dataset.url;
-            var objId  = btn.dataset.objId;
-            var action = btn.dataset.customAction;
-            var label  = btn.querySelector('span') ? btn.querySelector('span').textContent : btn.textContent;
-            var body   = {obj_id: objId ? parseInt(objId) : null};
-            // merge extra data-* attrs prefixed data-payload-*
-            btn.getAttributeNames().forEach(function (a) {
-                if (a.startsWith('data-payload-')) body[a.slice(13)] = btn.getAttribute(a);
-            });
-            if (btn.dataset.confirm && !confirm(btn.dataset.confirm)) return;
-            btn.disabled = true;
-            if (btn.querySelector('span')) btn.querySelector('span').textContent = '...';
-            fetch(url, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
-                body: JSON.stringify(body)
+    document.addEventListener('click', async function (e) {
+        var btn = e.target.closest('[data-custom-action]');
+        if (!btn) return;
+
+        var url    = btn.dataset.url;
+        var objId  = btn.dataset.objId;
+        var action = btn.dataset.customAction;
+        console.log('[CustomAction] Clicked:', action, 'URL:', url, 'ObjID:', objId);
+
+        var label  = btn.querySelector('span') ? btn.querySelector('span').textContent : btn.textContent;
+        var body   = {obj_id: objId ? parseInt(objId) : null};
+        
+        // Specific handling for Load Invoices in Payment Allocation
+        if (action === 'btnLoadInvoices') {
+            var pIdEl = document.querySelector('[name="partner_id"]');
+            var pTyEl = document.querySelector('[name="partner_type"]');
+            var amtEl = document.querySelector('[name="total_amount"]');
+            body.partner_id   = pIdEl ? pIdEl.value : null;
+            body.partner_type = pTyEl ? pTyEl.value : null;
+            body.total_amount = amtEl ? amtEl.value : 0;
+            if (!body.partner_id || body.partner_id === '0') {
+                arasNotify('Please select a partner first.', 'warning');
+                return;
+            }
+        }
+
+        // merge extra data-* attrs prefixed data-payload-*
+        btn.getAttributeNames().forEach(function (a) {
+            if (a.startsWith('data-payload-')) body[a.slice(13)] = btn.getAttribute(a);
+        });
+        
+        var confirmMsg = btn.dataset.confirm;
+        if (confirmMsg) {
+            if (!await confirm(confirmMsg)) return;
+        }
+
+        btn.disabled = true;
+        var origLabel = btn.innerHTML;
+        if (btn.querySelector('span')) btn.querySelector('span').textContent = '...';
+        
+        console.log('[CustomAction] Fetching:', url, body);
+        fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+            body: JSON.stringify(body)
+        })
+            .then(function (r) { 
+                console.log('[CustomAction] Response Status:', r.status);
+                return r.json(); 
             })
-            .then(function (r) { return r.json(); })
             .then(function (data) {
                 btn.disabled = false;
-                if (btn.querySelector('span')) btn.querySelector('span').textContent = label;
-                if (!data || !data.ok) { arasNotify((data && data.error) || 'Error', 'error'); return; }
+                btn.innerHTML = origLabel;
+                if (!data || !data.ok) { 
+                    console.error('[CustomAction] Error:', data);
+                    arasNotify((data && data.error) || 'Error', 'error'); 
+                    return; 
+                }
+                console.log('[CustomAction] Success Data:', data);
+
+                if (action === 'btnLoadInvoices' && data.allocations) {
+                    var idx = 'acc_payment_allocation';
+                    console.log("[DEBUG] btnLoadInvoices allocations:", data.allocations);
+                    data.allocations.forEach(function (a) {
+                        var obj = {
+                            id: 'local_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
+                            invoice_type: a.invoice_type,
+                            invoice_id:   a.invoice_id,
+                            amount:       a.amount,
+                            notes:        a.notes
+                        };
+                        console.log("[DEBUG] Appending row with obj:", obj, "label:", a.name);
+                        
+                        if (typeof _ctAppendRow === 'function') {
+                            if (objId && objId !== 'None' && objId !== '__PID__') {
+                                // Edit mode: save to API immediately
+                                _ctApiSave('/api/erp/acc/payment/allocate/', null, 
+                                    {payment_id: parseInt(objId), invoice_type: a.invoice_type, invoice_id: a.invoice_id, amount: a.amount, notes: a.notes}, 
+                                    idx, function(saved) {
+                                        _ctAppendRow(idx, saved, {invoice_id: a.name, invoice_type: a.invoice_type});
+                                        _ctRecalcFooter(idx);
+                                    });
+                            } else {
+                                // Add mode: save to local data
+                                var arr = _getCtLocalData(idx);
+                                arr.push(obj);
+                                _setCtLocalData(idx, arr);
+                                _ctAppendRow(idx, obj, {invoice_id: a.name, invoice_type: a.invoice_type});
+                                _ctRecalcFooter(idx);
+                            }
+                        }
+                    });
+                    arasNotify(data.message, 'success');
+                    return;
+                }
+
                 if (data.reload) { arasNotify(data.message || 'Done.', 'success'); setTimeout(function () { window.location.reload(); }, 700); return; }
                 if (data.modal_html) { _showHtmlModal(data.modal_html, data); return; }
                 if (data.message) arasNotify(data.message, 'success');
             })
             .catch(function (e) {
+                console.error('[CustomAction] Network Error:', e);
                 arasNotify('Network error: ' + e, 'error');
                 btn.disabled = false;
-                if (btn.querySelector('span')) btn.querySelector('span').textContent = label;
+                btn.innerHTML = origLabel;
             });
         });
     });
 
+    // Diagnostic for form submission
+    var mainForm = document.getElementById('mainForm') || document.querySelector('form');
+    if (mainForm) {
+        mainForm.addEventListener('submit', function() {
+            var pId = mainForm.querySelector('[name="partner_id"]');
+            console.log('[FormSubmit] partner_id value:', pId ? pId.value : 'MISSING');
+        });
+    }
+
     function _showHtmlModal(html, data) {
+        console.log('[CustomModal] Opening modal');
         var existing = document.getElementById('arasCustomModal');
         if (existing) existing.remove();
         var wrap = document.createElement('div');
@@ -445,6 +528,7 @@
                 var amt = parseFloat(inp.value);
                 if (amt > 0) allocations.push({invoice_type: inp.dataset.type, invoice_id: parseInt(inp.dataset.id), amount: amt});
             });
+            console.log('[AllocSave] Allocations:', allocations);
             if (!allocations.length) { arasNotify('No allocation entered.', 'warning'); return; }
             saveBtn.disabled = true;
             var origLabel = saveBtn.innerHTML;
@@ -474,6 +558,97 @@
             });
         });
     }
+    // ── Dependent Fields Logic ──────────────────────────────────────────────
+    function updateDependentField(fieldEl) {
+        const dependOnName = fieldEl.dataset.dependOn;
+        let parentField = document.querySelector('[name="' + dependOnName + '"]');
+        
+        // Fallback: try with _id suffix if not found
+        if (!parentField && !dependOnName.endsWith('_id')) {
+            parentField = document.querySelector('[name="' + dependOnName + '_id"]');
+        }
+
+        if (!parentField) {
+            console.error('[aras] Parent field not found:', dependOnName);
+            return;
+        }
+
+        const parentValue = parentField.value;
+        console.log('[aras] Dependent update triggered:', {
+            field: fieldEl.name,
+            dependOn: dependOnName,
+            parentValue: parentValue
+        });
+
+        if (!parentValue || parentValue === '0' || parentValue === '') {
+            fieldEl.innerHTML = '<option value="0">— Select —</option>';
+            if (fieldEl.tomselect) fieldEl.tomselect.clearOptions();
+            return;
+        }
+
+        // Extract resName from backend variable or fallback to URL parsing
+        const resName = "{{ res_name|default('') }}" || (function() {
+            const pathParts = window.location.pathname.split('/').filter(p => p !== '');
+            return pathParts.slice(2, -1).join('/');
+        })();
+        const fieldName = fieldEl.name;
+
+        console.log('[aras] Fetching dependent choices for:', { resName, fieldName, parentValue });
+
+        fetch('/admin/api/dependent-choices/?res_name=' + encodeURIComponent(resName) + '&field_name=' + encodeURIComponent(fieldName) + '&parent_value=' + encodeURIComponent(parentValue))
+            .then(r => {
+                console.log('[aras] API response status:', r.status);
+                return r.json();
+            })
+            .then(data => {
+                console.log('[aras] API data received:', data);
+                if (data.ok) {
+                    const currentVal = fieldEl.value;
+                    let html = '<option value="0">— Select —</option>';
+                    data.rows.forEach(row => {
+                        html += '<option value="' + row.id + '"' + (String(row.id) === String(currentVal) ? ' selected' : '') + '>' + row.label + '</option>';
+                    });
+                    fieldEl.innerHTML = html;
+                    if (fieldEl.tomselect) {
+                        console.log('[aras] Updating TomSelect options for:', fieldEl.name);
+                        fieldEl.tomselect.clearOptions();
+                        fieldEl.tomselect.addOptions(data.rows.map(r => ({value: r.id, text: r.label})));
+                        fieldEl.tomselect.setValue(currentVal, true);
+                    }
+                } else {
+                    console.error('[aras] API Error:', data.error);
+                }
+            })
+            .catch(err => console.error('[aras] Fetch error:', err));
+    }
+
+    document.querySelectorAll('[data-depend-on]').forEach(fieldEl => {
+        const dependOnName = fieldEl.dataset.dependOn;
+        let parentField = document.querySelector('[name="' + dependOnName + '"]');
+        if (!parentField && !dependOnName.endsWith('_id')) {
+            parentField = document.querySelector('[name="' + dependOnName + '_id"]');
+        }
+
+        if (parentField) {
+            console.log('[aras] Initial state for dependent field:', {
+                field: fieldEl.name,
+                value: fieldEl.value,
+                parent: parentField.name,
+                parentValue: parentField.value
+            });
+            parentField.addEventListener('change', () => updateDependentField(fieldEl));
+            if (parentField.tomselect) {
+                parentField.tomselect.on('change', () => updateDependentField(fieldEl));
+            }
+            // Trigger initial load after a short delay to ensure TomSelect is ready
+            setTimeout(() => {
+                console.log('[aras] Initial trigger check for:', fieldEl.name, 'parentValue:', parentField.value);
+                if (parentField.value && parentField.value !== '0' && parentField.value !== '') {
+                    updateDependentField(fieldEl);
+                }
+            }, 800);
+        }
+    });
 })();
 </script>
 {% endblock %}

@@ -145,21 +145,36 @@
             <i class="fa fa-pencil"></i>
           </button>
           <button type="button" class="ct-btn-save" title="Save"
-                  hx-post="/admin/api/child-table/{{ ct.model_name }}/save?parent_model={{ ct.parent_model_name }}&li={{ _li }}&fk_col={{ ct.fk_col }}&parent_id=__PID__"
-                  hx-ext="json-enc"
-                  hx-include="closest tr"
-                  hx-target="#ct-tbody-{{ _li }}"
-                  hx-swap="beforeend"
+                  {% if ct.parent_id %}
+                  hx-post="/admin/api/child-table/{{ ct.model_name }}/save?parent_model={{ ct.parent_model_name }}&li={{ _li }}&fk_col={{ ct.fk_col }}&parent_id={{ ct.parent_id }}"
+                  {% else %}
                   hx-on:click="
-                    var pid = document.querySelector('form[action]').action.match(/\/([0-9]+)\//)?.[1] || '';
+                    var pid = document.querySelector('form[action]')?.action?.split('/').filter(x => x.match(/^[0-9]+$/)).pop() || '';
                     if (pid) {
-                      this.setAttribute('hx-post', this.getAttribute('hx-post').replace('__PID__', pid));
+                      var url = '/admin/api/child-table/{{ ct.model_name }}/save?parent_model={{ ct.parent_model_name }}&li={{ _li }}&fk_col={{ ct.fk_col }}&parent_id=' + pid;
+                      this.setAttribute('hx-post', url);
+                      htmx.process(this);
+                      // Trigger HTMX manually since we just added the attribute
+                      htmx.trigger(this, 'click');
                     } else {
                       event.preventDefault();
                       event.stopImmediatePropagation();
                       ctSaveInlineRow('{{ _li }}', '{{ ct.api_url }}', '{{ ct.fk_col }}', '__PID__');
                     }
                   "
+                  {% endif %}
+                  hx-ext="json-enc"
+                  hx-include="closest tr"
+                  hx-target="#ct-tbody-{{ _li }}"
+                  hx-swap="beforeend"
+                  {% if ct.parent_id %}
+                  hx-on:click="
+                    if (this.getAttribute('hx-post').includes('__PID__')) {
+                       var pid = document.querySelector('form[action]')?.action?.split('/').filter(x => x.match(/^[0-9]+$/)).pop() || '';
+                       if (pid) this.setAttribute('hx-post', this.getAttribute('hx-post').replace('__PID__', pid));
+                    }
+                  "
+                  {% endif %}
                   hx-on::after-request="if(event.detail.successful) { ctHideInputRow('{{ _li }}'); _ctUpdateSeq('{{ _li }}'); Aras.toast('Row added', 'success'); } else { Aras.toast('Error adding row', 'error'); }"
                   style="color: #4f6f53; background: none; border: none; padding: 6px; cursor: pointer;">
             <i class="fa fa-check"></i>

@@ -55,7 +55,16 @@ def post_payment(payment_id: int) -> AccPayment:
 
 def get_unpaid_invoices(payment: AccPayment) -> list[dict]:
     """Return unpaid/partial invoices for the payment's partner, ordered oldest first."""
-    if payment.payment_type == "inbound":
+    # Use partner_type to decide which table to search; it's more reliable than payment_type
+    if payment.partner_type == "customer":
+        is_sales = True
+    elif payment.partner_type == "supplier":
+        is_sales = False
+    else:
+        # Fallback to payment_type if partner_type is 'other' or unknown
+        is_sales = (payment.payment_type == "inbound")
+
+    if is_sales:
         rows = AccSalesInvoice.query.filter(
             AccSalesInvoice.customer_id == payment.partner_id,
             AccSalesInvoice.state.in_(["posted", "partial"]),
