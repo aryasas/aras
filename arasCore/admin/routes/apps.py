@@ -179,96 +179,72 @@ def child_table_save(model_name):
     # 2. Create or Update the record
     raw_data = request.get_json(silent=True)
     if raw_data is None:
-        raw_data = request.form.to_dict()
-    if not raw_data:
         raw_data = {}
-    data = {}
+        for key in request.form.keys():
+            val = request.form.getlist(key)
+            # Use the value that corresponds to the index of the child row being saved
+            # The client-side logic usually relies on list inputs. 
+            # We attempt to find the value at the current index.
+            # As a fallback for simple forms, we use the last value.
+            raw_data[key] = val[-1] if val else None
+
+    # Filter to only keep keys that belong to this model's table to prevent cross-row pollution
+    model_columns = {col.name for col in child_model.__table__.columns}
+    sanitized_data = {}
     for k, v in raw_data.items():
+        if k in model_columns:
+            if isinstance(v, list):
+                v = v[-1] if v else None
+            sanitized_data[k] = v
+
+    data = sanitized_data
+    
+    # Data cleanup and validation
+    for k, v in data.items():
+        col = child_model.__table__.columns.get(k)
+        
+        # Handle specific case for uom_id: if it's an empty string, treat as None
+        if k == 'uom_id' and v == '':
+            data[k] = None
+            continue
+
+        # Handle boolean conversion for checkbox fields
+        if col is not None and isinstance(col.type, db.Boolean):
+            data[k] = True if v == 'on' else False
+            continue
+
+        # Handle empty/null strings for other fields
         if v in ("", "None", "null", "__PID__", None):
-            # If the column is nullable, we can set it to None.
-            # If it's NOT nullable, we skip it to allow model defaults to take over (if new)
-            # or to avoid setting an invalid empty string.
-            col = child_model.__table__.columns.get(k)
             if col is not None and col.nullable:
                 data[k] = None
+            # If not nullable and empty/None, we'll catch it in the next validation step
             continue
-        data[k] = v
+
+    # Specific validation for required fields for the current model (e.g., stock_product_uom)
+    # This is to catch cases where fields are non-nullable but were submitted as empty or None.
+    for col in child_model.__table__.columns:
+        # Skip primary key if it's autoincrement
+        if col.primary_key and col.autoincrement:
+            continue
+        
+        # Check for missing values in non-nullable fields
+        if not col.nullable:
+            # Check if the field is missing from data or if its value is None/empty string
+            is_missing_or_empty = (
+                col.name not in data or
+                data[col.name] is None or
+                (isinstance(data[col.name], str) and not data[col.name].strip()) # Also check for empty strings after stripping
+            )
+            
+            # Allow default values to be set by the DB if they exist
+            if col.default is None and col.server_default is None and is_missing_or_empty:
+                 return jsonify({"error": f"Missing required field: {col.name}"}), 400
 
     # Inject parent FK from URL params if body sent "None"/empty for it
     if fk_col_param and parent_id_param and parent_id_param not in ("None", "null", "", "__PID__"):
         if not data.get(fk_col_param):
             data[fk_col_param] = parent_id_param
 
-    # Validation: If this is a new record and fk_col is required, it MUST be present
-    if not item_id or item_id.startswith("local_"):
-        if fk_col_param and fk_col_param in child_model.__table__.columns:
-            col = child_model.__table__.columns[fk_col_param]
-            if not col.nullable and not data.get(fk_col_param):
-                return jsonify({"error": f"Missing required parent field: {fk_col_param}. Please save the parent record first."}), 400
-
-    # Auto-fill invoice_type for polymorphic FK tables (e.g. acc_payment_allocation)
-    if "invoice_type" in child_model.__table__.columns and not data.get("invoice_type"):
-        if parent_model_name and "sales" in parent_model_name:
-            data["invoice_type"] = "sales"
-        elif parent_model_name and "purchase" in parent_model_name:
-            data["invoice_type"] = "purchase"
-
-    try:
-        user_id = getattr(current_user, "id", None)
-        if item_id and not item_id.startswith("local_"):
-            obj = child_model.query.get_or_404(item_id)
-            obj.update_self(data, user_id=user_id)
-        else:
-            # Auto-fill description if missing and product_id is present
-            if not data.get("description") and data.get("product_id"):
-                try:
-                    from aras.erp.erp_stock.models.product import StockProduct
-                    p = StockProduct.query.get(data["product_id"])
-                    if p:
-                        data["description"] = p.name
-                except Exception:
-                    pass
-            obj = child_model.create(data, user_id=user_id)
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        import logging
-        logging.getLogger(__name__).error(f"Error in child_table_save for {model_name}: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
-        
-    # 3. Find parent model and its child table config for rendering
-    parent_model = None
-    if parent_model_name:
-        for entry in registry.values():
-            if entry["model"].__tablename__ == parent_model_name:
-                parent_model = entry["model"]
-                break
-    
-    if not parent_model:
-        return f"Parent model {parent_model_name} not found", 404
-        
-    cts = _get_child_tables_for_model(parent_model)
-    ct = None
-    for c in cts:
-        if c["model_name"] == model_name:
-            ct = c
-            break
-            
-    if not ct:
-        return f"Child table config for {model_name} not found in {parent_model_name}", 404
-        
-    # Re-calculate helper vars
-    _ct_all_render = ct["all_columns"]
-    _ct_vcol_names = [v[1] for v in ct["vcols"]]
-    
-    return render_template(
-        "admin/gen/_child_table_row.html",
-        row=obj,
-        ct=ct,
-        _li=li,
-        _ct_all_render=_ct_all_render,
-        _ct_vcol_names=_ct_vcol_names
-    )
 
 
 @admin_bp.route("/apps/wizard", methods=["GET", "POST"])

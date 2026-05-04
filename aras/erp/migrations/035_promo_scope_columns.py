@@ -14,7 +14,7 @@ def up():
     tables = insp.get_table_names()
     
     # Handle rename from 036 (if it ran already)
-    spp_table = "stock_product_price" if "stock_product_price" in tables else ("stock_price_list" if "stock_price_list" in tables else None)
+    spp_table = "stock_price_list" if "stock_price_list" in tables else None
     
     if not spp_table:
         # If neither exists, we might be in a fresh DB where 021-024 haven't created it yet

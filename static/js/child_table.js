@@ -293,6 +293,12 @@ function ctOpenModal(idx, btn, isNew) {
                 saveBtn.removeAttribute('hx-vals');
             }
             if (window.htmx && saveBtn.hasAttribute('hx-post')) htmx.process(saveBtn);
+            console.log("Modal configured:", {
+                url: saveBtn.getAttribute('hx-post'),
+                id: idVal,
+                pId: pId,
+                attrs: Array.from(saveBtn.attributes).map(a => a.name + '=' + a.value)
+            });
         }
 
         modal.classList.remove('d-none');

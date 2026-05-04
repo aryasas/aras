@@ -65,12 +65,4 @@ def run(flask_app):
             """))
             logger.info("[021] pos_shift_balance created")
 
-        # product.use_price_table
-        if "stock_product" in tables:
-            prod_cols = {c["name"] for c in insp.get_columns("stock_product")}
-            if "use_price_table" not in prod_cols:
-                db.session.execute(text("ALTER TABLE stock_product ADD COLUMN use_price_table TINYINT(1) NOT NULL DEFAULT 0"))
-                logger.info("[021] stock_product.use_price_table added")
 
-        db.session.commit()
-        logger.info("[021] done")

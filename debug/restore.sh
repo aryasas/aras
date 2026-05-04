@@ -113,8 +113,7 @@ EOF
 sed -i '' 's/from .terminal import PosTerminal, PosSession, PosShiftEntry$/from .terminal import PosTerminal, PosSession, PosShiftEntry, PosShiftBalance/' aras/app_erp/erp_pos/models/__init__.py
 sed -i '' 's/"PosTerminal", "PosSession", "PosShiftEntry"$/"PosTerminal", "PosSession", "PosShiftEntry", "PosShiftBalance"/' aras/app_erp/erp_pos/models/__init__.py
 
-# ── 6. aras/app_erp/erp_stock/models/product.py — add use_price_table ────────
-sed -i '' 's/for_purchase        = db.Column(db.Boolean, default=True, nullable=False)/for_purchase        = db.Column(db.Boolean, default=True, nullable=False)\n    use_price_table     = db.Column(db.Boolean, default=False, nullable=False)/' aras/app_erp/erp_stock/models/product.py
+EOF
 
 # ── 7. aras/app_erp/erp_stock/services/price_service.py ─────────────────────
 cat > aras/app_erp/erp_stock/services/price_service.py << 'EOF'
@@ -574,7 +573,7 @@ def run(flask_app):
             prod_cols = {c["name"] for c in insp.get_columns("stock_product")}
             if "use_price_table" not in prod_cols:
                 db.session.execute(text("ALTER TABLE stock_product ADD COLUMN use_price_table TINYINT(1) NOT NULL DEFAULT 0"))
-                logger.info("[021] stock_product.use_price_table added")
+
 
         db.session.commit()
         logger.info("[021] done")
