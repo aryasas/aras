@@ -610,7 +610,8 @@ code {
 /* ── App Menu Bar (Top Level) — contextual ribbon, text-first ── */
 .app-menu-bar {
   background: var(--studio-paper) !important;
-  border-bottom: 1px solid var(--studio-cream) !important;
+  border-top: none !important;
+  border-bottom: 1px solid var(--studio-ochre) !important;
   padding: 0 28px !important;
   display: flex; align-items: center; gap: 0;
   min-height: 42px;

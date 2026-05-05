@@ -1,3 +1,26 @@
+{#
+  ARAS FRAMEWORK - BASE TEMPLATING SYSTEM
+  =======================================
+  This file serves as the main layout skeleton for the Admin UI.
+  It utilizes Jinja2 template inheritance and inclusion.
+
+  STRUCTURE & COMPOSITION:
+  - Inheritance: This file defines blocks (e.g., 'content', 'script') that child templates override.
+  - Inclusions: Modular components (partial fragments) are imported from 'admin/base/'.
+
+  KEY DIRECTORIES:
+  - /templates/admin/base/ : Contains modular partials (header, sidebar, footer, etc.)
+  - /templates/admin/gen/  : Contains CRUD generation templates.
+  - /static/css/           : Global and theme-specific styles (e.g., aras_design.css).
+  - /static/js/            : Core application logic (e.g., adm_delete.js, aras_tweaks.js).
+
+  KEY TEMPLATE FILES (Admin Base):
+  - base_partial_head.html       : HTML <head> metadata, links to CSS/icons.
+  - base_partial_sidebar.html    : Main navigation sidebar.
+  - base_partial_top.html        : Top utility navigation / brand area.
+  - base_partial_footer.html     : Standard footer content.
+  - base_partial_script_src.html : Standard JS dependencies (jQuery, Bootstrap, etc.).
+#}
 {% from 'admin/macro/macro_main.html' import render_alert %}
 
 <!doctype html>
@@ -52,13 +75,6 @@
 
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
-            <script>
-                window.addEventListener('DOMContentLoaded', function() {
-                    {% for category, message in messages %}
-                        Aras.toast("{{ message|safe }}", "{{ category if category != 'message' else 'info' }}");
-                    {% endfor %}
-                });
-            </script>
           {% endif %}
         {% endwith %}
 

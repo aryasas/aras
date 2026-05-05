@@ -916,6 +916,7 @@ def apps_columns(app_id, table_id):
             relation_system_table=form.relation_system_table.data or None,
             relation_display_col=form.relation_display_col.data or None,
             cascade_delete=form.cascade_delete.data,
+            relation_filter=form.relation_filter.data or None,
             default_section=form.default_section.data or 'content',
         )
         db.session.add(col)
@@ -1037,7 +1038,8 @@ def apps_column_edit(app_id, table_id, col_id):
     col.readonly      = request.form.get("readonly") == "y"
     col.unique        = request.form.get("unique") == "y"
     col.searchable    = request.form.get("searchable") == "y"
-    col.choices       = request.form.get("choices") or None
+    col.choices          = request.form.get("choices") or None
+    col.relation_filter  = request.form.get("relation_filter") or None
     col.length        = int(request.form.get("length")) if request.form.get("length") else None
     col.max_length    = int(request.form.get("max_length")) if request.form.get("max_length") else None
     col.min_value     = request.form.get("min_value") or None
@@ -1371,6 +1373,7 @@ def _build_export_definition(app_obj) -> dict:
                     "choices":       c.choices,
                     "relation_system_table": c.relation_system_table,
                     "relation_display_col":  c.relation_display_col,
+                    "relation_filter":       c.relation_filter,
                 }
                 for c in cols
             ],

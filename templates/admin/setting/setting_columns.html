@@ -77,6 +77,11 @@
                       <label class="small text-muted mb-1">{{ form.relation_display_col.label.text }}</label>
                       {{ form.relation_display_col(class_="aras-form-input py-1 aras-form-control--py-1-sm", placeholder="e.g. name") }}
                     </div>
+                    <div class="mb-2 mt-2">
+                      <label class="small text-muted mb-1">Filter Formula</label>
+                      <input type="text" name="relation_filter" id="relation_filter" class="aras-form-input py-1 aras-form-control--py-1-sm" placeholder="e.g. is_group = 0">
+                      <small class="text-muted">SQL WHERE snippet to filter combobox options</small>
+                    </div>
                     <div class="aras-toggle mt-1">
                       {{ form.cascade_delete(class_="aras-toggle-input") }}
                       <span class="aras-toggle-track"><span class="aras-toggle-thumb"></span></span>
@@ -221,7 +226,7 @@
                     </tr>
 
                     {% for col in columns %}
-                    <tr class="is-clickable" onclick="fillEditForm({{ col.id }}, '{{ col.name }}', '{{ col.label }}', '{{ col.field_type }}', {{ col.order }}, {{ 'true' if col.required else 'false' }}, {{ 'true' if col.show_in_list else 'false' }}, {{ 'true' if col.show_in_form else 'false' }}, {{ 'true' if col.searchable else 'false' }}, {{ 'true' if col.readonly else 'false' }}, {{ 'true' if col.unique else 'false' }}, {{ col.length or 'null' }}, '{{ col.default_value or '' }}', '{{ col.placeholder or '' }}', '{{ col.help_text or '' }}', '{{ col.min_value or '' }}', '{{ col.max_value or '' }}', {{ col.max_length or 'null' }}, '{{ col.choices or '' }}', {{ col.relation_table_id or 0 }}, '{{ col.relation_system_table or '' }}', '{{ col.relation_display_col or '' }}', {{ 'true' if col.cascade_delete else 'false' }}, '{{ col.default_section or "content" }}')">
+                    <tr class="is-clickable" onclick="fillEditForm({{ col.id }}, '{{ col.name }}', '{{ col.label }}', '{{ col.field_type }}', {{ col.order }}, {{ 'true' if col.required else 'false' }}, {{ 'true' if col.show_in_list else 'false' }}, {{ 'true' if col.show_in_form else 'false' }}, {{ 'true' if col.searchable else 'false' }}, {{ 'true' if col.readonly else 'false' }}, {{ 'true' if col.unique else 'false' }}, {{ col.length or 'null' }}, '{{ col.default_value or '' }}', '{{ col.placeholder or '' }}', '{{ col.help_text or '' }}', '{{ col.min_value or '' }}', '{{ col.max_value or '' }}', {{ col.max_length or 'null' }}, '{{ col.choices or '' }}', {{ col.relation_table_id or 0 }}, '{{ col.relation_system_table or '' }}', '{{ col.relation_display_col or '' }}', {{ 'true' if col.cascade_delete else 'false' }}, '{{ col.default_section or "content" }}', '{{ col.relation_filter or "" }}')">
                       <td class="text-center text-muted hash td--hash-sm">{{ col.id }}</td>
                       <td><code class="code--accent-bold">{% if col.field_type == 'relation' %}{{ col.name if col.name.endswith('_id') else col.name ~ '_id' }}{% else %}{{ col.name }}{% endif %}</code></td>
                       <td class="fw-bold td--brand-bold">{{ col.label }}</td>
@@ -255,7 +260,7 @@
                       <td class="text-right px-4" onclick="event.stopPropagation()">
                         <div class="d-flex justify-content-end gap-2">
                             <button type="button" class="btn btn-xs btn-outline-secondary"
-                                    onclick="fillEditForm({{ col.id }}, '{{ col.name }}', '{{ col.label }}', '{{ col.field_type }}', {{ col.order }}, {{ 'true' if col.required else 'false' }}, {{ 'true' if col.show_in_list else 'false' }}, {{ 'true' if col.show_in_form else 'false' }}, {{ 'true' if col.searchable else 'false' }}, {{ 'true' if col.readonly else 'false' }}, {{ 'true' if col.unique else 'false' }}, {{ col.length or 'null' }}, '{{ col.default_value or '' }}', '{{ col.placeholder or '' }}', '{{ col.help_text or '' }}', '{{ col.min_value or '' }}', '{{ col.max_value or '' }}', {{ col.max_length or 'null' }}, '{{ col.choices or '' }}', {{ col.relation_table_id or 0 }}, '{{ col.relation_system_table or '' }}', '{{ col.relation_display_col or '' }}', {{ 'true' if col.cascade_delete else 'false' }}, '{{ col.default_section or "content" }}')"
+                                    onclick="fillEditForm({{ col.id }}, '{{ col.name }}', '{{ col.label }}', '{{ col.field_type }}', {{ col.order }}, {{ 'true' if col.required else 'false' }}, {{ 'true' if col.show_in_list else 'false' }}, {{ 'true' if col.show_in_form else 'false' }}, {{ 'true' if col.searchable else 'false' }}, {{ 'true' if col.readonly else 'false' }}, {{ 'true' if col.unique else 'false' }}, {{ col.length or 'null' }}, '{{ col.default_value or '' }}', '{{ col.placeholder or '' }}', '{{ col.help_text or '' }}', '{{ col.min_value or '' }}', '{{ col.max_value or '' }}', {{ col.max_length or 'null' }}, '{{ col.choices or '' }}', {{ col.relation_table_id or 0 }}, '{{ col.relation_system_table or '' }}', '{{ col.relation_display_col or '' }}', {{ 'true' if col.cascade_delete else 'false' }}, '{{ col.default_section or "content" }}', '{{ col.relation_filter or "" }}')"
                                     title="Edit Properties">
                               <i class="fa fa-pencil"></i>
                             </button>

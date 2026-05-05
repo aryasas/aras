@@ -1,0 +1,54 @@
+<div class="p-4" style="font-family: var(--aras-font-sans);">
+  <div class="text-center mb-5">
+    <div class="aras-badge aras-badge--info mb-2">Accounting Statement</div>
+    <h2 class="fw-bold" style="font-family: var(--aras-font-serif); font-size: 32px; color: var(--studio-ink);">{{ report.title }}</h2>
+    <div class="text-muted italic" style="font-family: var(--aras-font-serif); font-size: 15px;">
+      As of {{ filters.get('date_to', 'Present') }}
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="aras-table-wrap p-4 bg-white shadow-sm" style="border: 1px solid var(--studio-cream);">
+        <table class="table table-borderless align-middle mb-0">
+          <tbody>
+            {% for row in data %}
+              {% if row[0] and not row[1] and not row[2] %}
+                <tr style="background: var(--studio-cream);">
+                  <td colspan="3" class="fw-bold pt-3 pb-2 px-3" style="font-family: var(--aras-font-mono); font-size: 11px; letter-spacing: 1.5px; color: var(--studio-accent);">
+                    {{ row[0] }}
+                  </td>
+                </tr>
+              {% elif not row[0] and row[1] %}
+                <tr class="border-top" style="border-top: 1px solid var(--studio-ochre) !important;">
+                  <td></td>
+                  <td class="fw-bold py-3" style="font-family: var(--aras-font-serif); font-size: 16px; color: var(--studio-ink);">{{ row[1] }}</td>
+                  <td class="text-end fw-bold py-3 {{ 'text-danger' if row[2] < 0 }}" style="font-family: var(--aras-font-mono); font-size: 16px;">
+                    {{ "{:,.2f}".format(row[2]) }}
+                  </td>
+                </tr>
+                {% if row[1] in ['Total Assets', 'Total Liabilities', 'Total Equity', 'Total Liabilities + Equity'] %}
+                  <tr><td colspan="3" class="p-0"><div style="height: 4px; border-bottom: 3px double var(--studio-ochre); margin: 0 10px;"></div></td></tr>
+                {% endif %}
+              {% elif row[0] == "" and row[1] == "" and row[2] == "" %}
+                <tr><td colspan="3" style="height: 24px;"></td></tr>
+              {% else %}
+                <tr class="aras-row-hover">
+                  <td class="text-muted px-3" style="font-family: var(--aras-font-mono); font-size: 11px; width: 140px;">{{ row[0] }}</td>
+                  <td style="font-size: 14px; color: var(--studio-ink);">{{ row[1] }}</td>
+                  <td class="text-end {{ 'text-danger' if row[2] < 0 }}" style="font-family: var(--aras-font-mono); font-size: 14px; font-weight: 500;">
+                    {{ "{:,.2f}".format(row[2]) }}
+                  </td>
+                </tr>
+              {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .aras-row-hover:hover { background: var(--studio-paper); }
+</style>

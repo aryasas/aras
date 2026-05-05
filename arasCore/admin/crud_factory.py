@@ -106,6 +106,17 @@ def _get_fk_display_col(model_tablename: str, field_name: str) -> str | None:
     return None
 
 
+def _apply_relation_filter(q, ref_model, filter_str):
+    """Apply a raw SQL WHERE snippet (e.g. 'is_group = 0') to a query."""
+    if not filter_str:
+        return q
+    try:
+        from sqlalchemy import text
+        return q.filter(text(filter_str))
+    except Exception:
+        return q
+
+
 def _populate_relation_choices(form, model):
     # __fk_choices__: {field_name: callable(query) -> query} on model for per-field filtering
     fk_choices_map = getattr(model, "__fk_choices__", {}) or {}
@@ -120,9 +131,15 @@ def _populate_relation_choices(form, model):
                     if field.name in fk_choices_map:
                         q = fk_choices_map[field.name](q)
                     else:
-                        fk_filter = getattr(ref_model, "__fk_filter__", None)
-                        if callable(fk_filter):
-                            q = fk_filter(q)
+                        # 1. relation_filter from dynamic field metadata (GUI-defined)
+                        rf = (field.render_kw or {}).get("data-relation-filter") or ""
+                        if rf:
+                            q = _apply_relation_filter(q, ref_model, rf)
+                        else:
+                            # 2. model-level __fk_filter__ for code-based apps
+                            fk_filter = getattr(ref_model, "__fk_filter__", None)
+                            if callable(fk_filter):
+                                q = fk_filter(q)
                     rows = q.all()
                     if display_col:
                         choices = [(r.id, str(getattr(r, display_col, None) or r.id)) for r in rows]

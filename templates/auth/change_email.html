@@ -1,28 +1,35 @@
-{% extends 'auth/_auth_layout.html' %}
+{% extends 'auth/_auth_layout.html' %} {% from "admin/macro/macro_main.html" import show_errors,
+show_message %} {% block page_content %}
 
-{% block page_content %}
-<div class="login-box ptb--100">
-  <form action="{{ url_for('auth.change_email_request') }}" method="POST">
-    {{ form.hidden_tag() }}
-    <div class="login-form-head">
-      <h4>Change Email</h4>
-      <p>Enter your new email address and current password to confirm.</p>
-    </div>
-    <div class="login-form-body">
-      <div class="form-gp">
-        <label for="email">New Email</label>
-        {{ form.email(class_="form-control") }}
-        <i class="ti-email"></i>
-      </div>
-      <div class="form-gp">
-        <label for="password">Current Password</label>
-        {{ form.password(class_="form-control", type="password") }}
-        <i class="ti-lock"></i>
-      </div>
-      <div class="submit-btn-area mt-5">
-        <button id="form_submit" type="submit">Request Change <i class="ti-arrow-right"></i></button>
-      </div>
-    </div>
-  </form>
+<div class="aras-auth-card">
+    {% include 'auth/_auth_marginalia.html' %}
+
+    <section class="aras-auth-form-panel">
+        <form action="{{ url_for('auth.change_email_request') }}" method="POST">
+            {{ form.hidden_tag() }}
+
+            <h1 class="aras-auth-title">Change <em>email</em>.</h1>
+            <p class="aras-auth-lede">
+                Enter your new email address and current password to verify.
+            </p>
+
+            {{ show_errors(form) }}
+
+            <div class="aras-auth-fld">
+                <label>New Email</label>
+                {{ form.email(placeholder="new.email@aras.co") }}
+            </div>
+
+            <div class="aras-auth-fld">
+                <label>Current Password</label>
+                {{ form.password(placeholder="••••••••••••") }}
+            </div>
+
+            <button type="submit" class="aras-auth-btn">
+                <span class="lbl">Request Change</span>
+                <span class="arrow">→</span>
+            </button>
+        </form>
+    </section>
 </div>
-{% endblock page_content %}
+{% endblock %}

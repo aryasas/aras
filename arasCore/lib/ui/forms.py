@@ -1,9 +1,10 @@
+from arasCore.lib.core.aras_base import ArasBase
 from flask_wtf import FlaskForm
 from wtforms import HiddenField
 from wtforms_components import read_only, StringField
 
 
-class ArasForm(FlaskForm):
+class ArasForm(FlaskForm, ArasBase):
     """Base form for all forms in aras. Every form must inherit from this."""
 
     @classmethod
@@ -23,8 +24,10 @@ class ArasForm(FlaskForm):
             lbl = col.label if col.label and col.label != col.name else humanize(col.name)
             if col.field_type == "relation" and col.relation_table_id:
                 _base = col.name[:-3] if col.name.endswith("_id") else col.name
+                _rf = getattr(col, "relation_filter", None) or None
                 form_attrs[f"{_base}_id"] = SF(lbl, coerce=int, validators=[Opt()],
-                                               validate_choice=False)
+                                               validate_choice=False,
+                                               render_kw={"data-relation-filter": _rf or ""})
             else:
                 form_attrs[col.name] = _make_wtf_field(col)
 

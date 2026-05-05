@@ -357,8 +357,11 @@ def report_run(report_id):
 
     filters = {}
     for f in filters_def:
-        val = request.args.get(f["field"], "")
-        filters[f["field"]] = val if val else None
+        if f.get("type") == "checkbox":
+            filters[f["field"]] = request.args.get(f["field"]) == "1"
+        else:
+            val = request.args.get(f["field"], "")
+            filters[f["field"]] = val if val else None
     
     result = run_report(report_id, filters, _get_company_id())
     columns = result.get("columns", [])

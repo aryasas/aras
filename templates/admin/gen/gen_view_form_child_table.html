@@ -1,10 +1,29 @@
 {#
+  #ChildListViewRelated
   com_child_table.html — child table with inline row add + edit modal
-  ct.footer_totals — list of field names to sum
-  ct.price_api_url — optional: URL to fetch price on product change (invoice lines)
-  ct.price_type    — "sales" or "purchase" (for price lookup)
-  ct.parent_company_id — company_id of parent (for price/account resolution)
-  ct.parent_price_list_field — JS selector for price list field on parent form
+
+  CONFIGURATION OBJECT (ct.*):
+  - ct.footer_totals       : list of field names to sum in the footer.
+  - ct.price_api_url       : optional: URL to fetch price on product change.
+  - ct.price_type          : "sales" or "purchase" (for price lookup).
+  - ct.parent_company_id   : company_id of parent (for price/account resolution).
+  - ct.parent_price_list_field : JS selector for price list field on parent form.
+
+  PYTHON BACKEND REFERENCES:
+  - arasCore/admin/crud_factory.py : `_get_child_tables_for_model`
+    Defines the child table configuration (columns, title, api_url, etc.) used by this template.
+  - arasCore/admin/routes/apps.py : `child_table_save`
+    Handles the asynchronous HTMX POST requests for creating/updating child rows.
+  - arasCore/lib/services/app_helper.py : `child_table_actions`
+    Allows custom per-app action buttons on the child table toolbar.
+  - arasCore/lib/ui/layout.py : `_parse_layout_tabs`
+    Maps child table definitions into the UI tabs/layout.
+
+  DATA FLOW & PERSISTENCE:
+  - Fetching: Data rendered server-side via `ct.rows`.
+  - Adding Rows: Handled via `ctAddRow` (inline) or modal (JS trigger).
+  - Saving: Uses HTMX for asynchronous save via POST to `ct.api_url`.
+  - Persistence: Syncs state using hidden inputs and `static/js/child_table.js`.
 #}
 {% set _ct_footer = ct.footer_totals if ct.footer_totals is defined else [] %}
 {% set _li = ct.model_name if (ct.model_name is defined and ct.model_name) else (loop.index | string) %}
@@ -21,6 +40,7 @@
       {{ ct.title }}
     </h5>
     <div class="aras-child-toolbar__actions d-flex gap-2" style="position: relative;">
+      {# #ChildListViewRelated: 'Add Row' displays hidden inline input row. #}
       {% if ct.api_url and ct.inline_columns %}
       <button type="button" class="aras-btn aras-btn--primary aras-btn--sm" onclick="ctAddRow('{{ _li }}')" id="ct-add-btn-{{ _li }}">
         <i class="fa fa-plus"></i> Add Row
@@ -94,6 +114,7 @@
 
     </thead>
     <tbody id="ct-tbody-{{ _li }}">
+      {# #ChildListViewRelated: Server-rendered list of rows #}
       {% for row in ct.rows %}
         {% include 'admin/gen/_child_table_row.html' %}
       {% endfor %}
@@ -105,7 +126,7 @@
       {% set _inline_col_names = ct.inline_columns | map(attribute='name') | list %}
       <tr class="ct-input-row d-none" id="ct-input-row-{{ _li }}" style="background: var(--studio-accent-50);">
         <td class="ct-td-seq text-center text-muted-aras fs-11" style="padding: 10px 20px;">*</td>
-        {# Render all columns (hidden if not in vcols) #}
+        {# #ChildListViewRelated: Inline inputs - map columns to form elements #}
         {% for _, vcol_name in _ct_all_render %}
         {% set col = _inline_map.get(vcol_name) %}
         {% set _hidden_td = vcol_name not in _ct_vcol_names %}
@@ -140,6 +161,7 @@
           <input type="hidden" name="{{ col.name }}" id="ct-{{ _li }}-{{ col.name }}" class="ct-cell-input">
         {% endif %}
         {% endfor %}
+        {# #ChildListViewRelated: Row Save/Cancel. Uses htmx to POST and update the tbody. #}
         <td class="ct-td-actions text-right" style="padding: 8px 20px;">
           <button type="button" class="ct-btn-edit" title="Edit Detail" onclick="ctOpenModal('{{ _li }}', this, true)" style="color: var(--studio-accent); background: none; border: none; padding: 6px; cursor: pointer;">
             <i class="fa fa-pencil"></i>
@@ -154,7 +176,6 @@
                       var url = '/admin/api/child-table/{{ ct.model_name }}/save?parent_model={{ ct.parent_model_name }}&li={{ _li }}&fk_col={{ ct.fk_col }}&parent_id=' + pid;
                       this.setAttribute('hx-post', url);
                       htmx.process(this);
-                      // Trigger HTMX manually since we just added the attribute
                       htmx.trigger(this, 'click');
                     } else {
                       event.preventDefault();
@@ -221,6 +242,7 @@
 
 
 {# ── Edit Modal ── #}
+{# #ChildListViewRelated: Modal for editing existing rows. Form values posted to server API. #}
 {% if ct.api_url and ct.inline_columns %}
 <div class="ct-modal-backdrop" id="ct-modal-{{ _li }}" onclick="ctCloseModal('{{ _li }}', event)">
   <div class="ct-modal">
@@ -271,6 +293,7 @@
   </div>
 </div>
 
+{# #ChildListViewRelated: JSON config passed to js/child_table.js for runtime orchestration #}
 <script type="application/json" id="ct-meta-{{ _li }}">
 {
   "li":            {{ _li | tojson }},

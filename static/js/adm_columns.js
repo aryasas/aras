@@ -90,7 +90,7 @@
     }
 })();
 
-function fillEditForm(colId, name, label, fieldType, order, required, showInList, showInForm, searchable, readonly, unique, length, default_value, placeholder, help_text, min_value, max_value, max_length, choices, relation_table_id, relation_system_table, relation_display_col, cascade_delete, defaultSection) {
+function fillEditForm(colId, name, label, fieldType, order, required, showInList, showInForm, searchable, readonly, unique, length, default_value, placeholder, help_text, min_value, max_value, max_length, choices, relation_table_id, relation_system_table, relation_display_col, cascade_delete, defaultSection, relationFilter) {
     var form = document.getElementById('col-form');
     form.action = window.EDIT_URL.replace('__COL_ID__', colId);
     document.getElementById('col-edit-id').value = colId;
@@ -113,6 +113,7 @@ function fillEditForm(colId, name, label, fieldType, order, required, showInList
     if (form.elements['relation_table_id']) form.elements['relation_table_id'].value = relation_table_id || 0;
     form.elements['relation_system_table'].value = relation_system_table || '';
     form.elements['relation_display_col'].value  = relation_display_col || '';
+    if (form.elements['relation_filter']) form.elements['relation_filter'].value = relationFilter || '';
 
     function setToggle(name, val) {
         var inp = form.querySelector('input[name="' + name + '"]');

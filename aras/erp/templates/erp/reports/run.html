@@ -70,6 +70,15 @@
     <form method="GET" class="filter-section">
       <div class="row align-items-end g-3">
         {% for f in filters_def %}
+        {% if f.type == 'checkbox' %}
+        <div class="col-md-2 d-flex align-items-end pb-1">
+          <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
+            <input type="checkbox" name="{{ f.field }}" value="1"
+                   {{ 'checked' if filters.get(f.field) }}>
+            <span class="filter-label mb-0">{{ f.label }}</span>
+          </label>
+        </div>
+        {% else %}
         <div class="col-md-2">
           <label class="filter-label">{{ f.label }}</label>
           <input type="{{ 'date' if f.type == 'date' else 'text' }}" 
@@ -78,6 +87,7 @@
                  value="{{ filters.get(f.field, '') }}"
                  style="height: 38px;">
         </div>
+        {% endif %}
         {% endfor %}
         <div class="col-md-2">
           <button type="submit" class="aras-btn aras-btn--primary w-100 justify-content-center" style="height: 38px;">
@@ -109,11 +119,12 @@
                 {% for c in columns %}
                   {% set val = row[loop.index0] %}
                   {% set is_currency = c.type == 'currency' %}
-                  <td class="{{ 'val-currency' if is_currency }} {{ 'val-negative' if is_currency and val < 0 }}">
-                    {% if val is none %}
-                      —
+                  {% set num_val = val|float(0) if (val is not none and val != '') else 0 %}
+                  <td class="{{ 'val-currency' if is_currency }} {{ 'val-negative' if is_currency and num_val < 0 }}">
+                    {% if val is none or val == '' %}
+                      {% if is_currency %}{% else %}{{ val }}{% endif %}
                     {% elif is_currency %}
-                      {{ "{:,.2f}".format(val) }}
+                      {{ "{:,.2f}".format(num_val) }}
                     {% else %}
                       {{ val }}
                     {% endif %}

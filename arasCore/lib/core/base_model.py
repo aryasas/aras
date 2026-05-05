@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, date, timezone
 from arasCore.lib.core.extensions import db
+from arasCore.lib.core.aras_base import ArasBase
 
 
 def _now():
     return datetime.now(timezone.utc)
 
 
-class ArasModel(db.Model):
+class ArasModel(db.Model, ArasBase):
     __abstract__ = True
     __soft_delete__: bool = False
     __serialize_relations__: dict = {}

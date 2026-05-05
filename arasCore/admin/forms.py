@@ -161,6 +161,8 @@ class AppManagerColumnForm(ArasForm):
     relation_display_col  = StringField("Display Column", validators=[Optional(), Length(max=100)],
                                         description="Column shown in dropdown, e.g. name or username")
     cascade_delete        = BooleanField("Cascade Delete")
+    relation_filter       = StringField("Relation Filter", validators=[Optional(), Length(max=500)],
+                                        description="SQL WHERE snippet to filter combobox (e.g. is_group = 0)")
     default_section       = SelectField("Default Section",
                                         choices=[('header','Header'),('content','Content'),
                                                  ('extra','Extra'),('footer','Footer')],

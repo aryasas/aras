@@ -1,11 +1,21 @@
-<p>Dear
-  {{ user.username }},</p>
-<p>To confirm your new email address
-  <a href="{{ url_for('auth.change_email', token=token, _external=True) }}">click here</a>.</p>
-<p>Alternatively, you can paste the following link in your browser's address bar:</p>
-<p>{{ url_for('auth.change_email', token=token, _external=True) }}</p>
-<p>Sincerely,</p>
-<p>Aras Team</p>
-<p>
-  <small>Note: replies to this email address are not monitored.</small>
-</p>
+{% extends 'auth/_auth_layout.html' %} {% from "admin/macro/macro_main.html" import show_errors,
+show_message %} {% block page_content %}
+
+<div class="aras-auth-card">
+    {% include 'auth/_auth_marginalia.html' %}
+
+    <section class="aras-auth-form-panel">
+        <h1 class="aras-auth-title">Verify <em>email</em>.</h1>
+        <p class="aras-auth-lede">
+            Hello, {{ user.username }}.
+        </p>
+        
+        <p>You have requested to change your email address. Please click the link below to verify the new address.</p>
+
+        <a href="{{ url_for('auth.change_email', token=token, _external=True) }}" class="aras-auth-btn" style="display: inline-block; text-align: center;">
+            <span class="lbl">Verify New Email</span>
+            <span class="arrow">→</span>
+        </a>
+    </section>
+</div>
+{% endblock %}

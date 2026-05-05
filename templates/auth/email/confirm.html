@@ -1,13 +1,21 @@
-<p>Dear
-  {{ user.username }},</p>
-<p>Welcome to
-  <b>Aras</b>!</p>
-<p>To confirm your account please
-  <a href="{{ url_for('auth.confirm', token=token, _external=True) }}">click here</a>.</p>
-<p>Alternatively, you can paste the following link in your browser's address bar:</p>
-<p>{{ url_for('auth.confirm', token=token, _external=True) }}</p>
-<p>Sincerely,</p>
-<p>Aras Team</p>
-<p>
-  <small>Note: replies to this email address are not monitored.</small>
-</p>
+{% extends 'auth/_auth_layout.html' %} {% from "admin/macro/macro_main.html" import show_errors,
+show_message %} {% block page_content %}
+
+<div class="aras-auth-card">
+    {% include 'auth/_auth_marginalia.html' %}
+
+    <section class="aras-auth-form-panel">
+        <h1 class="aras-auth-title">Confirm <em>email</em>.</h1>
+        <p class="aras-auth-lede">
+            Hello, {{ user.username }}.
+        </p>
+        
+        <p>Please confirm your email address by clicking the link below.</p>
+
+        <a href="{{ url_for('auth.confirm', token=token, _external=True) }}" class="aras-auth-btn" style="display: inline-block; text-align: center;">
+            <span class="lbl">Confirm Email</span>
+            <span class="arrow">→</span>
+        </a>
+    </section>
+</div>
+{% endblock %}

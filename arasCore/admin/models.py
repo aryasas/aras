@@ -259,6 +259,7 @@ class AppManagerColumn(ArasModel):
     relation_system_table = db.Column(db.String(100), nullable=True)
     relation_display_col  = db.Column(db.String(100), nullable=True)
     cascade_delete        = db.Column(db.Boolean, default=False)
+    relation_filter       = db.Column(db.String(500), nullable=True)  # SQL WHERE snippet, e.g. 'is_group = 0' 
 
     relation_table = db.relationship(
         "AppManagerTable",
@@ -296,6 +297,7 @@ class AppManagerColumn(ArasModel):
             "relation_system_table": self.relation_system_table,
             "relation_display_col":  self.relation_display_col,
             "cascade_delete":        self.cascade_delete,
+            "relation_filter":       self.relation_filter,
         }
 
     def __repr__(self):

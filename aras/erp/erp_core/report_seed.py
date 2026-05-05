@@ -429,212 +429,66 @@ result["data"] = rows
             {"field": "date_to",   "label": "Date To",   "type": "date"},
         ]),
     },
-
-    # ── Cash Flow Statement ───────────────────────────────────────────────────
-    {
-        "name": "cash_flow",
-        "title": "Cash Flow Statement",
-        "module": "accounting",
-        "report_type": "script",
-        "render_mode": "custom",
-        "script": """
-from arasCore.lib.core.extensions import db
-from decimal import Decimal
-
-date_from = filters.get('date_from')
-date_to   = filters.get('date_to')
-params = {"company_id": company_id, "date_from": date_from, "date_to": date_to}
-
-def build_where(extra=""):
-    conds = ["jl.entry_id = je.id", "je.company_id = :company_id", "je.state = 'posted'"]
-    if date_from:
-        conds.append("je.date_entry >= :date_from")
-    if date_to:
-        conds.append("je.date_entry <= :date_to")
-    if extra:
-        conds.append(extra)
-    return " AND ".join(conds)
-
-# Operating: revenue accounts (credit = inflow) + expense accounts (debit = outflow)
-revenue_sql = f'''SELECT a.code, a.name, SUM(jl.credit) - SUM(jl.debit) as amount
-    FROM acc_journal_line jl
-    JOIN acc_journal_entry je ON je.id = jl.entry_id
-    JOIN acc_account a ON a.id = jl.account_id
-    WHERE {build_where("a.account_type IN ('income_operating','income_other')")}
-    GROUP BY a.id ORDER BY a.code'''
-
-expense_sql = f'''SELECT a.code, a.name, SUM(jl.debit) - SUM(jl.credit) as amount
-    FROM acc_journal_line jl
-    JOIN acc_journal_entry je ON je.id = jl.entry_id
-    JOIN acc_account a ON a.id = jl.account_id
-    WHERE {build_where("a.account_type IN ('expense_operating','expense_cogs','expense_other')")}
-    GROUP BY a.id ORDER BY a.code'''
-
-# Investing: fixed asset accounts
-invest_sql = f'''SELECT a.code, a.name, SUM(jl.debit) - SUM(jl.credit) as amount
-    FROM acc_journal_line jl
-    JOIN acc_journal_entry je ON je.id = jl.entry_id
-    JOIN acc_account a ON a.id = jl.account_id
-    WHERE {build_where("a.account_type = 'asset_fixed'")}
-    GROUP BY a.id ORDER BY a.code'''
-
-# Financing: equity + long-term liability
-finance_sql = f'''SELECT a.code, a.name, SUM(jl.credit) - SUM(jl.debit) as amount
-    FROM acc_journal_line jl
-    JOIN acc_journal_entry je ON je.id = jl.entry_id
-    JOIN acc_account a ON a.id = jl.account_id
-    WHERE {build_where("a.account_type IN ('equity','liability_long')")}
-    GROUP BY a.id ORDER BY a.code'''
-
-def run(sql):
-    return [(r[0], r[1], float(r[2] or 0)) for r in db.session.execute(db.text(sql), params)]
-
-revenues   = run(revenue_sql)
-expenses   = run(expense_sql)
-investing  = run(invest_sql)
-financing  = run(finance_sql)
-
-op_inflow  = sum(r[2] for r in revenues)
-op_outflow = sum(r[2] for r in expenses)
-net_op     = op_inflow - op_outflow
-net_inv    = -sum(r[2] for r in investing)   # net outflow for capex
-net_fin    = sum(r[2] for r in financing)
-net_change = net_op + net_inv + net_fin
-
-rows = []
-rows.append(["OPERATING ACTIVITIES", "", ""])
-rows.append(["", "Cash receipts from customers", op_inflow])
-for code, name, amt in revenues:
-    rows.append([code, f"  {name}", amt])
-rows.append(["", "Cash paid for expenses", -op_outflow])
-for code, name, amt in expenses:
-    rows.append([code, f"  {name}", -amt])
-rows.append(["", "Net Cash from Operations", net_op])
-rows.append(["", "", ""])
-
-rows.append(["INVESTING ACTIVITIES", "", ""])
-for code, name, amt in investing:
-    rows.append([code, name, -amt])
-rows.append(["", "Net Cash from Investing", net_inv])
-rows.append(["", "", ""])
-
-rows.append(["FINANCING ACTIVITIES", "", ""])
-for code, name, amt in financing:
-    rows.append([code, name, amt])
-rows.append(["", "Net Cash from Financing", net_fin])
-rows.append(["", "", ""])
-
-rows.append(["", "NET CHANGE IN CASH", net_change])
-
-result["columns"] = [
-    {"field": "code",   "label": "Code",    "type": "string"},
-    {"field": "name",   "label": "Item",    "type": "string"},
-    {"field": "amount", "label": "Amount",  "type": "currency"},
 ]
-result["data"] = rows
-""",
-        "columns_json": json.dumps([
-            {"field": "code",   "label": "Code",   "type": "string"},
-            {"field": "name",   "label": "Item",   "type": "string"},
-            {"field": "amount", "label": "Amount", "type": "currency"},
-        ]),
-        "filters_json": json.dumps([
-            {"field": "date_from", "label": "Date From", "type": "date"},
-            {"field": "date_to",   "label": "Date To",   "type": "date"},
-        ]),
-    },
 
+REPORTS += [
     # ── Balance Sheet ─────────────────────────────────────────────────────────
     {
         "name": "balance_sheet",
         "title": "Balance Sheet",
         "module": "accounting",
-        "report_type": "script",
+        "report_type": "query",
         "render_mode": "custom",
-        "script": """
-from arasCore.lib.core.extensions import db
-from decimal import Decimal
-
-as_of = filters.get('date_to')
-params = {"company_id": company_id, "date_to": as_of}
-
-def build_where(type_filter):
-    conds = ["jl.entry_id = je.id", "je.company_id = :company_id", "je.state = 'posted'",
-             "a.is_group = 0", type_filter]
-    if as_of:
-        conds.append("je.date_entry <= :date_to")
-    return " AND ".join(conds)
-
-def run(type_filter, side):
-    sql = f'''SELECT a.code, a.name, SUM(jl.debit) - SUM(jl.credit) as balance
-        FROM acc_journal_line jl
-        JOIN acc_journal_entry je ON je.id = jl.entry_id
-        JOIN acc_account a ON a.id = jl.account_id
-        WHERE {build_where(type_filter)}
-        GROUP BY a.id ORDER BY a.code'''
-    rows = db.session.execute(db.text(sql), params)
-    results = [(r[0], r[1], float(r[2] or 0)) for r in rows]
-    if side == 'credit':
-        results = [(c, n, -v) for c, n, v in results]
-    return results
-
-assets_curr  = run("a.account_type = 'asset_current'",  'debit')
-assets_fixed = run("a.account_type = 'asset_fixed'",    'debit')
-assets_other = run("a.account_type = 'asset_other'",    'debit')
-liab_curr    = run("a.account_type = 'liability_current'", 'credit')
-liab_long    = run("a.account_type = 'liability_long'",    'credit')
-equity       = run("a.account_type = 'equity'",            'credit')
-
-# Retained earnings: net income = revenue - expense (all as credit - debit)
-ret_sql = '''SELECT COALESCE(SUM(jl.credit - jl.debit), 0)
-    FROM acc_journal_line jl
-    JOIN acc_journal_entry je ON je.id = jl.entry_id
-    JOIN acc_account a ON a.id = jl.account_id
-    WHERE je.company_id = :company_id AND je.state = 'posted'
-    AND a.is_group = 0
-    AND a.account_type IN ('income_operating','income_other','expense_operating','expense_cogs','expense_other')
-''' + ("AND je.date_entry <= :date_to" if as_of else "")
-retained = float(db.session.execute(db.text(ret_sql), params).scalar() or 0)
-
-total_assets = sum(v for _,_,v in assets_curr+assets_fixed+assets_other)
-total_liab   = sum(v for _,_,v in liab_curr+liab_long)
-total_equity = sum(v for _,_,v in equity) + retained
-total_le     = total_liab + total_equity
-
-rows = []
-rows.append(["ASSETS", "", ""])
-rows.append(["", "Current Assets", ""])
-for c, n, v in assets_curr:
-    rows.append([c, f"  {n}", v])
-rows.append(["", "Fixed Assets", ""])
-for c, n, v in assets_fixed:
-    rows.append([c, f"  {n}", v])
-for c, n, v in assets_other:
-    rows.append([c, f"  {n}", v])
-rows.append(["", "Total Assets", total_assets])
-rows.append(["", "", ""])
-
-rows.append(["LIABILITIES", "", ""])
-for c, n, v in liab_curr + liab_long:
-    rows.append([c, f"  {n}", v])
-rows.append(["", "Total Liabilities", total_liab])
-rows.append(["", "", ""])
-
-rows.append(["EQUITY", "", ""])
-for c, n, v in equity:
-    rows.append([c, f"  {n}", v])
-rows.append(["", "  Retained Earnings", retained])
-rows.append(["", "Total Equity", total_equity])
-rows.append(["", "", ""])
-rows.append(["", "Total Liabilities + Equity", total_le])
-
-result["columns"] = [
-    {"field": "code",   "label": "Code",    "type": "string"},
-    {"field": "name",   "label": "Account", "type": "string"},
-    {"field": "amount", "label": "Amount",  "type": "currency"},
-]
-result["data"] = rows
-""",
+        "script": """SELECT code, name, amount FROM (
+    SELECT 'ASSETS' as code, '' as name, 0.0 as amount, 1 as s1, 0 as s2
+    UNION ALL SELECT '' as code, 'Current Assets' as name, 0.0 as amount, 2 as s1, 0 as s2
+    UNION ALL SELECT a.code, CONCAT('  ', a.name) as name, COALESCE(SUM(jl.debit - jl.credit), 0) as amount, 2 as s1, 1 as s2
+    FROM acc_account a LEFT JOIN acc_journal_line jl ON jl.account_id = a.id
+    LEFT JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE a.account_type IN ('asset_current', 'asset_cash') AND a.is_group = 0 GROUP BY a.id HAVING amount != 0
+    UNION ALL SELECT '' as code, 'Fixed Assets' as name, 0.0 as amount, 3 as s1, 0 as s2
+    UNION ALL SELECT a.code, CONCAT('  ', a.name) as name, COALESCE(SUM(jl.debit - jl.credit), 0) as amount, 3 as s1, 1 as s2
+    FROM acc_account a LEFT JOIN acc_journal_line jl ON jl.account_id = a.id
+    LEFT JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE a.account_type = 'asset_fixed' AND a.is_group = 0 GROUP BY a.id HAVING amount != 0
+    UNION ALL SELECT '' as code, 'Other Assets' as name, 0.0 as amount, 4 as s1, 0 as s2
+    UNION ALL SELECT a.code, CONCAT('  ', a.name) as name, COALESCE(SUM(jl.debit - jl.credit), 0) as amount, 4 as s1, 1 as s2
+    FROM acc_account a LEFT JOIN acc_journal_line jl ON jl.account_id = a.id
+    LEFT JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE a.account_type = 'asset_other' AND a.is_group = 0 GROUP BY a.id HAVING amount != 0
+    UNION ALL SELECT '' as code, 'Total Assets' as name, COALESCE(SUM(jl.debit - jl.credit), 0) as amount, 9 as s1, 0 as s2
+    FROM acc_account a JOIN acc_journal_line jl ON jl.account_id = a.id
+    JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE a.account_type LIKE 'asset_%' AND a.is_group = 0
+    UNION ALL SELECT '' as code, '' as name, 0.0 as amount, 10 as s1, 0 as s2
+    UNION ALL SELECT 'LIABILITIES' as code, '' as name, 0.0 as amount, 11 as s1, 0 as s2
+    UNION ALL SELECT a.code, CONCAT('  ', a.name) as name, COALESCE(SUM(jl.credit - jl.debit), 0) as amount, 12 as s1, 1 as s2
+    FROM acc_account a LEFT JOIN acc_journal_line jl ON jl.account_id = a.id
+    LEFT JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE a.account_type LIKE 'liability_%' AND a.is_group = 0 GROUP BY a.id HAVING amount != 0
+    UNION ALL SELECT '' as code, 'Total Liabilities' as name, COALESCE(SUM(jl.credit - jl.debit), 0) as amount, 19 as s1, 0 as s2
+    FROM acc_account a JOIN acc_journal_line jl ON jl.account_id = a.id
+    JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE a.account_type LIKE 'liability_%' AND a.is_group = 0
+    UNION ALL SELECT '' as code, '' as name, 0.0 as amount, 20 as s1, 0 as s2
+    UNION ALL SELECT 'EQUITY' as code, '' as name, 0.0 as amount, 21 as s1, 0 as s2
+    UNION ALL SELECT a.code, CONCAT('  ', a.name) as name, COALESCE(SUM(jl.credit - jl.debit), 0) as amount, 22 as s1, 1 as s2
+    FROM acc_account a LEFT JOIN acc_journal_line jl ON jl.account_id = a.id
+    LEFT JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE a.account_type = 'equity' AND a.is_group = 0 GROUP BY a.id HAVING amount != 0
+    UNION ALL SELECT '' as code, '  Retained Earnings' as name, COALESCE(SUM(jl.credit - jl.debit), 0) as amount, 23 as s1, 1 as s2
+    FROM acc_account a JOIN acc_journal_line jl ON jl.account_id = a.id
+    JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE a.account_type IN ('income_operating','income_other','expense_operating','expense_cogs','expense_other') AND a.is_group = 0
+    UNION ALL SELECT '' as code, 'Total Equity' as name, COALESCE(SUM(jl.credit - jl.debit), 0) as amount, 29 as s1, 0 as s2
+    FROM acc_account a JOIN acc_journal_line jl ON jl.account_id = a.id
+    JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE (a.account_type = 'equity' OR a.account_type IN ('income_operating','income_other','expense_operating','expense_cogs','expense_other')) AND a.is_group = 0
+    UNION ALL SELECT '' as code, 'Total Liabilities + Equity' as name, COALESCE(SUM(jl.credit - jl.debit), 0) as amount, 39 as s1, 0 as s2
+    FROM acc_account a JOIN acc_journal_line jl ON jl.account_id = a.id
+    JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE (a.account_type LIKE 'liability_%' OR a.account_type = 'equity' OR a.account_type IN ('income_operating','income_other','expense_operating','expense_cogs','expense_other')) AND a.is_group = 0
+) t ORDER BY s1, s2, code""",
         "columns_json": json.dumps([
             {"field": "code",   "label": "Code",    "type": "string"},
             {"field": "name",   "label": "Account", "type": "string"},
@@ -646,6 +500,76 @@ result["data"] = rows
     },
 ]
 
+REPORTS += [
+    # ── Cash Flow Statement ───────────────────────────────────────────────────
+    {
+        "name": "cash_flow",
+        "title": "Cash Flow Statement",
+        "module": "accounting",
+        "report_type": "query",
+        "render_mode": "custom",
+        "script": """SELECT code, name, amount FROM (
+    SELECT 'OPERATING ACTIVITIES' as code, '' as name, 0.0 as amount, 1 as s1, 0 as s2
+    UNION ALL SELECT '' as code, 'Inflows' as name, 0.0 as amount, 2 as s1, 0 as s2
+    UNION ALL SELECT a.code, CONCAT('  ', a.name) as name, COALESCE(SUM(jl.credit - jl.debit), 0) as amount, 2 as s1, 1 as s2
+    FROM acc_account a LEFT JOIN acc_journal_line jl ON jl.account_id = a.id
+    LEFT JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_from IS NULL OR je.date_entry >= :date_from) AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE a.account_type IN ('income_operating','income_other') AND a.is_group = 0 GROUP BY a.id HAVING amount != 0
+    UNION ALL SELECT '' as code, 'Outflows' as name, 0.0 as amount, 3 as s1, 0 as s2
+    UNION ALL SELECT a.code, CONCAT('  ', a.name) as name, COALESCE(SUM(jl.debit - jl.credit), 0) as amount, 3 as s1, 1 as s2
+    FROM acc_account a LEFT JOIN acc_journal_line jl ON jl.account_id = a.id
+    LEFT JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_from IS NULL OR je.date_entry >= :date_from) AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE a.account_type IN ('expense_operating','expense_cogs','expense_other') AND a.is_group = 0 GROUP BY a.id HAVING amount != 0
+    UNION ALL SELECT '' as code, 'Net Cash from Operations' as name, COALESCE(SUM(jl.credit - jl.debit), 0) as amount, 9 as s1, 0 as s2
+    FROM acc_account a JOIN acc_journal_line jl ON jl.account_id = a.id
+    JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_from IS NULL OR je.date_entry >= :date_from) AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE a.account_type IN ('income_operating','income_other','expense_operating','expense_cogs','expense_other') AND a.is_group = 0
+    UNION ALL SELECT '' as code, '' as name, 0.0 as amount, 10 as s1, 0 as s2
+    UNION ALL SELECT 'INVESTING ACTIVITIES' as code, '' as name, 0.0 as amount, 11 as s1, 0 as s2
+    UNION ALL SELECT a.code, CONCAT('  ', a.name) as name, COALESCE(SUM(jl.credit - jl.debit), 0) as amount, 12 as s1, 1 as s2
+    FROM acc_account a LEFT JOIN acc_journal_line jl ON jl.account_id = a.id
+    LEFT JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_from IS NULL OR je.date_entry >= :date_from) AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE a.account_type = 'asset_fixed' AND a.is_group = 0 GROUP BY a.id HAVING amount != 0
+    UNION ALL SELECT '' as code, 'Net Cash from Investing' as name, COALESCE(SUM(jl.credit - jl.debit), 0) as amount, 19 as s1, 0 as s2
+    FROM acc_account a JOIN acc_journal_line jl ON jl.account_id = a.id
+    JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_from IS NULL OR je.date_entry >= :date_from) AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE a.account_type = 'asset_fixed' AND a.is_group = 0
+    UNION ALL SELECT '' as code, '' as name, 0.0 as amount, 20 as s1, 0 as s2
+    UNION ALL SELECT 'FINANCING ACTIVITIES' as code, '' as name, 0.0 as amount, 21 as s1, 0 as s2
+    UNION ALL SELECT a.code, CONCAT('  ', a.name) as name, COALESCE(SUM(jl.credit - jl.debit), 0) as amount, 22 as s1, 1 as s2
+    FROM acc_account a LEFT JOIN acc_journal_line jl ON jl.account_id = a.id
+    LEFT JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_from IS NULL OR je.date_entry >= :date_from) AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE a.account_type IN ('equity','liability_long') AND a.is_group = 0 GROUP BY a.id HAVING amount != 0
+    UNION ALL SELECT '' as code, 'Net Cash from Financing' as name, COALESCE(SUM(jl.credit - jl.debit), 0) as amount, 29 as s1, 0 as s2
+    FROM acc_account a JOIN acc_journal_line jl ON jl.account_id = a.id
+    JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_from IS NULL OR je.date_entry >= :date_from) AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE a.account_type IN ('equity','liability_long') AND a.is_group = 0
+    UNION ALL SELECT '' as code, '' as name, 0.0 as amount, 30 as s1, 0 as s2
+    UNION ALL SELECT '' as code, 'NET CHANGE IN CASH' as name, COALESCE(SUM(jl.credit - jl.debit), 0) as amount, 31 as s1, 0 as s2
+    FROM acc_account a JOIN acc_journal_line jl ON jl.account_id = a.id
+    JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_from IS NULL OR je.date_entry >= :date_from) AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE a.account_type IN ('income_operating','income_other','expense_operating','expense_cogs','expense_other','asset_fixed','equity','liability_long') AND a.is_group = 0
+    UNION ALL SELECT '' as code, '' as name, 0.0 as amount, 40 as s1, 0 as s2
+    UNION ALL SELECT '' as code, 'Cash at Beginning' as name, COALESCE(SUM(jl.debit - jl.credit), 0) as amount, 41 as s1, 0 as s2
+    FROM acc_account a JOIN acc_journal_line jl ON jl.account_id = a.id
+    JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_from IS NULL OR je.date_entry < :date_from)
+    WHERE a.account_type IN ('asset_current', 'asset_cash') AND a.is_group = 0
+    UNION ALL SELECT '' as code, 'Cash at End' as name, COALESCE(SUM(jl.debit - jl.credit), 0) as amount, 42 as s1, 0 as s2
+    FROM acc_account a JOIN acc_journal_line jl ON jl.account_id = a.id
+    JOIN acc_journal_entry je ON je.id = jl.entry_id AND je.company_id = :company_id AND je.state = 'posted' AND (:date_to IS NULL OR je.date_entry <= :date_to)
+    WHERE a.account_type IN ('asset_current', 'asset_cash') AND a.is_group = 0
+) t ORDER BY s1, s2, code""",
+        "columns_json": json.dumps([
+            {"field": "code",   "label": "Code",    "type": "string"},
+            {"field": "name",   "label": "Account", "type": "string"},
+            {"field": "amount", "label": "Amount",  "type": "currency"},
+        ]),
+        "filters_json": json.dumps([
+            {"field": "date_from", "label": "Date From", "type": "date"},
+            {"field": "date_to",   "label": "Date To",   "type": "date"},
+        ]),
+    },
+]
 
 
 def run_seed(app=None):
@@ -658,6 +582,7 @@ def run_seed(app=None):
                 existing.update_self({
                     "title": r.get("title", existing.title),
                     "script": r.get("script", existing.script),
+                    "report_type": r.get("report_type", existing.report_type),
                     "render_mode": r.get("render_mode", "list"),
                     "columns_json": r.get("columns_json", existing.columns_json),
                     "filters_json": r.get("filters_json", existing.filters_json),
