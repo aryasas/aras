@@ -62,7 +62,9 @@
             
             list.innerHTML = Object.entries(data.schema).map(([table, cols]) => `
                 <div style="margin-bottom: 0.8rem;">
-                    <div style="color: var(--hitech-accent-cyan); cursor: pointer; font-weight: 600;" onclick="toggleTable('${table}')">
+                    <div style="color: var(--hitech-accent-cyan); cursor: pointer; font-weight: 600;" 
+                         onclick="toggleTable('${table}')"
+                         oncontextmenu="showTableMenu(event, '${table}')">
                         <i class="fa fa-table"></i> ${table}
                     </div>
                     <div id="cols-${table}" style="display: none; padding-left: 1rem; border-left: 1px solid var(--hitech-border); margin-top: 0.2rem;">
@@ -126,7 +128,13 @@
                 html += '<tr>';
                 data.columns.forEach(c => {
                     const val = row[c];
-                    html += `<td style="white-space: nowrap;">${val === null ? '<i style="opacity:0.5">null</i>' : val}</td>`;
+                    let displayVal = val;
+                    if (val === null) {
+                        displayVal = '<i style="opacity:0.5">null</i>';
+                    } else if (typeof val === 'object') {
+                        displayVal = JSON.stringify(val);
+                    }
+                    html += `<td style="white-space: nowrap;">${displayVal}</td>`;
                 });
                 html += '</tr>';
             });
@@ -145,5 +153,33 @@
             if (e.ctrlKey && e.key === 'Enter') executeQuery();
         });
         loadSchema();
+    }
+
+    function showTableMenu(e, table) {
+        e.preventDefault();
+        let menu = document.getElementById('table-menu');
+        if (!menu) {
+            menu = document.createElement('div');
+            menu.id = 'table-menu';
+            menu.style.position = 'absolute';
+            menu.style.background = 'var(--hitech-bg)';
+            menu.style.border = '1px solid var(--hitech-border)';
+            menu.style.padding = '5px';
+            menu.style.zIndex = '1000';
+            menu.style.boxShadow = '2px 2px 10px rgba(0,0,0,0.5)';
+            document.body.appendChild(menu);
+        }
+        // Use a wrapper that ensures the string is passed correctly
+        menu.innerHTML = `<div style="padding: 5px; cursor: pointer;" onclick="runSql('SELECT * FROM ${table} LIMIT 100;')">SELECT * FROM ${table}</div>`;
+        menu.style.left = e.pageX + 'px';
+        menu.style.top = e.pageY + 'px';
+        menu.style.display = 'block';
+        
+        document.addEventListener('click', () => menu.style.display = 'none', { once: true });
+    }
+
+    function runSql(queryText) {
+        document.getElementById('sql-query').value = String(queryText);
+        executeQuery();
     }
 </script>

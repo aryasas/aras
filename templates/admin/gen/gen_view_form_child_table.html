@@ -36,8 +36,9 @@
   <input type="hidden" name="ct_local_{{ _li }}" id="ct-local-input-{{ _li }}" value="{{ request.form.get('ct_local_' + _li) or '' }}">
 
   {# ── Toolbar ── #}
-  <header class="ledger-section__head" style="display:flex;align-items:center;justify-content:space-between;">
-    <span class="ledger-section__label" style="font-family:var(--aras-font-serif);font-weight:700;font-size:14px;color:var(--studio-ink);">{{ ct.title }}</span>
+  <header class="ledger-section__head" style="margin-bottom: 20px;">
+    <span class="ledger-section__title">{{ ct.title }}</span>
+    <span class="ledger-section__hairline" aria-hidden="true"></span>
     <div class="ct-head-actions d-flex gap-2" style="position:relative;">
       {# #ChildListViewRelated: 'Add Row' displays hidden inline input row. #}
       {% if ct.api_url and ct.inline_columns %}

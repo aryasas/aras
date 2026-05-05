@@ -53,11 +53,19 @@ doctype_key, app_id, table_id, linked_report_url, extra_buttons, _list_id
     {% if _has_pag %}
     <div class="aras-ledger-ribbon__perpage">
       <span class="aras-ledger-ribbon__label">per page</span>
-      <select id="perPageSelect{{ _lid }}" class="aras-ledger-select">
-        <option value="20"  {% if per_page == 20  %}selected{% endif %}>20</option>
-        <option value="50"  {% if per_page == 50  %}selected{% endif %}>50</option>
-        <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
-      </select>
+    {# Per-page popover #}
+    <div class="position-relative">
+      <button type="button" class="aras-ledger-select" id="perPageToggleBtn{{ _lid }}">
+        {{ per_page }} <i class="fa fa-caret-down"></i>
+      </button>
+      <div id="perPagePopover{{ _lid }}" class="aras-popover aras-popover--right" style="display:none; min-width: 100px;">
+        <div class="aras-popover__list">
+          <a class="aras-popover__row {% if per_page == 20 %}is-active{% endif %}" href="?per_page=20&page=1">20</a>
+          <a class="aras-popover__row {% if per_page == 50 %}is-active{% endif %}" href="?per_page=50&page=1">50</a>
+          <a class="aras-popover__row {% if per_page == 100 %}is-active{% endif %}" href="?per_page=100&page=1">100</a>
+        </div>
+      </div>
+    </div>
     </div>
     {% endif %}
 
@@ -89,7 +97,7 @@ doctype_key, app_id, table_id, linked_report_url, extra_buttons, _list_id
       <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" id="colToggleBtn{{ _lid }}" title="Choose columns">
         <i class="fa fa-columns"></i>
       </button>
-      <div id="colTogglePopover{{ _lid }}" class="aras-popover aras-popover--cols" style="display:none;">
+      <div id="colTogglePopover{{ _lid }}" class="aras-popover aras-popover--right aras-popover--cols" style="display:none;">
         <div class="aras-popover__title">Visible columns</div>
         <div class="aras-popover__list">
           {% for label, field in _picker_cols %}

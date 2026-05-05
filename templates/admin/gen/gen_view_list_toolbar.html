@@ -44,7 +44,7 @@
     {% if _has_pag %}
     <div class="aras-toolbar__cluster">
       <span class="aras-toolbar__hint">Show</span>
-      <select id="perPageSelect{{ _lid }}" class="aras-toolbar__select">
+      <select id="perPageSelect{{ _lid }}" class="aras-ledger-select">
         <option value="20"  {% if per_page == 20  %}selected{% endif %}>20</option>
         <option value="50"  {% if per_page == 50  %}selected{% endif %}>50</option>
         <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
@@ -218,6 +218,7 @@
   wireMenu('viewToggleBtn', 'viewTogglePopover');
   wireMenu('savedViewsBtn', 'savedViewsPopover');
   wireMenu('colToggleBtn',  'colTogglePopover');
+  wireMenu('perPageToggleBtn', 'perPagePopover');
   document.addEventListener('click', () =>
     document.querySelectorAll('.aras-popover').forEach(p => p.style.display = 'none'));
 

@@ -304,12 +304,7 @@
       if (!cb.checked) applyColVisibility(cb.dataset.field, false);
     });
 
-    btn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      popover.style.display = popover.style.display === 'none' ? 'block' : 'none';
-    });
-    document.addEventListener('click', function () { popover.style.display = 'none'; });
-    popover.addEventListener('click', function (e) { e.stopPropagation(); });
+    /* Event listener for checkbox changes only */
     popover.querySelectorAll('.js-col-vis' + LID).forEach(function (cb) {
       cb.addEventListener('change', function () {
         applyColVisibility(cb.dataset.field, cb.checked);
