@@ -13,31 +13,38 @@
         <table class="table table-borderless align-middle mb-0">
           <tbody>
             {% for row in data %}
-              {% if row[0] and not row[1] and not row[2] %}
+              {% set code = row[0]|string %}
+              {% set label = row[1]|string %}
+              {% set amt = row[2] %}
+              {% if code and not label %}
+                {# Section header (ASSETS / LIABILITIES / EQUITY) #}
                 <tr style="background: var(--studio-cream);">
                   <td colspan="3" class="fw-bold pt-3 pb-2 px-3" style="font-family: var(--aras-font-mono); font-size: 11px; letter-spacing: 1.5px; color: var(--studio-accent);">
-                    {{ row[0] }}
+                    {{ code }}
                   </td>
                 </tr>
-              {% elif not row[0] and row[1] %}
+              {% elif not code and label %}
+                {# Subtotal / sub-header row #}
                 <tr class="border-top" style="border-top: 1px solid var(--studio-ochre) !important;">
                   <td></td>
-                  <td class="fw-bold py-3" style="font-family: var(--aras-font-serif); font-size: 16px; color: var(--studio-ink);">{{ row[1] }}</td>
-                  <td class="text-end fw-bold py-3 {{ 'text-danger' if row[2] < 0 }}" style="font-family: var(--aras-font-mono); font-size: 16px;">
-                    {{ "{:,.2f}".format(row[2]) }}
+                  <td class="fw-bold py-3" style="font-family: var(--aras-font-serif); font-size: 16px; color: var(--studio-ink);">{{ label }}</td>
+                  <td class="text-end fw-bold py-3 {{ 'text-danger' if amt < 0 }}" style="font-family: var(--aras-font-mono); font-size: 16px;">
+                    {{ "{:,.2f}".format(amt) }}
                   </td>
                 </tr>
-                {% if row[1] in ['Total Assets', 'Total Liabilities', 'Total Equity', 'Total Liabilities + Equity'] %}
+                {% if label in ['Total Assets', 'Total Liabilities', 'Total Equity', 'Total Liabilities + Equity'] %}
                   <tr><td colspan="3" class="p-0"><div style="height: 4px; border-bottom: 3px double var(--studio-ochre); margin: 0 10px;"></div></td></tr>
                 {% endif %}
-              {% elif row[0] == "" and row[1] == "" and row[2] == "" %}
+              {% elif not code and not label %}
+                {# Spacer row #}
                 <tr><td colspan="3" style="height: 24px;"></td></tr>
               {% else %}
+                {# Detail account row #}
                 <tr class="aras-row-hover">
-                  <td class="text-muted px-3" style="font-family: var(--aras-font-mono); font-size: 11px; width: 140px;">{{ row[0] }}</td>
-                  <td style="font-size: 14px; color: var(--studio-ink);">{{ row[1] }}</td>
-                  <td class="text-end {{ 'text-danger' if row[2] < 0 }}" style="font-family: var(--aras-font-mono); font-size: 14px; font-weight: 500;">
-                    {{ "{:,.2f}".format(row[2]) }}
+                  <td class="text-muted px-3" style="font-family: var(--aras-font-mono); font-size: 11px; width: 140px;">{{ code }}</td>
+                  <td style="font-size: 14px; color: var(--studio-ink);">{{ label }}</td>
+                  <td class="text-end {{ 'text-danger' if amt < 0 }}" style="font-family: var(--aras-font-mono); font-size: 14px; font-weight: 500;">
+                    {{ "{:,.2f}".format(amt) }}
                   </td>
                 </tr>
               {% endif %}
