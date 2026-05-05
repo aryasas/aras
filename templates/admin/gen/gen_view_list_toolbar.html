@@ -1,8 +1,12 @@
-{# ── Toolbar (Editorial v6.1 — flat color, regrouped) ── #}
+{# ── List View Toolbar ─────────────────────────────────────────────────────── #}
+{# Requires: _lid, _has_add, _has_search, _has_bulk, _has_pag, _has_filter,   #}
+{# _has_customize, _has_extra, _has_report, active_filters, per_page,          #}
+{# search_q, _qparam, add_url, app_id, table_id, extra_buttons, filter_cols   #}
 <div class="aras-toolbar aras-toolbar--editorial" id="listToolbar{{ _lid }}">
 
-  {# ─── LEFT: primary action + search + bulk ─── #}
+  {# ── LEFT: new · search · bulk ── #}
   <div class="aras-toolbar__left">
+
     {% if _has_add %}
     <a href="{{ add_url }}" class="aras-btn aras-btn--primary aras-btn--sm aras-btn--lead">
       <i class="fa fa-plus"></i><span>New</span>
@@ -13,7 +17,8 @@
     <form method="GET" id="searchForm{{ _lid }}" class="aras-toolbar__search">
       <div class="aras-search-wrap">
         <i class="ti-search"></i>
-        <input type="text" name="{{ _qparam }}" placeholder="Search the ledger…" value="{{ search_q or '' }}" autocomplete="off">
+        <input type="text" name="{{ _qparam }}"
+               placeholder="Search…" value="{{ search_q or '' }}" autocomplete="off">
       </div>
       {% for f in (active_filters or []) %}
         <input type="hidden" name="f_col[]" value="{{ f.col }}">
@@ -24,19 +29,18 @@
     {% endif %}
 
     <div id="bulkWrapInline{{ _lid }}" class="aras-toolbar__bulk" style="display:none;">
-      <span class="aras-toolbar__bulk-count">
-        <span id="bulkCountInline{{ _lid }}">0</span> selected
-      </span>
+      <span class="aras-toolbar__bulk-count"><span id="bulkCountInline{{ _lid }}">0</span> selected</span>
       <button type="button" class="aras-btn aras-btn--danger aras-btn--sm js-bulk-delete{{ _lid }}">
         <i class="fa fa-trash"></i><span>Delete</span>
       </button>
     </div>
+
   </div>
 
-  {# ─── RIGHT: paging · views · table tools · exports ─── #}
+  {# ── RIGHT: clusters ── #}
   <div class="aras-toolbar__right">
 
-    {# ── Cluster 1 · Per-page ── #}
+    {# Cluster 1 — per page #}
     {% if _has_pag %}
     <div class="aras-toolbar__cluster">
       <span class="aras-toolbar__hint">Show</span>
@@ -49,79 +53,70 @@
     <span class="aras-toolbar__divider" aria-hidden="true"></span>
     {% endif %}
 
-    {# ── Cluster 2 · Filter + Saved Views + View Switcher ── #}
+    {# Cluster 2 — filter · views · view-switcher #}
     <div class="aras-toolbar__cluster">
       {% if _has_filter %}
       <button type="button"
-              class="aras-iconbtn {% if active_filters %}is-active{% endif %}"
+              class="aras-iconbtn{% if active_filters %} is-active{% endif %}"
               id="filterToggleBtn{{ _lid }}" title="Filters">
         <i class="ti-filter"></i>
         {% if active_filters %}<span class="aras-iconbtn__dot">{{ active_filters|length }}</span>{% endif %}
       </button>
       {% endif %}
 
-      {% if table_id %}
+      {# Saved Views #}
+      {% if table_id is defined and table_id %}
       <div class="aras-toolbar__menu">
-        <button type="button" class="aras-iconbtn aras-iconbtn--label" id="savedViewsBtn{{ _lid }}" title="Saved Views">
+        <button type="button" class="aras-iconbtn aras-iconbtn--label" id="savedViewsBtn{{ _lid }}">
           <i class="fa fa-bookmark-o"></i><span>Views</span>
           <i class="fa fa-caret-down aras-iconbtn__caret"></i>
         </button>
-        <div id="savedViewsPopover{{ _lid }}" class="aras-popover aras-popover--right" style="display:none;min-width:220px;">
+        <div id="savedViewsPopover{{ _lid }}" class="aras-popover aras-popover--right" style="display:none;min-width:210px;">
           <div class="aras-popover__title">My Views</div>
           <div class="aras-popover__list">
-            {% for v in saved_views %}
-              <a class="aras-popover__row" href="{{ url_for(request.endpoint, view_id=v.id, **request.view_args) }}">
-                <i class="fa fa-file-text-o"></i>
-                <span>{{ v.label }}</span>
-                {% if v.is_shared %}<i class="fa fa-users aras-popover__meta" title="Shared"></i>{% endif %}
-              </a>
+            {% for v in (saved_views or []) %}
+            <a class="aras-popover__row" href="{{ url_for(request.endpoint, view_id=v.id, **request.view_args) }}">
+              <i class="fa fa-file-text-o"></i><span>{{ v.label }}</span>
+              {% if v.is_shared %}<i class="fa fa-users aras-popover__meta"></i>{% endif %}
+            </a>
             {% else %}
-              <div class="aras-popover__empty">No saved views</div>
+            <div class="aras-popover__empty">No saved views</div>
             {% endfor %}
           </div>
           <div class="aras-popover__foot">
-            {% if table_id is defined and table_id %}
             <button type="button" class="aras-popover__row aras-popover__row--btn" id="saveCurrentViewBtn{{ _lid }}">
               <i class="fa fa-plus-circle"></i><span>Save current as view</span>
             </button>
-            {% else %}
-            <div class="aras-popover__empty">Save view disabled (multiple tables)</div>
-            {% endif %}
           </div>
         </div>
       </div>
       {% endif %}
 
-      {% set current_view = request.args.get('view', 'list') %}
-      {% set _has_tree_view = false %}
-      {% if all_columns and 'parent_id' in all_columns | map(attribute=1) | list %}
-        {% set _has_tree_view = true %}
-      {% endif %}
-
+      {# View switcher: list / tree / report #}
+      {% set _cur_view = request.args.get('view', 'list') %}
       <div class="aras-toolbar__menu">
-        <button type="button" class="aras-iconbtn aras-iconbtn--label" id="viewToggleBtn{{ _lid }}" title="Change View">
-          {% if current_view == 'tree' %}
-            <i class="fa fa-sitemap"></i><span>Tree</span>
-          {% elif current_view == 'report' %}
-            <i class="ti-stats-up"></i><span>Report</span>
-          {% else %}
-            <i class="fa fa-list"></i><span>List</span>
-          {% endif %}
+        <button type="button" class="aras-iconbtn aras-iconbtn--label" id="viewToggleBtn{{ _lid }}">
+          {% if _cur_view == 'tree' %}<i class="fa fa-sitemap"></i><span>Tree</span>
+          {% elif _cur_view == 'report' %}<i class="ti-stats-up"></i><span>Report</span>
+          {% else %}<i class="fa fa-list"></i><span>List</span>{% endif %}
           <i class="fa fa-caret-down aras-iconbtn__caret"></i>
         </button>
-        <div id="viewTogglePopover{{ _lid }}" class="aras-popover aras-popover--right" style="display:none;min-width:180px;">
+        <div id="viewTogglePopover{{ _lid }}" class="aras-popover aras-popover--right" style="display:none;min-width:170px;">
           <div class="aras-popover__list">
-            <a class="aras-popover__row {% if current_view == 'list' %}is-active{% endif %}" href="{{ url_for(request.endpoint, view='list', **request.view_args) }}">
-              <i class="fa fa-list"></i><span>List view</span>
+            <a class="aras-popover__row{% if _cur_view == 'list' %} is-active{% endif %}"
+               href="{{ url_for(request.endpoint, view='list', **request.view_args) }}">
+              <i class="fa fa-list"></i><span>List</span>
             </a>
-            {% if _has_tree_view %}
-            <a class="aras-popover__row {% if current_view == 'tree' %}is-active{% endif %}" href="{{ url_for(request.endpoint, view='tree', **request.view_args) }}">
-              <i class="fa fa-sitemap"></i><span>Tree view</span>
+            {% if all_columns is defined and 'parent_id' in (all_columns | map(attribute=1) | list) %}
+            <a class="aras-popover__row{% if _cur_view == 'tree' %} is-active{% endif %}"
+               href="{{ url_for(request.endpoint, view='tree', **request.view_args) }}">
+              <i class="fa fa-sitemap"></i><span>Tree</span>
             </a>
             {% endif %}
-            {% if linked_report_url %}
-            <a class="aras-popover__row {% if current_view == 'report' %}is-active{% endif %}" href="{{ linked_report_url }}">
-              <i class="ti-stats-up"></i><span>Report view</span>
+            {% if linked_report_url is defined and linked_report_url %}
+            <a class="aras-popover__row{% if _cur_view == 'report' %} is-active{% endif %}"
+               href="{{ linked_report_url }}">
+              <i class="ti-stats-up"></i><span>Report</span>
             </a>
             {% endif %}
           </div>
@@ -131,13 +126,14 @@
 
     <span class="aras-toolbar__divider" aria-hidden="true"></span>
 
-    {# ── Cluster 3 · Table tools (totals, columns) ── #}
+    {# Cluster 3 — table tools: totals · column picker #}
     <div class="aras-toolbar__cluster">
-      <button type="button" class="aras-iconbtn" id="totalsToggleBtn{{ _lid }}" title="Show column totals" data-active="false">
+      <button type="button" class="aras-iconbtn" id="totalsToggleBtn{{ _lid }}"
+              title="Column totals" data-active="false">
         <i class="fa fa-calculator"></i>
       </button>
 
-      {% set _picker_cols = all_columns if (all_columns is defined and all_columns) else view_columns %}
+      {% set _picker_cols   = all_columns if (all_columns is defined and all_columns) else view_columns %}
       {% set _visible_fields = view_columns | map(attribute=1) | list %}
       <div class="aras-toolbar__menu">
         <button type="button" class="aras-iconbtn" id="colToggleBtn{{ _lid }}" title="Columns">
@@ -147,9 +143,10 @@
           <div class="aras-popover__title">Visible Columns</div>
           <div class="aras-popover__list aras-popover__list--scroll">
             {% for label, field in _picker_cols %}
-            {% set _is_visible = field in _visible_fields %}
             <label class="aras-popover__row">
-              <input type="checkbox" class="js-col-vis{{ _lid }}" data-field="{{ field }}" {% if _is_visible %}checked{% endif %}>
+              <input type="checkbox" class="js-col-vis{{ _lid }}"
+                     data-field="{{ field }}"
+                     {% if field in _visible_fields %}checked{% endif %}>
               <span>{{ label }}</span>
             </label>
             {% endfor %}
@@ -158,45 +155,42 @@
       </div>
     </div>
 
-    {# ── Cluster 4 · Exports & extras ── #}
-    {% set _has_extras_cluster = linked_docs_url_base or (_has_customize and app_id and table_id) or _has_report or workflow_url or _has_extra %}
-    {% if _has_extras_cluster %}
+    {# Cluster 4 — exports · customize · extras #}
+    {% set _has_exports = (linked_docs_url_base is defined and linked_docs_url_base)
+                       or (_has_customize and (app_id is defined and app_id) and (table_id is defined and table_id))
+                       or _has_report or (workflow_url is defined and workflow_url)
+                       or _has_extra %}
+    {% if _has_exports %}
     <span class="aras-toolbar__divider" aria-hidden="true"></span>
     <div class="aras-toolbar__cluster">
-      {% if linked_docs_url_base %}
-      {% set csv_args = request.args.copy() %}
-      {% do csv_args.setlist('format', ['csv']) %}
-      <a href="{{ linked_docs_url_base }}?{{ csv_args | urlencode }}"
-         class="aras-iconbtn" title="Export CSV">
+      {% if linked_docs_url_base is defined and linked_docs_url_base %}
+      {% set _csv = request.args.copy() %}{% do _csv.setlist('format', ['csv']) %}
+      <a href="{{ linked_docs_url_base }}?{{ _csv | urlencode }}" class="aras-iconbtn" title="Export CSV">
         <i class="fa fa-download"></i>
       </a>
       {% endif %}
 
-      {% if _has_customize and app_id and table_id %}
+      {% if _has_customize and app_id is defined and app_id and table_id is defined and table_id %}
       <a href="{{ url_for('admin.apps_columns', app_id=app_id, table_id=table_id) }}"
          class="aras-iconbtn" title="Customize Fields">
         <i class="ti-layout-column4"></i>
       </a>
       {% endif %}
 
-      {% if _has_report %}
-      <a href="{{ linked_report_url }}" class="aras-iconbtn" title="View Report">
-        <i class="ti-stats-up"></i>
-      </a>
-      {% endif %}
-
-      {% if workflow_url %}
-      <a href="{{ workflow_url }}" class="aras-iconbtn" title="Visual Workflow Designer">
+      {% if workflow_url is defined and workflow_url %}
+      <a href="{{ workflow_url }}" class="aras-iconbtn" title="Workflow Designer">
         <i class="fa fa-sitemap"></i>
       </a>
       {% endif %}
 
       {% if _has_extra %}
         {% for btn in extra_buttons %}
-          <a href="{{ btn.url }}" class="aras-iconbtn aras-iconbtn--label" title="{{ btn.title if btn.title is defined else '' }}">
-            {% if btn.icon is defined %}<i class="fa {{ btn.icon }}"></i>{% endif %}
-            {% if btn.label is defined %}<span>{{ btn.label }}</span>{% endif %}
-          </a>
+        <a href="{{ btn.url }}"
+           class="aras-iconbtn{% if btn.label is defined and btn.label %} aras-iconbtn--label{% endif %}"
+           title="{{ btn.title if btn.title is defined else '' }}">
+          {% if btn.icon is defined %}<i class="fa {{ btn.icon }}"></i>{% endif %}
+          {% if btn.label is defined and btn.label %}<span>{{ btn.label }}</span>{% endif %}
+        </a>
         {% endfor %}
       {% endif %}
     </div>
@@ -205,51 +199,44 @@
   </div>
 </div>
 
-{# ── Popover open/close (preserved IDs: viewToggleBtn / savedViewsBtn / saveCurrentViewBtn) ── #}
+{# ── Popover JS (shared, idempotent) ── #}
 <script>
 (function() {
   const lid = '{{ _lid }}';
   const wireMenu = (btnId, popId) => {
-    const btn = document.getElementById(btnId);
-    const pop = document.getElementById(popId);
+    const btn = document.getElementById(btnId + lid);
+    const pop = document.getElementById(popId + lid);
     if (!btn || !pop) return;
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', e => {
       e.stopPropagation();
-      const visible = pop.style.display === 'block';
+      const open = pop.style.display === 'block';
       document.querySelectorAll('.aras-popover').forEach(p => p.style.display = 'none');
-      pop.style.display = visible ? 'none' : 'block';
+      pop.style.display = open ? 'none' : 'block';
     });
-    pop.addEventListener('click', (e) => e.stopPropagation());
+    pop.addEventListener('click', e => e.stopPropagation());
   };
-  wireMenu('viewToggleBtn'  + lid, 'viewTogglePopover'  + lid);
-  wireMenu('savedViewsBtn'  + lid, 'savedViewsPopover'  + lid);
-  document.addEventListener('click', () => {
-    document.querySelectorAll('.aras-popover').forEach(p => p.style.display = 'none');
-  });
+  wireMenu('viewToggleBtn', 'viewTogglePopover');
+  wireMenu('savedViewsBtn', 'savedViewsPopover');
+  wireMenu('colToggleBtn',  'colTogglePopover');
+  document.addEventListener('click', () =>
+    document.querySelectorAll('.aras-popover').forEach(p => p.style.display = 'none'));
 
   const saveBtn = document.getElementById('saveCurrentViewBtn' + lid);
-  if (saveBtn) {
-    saveBtn.addEventListener('click', function() {
-      const name = prompt("Enter a name for this view:");
-      if (!name) return;
-      const urlParams = new URLSearchParams(window.location.search);
-      const columns = Array.from(document.querySelectorAll('.js-col-vis' + lid + ':checked')).map(cb => cb.dataset.field);
-      const payload = {
+  if (saveBtn) saveBtn.addEventListener('click', function() {
+    const name = prompt("Name this view:");
+    if (!name) return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const cols = Array.from(document.querySelectorAll('.js-col-vis' + lid + ':checked')).map(c => c.dataset.field);
+    fetch('/admin/api/page-view/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+      body: JSON.stringify({
         table_id: {{ (table_id | tojson) if table_id is defined else 'null' }},
-        name: name,
-        label: name,
-        filter: {},
+        name, label: name, filter: {},
         sort: { col: urlParams.get('sort'), dir: urlParams.get('dir') },
-        columns: columns
-      };
-      fetch('/admin/api/page-view/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
-        body: JSON.stringify(payload)
+        columns: cols
       })
-      .then(res => res.json())
-      .then(data => { if (data.ok) location.reload(); else alert("Error saving view: " + data.error); });
-    });
-  }
+    }).then(r => r.json()).then(d => { if (d.ok) location.reload(); else alert("Error: " + d.error); });
+  });
 })();
 </script>

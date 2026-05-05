@@ -25,6 +25,7 @@
   - Saving: Uses HTMX for asynchronous save via POST to `ct.api_url`.
   - Persistence: Syncs state using hidden inputs and `static/js/child_table.js`.
 #}
+{% if ct is defined and ct and ct.model_name is defined and ct.model_name %}
 {% set _ct_footer = ct.footer_totals if ct.footer_totals is defined else [] %}
 {% set _li = ct.model_name if (ct.model_name is defined and ct.model_name) else (loop.index | string) %}
 {% set _ct_all_render = ct.all_columns if (ct.all_columns is defined and ct.all_columns) else ct.vcols %}
@@ -35,11 +36,9 @@
   <input type="hidden" name="ct_local_{{ _li }}" id="ct-local-input-{{ _li }}" value="{{ request.form.get('ct_local_' + _li) or '' }}">
 
   {# ── Toolbar ── #}
-  <div class="aras-child-toolbar d-flex justify-content-between align-items-center mb-0" style="padding: 12px 20px; background: var(--studio-paper); border-bottom: 1px solid var(--studio-cream);">
-    <h5 class="aras-child-toolbar__title m-0" style="font-family: var(--aras-font-serif); font-weight: 700; font-size: 14px; color: var(--studio-ink);">
-      {{ ct.title }}
-    </h5>
-    <div class="aras-child-toolbar__actions d-flex gap-2" style="position: relative;">
+  <header class="ledger-section__head" style="display:flex;align-items:center;justify-content:space-between;">
+    <span class="ledger-section__label" style="font-family:var(--aras-font-serif);font-weight:700;font-size:14px;color:var(--studio-ink);">{{ ct.title }}</span>
+    <div class="ct-head-actions d-flex gap-2" style="position:relative;">
       {# #ChildListViewRelated: 'Add Row' displays hidden inline input row. #}
       {% if ct.api_url and ct.inline_columns %}
       <button type="button" class="aras-btn aras-btn--primary aras-btn--sm" onclick="ctAddRow('{{ _li }}')" id="ct-add-btn-{{ _li }}">
@@ -50,19 +49,19 @@
         <i class="fa fa-plus"></i> Add {{ ct.title }}
       </a>
       {% endif %}
-      <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" onclick="toggleCtTotals('{{ _li }}')" id="ct-totals-btn-{{ _li }}" title="Show totals" style="padding: 6px 10px;">
+      <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" onclick="toggleCtTotals('{{ _li }}')" id="ct-totals-btn-{{ _li }}" title="Show totals" style="padding:6px 10px;">
         <i class="fa fa-calculator"></i>
       </button>
-      <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" onclick="toggleCtSettings('{{ _li }}', event)" title="Columns" style="padding: 6px 10px;">
+      <button type="button" class="aras-btn aras-btn--outline aras-btn--sm" onclick="toggleCtSettings('{{ _li }}', event)" title="Columns" style="padding:6px 10px;">
         <i class="fa fa-columns"></i>
       </button>
       {% if ct.app_id is defined and ct.app_id and ct.table_id is defined and ct.table_id %}
       <a href="{{ url_for('admin.apps_columns', app_id=ct.app_id, table_id=ct.table_id) }}#fields-pane"
-         class="aras-btn aras-btn--outline aras-btn--sm" title="Architecture / Column Settings" style="padding: 6px 10px;">
+         class="aras-btn aras-btn--outline aras-btn--sm" title="Architecture / Column Settings" style="padding:6px 10px;">
         <i class="fa fa-database"></i>
       </a>
       <a href="{{ url_for('admin.apps_columns', app_id=ct.app_id, table_id=ct.table_id) }}#designer-pane"
-         class="aras-btn aras-btn--outline aras-btn--sm" title="Form Designer" style="padding: 6px 10px;">
+         class="aras-btn aras-btn--outline aras-btn--sm" title="Form Designer" style="padding:6px 10px;">
         <i class="fa fa-magic"></i>
       </a>
       {% endif %}
@@ -84,11 +83,11 @@
       {% endif %}
       {% set _ct_picker_cols = ct.all_columns if (ct.all_columns is defined and ct.all_columns) else ct.vcols %}
       {% set _ct_visible_fields = ct.vcols | map(attribute=1) | list %}
-      <div id="ct-settings-{{ _li }}" class="aras-popover" style="display:none; top: 40px; border: 1px solid var(--studio-ochre); border-radius: 4px; box-shadow: var(--aras-shadow-drop);">
-        <div class="aras-popover__head" style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--aras-ink-3); border-bottom: 1px solid var(--aras-line); padding-bottom: 6px; margin-bottom: 8px;">Visible Columns</div>
+      <div id="ct-settings-{{ _li }}" class="aras-popover" style="display:none;top:40px;border:1px solid var(--studio-ochre);border-radius:4px;box-shadow:var(--aras-shadow-drop);">
+        <div class="aras-popover__head" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--aras-ink-3);border-bottom:1px solid var(--aras-line);padding-bottom:6px;margin-bottom:8px;">Visible Columns</div>
         {% for label, field in _ct_picker_cols %}
         {% set _ct_checked = field in _ct_visible_fields %}
-        <label class="aras-popover__item" style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer; margin: 0 0 6px 0; font-weight: normal; user-select: none;">
+        <label class="aras-popover__item" style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;margin:0 0 6px 0;font-weight:normal;user-select:none;">
           <input type="checkbox" class="js-ct-col-vis-{{ _li }}" data-field="{{ field }}" {% if _ct_checked %}checked{% endif %}
                  onchange="applyCtColVis('{{ _li }}', '{{ field }}', this.checked); persistCtCols('{{ _li }}')">
           {{ label }}
@@ -96,19 +95,19 @@
         {% endfor %}
       </div>
     </div>
-  </div>
+  </header>
 
   {# ── Table ── #}
-  <div class="overflow-x-auto">
-  <table class="aras-table mb-0" id="ct-table-{{ _li }}">
+  <div class="at-wrap">
+  <table class="at" id="ct-table-{{ _li }}">
     <thead>
       <tr>
-        <th class="ct-th-seq w-32 text-center" style="background: var(--studio-paper); border-bottom: 1px solid var(--studio-cream); padding: 12px 20px; font-family: var(--aras-font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: var(--aras-ink-3);">#</th>
+        <th class="at__th ct-th-seq" style="width:36px;text-align:center;">#</th>
         {% for label, field in _ct_all_render %}
-        <th data-field="{{ field }}" {% if field not in _ct_vcol_names %}style="display:none; background: var(--studio-paper); border-bottom: 1px solid var(--studio-cream); padding: 12px 20px; font-family: var(--aras-font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: var(--aras-ink-3);"{% else %}style="background: var(--studio-paper); border-bottom: 1px solid var(--studio-cream); padding: 12px 20px; font-family: var(--aras-font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: var(--aras-ink-3);"{% endif %}>{{ label }}</th>
+        <th class="at__th" data-field="{{ field }}"{% if field not in _ct_vcol_names %} style="display:none;"{% endif %}>{{ label }}</th>
         {% endfor %}
         {% if ct.api_url %}
-        <th class="ct-th-actions w-70 text-right" style="background: var(--studio-paper); border-bottom: 1px solid var(--studio-cream); padding: 12px 20px;"></th>
+        <th class="at__th ct-th-actions" style="width:70px;"></th>
         {% endif %}
       </tr>
 
@@ -315,3 +314,4 @@
 <script src="{{ url_for('static', filename='js/child_table.js') }}"></script>
 <script>initChildTable({{ _li | tojson }});</script>
 {% endif %}
+{% endif %}{# /ct guard #}

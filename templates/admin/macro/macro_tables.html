@@ -1,104 +1,144 @@
 {#
---------------------------------------------------------------------------------
-  render_data_table(view_columns, items, rel_maps, edit_url_base, show_bulk_delete, _lid, _has_bulk, _has_edit, _has_totals, show_totals, _col_count, add_url)
-  Renders the data table for a list view.
---------------------------------------------------------------------------------
+================================================================================
+  macro_tables.html — Generic Table Component System
+  
+  Usage anywhere in jinja templates:
+  
+    {% from 'admin/macro/macro_tables.html' import render_data_table, render_tree_table, pagination_widget %}
+    
+    {{ render_data_table(
+         columns   = [("Name","name"), ("Date","date")],  -- list of (label, field)
+         items     = items,                               -- iterable of model objects / dicts
+         rel_maps  = {},          -- optional {field: {id: label}} for FK resolution
+         edit_url_base = '/admin/app/resource',           -- enables row click + edit
+         show_bulk_delete = True,                         -- checkbox + bulk delete
+         _lid      = '',          -- unique suffix when >1 table on page
+         show_totals = False,     -- show numeric totals footer
+         add_url   = none,        -- "No records" CTA link
+    ) }}
+================================================================================
 #}
-{% macro render_data_table(view_columns, items, rel_maps=None, edit_url_base=None, show_bulk_delete=False, _lid='', _has_bulk=False, _has_edit=False, _has_totals=False, show_totals=False, _col_count=0, add_url=None, _visible_fields=None) %}
-{% set _rel = rel_maps if rel_maps else {} %}
-{% if _has_bulk %}
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   render_data_table — generic list table
+   ───────────────────────────────────────────────────────────────────────────── #}
+{% macro render_data_table(columns, items, rel_maps=None, edit_url_base=None,
+    show_bulk_delete=False, _lid='', _has_bulk=None, _has_edit=None,
+    _has_totals=True, show_totals=False, _col_count=0, add_url=None,
+    _visible_fields=None, use_item_edit_url=False) %}
+
+{% set _rel       = rel_maps if rel_maps else {} %}
+{% set _bulk      = _has_bulk if _has_bulk is not none else show_bulk_delete %}
+{% set _editable  = _has_edit if _has_edit is not none else (edit_url_base or use_item_edit_url) %}
+
+{% if _bulk %}
 <form method="POST" id="bulkDeleteForm{{ _lid }}"
       action="{{ edit_url_base }}/bulk-delete/" style="display:none;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="hidden" name="ids" id="bulkDeleteIds{{ _lid }}">
 </form>
 {% endif %}
-<div class="aras-table-wrap">
-  <table class="aras-table" id="mainListTable{{ _lid }}">
+
+<div class="at-wrap" id="mainListTable{{ _lid }}_wrap">
+  <table class="at" id="mainListTable{{ _lid }}">
     <thead>
       <tr>
-        {% if _has_bulk %}
-        <th class="th-check">
+        {% if _bulk %}
+        <th class="at__th at__th--check">
           <label class="aras-checkbox">
             <input type="checkbox" id="checkAll{{ _lid }}">
             <span class="aras-checkmark"></span>
           </label>
         </th>
         {% endif %}
-        {% for label, field in view_columns %}
-        <th data-field="{{ field }}" {% if _visible_fields is not none and field not in _visible_fields %}style="display:none;"{% endif %}>
-          {% set current_sort = request.args.get('sort') %}
-          {% set current_dir = request.args.get('dir', 'asc') %}
-          {% set next_dir = 'desc' if current_sort == field and current_dir == 'asc' else 'asc' %}
-          
-          {# Build URL with current args updated for sort #}
-          {% set url_args = request.args.copy() %}
-          {% do url_args.setlist('sort', [field]) %}
-          {% do url_args.setlist('dir', [next_dir]) %}
-          
-          <a href="?{{ url_args | urlencode }}" class="aras-table-sort">
+
+        {% for label, field in columns %}
+        {% set _hidden = _visible_fields is not none and field not in _visible_fields %}
+        <th class="at__th" data-field="{{ field }}"{% if _hidden %} style="display:none;"{% endif %}>
+          {# Sort link #}
+          {% set _sort = request.args.get('sort') %}
+          {% set _dir  = request.args.get('dir', 'asc') %}
+          {% set _next = 'desc' if _sort == field and _dir == 'asc' else 'asc' %}
+          {% set _ua   = request.args.copy() %}
+          {% do _ua.setlist('sort', [field]) %}
+          {% do _ua.setlist('dir', [_next]) %}
+          <a href="?{{ _ua | urlencode }}" class="at__sort-link">
             {{ label }}
-            {% if current_sort == field %}
-              <i class="fa fa-caret-{{ 'up' if current_dir == 'asc' else 'down' }} ml-1"></i>
+            {% if _sort == field %}
+              <i class="fa fa-caret-{{ 'up' if _dir == 'asc' else 'down' }} at__sort-icon at__sort-icon--active"></i>
             {% else %}
-              <i class="fa fa-sort text-light ml-1 fs-10"></i>
+              <i class="fa fa-sort at__sort-icon"></i>
             {% endif %}
           </a>
         </th>
         {% endfor %}
       </tr>
     </thead>
+
     <tbody>
       {% for item in items %}
-      {% if _has_edit %}
-        {% if edit_url_base %}
-          {% set _row_url = edit_url_base ~ '/' ~ item.id ~ '/' %}
-        {% else %}
-          {% set _row_url = item.edit_url %}
+        {% if _editable %}
+          {% if edit_url_base %}{% set _url = edit_url_base ~ '/' ~ item.id ~ '/' %}
+          {% else %}{% set _url = item.edit_url %}{% endif %}
         {% endif %}
-      {% endif %}
-      <tr {% if _has_edit and _row_url %}class="is-clickable" data-edit-url="{{ _row_url }}"{% endif %}>
-        {% if _has_bulk %}
-        <td class="td-check" onclick="event.stopPropagation();">
-          <label class="aras-checkbox">
-            <input type="checkbox" class="js-row-check{{ _lid }}" value="{{ item.id }}">
-            <span class="aras-checkmark"></span>
-          </label>
-        </td>
-        {% endif %}
-        {% for label, field in view_columns %}
-          {% set raw = item|attr(field) if item|attr(field) is defined else none %}
-          {% set _hidden_style = 'display:none;' if _visible_fields is not none and field not in _visible_fields else '' %}
-          {% if field in _rel and raw is not none %}
-            <td data-field="{{ field }}" data-id="{{ item.id }}" data-rel="1" style="{{ _hidden_style }}">
-              {% if loop.first %}<span class="hash">{{ raw }}</span>{% else %}{{ _rel[field][raw|string] if raw|string in _rel[field] else raw }}{% endif %}
-            </td>
-          {% else %}
-            <td data-field="{{ field }}" data-id="{{ item.id }}" class="js-inline-cell{{ _lid }}" style="{{ _hidden_style }}">
-              {% if loop.first %}<span class="hash">{{ raw if raw is not none else '' }}</span>{% else %}{{ raw if raw is not none else '' }}{% endif %}
-            </td>
+        <tr class="at__tr{% if _editable %} at__tr--link is-clickable{% endif %}"
+            {% if _editable and _url %}data-edit-url="{{ _url }}"{% endif %}>
+
+          {% if _bulk %}
+          <td class="at__td at__td--check" onclick="event.stopPropagation();">
+            <label class="aras-checkbox">
+              <input type="checkbox" class="js-row-check{{ _lid }}" value="{{ item.id }}">
+              <span class="aras-checkmark"></span>
+            </label>
+          </td>
           {% endif %}
-        {% endfor %}
-      </tr>
+
+          {% for label, field in columns %}
+            {% set _hidden = _visible_fields is not none and field not in _visible_fields %}
+            {% if item is mapping %}{% set raw = item.get(field) %}
+            {% else %}{% set raw = item|attr(field) if item|attr(field) is defined else none %}{% endif %}
+
+            <td class="at__td js-inline-cell{{ _lid }}"
+                data-field="{{ field }}" data-id="{{ item.id }}"
+                {% if _hidden %}style="display:none;"{% endif %}>
+              {%- if loop.first -%}
+                <span class="at__hash">
+                  {%- if field in _rel and raw is not none -%}
+                    {{ _rel[field][raw|string] if raw|string in _rel[field] else raw }}
+                  {%- else -%}{{ raw if raw is not none else '' }}{%- endif -%}
+                </span>
+              {%- elif field in _rel and raw is not none -%}
+                {{ _rel[field][raw|string] if raw|string in _rel[field] else raw }}
+              {%- else -%}{{ raw if raw is not none else '' }}{%- endif -%}
+            </td>
+          {% endfor %}
+        </tr>
       {% else %}
-      <tr>
-        <td colspan="{{ _col_count }}">
-          <div class="aras-empty-state">
-            <div class="aras-empty-icon"><i class="fa fa-inbox"></i></div>
-            <p class="aras-empty-text">No records yet</p>
-            {% if add_url %}<a href="{{ add_url }}" class="aras-btn aras-btn--primary"><i class="fa fa-plus"></i> Add First Record</a>{% endif %}
-          </div>
-        </td>
-      </tr>
+        <tr>
+          <td colspan="{{ columns|length + (1 if _bulk else 0) }}">
+            <div class="at__empty">
+              <div class="at__empty-icon"><i class="fa fa-inbox"></i></div>
+              <p class="at__empty-text">No records yet</p>
+              {% if add_url %}
+              <a href="{{ add_url }}" class="aras-btn aras-btn--primary">
+                <i class="fa fa-plus"></i> Add First Record
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
       {% endfor %}
     </tbody>
+
     {% if _has_totals %}
-    <tfoot id="totalsRow{{ _lid }}" style="{{ '' if show_totals else 'display:none;' }}">
+    <tfoot id="totalsRow{{ _lid }}" {% if not show_totals %}style="display:none;"{% endif %}>
       <tr>
-        {% if _has_bulk %}<td></td>{% endif %}
-        {% for label, field in view_columns %}
-        {% set _hidden_style = 'display:none;' if _visible_fields is not none and field not in _visible_fields else '' %}
-        <td class="js-col-total{{ _lid }}" data-field="{{ field }}" style="{{ _hidden_style }}">—</td>
+        {% if _bulk %}<td class="at__td"></td>{% endif %}
+        {% for label, field in columns %}
+        {% set _hidden = _visible_fields is not none and field not in _visible_fields %}
+        <td class="at__td at__td--total js-col-total{{ _lid }}"
+            data-field="{{ field }}"
+            {% if _hidden %}style="display:none;"{% endif %}>—</td>
         {% endfor %}
       </tr>
     </tfoot>
@@ -107,183 +147,120 @@
 </div>
 {% endmacro %}
 
-{#
---------------------------------------------------------------------------------
-  render_tree_table(view_columns, items, rel_maps, edit_url_base, _lid)
-  Renders a hierarchical (tree) table.
---------------------------------------------------------------------------------
-#}
-{#
---------------------------------------------------------------------------------
-  render_tree_table(view_columns, items, edit_url_base, _lid)
-  Renders a stunning directory-style tree view.
---------------------------------------------------------------------------------
-#}
-{% macro render_tree_table(view_columns, items, edit_url_base=None, _lid='', _visible_fields=None) %}
-<div class="aras-tree-container p-20 bg-white border rounded shadow-sm">
-  <div class="aras-tree-header d-flex justify-content-between mb-16 pb-12 border-bottom">
-    <div class="font-weight-bold text-muted fs-12 uppercase tracking-wider">{{ view_columns[0][0] }}</div>
-    <div class="font-weight-bold text-muted fs-12 uppercase tracking-wider">Details</div>
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   render_tree_table — hierarchical tree view
+   ───────────────────────────────────────────────────────────────────────────── #}
+{% macro render_tree_table(columns, items, edit_url_base=None, _lid='', _visible_fields=None) %}
+<div class="at-tree">
+  {% set roots = items | selectattr('parent_id', 'none') | list %}
+  {% if not roots and items %}{% set roots = items[:50] %}{% endif %}
+  {% for root in roots %}
+    {{ _tree_row(root, columns, 0, edit_url_base, _visible_fields) }}
+  {% endfor %}
+  {% if not items %}
+  <div class="at__empty">
+    <div class="at__empty-icon"><i class="fa fa-sitemap"></i></div>
+    <p class="at__empty-text">No hierarchical data found</p>
   </div>
-  
-  <div class="aras-tree-root">
-    {% set roots = items | selectattr('parent_id', 'none') | list %}
-    {% if not roots and items %}
-      {% set roots = items[:50] %} 
-    {% endif %}
-    
-    {% for root in roots %}
-      {{ render_tree_row(root, view_columns, 0, edit_url_base, _visible_fields) }}
-    {% endfor %}
-    
-    {% if not items %}
-    <div class="text-center py-50">
-      <i class="fa fa-sitemap fa-3x text-light mb-16"></i>
-      <p class="text-muted">No hierarchical data found</p>
-    </div>
-    {% endif %}
-  </div>
+  {% endif %}
 </div>
-
-<style>
-  .aras-tree-container { min-height: 400px; color: #444; }
-  .tree-node { position: relative; }
-  .tree-content { 
-    display: flex; 
-    align-items: center; 
-    padding: 8px 12px; 
-    border-radius: 6px; 
-    margin-bottom: 2px;
-    transition: all 0.2s;
-    cursor: pointer;
-  }
-  .tree-content:hover { background: #f6f5ff; }
-  .tree-content:hover .tree-link { color: var(--aras-accent, #7266ba); }
-  
-  .tree-indent-wrapper { display: flex; align-items: center; }
-  .tree-indent { width: 24px; height: 32px; flex-shrink: 0; position: relative; }
-  
-  /* Garis Pemandu */
-  .tree-indent::before {
-    content: '';
-    position: absolute;
-    left: 12px;
-    top: 0;
-    bottom: 0;
-    border-left: 1px dashed #ddd;
-  }
-  
-  .js-tree-toggle {
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 2;
-    background: #fff;
-    border-radius: 4px;
-    color: #999;
-    transition: all 0.2s;
-    margin-right: 8px;
-  }
-  .js-tree-toggle:hover { color: var(--aras-accent, #7266ba); background: #f0edff; }
-  .js-tree-toggle.collapsed i { transform: rotate(-90deg); }
-  
-  .tree-icon { width: 20px; text-align: center; margin-right: 10px; color: #bcc1d5; }
-  .tree-link { 
-    color: #333; 
-    font-weight: 500; 
-    text-decoration: none !important; 
-    flex-grow: 1;
-    font-size: 14px;
-  }
-  
-  .tree-details { display: flex; align-items: center; gap: 8px; }
-  .tree-badge { 
-    font-size: 11px; 
-    padding: 2px 8px; 
-    background: #f1f3f7; 
-    color: #666; 
-    border-radius: 12px;
-    white-space: nowrap;
-  }
-  
-  .tree-children { margin-left: 0; display: block; }
-  .tree-children.collapsed { display: none; }
-</style>
-
-<script>
-(function() {
-  document.addEventListener('click', function(e) {
-    const toggle = e.target.closest('.js-tree-toggle');
-    if (!toggle) return;
-    
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const node = toggle.closest('.tree-node');
-    const childrenContainer = node.querySelector('.tree-children');
-    
-    if (childrenContainer) {
-      const isCollapsed = childrenContainer.classList.toggle('collapsed');
-      toggle.classList.toggle('collapsed', isCollapsed);
-      
-      const icon = toggle.querySelector('i');
-      if (isCollapsed) {
-        icon.className = 'fa fa-folder-o';
-      } else {
-        icon.className = 'fa fa-folder-open-o';
-      }
-    }
-  });
-})();
-</script>
 {% endmacro %}
 
-{% macro render_tree_row(item, view_columns, level, edit_url_base, _visible_fields=None) %}
-  {% set _row_url = edit_url_base ~ '/' ~ item.id ~ '/' if edit_url_base else '#' %}
-  {% set has_children = item.children|length > 0 if item.children is defined else False %}
-  
-  <div class="tree-node" data-id="{{ item.id }}">
-    <div class="tree-content">
-      <div class="tree-indent-wrapper">
-        {% for i in range(level) %}<span class="tree-indent"></span>{% endfor %}
-      </div>
-      
-      {% if has_children %}
-        <div class="js-tree-toggle">
-          <i class="fa fa-folder-open-o"></i>
-        </div>
-      {% else %}
-        <div class="tree-icon" style="width: 24px; margin-right: 8px;">
-          <i class="fa fa-circle-o fs-10"></i>
-        </div>
+{% macro _tree_row(item, columns, level, edit_url_base, _visible_fields) %}
+{% set _url = (edit_url_base ~ '/' ~ item.id ~ '/') if edit_url_base else '#' %}
+{% set _has_children = item.children|length > 0 if item.children is defined else False %}
+<div class="at-tree__node" data-id="{{ item.id }}">
+  <div class="at-tree__row">
+    {% for i in range(level) %}<span class="at-tree__indent"></span>{% endfor %}
+    {% if _has_children %}
+    <button type="button" class="at-tree__toggle js-tree-toggle">
+      <i class="fa fa-folder-open-o"></i>
+    </button>
+    {% else %}
+    <span class="at-tree__leaf"><i class="fa fa-circle-o"></i></span>
+    {% endif %}
+    <a href="{{ _url }}" class="at-tree__label">
+      {% if item.code is defined and item.code %}
+      <span class="at-tree__code">{{ item.code }}</span>
       {% endif %}
-      
-      <a href="{{ _row_url }}" class="tree-link">
-        <span class="text-muted mr-4">{{ item.code if item.code else '' }}</span>
-        {{ item.name if item.name else item.id }}
-      </a>
-      
-      <div class="tree-details">
-        {% for label, field in view_columns %}
-          {% if not loop.first %}
-            {% set val = item|attr(field) if item|attr(field) is defined else '' %}
-            {% if val %}
-              <span class="tree-badge">{{ val }}</span>
-            {% endif %}
-          {% endif %}
-        {% endfor %}
-      </div>
+      {{ item.name if item.name is defined else item.id }}
+    </a>
+    <div class="at-tree__meta">
+      {% for label, field in columns %}
+        {% if not loop.first %}
+          {% set val = item|attr(field) if item|attr(field) is defined else '' %}
+          {% if val %}<span class="at-tree__badge">{{ val }}</span>{% endif %}
+        {% endif %}
+      {% endfor %}
     </div>
-    
-    {% if has_children %}
-      <div class="tree-children">
-        {% for child in item.children %}
-          {{ render_tree_row(child, view_columns, level + 1, edit_url_base, _visible_fields) }}
-        {% endfor %}
-      </div>
+  </div>
+  {% if _has_children %}
+  <div class="at-tree__children">
+    {% for child in item.children %}
+      {{ _tree_row(child, columns, level + 1, edit_url_base, _visible_fields) }}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   pagination_widget
+   ───────────────────────────────────────────────────────────────────────────── #}
+{% macro pagination_widget(pagination, _lid='', per_page=20, search_q='', active_filters=None, qparam='q') %}
+{% if pagination and pagination.pages is defined and pagination.pages > 1 %}
+{% set _af = active_filters or [] %}
+<nav class="at-pag" aria-label="Pagination">
+  <span class="at-pag__info">
+    {{ pagination.page }} / {{ pagination.pages }}
+    <em>({{ pagination.total }} total)</em>
+  </span>
+
+  <div class="at-pag__nav">
+    {# Prev #}
+    {% if pagination.has_prev %}
+    {% set _pargs = request.args.copy() %}
+    {% do _pargs.setlist('page', [pagination.prev_num]) %}
+    {% do _pargs.setlist('per_page', [per_page]) %}
+    <a href="?{{ _pargs | urlencode }}" class="at-pag__btn">
+      <i class="fa fa-chevron-left"></i>
+    </a>
+    {% else %}
+    <span class="at-pag__btn at-pag__btn--disabled"><i class="fa fa-chevron-left"></i></span>
+    {% endif %}
+
+    {# Page numbers #}
+    {% set _pages = pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+    {% for p in _pages %}
+      {% if p %}
+        {% set _pargs2 = request.args.copy() %}
+        {% do _pargs2.setlist('page', [p]) %}
+        {% do _pargs2.setlist('per_page', [per_page]) %}
+        <a href="?{{ _pargs2 | urlencode }}"
+           class="at-pag__btn{% if p == pagination.page %} at-pag__btn--active{% endif %}">{{ p }}</a>
+      {% else %}
+        <span class="at-pag__ellipsis">…</span>
+      {% endif %}
+    {% endfor %}
+
+    {# Next #}
+    {% if pagination.has_next %}
+    {% set _pargs3 = request.args.copy() %}
+    {% do _pargs3.setlist('page', [pagination.next_num]) %}
+    {% do _pargs3.setlist('per_page', [per_page]) %}
+    <a href="?{{ _pargs3 | urlencode }}" class="at-pag__btn">
+      <i class="fa fa-chevron-right"></i>
+    </a>
+    {% else %}
+    <span class="at-pag__btn at-pag__btn--disabled"><i class="fa fa-chevron-right"></i></span>
     {% endif %}
   </div>
+
+  <span class="at-pag__per">
+    showing <strong>{{ per_page }}</strong> per page
+  </span>
+</nav>
+{% endif %}
 {% endmacro %}

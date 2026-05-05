@@ -118,11 +118,25 @@
           <div class="ledger-sheet">
             {% for section in tab.sections %}
               {% set _scol = section.width or 12 %}
+              {# Determine visibility and whether section is CT-only #}
+              {% set _ns = namespace(has_visible=false, has_regular=false) %}
+              {% for f in section.fields %}
+                {% if not f.open_in_tab %}
+                  {% if f.type == 'child_table' %}
+                    {% if f.ct is defined and f.ct and f.ct.model_name is defined and f.ct.model_name %}
+                      {% set _ns.has_visible = true %}
+                    {% endif %}
+                  {% else %}
+                    {% set _ns.has_visible = true %}
+                    {% set _ns.has_regular = true %}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+              {% if _ns.has_visible %}
               <section class="ledger-section ledger-section--w{{ _scol }}">
-                {% if section.label %}
+                {% if section.label and _ns.has_regular %}
                   <header class="ledger-section__head">
-                    <span class="ledger-section__sigil">{{ '%02d' | format(loop.index) }}</span>
-                    <!--<h5 class="ledger-section__title">{{ section.label }}</h5>-->
+                    <span class="ledger-section__label">{{ section.label }}</span>
                     <span class="ledger-section__hairline" aria-hidden="true"></span>
                   </header>
                 {% endif %}
@@ -145,6 +159,7 @@
                   {% endfor %}
                 </div>
               </section>
+              {% endif %}{# /_ns.has_visible #}
             {% endfor %}
           </div>
 
