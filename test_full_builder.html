@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Test GrapesJS</title>
+    <!-- CSS must be loaded -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/grapesjs/0.21.13/css/grapes.min.css">
+    <!-- JS must be loaded -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/grapesjs/0.21.13/grapes.min.js"></script>
+    <script src="https://unpkg.com/grapesjs-preset-webpage@1.0.2"></script>
+    <style>body, html { height: 100%; margin: 0; }</style>
+</head>
+<body>
+    <div id="gjs" style="height:100%; overflow:hidden;"></div>
+    <script>
+      try {
+        const editor = grapesjs.init({
+          container: '#gjs',
+          height: '100%',
+          storageManager: false,
+          plugins: ['gjs-preset-webpage'],
+          pluginsOpts: {
+            'gjs-preset-webpage': {}
+          }
+        });
+        console.log("Editor initialized");
+      } catch (e) {
+        console.error("Init error:", e);
+      }
+    </script>
+</body>
+</html>

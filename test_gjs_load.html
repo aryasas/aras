@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/grapesjs/0.21.13/css/grapes.min.css">
+</head>
+<body>
+    <div id="gjs" style="height: 500px; border: 1px solid red;"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/grapesjs/0.21.13/grapes.min.js"></script>
+    <script>
+        try {
+            var editor = grapesjs.init({
+                container: '#gjs',
+                components: '<div class="txt-red">Hello world!</div>',
+                style: '.txt-red{color: red}',
+            });
+            console.log("GrapesJS initialized successfully");
+        } catch (e) {
+            console.error("Failed to initialize GrapesJS:", e);
+        }
+    </script>
+</body>
+</html>

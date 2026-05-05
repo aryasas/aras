@@ -4,7 +4,6 @@ from aras.erp.erp_stock.models.product import StockProductUom
 
 
 def convert_qty(product_id: int, qty: Decimal, from_uom_id: int, to_uom_id: int) -> Decimal:
-    print(f"DEBUG: convert_qty called with from_uom_id={from_uom_id}, to_uom_id={to_uom_id}")
     """Convert qty from from_uom to to_uom using product-specific or global ratio."""
     if from_uom_id is None:
         raise ValueError("from_uom_id cannot be None for UOM conversion.")
@@ -16,9 +15,6 @@ def convert_qty(product_id: int, qty: Decimal, from_uom_id: int, to_uom_id: int)
     dst      = StockProductUom.find(product_id=product_id, uom_id=to_uom_id)
     from_uom = StockUom.get(from_uom_id)
     to_uom   = StockUom.get(to_uom_id)
-
-    print(f"DEBUG: Type of from_uom: {type(from_uom)}, Value: {from_uom}")
-    print(f"DEBUG: Type of to_uom: {type(to_uom)}, Value: {to_uom}")
 
     if not from_uom:
         raise ValueError(f"From UOM with ID {from_uom_id} not found.")
@@ -33,3 +29,10 @@ def convert_qty(product_id: int, qty: Decimal, from_uom_id: int, to_uom_id: int)
 def to_base_qty(product_id: int, qty: Decimal, uom_id: int, base_uom_id: int) -> Decimal:
     """Convert qty in given UoM to product's base UoM."""
     return convert_qty(product_id, qty, uom_id, base_uom_id)
+
+def get_factor(product_id: int, uom_id: int, base_uom_id: int) -> Decimal:
+    """Return how many base-UOM units equal 1 unit of uom_id (factor for price conversion)."""
+    if uom_id == base_uom_id:
+        return Decimal("1")
+    rec = StockProductUom.find(product_id=product_id, uom_id=uom_id)
+    return Decimal(str(rec.factor)) if rec else Decimal("1")

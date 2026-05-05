@@ -13,6 +13,7 @@ from aras.erp.erp_stock.models.product import StockProduct
 from aras.erp.erp_stock.models.warehouse import StockLocation  # noqa
 from aras.erp.erp_stock.services.posting import post_movement
 from aras.erp.erp_stock.services.coa_resolver import resolve_stock_account, resolve_purchase_account
+from aras.erp.erp_stock.services.uom_service import to_base_qty, get_factor
 
 
 def post_purchase_invoice(invoice_id: int, location_id: int = None) -> AccPurchaseInvoice:
@@ -55,10 +56,24 @@ def post_purchase_invoice(invoice_id: int, location_id: int = None) -> AccPurcha
         journal_lines.append({"account_id": acc_stock,    "debit": float(subtotal), "credit": 0})
         journal_lines.append({"account_id": acc_purchase, "debit": 0, "credit": float(subtotal)})
 
-        if product and getattr(product, "is_stock_item", True):
-            uom_id = line.uom_id or product.uom_id
+        if product and not getattr(product, "is_stock_item", True) and product.bundle_components:
+            # Bundle: expand components; parent is non-stock, components move
+            for comp in product.bundle_components:
+                comp_product = comp.component
+                if not comp_product or not getattr(comp_product, "is_stock_item", True):
+                    continue
+                comp_qty    = qty * Decimal(str(comp.qty))
+                comp_uom_id = comp.uom_id or comp_product.uom_id
+                comp_base   = to_base_qty(comp_product.id, comp_qty, comp_uom_id, comp_product.uom_id)
+                stock_lines.append({"product_id": comp_product.id, "uom_id": comp_uom_id,
+                                     "qty": comp_qty, "qty_base": comp_base, "unit_cost": Decimal("0")})
+        elif product and getattr(product, "is_stock_item", True):
+            uom_id     = line.uom_id or product.uom_id
+            qty_base   = to_base_qty(product.id, qty, uom_id, product.uom_id)
+            factor     = get_factor(product.id, uom_id, product.uom_id)
+            unit_cost  = (price / factor) if factor > 0 else price
             stock_lines.append({"product_id": line.product_id, "uom_id": uom_id,
-                                 "qty": qty, "unit_cost": price})
+                                 "qty": qty, "qty_base": qty_base, "unit_cost": unit_cost})
 
     if journal_lines:
         entry = post_journal(
@@ -95,18 +110,48 @@ def post_purchase_invoice(invoice_id: int, location_id: int = None) -> AccPurcha
             db.session.flush()
 
             for sl in stock_lines:
+                qty_base = sl.get("qty_base", sl["qty"])
                 db.session.add(StockMovementLine(
                     movement_id=mv.id,
                     product_id=sl["product_id"],
                     uom_id=sl["uom_id"],
                     qty=sl["qty"],
-                    qty_base=sl["qty"],  # same as qty (base UOM purchase)
+                    qty_base=qty_base,
                     unit_cost=sl["unit_cost"],
-                    total_cost=sl["qty"] * sl["unit_cost"],
+                    total_cost=qty_base * sl["unit_cost"],
                 ))
             db.session.flush()
             post_movement(mv.id, skip_journal=True)
 
     inv.state = "posted"
+    _upsert_purchase_prices(inv)
     db.session.commit()
     return inv
+
+
+def _upsert_purchase_prices(inv):
+    """Auto-save purchase prices to StockPriceList if no price exists for product+price_type."""
+    from aras.erp.erp_stock.models.product import StockPriceList
+    price_type_id = inv.price_type_id
+    if not price_type_id:
+        return
+    for line in inv.lines:
+        if not line.product_id or not line.unit_price:
+            continue
+        existing = StockPriceList.find(
+            product_id=line.product_id,
+            price_type_id=price_type_id,
+            price_type="purchase",
+        )
+        if existing:
+            continue
+        db.session.add(StockPriceList(
+            product_id=line.product_id,
+            price_type_id=price_type_id,
+            price_type="purchase",
+            currency_id=inv.currency_id,
+            uom_id=line.uom_id,
+            name=f"Auto: {inv.name}",
+            price=line.unit_price,
+            is_active=True,
+        ))

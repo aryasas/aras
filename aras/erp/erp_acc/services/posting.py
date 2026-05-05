@@ -144,7 +144,26 @@ def post_sales_invoice(invoice_id: int) -> "AccSalesInvoice":
         })
 
         # COGS / HPP for storable products
-        if product and getattr(product, "is_stock_item", True):
+        if product and not getattr(product, "is_stock_item", True) and product.bundle_components:
+            # Bundle: post COGS for each component
+            qty = Decimal(str(il.qty or 0))
+            for comp in product.bundle_components:
+                comp_product = comp.component
+                if not comp_product or not getattr(comp_product, "is_stock_item", True):
+                    continue
+                acc_cogs  = resolve_cogs_account(comp_product, company_id)
+                acc_stock = resolve_stock_account(comp_product, company_id)
+                if not acc_cogs or not acc_stock:
+                    continue
+                comp_qty = qty * Decimal(str(comp.qty))
+                cost     = Decimal(str(compute_avg_cost(comp_product.id, company_id=company_id)))
+                amount   = round(comp_qty * cost, 2)
+                if amount > 0:
+                    lines.append({"account_id": acc_cogs,  "debit": float(amount), "credit": 0,
+                                  "description": f"HPP {comp_product.name}"})
+                    lines.append({"account_id": acc_stock, "debit": 0, "credit": float(amount),
+                                  "description": f"Persediaan keluar {comp_product.name}"})
+        elif product and getattr(product, "is_stock_item", True):
             acc_cogs  = resolve_cogs_account(product, company_id)
             acc_stock = resolve_stock_account(product, company_id)
             if acc_cogs and acc_stock:
@@ -208,8 +227,37 @@ def post_sales_invoice(invoice_id: int) -> "AccSalesInvoice":
         _post_sales_delivery(inv, company_id, location_id)
 
     inv.state = "posted"
+    _upsert_sales_prices(inv)
     db.session.commit()
     return inv
+
+
+def _upsert_sales_prices(inv):
+    """Auto-save sales prices to StockPriceList if no price exists for product+price_type."""
+    from aras.erp.erp_stock.models.product import StockPriceList
+    price_type_id = getattr(inv, "price_type_id", None)
+    if not price_type_id:
+        return
+    for il in inv.lines:
+        if not il.product_id or not getattr(il, "unit_price", None):
+            continue
+        existing = StockPriceList.find(
+            product_id=il.product_id,
+            price_type_id=price_type_id,
+            price_type="sales",
+        )
+        if existing:
+            continue
+        db.session.add(StockPriceList(
+            product_id=il.product_id,
+            price_type_id=price_type_id,
+            price_type="sales",
+            currency_id=inv.currency_id,
+            uom_id=getattr(il, "uom_id", None),
+            name=f"Auto: {inv.name}",
+            price=il.unit_price,
+            is_active=True,
+        ))
 
 
 def _post_sales_delivery(inv, company_id: int, location_id: int):
@@ -240,24 +288,49 @@ def _post_sales_delivery(inv, company_id: int, location_id: int):
     db.session.add(mv)
     db.session.flush()
 
+    from aras.erp.erp_stock.services.uom_service import to_base_qty
+    from aras.erp.erp_stock.services.stock_compute import compute_avg_cost
+
     for il in inv.lines:
         product = il.product
-        if not product or not getattr(product, "is_stock_item", True):
+        if not product:
             continue
-        qty = il.qty or 0
+        qty = Decimal(str(il.qty or 0))
         if qty <= 0:
             continue
-        from aras.erp.erp_stock.services.stock_compute import compute_avg_cost
-        cost = compute_avg_cost(product.id, company_id=company_id)
-        db.session.add(StockMovementLine(
-            movement_id=mv.id,
-            product_id=product.id,
-            uom_id=il.uom_id or product.uom_id,
-            qty=qty,
-            qty_base=qty,
-            unit_cost=cost,
-            total_cost=Decimal(str(qty)) * cost,
-        ))
+
+        if not getattr(product, "is_stock_item", True) and product.bundle_components:
+            # Bundle: expand components into stock lines
+            for comp in product.bundle_components:
+                comp_product = comp.component
+                if not comp_product or not getattr(comp_product, "is_stock_item", True):
+                    continue
+                comp_qty    = qty * Decimal(str(comp.qty))
+                comp_uom_id = comp.uom_id or comp_product.uom_id
+                comp_base   = to_base_qty(comp_product.id, comp_qty, comp_uom_id, comp_product.uom_id)
+                cost        = compute_avg_cost(comp_product.id, company_id=company_id)
+                db.session.add(StockMovementLine(
+                    movement_id=mv.id,
+                    product_id=comp_product.id,
+                    uom_id=comp_uom_id,
+                    qty=comp_qty,
+                    qty_base=comp_base,
+                    unit_cost=cost,
+                    total_cost=comp_base * cost,
+                ))
+        elif getattr(product, "is_stock_item", True):
+            uom_id   = il.uom_id or product.uom_id
+            qty_base = to_base_qty(product.id, qty, uom_id, product.uom_id)
+            cost     = compute_avg_cost(product.id, company_id=company_id)
+            db.session.add(StockMovementLine(
+                movement_id=mv.id,
+                product_id=product.id,
+                uom_id=uom_id,
+                qty=qty,
+                qty_base=qty_base,
+                unit_cost=cost,
+                total_cost=qty_base * cost,
+            ))
     db.session.flush()
     post_movement(mv.id, skip_journal=True)  # journal already posted above
 
