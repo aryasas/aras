@@ -713,7 +713,7 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
 
         linked_report_url = None
         try:
-            from aras.erp.erp_core.models.report import ErpReport
+            from app.erp.erp_core.models.report import ErpReport
             _nm = {"acc_sales_invoice": "sales_summary", "acc_purchase_invoice": "purchase_summary",
                    "pos_order": "pot_sales_report", "pos_session": "pos_shift_report"}
             rpt = ErpReport.query.filter_by(name=_doctype_key, is_active=True).first()

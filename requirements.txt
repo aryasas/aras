@@ -14,10 +14,6 @@ mariadb
 
 # Auth & Forms
 Flask-Login
-Flask-WTF
-WTForms
-WTForms-Alchemy
-WTForms-Components
 
 # Serialization
 marshmallow

@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 def get_apps_root(flask_app):
     # flask_app.root_path is arasCore/ — go up one level to project root, then into aras/
     project_root = os.path.dirname(flask_app.root_path)
-    return os.path.join(project_root, "aras")
+    return os.path.join(project_root, "app")
 
 
 def create_app_folders(flask_app, app_name: str) -> dict:
@@ -458,10 +458,10 @@ def scaffold_python_app(app_name: str, tables: list) -> dict:
 
     # forms.py
     form_lines = [
-        "from flask_wtf import FlaskForm",
-        "from wtforms import StringField, TextAreaField, IntegerField, BooleanField, DateField",
-        "from wtforms.validators import DataRequired, Optional",
-        "",
+        # "from flask_wtf import FlaskForm",
+        # "from wtforms import StringField, TextAreaField, IntegerField, BooleanField, DateField",
+        # "from wtforms.validators import DataRequired, Optional",
+        # "",
     ]
     for tbl in tables:
         class_name = tbl["name"].replace("_", " ").title().replace(" ", "")

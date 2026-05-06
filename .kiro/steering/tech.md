@@ -6,7 +6,6 @@
 ## Core Frameworks & Libraries
 - **Flask** — Web framework, Blueprints for routing
 - **SQLAlchemy** — ORM (via Flask-SQLAlchemy)
-- **WTForms + WTForms-Alchemy** — Form generation and validation
 - **Marshmallow** — Serialization/deserialization
 - **Flask-Login** — Authentication sessions
 - **Jinja2** — Server-side HTML templating

@@ -15,8 +15,8 @@ def _resolve_install_path(name_or_file: str, flask_app) -> str:
         os.path.join(os.getcwd(), f"{name_or_file}.json"),
         os.path.join(project_root, f"{name_or_file}.yaml"),
         os.path.join(project_root, f"{name_or_file}.json"),
-        os.path.join(project_root, "aras", f"app_{name_or_file}", "install.yaml"),
-        os.path.join(project_root, "aras", f"app_{name_or_file}", "install.json"),
+        os.path.join(project_root, "app", f"app_{name_or_file}", "install.yaml"),
+        os.path.join(project_root, "app", f"app_{name_or_file}", "install.json"),
     ]
     for p in [os.path.join(os.getcwd(), "app_install.yaml"),
               os.path.join(project_root, "app_install.yaml")]:
@@ -82,7 +82,7 @@ def register_app_commands(aras):
 
         raw_name = app_name_or_file
         app_slug = raw_name[len("app_"):] if raw_name.startswith("app_") else raw_name
-        pkg_name = f"aras.{app_slug}"
+        pkg_name = f"app.{app_slug}"
 
         try:
             import importlib
@@ -120,7 +120,7 @@ def register_app_commands(aras):
 
         _app = flask.current_app._get_current_object()
         app_slug = app_name[len("app_"):] if app_name.startswith("app_") else app_name
-        pkg_name = f"aras.{app_slug}"
+        pkg_name = f"app.{app_slug}"
 
         from arasCore.lib.services.blueprints import get_helper_registry
         registry = get_helper_registry()

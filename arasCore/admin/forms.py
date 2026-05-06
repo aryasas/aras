@@ -1,20 +1,9 @@
 # -*- coding: utf-8 -*-
-"""arasCore/admin/forms.py — Admin forms."""
-from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, SubmitField, BooleanField, SelectField, IntegerField, PasswordField
-from wtforms.validators import DataRequired, Length, Optional, Email, EqualTo
-from arasCore.lib.ui.forms import ArasForm
+"""arasCore/admin/forms.py — Admin forms, declared in ArasGen lean style."""
+from arasCore import ArasForm, Col, String, Text, Integer, Boolean, Select
 
 
-class CreateUserForm(ArasForm):
-    username  = StringField("Username", validators=[DataRequired(), Length(3, 64)])
-    email     = StringField("Email", validators=[DataRequired(), Email()])
-    password  = PasswordField("Password", validators=[DataRequired(), Length(6, 128)])
-    password2 = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo("password")])
-    is_admin  = BooleanField("Grant admin access")
-    submit    = SubmitField("Create User")
-
-
+# Static option lists used across forms
 ICON_CHOICES = [
     ("fa-cubes",         "Cubes"),
     ("fa-table",         "Table"),
@@ -53,144 +42,134 @@ FIELD_TYPE_CHOICES = [
     ("relation", "Relation (FK)"),
 ]
 
-
-# class MessageForm(FlaskForm):
-#     message = TextAreaField(
-#         "Message", validators=[DataRequired(), Length(min=1, max=140)]
-#     )
-#     submit = SubmitField("Send")
+SORT_DIRECTION = [("asc", "Ascending"), ("desc", "Descending")]
+SECTION_CHOICES = [("header", "Header"), ("content", "Content"),
+                   ("extra", "Extra"), ("footer", "Footer")]
 
 
-# class PostForm(FlaskForm):
-#     post = TextAreaField("Say something", validators=[DataRequired()])
-#     submit = SubmitField("Post")
+# ── User management ─────────────────────────────────────────────────────────
 
+class CreateUserForm(ArasForm):
+    username  = String(null=False, length=64)
+    email     = Col(null=False)                          # → Email
+    password  = Col(null=False, length=128)              # → Password
+    password2 = Col(null=False, length=128, label="Confirm Password")
+    is_admin  = Col(default=False, label="Grant admin access")
+
+
+# ── App / Table / Column meta-forms (the GUI builder) ───────────────────────
 
 class AppManagerAppForm(ArasForm):
-    title      = StringField("Title (sidebar label)", validators=[DataRequired(), Length(max=200)])
-    url        = StringField("URL / Slug (e.g. erp)", validators=[DataRequired(), Length(max=200)])
-    description   = StringField("Description", validators=[Optional(), Length(max=500)])
-    icon          = StringField("Icon (e.g. fa-cubes)", validators=[Optional(), Length(max=50)], default="fa-cubes")
-    color_theme   = StringField("Color Theme (hex)", validators=[Optional(), Length(max=20)],
-                                description="e.g. #3498db")
-    is_active     = BooleanField("Active")
-    in_sidebar    = BooleanField("Show in sidebar")
-    require_login = BooleanField("Require login", default=True)
-    api_enabled   = BooleanField("Enable REST API", default=True)
-    items_per_page = IntegerField("Items per page", validators=[Optional()], default=20)
-    export_csv    = BooleanField("Enable CSV export")
-    export_excel  = BooleanField("Enable Excel export")
-    soft_delete   = BooleanField("Soft delete (use deleted_at)")
-    audit_log     = BooleanField("Audit log (track changes)")
-    submit        = SubmitField("Save")
+    title          = String(null=False, length=200, label="Title (sidebar label)")
+    url            = String(null=False, length=200, label="URL / Slug (e.g. erp)")
+    description    = String(length=500)
+    icon           = String(length=50, default="fa-cubes", label="Icon (e.g. fa-cubes)")
+    color_theme    = String(length=20, label="Color Theme (hex)", help_text="e.g. #3498db")
+    is_active      = Boolean(label="Active")
+    in_sidebar     = Boolean(label="Show in sidebar")
+    require_login  = Boolean(default=True, label="Require login")
+    api_enabled    = Boolean(default=True, label="Enable REST API")
+    items_per_page = Integer(default=20, label="Items per page")
+    export_csv     = Boolean(label="Enable CSV export")
+    export_excel   = Boolean(label="Enable Excel export")
+    soft_delete    = Boolean(label="Soft delete (use deleted_at)")
+    audit_log      = Boolean(label="Audit log (track changes)")
 
 
 class AppManagerTableForm(ArasForm):
-    name         = StringField("Name (slug)", validators=[DataRequired(), Length(max=100)],
-                               description="Lowercase, no spaces. Used as DB table suffix and URL.")
-    title        = StringField("Title", validators=[DataRequired(), Length(max=200)])
-    url_suffix   = StringField("URL suffix (e.g. /products)", validators=[DataRequired(), Length(max=200)])
-    menu_title   = StringField("Menu Label", validators=[Optional(), Length(max=200)],
-                               description="Defaults to Title if empty.")
-    menu_icon    = StringField("Menu Icon (e.g. fa-table)", validators=[Optional(), Length(max=50)], default="fa-table")
-    show_in_menu = BooleanField("Show in sidebar menu", default=True)
-    menu_order   = IntegerField("Menu Order", validators=[Optional()], default=0)
-    parent_table_id = SelectField("Parent Table (child page)", coerce=int, validators=[Optional()])
-    is_active    = BooleanField("Active", default=True)
+    name           = String(null=False, length=100, label="Name (slug)",
+                            help_text="Lowercase, no spaces. Used as DB table suffix and URL.")
+    title          = String(null=False, length=200)
+    url_suffix     = String(null=False, length=200, label="URL suffix (e.g. /products)")
+    menu_title     = String(length=200, label="Menu Label", help_text="Defaults to Title if empty.")
+    menu_icon      = String(length=50, default="fa-table", label="Menu Icon (e.g. fa-table)")
+    show_in_menu   = Boolean(default=True, label="Show in sidebar menu")
+    menu_order     = Integer(default=0, label="Menu Order")
+    parent_table_id = Select(label="Parent Table (child page)")
+    is_active      = Boolean(default=True, label="Active")
 
     # Table-level settings
-    search_enabled = BooleanField("Search bar", default=True)
-    sort_field     = StringField("Default sort column", validators=[Optional(), Length(max=100)])
-    sort_direction = SelectField("Sort direction", choices=[("asc","Ascending"),("desc","Descending")], default="asc")
-    list_columns     = StringField("List columns (comma-separated)", validators=[Optional(), Length(max=500)],
-                                   description="Leave blank to show all columns. Order matters.")
-    display_columns  = StringField("Display columns when referenced (comma-separated)", validators=[Optional(), Length(max=200)],
-                                   description="Fields shown when another table links to this one. E.g. 'code,name' → '1100 — Cash'. Leave blank to auto-detect.")
-    per_page       = IntegerField("Rows per page", validators=[Optional()], default=20)
-    allow_create   = BooleanField("Allow create", default=True)
-    allow_edit     = BooleanField("Allow edit", default=True)
-    allow_delete   = BooleanField("Allow delete", default=True)
-    detail_view    = BooleanField("Enable detail/read-only view")
-
-    submit         = SubmitField("Save Table")
+    search_enabled = Boolean(default=True, label="Search bar")
+    sort_field     = String(length=100, label="Default sort column")
+    sort_direction = Select(choices=SORT_DIRECTION, default="asc", label="Sort direction")
+    list_columns    = String(length=500, label="List columns (comma-separated)",
+                             help_text="Leave blank to show all columns. Order matters.")
+    display_columns = String(length=200, label="Display columns when referenced (comma-separated)",
+                             help_text="Fields shown when another table links to this one. "
+                                       "E.g. 'code,name' → '1100 — Cash'. Leave blank to auto-detect.")
+    per_page       = Integer(default=20, label="Rows per page")
+    allow_create   = Boolean(default=True, label="Allow create")
+    allow_edit     = Boolean(default=True, label="Allow edit")
+    allow_delete   = Boolean(default=True, label="Allow delete")
+    detail_view    = Boolean(label="Enable detail/read-only view")
 
     def __init__(self, app_id=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # populate parent_table choices dynamically
-        choices = [(0, "— None (top-level) —")]
-        if app_id:
-            from arasCore.admin.models import AppManagerTable
-            tables = AppManagerTable.query.filter_by(app_id=app_id).order_by(AppManagerTable.name).all()
-            choices += [(t.id, t.title) for t in tables]
-        self.parent_table_id.choices = choices
+        self._aras_fields["parent_table_id"].choices = _table_choices(app_id, "— None (top-level) —")
 
 
 class AppManagerColumnForm(ArasForm):
-    name       = StringField("Column Name", validators=[DataRequired(), Length(max=100)],
-                             description="DB column name, e.g. product_name")
-    label      = StringField("Label (UI)", validators=[DataRequired(), Length(max=200)])
-    field_type = SelectField("Type", choices=FIELD_TYPE_CHOICES, default="string")
-    length     = IntegerField("Length (string only)", validators=[Optional()])
-    required   = BooleanField("Required / NOT NULL")
-    default_value = StringField("Default Value", validators=[Optional(), Length(max=200)])
-    order      = IntegerField("Order", validators=[Optional()], default=0)
+    name          = String(null=False, length=100, label="Column Name",
+                           help_text="DB column name, e.g. product_name")
+    label         = String(null=False, length=200, label="Label (UI)")
+    field_type    = Select(choices=FIELD_TYPE_CHOICES, default="string", label="Type")
+    length        = Integer(label="Length (string only)")
+    required      = Boolean(label="Required / NOT NULL")
+    default_value = String(length=200, label="Default Value")
+    order         = Integer(default=0)
 
     # Display / UX
-    placeholder  = StringField("Placeholder", validators=[Optional(), Length(max=200)])
-    help_text    = StringField("Help Text", validators=[Optional(), Length(max=500)])
-    show_in_list = BooleanField("Show in list view", default=True)
-    show_in_form = BooleanField("Show in form", default=True)
-    readonly     = BooleanField("Read-only")
+    placeholder  = String(length=200)
+    help_text    = String(length=500)
+    show_in_list = Boolean(default=True, label="Show in list view")
+    show_in_form = Boolean(default=True, label="Show in form")
+    readonly     = Boolean(label="Read-only")
 
     # Validation
-    min_value  = StringField("Min Value", validators=[Optional(), Length(max=50)])
-    max_value  = StringField("Max Value", validators=[Optional(), Length(max=50)])
-    max_length = IntegerField("Max Length", validators=[Optional()])
-    unique     = BooleanField("Unique constraint")
-    searchable = BooleanField("Searchable")
+    min_value  = String(length=50, label="Min Value")
+    max_value  = String(length=50, label="Max Value")
+    max_length = Integer(label="Max Length")
+    unique     = Boolean(label="Unique constraint")
+    searchable = Boolean(label="Searchable")
 
     # Select choices
-    choices = StringField("Choices (comma-separated)", validators=[Optional(), Length(max=2000)],
-                          description="For select type, e.g. Active,Inactive,Pending")
+    choices = String(length=2000, label="Choices (comma-separated)",
+                     help_text="For select type, e.g. Active,Inactive,Pending")
 
     # Relation options
-    relation_table_id     = SelectField("Target Table (in this app)", coerce=int,
-                                        validators=[Optional()])
-    relation_system_table = StringField("System Table (e.g. auth_users)",
-                                        validators=[Optional(), Length(max=100)])
-    relation_display_col  = StringField("Display Column", validators=[Optional(), Length(max=100)],
-                                        description="Column shown in dropdown, e.g. name or username")
-    cascade_delete        = BooleanField("Cascade Delete")
-    relation_filter       = StringField("Relation Filter", validators=[Optional(), Length(max=500)],
-                                        description="SQL WHERE snippet to filter combobox (e.g. is_group = 0)")
-    default_section       = SelectField("Default Section",
-                                        choices=[('header','Header'),('content','Content'),
-                                                 ('extra','Extra'),('footer','Footer')],
-                                        default='content')
-    submit = SubmitField("Add Column")
+    relation_table_id     = Select(label="Target Table (in this app)")
+    relation_system_table = String(length=100, label="System Table (e.g. auth_users)")
+    relation_display_col  = String(length=100, label="Display Column",
+                                   help_text="Column shown in dropdown, e.g. name or username")
+    cascade_delete        = Boolean(label="Cascade Delete")
+    relation_filter       = String(length=500, label="Relation Filter",
+                                   help_text="SQL WHERE snippet to filter combobox (e.g. is_group = 0)")
+    default_section       = Select(choices=SECTION_CHOICES, default="content", label="Default Section")
 
     def __init__(self, app_id=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        choices = [(0, "— Select target table —")]
-        if app_id:
-            from arasCore.admin.models import AppManagerTable
-            tables = AppManagerTable.query.filter_by(app_id=app_id).order_by(AppManagerTable.name).all()
-            choices += [(t.id, t.title) for t in tables]
-        self.relation_table_id.choices = choices
+        self._aras_fields["relation_table_id"].choices = _table_choices(app_id, "— Select target table —")
 
 
-# Kept for backward compat
+# Backward-compat alias
 class AppManagerFieldForm(AppManagerColumnForm):
     pass
 
 
-class SearchForm(FlaskForm):
-    q = StringField("Search", validators=[DataRequired()])
+class SearchForm(ArasForm):
+    q = String(null=False, label="Search")
 
-    def __init__(self, *args, **kwargs):
-        from flask import request
-        if "formdata" not in kwargs:
-            kwargs["formdata"] = request.args
-        if "meta" not in kwargs:
-            kwargs["meta"] = {"csrf": False}
-        super().__init__(*args, **kwargs)
+
+# ── Helpers ─────────────────────────────────────────────────────────────────
+
+def _table_choices(app_id, placeholder: str):
+    """Build (id, title) choice list for table-picker selects."""
+    out = [(0, placeholder)]
+    if app_id:
+        from arasCore.admin.models import AppManagerTable
+        tables = (AppManagerTable.query
+                  .filter_by(app_id=app_id)
+                  .order_by(AppManagerTable.name)
+                  .all())
+        out.extend((t.id, t.title) for t in tables)
+    return out

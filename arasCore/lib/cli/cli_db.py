@@ -49,11 +49,11 @@ def register_db_commands(aras):
         m005_list_view_setting.run(_app)
         # ERP-specific migrations (idempotent — safe to run on every migrate)
         for _mname in (
-            "aras.erp.migrations.021_restructure_charge_mop_shift",
-            "aras.erp.migrations.022_invoice_payment_coa_group",
-            "aras.erp.migrations.023_supplier_module",
-            "aras.erp.migrations.024_invoice_supplier_warehouse",
-            "aras.erp.migrations.025_warehouse_group_product_warehouse",
+            "app.erp.migrations.021_restructure_charge_mop_shift",
+            "app.erp.migrations.022_invoice_payment_coa_group",
+            "app.erp.migrations.023_supplier_module",
+            "app.erp.migrations.024_invoice_supplier_warehouse",
+            "app.erp.migrations.025_warehouse_group_product_warehouse",
         ):
             try:
                 _ilib.import_module(_mname).run(_app)
@@ -103,13 +103,13 @@ def register_db_commands(aras):
         # 4. ERP migrations + seed (if erp is present)
         click.echo("[remigrate] 4/4  ERP migrations + seed (if installed) ...")
         try:
-            from aras.erp.erp_core.migrate_task4 import run as mt4
-            from aras.erp.erp_core.migrate_task5 import run as mt5
-            from aras.erp.erp_core.migrate_task6 import run as mt6
+            from app.erp.erp_core.migrate_task4 import run as mt4
+            from app.erp.erp_core.migrate_task5 import run as mt5
+            from app.erp.erp_core.migrate_task6 import run as mt6
             import importlib as _ilib
-            m021 = _ilib.import_module("aras.erp.migrations.021_restructure_charge_mop_shift")
-            m022 = _ilib.import_module("aras.erp.migrations.022_invoice_payment_coa_group")
-            from aras.erp.erp_core.seed import run_seed
+            m021 = _ilib.import_module("app.erp.migrations.021_restructure_charge_mop_shift")
+            m022 = _ilib.import_module("app.erp.migrations.022_invoice_payment_coa_group")
+            from app.erp.erp_core.seed import run_seed
             mt4(_app)
             mt5(_app)
             mt6(_app)

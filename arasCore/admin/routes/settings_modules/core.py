@@ -138,7 +138,7 @@ def settings():
             "file":      _inspect.getfile(handler) if handler else "unknown"
         })
     import sys as _sys
-    modules = sorted(k for k in _sys.modules if k.startswith("arasCore") or k.startswith("aras."))
+    modules = sorted(k for k in _sys.modules if k.startswith("arasCore") or k.startswith("app."))
 
     return render_template(
         "admin/setting/setting_settings.html",

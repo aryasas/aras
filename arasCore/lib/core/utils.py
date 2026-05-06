@@ -44,7 +44,7 @@ class Utilities:
         Used by blueprint_loader to auto-discover app_* blueprints.
         """
         base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        pkg  = os.path.join(base, "aras")  # still scanning old aras/ for now
+        pkg  = os.path.join(base, "app")  # still scanning old aras/ for now
         folders = [
             name for name in os.listdir(pkg)
             if os.path.isdir(os.path.join(pkg, name))

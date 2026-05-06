@@ -18,10 +18,10 @@ def register_misc_commands(aras):
     @aras.command("erp-init", help="Run ERP seed + migrate (idempotent)")
     def erp_init():
         """Run ERP DB migrations and seed core data."""
-        from aras.erp.erp_core.seed import run_seed
-        from aras.erp.erp_core.migrate_task4 import run as mt4
-        from aras.erp.erp_core.migrate_task5 import run as mt5
-        from aras.erp.erp_core.migrate_task6 import run as mt6
+        from app.erp.erp_core.seed import run_seed
+        from app.erp.erp_core.migrate_task4 import run as mt4
+        from app.erp.erp_core.migrate_task5 import run as mt5
+        from app.erp.erp_core.migrate_task6 import run as mt6
         import flask
         _app = flask.current_app._get_current_object()
         mt4(_app)

@@ -26,7 +26,7 @@ def optimize(output):
     project_root = os.getcwd()
     
     # Files to include
-    include_dirs = ['arasCore', 'aras', 'templates']
+    include_dirs = ['arasCore', 'app', 'templates']
     include_files = ['run.py', 'config.py', 'requirements.txt', 'GEMINI.md']
     exclude_extensions = ['.pyc', '.png', '.jpg', '.jpeg', '.gif', '.ico', '.woff', '.woff2', '.ttf', '.eot']
 

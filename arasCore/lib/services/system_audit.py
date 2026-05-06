@@ -142,7 +142,7 @@ class SystemAudit:
             for a in apps:
                 helper = helper_registry.get(a.slug)
                 if not helper:
-                    pkg_name = f"aras.{a.slug}"
+                    pkg_name = f"app.{a.slug}"
                     try:
                         mod = importlib.import_module(f"{pkg_name}.manifest")
                         helper = getattr(mod, "helper", None)

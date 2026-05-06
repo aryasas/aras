@@ -61,7 +61,6 @@ Jika saya mengatakan:
 - REST API: `GET/POST /api/<app>/<resource>/` and `GET/PUT/DELETE /api/<app>/<resource>/<id>/`
 - Admin list/add/edit/delete views: `/admin/<app>/<resource>/` and sub-paths
 - Admin home: `/admin/<app>/`, settings: `/admin/<app>/settings/`, group pages: `/admin/<app>/<group_slug>/` where `group_slug` = MenuGroup title lowercased + spaces→hyphens (e.g. `MenuGroup("arasPos")` → `/admin/erp/araspot/`)
-- Sidebar menu, WTForms forms (from model columns), RBAC checks on every API call
 
 ### Before editing arasCore/:
 1. Understand how it affects BOTH code-based (manifest) AND dynamic (DB-based) apps
@@ -69,6 +68,70 @@ Jika saya mengatakan:
 3. If unsure → ask permission first
 
 ---
+
+
+### arasCore/aras_gen/ — declarative DSL (model + form + auto-route)
+One file per concern. Apps import everything via `from arasCore import ArasGen` or bare names.
+
+| File | Purpose |
+|---|---|
+| `fields.py` | `Col` descriptor + type tokens (String/Integer/Boolean/Date/DateTime/Password/Email/FK…). Carries `_explicit` so inference fires only when user passed no type. |
+| `inference.py` | Name-based type inference (`password*`→Password, `*_at`→DateTime, `is_*`→Boolean, `*_id`→FK, `description/notes`→Text, `amount/price`→Decimal, default→String). |
+| `model.py` | `ArasModel` + `_ArasModelMeta` — Col descriptors compile to `db.Column`; original Col survives on `_aras_fields[name]` for forms/API/GUI. Concrete models with `__app__` are auto-registered. |
+| `form.py` | `ArasForm` — schema-driven, no WTForms. `__init_subclass__` harvests Cols. `from_model(model_cls)` derives a form. |
+| `registry.py` | Class-level model registry. `auto_resources(app)` / `auto_menu_groups(app)` synthesize ResourceDef + MenuGroup from registered models — NEW. |
+| `route.py` | Thin namespace re-exporting AppHelper/MenuGroup/ResourceDef/SubHandler/CustomRoute as `ArasRoute.{App,Menu,Resource,Handler,Route}`. |
+| `db.py` | `ArasDB` — exposes `db, session, Column, relationship, ForeignKey`. |
+| `__init__.py` | Umbrella `ArasGen` namespace + module-level factory aliases. |
+| `labels.py` | `resolve_label(table, name, code_label)` — single source of truth for field labels: `mgr_column.label` (DB) > code `Col(label=...)` > humanized name. Per-request cached via flask `g`. Auto-seeds missing `mgr_column` rows so the GUI has something to edit. |
+
+**Declarative meta on ArasModel** (read by `registry._meta`):
+```
+__app__         owning app slug — REQUIRED for auto-registration
+__menu__        sidebar group name (optional; default = app.title)
+__title__       human label (optional; default = humanised class name)
+__url__         URL slug under /api/<app>/ and /admin/<app>/ (optional; default = kebab(class))
+__icon__        Font-Awesome icon (default fa-table)
+__admin_list__  show in sidebar/list (default True)
+__is_child__    inline child of a parent (default False)
+__searchable__  list of column names searched by ?q=
+__filters__     list of column names usable in ?filter[field]=
+__menu_order__  group order (default 50)
+```
+
+**Label resolution.** `Col.to_schema()` calls `resolve_label(table, name, code_label)` from `arasCore/aras_gen/labels.py`. Order of precedence: (1) `mgr_column.label` (admin/GUI editable), (2) the `label="..."` arg passed to `Col`/`String`/etc., (3) humanized field name. The metaclass tags every `Col` with its owning `__tablename__` (`Col._owner_table`) so the resolver can look up the DB row without the model needing to plumb context. First read seeds the `mgr_column` row so the GUI immediately has a row to edit. **Validation messages and form labels read through the same path** — change a label in the admin UI and every consumer reflects it next request.
+
+**Minimal app pattern** (see `app/todo/`):
+```python
+# app/todo/__init__.py
+ARAS_AUTOLOAD = True
+
+# app/todo/models/task.py
+from arasCore import ArasModel, Col, String
+class Task(ArasModel):
+    __tablename__ = "todo_task"
+    __app__       = "todo"
+    __menu__      = "Tasks"
+    __icon__      = "fa-check-square-o"
+    title       = String(null=False, length=200)
+    description = Col()              # → Text (inferred)
+    due_date    = Col()              # → Date
+    is_done     = Col(default=False) # → Boolean
+
+# app/todo/manifest.py — class-style app, symmetric with ArasModel
+from arasCore import ArasApp
+from app.todo import models  # noqa — import triggers registration
+class Todo(ArasApp):
+    name  = "todo"
+    title = "Todo"
+    icon  = "fa-check-square-o"
+    order = 30
+helper = Todo.helper
+```
+`ArasApp` (`arasCore/aras_gen/app.py`) is a metaclass that compiles the class into an AppHelper instance via `cls.helper`. Set `menu_groups` or `resources` on the class to override auto-derivation; otherwise the registry derives them from `ArasModel` subclasses whose `__app__` matches `name`. The legacy form `helper = ArasGen.App(name=..., menu_groups=ArasGen.auto_menu_groups("todo"))` still works for apps that need conditional logic at manifest time.
+This produces `/admin/todo/task/`, `/admin/todo/task/add/`, REST API at `/api/todo/task/`, sidebar entry, app home tile — zero per-resource code.
+
+Real-world ERP example using the same pattern: `app/erp/erp_core/models/payment_mode.py` — `ModeOfPayment` and `CompanyPaymentAccount` declare nothing but Cols and meta; routes, forms, list views, labels, and FK choices are all derived. `id` is **always** provided by `ArasModel` — never declare it explicitly.
 
 ## Architecture
 ERPNext-like ERP, simpler. Dynamic app registry engine — apps defined in `manifest.py` or DB (`AppManagerApp`), mounted at runtime via blueprints. Entry point: `arasCore/__init__.py` → `create_app()`.
@@ -163,7 +226,7 @@ Snapshots `layout_json` per table and passes `layout_tabs` to form views (4.1).
 | `_make_wtf_field` | L61 | internal helper |
 | `clear_cache` | L140 | clear registry cache |
 | `make_table_model(tbl, app_name, all_tables_in_app=None)` | L150 | generate SQLAlchemy model from AppManagerTable + Column |
-| `make_table_form(tbl, model_cls, app_id)` | L212 | generate WTForm from metadata |
+| `make_table_form(tbl, model_cls, app_id)` | L212
 | `get_view_columns(tbl)` | L242 | columns shown in list view |
 | `build_sidebar_menu()` | L253 | build sidebar from DB only (`AppManagerApp`/`AppManagerTable`); manifest `_helper_registry` is NOT used |
 | `_register_built_app(app_def_id, flask_app)` | L316 | mount blueprint + route for 1 dynamic app |
@@ -217,6 +280,49 @@ Schema migration runner for dynamic apps. Use function table below; do NOT read 
 | `diff_app(app_id)` | diff AppManagerColumn vs live DB; queue new `ALTER TABLE` stubs in `mgr_schema_migration` |
 | `apply_pending(app_id, safe_only=True)` | apply pending migrations; safe_only=True skips type-change/rename |
 | `get_pending(app_id)` | return list of pending migration dicts |
+
+### arasCore/lib/services/auto_migrate.py — NEW
+Boot-time DB reconciler. Diffs SQLAlchemy metadata (every model, Col-style or legacy db.Column) against live DB and applies safe changes in-place. **No migration files.**
+
+| Function | Purpose |
+|---|---|
+| `run(flask_app, autoload_had_errors=False)` | Entry point. Called from `create_app()` after `load_all_built_apps`. Returns `MigrationReport`. Aborts if autoload errors to avoid risky drops on incomplete model set. |
+
+**Policy.**
+
+| Class of change | Default | With `ARAS_AUTO_DROP=true` |
+|---|---|---|
+| create new table | apply | apply |
+| add nullable column / column with default | apply | apply |
+| add index, FK | apply | apply |
+| widen VARCHAR | apply | apply |
+| add NOT NULL without default | skip + log | skip + log |
+| drop column | skip + log | apply |
+| drop table | skip + log | apply |
+| narrow type | skip + log | skip + log |
+
+**Env flags.**
+- `ARAS_AUTO_MIGRATE=false` — disable entirely (default: on).
+- `ARAS_AUTO_DROP=true` — allow destructive ops. Off by default.
+
+**mgr_column cleanup.** When a column or table is dropped, the matching `mgr_column` / `mgr_table` rows are removed in the same boot.
+
+**Source of truth = code.** Every `ArasModel` (Col-style) and every `db.Model`/legacy class registered with SQLAlchemy is included in the diff. The mgr_column/mgr_table layer is for **labels and UI overlays**, not column existence.
+
+### arasCore/aras_gen/form.py — ArasForm + WTForms-shape proxy
+Single form layer. No WTForms package required.
+
+| Element | Purpose |
+|---|---|
+| `ArasForm` | schema-driven, dict-backed form |
+| `ArasForm.from_model(model)` | derive a form class from `_aras_fields` |
+| `ArasModel.form(data=, obj=)` | sugar: returns a bound form instance — single source of truth |
+| `validate_on_submit()` / `populate_obj()` / `hidden_tag()` | FlaskForm-compat shims |
+| `_FieldProxy` | duck-typed object yielded by `form.<name>`. Has `.label.text`, `.errors`, `.flags.required`, `.type`, `.id`, `.choices`, `.data`, `__call__(**kw)` (renders `<input>/<select>/<textarea>`) — keeps every existing template that uses WTForms-shape access working. |
+
+**Templates.** Existing `macro_form_layout.html` and auth templates that call `form.field(**kw)`, `field.label.text`, `field.flags.required` continue to work via `_FieldProxy` — no rewrite needed.
+
+### arasCore/lib/ui/admin_mount.py — `_build_model_form` now routes through `ArasModel.form()`. FK choices are resolved per-request and stashed on `Col._fk_choices` for the proxy to surface.
 
 ### arasCore/lib/layout.py — NEW (4.1)
 Parses `AppManagerTable.layout_json` into tab/section/column-break structure for form rendering.
@@ -375,18 +481,22 @@ on("erp/acc_journal.created", lambda obj: ...)
 | `_handle_friend_request` | L51 | friend request handler |
 | `_handle_search_users` | L63 | search users handler |
 
-### arasCore/lib/blueprints.py — NEVER read in full
+### arasCore/lib/services/blueprints.py — NEVER read in full
+(Path: was `arasCore/lib/blueprints.py`, now under `lib/services/`. Apps live under `app/`, not `aras/`.)
 
 | Function | Line | Purpose |
 |---|---|---|
-| `get_helper_registry()` | L17 | return `_helper_registry` dict |
-| `_load_manifest(pkg_name)` | L21 | import `app_*/manifest.py` |
-| `_register_helper(flask_app, helper)` | L40 | mount routes from AppHelper |
-| `_rbac_check(helper, res, action)` | L139 | RBAC permission check |
-| `_mount_admin_resource(bp, res, adm_prefix, helper)` | L146 | mount admin resource route |
-| `_is_app_enabled(entry, aras_pkg)` | L407 | check if app is active in DB or ARAS_AUTOLOAD |
-| `_register_aras_apps(app)` | L443 | register all dynamic apps |
-| `register_app_modules(app)` | L497 | entry — load all manifests + helpers |
+| `get_helper_registry()` | L18 | return `_helper_registry` dict |
+| `_load_manifest(pkg_name)` | L22 | import `app/<name>/manifest.py` |
+| `_register_helper(flask_app, helper)` | L41 | mount routes from AppHelper |
+| `_rbac_check(helper, res, action)` | L167 | RBAC permission check |
+| `_mount_admin_resource(bp, res, adm_prefix, helper)` | L174 | mount admin resource route |
+| `_is_app_enabled(entry, aras_pkg)` | L180 | check if app is active in DB or ARAS_AUTOLOAD |
+| `_autoload_models(pkg_name)` | L217 | recursively import every submodule under any `models/` package below `pkg_name` — triggers SQLAlchemy mapper + `ArasModel` metaclass registration without per-app `models/__init__.py` boilerplate |
+| `_register_aras_apps(app)` | L244 | iterate `app/`; per entry → autoload models → load views → load manifest |
+| `register_app_modules(app)` | L300 | entry — load all manifests + helpers |
+
+**Model auto-loading.** As of the autoloader, per-app `models/__init__.py` no longer needs to import each submodule for SQLAlchemy/ArasModel registration — `_autoload_models()` walks `app/<entry>/**/models/*.py` at startup and imports them all. The legacy ordering hack (`# must be first (FK target)`) is unnecessary because lazy `ForeignKey("table.id")` strings resolve at `configure_mappers()`, after every model is imported. Re-exports in `models/__init__.py` are still useful as a stable import surface (`from app.erp.erp_acc.models import AccAccount`) and many manifests/views rely on that — keep them, but treat them as ergonomics, not a registration requirement.
 
 ### arasCore/__init__.py — NEVER read in full
 
@@ -417,7 +527,7 @@ on("erp/acc_journal.created", lambda obj: ...)
 ## Do NOT Re-read
 - `arasCore/auth.py` — use function table above
 - `aras/soc/manifest.py` — use function table above
-- `arasCore/lib/blueprints.py` — use function table above
+- `arasCore/lib/services/blueprints.py` — use function table above
 - `arasCore/lib/base_model.py` — use function table below, do not re-read
 - `arasCore/__init__.py` — use function table above
 - `arasCore/admin/models.py` — use class table above

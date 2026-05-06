@@ -21,7 +21,7 @@ def _slug_from_url(url: str) -> str:
 
 
 # ── column_factory ────────────────────────────────────────────────────────────
-from arasCore.admin.column_factory import _make_sa_column, _make_wtf_field  # noqa: E402
+from arasCore.admin.column_factory import _make_sa_column  # noqa: E402
 
 # ── table_registry ────────────────────────────────────────────────────────────
 from arasCore.admin.table_registry import (  # noqa: E402

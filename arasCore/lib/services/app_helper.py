@@ -71,7 +71,7 @@ class SubHandler:
                     raise ValueError("ref wajib diisi")
 
             def after_create(self, obj):
-                from aras.erp.erp_acc.services import generate_sequence
+                from app.erp.erp_acc.services import generate_sequence
                 obj.number = generate_sequence("JV")
     """
 

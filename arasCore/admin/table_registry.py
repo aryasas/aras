@@ -261,8 +261,16 @@ def make_table_form(tbl, model_cls, app_id):
     if cached and cached[1] is not None:
         return cached[1]
 
-    from arasCore.lib.ui.forms import build_form_from_table
-    DynForm = build_form_from_table(tbl)
+    # Dynamic apps share the same WTForms builder as class-based ArasModel apps.
+    # We need a class, not an instance — wrap the per-request builder.
+    from arasCore.lib.ui.admin_mount import _build_model_form
+    def DynForm(*args, **kwargs):
+        # Caller does DynForm(obj=...) or DynForm(formdata=...); forward both.
+        obj  = kwargs.pop("obj",  args[0] if args else None)
+        data = kwargs.pop("formdata", kwargs.pop("data", None))
+        return _build_model_form(model_cls, obj=obj, data=data)
+    DynForm.__name__ = f"DynForm_{db_tname}"
+
 
     if db_tname in _table_registry:
         m, _, v = _table_registry[db_tname]

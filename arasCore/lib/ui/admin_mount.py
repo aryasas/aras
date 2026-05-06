@@ -37,123 +37,39 @@ def _fk_choices(col):
     return [(0, "— Select —")]
 
 
-def _build_model_form(model, obj=None):
-    """Build a WTForms form from model.form_columns() with FK choices pre-loaded."""
-    import sqlalchemy as _sa
-    from wtforms import StringField, TextAreaField, IntegerField, BooleanField, DateField, SelectField
-    from wtforms.validators import Optional as _Opt, DataRequired
-    from arasCore.lib.ui.forms import _CORE_SYSTEM_INTERNAL
-    
-    # Get overrides from handler if available
-    overrides = {}
+def _build_model_form(model, obj=None, *, data=None):
+    """Single source of truth: return an ArasForm bound to this model.
+
+    No WTForms anywhere. The form is a dict-driven schema (see ArasForm).
+    Templates iterate ``form.fields`` (list of dicts from Col.to_schema()).
+    FK choices are resolved per-request and attached to the schema dict.
+    """
+    if hasattr(model, "form") and callable(getattr(model, "form")):
+        form = model.form(data=data, obj=obj)
+    else:
+        from arasCore.aras_gen import ArasForm
+        FormCls = ArasForm.from_model(model)
+        form = FormCls(data=data, obj=obj)
+
+    # Resolve FK choices once per request and merge into schema dicts so
+    # the template renderer can populate <select> options without re-querying.
     try:
-        from arasCore.lib.services.blueprints import get_helper_registry
-        for h in get_helper_registry().values():
-            for r in h.resources:
-                if r.model is model and r.handler and hasattr(r.handler, "column_setup"):
-                    overrides = r.handler.column_setup() or {}
-                    break
-    except Exception: pass
-
-    attrs = {}
-    for lbl, col_name, col in model.form_columns():
-        # Check if the column has a show_in_form attribute (e.g. from mgr_column)
-        show_in_form = getattr(col, "show_in_form", True)
-        
-        # Guard: skip hidden fields or internal system fields
-        if not show_in_form or col_name in _CORE_SYSTEM_INTERNAL:
-            continue
-
-        ov = overrides.get(col_name, {})
-        req = not col.nullable and col.default is None and not col.server_default
-        if "required" in ov: req = ov["required"]
-        v = [DataRequired()] if req else [_Opt()]
-
-        ft = "string"
-        if col.foreign_keys: ft = "relation"
-        elif isinstance(col.type, _sa.Boolean): ft = "boolean"
-        elif isinstance(col.type, (_sa.Integer, _sa.BigInteger, _sa.SmallInteger)): ft = "integer"
-        elif isinstance(col.type, (_sa.Numeric, _sa.Float)): ft = "decimal"
-        elif isinstance(col.type, _sa.Text): ft = "text"
-        elif isinstance(col.type, _sa.Date): ft = "date"
-        elif isinstance(col.type, _sa.DateTime): ft = "datetime"
-        elif isinstance(col.type, _sa.Enum): ft = "enum"
-        
-        # Apply field_type override
-        if "field_type" in ov: ft = ov["field_type"]
-
-        render_kw = {}
-        if "depend_on_another_field" in ov:
-            render_kw["data-depend-on"] = ov["depend_on_another_field"]
-
-        if ft == "relation" or col.foreign_keys:
-            choices = _fk_choices(col)
-            # If we are editing and have a value, ensure it's in choices even if not a standard FK
-            if obj and getattr(obj, col_name, None):
-                curr_val = getattr(obj, col_name)
-                if not any(str(c[0]) == str(curr_val) for c in choices):
-                    # We don't have the label here easily, but the ID is enough for TomSelect
-                    # to hold the value until dependent-choices API refreshes it.
-                    choices.append((curr_val, f"ID: {curr_val}"))
-
-            # Build admin add URL for the referenced table
-            _fk_rel_add_url = None
+        for fname, col in form._aras_fields.items():
+            if not col.fk:
+                continue
             try:
-                _fk_ref_tname = list(col.foreign_keys)[0].column.table.name
-                from arasCore.admin.models import AppManagerTable as _AMT, AppManagerApp as _AMA
-                _fk_tbl = _AMT.query.filter(
-                    (_AMT.name == _fk_ref_tname) | (_AMT.db_table_name == _fk_ref_tname)
-                ).first()
-                if _fk_tbl:
-                    _fk_app = _AMA.query.get(_fk_tbl.app_id)
-                    if _fk_app:
-                        _fk_rel_add_url = f"/admin{_fk_app.url_prefix}{_fk_tbl.get_full_url(_fk_app.url_prefix)}/add/"
-            except Exception:
-                pass
-            if _fk_rel_add_url: render_kw["data-rel-add-url"] = _fk_rel_add_url
-            
-            attrs[col_name] = SelectField(lbl, coerce=_fk_coerce,
-                                          choices=choices, validators=v,
-                                          validate_choice=False, render_kw=render_kw)
-        elif ft == "boolean":
-            attrs[col_name] = BooleanField(lbl)
-        elif ft == "integer":
-            attrs[col_name] = IntegerField(lbl, validators=v, render_kw=render_kw)
-        elif ft in ("decimal", "float"):
-            from wtforms import DecimalField
-            attrs[col_name] = DecimalField(lbl, validators=v, places=2, render_kw=render_kw)
-        elif ft == "text":
-            attrs[col_name] = TextAreaField(lbl, validators=v, render_kw=render_kw)
-        elif ft == "date":
-            attrs[col_name] = DateField(lbl, validators=v, render_kw=render_kw)
-        elif ft == "datetime":
-            from wtforms.fields import DateTimeLocalField
-            attrs[col_name] = DateTimeLocalField(lbl, validators=v, render_kw=render_kw)
-        elif ft in ("select", "enum"):
-            choices = []
-            if "choices" in ov:
-                choices_str = ov["choices"]
-                if isinstance(choices_str, (list, tuple)):
-                    choices = choices_str
-                else:
-                    for c in choices_str.split(","):
-                        c = c.strip()
-                        if not c: continue
-                        if ":" in c:
-                            k, v_lbl = c.split(":", 1)
-                            choices.append((k.strip(), v_lbl.strip()))
-                        else:
-                            choices.append((c, c))
-            elif isinstance(col.type, _sa.Enum):
-                choices = [(e, e) for e in col.type.enums]
-            
-            attrs[col_name] = SelectField(lbl, choices=choices, validators=v, render_kw=render_kw)
-        else:
-            attrs[col_name] = StringField(lbl, validators=v, render_kw=render_kw)
+                ref_tname = col.fk.split(".")[0]
+                ref_model = _find_ref_model(ref_tname)
+                if ref_model:
+                    rows = ref_model.query.order_by(ref_model.id).all()
+                    col._fk_choices = [(0, "— Select —")] + [(r.id, row_display(r)) for r in rows]
+            except Exception as _e:
+                logger.debug(f"[admin_mount] fk choices fail {fname}: {_e}")
+    except Exception:
+        pass
 
-    from arasCore.lib.ui.forms import ArasForm
-    FormCls = type(f"ModelForm_{model.__tablename__}", (ArasForm,), attrs)
-    return FormCls(obj=obj) if obj is not None else FormCls()
+    return form
+
 
 
 def _resolve_search_cols(helper, res, model):
@@ -385,10 +301,10 @@ class AdminResourceMounter:
                     from arasCore.admin.crud_factory import _build_fk_maps, _all_model_columns
                     from arasCore.lib.services.api_handler import get_api_url_for_model
                     from arasCore.admin.services import _get_inline_columns
-                    
+
                     all_child_cols = cd.get("all_columns") or _all_model_columns(cd["model"])
                     vcols = cd["vcols"]
-                    
+
                     _ct_app_id, _ct_table_id = cd.get("app_id"), cd.get("table_id")
                     if not _ct_table_id:
                         try:
@@ -443,7 +359,7 @@ class AdminResourceMounter:
                         _cd["custom_actions"] = []
 
             _app_id, _table_id = self._resolve_app_table_ids()
-            
+
             from arasCore.admin.crud_factory import _parse_layout_tabs
             layout_tabs = _parse_layout_tabs(res_title, None, form, table_id=_table_id, child_tables=child_tables)
 
@@ -487,7 +403,7 @@ class AdminResourceMounter:
                     before_hook, after_hook = _invoke_hooks(obj, is_new=False)
                     before_hook()
                     form.populate_obj(obj)
-                    
+
                     _save_local_child_data(obj, model)
 
                     after_hook()
@@ -545,7 +461,7 @@ class AdminResourceMounter:
 
                     from arasCore.admin.crud_factory import _all_model_columns
                     all_child_cols = cd.get("all_columns") or _all_model_columns(cd["model"])
-                    
+
                     if ct_saved_columns:
                         saved_set = set(ct_saved_columns)
                         eff_vcols = [(lbl, fn) for lbl, fn in all_child_cols if fn in saved_set]
@@ -614,7 +530,7 @@ class AdminResourceMounter:
                         _cd["custom_actions"] = []
 
             _app_id, _table_id = self._resolve_app_table_ids()
-            
+
             # Resolve custom layout
             from arasCore.admin.crud_factory import _parse_layout_tabs
             layout_tabs = _parse_layout_tabs(res_title, None, form, table_id=_table_id, child_tables=child_tables)
@@ -666,7 +582,7 @@ class AdminResourceMounter:
                 if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                     return {"success": False, "message": str(ex)}, 400
                 flash(str(ex), "danger")
-            
+
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                 return {"success": True, "message": "Record deleted."}
             return redirect(f"{base_url}/")
@@ -685,7 +601,7 @@ class AdminResourceMounter:
             raw = request.form.get("ids", "")
             if not raw and request.is_json:
                 raw = request.json.get("ids", "")
-            
+
             ids = [i.strip() for i in raw.split(",") if i.strip().isdigit()]
             deleted = 0
             errors  = []
@@ -702,7 +618,7 @@ class AdminResourceMounter:
                     except Exception as ex:
                         db.session.rollback()
                         errors.append(str(ex))
-            
+
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                 return {
                     "success": len(errors) == 0,
@@ -728,7 +644,7 @@ class AdminResourceMounter:
             self.bp.add_url_rule(f"{url}/<int:item_id>/",        endpoint=f"{ep}_edit",        view_func=self.make_edit(),        methods=["GET", "POST"])
             self.bp.add_url_rule(f"{url}/<int:item_id>/delete/", endpoint=f"{ep}_delete",      view_func=self.make_delete(),      methods=["POST"])
             self.bp.add_url_rule(f"{url}/bulk-delete/",          endpoint=f"{ep}_bulk_delete", view_func=self.make_bulk_delete(), methods=["POST"])
-            
+
             from arasCore.lib.services.workflow import get_workflow
             from arasCore.admin.crud_factory import make_adm_workflow
             api_slug = self.helper.api_slug if getattr(self.helper, "api_slug", None) else self.helper.name

@@ -44,7 +44,7 @@ def dev():
             "file":      _inspect.getfile(handler) if handler else "unknown"
         })
         
-    modules = sorted(k for k in _sys.modules if k.startswith("arasCore") or k.startswith("aras."))
+    modules = sorted(k for k in _sys.modules if k.startswith("arasCore") or k.startswith("app."))
     return render_template(
         "admin/setting/setting_dev_standalone.html",
         dev_partial="admin/setting/setting_dev.html",
@@ -217,7 +217,7 @@ def dev_sync():
     for a in apps:
         helper = helper_registry.get(a.slug)
         if not helper:
-            pkg_name = f"aras.{a.slug}"
+            pkg_name = f"app.{a.slug}"
             try:
                 mod = importlib.import_module(f"{pkg_name}.manifest")
                 helper = getattr(mod, "helper", None)
@@ -285,7 +285,7 @@ def api_dev_sync_app(app_id):
     helper = get_helper_registry().get(app_obj.slug)
     
     if not helper:
-        pkg_name = f"aras.{app_obj.slug}"
+        pkg_name = f"app.{app_obj.slug}"
         try:
             mod = importlib.import_module(f"{pkg_name}.manifest")
             helper = getattr(mod, "helper", None)

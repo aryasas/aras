@@ -816,7 +816,7 @@ def api_dependent_choices():
     parent_value = request.args.get("parent_value")
 
     import logging
-    logger = logging.getLogger("aras.admin")
+    logger = logging.getLogger("app.admin")
     logger.info(f"[api_dependent_choices] res={res_name} field={field_name} val={parent_value}")
 
     if not all([res_name, field_name, parent_value]):
@@ -1219,7 +1219,7 @@ def apps_install_manifest(app_name):
     from arasCore.lib.services.app_helper import AppHelper
 
     app_slug = app_name[len("app_"):] if app_name.startswith("app_") else app_name
-    pkg_name = f"aras.{app_slug}"
+    pkg_name = f"app.{app_slug}"
 
     try:
         mod    = importlib.import_module(f"{pkg_name}.manifest")
@@ -1258,7 +1258,7 @@ def apps_sync(app_id):
     helper = get_helper_registry().get(app_obj.slug)
 
     if helper is None:
-        pkg_name = f"aras.{app_obj.slug}"
+        pkg_name = f"app.{app_obj.slug}"
         try:
             mod    = importlib.import_module(f"{pkg_name}.manifest")
             helper = getattr(mod, "helper", None)

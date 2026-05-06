@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""SQLAlchemy column and WTForms field factories for dynamic tables."""
+"""SQLAlchemy column field factories for dynamic tables."""
 from arasCore.lib.core.extensions import db
 from arasCore.lib.ui.label_utils import humanize as _humanize_label
 
@@ -40,15 +40,15 @@ def _make_sa_column(col):
     return db.Column(db.String(200), nullable=nl)
 
 
-# ── WTForms field dispatch ────────────────────────────────────────────────────
+# # ── WTForms field dispatch ────────────────────────────────────────────────────
 
-def _make_wtf_field(col):
-    """Build a WTForms field from an AppManagerColumn instance."""
-    from wtforms import (StringField, TextAreaField, IntegerField,
-                         BooleanField, DateField, SelectField, FileField)
-    from wtforms.validators import DataRequired, Optional as Opt, Email, URL, Length, NumberRange
+# def _make_wtf_field(col):
 
-    label      = col.label if col.label and col.label != col.name else _humanize_label(col.name)
+#     from wtforms import (StringField, TextAreaField, IntegerField,
+#                          BooleanField, DateField, SelectField, FileField)
+#     from wtforms.validators import DataRequired, Optional as Opt, Email, URL, Length, NumberRange
+
+#     label      = col.label if col.label and col.label != col.name else _humanize_label(col.name)
     validators = [DataRequired()] if col.required else [Opt()]
     ft = col.field_type
     render_kw  = {"field_type": ft}
@@ -80,23 +80,23 @@ def _make_wtf_field(col):
     if ft == "boolean":  return BooleanField(label, description=description)
     if ft == "date":     return DateField(label, **kw)
 
-    if ft in ("float", "decimal"):
-        from wtforms import DecimalField
-        return DecimalField(label, **kw)
+#     if ft in ("float", "decimal"):
+#         from wtforms import DecimalField
+#         return DecimalField(label, **kw)
 
-    if ft == "datetime":
-        from wtforms.fields import DateTimeLocalField
-        return DateTimeLocalField(label, **kw)
+#     if ft == "datetime":
+#         from wtforms.fields import DateTimeLocalField
+#         return DateTimeLocalField(label, **kw)
 
-    if ft == "email":
-        from wtforms.fields import EmailField
-        validators.append(Email())
-        return EmailField(label, **kw)
+#     if ft == "email":
+#         from wtforms.fields import EmailField
+#         validators.append(Email())
+#         return EmailField(label, **kw)
 
-    if ft == "url":
-        from wtforms.fields import URLField
-        validators.append(URL())
-        return URLField(label, **kw)
+#     if ft == "url":
+#         from wtforms.fields import URLField
+#         validators.append(URL())
+#         return URLField(label, **kw)
 
     if ft == "select":
         choices_str = getattr(col, "choices", "") or ""

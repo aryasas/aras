@@ -1,5 +1,6 @@
 import os
 import re
+import pkgutil
 import logging
 from importlib import import_module
 
@@ -213,12 +214,39 @@ def _is_app_enabled(entry: str, aras_pkg: str) -> bool:
     return False
 
 
+def _autoload_models(pkg_name: str) -> int:
+    """Recursively import every submodule under any 'models' package below pkg_name.
+    Triggers SQLAlchemy mapper registration + ArasModel metaclass for class-based apps,
+    so per-app models/__init__.py can stay empty.
+    Returns count of modules imported.
+    """
+    try:
+        root = import_module(pkg_name)
+    except ImportError:
+        return 0
+    if not hasattr(root, "__path__"):
+        return 0
+
+    count = 0
+    for _finder, modname, _ispkg in pkgutil.walk_packages(root.__path__, prefix=f"{pkg_name}."):
+        # Only import modules that live inside a 'models' package
+        parts = modname.split(".")
+        if "models" not in parts:
+            continue
+        try:
+            import_module(modname)
+            count += 1
+        except Exception as e:
+            logger.warning(f"[autoload] {modname}: {e}")
+    return count
+
+
 def _register_aras_apps(app):
     """
     Auto-discover and register apps from folder aras/.
     Loads both 'app_*' and plain named directories (e.g. 'erp', 'soc').
     """
-    aras_pkg = os.path.normpath(os.path.join(app.root_path, "..", "aras"))
+    aras_pkg = os.path.normpath(os.path.join(app.root_path, "..", "app"))
 
     if not os.path.isdir(aras_pkg):
         logger.warning(f"[blueprints] aras package not found at: {aras_pkg}")
@@ -241,8 +269,11 @@ def _register_aras_apps(app):
         if not _is_app_enabled(entry, aras_pkg):
             continue
 
-        pkg_name = f"aras.{entry}"
+        pkg_name = f"app.{entry}"
         try:
+            n_models = _autoload_models(pkg_name)
+            if n_models:
+                logger.info(f"[autoload] {entry}: imported {n_models} model modules")
             bp = None
             if has_views:
                 mod = import_module(f"{pkg_name}.views")

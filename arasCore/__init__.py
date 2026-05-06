@@ -173,6 +173,14 @@ def create_app(config_type=None):
         from .admin.services import load_all_built_apps
         load_all_built_apps(app)
 
+        # Auto-migrate: reconcile DB schema to model declarations.
+        # Safe ops always; drops gated by ARAS_AUTO_DROP=true.
+        try:
+            from .lib.services.auto_migrate import run as _auto_migrate
+            _auto_migrate(app)
+        except Exception as _ame:
+            app.logger.error(f"[arasCore] auto_migrate failed: {_ame}", exc_info=True)
+
         # Universal API — must run after all blueprints registered
         from .lib.services.api_handler import register_universal_api
         register_universal_api(app)
@@ -225,3 +233,14 @@ def create_app(config_type=None):
 
 # Expose db for flask db migrate
 from .lib.core.extensions import db  # noqa: E402, F401
+
+# Single-import entrypoint for app code: `from arasCore import ArasGen`
+from .aras_gen import ArasGen  # noqa: E402, F401
+
+# Lean imports — write `from arasCore import Col, String, Integer, ...` and skip the namespace.
+from .aras_gen import (  # noqa: E402, F401
+    ArasModel, ArasForm, ArasRoute, ArasDB, ArasApp,
+    Col, String, Text, Integer, Decimal, Float, Boolean,
+    Date, DateTime, Password, Email, Select, FK,
+    auto_resources, auto_menu_groups,
+)

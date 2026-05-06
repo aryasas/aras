@@ -1,38 +1,42 @@
 # -*- coding: utf-8 -*-
-"""arasCore/forms.py — Auth forms. Field names match existing templates."""
-from wtforms import StringField, PasswordField, BooleanField, SubmitField
-from wtforms.validators import DataRequired, Email, Length, EqualTo
-from arasCore.lib.ui.forms import ArasForm
+"""
+arasCore/forms.py — built-in auth forms.
+
+Pure ArasGen. No widgets are spelled out: type and widget are inferred
+from the field name (``password`` → Password input, ``email`` → email
+input, ``remember_me`` → checkbox). Override only when the name lies.
+"""
+from arasCore import ArasForm, Col, Boolean, String
+
 
 class LoginForm(ArasForm):
-    email_or_username = StringField("Email or Username", validators=[DataRequired()])
-    password          = PasswordField("Password", validators=[DataRequired()])
-    remember_me       = BooleanField("Remember me")
-    submit            = SubmitField("Login")
+    email_or_username = String(null=False, label="Email or Username")
+    password          = Col(null=False)
+    remember_me       = Boolean(default=False, label="Remember me")
+
 
 class RegisterForm(ArasForm):
-    username  = StringField("Username", validators=[DataRequired(), Length(3, 64)])
-    email     = StringField("Email", validators=[DataRequired(), Email()])
-    password  = PasswordField("Password", validators=[DataRequired(), Length(6, 128)])
-    password2 = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo("password")])
-    submit    = SubmitField("Register")
+    username  = String(null=False, length=64)
+    email     = Col(null=False)
+    password  = Col(null=False, length=128)
+    password2 = Col(null=False, length=128, label="Confirm Password")
+
 
 class ChangePasswordForm(ArasForm):
-    old_password  = PasswordField("Current Password", validators=[DataRequired()])
-    new_password  = PasswordField("New Password", validators=[DataRequired(), Length(6, 128)])
-    new_password2 = PasswordField("Confirm", validators=[DataRequired(), EqualTo("new_password")])
-    submit        = SubmitField("Change Password")
+    old_password  = Col(null=False, label="Current Password")
+    new_password  = Col(null=False, length=128)
+    new_password2 = Col(null=False, length=128, label="Confirm")
+
 
 class PasswordResetRequestForm(ArasForm):
-    email  = StringField("Email", validators=[DataRequired(), Email()])
-    submit = SubmitField("Send Reset Link")
+    email = Col(null=False)
+
 
 class PasswordResetForm(ArasForm):
-    password         = PasswordField("New Password", validators=[DataRequired(), Length(6, 128)])
-    confirm_password = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo("password")])
-    submit           = SubmitField("Reset Password")
+    password         = Col(null=False, length=128, label="New Password")
+    confirm_password = Col(null=False, length=128)
+
 
 class ChangeEmailForm(ArasForm):
-    email    = StringField("New Email", validators=[DataRequired(), Email()])
-    password = PasswordField("Current Password", validators=[DataRequired()])
-    submit   = SubmitField("Request Change")
+    email    = Col(null=False, label="New Email")
+    password = Col(null=False, label="Current Password")

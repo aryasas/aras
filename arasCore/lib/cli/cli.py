@@ -23,7 +23,7 @@ def register_cli(app):
     register_ai_commands(aras)
 
     try:
-        from aras.erp.cli import register_erp_commands
+        from app.erp.cli import register_erp_commands
         register_erp_commands(aras)
     except (ImportError, Exception):
         pass
