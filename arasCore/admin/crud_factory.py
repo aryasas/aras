@@ -249,28 +249,31 @@ def _get_local_child_rows(li_name):
 
 
 def _save_local_child_data(obj, model):
-    """Process and save ct_local_LI data from request.form for all child tables."""
+    """Process and save ct_local_LI data from request.form for all child tables.
+    Raises on parse/insert errors so the caller's except-block can flash + rollback.
+    """
     from flask import request
     import json
     for cd in _get_child_tables_for_model(model):
         _li = cd["model"].__tablename__
         local_data_str = request.form.get(f"ct_local_{_li}")
-        if local_data_str:
-            try:
-                local_rows = json.loads(local_data_str)
-                for row_data in local_rows:
-                    child_obj = cd["model"]()
-                    setattr(child_obj, cd["fk_col"], obj.id)
-                    for k, v in row_data.items():
-                        if hasattr(child_obj, k) and k not in ("id", cd["fk_col"]):
-                            # Coerce empty values for FKs and numbers
-                            if v == "" or v == "0" or v == 0:
-                                if k.endswith("_id"):
-                                    v = None
-                            setattr(child_obj, k, v)
-                    db.session.add(child_obj)
-            except Exception as parse_ex:
-                logger.warning(f"Failed to parse local child data for {_li}: {parse_ex}")
+        if not local_data_str:
+            continue
+        try:
+            local_rows = json.loads(local_data_str)
+        except Exception as parse_ex:
+            logger.exception(f"[child-data] JSON parse failed for {_li}")
+            raise ValueError(f"Child rows for {_li} are not valid JSON: {parse_ex}") from parse_ex
+        for row_data in local_rows:
+            child_obj = cd["model"]()
+            setattr(child_obj, cd["fk_col"], obj.id)
+            for k, v in row_data.items():
+                if hasattr(child_obj, k) and k not in ("id", cd["fk_col"]):
+                    if v == "" or v == "0" or v == 0:
+                        if k.endswith("_id"):
+                            v = None
+                    setattr(child_obj, k, v)
+            db.session.add(child_obj)
 
 
 def _get_child_tables_for_model(model):
@@ -450,19 +453,56 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
             _check_access()
             form = form_cls()
             _populate_relation_choices(form, model)
+            # Preview auto-name when model opts in via __naming_series__
+            if _req.method == "GET":
+                naming = getattr(model, "__naming_series__", None)
+                name_field_attr = getattr(model, "__name_field__", "name")
+                if naming and isinstance(getattr(form, "data", None), dict) and not form.data.get(name_field_attr):
+                    try:
+                        from sqlalchemy import text
+                        from datetime import date
+                        tbl = getattr(model, "__tablename__", "")
+                        row = db.session.execute(
+                            text("SELECT next_value, last_period, padding FROM main_doc_series "
+                                 "WHERE code=:c AND company_id IS NULL"),
+                            {"c": tbl},
+                        ).first()
+                        year = date.today().year
+                        if row:
+                            num = row[0] if row[1] == str(year) else 1
+                            pad = row[2] or 4
+                        else:
+                            num, pad = 1, 4
+                        prefix = naming.split("-")[0]
+                        form.data[name_field_attr] = f"{prefix}-{year:04d}-{num:0{pad}d}"
+                    except Exception:
+                        pass
             if form.validate_on_submit():
-                obj = model()
-                bh, ah = _invoke_hooks(obj, is_new=True)
-                bh(); form.populate_obj(obj); db.session.add(obj); db.session.flush()
-                _save_local_child_data(obj, model)
-                db.session.commit(); ah()
-                _emit("add", obj)
-                flash("Record added.", "success")
-                return redirect(f"{burl}/")
+                try:
+                    obj = model()
+                    bh, ah = _invoke_hooks(obj, is_new=True)
+                    bh(); form.populate_obj(obj); db.session.add(obj); db.session.flush()
+                    _save_local_child_data(obj, model)
+                    ah()
+                    db.session.commit()
+                    _emit("add", obj)
+                    flash("Record added.", "success")
+                    return redirect(f"{burl}/")
+                except Exception as ex:
+                    db.session.rollback()
+                    logger.exception(f"[crud_factory] Add failed for {tname}")
+                    flash(f"Save failed ({type(ex).__name__}): {ex}", "danger")
             elif _req.method == "POST":
+                if not form.errors:
+                    flash("Save failed: form did not validate (no field errors). Check CSRF token / required fields.", "danger")
                 for field_name, errors in form.errors.items():
-                    for error in errors:
-                        flash(f"Error in {getattr(form, field_name).label.text}: {error}", "danger")
+                    errs = errors if isinstance(errors, (list, tuple)) else [errors]
+                    for error in errs:
+                        try:
+                            label = getattr(form, field_name).label.text
+                        except Exception:
+                            label = field_name
+                        flash(f"Error in {label}: {error}", "danger")
 
             # Populate rows from ct_local for re-render or GET if needed
             if child_defs:
@@ -489,17 +529,30 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
             form = form_cls(obj=obj)
             _populate_relation_choices(form, model)
             if form.validate_on_submit():
-                bh, ah = _invoke_hooks(obj, is_new=False)
-                bh(); form.populate_obj(obj);
-                _save_local_child_data(obj, model)
-                db.session.commit(); ah()
-                _emit("edit", obj)
-                flash("Record updated.", "success")
-                return redirect(f"{burl}/")
+                try:
+                    bh, ah = _invoke_hooks(obj, is_new=False)
+                    bh(); form.populate_obj(obj);
+                    _save_local_child_data(obj, model)
+                    ah()
+                    db.session.commit()
+                    _emit("edit", obj)
+                    flash("Record updated.", "success")
+                    return redirect(f"{burl}/")
+                except Exception as ex:
+                    db.session.rollback()
+                    logger.exception(f"[crud_factory] Edit failed for {tname} id={item_id}")
+                    flash(f"Save failed ({type(ex).__name__}): {ex}", "danger")
             elif _req.method == "POST":
+                if not form.errors:
+                    flash("Save failed: form did not validate (no field errors). Check CSRF token / required fields.", "danger")
                 for field_name, errors in form.errors.items():
-                    for error in errors:
-                        flash(f"Error in {getattr(form, field_name).label.text}: {error}", "danger")
+                    errs = errors if isinstance(errors, (list, tuple)) else [errors]
+                    for error in errs:
+                        try:
+                            label = getattr(form, field_name).label.text
+                        except Exception:
+                            label = field_name
+                        flash(f"Error in {label}: {error}", "danger")
 
             # Merge DB rows and local rows for re-render
             if child_defs:
@@ -713,7 +766,7 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
 
         linked_report_url = None
         try:
-            from app.erp.erp_core.models.report import ErpReport
+            from app.erp.erp_main.models.report import ErpReport
             _nm = {"acc_sales_invoice": "sales_summary", "acc_purchase_invoice": "purchase_summary",
                    "pos_order": "pot_sales_report", "pos_session": "pos_shift_report"}
             rpt = ErpReport.query.filter_by(name=_doctype_key, is_active=True).first()

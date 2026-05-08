@@ -1,7 +1,10 @@
+from arasCore.arasgen import ArasGen
+from app.erp.erp_crm.manifest import Crm
 from arasCore.lib.core.base_model import ArasModel, db
 
 
-class CrmActivity(ArasModel):
+class CrmActivity(ArasGen.Model, module=Crm):
+    __is_child__  = True
     __tablename__ = "crm_activity"
     __table_args__ = (
         db.Index("idx_crm_activity_lead", "lead_id", "date_due"),

@@ -1,0 +1,10 @@
+# -*- coding: utf-8 -*-
+"""DEPRECATED — kept for back-compat. Use ``from arasCore.arasgen import ArasGen``."""
+from arasCore.arasgen import *  # noqa: F401, F403
+from arasCore.arasgen import (  # noqa: F401
+    ArasGen, ArasModel, ArasDoc, ArasForm, ArasRoute, ArasDB, ArasApp,
+    Col, String, Text, Integer, Decimal, Float, Boolean,
+    Date, DateTime, Password, Email, Select, FK,
+    auto_resources, auto_menu_groups, register, models_for, register_app_config,
+    resolve_label, infer_type,
+)

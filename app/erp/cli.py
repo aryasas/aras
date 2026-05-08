@@ -19,7 +19,7 @@ def _hdr(msg): click.echo(click.style(f"\n{msg}", bold=True))
 def _seed_coa(company_id):
     """Seed full international 5-digit CoA and wire company default accounts."""
     from app.erp.erp_acc.seed_coa import seed_coa
-    from app.erp.erp_core.models.company import Company
+    from app.erp.erp_config.models.company import Company
     from arasCore.lib.core.extensions import db
 
     slugs = seed_coa(company_id)
@@ -74,7 +74,7 @@ def _seed_warehouse(company_id):
 def _seed_product(company_id, category):
     from app.erp.erp_stock.models.product import StockProduct, StockPriceList
     from app.erp.erp_stock.models.uom import StockUom
-    from app.erp.erp_core.models.currency import Currency
+    from app.erp.erp_config.models.currency import Currency
     uom, _ = StockUom.get_or_create({"name": "Pcs", "ratio": 1}, code="PCS")
     prod, _ = StockProduct.get_or_create(
         {
@@ -84,17 +84,22 @@ def _seed_product(company_id, category):
         },
         code="KST", company_id=company_id,
     )
+    from app.erp.erp_config.models.price_type import StockPriceType
     currency = Currency.find(code="IDR") or Currency.query.first()
-    StockPriceList.get_or_create(
-        {"name": "Retail", "price": Decimal("25000"), "price_type": "sales",
-         "min_qty": 1, "uom_id": uom.id, "is_active": True, "currency_id": currency.id},
-        product_id=prod.id, price_type="sales", uom_id=uom.id,
-    )
-    StockPriceList.get_or_create(
-        {"name": "Beli", "price": Decimal("10000"), "price_type": "purchase",
-         "min_qty": 1, "uom_id": uom.id, "is_active": True, "currency_id": currency.id},
-        product_id=prod.id, price_type="purchase", uom_id=uom.id,
-    )
+    sales_pt = StockPriceType.find(company_id=company_id, price_type="sales")
+    purch_pt = StockPriceType.find(company_id=company_id, price_type="purchase")
+    if sales_pt:
+        StockPriceList.get_or_create(
+            {"price": Decimal("25000"), "min_qty": 1, "uom_id": uom.id,
+             "is_active": True, "currency_id": currency.id},
+            product_id=prod.id, price_type_id=sales_pt.id, uom_id=uom.id,
+        )
+    if purch_pt:
+        StockPriceList.get_or_create(
+            {"price": Decimal("10000"), "min_qty": 1, "uom_id": uom.id,
+             "is_active": True, "currency_id": currency.id},
+            product_id=prod.id, price_type_id=purch_pt.id, uom_id=uom.id,
+        )
     return prod, uom
 
 
@@ -117,7 +122,7 @@ def _seed_mop(company_id, coa):
     Seed Cash / QRIS / Bank mode-of-payment, reading account codes from the seeded CoA.
     Also seeds an AR account for credit payments — reads from coa["receivable"].
     """
-    from app.erp.erp_core.models.payment_mode import ModeOfPayment, CompanyPaymentAccount
+    from app.erp.erp_main.models.payment_mode import ModeOfPayment, CompanyPaymentAccount
     mops = {}
     for name, ptype, coa_key in [
         ("Cash", "cash",    "cash"),
@@ -153,7 +158,7 @@ def _seed_terminal(company_id, loc, mops):
 
 
 def _seed_fiscal(company_id):
-    from app.erp.erp_core.models.fiscal import FiscalYear, FiscalPeriod
+    from app.erp.erp_main.models.fiscal import FiscalYear, FiscalPeriod
     import calendar
     today = date.today()
     fy, _ = FiscalYear.get_or_create(
@@ -177,32 +182,18 @@ def register_erp_commands(aras):
     def erp_group():
         pass
 
-    @erp_group.command("migrate", help="Run ERP schema migrations 021–036")
-    def erp_migrate():
-        import flask, importlib
+    @erp_group.command("migrate", help="Reconcile ERP schema with current models (auto-detect drift)")
+    @click.option("--force", is_flag=True, default=False,
+                  help="Allow destructive ops (drop column/table, narrow type)")
+    def erp_migrate(force):
+        import os, flask
+        from arasCore.lib.services.auto_migrate import run as _auto_migrate
+        if force:
+            os.environ["ARAS_AUTO_DROP"] = "true"
         app = flask.current_app._get_current_object()
         with app.app_context():
-            m021 = importlib.import_module("app.erp.migrations.021_restructure_charge_mop_shift")
-            m022 = importlib.import_module("app.erp.migrations.022_invoice_payment_coa_group")
-            m023 = importlib.import_module("app.erp.migrations.023_supplier_module")
-            m024 = importlib.import_module("app.erp.migrations.024_invoice_supplier_warehouse")
-            m025 = importlib.import_module("app.erp.migrations.025_warehouse_group_product_warehouse")
-            m026 = importlib.import_module("app.erp.migrations.026_payment_order_delivery")
-            m033 = importlib.import_module("app.erp.migrations.033_pos_terminal_split_pricelist")
-            m034 = importlib.import_module("app.erp.migrations.034_drop_use_price_table")
-            m035 = importlib.import_module("app.erp.migrations.035_promo_scope_columns")
-            m036 = importlib.import_module("app.erp.migrations.036_rename_pricelist_tables")
             _hdr("ERP Migrations")
-            m021.run(app); _ok("021 done")
-            m022.run(app); _ok("022 done")
-            m023.run(app); _ok("023 done")
-            m024.run(app); _ok("024 done")
-            m025.run(app); _ok("025 done")
-            m026.run(app); _ok("026 done")
-            m033.run(app); _ok("033 done")
-            m034.run(app); _ok("034 done")
-            m035.run(app); _ok("035 done")
-            m036.run(app); _ok("036 done")
+            _auto_migrate(app).log_summary()
             click.echo(click.style("\nMigrations complete.", bold=True, fg="green"))
 
 
@@ -295,7 +286,7 @@ def register_erp_commands(aras):
         app = flask.current_app._get_current_object()
         with app.app_context():
             from arasCore.lib.core.extensions import db
-            from app.erp.erp_core.models.company import Company
+            from app.erp.erp_config.models.company import Company
 
             _hdr("ERP Seed")
             company = Company.find(code="HQ") or Company.query.first()
@@ -314,6 +305,39 @@ def register_erp_commands(aras):
             _seed_fiscal(cid);               _ok("Fiscal year/period")
             db.session.commit()
             click.echo(click.style("\nSeed complete.", bold=True, fg="green"))
+
+
+    @erp_group.command("seed-full",
+                       help="Run full ERP seed: COA, DocSeries, PPN 11%, UoMs, products+prices+bundle, print/report templates")
+    def erp_seed_full():
+        import flask
+        app = flask.current_app._get_current_object()
+        with app.app_context():
+            from arasCore.lib.core.extensions import db
+            from app.erp.erp_config.models.company import Company
+            from app.erp.seed import run_seed
+
+            _hdr("ERP Seed (Full)")
+            company = Company.find(code="HQ") or Company.query.first()
+            if not company:
+                _err("No company. Run: flask aras db seed first.")
+                return
+            cid = company.id
+            _ok(f"Company: {company.legal_name} (id={cid})")
+
+            coa = _seed_coa(cid);            _ok(f"COA: {len(coa)} key accounts")
+            wh, loc = _seed_warehouse(cid);  _ok(f"Warehouse: {wh.name}")
+            mops = _seed_mop(cid, coa);      _ok(f"MOPs: {', '.join(mops.keys())}")
+            _seed_terminal(cid, wh, mops);   _ok("Terminal: K1")
+            _seed_fiscal(cid);               _ok("Fiscal year/period")
+
+            out = run_seed(cid, coa)
+            _ok(f"DocSeries + PPN 11% + Print/Report templates seeded")
+            _ok(f"UoMs: {', '.join(u.name for u in out["uoms"].values())}")
+            _ok(f"Products: {out['coffee'].code}, {out['snack'].code}, "
+                f"{out['combo'].code} (bundle)")
+            db.session.commit()
+            click.echo(click.style("\nSeed-full complete.", bold=True, fg="green"))
 
     @erp_group.command("test-flow-transaction",
                        help="Run N full purchase→POS-sale→verify cycles with seeded data")
@@ -334,7 +358,7 @@ def register_erp_commands(aras):
         app = flask.current_app._get_current_object()
         with app.app_context():
             from arasCore.lib.core.extensions import db
-            from app.erp.erp_core.models.company import Company
+            from app.erp.erp_config.models.company import Company
 
             _hdr("ERP Demo — Seed")
             company = Company.find(code="HQ") or Company.query.first()
@@ -351,7 +375,7 @@ def register_erp_commands(aras):
             _seed_terminal(cid, wh, mops);        _ok("Terminal: K1")
             _seed_fiscal(cid);                    _ok("Fiscal year/period")
 
-            from app.erp.erp_core.report_seed import run_seed as seed_reports
+            from app.erp.erp_main.report_seed import run_seed as seed_reports
             seed_reports(); _ok("Reports")
             db.session.commit()
 
@@ -376,7 +400,7 @@ def _run_test_flow(count: int, verbose: bool):
       7. P&L / BS spot-check using company default account fields
     """
     from arasCore.lib.core.extensions import db
-    from app.erp.erp_core.models.company import Company
+    from app.erp.erp_config.models.company import Company
     from app.erp.erp_stock.models.product import StockProduct
     from app.erp.erp_stock.models.warehouse import StockLocation
     from app.erp.erp_stock.services.stock_compute import compute_qty
@@ -386,9 +410,9 @@ def _run_test_flow(count: int, verbose: bool):
     )
     from app.erp.erp_acc.services.purchase_posting import post_purchase_invoice
     from app.erp.erp_pos.models.terminal import PosTerminal
-    from app.erp.erp_pos.services.order_service import open_session, create_order, pay_order
-    from app.erp.erp_core.models.currency import Currency
-    from app.erp.erp_core.models.payment_mode import ModeOfPayment
+    from app.erp.erp_pos.services.order import open_session, create_order, pay_order
+    from app.erp.erp_config.models.currency import Currency
+    from app.erp.erp_main.models.payment_mode import ModeOfPayment
     from arasCore.auth import User
 
     _hdr(f"ERP Transaction Flow Test ({count} iteration{'s' if count > 1 else ''})")
@@ -443,7 +467,7 @@ def _run_test_flow(count: int, verbose: bool):
         label = f"[{i}/{count}]"
         try:
             # ── Step 1: Read prices from StockPriceList (generic) ───────
-            from app.erp.erp_stock.services.price_service import get_price
+            from app.erp.erp_stock.services.price import get_price
             sell_price = get_price(prod.id, uom_id, Decimal("1"), price_type="sales")
             buy_price  = get_price(prod.id, uom_id, Decimal("1"), price_type="purchase")
             assert sell_price > 0, f"sell_price={sell_price} — add a StockPriceList row"

@@ -9,8 +9,8 @@ def register_report_commands(aras):
         _app = flask.current_app._get_current_object()
         with _app.app_context():
             try:
-                from app.erp.erp_core.models.report import ErpReport
-                from app.erp.erp_core.services.report_runner import run_report
+                from app.erp.erp_main.models.report import ErpReport
+                from app.erp.erp_main.services.report_runner import run_report
             except ImportError:
                 click.echo("erp not installed or erp_core models not found.")
                 return

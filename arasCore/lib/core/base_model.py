@@ -15,7 +15,7 @@ class ArasModel(db.Model, ArasBase):
     __display_fields__: tuple = ()
 
     id            = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    is_active     = db.Column(db.Boolean, default=True, nullable=False)
+    is_active     = db.Column(db.Boolean, default=True, server_default=db.text("1"), nullable=False)
     created_at    = db.Column(db.DateTime, default=_now, server_default=db.func.now(), nullable=False)
     updated_at    = db.Column(db.DateTime, default=_now, onupdate=_now, server_default=db.func.now(), nullable=False)
     created_by_id = db.Column(db.Integer, db.ForeignKey("auth_users.id"), nullable=True)

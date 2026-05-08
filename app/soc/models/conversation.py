@@ -1,7 +1,8 @@
+from arasCore.arasgen import ArasGen
 from arasCore.lib.core.base_model import ArasModel, db
 
 
-class SocConversation(ArasModel):
+class SocConversation(ArasGen.Model):
     __tablename__ = "soc_conversation"
 
     # id, is_active, created_at, updated_at, created_by_id, updated_by_id — from ArasModel
@@ -18,7 +19,7 @@ class SocConversation(ArasModel):
         ).first()
 
 
-class SocConversationParticipant(ArasModel):
+class SocConversationParticipant(ArasGen.Model):
     __tablename__ = "soc_conversation_participant"
     __table_args__ = (
         db.UniqueConstraint("conversation_id", "user_id", name="uq_participant"),

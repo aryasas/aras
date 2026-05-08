@@ -23,6 +23,24 @@ def _fk_coerce(x):
         return None
 
 
+def _fix_fk_zeros(obj, model):
+    """Null any nullable FK column on `obj` whose value is 0 (the SelectField sentinel).
+
+    Runs after form.populate_obj() to defend against any code path that lets the
+    0-sentinel reach SQLAlchemy. Non-nullable FK=0 is left as-is so the DB raises
+    a clear constraint error instead of silently nulling.
+    """
+    try:
+        for sa_col in model.__table__.columns:
+            if not sa_col.foreign_keys or not sa_col.nullable:
+                continue
+            name = sa_col.key
+            if getattr(obj, name, None) == 0:
+                setattr(obj, name, None)
+    except Exception as _e:
+        logger.debug(f"[admin_mount] _fix_fk_zeros failed: {_e}")
+
+
 def _fk_choices(col):
     """Resolve FK choices from the referenced table at request time."""
     try:
@@ -37,6 +55,53 @@ def _fk_choices(col):
     return [(0, "— Select —")]
 
 
+def _preview_doc_series_name(form, model):
+    """Pre-fill the form's name field with the next DocSeries number (no commit).
+    Reads main_doc_series row by code=__tablename__, company_id IS NULL.
+    Falls back to model.__naming_series__ if no row found.
+    """
+    try:
+        from sqlalchemy import text
+        from datetime import date
+        from arasCore.lib.core.extensions import db
+        name_field = getattr(model, "__name_field__", "name")
+        if not isinstance(getattr(form, "data", None), dict):
+            return
+        if form.data.get(name_field):
+            return
+        tbl = getattr(model, "__tablename__", "")
+        row = db.session.execute(
+            text("SELECT format, next_value, last_period, padding, prefix, suffix "
+                 "FROM main_doc_series WHERE code=:c AND company_id IS NULL AND is_active=1"),
+            {"c": tbl},
+        ).first()
+        today = date.today()
+        year, month, day = today.year, today.month, today.day
+        if row:
+            fmt = row[0] or model.__naming_series__
+            num = row[1] if row[2] == str(year) else 1
+            pad = row[3] or 4
+            prefix = row[4] or ""
+            suffix = row[5] or ""
+        else:
+            fmt = model.__naming_series__
+            num, pad = 1, 4
+            prefix = suffix = ""
+        import re
+        out = (fmt
+            .replace("{prefix}", prefix)
+            .replace("{suffix}", suffix)
+            .replace("{YYYY}", f"{year:04d}")
+            .replace("{YY}", f"{year % 100:02d}")
+            .replace("{MM}", f"{month:02d}")
+            .replace("{DD}", f"{day:02d}")
+            .replace("{seq}", f"{num:0{pad}d}"))
+        out = re.sub(r"\{(#+)\}", lambda m: f"{num:0{len(m.group(1))}d}", out)
+        form.data[name_field] = out.strip("/")
+    except Exception:
+        pass
+
+
 def _build_model_form(model, obj=None, *, data=None):
     """Single source of truth: return an ArasForm bound to this model.
 
@@ -47,7 +112,7 @@ def _build_model_form(model, obj=None, *, data=None):
     if hasattr(model, "form") and callable(getattr(model, "form")):
         form = model.form(data=data, obj=obj)
     else:
-        from arasCore.aras_gen import ArasForm
+        from arasCore.arasgen import ArasForm
         FormCls = ArasForm.from_model(model)
         form = FormCls(data=data, obj=obj)
 
@@ -260,6 +325,10 @@ class AdminResourceMounter:
                 abort(403)
             form = _build_model_form(model)
             from arasCore.admin.services import _invoke_hooks, _get_child_tables_for_model
+            # Preview auto-name from DocSeries config (DB-driven, user-customizable)
+            if request.method == "GET" and getattr(model, "__naming_series__", None):
+                _preview_doc_series_name(form, model)
+                logger.warning(f"[autoname-debug] {model.__tablename__}: name={form.data.get('name')!r}")
             if form.validate_on_submit():
                 try:
                     obj = model()
@@ -267,6 +336,7 @@ class AdminResourceMounter:
                     before_hook, after_hook = _invoke_hooks(obj, is_new=True)
                     before_hook()
                     form.populate_obj(obj)
+                    _fix_fk_zeros(obj, model)
                     db.session.add(obj)
                     db.session.flush()
 
@@ -278,11 +348,19 @@ class AdminResourceMounter:
                     return redirect(f"{base_url}/")
                 except Exception as ex:
                     db.session.rollback()
-                    flash(str(ex), "danger")
+                    logger.exception(f"[admin_mount] Save failed for {model.__tablename__}")
+                    flash(f"Save failed ({type(ex).__name__}): {ex}", "danger")
             elif request.method == "POST":
+                if not form.errors:
+                    flash("Save failed: form did not validate (no field errors). Check CSRF token / required fields.", "danger")
                 for field_name, errors in form.errors.items():
-                    for err in errors:
-                        flash(f"{getattr(form, field_name).label.text}: {err}", "danger")
+                    errs = errors if isinstance(errors, (list, tuple)) else [errors]
+                    for err in errs:
+                        try:
+                            label = getattr(form, field_name).label.text
+                        except Exception:
+                            label = field_name
+                        flash(f"{label}: {err}", "danger")
 
             child_tables = []
             for cd in _get_child_tables_for_model(model):
@@ -403,6 +481,7 @@ class AdminResourceMounter:
                     before_hook, after_hook = _invoke_hooks(obj, is_new=False)
                     before_hook()
                     form.populate_obj(obj)
+                    _fix_fk_zeros(obj, model)
 
                     _save_local_child_data(obj, model)
 
@@ -412,11 +491,19 @@ class AdminResourceMounter:
                     return redirect(f"{base_url}/")
                 except Exception as ex:
                     db.session.rollback()
-                    flash(str(ex), "danger")
+                    logger.exception(f"[admin_mount] Save failed for {model.__tablename__}")
+                    flash(f"Save failed ({type(ex).__name__}): {ex}", "danger")
             elif request.method == "POST":
+                if not form.errors:
+                    flash("Save failed: form did not validate (no field errors). Check CSRF token / required fields.", "danger")
                 for field_name, errors in form.errors.items():
-                    for err in errors:
-                        flash(f"{getattr(form, field_name).label.text}: {err}", "danger")
+                    errs = errors if isinstance(errors, (list, tuple)) else [errors]
+                    for err in errs:
+                        try:
+                            label = getattr(form, field_name).label.text
+                        except Exception:
+                            label = field_name
+                        flash(f"{label}: {err}", "danger")
 
             child_tables = []
             for cd in _get_child_tables_for_model(model):

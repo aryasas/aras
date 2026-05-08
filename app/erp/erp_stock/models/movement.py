@@ -1,10 +1,15 @@
+from arasCore.arasgen import ArasGen
+from app.erp.erp_stock.manifest import Stock
 from arasCore.lib.core.base_model import ArasModel, db
 
 
 MOVE_TYPES = ["receipt", "delivery", "internal", "adjustment", "opening", "return", "scrap"]
 
 
-class StockMovement(ArasModel):
+class StockMovement(ArasGen.Model, module=Stock):
+    __title__     = "Stock Movements"
+    __icon__      = "fa-exchange"
+    __menu_order__= 6
     """
     Stock movement document (header).
     One movement auto-creates one AccJournalEntry on post.
@@ -21,7 +26,7 @@ class StockMovement(ArasModel):
     )
 
     id               = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    company_id       = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
+    company_id       = db.Column(db.Integer, db.ForeignKey("cfg_company.id"), nullable=False)
     name             = db.Column(db.String(50), nullable=False)   # sequence: SM/2024/0001
     move_type        = db.Column(db.Enum(*MOVE_TYPES), nullable=False)
     state            = db.Column(db.Enum("draft", "confirmed", "posted", "cancelled"),
@@ -34,7 +39,7 @@ class StockMovement(ArasModel):
     journal_entry_id = db.Column(db.BigInteger, db.ForeignKey("acc_journal_entry.id"), nullable=True)
     origin_model     = db.Column(db.String(50))
     origin_id        = db.Column(db.BigInteger)
-    fiscal_period_id = db.Column(db.Integer, db.ForeignKey("fiscal_period.id"), nullable=True)
+    fiscal_period_id = db.Column(db.Integer, db.ForeignKey("main_fiscal_period.id"), nullable=True)
 
     lines         = db.relationship("StockMovementLine", backref="movement", cascade="all, delete-orphan")
     src_location  = db.relationship("StockLocation", foreign_keys=[src_location_id])
@@ -42,7 +47,8 @@ class StockMovement(ArasModel):
     journal_entry = db.relationship("AccJournalEntry", foreign_keys=[journal_entry_id])
 
 
-class StockMovementLine(ArasModel):
+class StockMovementLine(ArasGen.Model, module=Stock):
+    __is_child__  = True
     """One product line in a movement."""
     __tablename__ = "stock_movement_line"
 

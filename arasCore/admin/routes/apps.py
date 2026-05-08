@@ -777,25 +777,35 @@ def api_fk_choices():
         if table_id:
             tbl = AppManagerTable.query.get(table_id)
             if tbl:
-                from arasCore.admin.services import make_table_model
-                model = make_table_model(tbl, tbl.app.slug if tbl.app else "app",
-                                         AppManagerTable.query.filter_by(app_id=tbl.app_id).all())
-                label_col = display_col or (tbl.columns[0].name if tbl.columns else "id")
-                for obj in model.query.order_by(model.id).limit(200).all():
-                    rows.append({"id": obj.id, "label": str(getattr(obj, label_col, obj.id) or obj.id)})
+                from sqlalchemy import text
+                from arasCore.lib.core.extensions import db
+                db_name = tbl.db_table_name or tbl.name.replace("/", "_").replace("-", "_")
+                first_col = tbl.columns.first() if hasattr(tbl.columns, 'first') else (tbl.columns[0] if tbl.columns else None)
+                label_col = display_col or (first_col.name if first_col else "id")
+                with db.engine.connect() as conn:
+                    try:
+                        result = conn.execute(
+                            text(f"SELECT id, {label_col} FROM {db_name} ORDER BY id LIMIT 200")
+                        )
+                        for row in result:
+                            rows.append({"id": row[0], "label": str(row[1] or row[0])})
+                    except Exception:
+                        result = conn.execute(text(f"SELECT id FROM {db_name} ORDER BY id LIMIT 200"))
+                        rows = [{"id": row[0], "label": str(row[0])} for row in result]
         elif system_table:
             from sqlalchemy import text
             from arasCore.lib.core.extensions import db
             label_col = display_col or "name"
-            try:
-                result = db.session.execute(
-                    text(f"SELECT id, {label_col} FROM {system_table} ORDER BY id LIMIT 200")
-                )
-                for row in result:
-                    rows.append({"id": row[0], "label": str(row[1] or row[0])})
-            except Exception:
-                result = db.session.execute(text(f"SELECT id FROM {system_table} ORDER BY id LIMIT 200"))
-                rows = [{"id": row[0], "label": str(row[0])} for row in result]
+            with db.engine.connect() as conn:
+                try:
+                    result = conn.execute(
+                        text(f"SELECT id, {label_col} FROM {system_table} ORDER BY id LIMIT 200")
+                    )
+                    for row in result:
+                        rows.append({"id": row[0], "label": str(row[1] or row[0])})
+                except Exception:
+                    result = conn.execute(text(f"SELECT id FROM {system_table} ORDER BY id LIMIT 200"))
+                    rows = [{"id": row[0], "label": str(row[0])} for row in result]
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 400
 

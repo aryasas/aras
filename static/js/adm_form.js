@@ -89,8 +89,11 @@ function legacyCtSaveRow(ctId, apiUrl, fkCol, parentId) {
     var data = {}; data[fkCol] = parentId;
     form.querySelectorAll(".ct-input").forEach(function (el) {
         var name = el.name; if (!name) return;
-        if (el.type === "checkbox") data[name] = el.checked;
-        else if (el.value !== "") data[name] = el.value;
+        if (el.type === "checkbox") { data[name] = el.checked; return; }
+        if (el.value === "") return;
+        // FK select sentinel "0" → omit (server treats missing as NULL)
+        if (el.tagName === "SELECT" && /_id$/.test(name) && el.value === "0") return;
+        data[name] = el.value;
     });
     var method = editingId ? "PUT" : "POST";
     var url = editingId ? apiUrl.replace(/\/$/, "") + "/" + editingId + "/" : apiUrl;

@@ -562,14 +562,37 @@ def _sa_col_label(name: str) -> str:
     return n.replace("_", " ").title()
 
 
-def _sa_column_to_def(col, order: int) -> dict:
-    """Convert a SQLAlchemy Column object → mgr_column creation dict."""
+_DISPLAY_COL_HINTS = ("name", "title", "label", "code", "username", "email")
+
+
+def _guess_display_col(target_table: str):
+    """Pick a sensible display column for a FK target by inspecting SA metadata."""
+    try:
+        from arasCore.lib.core.extensions import db
+        tbl = db.metadata.tables.get(target_table)
+        if tbl is not None:
+            existing = {c.name for c in tbl.columns}
+            for hint in _DISPLAY_COL_HINTS:
+                if hint in existing:
+                    return hint
+    except Exception:
+        pass
+    return None
+
+
+def _sa_column_to_def(col, order: int, app_table_map=None) -> dict:
+    """Convert a SQLAlchemy Column object → mgr_column creation dict.
+
+    `app_table_map`: {db_table_name: mgr_table.id} for tables in the same app — used
+    to wire `relation_table_id` so FK choices auto-load in the GUI.
+    """
     # Relation detection
     if col.foreign_keys:
         fk = next(iter(col.foreign_keys))
         target_table = fk.column.table.name if hasattr(fk, "column") else str(fk.target_fullname).split(".")[0]
-        rel_sys = target_table if target_table == "auth_users" else None
-        rel_display = "username" if target_table == "auth_users" else None
+        rel_tid = (app_table_map or {}).get(target_table)
+        rel_sys = None if rel_tid else target_table
+        rel_display = _guess_display_col(target_table) or ("username" if target_table == "auth_users" else None)
         return {
             "name":                 col.name,
             "label":                _sa_col_label(col.name),
@@ -578,6 +601,7 @@ def _sa_column_to_def(col, order: int) -> dict:
             "order":                order,
             "show_in_list":         True,
             "show_in_form":         True,
+            "relation_table_id":    rel_tid,
             "relation_system_table": rel_sys,
             "relation_display_col": rel_display,
         }
@@ -703,18 +727,40 @@ def sync_helper_to_db(helper, db, flask_app=None) -> "object":
             stats["tables_new"] += 1
             logger.info(f"[sync]   table: {res.name} ({tbl_name})")
         else:
-            # Always update structural fields so re-sync fixes parent/order/visibility
+            # Always update structural fields so re-sync fixes parent/order/visibility/labels
             tbl_rec.parent_table_id = parent_id
             tbl_rec.menu_order      = order
             tbl_rec.show_in_menu    = res.admin_list
+            tbl_rec.title           = res.get_menu_title()
+            tbl_rec.menu_title      = res.menu_title or res.get_menu_title()
+            tbl_rec.menu_icon       = res.menu_icon
             stats["tables_existing"] += 1
 
-        existing_col_names = {c.name for c in AppManagerColumn.query.filter_by(table_id=tbl_rec.id).all()}
+        # Build FK target lookup: db_table_name → mgr_table.id (this app only)
+        _app_table_map = {
+            t.db_table_name: t.id
+            for t in AppManagerTable.query.filter_by(app_id=app_rec.id).all()
+            if t.db_table_name
+        }
+        existing_cols = {c.name: c for c in AppManagerColumn.query.filter_by(table_id=tbl_rec.id).all()}
         for col_order, col in enumerate(res.model.__table__.columns):
-            if col.primary_key or col.name in existing_col_names:
+            if col.primary_key:
                 stats["cols_skipped"] += 1
                 continue
-            col_def = _sa_column_to_def(col, col_order)
+            if col.name in existing_cols:
+                # Backfill relation metadata for already-synced FK columns
+                rec = existing_cols[col.name]
+                if col.foreign_keys and rec.field_type == "relation" \
+                        and not rec.relation_table_id and not rec.relation_system_table:
+                    fk = next(iter(col.foreign_keys))
+                    target_table = fk.column.table.name if hasattr(fk, "column") else str(fk.target_fullname).split(".")[0]
+                    rec.relation_table_id    = _app_table_map.get(target_table)
+                    rec.relation_system_table = None if rec.relation_table_id else target_table
+                    if not rec.relation_display_col:
+                        rec.relation_display_col = _guess_display_col(target_table) or ("username" if target_table == "auth_users" else None)
+                stats["cols_skipped"] += 1
+                continue
+            col_def = _sa_column_to_def(col, col_order, _app_table_map)
             db.session.add(AppManagerColumn(table_id=tbl_rec.id, **col_def))
             stats["cols_new"] += 1
         return tbl_rec

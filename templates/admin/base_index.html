@@ -73,10 +73,8 @@
 
         {% include 'admin/gen/modal_delete_confirm.html' %}
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-          {% endif %}
-        {% endwith %}
+        {% from 'admin/macro/macro_alerts.html' import show_message %}
+        {{ show_message() }}
 
         {% include 'admin/base/base_partial_script_src.html' %}
         <script src="{{ url_for('static', filename='js/adm_delete.js') }}"></script>

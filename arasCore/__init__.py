@@ -45,6 +45,25 @@ def create_app(config_type=None):
         # Extensions must be first
         register_extensions(app)
 
+        # Teardown shield — auto_migrate may KILL stale server-side connections
+        # that the pool still references. Without this, the next teardown_appcontext
+        # tries to ROLLBACK a dead handle and raises "Server has gone away",
+        # masking the real result of the request/CLI command.
+        from sqlalchemy.exc import InterfaceError as _SAInterfaceError
+        from .lib.core.extensions import db as _db_for_teardown
+
+        @app.teardown_appcontext
+        def _shield_dead_conn(exc):
+            try:
+                _db_for_teardown.session.remove()
+            except _SAInterfaceError:
+                try:
+                    _db_for_teardown.engine.dispose(close=True)
+                except Exception:
+                    pass
+            except Exception:
+                pass
+
         # Import models in correct order — permissions before auth
         # so SQLAlchemy mapper resolves UserRole ↔ User correctly
         from . import permissions   # noqa: F401
@@ -65,103 +84,7 @@ def create_app(config_type=None):
         # Database — create tables first so _is_app_enabled() can query AppManagerApp
         configure_database(app)
 
-        # arasCore idempotent migrations (must run BEFORE querying mgr_* tables)
-        try:
-            from .lib.migrations import m001_page_type
-            m001_page_type.run(app)
-        except Exception as _me:
-            app.logger.warning(f"[arasCore] migration m001 skipped: {_me}")
-
-        try:
-            from .lib.migrations import m002_rbac
-            m002_rbac.run(app)
-        except Exception as _me:
-            app.logger.warning(f"[arasCore] migration m002 skipped: {_me}")
-
-        try:
-            from .lib.migrations import m004_arasmodel_audit_cols
-            m004_arasmodel_audit_cols.run(app)
-        except Exception as _me:
-            app.logger.warning(f"[arasCore] migration m004 skipped: {_me}")
-
-        try:
-            from .lib.migrations import m005_list_view_setting
-            m005_list_view_setting.run(app)
-        except Exception as _me:
-            app.logger.warning(f"[arasCore] migration m005 skipped: {_me}")
-
-        try:
-            from .lib.migrations import m006_display_columns
-            m006_display_columns.run(app)
-        except Exception as _me:
-            app.logger.warning(f"[arasCore] migration m006 skipped: {_me}")
-
-        try:
-            from .lib.migrations import m007_workflow
-            m007_workflow.run(app)
-        except Exception as _me:
-            app.logger.warning(f"[arasCore] migration m007 skipped: {_me}")
-
-        try:
-            from .lib.migrations import m008_audit_field_log
-            m008_audit_field_log.run(app)
-        except Exception as _me:
-            app.logger.warning(f"[arasCore] migration m008 skipped: {_me}")
-
-        try:
-            from .lib.migrations import m009_webhook
-            m009_webhook.run(app)
-        except Exception as _me:
-            app.logger.warning(f"[arasCore] migration m009 skipped: {_me}")
-
-        try:
-            from .lib.migrations import m010_formula_field
-            m010_formula_field.run(app)
-        except Exception as _me:
-            app.logger.warning(f"[arasCore] migration m010 skipped: {_me}")
-
-        try:
-            from .lib.migrations import m011_scripts
-            m011_scripts.run(app)
-        except Exception as _me:
-            app.logger.warning(f"[arasCore] migration m011 skipped: {_me}")
-
-        try:
-            from .lib.migrations import m012_dashboard_builder
-            m012_dashboard_builder.run(app)
-        except Exception as _me:
-            app.logger.warning(f"[arasCore] migration m012 skipped: {_me}")
-
-        try:
-            from .lib.migrations import m013_system_settings
-            m013_system_settings.run(app)
-        except Exception as _me:
-            app.logger.warning(f"[arasCore] migration m013 skipped: {_me}")
-
-        try:
-            from .lib.migrations import m014_child_tab_footer
-            m014_child_tab_footer.run(app)
-        except Exception as _me:
-            app.logger.warning(f"[arasCore] migration m014 skipped: {_me}")
-
-        try:
-            from .lib.migrations import m015_deleted_docs
-            m015_deleted_docs.run(app)
-        except Exception as _me:
-            app.logger.warning(f"[arasCore] migration m015 skipped: {_me}")
-
-        try:
-            from .lib.migrations import m016_default_section
-            m016_default_section.run(app)
-        except Exception as _me:
-            app.logger.warning(f"[arasCore] migration m016 skipped: {_me}")
-
-        try:
-            from .lib.migrations import m017_relation_filter
-            m017_relation_filter.run(app)
-        except Exception as _me:
-            app.logger.warning(f"[arasCore] migration m017 skipped: {_me}")
-
+        # Schema migrations are model-driven via auto_migrate (called below).
         # App modules from aras/ gated by DB install status + admin last
         from .lib.services.blueprints import register_app_modules
         register_app_modules(app)
@@ -188,10 +111,13 @@ def create_app(config_type=None):
         from .admin.page_actions import register_actions_blueprint
         register_actions_blueprint(app)
 
-        # Webhook dispatcher — subscribe after all events are wired up
+        # Webhook dispatcher — subscribe after all events are wired up.
+        # Optional: requires `huey`. Silent skip when unavailable.
         try:
             from .lib.services.webhook import init_webhooks
             init_webhooks(app)
+        except ImportError:
+            pass
         except Exception as _we:
             app.logger.warning(f"[arasCore] webhook init skipped: {_we}")
 
@@ -218,8 +144,11 @@ def create_app(config_type=None):
 
         # Pre-flight schema check (development only)
         try:
-            from .lib.core.preflight import run_preflight_check
-            run_preflight_check(app)
+            import sys as _sys
+            _argv = " ".join(_sys.argv)
+            if "migrate" not in _argv and "remigrate" not in _argv:
+                from .lib.core.preflight import run_preflight_check
+                run_preflight_check(app)
         except Exception as _pe:
             app.logger.debug(f"[preflight] check skipped: {_pe}")
 
@@ -235,11 +164,11 @@ def create_app(config_type=None):
 from .lib.core.extensions import db  # noqa: E402, F401
 
 # Single-import entrypoint for app code: `from arasCore import ArasGen`
-from .aras_gen import ArasGen  # noqa: E402, F401
+from .arasgen import ArasGen  # noqa: E402, F401
 
 # Lean imports — write `from arasCore import Col, String, Integer, ...` and skip the namespace.
-from .aras_gen import (  # noqa: E402, F401
-    ArasModel, ArasForm, ArasRoute, ArasDB, ArasApp,
+from .arasgen import (  # noqa: E402, F401
+    ArasModel, ArasDoc, ArasForm, ArasRoute, ArasDB, ArasApp,
     Col, String, Text, Integer, Decimal, Float, Boolean,
     Date, DateTime, Password, Email, Select, FK,
     auto_resources, auto_menu_groups,

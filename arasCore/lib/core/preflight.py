@@ -22,28 +22,16 @@ def run_preflight_check(app):
     """
     if not app.config.get("DEBUG") and os.getenv("FLASK_ENV") != "development":
         return
+    # Skip during migration to avoid holding metadata locks
+    if os.getenv("ARAS_SKIP_PREFLIGHT") == "1":
+        return
 
     with app.app_context():
-        # 1. Check Dynamic App Migrations
-        try:
-            from arasCore.admin.models import AppManagerApp
-            from arasCore.lib.services.schema_migrator import diff_app, get_pending
-            
-            active_apps = AppManagerApp.query.filter_by(is_active=True).all()
-            total_pending = 0
-            for app_obj in active_apps:
-                # Refresh diff
-                diff_app(app_obj.id)
-                pending = get_pending(app_obj.id)
-                total_pending += len(pending)
-            
-            if total_pending > 0:
-                print(f"\n\033[93m[PREFLIGHT] WARNING: {total_pending} unapplied dynamic migrations detected.\033[0m")
-                print("\033[93m             Run 'flask aras migrations' in the Admin UI or via CLI.\033[0m\n")
-        except Exception as e:
-            logger.debug(f"[preflight] dynamic check failed: {e}")
+        # Code-based drift check only.
+        # The legacy mgr_schema_migration queue is superseded by auto_migrate
+        # (boot-time model-driven reconciler). No separate dynamic check needed.
 
-        # 2. Check Code-based Model Drifts
+        # Check Code-based Model Drifts
         try:
             inspector = sa_inspect(db.engine)
             existing_tables = set(inspector.get_table_names())
@@ -74,16 +62,22 @@ def run_preflight_check(app):
                         except Exception:
                             target_type = str(col.type).upper()
                         
-                        # Basic normalization
-                        live_type = live_type.replace("TINYINT(1)", "BOOLEAN").replace("INTEGER", "INT")
-                        target_type = target_type.replace("TINYINT(1)", "BOOLEAN").replace("INTEGER", "INT")
-                        
-                        if live_type != target_type and not (live_type.startswith(target_type) or target_type.startswith(live_type)):
+                        # Normalize MariaDB type aliases (mirrors auto_migrate._norm)
+                        def _n(s):
+                            s = (s.replace("TINYINT(1)", "BOOL")
+                                  .replace("BOOLEAN", "BOOL")
+                                  .replace("TINYINT", "BOOL")
+                                  .replace("INTEGER", "INT")
+                                  .replace("NUMERIC", "DECIMAL")
+                                  .replace("LONGTEXT", "JSON")
+                                  .replace(" ", ""))
+                            return s
+                        if _n(live_type) != _n(target_type) and not (live_type.startswith(target_type) or target_type.startswith(live_type)):
                             drifts.append(f"{tbl_name}.{col.name} (type drift)")
             
             if drifts:
                 print(f"\033[93m[PREFLIGHT] WARNING: {len(drifts)} code-model drifts detected.\033[0m")
                 print(f"\033[93m             Sample: {', '.join(drifts[:3])}{'...' if len(drifts)>3 else ''}\033[0m")
-                print("\033[93m             Run 'flask aras fix-db' to synchronize.\033[0m\n")
+                print("\033[93m             Run 'flask aras migrate' to synchronize.\033[0m\n")
         except Exception as e:
             logger.debug(f"[preflight] code-drift check failed: {e}")

@@ -1,7 +1,12 @@
+from arasCore.arasgen import ArasGen
+from app.erp.erp_sup.manifest import Sup
 from arasCore.lib.core.base_model import ArasSoftModel, db
 
 
-class SupSupplier(ArasSoftModel):
+class SupSupplier(ArasGen.Model, module=Sup):
+    __title__     = "Suppliers"
+    __icon__      = "fa-truck"
+    __menu_order__= 3
     __tablename__ = "sup_supplier"
     __display_fields__ = ("code", "name")
     __table_args__ = (
@@ -9,10 +14,10 @@ class SupSupplier(ArasSoftModel):
         db.Index("idx_sup_supplier_name", "company_id", "name"),
     )
 
-    company_id        = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
+    company_id        = db.Column(db.Integer, db.ForeignKey("cfg_company.id"), nullable=False)
     code              = db.Column(db.String(30), nullable=False)
     name              = db.Column(db.String(200), nullable=False)
-    type              = db.Column(db.Enum("individual", "company"), default="company", nullable=False)
+    group_id          = db.Column(db.Integer, db.ForeignKey("sup_supplier_group.id"), nullable=True)
     email             = db.Column(db.String(120), nullable=True)
     phone             = db.Column(db.String(50), nullable=True)
     mobile            = db.Column(db.String(50), nullable=True)
@@ -20,7 +25,7 @@ class SupSupplier(ArasSoftModel):
     city              = db.Column(db.String(100), nullable=True)
     country           = db.Column(db.String(100), nullable=True)
     tax_id            = db.Column(db.String(50), nullable=True)
-    currency_id       = db.Column(db.Integer, db.ForeignKey("currency.id"), nullable=True)
+    currency_id       = db.Column(db.Integer, db.ForeignKey("cfg_currency.id"), nullable=True)
     payment_term_days = db.Column(db.Integer, default=30)
     credit_limit      = db.Column(db.Numeric(18, 4), default=0)
     bank_name         = db.Column(db.String(100), nullable=True)

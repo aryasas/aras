@@ -1,6 +1,7 @@
 import os
 import click
 
+
 def register_misc_commands(aras):
     @aras.command()
     def filldata():
@@ -15,18 +16,12 @@ def register_misc_commands(aras):
         for x in range(count):
             click.echo(f"Hello {name}!")
 
-    @aras.command("erp-init", help="Run ERP seed + migrate (idempotent)")
+    @aras.command("erp-init", help="Run ERP seed (idempotent)")
     def erp_init():
-        """Run ERP DB migrations and seed core data."""
-        from app.erp.erp_core.seed import run_seed
-        from app.erp.erp_core.migrate_task4 import run as mt4
-        from app.erp.erp_core.migrate_task5 import run as mt5
-        from app.erp.erp_core.migrate_task6 import run as mt6
+        """Run ERP seed."""
         import flask
+        from app.erp.erp_main.seed import run_seed
         _app = flask.current_app._get_current_object()
-        mt4(_app)
-        mt5(_app)
-        mt6(_app)
         run_seed(_app)
         click.echo("[erp-init] done.")
 

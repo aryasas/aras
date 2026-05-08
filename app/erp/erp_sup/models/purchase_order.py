@@ -1,7 +1,12 @@
+from arasCore.arasgen import ArasGen
+from app.erp.erp_sup.manifest import Sup
 from arasCore.lib.core.base_model import ArasModel, db
 
 
-class PurchaseOrder(ArasModel):
+class PurchaseOrder(ArasGen.Model, module=Sup):
+    __title__     = "Purchase Orders"
+    __icon__      = "fa-shopping-basket"
+    __menu_order__= 3
     __tablename__ = "sup_purchase_order"
     __table_args__ = (
         db.Index("ix_po_company_date", "company_id", "order_date"),
@@ -10,13 +15,13 @@ class PurchaseOrder(ArasModel):
     )
 
     id            = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    company_id    = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
+    company_id    = db.Column(db.Integer, db.ForeignKey("cfg_company.id"), nullable=False)
     name          = db.Column(db.String(50), nullable=False)
     supplier_id   = db.Column(db.Integer, db.ForeignKey("sup_supplier.id"), nullable=True)
     location_id   = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=True)
     order_date    = db.Column(db.Date, nullable=False)
     expected_date = db.Column(db.Date, nullable=True)
-    currency_id   = db.Column(db.Integer, db.ForeignKey("currency.id"), nullable=False)
+    currency_id   = db.Column(db.Integer, db.ForeignKey("cfg_currency.id"), nullable=False)
     price_type_id = db.Column(db.Integer, db.ForeignKey("stock_price_type.id"), nullable=True)
     subtotal      = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     discount_amt  = db.Column(db.Numeric(18, 4), default=0, nullable=False)
@@ -40,8 +45,18 @@ class PurchaseOrder(ArasModel):
     def __repr__(self):
         return f"<PurchaseOrder {self.name} [{self.state}]>"
 
+    def detail_context(self, obj):
+        if not obj:
+            return {}
+        if obj.state == "confirmed":
+            return {
+                "post_url": "/api/erp/sup/purchase_order/create_invoice_from_order/",
+                "obj_id":   obj.id,
+            }
+        return {"obj_state": obj.state}
 
-class PurchaseOrderLine(ArasModel):
+class PurchaseOrderLine(ArasGen.Model, module=Sup):
+    __is_child__  = True
     __tablename__ = "sup_purchase_order_line"
 
     id            = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
@@ -62,12 +77,13 @@ class PurchaseOrderLine(ArasModel):
     account = db.relationship("AccAccount")
 
 
-class PurchaseOrderCharge(ArasModel):
+class PurchaseOrderCharge(ArasGen.Model, module=Sup):
+    __is_child__  = True
     __tablename__ = "sup_purchase_order_charge"
 
     id         = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     order_id   = db.Column(db.BigInteger, db.ForeignKey("sup_purchase_order.id"), nullable=False)
-    charge_id  = db.Column(db.Integer, db.ForeignKey("charge.id"), nullable=False)
+    charge_id  = db.Column(db.Integer, db.ForeignKey("cfg_charge.id"), nullable=False)
     sequence   = db.Column(db.Integer, default=10)
     base_amt   = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     amount     = db.Column(db.Numeric(18, 4), default=0, nullable=False)

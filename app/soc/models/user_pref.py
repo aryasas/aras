@@ -1,7 +1,8 @@
+from arasCore.arasgen import ArasGen
 from arasCore.lib.core.base_model import ArasModel, db
 
 
-class SocUserPref(ArasModel):
+class SocUserPref(ArasGen.Model):
     __tablename__ = "soc_user_pref"
 
     # id, is_active, created_at, updated_at, created_by_id, updated_by_id — from ArasModel

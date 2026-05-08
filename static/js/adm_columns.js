@@ -1,4 +1,5 @@
 /* Aras Admin — Columns / Fields page JS */
+var _loadFkChoices, _showDefaultInput;
 (function () {
     var hash = window.location.hash;
     if (hash) {
@@ -28,12 +29,15 @@
         var relSysTbl = document.querySelector('input[name="relation_system_table"]');
         var relDispCol = document.querySelector('input[name="relation_display_col"]');
         if (relTblSel) relTblSel.addEventListener('change', function() {
-            // Auto-fill system_table and display_col from FK_TABLE_MAP
+            // Auto-fill system_table and display_col from FK_TABLE_MAP — overwrite on change
             var tid = parseInt(relTblSel.value);
             var map = window.FK_TABLE_MAP || {};
             if (tid && map[tid]) {
-                if (relSysTbl && !relSysTbl.value) relSysTbl.value = map[tid].db_name || '';
-                if (relDispCol && !relDispCol.value) relDispCol.value = map[tid].display_col || '';
+                if (relSysTbl) relSysTbl.value = map[tid].db_name || '';
+                if (relDispCol) relDispCol.value = map[tid].display_col || '';
+            } else {
+                if (relSysTbl) relSysTbl.value = '';
+                if (relDispCol) relDispCol.value = '';
             }
             _loadFkChoices();
         });
@@ -42,7 +46,7 @@
             relSysTbl.addEventListener('change', function() { _loadFkChoices(); });
         }
     }
-    function _showDefaultInput() {
+    _showDefaultInput = function () {
         var inp = document.getElementById('default_value_input');
         var fkSel = document.getElementById('default_value_fk_select');
         if (!inp || !fkSel) return;
@@ -50,9 +54,9 @@
         fkSel.style.display = 'none';
         // Sync fk select value to input
         if (fkSel.value) inp.value = fkSel.value;
-    }
+    };
 
-    function _loadFkChoices(currentDefault) {
+    _loadFkChoices = function (currentDefault) {
         var fkType = document.getElementById('field_type_sel');
         if (!fkType || fkType.value !== 'relation') return;
         var relTblSel = document.querySelector('select[name="relation_table_id"]');
@@ -87,7 +91,7 @@
             fkSel.style.display = '';
             fkSel.onchange = function() { inp.value = fkSel.value; };
         }).catch(function() { _showDefaultInput(); });
-    }
+    };
 })();
 
 function fillEditForm(colId, name, label, fieldType, order, required, showInList, showInForm, searchable, readonly, unique, length, default_value, placeholder, help_text, min_value, max_value, max_length, choices, relation_table_id, relation_system_table, relation_display_col, cascade_delete, defaultSection, relationFilter) {

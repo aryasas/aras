@@ -703,3 +703,22 @@ class ArasSystemSetting(ArasModel):
 
     def __repr__(self):
         return f"<ArasSystemSetting {self.key}={self.value}>"
+
+
+# ── Schema migration tracking (used by schema_migrator for dynamic apps) ────
+
+class MgrSchemaMigration(ArasModel):
+    __tablename__ = "mgr_schema_migration"
+
+    app_name    = db.Column(db.String(100), nullable=False)
+    table_name  = db.Column(db.String(200), nullable=False)
+    column_name = db.Column(db.String(200), nullable=False)
+    action      = db.Column(db.String(20),  nullable=False, default="add_column")
+    status      = db.Column(db.String(20),  nullable=False, default="pending")
+    sql_stmt    = db.Column(db.Text, nullable=True)
+    error_msg   = db.Column(db.Text, nullable=True)
+    applied_at  = db.Column(db.DateTime, nullable=True)
+
+    __table_args__ = (
+        db.Index("idx_app_table", "app_name", "table_name"),
+    )

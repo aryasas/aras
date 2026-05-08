@@ -322,7 +322,7 @@
           const priceType = mode === 'in' ? 'sales' : 'purchase';
           if (!plId) return null;
           try {
-            const r = await fetch(`/api/erp/invoice/product-price?product_id=${productId}&price_type_id=${plId}&qty=${qty}&price_type=${priceType}`);
+            const r = await fetch(`/api/erp/acc/product_lookup/product_price?product_id=${productId}&price_type_id=${plId}&qty=${qty}&price_type=${priceType}`);
             const d = await r.json();
             return (d.ok && d.unit_price != null) ? d.unit_price : null;
           } catch { return null; }
@@ -332,7 +332,7 @@
           const plId = mode.value === 'in' ? SELLING_PRICELIST_ID : PURCHASE_PRICELIST_ID;
           if (!plId || !cart.value.length) return;
           try {
-            const r = await fetch('/api/erp/stock/bundle-promo', {
+            const r = await fetch('/api/erp/stock/promo/get_bundle_promo', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
               body: JSON.stringify({ pricelist_id: plId, items: cart.value.map(i => ({ product_id: i.id, qty: i.qty })) }),

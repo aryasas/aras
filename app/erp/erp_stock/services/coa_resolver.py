@@ -10,7 +10,7 @@ from arasCore.lib.core.extensions import db
 
 
 def _company_default(company_id: int, field: str):
-    from app.erp.erp_core.models.company import Company
+    from app.erp.erp_config.models.company import Company
     from app.erp.erp_acc.models.account import AccAccount
     c = Company.query.filter_by(id=company_id).first()
     val = getattr(c, field, None) if c else None
@@ -25,12 +25,12 @@ def _get_setting(key: str, company_id: int = None):
     row = None
     if company_id:
         row = db.session.execute(
-            db.text("SELECT value, value_type FROM setting WHERE scope='company' AND scope_id=:c AND `key`=:k LIMIT 1"),
+            db.text("SELECT value, value_type FROM main_setting WHERE scope='company' AND scope_id=:c AND `key`=:k LIMIT 1"),
             {"c": company_id, "k": key}
         ).fetchone()
     if not row:
         row = db.session.execute(
-            db.text("SELECT value, value_type FROM setting WHERE scope='global' AND `key`=:k LIMIT 1"),
+            db.text("SELECT value, value_type FROM main_setting WHERE scope='global' AND `key`=:k LIMIT 1"),
             {"k": key}
         ).fetchone()
     if not row:
@@ -152,7 +152,7 @@ def resolve_allow_zero_stock(product, company_id: int) -> bool:
         return bool(cat.allow_zero_stock)
 
     # 3. Company-level
-    from app.erp.erp_core.models.company import Company
+    from app.erp.erp_config.models.company import Company
     c = Company.query.filter_by(id=company_id).first()
     if c and getattr(c, "allow_zero_stock", None):
         return True

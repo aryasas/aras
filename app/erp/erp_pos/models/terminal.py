@@ -1,26 +1,31 @@
+from arasCore.arasgen import ArasGen
+from app.erp.erp_pos.manifest import Pos
 from datetime import datetime
 from arasCore.lib.core.base_model import ArasModel, db
 
 
-class PosTerminal(ArasModel):
+class PosTerminal(ArasGen.Model, module=Pos):
+    __title__     = "Terminals"
+    __icon__      = "fa-desktop"
+    __menu_order__= 4
     __tablename__ = "pos_terminal"
     __table_args__ = (
         db.UniqueConstraint("company_id", "code", name="uq_pos_terminal_code"),
     )
 
-    company_id          = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
+    company_id          = db.Column(db.Integer, db.ForeignKey("cfg_company.id"), nullable=False)
     code                = db.Column(db.String(20), nullable=False)
     name                = db.Column(db.String(100), nullable=False)
-    sequence_id         = db.Column(db.Integer, db.ForeignKey("sequence.id"), nullable=True)
-    invoice_sequence_id = db.Column(db.Integer, db.ForeignKey("sequence.id"), nullable=True)
+    sequence_id         = db.Column(db.Integer, db.ForeignKey("main_doc_series.id"), nullable=True)
+    invoice_sequence_id = db.Column(db.Integer, db.ForeignKey("main_doc_series.id"), nullable=True)
     location_id         = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=True)
     selling_pricelist_id  = db.Column(db.Integer, db.ForeignKey("stock_price_type.id"), nullable=True)
     purchase_pricelist_id = db.Column(db.Integer, db.ForeignKey("stock_price_type.id"), nullable=True)
     transaction_mode    = db.Column(db.Enum("income", "outcome", "both"), nullable=False, default="income")
-    default_tax_id      = db.Column(db.Integer, db.ForeignKey("charge.id"), nullable=True)
+    default_tax_id      = db.Column(db.Integer, db.ForeignKey("cfg_charge.id"), nullable=True)
     receipt_header      = db.Column(db.Text, nullable=True)
     receipt_footer      = db.Column(db.Text, nullable=True)
-    print_template_id   = db.Column(db.Integer, db.ForeignKey("print_template.id"), nullable=True)
+    print_template_id   = db.Column(db.Integer, db.ForeignKey("main_print_template.id"), nullable=True)
     allow_discount      = db.Column(db.Boolean, default=True)
     max_discount_pct    = db.Column(db.Numeric(5, 2), default=100)
 
@@ -34,13 +39,16 @@ class PosTerminal(ArasModel):
         return f"<PosTerminal {self.code}>"
 
 
-class PosSession(ArasModel):
+class PosSession(ArasGen.Model, module=Pos):
+    __title__     = "Sessions"
+    __icon__      = "fa-clock-o"
+    __menu_order__= 4
     __tablename__ = "pos_session"
     __table_args__ = (
         db.Index("idx_pos_session_terminal", "terminal_id", "state"),
     )
 
-    company_id      = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
+    company_id      = db.Column(db.Integer, db.ForeignKey("cfg_company.id"), nullable=False)
     terminal_id     = db.Column(db.Integer, db.ForeignKey("pos_terminal.id"), nullable=False)
     cashier_id      = db.Column(db.Integer, db.ForeignKey("auth_users.id"), nullable=False)
     shift_number    = db.Column(db.String(30), nullable=True)
@@ -62,7 +70,8 @@ class PosSession(ArasModel):
         return f"<PosSession terminal={self.terminal_id} [{self.state}]>"
 
 
-class PosShiftEntry(ArasModel):
+class PosShiftEntry(ArasGen.Model, module=Pos):
+    __is_child__  = True
     """Cash-in / cash-out entries within a shift (opening float, petty cash, etc.)."""
     __tablename__ = "pos_shift_entry"
 
@@ -81,7 +90,7 @@ class PosShiftEntry(ArasModel):
         return f"<PosShiftEntry {self.entry_type} {self.amount}>"
 
 
-class PosShiftBalance(ArasModel):
+class PosShiftBalance(ArasGen.Model, module=Pos):
     """Per-MOP opening/closing balance for a shift — auto expected vs manual count."""
     __tablename__ = "pos_shift_balance"
 
@@ -90,7 +99,7 @@ class PosShiftBalance(ArasModel):
     )
 
     session_id         = db.Column(db.Integer, db.ForeignKey("pos_session.id"), nullable=False)
-    mode_of_payment_id = db.Column(db.Integer, db.ForeignKey("erp_mode_of_payment.id"), nullable=False)
+    mode_of_payment_id = db.Column(db.Integer, db.ForeignKey("main_mode_of_payment.id"), nullable=False)
     opening_balance    = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     closing_balance    = db.Column(db.Numeric(18, 4), default=0, nullable=False)
 

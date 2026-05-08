@@ -4,7 +4,8 @@ from .product import (  # noqa: F401
     StockProductCategory, StockProduct, StockProductUom,
     StockPriceList, StockProductBundle, StockProductAccountLink,
 )
-from .pricelist import StockPriceType  # noqa: F401
+# StockPriceType moved to app.erp.erp_config.models.price_type
+from app.erp.erp_config.models.price_type import StockPriceType  # noqa: F401
 from .promo_bundle import StockPromoBundle, StockPromoBundleItem  # noqa: F401
 from .warehouse import StockLocation, StockProductLocation  # noqa: F401
 from .movement import StockMovement, StockMovementLine  # noqa: F401

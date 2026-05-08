@@ -1,7 +1,12 @@
+from arasCore.arasgen import ArasGen
+from app.erp.erp_stock.manifest import Stock
 from arasCore.lib.core.base_model import ArasModel, db
 
 
-class StockPromoBundle(ArasModel):
+class StockPromoBundle(ArasGen.Model, module=Stock):
+    __title__     = "Promo Bundles"
+    __icon__      = "fa-gift"
+    __menu_order__= 6
     """Promo bundle header — buy N items together at special prices."""
     __tablename__ = "stock_promo_bundle"
 
@@ -17,7 +22,8 @@ class StockPromoBundle(ArasModel):
                                  cascade="all, delete-orphan")
 
 
-class StockPromoBundleItem(ArasModel):
+class StockPromoBundleItem(ArasGen.Model, module=Stock):
+    __is_child__  = True
     """Line item in a promo bundle — required product + promo price or discount."""
     __tablename__ = "stock_promo_bundle_item"
 

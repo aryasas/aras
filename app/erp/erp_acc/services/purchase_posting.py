@@ -13,9 +13,11 @@ from app.erp.erp_stock.models.product import StockProduct
 from app.erp.erp_stock.models.warehouse import StockLocation  # noqa
 from app.erp.erp_stock.services.posting import post_movement
 from app.erp.erp_stock.services.coa_resolver import resolve_stock_account, resolve_purchase_account
-from app.erp.erp_stock.services.uom_service import to_base_qty, get_factor
+from app.erp.erp_stock.services.uom import to_base_qty, get_factor
+from arasCore.lib.core.action import action
 
 
+@action()
 def post_purchase_invoice(invoice_id: int, location_id: int = None) -> AccPurchaseInvoice:
     inv = AccPurchaseInvoice.query.get_or_404(invoice_id)
     if inv.journal_entry_id:
@@ -87,8 +89,8 @@ def post_purchase_invoice(invoice_id: int, location_id: int = None) -> AccPurcha
 
     if stock_lines and location_id:
         from app.erp.erp_stock.models.movement import StockMovement, StockMovementLine
-        from app.erp.erp_core.models.sequence import Sequence
-        from app.erp.erp_core.services import sequence as seq_svc
+        from app.erp.erp_main.models.doc_series import DocSeries as Sequence
+        from app.erp.erp_main.services import sequence as seq_svc
         seq  = (Sequence.find(code="stock.receipt", company_id=company_id)
                 or Sequence.find(code="stock.move", company_id=company_id))
         name = seq_svc.next_number_for_seq(seq) if seq else f"GRN/{company_id}/{inv.name}"
@@ -130,7 +132,7 @@ def post_purchase_invoice(invoice_id: int, location_id: int = None) -> AccPurcha
 
 
 def _upsert_purchase_prices(inv):
-    """Auto-save purchase prices to StockPriceList if no price exists for product+price_type."""
+    """Auto-save purchase prices to StockPriceList if no price exists for product."""
     from app.erp.erp_stock.models.product import StockPriceList
     price_type_id = inv.price_type_id
     if not price_type_id:
@@ -141,17 +143,14 @@ def _upsert_purchase_prices(inv):
         existing = StockPriceList.find(
             product_id=line.product_id,
             price_type_id=price_type_id,
-            price_type="purchase",
         )
         if existing:
             continue
         db.session.add(StockPriceList(
             product_id=line.product_id,
             price_type_id=price_type_id,
-            price_type="purchase",
             currency_id=inv.currency_id,
             uom_id=line.uom_id,
-            name=f"Auto: {inv.name}",
             price=line.unit_price,
             is_active=True,
         ))

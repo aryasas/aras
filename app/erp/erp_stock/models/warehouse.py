@@ -1,7 +1,12 @@
+from arasCore.arasgen import ArasGen
+from app.erp.erp_stock.manifest import Stock
 from arasCore.lib.core.base_model import ArasModel, db
 
 
-class StockLocation(ArasModel):
+class StockLocation(ArasGen.Model, module=Stock):
+    __title__     = "Locations"
+    __icon__      = "fa-building-o"
+    __menu_order__= 6
     """
     Storage location — supports full hierarchy (company → warehouse → zone → rack).
     location_type determines role:
@@ -14,7 +19,7 @@ class StockLocation(ArasModel):
     __tablename__ = "stock_location"
     __display_fields__ = ("name",)
 
-    company_id    = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=True)
+    company_id    = db.Column(db.Integer, db.ForeignKey("cfg_company.id"), nullable=True)
     parent_id     = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=True)
     name          = db.Column(db.String(100), nullable=False)
     full_name     = db.Column(db.String(300))   # computed: GU / Stok Utama / Rak A1
@@ -28,7 +33,8 @@ class StockLocation(ArasModel):
     parent   = db.relationship("StockLocation", remote_side="StockLocation.id", backref="children")
 
 
-class StockProductLocation(ArasModel):
+class StockProductLocation(ArasGen.Model, module=Stock):
+    __is_child__  = True
     """Which locations stock a given product (min/max reorder levels per location)."""
     __tablename__ = "stock_product_location"
     __display_fields__ = ("product_id",)

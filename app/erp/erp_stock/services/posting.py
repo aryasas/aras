@@ -45,7 +45,7 @@ def post_movement(movement_id: int, posted_by_id: int = None, skip_journal: bool
     if mv.state != "confirmed":
         raise ValueError(f"Movement {mv.name} is in state '{mv.state}', expected 'confirmed'.")
 
-    from app.erp.erp_core.models.company import Company
+    from app.erp.erp_config.models.company import Company
     company = Company.get(mv.company_id)
     by_location = bool(company and company.avg_cost_by_location)
 

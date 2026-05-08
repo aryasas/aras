@@ -28,4 +28,36 @@ def register_cli(app):
     except (ImportError, Exception):
         pass
 
+    # Auto-register @action-decorated CLI commands. Service modules were imported at
+    # blueprint registration time; commands grouped per app name.
+    try:
+        _register_action_commands(aras)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).warning("[cli] action discovery failed", exc_info=True)
+
     app.cli.add_command(aras)
+
+
+def _register_action_commands(aras):
+    """Discover @action-decorated functions and mount them as CLI subcommands.
+
+    Layout: flask aras <app> <module>.<file>.<func> [--args]
+    """
+    from arasCore.lib.core.action import get_actions, make_cli_command
+    by_group: dict = {}
+    for meta in get_actions():
+        if meta.http_only:
+            continue
+        by_group.setdefault(meta.cli_group or "misc", []).append(meta)
+
+    existing_groups = {c.name: c for c in aras.commands.values() if isinstance(c, click.Group)}
+
+    for group_name, metas in by_group.items():
+        grp = existing_groups.get(group_name)
+        if grp is None:
+            grp = click.Group(group_name, help=f"{group_name} actions")
+            aras.add_command(grp)
+        for meta in metas:
+            cmd = make_cli_command(meta)
+            grp.add_command(cmd)

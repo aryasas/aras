@@ -1,7 +1,12 @@
+from arasCore.arasgen import ArasGen
+from app.erp.erp_stock.manifest import Stock
 from arasCore.lib.core.base_model import ArasModel, db
 
 
-class DeliveryTrip(ArasModel):
+class DeliveryTrip(ArasGen.Model, module=Stock):
+    __title__     = "Delivery Trips"
+    __icon__      = "fa-road"
+    __menu_order__= 6
     """Delivery trip — groups multiple delivery orders for one vehicle/driver/date."""
     __tablename__ = "stk_delivery_trip"
     __table_args__ = (
@@ -9,7 +14,7 @@ class DeliveryTrip(ArasModel):
     )
 
     id         = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey("cfg_company.id"), nullable=False)
     name       = db.Column(db.String(50), nullable=False)   # DT/2024/0001
     trip_date  = db.Column(db.Date, nullable=False)
     driver_name = db.Column(db.String(200), nullable=True)
@@ -25,7 +30,10 @@ class DeliveryTrip(ArasModel):
         return f"<DeliveryTrip {self.name} [{self.state}]>"
 
 
-class DeliveryOrder(ArasModel):
+class DeliveryOrder(ArasGen.Model, module=Stock):
+    __title__     = "Delivery Orders"
+    __icon__      = "fa-map-marker"
+    __menu_order__= 6
     """Delivery order — one delivery to one customer address."""
     __tablename__ = "stk_delivery_order"
     __table_args__ = (
@@ -34,7 +42,7 @@ class DeliveryOrder(ArasModel):
     )
 
     id               = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    company_id       = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
+    company_id       = db.Column(db.Integer, db.ForeignKey("cfg_company.id"), nullable=False)
     name             = db.Column(db.String(50), nullable=False)   # DO/2024/0001
     sales_invoice_id = db.Column(db.BigInteger, db.ForeignKey("acc_sales_invoice.id"), nullable=True)
     sales_order_id   = db.Column(db.BigInteger, db.ForeignKey("acc_sales_order.id"), nullable=True)
@@ -58,7 +66,8 @@ class DeliveryOrder(ArasModel):
         return f"<DeliveryOrder {self.name} [{self.state}]>"
 
 
-class DeliveryOrderLine(ArasModel):
+class DeliveryOrderLine(ArasGen.Model, module=Stock):
+    __is_child__  = True
     __tablename__ = "stk_delivery_order_line"
 
     id          = db.Column(db.BigInteger, primary_key=True, autoincrement=True)

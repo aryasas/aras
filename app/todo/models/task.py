@@ -14,9 +14,9 @@ Declarative meta keys consumed by the framework:
 Field types are inferred from name (`due_date` → Date, `is_done` → Boolean,
 `description` → Text); declare explicitly to override.
 """
-from arasCore import ArasModel, Col, String
 
-class Task(ArasModel):
+from arasCore.arasgen import ArasGen
+class Task(ArasGen.Model):
     __tablename__ = "todo_task"
     __app__       = "todo"
     __menu__      = "Tasks"
@@ -24,7 +24,7 @@ class Task(ArasModel):
     __icon__      = "fa-check-square-o"
     # __url__ defaults to "task"
 
-    title       = String(null=False, length=200)
-    description = Col()                 # → Text
-    due_date    = Col()                 # → Date
-    is_done     = Col(default=False)    # → Boolean
+    title       = ArasGen.String(null=False, length=200)
+    description = ArasGen.Col()                 # → Text
+    due_date    = ArasGen.Col()                 # → Date
+    is_done     = ArasGen.Col(default=False)    # → Boolean

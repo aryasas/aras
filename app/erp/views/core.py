@@ -8,7 +8,7 @@ from arasCore.lib.core.extensions import db
 
 
 def _get_company_id():
-    from app.erp.erp_core.models.company import Company
+    from app.erp.erp_config.models.company import Company
     cid = getattr(current_user, "company_id", None)
     if not cid:
         company = Company.query.filter_by(is_active=True).order_by(Company.id).first()  # needs order_by
@@ -42,7 +42,7 @@ def _get_company_id():
 # @app_bp.route("/api/list-view-setting/", methods=["POST"])
 # @login_required
 # def api_save_list_view_setting():
-#     from app.erp.erp_core.models.list_view import ErpListViewSetting
+#     from app.erp.erp_main.models.list_view import ErpListViewSetting
 #     data = request.get_json() or {}
 #     doctype = data.get("doctype")
 #     if not doctype:
@@ -69,7 +69,7 @@ def _get_company_id():
 # @app_bp.route("/api/list-view-setting/<doctype>/")
 # @login_required
 # def api_get_list_view_setting(doctype):
-#     from app.erp.erp_core.models.list_view import ErpListViewSetting
+#     from app.erp.erp_main.models.list_view import ErpListViewSetting
 #     setting = ErpListViewSetting.query.filter_by(
 #         user_id=current_user.id, doctype=doctype
 #     ).first()
@@ -255,7 +255,7 @@ def _get_company_id():
 @app_bp.route("/api/list-setting/", methods=["POST"])
 @login_required
 def api_save_list_setting():
-    from app.erp.erp_core.models.list_view import ErpListViewSetting
+    from app.erp.erp_main.models.list_view import ErpListViewSetting
     data = request.get_json() or {}
     doctype = data.get("doctype")
     if not doctype:
@@ -278,7 +278,7 @@ def api_save_list_setting():
 @app_bp.route("/api/report-setting/<int:report_id>/", methods=["GET", "POST"])
 @login_required
 def api_report_setting(report_id):
-    from app.erp.erp_core.models.list_view import ErpReportSetting
+    from app.erp.erp_main.models.list_view import ErpReportSetting
     if request.method == "GET":
         s = ErpReportSetting.find(user_id=current_user.id, report_id=report_id)
         if not s:
@@ -305,8 +305,8 @@ def api_report_setting(report_id):
 @app_bp.route("/reports/")
 @login_required
 def reports_index():
-    from app.erp.erp_core.models.report import ErpReport
-    from app.erp.erp_core.models.list_view import ErpReportSetting
+    from app.erp.erp_main.models.report import ErpReport
+    from app.erp.erp_main.models.list_view import ErpReportSetting
     reports = ErpReport.query.filter_by(is_active=True).order_by(
         ErpReport.module, ErpReport.title
     ).all()
@@ -322,7 +322,7 @@ def reports_index():
         settings_map[s.report_id] = s
 
     # Companies for the company selector
-    from app.erp.erp_core.models.company import Company
+    from app.erp.erp_config.models.company import Company
     companies = Company.query.filter_by(is_active=True).order_by(Company.id).all()
     default_company_id = _get_company_id()
 
@@ -339,8 +339,8 @@ def reports_index():
 @app_bp.route("/reports/<int:report_id>/")
 @login_required
 def report_run(report_id):
-    from app.erp.erp_core.models.report import ErpReport
-    from app.erp.erp_core.services.report_runner import run_report
+    from app.erp.erp_main.models.report import ErpReport
+    from app.erp.erp_main.services.report_runner import run_report
     from jinja2.exceptions import TemplateNotFound
 
     report = ErpReport.get_or_404(report_id)
@@ -385,7 +385,7 @@ def report_run(report_id):
 @login_required
 def report_meta_json(report_id):
     """Return report metadata (title, filters_def, columns, render_mode) for the index panel."""
-    from app.erp.erp_core.models.report import ErpReport
+    from app.erp.erp_main.models.report import ErpReport
     report = ErpReport.get_or_404(report_id)
     filters_def = json.loads(report.filters_json) if report.filters_json else []
     columns = json.loads(report.columns_json) if report.columns_json else []
@@ -403,8 +403,8 @@ def report_meta_json(report_id):
 @app_bp.route("/reports/<int:report_id>/data.json")
 @login_required
 def report_data_json(report_id):
-    from app.erp.erp_core.models.report import ErpReport
-    from app.erp.erp_core.services.report_runner import run_report
+    from app.erp.erp_main.models.report import ErpReport
+    from app.erp.erp_main.services.report_runner import run_report
     from jinja2.exceptions import TemplateNotFound
 
     report = ErpReport.get_or_404(report_id)
@@ -430,8 +430,8 @@ def report_data_json(report_id):
 @app_bp.route("/reports/<int:report_id>/export.csv")
 @login_required
 def report_export_csv(report_id):
-    from app.erp.erp_core.models.report import ErpReport
-    from app.erp.erp_core.services.report_runner import run_report
+    from app.erp.erp_main.models.report import ErpReport
+    from app.erp.erp_main.services.report_runner import run_report
 
     report = ErpReport.get_or_404(report_id)
     filters = {}

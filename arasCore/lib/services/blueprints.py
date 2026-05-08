@@ -101,6 +101,24 @@ def _register_helper(flask_app, helper):
         except Exception as e:
             logger.error(f"[blueprints] gagal mount custom route {full_url}: {e}")
 
+    # ── 2b. Auto-mount @action HTTP routes ───────────────────────────────────
+    try:
+        from arasCore.lib.core.action import actions_for_app, make_http_view
+        for meta in actions_for_app(helper.api_slug):
+            if meta.cli_only:
+                continue
+            full_url = f"{api_prefix}{meta.http_path}/"
+            ep_name  = f"action_{helper.api_slug}_{meta.module}_{meta.file}_{meta.name}"
+            view     = make_http_view(meta)
+            view     = login_required(view) if meta.require_auth else view
+            try:
+                helper_bp.add_url_rule(full_url, endpoint=ep_name, view_func=view, methods=meta.methods)
+                logger.debug(f"[action] HTTP mounted: {' '.join(meta.methods)} {full_url}")
+            except Exception as e:
+                logger.error(f"[action] mount failed {full_url}: {e}")
+    except Exception as e:
+        logger.warning(f"[action] HTTP discovery failed for {helper.name}: {e}")
+
     # ── 3. Auto-mount /admin/<admin_slug>/settings/ ────────────────────────────
     try:
         from arasCore.admin.settings_service import mount_settings_route
@@ -274,6 +292,13 @@ def _register_aras_apps(app):
             n_models = _autoload_models(pkg_name)
             if n_models:
                 logger.info(f"[autoload] {entry}: imported {n_models} model modules")
+            try:
+                from arasCore.lib.core.action import autoload_services
+                n_svc = autoload_services(pkg_name)
+                if n_svc:
+                    logger.info(f"[autoload] {entry}: imported {n_svc} service modules")
+            except Exception as _ae:
+                logger.warning(f"[autoload] {entry} services: {_ae}")
             bp = None
             if has_views:
                 mod = import_module(f"{pkg_name}.views")

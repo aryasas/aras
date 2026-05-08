@@ -31,10 +31,10 @@ def pos_open_session(terminal_id):
 
     if request.method == "POST":
         opening = Decimal(request.form.get("opening_balance", "0") or "0")
-        from app.erp.erp_pos.services.order_service import open_session
+        from app.erp.erp_pos.services.order import open_session
         session = open_session(terminal_id, current_user.id, opening)
         # Record opening float shift entry
-        from app.erp.erp_pos.services.shift_service import record_shift_entry
+        from app.erp.erp_pos.services.shift import record_shift_entry
         if opening > 0:
             record_shift_entry(session.id, "opening", opening,
                                note="Opening float", user_id=current_user.id)
@@ -59,7 +59,7 @@ def pos_session(session_id):
         .all()
     )
 
-    from app.erp.erp_stock.services.price_service import get_price
+    from app.erp.erp_stock.services.price import get_price
     selling_pricelist_id  = session.terminal.selling_pricelist_id if session.terminal else None
     purchase_pricelist_id = session.terminal.purchase_pricelist_id if session.terminal else None
 
@@ -78,8 +78,8 @@ def pos_session(session_id):
         else:
             p.purchase_price = 0.0
 
-    from app.erp.erp_core.models.company import Company
-    from app.erp.erp_core.models.currency import Currency
+    from app.erp.erp_config.models.company import Company
+    from app.erp.erp_config.models.currency import Currency
     company = Company.query.first()
     currency_symbol = "$"
     if company and company.base_currency_id:
@@ -95,7 +95,7 @@ def pos_session(session_id):
     tax_rate   = 0.0
     tax_inclusive = False
     if company and company.default_charge_enable and company.default_charge_id:
-        from app.erp.erp_core.models.tax import Charge
+        from app.erp.erp_config.models.tax import Charge
         charge = Charge.query.get(company.default_charge_id)
         if charge:
             tax_rate      = float(charge.rate or 0)
@@ -124,10 +124,10 @@ def pos_close_session(session_id):
     if request.method == "POST":
         cash_counted = Decimal(request.form.get("cash_counted", "0") or "0")
         notes = request.form.get("notes", "")
-        from app.erp.erp_pos.services.order_service import close_session
+        from app.erp.erp_pos.services.order import close_session
         close_session(session.id, cash_counted, notes)
         # Record closing entry
-        from app.erp.erp_pos.services.shift_service import record_shift_entry
+        from app.erp.erp_pos.services.shift import record_shift_entry
         record_shift_entry(session.id, "closing", cash_counted,
                            note="Closing count", user_id=current_user.id)
         db.session.commit()
@@ -158,7 +158,7 @@ def pos_cash_entry(session_id):
     if amount <= 0:
         return jsonify({"ok": False, "error": "Amount must be positive"}), 400
 
-    from app.erp.erp_pos.services.shift_service import record_shift_entry
+    from app.erp.erp_pos.services.shift import record_shift_entry
     try:
         entry = record_shift_entry(session.id, entry_type, amount, note, current_user.id)
         db.session.commit()
@@ -173,7 +173,7 @@ def pos_cash_entry(session_id):
 @app_bp.route("/pos/session/<int:session_id>/shift-report")
 @login_required
 def pos_session_shift_report(session_id):
-    from app.erp.erp_pos.services.shift_service import get_shift_report
+    from app.erp.erp_pos.services.shift import get_shift_report
     data = get_shift_report(session_id)
     return render_template("erp/reports/custom/pos_session_shift.html", main_title="Shift Report", **data)
 
@@ -184,7 +184,7 @@ def pos_session_shift_report(session_id):
 @login_required
 def pos_receipt_html(invoice_id):
     """Return styled HTML receipt (browser print view)."""
-    from app.erp.erp_pos.services.print_service import render_receipt_html, _get_print_template
+    from app.erp.erp_pos.services.print import render_receipt_html, _get_print_template
     from app.erp.erp_acc.models.invoice import AccSalesInvoice
     inv = AccSalesInvoice.query.get_or_404(invoice_id)
     tpl = _get_print_template("pos.receipt", inv.company_id) if inv.company_id else None
@@ -198,7 +198,7 @@ def pos_receipt_html(invoice_id):
 @login_required
 def pos_receipt_pdf(invoice_id):
     """Download PDF receipt via wkhtmltopdf."""
-    from app.erp.erp_pos.services.print_service import render_receipt_html, html_to_pdf, _get_print_template
+    from app.erp.erp_pos.services.print import render_receipt_html, html_to_pdf, _get_print_template
     from app.erp.erp_acc.models.invoice import AccSalesInvoice
     inv = AccSalesInvoice.query.get_or_404(invoice_id)
     tpl = _get_print_template("pos.receipt", inv.company_id) if inv.company_id else None
@@ -218,7 +218,7 @@ def pos_receipt_pdf(invoice_id):
 @login_required
 def pos_receipt_jpg(invoice_id):
     """Download JPG image of receipt via wkhtmltoimage."""
-    from app.erp.erp_pos.services.print_service import render_receipt_html, html_to_jpg, _get_print_template
+    from app.erp.erp_pos.services.print import render_receipt_html, html_to_jpg, _get_print_template
     from app.erp.erp_acc.models.invoice import AccSalesInvoice
     inv = AccSalesInvoice.query.get_or_404(invoice_id)
     tpl = _get_print_template("pos.receipt", inv.company_id) if inv.company_id else None
@@ -238,7 +238,7 @@ def pos_receipt_jpg(invoice_id):
 @login_required
 def pos_invoice_print(invoice_id):
     """HTML print view for a Sales Invoice."""
-    from app.erp.erp_pos.services.print_service import render_invoice_html, _get_print_template
+    from app.erp.erp_pos.services.print import render_invoice_html, _get_print_template
     from app.erp.erp_acc.models.invoice import AccSalesInvoice
     inv = AccSalesInvoice.query.get_or_404(invoice_id)
     tpl = _get_print_template("sales.invoice", inv.company_id)
@@ -252,7 +252,7 @@ def pos_invoice_print(invoice_id):
 @login_required
 def pos_invoice_pdf(invoice_id):
     """PDF export for a Sales Invoice."""
-    from app.erp.erp_pos.services.print_service import render_invoice_html, html_to_pdf, _get_print_template
+    from app.erp.erp_pos.services.print import render_invoice_html, html_to_pdf, _get_print_template
     from app.erp.erp_acc.models.invoice import AccSalesInvoice
     inv = AccSalesInvoice.query.get_or_404(invoice_id)
     tpl = _get_print_template("sales.invoice", inv.company_id)
@@ -274,7 +274,7 @@ def pos_invoice_pdf(invoice_id):
 @login_required
 def pos_print_template_preview(tpl_id):
     """Preview a PrintTemplate rendered with dummy data."""
-    from app.erp.erp_core.models.print_template import PrintTemplate
+    from app.erp.erp_main.models.print_template import PrintTemplate
     tpl = PrintTemplate.query.get_or_404(tpl_id)
     # Render with dummy/empty context so designer can see layout
     from jinja2 import Environment

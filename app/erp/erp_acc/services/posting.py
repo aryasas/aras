@@ -4,9 +4,10 @@ from datetime import date as date_type, datetime
 from flask_login import current_user
 from arasCore.lib.core.extensions import db
 from app.erp.erp_acc.models.journal import AccJournalEntry, AccJournalLine
-from app.erp.erp_core.models.fiscal import FiscalPeriod
-from app.erp.erp_core.services import sequence as seq_svc
-from app.erp.erp_core.services import audit as audit_svc
+from app.erp.erp_main.models.fiscal import FiscalPeriod
+from app.erp.erp_main.services import sequence as seq_svc
+from app.erp.erp_main.services import audit as audit_svc
+from arasCore.lib.core.action import action
 
 
 def post_journal(
@@ -44,7 +45,7 @@ def post_journal(
     if abs(total_debit - total_credit) > Decimal("0.01"):
         raise ValueError(f"Journal not balanced: debit={total_debit} credit={total_credit}")
 
-    entry_name = seq_svc.next_number(sequence_code, company_id)
+    entry_name = seq_svc.next_code(company_id, sequence_code, default_format="JE-{YYYY}-{####}")
 
     user_id = None
     try:
@@ -96,6 +97,7 @@ def post_journal(
     return entry
 
 
+@action()
 def post_sales_invoice(invoice_id: int) -> "AccSalesInvoice":
     """
     Post a draft Sales Invoice.
@@ -233,7 +235,7 @@ def post_sales_invoice(invoice_id: int) -> "AccSalesInvoice":
 
 
 def _upsert_sales_prices(inv):
-    """Auto-save sales prices to StockPriceList if no price exists for product+price_type."""
+    """Auto-save sales prices to StockPriceList if no price exists for product."""
     from app.erp.erp_stock.models.product import StockPriceList
     price_type_id = getattr(inv, "price_type_id", None)
     if not price_type_id:
@@ -244,17 +246,14 @@ def _upsert_sales_prices(inv):
         existing = StockPriceList.find(
             product_id=il.product_id,
             price_type_id=price_type_id,
-            price_type="sales",
         )
         if existing:
             continue
         db.session.add(StockPriceList(
             product_id=il.product_id,
             price_type_id=price_type_id,
-            price_type="sales",
             currency_id=inv.currency_id,
             uom_id=getattr(il, "uom_id", None),
-            name=f"Auto: {inv.name}",
             price=il.unit_price,
             is_active=True,
         ))
@@ -264,8 +263,8 @@ def _post_sales_delivery(inv, company_id: int, location_id: int):
     from app.erp.erp_stock.models.movement import StockMovement, StockMovementLine
     from app.erp.erp_stock.models.warehouse import StockLocation
     from app.erp.erp_stock.services.posting import post_movement
-    from app.erp.erp_core.models.sequence import Sequence
-    from app.erp.erp_core.services import sequence as seq_svc
+    from app.erp.erp_main.models.doc_series import DocSeries as Sequence
+    from app.erp.erp_main.services import sequence as seq_svc
 
     src_loc = StockLocation.get(location_id)
     if not src_loc:
@@ -288,7 +287,7 @@ def _post_sales_delivery(inv, company_id: int, location_id: int):
     db.session.add(mv)
     db.session.flush()
 
-    from app.erp.erp_stock.services.uom_service import to_base_qty
+    from app.erp.erp_stock.services.uom import to_base_qty
     from app.erp.erp_stock.services.stock_compute import compute_avg_cost
 
     for il in inv.lines:
@@ -407,7 +406,7 @@ def _merge_lines(lines: list) -> list:
 
 def get_default_account(company_id: int, key: str) -> int:
     """Resolve a default account ID from Company fields (e.g. key='cash_default' → acc_cash_default_id)."""
-    from app.erp.erp_core.models.company import Company
+    from app.erp.erp_config.models.company import Company
     from app.erp.erp_acc.models.account import AccAccount
     company = Company.get(company_id)
     if not company:
@@ -420,7 +419,7 @@ def get_default_account(company_id: int, key: str) -> int:
 
 
 def _resolve_period(company_id: int, d: date_type):
-    from app.erp.erp_core.models.fiscal import FiscalYear
+    from app.erp.erp_main.models.fiscal import FiscalYear
     return (
         FiscalPeriod.query
         .join(FiscalYear, FiscalYear.id == FiscalPeriod.fiscal_year_id)

@@ -13,7 +13,7 @@ OUT_TYPES = ("delivery", "scrap")
 def _get_company_avg_by_location(company_id: int) -> bool:
     if not company_id:
         return False
-    from app.erp.erp_core.models.company import Company
+    from app.erp.erp_config.models.company import Company
     c = Company.get(company_id)
     return bool(c and c.avg_cost_by_location)
 

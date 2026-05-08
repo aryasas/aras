@@ -139,10 +139,85 @@ def run(flask_app, *, autoload_had_errors: bool = False) -> MigrationReport:
     from arasCore.lib.core.extensions import db
 
     with flask_app.app_context():
+        # Build an isolated DDL engine with NullPool so each statement opens
+        # and closes its own connection — this avoids self-deadlock where a
+        # pooled connection from an earlier boot step (autoload, sidebar build)
+        # holds an idle InnoDB snapshot transaction that blocks ALTER TABLE
+        # on the same metadata.
+        from sqlalchemy import create_engine
+        from sqlalchemy.pool import NullPool
+
+        # Drop any session-level transaction the shared engine may hold.
+        # We must COMMIT (not just rollback) any active read transaction —
+        # under InnoDB REPEATABLE-READ a SELECT opens a snapshot transaction
+        # that holds metadata locks on every table it touched, blocking ALTER.
         try:
-            insp   = sa_inspect(db.engine)
+            db.session.commit()
+        except Exception:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+        try:
+            db.session.close()
+            db.session.remove()
+        except Exception:
+            pass
+        try:
+            db.engine.dispose()
+        except Exception:
+            pass
+
+        ddl_uri = db.engine.url.render_as_string(hide_password=False)
+        engine  = create_engine(ddl_uri, poolclass=NullPool, future=True)
+
+        # Self-deadlock guard: kill any other connections from THIS process
+        # that hold idle InnoDB snapshot transactions on our schema. They
+        # would otherwise block our ALTER TABLE statements.
+        # Tell Flask-SQLAlchemy to fully close & forget any session/connection
+        # held under this app context, so the post-DDL teardown does not try
+        # to rollback a connection we killed below.
+        try:
+            db.session.close()
+        except Exception:
+            pass
+        try:
+            db.session.remove()
+        except Exception:
+            pass
+        try:
+            db.engine.dispose(close=True)
+        except Exception:
+            pass
+
+        # Now KILL any other server-side connections from our process that
+        # hold idle InnoDB snapshots and would block our ALTER statements.
+        try:
+            from sqlalchemy import text
+            with engine.begin() as _kc:
+                my_id = _kc.execute(text("SELECT CONNECTION_ID()")).scalar()
+                rows = _kc.execute(text(
+                    "SELECT id FROM information_schema.processlist "
+                    "WHERE db = DATABASE() AND id <> :me AND command = 'Sleep'"
+                ), {"me": my_id}).fetchall()
+                for (other_id,) in rows:
+                    try:
+                        _kc.execute(text(f"KILL {int(other_id)}"))
+                    except Exception:
+                        pass
+        except Exception as _kill_err:
+            logger.warning(f"[auto_migrate] preflight kill failed: {_kill_err}")
+
+        # Invalidate again so any reconnect after KILL gets a fresh handle,
+        # and Flask-SQLAlchemy teardown can no-op cleanly.
+        try:
+            db.engine.dispose(close=True)
+        except Exception:
+            pass
+
+        try:
+            insp   = sa_inspect(engine)
             meta   = db.metadata
-            engine = db.engine
             dialect = engine.dialect
             db_tables = set(insp.get_table_names())
             model_tables = set(meta.tables.keys())
@@ -204,21 +279,56 @@ def run(flask_app, *, autoload_had_errors: bool = False) -> MigrationReport:
                                 report.errors.append(f"widen {tname}.{cname}: {e}")
                         elif m_len and l_len and m_len < l_len:
                             report.skipped_unsafe.append(f"{tname}.{cname}: narrow VARCHAR {l_len}→{m_len}")
+                    else:
+                        # Generic type-drift fix: MODIFY to model type when DB type differs
+                        try:
+                            target_sql = _column_type_sql(mcol, dialect).upper()
+                            live_sql   = str(lcol.get("type")).upper()
+                            # Normalise common aliases so we don't churn on equivalents
+                            def _norm(s):
+                                s = (s.replace("TINYINT(1)", "BOOL")
+                                      .replace("BOOLEAN", "BOOL")
+                                      .replace("TINYINT", "BOOL")
+                                      .replace("INTEGER", "INT")
+                                      .replace("NUMERIC", "DECIMAL")
+                                      .replace("LONGTEXT", "JSON")
+                                      .replace(" ", ""))
+                                return s
+                            if _norm(target_sql) != _norm(live_sql)                                and not _norm(live_sql).startswith(_norm(target_sql))                                and not _norm(target_sql).startswith(_norm(live_sql)):
+                                from sqlalchemy import text
+                                nullable_sql = "" if mcol.nullable else " NOT NULL"
+                                default = _safe_default_sql(mcol)
+                                default_sql = f" DEFAULT {default}" if default is not None else ""
+                                sql = f"ALTER TABLE {_quote(tname)} MODIFY {_quote(cname)} {target_sql}{default_sql}{nullable_sql}"
+                                with engine.begin() as conn:
+                                    conn.execute(text(sql))
+                                report.widened_columns.append(f"{tname}.{cname} type {live_sql}→{target_sql}")
+                        except Exception as e:
+                            report.errors.append(f"modify type {tname}.{cname}: {e}")
 
                 # drop columns (gated)
                 drop_cols = set(live_cols) - set(model_cols)
-                for cname in sorted(drop_cols):
-                    label = f"{tname}.{cname}"
-                    if not allow_drop:
-                        report.skipped_unsafe.append(f"DROP COLUMN {label}")
-                        continue
-                    try:
-                        from sqlalchemy import text
-                        with engine.begin() as conn:
-                            conn.execute(text(f"ALTER TABLE {_quote(tname)} DROP COLUMN {_quote(cname)}"))
-                        report.dropped_columns.append(label)
-                    except Exception as e:
-                        report.errors.append(f"drop {label}: {e}")
+                if drop_cols and not allow_drop:
+                    for cname in sorted(drop_cols):
+                        report.skipped_unsafe.append(f"DROP COLUMN {tname}.{cname}")
+                elif drop_cols:
+                    from sqlalchemy import text
+                    with engine.begin() as conn:
+                        try:
+                            conn.execute(text("SET FOREIGN_KEY_CHECKS=0"))
+                        except Exception:
+                            pass
+                        for cname in sorted(drop_cols):
+                            label = f"{tname}.{cname}"
+                            try:
+                                conn.execute(text(f"ALTER TABLE {_quote(tname)} DROP COLUMN {_quote(cname)}"))
+                                report.dropped_columns.append(label)
+                            except Exception as e:
+                                report.errors.append(f"drop {label}: {e}")
+                        try:
+                            conn.execute(text("SET FOREIGN_KEY_CHECKS=1"))
+                        except Exception:
+                            pass
 
                 # add missing indexes
                 try:
@@ -234,20 +344,31 @@ def run(flask_app, *, autoload_had_errors: bool = False) -> MigrationReport:
                     pass
 
             # ── 3. Drop tables not in any model (gated) ──
-            for tname in sorted(db_tables - model_tables):
-                # Skip framework-managed tables that may exist without an ArasModel
-                if tname.startswith("alembic_"):
-                    continue
-                if not allow_drop:
+            drop_targets = [
+                t for t in sorted(db_tables - model_tables)
+                if not t.startswith("alembic_")
+            ]
+            if drop_targets and not allow_drop:
+                for tname in drop_targets:
                     report.skipped_unsafe.append(f"DROP TABLE {tname}")
-                    continue
-                try:
-                    from sqlalchemy import text
-                    with engine.begin() as conn:
-                        conn.execute(text(f"DROP TABLE {_quote(tname)}"))
-                    report.dropped_tables.append(tname)
-                except Exception as e:
-                    report.errors.append(f"drop table {tname}: {e}")
+            elif drop_targets:
+                from sqlalchemy import text
+                # Disable FK checks for the duration so drops succeed regardless of order
+                with engine.begin() as conn:
+                    try:
+                        conn.execute(text("SET FOREIGN_KEY_CHECKS=0"))
+                    except Exception:
+                        pass
+                    for tname in drop_targets:
+                        try:
+                            conn.execute(text(f"DROP TABLE {_quote(tname)}"))
+                            report.dropped_tables.append(tname)
+                        except Exception as e:
+                            report.errors.append(f"drop table {tname}: {e}")
+                    try:
+                        conn.execute(text("SET FOREIGN_KEY_CHECKS=1"))
+                    except Exception:
+                        pass
 
             # ── 4. Clean up mgr_column rows for dropped columns ──
             if report.dropped_columns or report.dropped_tables:
@@ -275,6 +396,22 @@ def run(flask_app, *, autoload_had_errors: bool = False) -> MigrationReport:
         except Exception as e:
             logger.error(f"[auto_migrate] fatal: {e}", exc_info=True)
             report.errors.append(str(e))
+        finally:
+            try:
+                engine.dispose()
+            except Exception:
+                pass
+            # Clear the shared pool — its cached fairies may point at dbapi
+            # handles we KILLed above. Without this, the next query (or the
+            # app_context teardown rollback) raises "Server has gone away".
+            try:
+                db.session.remove()
+            except Exception:
+                pass
+            try:
+                db.engine.dispose(close=True)
+            except Exception:
+                pass
 
     report.log_summary()
     return report

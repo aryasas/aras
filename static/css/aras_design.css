@@ -1065,7 +1065,7 @@ code {
   font-size: 12px;
   letter-spacing: 0.02em;
   color: var(--aras-ink-2);
-  text-transform: uppercase;
+  text-transform: none;
   padding-top: 10px;
 }
 .aras-form-label.is-required::after {

@@ -12,7 +12,7 @@ the model is generated at runtime from ``AppManagerTable`` rows.
 from __future__ import annotations
 import logging
 
-from arasCore.aras_gen import ArasForm, Col, String
+from arasCore.arasgen import ArasForm, Col, String
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +34,12 @@ def build_form_from_table(tbl) -> type[ArasForm]:
 
     Returns a class (not an instance). Caller does ``FormCls(data=..., obj=...)``.
     """
-    from arasCore.aras_gen.fields import (
+    from arasCore.arasgen import (
         Col, String, Text, Integer, Decimal, Float, Boolean, Date, DateTime,
         Password, Email, Select, FK,
     )
 
+    # Map field-type strings to factory callables (each builds a Col with that type).
     type_map = {
         "string":   String,  "varchar": String,
         "text":     Text,
@@ -78,7 +79,8 @@ def build_form_from_table(tbl) -> type[ArasForm]:
                     kwargs["fk"] = f"{ref.db_table_name or ref.name}.id"
             except Exception:
                 pass
-        ns[c.name] = Col(token, **kwargs) if not callable(token) or token.__name__ == "Col" else Col(token, **kwargs)
+        # token is a factory (e.g. String) — calling it returns a Col with that type set.
+        ns[c.name] = token(**kwargs)
 
     cls_name = f"DynForm_{getattr(tbl, 'db_table_name', None) or getattr(tbl, 'name', 'Table')}"
     return type(cls_name, (ArasForm,), ns)

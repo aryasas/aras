@@ -161,8 +161,11 @@ function ctSaveInlineRow(idx, apiUrl, fkCol, parentId) {
     var data = {};
     data[fkCol] = parentId;
     row.querySelectorAll('.ct-cell-input').forEach(function(el) {
-        if (el.type === 'checkbox') data[el.name] = el.checked;
-        else if (el.value !== '') data[el.name] = el.value;
+        if (el.type === 'checkbox') { data[el.name] = el.checked; return; }
+        if (el.value === '') return;
+        // FK select sentinel "0" → omit (server treats missing as NULL)
+        if (el.tagName === 'SELECT' && /_id$/.test(el.name) && el.value === '0') return;
+        data[el.name] = el.value;
     });
     /* Auto-fill description */
     if (!data['description']) {
@@ -470,18 +473,20 @@ function _ctLoadPrice(idx, productId, qtyEl, priceEl, descEl, uomEl, prefix) {
     var qty  = qtyEl ? (parseFloat(qtyEl.value) || 1) : 1;
     var plEl = meta.price_list_field ? document.querySelector(meta.price_list_field) : null;
     var plId = plEl ? (plEl.value || null) : null;
+    var uomVal = uomEl ? (uomEl.tomselect ? uomEl.tomselect.getValue() : uomEl.value) : '';
     var url  = meta.price_api + '?product_id=' + productId + '&qty=' + qty +
                '&price_type=' + (meta.price_type || 'sales') +
                (meta.company_id ? '&company_id=' + meta.company_id : '') +
-               (plId ? '&price_list_id=' + plId : '');
+               (plId ? '&price_list_id=' + plId : '') +
+               (uomVal ? '&uom_id=' + uomVal : '');
     fetch(url).then(function(r) { return r.json(); }).then(function(d) {
         if (!d.ok) return;
         if (priceEl && !priceEl.dataset.manualEdit) priceEl.value = d.unit_price || '';
         if (descEl  && !descEl.dataset.manualEdit)  descEl.value  = d.description || '';
-        if (uomEl) {
-            var uomVal = String(d.uom_id || '');
-            if (uomEl.tomselect) { uomEl.tomselect.setValue(uomVal, true); }
-            else { uomEl.value = uomVal; }
+        if (uomEl && !uomVal) {
+            var newUom = String(d.uom_id || '');
+            if (uomEl.tomselect) { uomEl.tomselect.setValue(newUom, true); }
+            else { uomEl.value = newUom; }
         }
         var accEl = document.getElementById(prefix + 'account_id');
         if (accEl && d.account_id) accEl.value = d.account_id;
@@ -508,6 +513,23 @@ function _ctBindCalc(idx, prefix) {
         var el = document.getElementById(prefix + f);
         if (el) el.addEventListener('input', function() { this.dataset.manualEdit = '1'; });
     });
+    var uomEl = document.getElementById(prefix + 'uom_id');
+    var prodEl = document.getElementById(prefix + 'product_id');
+    if (uomEl && prodEl) {
+        var fire = function() {
+            var pid = prodEl.tomselect ? prodEl.tomselect.getValue() : prodEl.value;
+            if (!pid) return;
+            var priceEl = document.getElementById(prefix + 'unit_price');
+            if (priceEl) priceEl.dataset.manualEdit = '';
+            _ctLoadPrice(idx, pid,
+                document.getElementById(prefix + 'qty'),
+                priceEl,
+                document.getElementById(prefix + 'description'),
+                uomEl, prefix);
+        };
+        uomEl.addEventListener('change', fire);
+        if (uomEl.tomselect) uomEl.tomselect.on('change', fire);
+    }
 }
 
 /** Recalculates footer total row values for columns in footer_totals. */

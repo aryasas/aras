@@ -13,10 +13,10 @@ from arasCore.lib.core.base_model import ArasModel, ArasSoftModel, db
 
 class Charge(ArasSoftModel):
     """Universal charge/tax/fee — percent or fixed amount, for sales/purchase/both."""
-    __tablename__ = "charge"
+    __tablename__ = "cfg_charge"
     __display_fields__ = ("name",)
 
-    company_id   = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
+    company_id   = db.Column(db.Integer, db.ForeignKey("cfg_company.id"), nullable=False)
     code         = db.Column(db.String(20), nullable=False)
     name         = db.Column(db.String(100), nullable=False)
     charge_type  = db.Column(db.String(20), default="both")    # sales/purchase/both
@@ -38,10 +38,10 @@ class Charge(ArasSoftModel):
 
 class CompanyDefaultCharge(ArasModel):
     """Default charges auto-applied per company — shown as child table on Company form."""
-    __tablename__ = "company_default_charge"
+    __tablename__ = "cfg_company_default_charge"
 
-    company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
-    charge_id  = db.Column(db.Integer, db.ForeignKey("charge.id"), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey("cfg_company.id"), nullable=False)
+    charge_id  = db.Column(db.Integer, db.ForeignKey("cfg_charge.id"), nullable=False)
     apply_to   = db.Column(db.String(20), default="sales")  # sales/purchase/both/pos
 
     company = db.relationship("Company", backref=db.backref("default_charges", lazy="dynamic"))
@@ -54,7 +54,7 @@ from arasCore.lib.core.base_model import ArasModel, db
 
 
 class ModeOfPayment(ArasModel):
-    __tablename__ = "erp_mode_of_payment"
+    __tablename__ = "main_mode_of_payment"
     __display_fields__ = ("name",)
 
     name         = db.Column(db.String(100), nullable=False, unique=True)
@@ -66,10 +66,10 @@ class ModeOfPayment(ArasModel):
 
 class CompanyPaymentAccount(ArasModel):
     """Per-company COA account for each Mode of Payment — child table on ModeOfPayment form."""
-    __tablename__ = "erp_company_payment_account"
+    __tablename__ = "main_company_payment_account"
 
-    mode_of_payment_id = db.Column(db.Integer, db.ForeignKey("erp_mode_of_payment.id"), nullable=False)
-    company_id         = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
+    mode_of_payment_id = db.Column(db.Integer, db.ForeignKey("main_mode_of_payment.id"), nullable=False)
+    company_id         = db.Column(db.Integer, db.ForeignKey("cfg_company.id"), nullable=False)
     account_id         = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=False)
 
     company = db.relationship("Company", backref=db.backref("payment_accounts", lazy="dynamic"))
@@ -99,7 +99,7 @@ class PosShiftBalance(ArasModel):
     )
 
     session_id         = db.Column(db.Integer, db.ForeignKey("pos_session.id"), nullable=False)
-    mode_of_payment_id = db.Column(db.Integer, db.ForeignKey("erp_mode_of_payment.id"), nullable=False)
+    mode_of_payment_id = db.Column(db.Integer, db.ForeignKey("main_mode_of_payment.id"), nullable=False)
     opening_balance    = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     closing_balance    = db.Column(db.Numeric(18, 4), default=0, nullable=False)
 

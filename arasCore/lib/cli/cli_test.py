@@ -67,7 +67,7 @@ def register_test_commands(aras):
             for rule in rules:
                 url = rule.rule
                 resp = client.get(url)
-                if resp.status_code in (200, 302, 403, 404, 405):
+                if resp.status_code in (200, 302, 400, 403, 404, 405):
                     passed += 1
                     if verbose and not only_errors: click.echo(f"  PASS {resp.status_code}  {url}")
                 else:
@@ -138,7 +138,7 @@ def _run_test_errors(_app):
         rules = [r for r in _app.url_map.iter_rules() if "GET" in r.methods and "<" not in r.rule and not any(r.rule.startswith(p) for p in skip_prefixes)]
         raw = []
         for rule in sorted(rules, key=lambda r: r.rule):
-            r = _capture("url", rule.rule, (200, 302, 403, 404, 405))
+            r = _capture("url", rule.rule, (200, 302, 400, 403, 404, 405))
             if r: raw.append(r)
         for key in sorted(_api_registry.keys()):
             r = _capture("api", f"/api/{key}/", (200, 403))

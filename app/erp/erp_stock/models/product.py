@@ -1,7 +1,12 @@
+from arasCore.arasgen import ArasGen
+from app.erp.erp_stock.manifest import Stock
 from arasCore.lib.core.base_model import ArasModel, db
 
 
-class StockProductCategory(ArasModel):
+class StockProductCategory(ArasGen.Model, module=Stock):
+    __title__     = "Product Categories"
+    __icon__      = "fa-folder-o"
+    __menu_order__= 6
     __tablename__ = "stock_product_category"
 
     name                 = db.Column(db.String(100), nullable=False)
@@ -23,13 +28,16 @@ class StockProductCategory(ArasModel):
     account_variance = db.relationship("AccAccount", foreign_keys=[account_variance_id])
 
 
-class StockProduct(ArasModel):
+class StockProduct(ArasGen.Model, module=Stock):
+    __title__     = "Products"
+    __icon__      = "fa-cube"
+    __menu_order__= 6
     __tablename__ = "stock_product"
     __table_args__ = (
         db.UniqueConstraint("company_id", "code", name="uq_stock_product_company_code"),
     )
 
-    company_id          = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
+    company_id          = db.Column(db.Integer, db.ForeignKey("cfg_company.id"), nullable=False)
     code                = db.Column(db.String(50), nullable=False)
     name                = db.Column(db.String(200), nullable=False)
     description         = db.Column(db.Text)
@@ -79,8 +87,40 @@ class StockProduct(ArasModel):
         from app.erp.erp_stock.services.stock_compute import compute_total_value
         return compute_total_value(product_id=self.id, company_id=self.company_id)
 
+    def detail_context(self, obj):
+        if not obj:
+            return {}
+        try:
+            from app.erp.erp_stock.services.stock_compute import (
+                compute_qty_by_location, compute_avg_cost, compute_qty
+            )
+            from app.erp.erp_stock.models.warehouse import StockLocation
 
-class StockProductUom(ArasModel):
+            loc_qtys = compute_qty_by_location(obj.id, company_id=obj.company_id)
+            stock_rows = []
+            for loc_id, qty in sorted(loc_qtys.items(), key=lambda x: x[0]):
+                if qty == 0:
+                    continue
+                loc = StockLocation.get(loc_id)
+                loc_name = loc.name if loc else f"Loc#{loc_id}"
+                stock_rows.append({"label": loc_name, "value": f"{float(qty):,.4g}"})
+
+            total_qty   = float(compute_qty(obj.id, company_id=obj.company_id))
+            avg_cost    = float(compute_avg_cost(obj.id, company_id=obj.company_id))
+            total_value = total_qty * avg_cost
+
+            stock_rows += [
+                {"label": "─────────", "value": ""},
+                {"label": "Total Qty",   "value": f"{total_qty:,.4g}"},
+                {"label": "Avg Cost",    "value": f"{avg_cost:,.2f}"},
+                {"label": "Total Value", "value": f"{total_value:,.2f}"},
+            ]
+            return {"sidebar_cards": [{"title": "Stock & Valuation", "rows": stock_rows}]}
+        except Exception:
+            return {}
+
+class StockProductUom(ArasGen.Model, module=Stock):
+    __is_child__  = True
     """Alternative UOMs for a product with per-product conversion factor."""
     __tablename__ = "stock_product_uom"
     __table_args__ = (
@@ -96,7 +136,14 @@ class StockProductUom(ArasModel):
     uom = db.relationship("StockUom")
 
 
-class StockPriceList(ArasModel):
+class StockPriceList(ArasGen.Model, module=Stock):
+    __is_child__       = True
+    __show_in_menu__   = True   # Also appear as top-level list view in Stock menu
+    __title__          = "Price List"
+    __icon__           = "fa-money"
+    __menu_order__     = 7
+    __url__            = "stock/price-list-item"
+    __display_fields__ = ("name",)
     """Price rule row — per product/category/blanket under a price type."""
     __tablename__ = "stock_price_list"
 
@@ -106,9 +153,7 @@ class StockPriceList(ArasModel):
     location_id         = db.Column(db.Integer, db.ForeignKey("stock_location.id"), nullable=True)
     terminal_id         = db.Column(db.Integer, db.ForeignKey("pos_terminal.id"), nullable=True)
     is_blanket          = db.Column(db.Boolean, nullable=False, default=False)
-    name                = db.Column(db.String(50), nullable=False)
-    price_type          = db.Column(db.Enum("sales", "purchase"), nullable=False, default="sales")
-    currency_id         = db.Column(db.Integer, db.ForeignKey("currency.id"), nullable=False)
+    currency_id         = db.Column(db.Integer, db.ForeignKey("cfg_currency.id"), nullable=False)
     uom_id              = db.Column(db.Integer, db.ForeignKey("stock_uom.id"), nullable=True)
     price               = db.Column(db.Numeric(18, 4), nullable=False, default=0)
     discount_pct        = db.Column(db.Numeric(5, 2), nullable=True)
@@ -125,7 +170,10 @@ class StockPriceList(ArasModel):
     terminal         = db.relationship("PosTerminal",          foreign_keys=[terminal_id])
 
 
-class StockProductBundle(ArasModel):
+class StockProductBundle(ArasGen.Model, module=Stock):
+    __title__     = "Product Bundles"
+    __icon__      = "fa-cubes"
+    __menu_order__= 6
     """Bundle — product composed of other products (kit/set)."""
     __tablename__ = "stock_product_bundle"
     __table_args__ = (
@@ -142,7 +190,9 @@ class StockProductBundle(ArasModel):
     uom       = db.relationship("StockUom")
 
 
-class StockProductAccountLink(ArasModel):
+class StockProductAccountLink(ArasGen.Model, module=Stock):
+    __is_child__  = True
+    __url__       = "stock/product-account"
     """Per-company COA mapping for a product (overrides category defaults)."""
     __tablename__ = "stock_product_account_link"
     __table_args__ = (
@@ -150,7 +200,7 @@ class StockProductAccountLink(ArasModel):
     )
 
     product_id          = db.Column(db.Integer, db.ForeignKey("stock_product.id"), nullable=False)
-    company_id          = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
+    company_id          = db.Column(db.Integer, db.ForeignKey("cfg_company.id"), nullable=False)
     account_stock_id    = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
     account_cogs_id     = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
     account_revenue_id  = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
