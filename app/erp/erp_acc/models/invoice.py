@@ -89,9 +89,9 @@ class AccSalesInvoice(ArasGen.Model, module=Acc):
     pos_session   = db.relationship("PosSession", foreign_keys=[pos_session_id])
     price_type    = db.relationship("StockPriceType", foreign_keys=[price_type_id])
     journal_entry = db.relationship("AccJournalEntry")
-    lines         = db.relationship("AccSalesInvoiceLine", backref="invoice",
+    lines         = db.relationship("AccSalesInvoiceLine", back_populates="invoice",
                                     cascade="all, delete-orphan")
-    charges             = db.relationship("AccSalesInvoiceCharge", backref="invoice",
+    charges       = db.relationship("AccSalesInvoiceCharge", back_populates="invoice",
                                     cascade="all, delete-orphan")
     payment_allocations = db.relationship(
         "AccPaymentAllocation",
@@ -146,6 +146,7 @@ class AccSalesInvoiceLine(ArasGen.Model, module=Acc):
     product = db.relationship("StockProduct")
     uom     = db.relationship("StockUom")
     account = db.relationship("AccAccount")
+    invoice = db.relationship("AccSalesInvoice", back_populates="lines")
 
 
 class AccSalesInvoiceCharge(ArasGen.Model, module=Acc):
@@ -162,6 +163,7 @@ class AccSalesInvoiceCharge(ArasGen.Model, module=Acc):
 
     charge  = db.relationship("Charge")
     account = db.relationship("AccAccount")
+    invoice = db.relationship("AccSalesInvoice", back_populates="charges")
 
 
 class AccPurchaseInvoice(ArasGen.Model, module=Acc):
@@ -209,9 +211,9 @@ class AccPurchaseInvoice(ArasGen.Model, module=Acc):
     currency      = db.relationship("Currency")
     price_type    = db.relationship("StockPriceType", foreign_keys=[price_type_id])
     journal_entry = db.relationship("AccJournalEntry")
-    lines         = db.relationship("AccPurchaseInvoiceLine", backref="invoice",
+    lines         = db.relationship("AccPurchaseInvoiceLine", back_populates="invoice",
                                     cascade="all, delete-orphan")
-    charges             = db.relationship("AccPurchaseInvoiceCharge", backref="invoice",
+    charges       = db.relationship("AccPurchaseInvoiceCharge", back_populates="invoice",
                                     cascade="all, delete-orphan")
     payment_allocations = db.relationship(
         "AccPaymentAllocation",
@@ -266,6 +268,7 @@ class AccPurchaseInvoiceLine(ArasGen.Model, module=Acc):
     product = db.relationship("StockProduct")
     uom     = db.relationship("StockUom")
     account = db.relationship("AccAccount")
+    invoice = db.relationship("AccPurchaseInvoice", back_populates="lines")
 
 
 class AccPurchaseInvoiceCharge(ArasGen.Model, module=Acc):
@@ -282,6 +285,7 @@ class AccPurchaseInvoiceCharge(ArasGen.Model, module=Acc):
 
     charge  = db.relationship("Charge")
     account = db.relationship("AccAccount")
+    invoice = db.relationship("AccPurchaseInvoice", back_populates="charges")
 
 
 # Auto-fill `name` for sales/purchase invoices via SQLAlchemy before_insert

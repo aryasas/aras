@@ -34,7 +34,7 @@ from functools import partial
 from typing import Any, ClassVar, Iterable, List
 
 from arasCore.lib.core.aras_base import ArasBase
-from arasCore.lib.core.base_model import ArasModel as _LegacyArasModel
+from arasCore.lib.core.base_model import ArasModel as _BaseModel
 from arasCore.lib.core.extensions import db as _db
 
 logger = logging.getLogger(__name__)
@@ -368,7 +368,7 @@ def _build_handler_from_class(cls):
     return _DocHandler()
 
 
-class _ArasModelMeta(type(_LegacyArasModel)):
+class _ArasModelMeta(type(_BaseModel)):
     """Wraps SQLAlchemy DeclarativeMeta, intercepts Col descriptors.
 
     Supports `module=ModuleClass` kwarg on subclass declaration:
@@ -440,8 +440,38 @@ class _ArasModelMeta(type(_LegacyArasModel)):
             register(cls)
         return cls
 
+    def __init__(cls, name, bases, ns, **kw):
+        super().__init__(name, bases, ns, **kw)
+        if not ns.get("__abstract__", False) and hasattr(cls, '__table__'):
+            for col in cls.__table__.columns:
+                if col.foreign_keys:
+                    fk = next(iter(col.foreign_keys))
+                    target_table = fk.target_fullname.split(".")[0]
+                    attr_name = col.name.rsplit("_id", 1)[0]
+                    if attr_name and not hasattr(cls, attr_name):
+                        try:
+                            def _resolve(t=target_table):
+                                # Check SQLAlchemy registry first
+                                if hasattr(_db.Model, "registry"):
+                                    registry = _db.Model.registry._class_registry
+                                else:
+                                    registry = _db.Model._decl_class_registry
+                                for c in registry.values():
+                                    if hasattr(c, '__tablename__') and c.__tablename__ == t:
+                                        return c
+                                # Fallback to _MODELS
+                                for m in _MODELS:
+                                    if getattr(m, "__tablename__", "") == t:
+                                        return m
+                                # If we absolutely can't find it, raise an error to prevent silent bad mapping
+                                raise ValueError(f"Auto-relationship failed: No model found for table '{t}'")
+                                
+                            setattr(cls, attr_name, _db.relationship(lambda t=target_table: _resolve(t), foreign_keys=[col]))
+                        except Exception:
+                            pass
 
-class ArasModel(_LegacyArasModel, ArasBase, metaclass=_ArasModelMeta):
+
+class ArasModel(_BaseModel, ArasBase, metaclass=_ArasModelMeta):
     """Abstract base for all aras app models.
 
     Inherit it. Declare fields as ``name = Col(...)``. The metaclass compiles
@@ -1118,6 +1148,64 @@ class ArasApp(metaclass=_ArasAppMeta):
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# 11.5 ArasView — Decoupled UI logic
+# ════════════════════════════════════════════════════════════════════════════
+
+_DEFERRED_VIEWS = []
+
+class _ArasViewMeta(type):
+    def __new__(mcs, name, bases, ns):
+        cls = super().__new__(mcs, name, bases, ns)
+        if ns.get("__abstract__", False) or name == "ArasView":
+            return cls
+
+        target_model = ns.get("__model__")
+        if not target_model:
+            return cls
+
+        mod_parts = cls.__module__.split('.')
+        app_name = mod_parts[1] if len(mod_parts) >= 2 else None
+        module_name = mod_parts[2] if len(mod_parts) >= 3 else None
+
+        def _apply():
+            model_cls = next((m for m in _MODELS if m.__name__ == target_model), None)
+            if not model_cls:
+                return False
+
+            for attr in ("__title__", "__icon__", "__menu__", "__menu_order__", 
+                         "__display_fields__", "__searchable__", "__filters__", 
+                         "__admin_list__", "__is_child__", "__show_in_menu__"):
+                if attr in ns:
+                    setattr(model_cls, attr, ns[attr])
+            
+            if app_name and getattr(model_cls, "__app__", None) is None:
+                setattr(model_cls, "__app__", app_name)
+            if module_name and getattr(model_cls, "__aras_module__", None) is None:
+                setattr(model_cls, "__aras_module__", module_name)
+
+            derived_menu, derived_menu_icon, derived_menu_order = _derive_menu(model_cls)
+            model_cls._aras_meta.update({
+                "app":     getattr(model_cls, "__app__",    app_name),
+                "module":  getattr(model_cls, "__aras_module__", module_name),
+                "menu":    getattr(model_cls, "__menu__",   derived_menu),
+                "title":   getattr(model_cls, "__title__",  _title_split(target_model)),
+                "icon":    getattr(model_cls, "__icon__",   "fa-table"),
+            })
+
+            handler = _build_handler_from_class(cls)
+            if handler:
+                model_cls.__handler__ = handler
+            return True
+
+        if not _apply():
+            _DEFERRED_VIEWS.append(_apply)
+            
+        return cls
+
+class ArasView(metaclass=_ArasViewMeta):
+    __abstract__ = True
+
+# ════════════════════════════════════════════════════════════════════════════
 # 12. ArasGen umbrella
 # ════════════════════════════════════════════════════════════════════════════
 
@@ -1125,6 +1213,7 @@ class ArasGen:
     """Umbrella namespace — the only import an app ever needs."""
     Model = ArasModel
     Doc   = ArasDoc
+    View  = ArasView
     Form  = ArasForm
     Route = ArasRoute
     DB    = ArasDB
@@ -1138,6 +1227,40 @@ class ArasGen:
 
     auto_resources   = staticmethod(auto_resources)
     auto_menu_groups = staticmethod(auto_menu_groups)
+
+    @staticmethod
+    def autodiscover(package_name: str) -> None:
+        import importlib
+        import pkgutil
+        import sys
+        
+        base_module = sys.modules.get(package_name) or importlib.import_module(package_name)
+        
+        def walk_packages(path, prefix):
+            for info in pkgutil.iter_modules(path, prefix):
+                parts = info.name.split('.')
+                if any(p in ('models', 'views', 'services') for p in parts):
+                    try:
+                        importlib.import_module(info.name)
+                    except Exception as e:
+                        logger.error(f"[autodiscover] Failed to import {info.name}: {e}")
+                if info.ispkg:
+                    try:
+                        mod = sys.modules.get(info.name) or importlib.import_module(info.name)
+                        if hasattr(mod, '__path__'):
+                            walk_packages(mod.__path__, info.name + '.')
+                    except Exception:
+                        pass
+
+        if hasattr(base_module, '__path__'):
+            walk_packages(base_module.__path__, base_module.__name__ + '.')
+            
+        global _DEFERRED_VIEWS
+        remaining = []
+        for apply_fn in _DEFERRED_VIEWS:
+            if not apply_fn():
+                remaining.append(apply_fn)
+        _DEFERRED_VIEWS = remaining
 
     Col      = Col
     String   = staticmethod(String)

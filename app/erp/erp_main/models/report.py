@@ -22,7 +22,7 @@ class ErpReport(ArasGen.Model, module=Main):
     columns_json = db.Column(db.Text, nullable=True)
     filters_json = db.Column(db.Text, nullable=True)
 
-    favorites = db.relationship("ErpReportFavorite", backref="report", cascade="all, delete-orphan")
+    favorites = db.relationship("ErpReportFavorite", back_populates="report", cascade="all, delete-orphan")
 
 
 class ErpReportFavorite(ArasGen.Model, module=Main):
@@ -33,3 +33,5 @@ class ErpReportFavorite(ArasGen.Model, module=Main):
 
     user_id   = db.Column(db.Integer, db.ForeignKey("auth_users.id"), nullable=False)
     report_id = db.Column(db.Integer, db.ForeignKey("main_report.id"), nullable=False)
+
+    report = db.relationship("ErpReport", back_populates="favorites")

@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, date, timezone
+from typing import TypeVar, Type, List, Optional, Any
 from arasCore.lib.core.extensions import db
 from arasCore.lib.core.aras_base import ArasBase
+
+T = TypeVar("T", bound="ArasModel")
 
 
 def _now():
@@ -49,7 +52,7 @@ class ArasModel(db.Model, ArasBase):
     # ── Single-row fetchers ───────────────────────────────────────────────────
 
     @classmethod
-    def fetch(cls, item_id=None, *, active_only=False, or_404=False):
+    def fetch(cls: Type[T], item_id=None, *, active_only=False, or_404=False) -> Any:
         """
         fetch(id)  → single row by PK (None or 404 if missing)
         fetch()    → list of all rows
@@ -63,20 +66,20 @@ class ArasModel(db.Model, ArasBase):
         return cls._q(active_only).order_by(cls.id.desc()).all()
 
     @classmethod
-    def get(cls, item_id):
+    def get(cls: Type[T], item_id) -> Optional[T]:
         return cls.fetch(item_id)
 
     @classmethod
-    def get_or_404(cls, item_id):
+    def get_or_404(cls: Type[T], item_id) -> T:
         return cls.fetch(item_id, or_404=True)
 
     @classmethod
-    def find(cls, **kwargs):
+    def find(cls: Type[T], **kwargs) -> Optional[T]:
         """Return first row matching keyword filters, or None."""
         return cls._q().filter_by(**kwargs).first()
 
     @classmethod
-    def find_or_404(cls, **kwargs):
+    def find_or_404(cls: Type[T], **kwargs) -> T:
         from flask import abort
         obj = cls.find(**kwargs)
         if obj is None:
@@ -84,12 +87,12 @@ class ArasModel(db.Model, ArasBase):
         return obj
 
     @classmethod
-    def find_all(cls, **kwargs):
+    def find_all(cls: Type[T], **kwargs) -> List[T]:
         """Return all rows matching keyword filters."""
         return cls._q().filter_by(**kwargs).order_by(cls.id.desc()).all()
 
     @classmethod
-    def get_by(cls, field: str, value):
+    def get_by(cls: Type[T], field: str, value) -> Optional[T]:
         """Return first row where field == value, or None."""
         return cls._q().filter(getattr(cls, field) == value).first()
 
@@ -109,11 +112,11 @@ class ArasModel(db.Model, ArasBase):
     # ── List / pagination ─────────────────────────────────────────────────────
 
     @classmethod
-    def list_all(cls, active_only=False):
+    def list_all(cls: Type[T], active_only=False) -> List[T]:
         return cls.fetch(active_only=active_only)
 
     @classmethod
-    def paginate(cls, page: int = 1, per_page: int = 20, active_only=False, **filters):
+    def paginate(cls: Type[T], page: int = 1, per_page: int = 20, active_only=False, **filters):
         """
         Return a SQLAlchemy Pagination object.
         Usage: paginate(page=2, per_page=50, status='open')
@@ -124,7 +127,7 @@ class ArasModel(db.Model, ArasBase):
         return q.order_by(cls.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
     @classmethod
-    def first_n(cls, n: int, active_only=False, **filters):
+    def first_n(cls: Type[T], n: int, active_only=False, **filters) -> List[T]:
         """Return the first n rows (newest first)."""
         q = cls._q(active_only)
         if filters:
@@ -132,12 +135,12 @@ class ArasModel(db.Model, ArasBase):
         return q.order_by(cls.id.desc()).limit(n).all()
 
     @classmethod
-    def latest(cls, active_only=False):
+    def latest(cls: Type[T], active_only=False) -> Optional[T]:
         """Return the single most recently created row."""
         return cls._q(active_only).order_by(cls.id.desc()).first()
 
     @classmethod
-    def oldest(cls, active_only=False):
+    def oldest(cls: Type[T], active_only=False) -> Optional[T]:
         return cls._q(active_only).order_by(cls.id.asc()).first()
 
     @classmethod
@@ -345,9 +348,11 @@ class ArasModel(db.Model, ArasBase):
                 continue
             val = getattr(self, col.name, None)
             from decimal import Decimal
+            from enum import Enum
             if isinstance(val, datetime): result[col.name] = val.isoformat()
             elif isinstance(val, date): result[col.name] = val.isoformat()
             elif isinstance(val, Decimal): result[col.name] = float(val)
+            elif isinstance(val, Enum): result[col.name] = val.value
             else: result[col.name] = val
         for out_key, (rel_attr, rel_field) in (self.__serialize_relations__ or {}).items():
             if incl and out_key not in incl:

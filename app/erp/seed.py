@@ -225,12 +225,8 @@ _REPORTS = [
 
 
 def _seed_reports(company_id):
-    from app.erp.erp_main.models.report import ErpReport
-    for r in _REPORTS:
-        ErpReport.get_or_create(
-            {**{k: v for k, v in r.items() if k != "name"}, "company_id": company_id},
-            name=r["name"],
-        )
+    from app.erp.erp_main.report_seed import run_seed as seed_reports
+    seed_reports()
 
 
 # ── Public entry point ────────────────────────────────────────────────────────

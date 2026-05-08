@@ -22,6 +22,7 @@ class CrmActivity(ArasGen.Model, module=Crm):
     assigned_to_id = db.Column(db.Integer, db.ForeignKey("auth_users.id"), nullable=True)
 
     assigned_to = db.relationship("User", foreign_keys=[assigned_to_id])
+    lead = db.relationship("CrmLead", back_populates="activities")
 
     def __repr__(self):
         return f"<CrmActivity {self.type} lead={self.lead_id}>"

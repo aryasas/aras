@@ -28,7 +28,7 @@ class AccJournalEntry(ArasGen.Model, module=Acc):
     posted_at        = db.Column(db.DateTime)
     posted_by        = db.Column(db.Integer, db.ForeignKey("auth_users.id"), nullable=True)
 
-    lines = db.relationship("AccJournalLine", backref="entry", cascade="all, delete-orphan")
+    lines = db.relationship("AccJournalLine", back_populates="entry", cascade="all, delete-orphan")
 
     def before_delete(self, user_id=None):
         # Null out FK on stock_movement before deleting to avoid FK constraint errors
@@ -66,4 +66,5 @@ class AccJournalLine(ArasGen.Model, module=Acc):
     analytic_tag_id = db.Column(db.Integer, db.ForeignKey("acc_analytic_tag.id"), nullable=True)
     description     = db.Column(db.String(255))
 
+    entry = db.relationship("AccJournalEntry", back_populates="lines")
     account = db.relationship("AccAccount")

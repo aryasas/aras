@@ -41,7 +41,7 @@ class StockMovement(ArasGen.Model, module=Stock):
     origin_id        = db.Column(db.BigInteger)
     fiscal_period_id = db.Column(db.Integer, db.ForeignKey("main_fiscal_period.id"), nullable=True)
 
-    lines         = db.relationship("StockMovementLine", backref="movement", cascade="all, delete-orphan")
+    lines         = db.relationship("StockMovementLine", back_populates="movement", cascade="all, delete-orphan")
     src_location  = db.relationship("StockLocation", foreign_keys=[src_location_id])
     dst_location  = db.relationship("StockLocation", foreign_keys=[dst_location_id])
     journal_entry = db.relationship("AccJournalEntry", foreign_keys=[journal_entry_id])
@@ -67,3 +67,4 @@ class StockMovementLine(ArasGen.Model, module=Stock):
 
     product = db.relationship("StockProduct")
     uom     = db.relationship("StockUom")
+    movement = db.relationship("StockMovement", back_populates="lines")

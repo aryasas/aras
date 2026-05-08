@@ -33,8 +33,5 @@ class FxRate(ArasGen.Model, module=Config):
     valid_from       = db.Column(db.Date, nullable=False)
     source           = db.Column(db.String(10), default="manual")  # manual/bi/xe/oer
 
-    from_currency = db.relationship("Currency", foreign_keys=[from_currency_id])
-    to_currency   = db.relationship("Currency", foreign_keys=[to_currency_id])
-
     def __repr__(self):
         return f"<FxRate {self.from_currency_id}->{self.to_currency_id} {self.valid_from}>"

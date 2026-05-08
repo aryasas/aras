@@ -15,7 +15,7 @@ class ModeOfPayment(ArasGen.Model, module=Main):
                           choices=["cash", "bank", "ewallet", "other"])
 
     company_accounts = db.relationship(
-        "CompanyPaymentAccount", backref="mode_of_payment",
+        "CompanyPaymentAccount", back_populates="mode_of_payment",
         cascade="all, delete-orphan", lazy="dynamic",
     )
 
@@ -32,6 +32,7 @@ class CompanyPaymentAccount(ArasGen.Model, module=Main):
 
     company = db.relationship("Company", backref=db.backref("payment_accounts", lazy="dynamic"))
     account = db.relationship("AccAccount")
+    mode_of_payment = db.relationship("ModeOfPayment", back_populates="company_accounts")
 
     __table_args__ = (
         db.UniqueConstraint("mode_of_payment_id", "company_id", name="uq_mop_company"),

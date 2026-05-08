@@ -37,7 +37,7 @@ class AccPayment(ArasGen.Model, module=Acc):
 
     mode_of_payment = db.relationship("ModeOfPayment")
     journal_entry   = db.relationship("AccJournalEntry")
-    allocations     = db.relationship("AccPaymentAllocation", backref="payment",
+    allocations     = db.relationship("AccPaymentAllocation", back_populates="payment",
                                       cascade="all, delete-orphan")
 
     @property
@@ -96,6 +96,8 @@ class AccPaymentAllocation(ArasGen.Model, module=Acc):
     invoice_id   = db.Column(db.BigInteger, nullable=False)
     amount       = db.Column(db.Numeric(18, 4), nullable=False)
     notes        = db.Column(db.String(255), nullable=True)
+
+    payment      = db.relationship("AccPayment", back_populates="allocations")
 
     @property
     def invoice(self):

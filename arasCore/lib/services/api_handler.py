@@ -107,7 +107,23 @@ def _row_to_dict(obj) -> dict:
     # Prefer model's own to_dict() (ArasModel subclasses define this)
     if hasattr(obj, "to_dict") and callable(obj.to_dict):
         return obj.to_dict()
-    return {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
+
+    from datetime import datetime, date
+    from decimal import Decimal
+    from enum import Enum
+
+    result = {}
+    for c in obj.__table__.columns:
+        val = getattr(obj, c.name)
+        if isinstance(val, (datetime, date)):
+            result[c.name] = val.isoformat()
+        elif isinstance(val, Decimal):
+            result[c.name] = float(val)
+        elif isinstance(val, Enum):
+            result[c.name] = val.value
+        else:
+            result[c.name] = val
+    return result
 
 
 def _match_custom_route(pattern: str, key: str) -> dict | None:

@@ -30,7 +30,7 @@ class PrintTemplate(ArasGen.Model, module=Main):
     css           = db.Column(db.Text, nullable=True)
     is_default    = db.Column(db.Boolean, default=False)
 
-    versions = db.relationship("PrintTemplateVersion", backref="template", lazy="dynamic",
+    versions = db.relationship("PrintTemplateVersion", back_populates="template", lazy="dynamic",
                                cascade="all, delete-orphan")
 
     def __repr__(self):
@@ -44,3 +44,5 @@ class PrintTemplateVersion(ArasGen.Model, module=Main):
     version_no  = db.Column(db.Integer, nullable=False)
     body_html   = db.Column(db.Text, nullable=False)
     css         = db.Column(db.Text, nullable=True)
+
+    template = db.relationship("PrintTemplate", back_populates="versions")

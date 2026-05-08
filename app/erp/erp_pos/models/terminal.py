@@ -33,7 +33,7 @@ class PosTerminal(ArasGen.Model, module=Pos):
     selling_pricelist  = db.relationship("StockPriceType", foreign_keys=[selling_pricelist_id])
     purchase_pricelist = db.relationship("StockPriceType", foreign_keys=[purchase_pricelist_id])
     print_template = db.relationship("PrintTemplate", foreign_keys=[print_template_id])
-    sessions       = db.relationship("PosSession", backref="terminal", lazy="dynamic")
+    sessions       = db.relationship("PosSession", back_populates="terminal", lazy="dynamic")
 
     def __repr__(self):
         return f"<PosTerminal {self.code}>"
@@ -63,8 +63,10 @@ class PosSession(ArasGen.Model, module=Pos):
     notes           = db.Column(db.Text, nullable=True)
 
     cashier  = db.relationship("User", foreign_keys=[cashier_id])
-    entries  = db.relationship("PosShiftEntry", backref="session", lazy="dynamic",
+    entries  = db.relationship("PosShiftEntry", back_populates="session", lazy="dynamic",
                               cascade="all, delete-orphan")
+    terminal = db.relationship("PosTerminal", back_populates="sessions")
+    shift_balances = db.relationship("PosShiftBalance", back_populates="session", lazy="dynamic")
 
     def __repr__(self):
         return f"<PosSession terminal={self.terminal_id} [{self.state}]>"
@@ -85,6 +87,7 @@ class PosShiftEntry(ArasGen.Model, module=Pos):
 
     entered_by    = db.relationship("User", foreign_keys=[entered_by_id])
     journal_entry = db.relationship("AccJournalEntry", foreign_keys=[journal_entry_id])
+    session       = db.relationship("PosSession", back_populates="entries")
 
     def __repr__(self):
         return f"<PosShiftEntry {self.entry_type} {self.amount}>"
@@ -103,7 +106,7 @@ class PosShiftBalance(ArasGen.Model, module=Pos):
     opening_balance    = db.Column(db.Numeric(18, 4), default=0, nullable=False)
     closing_balance    = db.Column(db.Numeric(18, 4), default=0, nullable=False)
 
-    session         = db.relationship("PosSession", backref=db.backref("shift_balances", lazy="dynamic"))
+    session         = db.relationship("PosSession", back_populates="shift_balances")
     # mode_of_payment resolved via query
 
     def __repr__(self):

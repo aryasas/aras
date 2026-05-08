@@ -37,9 +37,9 @@ class PurchaseOrder(ArasGen.Model, module=Sup):
     location   = db.relationship("StockLocation", foreign_keys=[location_id])
     currency   = db.relationship("Currency")
     price_type = db.relationship("StockPriceType", foreign_keys=[price_type_id])
-    lines      = db.relationship("PurchaseOrderLine", backref="order",
+    lines      = db.relationship("PurchaseOrderLine", back_populates="order",
                                   cascade="all, delete-orphan")
-    charges    = db.relationship("PurchaseOrderCharge", backref="order",
+    charges    = db.relationship("PurchaseOrderCharge", back_populates="order",
                                   cascade="all, delete-orphan")
 
     def __repr__(self):
@@ -75,6 +75,7 @@ class PurchaseOrderLine(ArasGen.Model, module=Sup):
     product = db.relationship("StockProduct")
     uom     = db.relationship("StockUom")
     account = db.relationship("AccAccount")
+    order   = db.relationship("PurchaseOrder", back_populates="lines")
 
 
 class PurchaseOrderCharge(ArasGen.Model, module=Sup):
@@ -91,3 +92,4 @@ class PurchaseOrderCharge(ArasGen.Model, module=Sup):
 
     charge  = db.relationship("Charge")
     account = db.relationship("AccAccount")
+    order   = db.relationship("PurchaseOrder", back_populates="charges")

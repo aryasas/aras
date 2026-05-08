@@ -60,12 +60,12 @@ class StockProduct(ArasGen.Model, module=Stock):
     account_revenue  = db.relationship("AccAccount", foreign_keys=[account_revenue_id])
     account_purchase = db.relationship("AccAccount", foreign_keys=[account_purchase_id])
     account_cogs     = db.relationship("AccAccount", foreign_keys=[account_cogs_id])
-    uom_alts         = db.relationship("StockProductUom", backref="product", cascade="all, delete-orphan")
-    prices           = db.relationship("StockPriceList", backref="product", cascade="all, delete-orphan")
-    account_links    = db.relationship("StockProductAccountLink", backref="product", cascade="all, delete-orphan")
+    uom_alts         = db.relationship("StockProductUom", back_populates="product", cascade="all, delete-orphan")
+    prices           = db.relationship("StockPriceList", back_populates="product", cascade="all, delete-orphan")
+    account_links    = db.relationship("StockProductAccountLink", back_populates="product", cascade="all, delete-orphan")
     bundle_components = db.relationship(
         "StockProductBundle", foreign_keys="StockProductBundle.bundle_id",
-        backref="bundle", cascade="all, delete-orphan"
+        back_populates="bundle", cascade="all, delete-orphan"
     )
 
     @property
@@ -134,6 +134,7 @@ class StockProductUom(ArasGen.Model, module=Stock):
     is_active  = db.Column(db.Boolean, default=True, nullable=False)
 
     uom = db.relationship("StockUom")
+    product = db.relationship("StockProduct", back_populates="uom_alts")
 
 
 class StockPriceList(ArasGen.Model, module=Stock):
@@ -164,10 +165,11 @@ class StockPriceList(ArasGen.Model, module=Stock):
 
     currency         = db.relationship("Currency")
     uom              = db.relationship("StockUom")
-    price_type_ref   = db.relationship("StockPriceType", foreign_keys=[price_type_id], back_populates="items")
+    price_type       = db.relationship("StockPriceType", foreign_keys=[price_type_id], back_populates="items")
     product_category = db.relationship("StockProductCategory", foreign_keys=[product_category_id])
     location         = db.relationship("StockLocation",        foreign_keys=[location_id])
     terminal         = db.relationship("PosTerminal",          foreign_keys=[terminal_id])
+    product          = db.relationship("StockProduct", back_populates="prices")
 
 
 class StockProductBundle(ArasGen.Model, module=Stock):
@@ -188,6 +190,7 @@ class StockProductBundle(ArasGen.Model, module=Stock):
 
     component = db.relationship("StockProduct", foreign_keys=[component_id])
     uom       = db.relationship("StockUom")
+    bundle    = db.relationship("StockProduct", foreign_keys=[bundle_id], back_populates="bundle_components")
 
 
 class StockProductAccountLink(ArasGen.Model, module=Stock):
@@ -211,3 +214,4 @@ class StockProductAccountLink(ArasGen.Model, module=Stock):
     account_cogs     = db.relationship("AccAccount", foreign_keys=[account_cogs_id])
     account_revenue  = db.relationship("AccAccount", foreign_keys=[account_revenue_id])
     account_purchase = db.relationship("AccAccount", foreign_keys=[account_purchase_id])
+    product          = db.relationship("StockProduct", back_populates="account_links")

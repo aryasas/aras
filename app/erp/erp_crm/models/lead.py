@@ -40,7 +40,7 @@ class CrmLead(ArasGen.Model, module=Crm):
     stage       = db.relationship("CrmStage")
     pipeline    = db.relationship("CrmPipeline")
     salesperson = db.relationship("User", foreign_keys=[salesperson_id])
-    activities  = db.relationship("CrmActivity", backref="lead", lazy="dynamic",
+    activities  = db.relationship("CrmActivity", back_populates="lead", lazy="dynamic",
                                   cascade="all, delete-orphan")
 
     def __repr__(self):

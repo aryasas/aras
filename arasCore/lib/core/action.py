@@ -309,6 +309,9 @@ def _one(obj):
             return obj.to_dict()
         except Exception:
             pass
+    from enum import Enum
+    if isinstance(obj, Enum):
+        return obj.value
     if hasattr(obj, "id"):
         return {"id": obj.id, "name": getattr(obj, "name", None)}
     return obj

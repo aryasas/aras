@@ -13,55 +13,7 @@ from arasCore.arasgen import auto_menu_groups
 from app.erp import ERP  # noqa: F401  (registers app)
 
 
-# ── Model imports trigger ArasModel registration (auto_menu_groups picks them up) ──
-from app.erp.erp_acc.models.account import AccAccount  # noqa: F401
-from app.erp.erp_acc.models import (  # noqa: F401
-    AccJournalEntry, AccJournalLine,
-    AccAnalyticTag,
-    SalesOrder, SalesOrderLine, SalesOrderCharge,
-    AccSalesInvoice, AccSalesInvoiceLine, AccSalesInvoiceCharge,
-    AccPurchaseInvoice, AccPurchaseInvoiceLine, AccPurchaseInvoiceCharge,
-    AccPayment, AccPaymentAllocation,
-)
-from app.erp.erp_config.models import (  # noqa: F401
-    Company,
-    Currency, FxRate,
-    Charge,
-    Attachment,
-)
-from app.erp.erp_main.models import (  # noqa: F401
-    Setting, DocSeries,
-    FiscalYear, FiscalPeriod,
-    ErpRole, ErpPermission,
-    PrintTemplate,
-    ErpReport,
-)
-from app.erp.erp_main.models.payment_mode import ModeOfPayment  # noqa: F401
-from app.erp.erp_crm.models import (  # noqa: F401
-    CrmCustomer, CrmContact,
-    CrmLead, CrmPipeline, CrmStage, CrmActivity,
-)
-from app.erp.erp_sup.models import (  # noqa: F401
-    SupSupplier,
-    PurchaseOrder, PurchaseOrderLine, PurchaseOrderCharge,
-)
-from app.erp.erp_pos.models import (  # noqa: F401
-    PosTerminal, PosSession, PosShiftEntry,
-)
-from app.erp.erp_stock.models import (  # noqa: F401
-    StockUom,
-    StockProductCategory, StockProduct, StockProductUom,
-    StockPriceType, StockPriceList, StockProductBundle, StockProductAccountLink,
-    StockPromoBundle, StockPromoBundleItem,
-    StockLocation, StockProductLocation,
-    StockMovement, StockMovementLine,
-    DeliveryTrip, DeliveryOrder, DeliveryOrderLine,
-)
-
-# Workflow event listeners (acc-specific, registered on import)
-from app.erp.erp_acc.services import listeners as _acc_listeners  # noqa: F401
-
-# URL-shaped POS handlers (have <int:session_id> path params, can't auto-derive)
+# ── URL-shaped POS handlers (have <int:session_id> path params, can't auto-derive)
 from app.erp.erp_pos.services import handlers as pos_h
 
 

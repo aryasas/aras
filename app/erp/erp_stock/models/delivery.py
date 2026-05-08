@@ -24,7 +24,7 @@ class DeliveryTrip(ArasGen.Model, module=Stock):
     notes       = db.Column(db.Text, nullable=True)
 
     company = db.relationship("Company")
-    orders  = db.relationship("DeliveryOrder", backref="trip")
+    orders  = db.relationship("DeliveryOrder", back_populates="trip")
 
     def __repr__(self):
         return f"<DeliveryTrip {self.name} [{self.state}]>"
@@ -59,8 +59,9 @@ class DeliveryOrder(ArasGen.Model, module=Stock):
     sales_order   = db.relationship("SalesOrder", foreign_keys=[sales_order_id])
     customer      = db.relationship("CrmCustomer")
     src_location  = db.relationship("StockLocation", foreign_keys=[src_location_id])
-    lines         = db.relationship("DeliveryOrderLine", backref="delivery",
+    lines         = db.relationship("DeliveryOrderLine", back_populates="delivery",
                                      cascade="all, delete-orphan")
+    trip          = db.relationship("DeliveryTrip", back_populates="orders")
 
     def __repr__(self):
         return f"<DeliveryOrder {self.name} [{self.state}]>"
@@ -80,3 +81,4 @@ class DeliveryOrderLine(ArasGen.Model, module=Stock):
 
     product = db.relationship("StockProduct")
     uom     = db.relationship("StockUom")
+    delivery = db.relationship("DeliveryOrder", back_populates="lines")

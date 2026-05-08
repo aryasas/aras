@@ -4,7 +4,6 @@ from arasCore.arasgen import ArasGen
 
 ARAS_AUTOLOAD = True
 
-
 class ERP(ArasGen.App):
     """Root ERP app. Submodule manifests subclass this to inherit app metadata."""
     name  = "erp"
@@ -23,3 +22,5 @@ class ERP(ArasGen.App):
         "report": ("Reports",    "fa-bar-chart",     5),
     }
     namespace_aliases = {"stk": "stock"}
+
+ArasGen.autodiscover(__name__)
