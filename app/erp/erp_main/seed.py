@@ -57,8 +57,38 @@ def run_seed(app):
         _seed_customer(company)
         _seed_supplier(company)
         seed_reports()
+        _seed_examples(company)
         db.session.commit()
         print("[seed] core data seeded.")
+
+
+def _seed_examples(company):
+    """Working examples of optional models so the UI has at least one row each."""
+    from app.erp.erp_main.models.print_template import PrintTemplate, PrintTemplateVersion
+    from app.erp.erp_main.models.report import ErpReport, ErpReportFavorite
+
+    tpl = PrintTemplate.find(code="example_invoice")
+    if not tpl:
+        tpl = PrintTemplate.create({
+            "company_id": company.id,
+            "code": "example_invoice",
+            "name": "Example Invoice Template",
+            "doc_type": "acc_sales_invoice",
+            "body_html": "<h1>Invoice {{ doc.name }}</h1>",
+        })
+    if not PrintTemplateVersion.find(template_id=tpl.id, version_no=1):
+        PrintTemplateVersion.create({
+            "template_id": tpl.id,
+            "version_no": 1,
+            "body_html": tpl.body_html,
+        })
+
+    rpt = ErpReport.find(name="sales_summary")
+    if rpt:
+        from arasCore.auth import User
+        admin = User.query.filter_by(is_admin=True).first()
+        if admin and not ErpReportFavorite.find(report_id=rpt.id, user_id=admin.id):
+            ErpReportFavorite.create({"report_id": rpt.id, "user_id": admin.id})
 
 
 def _seed_system_formatting():

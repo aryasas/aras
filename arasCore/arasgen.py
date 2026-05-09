@@ -40,6 +40,18 @@ from arasCore.lib.core.extensions import db as _db
 logger = logging.getLogger(__name__)
 
 
+# Pluggable naming-series provider. Apps that want auto-naming (e.g. ERP doc series)
+# call set_naming_provider(fn) at startup. fn(tablename, pattern) -> str | None.
+_naming_provider = None
+
+
+def set_naming_provider(fn):
+    """Register a callable used by ArasModel.before_save to generate names.
+    Signature: fn(tablename: str, pattern: str) -> str | None"""
+    global _naming_provider
+    _naming_provider = fn
+
+
 # ════════════════════════════════════════════════════════════════════════════
 # 1. Field type tokens
 # ════════════════════════════════════════════════════════════════════════════
@@ -497,10 +509,11 @@ class ArasModel(_BaseModel, ArasBase, metaclass=_ArasModelMeta):
         field = self.__name_field__
         if not hasattr(self, field) or getattr(self, field, None):
             return
+        if not _naming_provider:
+            return
         try:
-            from app.erp.erp_main.services.doc_series import next_for_table as next_name
             tbl = getattr(self.__class__, "__tablename__", "") or ""
-            new_name = next_name(tbl, self.__naming_series__)
+            new_name = _naming_provider(tbl, self.__naming_series__)
             if new_name:
                 setattr(self, field, new_name)
         except Exception as e:  # pragma: no cover

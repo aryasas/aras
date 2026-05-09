@@ -3,9 +3,8 @@ from .doc_series import DocSeries  # noqa: F401
 from .fiscal import FiscalYear, FiscalPeriod  # noqa: F401
 from .acl import ErpRole, ErpPermission, ErpRolePermission, ErpUserCompany  # noqa: F401
 from .setting import Setting  # noqa: F401
-from .custom_field import CoreCustomField  # noqa: F401
 from .print_template import PrintTemplate, PrintTemplateVersion  # noqa: F401
-from .notification import ErpNotification, EmailTemplate  # noqa: F401
+from .notification import ErpNotification  # noqa: F401
 from .audit import AuditLog  # noqa: F401
 from .list_view import ErpListViewSetting, ErpReportSetting  # noqa: F401
 from .report import ErpReport, ErpReportFavorite  # noqa: F401

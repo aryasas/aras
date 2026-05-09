@@ -103,12 +103,11 @@ def register_db_commands(aras):
             except Exception as e:
                 click.echo(f"          ERROR syncing '{slug}': {e}")
 
-        # ERP seed (optional)
+        # Emit a remigrate event so apps (e.g. ERP) can run their own seed.
         try:
-            from app.erp.erp_main.seed import run_seed
-            run_seed(_app)
-            click.echo("          ERP seed done.")
-        except (ModuleNotFoundError, ImportError):
-            click.echo("          ERP seed not available — skipped.")
+            from arasCore.lib.core.events import emit
+            emit("framework.remigrate", _app)
+        except Exception:
+            pass
 
         click.echo("[remigrate] all done.")

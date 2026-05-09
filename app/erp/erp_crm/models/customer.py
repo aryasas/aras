@@ -33,6 +33,7 @@ class CrmCustomer(ArasGen.Model, module=Crm):
     notes             = db.Column(db.Text, nullable=True)
 
     salesperson = db.relationship("User", foreign_keys=[salesperson_id])
+    group       = db.relationship("CrmCustomerGroup", foreign_keys=[group_id])
 
     def __repr__(self):
         return f"<CrmCustomer {self.code} {self.name}>"

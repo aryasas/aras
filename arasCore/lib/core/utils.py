@@ -110,6 +110,34 @@ def configure_logging(app):
         pass
 
 
+# ── Pluggable company-settings provider ──────────────────────────────────────
+# Apps that own a "Company" model (e.g. ERP) register a callable that returns the
+# active Company instance for the current session. Framework code reads optional
+# fields off it without importing the app directly.
+
+_company_provider = None
+
+
+def set_company_settings_provider(fn):
+    """Register a callable -> active Company-like object (or None).
+    Signature: fn() -> object | None"""
+    global _company_provider
+    _company_provider = fn
+
+
+def _company_setting(field):
+    """Return getattr(provider(), field) or None. Silent on any failure."""
+    if not _company_provider:
+        return None
+    try:
+        obj = _company_provider()
+        if obj is None:
+            return None
+        return getattr(obj, field, None)
+    except Exception:
+        return None
+
+
 # ── Jinja helpers ─────────────────────────────────────────────────────────────
 
 def get_date_format(app_slug=None):
@@ -136,18 +164,7 @@ def get_date_format(app_slug=None):
     
     # 2. Company Default
     if not fmt:
-        try:
-            from app.erp.erp_config.models.company import Company
-            cid = session.get("company_id")
-            company = None
-            if cid:
-                company = Company.query.get(cid)
-            if not company:
-                company = Company.query.first()
-            if company and hasattr(company, "date_format") and company.date_format:
-                fmt = company.date_format
-        except Exception:
-            pass
+        fmt = _company_setting("date_format") or fmt
 
     # 3. Global Default
     if not fmt:
@@ -181,18 +198,7 @@ def get_number_format(app_slug=None):
             
     # 2. Company Default
     if not fmt:
-        try:
-            from app.erp.erp_config.models.company import Company
-            cid = session.get("company_id")
-            company = None
-            if cid:
-                company = Company.query.get(cid)
-            if not company:
-                company = Company.query.first()
-            if company and hasattr(company, "number_format") and company.number_format:
-                fmt = company.number_format
-        except Exception:
-            pass
+        fmt = _company_setting("number_format") or fmt
 
     # 3. Global Default
     if not fmt:
@@ -246,18 +252,9 @@ def get_decimal_precision(app_slug=None):
     
     # 2. Company Default
     if prec is None:
-        try:
-            from app.erp.erp_config.models.company import Company
-            cid = session.get("company_id")
-            company = None
-            if cid:
-                company = Company.query.get(cid)
-            if not company:
-                company = Company.query.first()
-            if company and hasattr(company, "decimal_precision") and company.decimal_precision is not None:
-                prec = company.decimal_precision
-        except Exception:
-            pass
+        v = _company_setting("decimal_precision")
+        if v is not None:
+            prec = v
 
     # 3. Global Default
     if prec is None:

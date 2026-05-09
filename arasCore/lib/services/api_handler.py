@@ -256,6 +256,20 @@ def _build_api_blueprint() -> Blueprint:
             cols.append(info)
         return jsonify({"resource": key, "columns": cols}), 200
 
+    @api_bp.route("/api/_meta/resources", methods=["GET"])
+    @login_required
+    def api_meta_resources():
+        """GET /api/_meta/resources — list every CRUD resource registered with the framework.
+        Used by tests and tooling for auto-discovery."""
+        out = []
+        for url_key, val in _api_registry.items():
+            if "/" not in url_key:
+                continue
+            app, _, resource = url_key.partition("/")
+            table = getattr(val, "__tablename__", None) if not callable(val) else None
+            out.append({"app": app, "resource": resource, "table": table})
+        return jsonify(out), 200
+
     @api_bp.route("/api/_search/", methods=["GET"])
     @login_required
     def api_global_search():

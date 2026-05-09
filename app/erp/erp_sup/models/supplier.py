@@ -33,5 +33,7 @@ class SupSupplier(ArasGen.Model, module=Sup):
     bank_account_name = db.Column(db.String(200), nullable=True)
     notes             = db.Column(db.Text, nullable=True)
 
+    group = db.relationship("SupSupplierGroup", foreign_keys=[group_id])
+
     def __repr__(self):
         return f"<SupSupplier {self.code} {self.name}>"

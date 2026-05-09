@@ -862,13 +862,8 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
         linked_report_url = None
         try:
             from app.erp.erp_main.models.report import ErpReport
-            _nm = {"acc_sales_invoice": "sales_summary", "acc_purchase_invoice": "purchase_summary",
-                   "pos_order": "pot_sales_report", "pos_session": "pos_shift_report"}
-            rpt = ErpReport.query.filter_by(name=_doctype_key, is_active=True).first()
-            if rpt is None:
-                mapped = _nm.get(_doctype_key)
-                if mapped:
-                    rpt = ErpReport.query.filter_by(name=mapped, is_active=True).first()
+            rpt = (ErpReport.query.filter_by(linked_doctype=_doctype_key, is_active=True).first()
+                   or ErpReport.query.filter_by(name=_doctype_key, is_active=True).first())
             if rpt:
                 linked_report_url = f"/admin/erp/reports/{rpt.id}/"
         except Exception:

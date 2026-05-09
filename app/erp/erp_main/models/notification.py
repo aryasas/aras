@@ -21,20 +21,3 @@ class ErpNotification(ArasGen.Model, module=Main):
 
     def __repr__(self):
         return f"<ErpNotification {self.type} user={self.user_id}>"
-
-
-class EmailTemplate(ArasGen.Model, module=Main):
-    __tablename__ = "main_email_template"
-
-    company_id = db.Column(db.Integer, db.ForeignKey("cfg_company.id"), nullable=True)
-    code       = db.Column(db.String(100), nullable=False)
-    name       = db.Column(db.String(150), nullable=False)
-    subject    = db.Column(db.String(255), nullable=False)
-    body_html  = db.Column(db.Text, nullable=True)
-    body_text  = db.Column(db.Text, nullable=True)
-    to_expr    = db.Column(db.String(500), nullable=True)
-    cc_expr    = db.Column(db.String(500), nullable=True)
-    bcc_expr   = db.Column(db.String(500), nullable=True)
-
-    def __repr__(self):
-        return f"<EmailTemplate {self.code}>"

@@ -9,6 +9,7 @@ REPORTS = [
         "module": "accounting",
         "report_type": "query",
         "render_mode": "list",
+        "linked_doctype": "acc_sales_invoice",
         "script": """SELECT
   si.name as invoice_no,
   cu.name as customer,
@@ -47,6 +48,7 @@ ORDER BY si.invoice_date DESC""",
         "module": "accounting",
         "report_type": "query",
         "render_mode": "list",
+        "linked_doctype": "acc_purchase_invoice",
         "script": """SELECT
   pi.name as invoice_no,
   COALESCE(s.name, '') as vendor,
@@ -178,6 +180,7 @@ result["data"] = rows
         "name": "pos_shift_report",
         "title": "POS Shift Report",
         "module": "pos",
+        "linked_doctype": "pos_session",
         "report_type": "query",
         "render_mode": "list",
         "script": """SELECT

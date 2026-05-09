@@ -64,7 +64,6 @@ class AccJournalLine(ArasGen.Model, module=Acc):
     fx_rate         = db.Column(db.Numeric(18, 6), nullable=True)
     charge_id       = db.Column(db.Integer, db.ForeignKey("cfg_charge.id"), nullable=True)
     tax_base_amount = db.Column(db.Numeric(18, 4), nullable=True)
-    analytic_tag_id = db.Column(db.Integer, db.ForeignKey("acc_analytic_tag.id"), nullable=True)
     description     = db.Column(db.String(255))
 
     entry = db.relationship("AccJournalEntry", back_populates="lines")

@@ -16,15 +16,6 @@ def register_misc_commands(aras):
         for x in range(count):
             click.echo(f"Hello {name}!")
 
-    @aras.command("erp-init", help="Run ERP seed (idempotent)")
-    def erp_init():
-        """Run ERP seed."""
-        import flask
-        from app.erp.erp_main.seed import run_seed
-        _app = flask.current_app._get_current_object()
-        run_seed(_app)
-        click.echo("[erp-init] done.")
-
     @aras.command("dev-mode", help="Switch between development and production mode")
     @click.option("--set", "mode_val", type=click.Choice(["0", "1"]),
                   required=True, help="1 = development, 0 = production")

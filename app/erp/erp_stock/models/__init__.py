@@ -2,7 +2,7 @@
 from .uom import StockUom  # noqa: F401
 from .product import (  # noqa: F401
     StockProductCategory, StockProduct, StockProductUom,
-    StockPriceList, StockProductBundle, StockProductAccountLink,
+    StockPriceList, StockProductBundle,
 )
 # StockPriceType moved to app.erp.erp_config.models.price_type
 from app.erp.erp_config.models.price_type import StockPriceType  # noqa: F401

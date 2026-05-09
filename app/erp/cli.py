@@ -383,6 +383,46 @@ def register_erp_commands(aras):
             _run_test_flow(count, verbose)
 
 
+    @aras.command("erp-init", help="Run ERP seed (idempotent)")
+    def erp_init():
+        import flask
+        from app.erp.erp_main.seed import run_seed
+        _app = flask.current_app._get_current_object()
+        run_seed(_app)
+        click.echo("[erp-init] done.")
+
+
+    @aras.command("check-reports", help="Check all ERP reports for SQL or script errors")
+    @click.option("--id", "report_id", type=int, help="Check specific report ID")
+    @click.option("--company-id", type=int, default=1, help="Company ID for context")
+    def check_reports(report_id, company_id):
+        import flask
+        _app = flask.current_app._get_current_object()
+        with _app.app_context():
+            from app.erp.erp_main.models.report import ErpReport
+            from app.erp.erp_main.services.report_runner import run_report
+
+            reports = [ErpReport.query.get(report_id)] if report_id else ErpReport.query.all()
+            reports = [r for r in reports if r]
+            if not reports:
+                click.echo("No reports found to check.")
+                return
+
+            passed = failed = 0
+            click.echo(f"Checking {len(reports)} report(s)...")
+            for r in reports:
+                click.echo(f"  [{r.id}] {r.title} ({r.report_type})... ", nl=False)
+                res = run_report(r.id, {}, company_id=company_id)
+                if res.get("error"):
+                    click.echo(click.style("FAILED", fg="red"))
+                    click.echo(click.style(f"    {res['error']}", fg="yellow"))
+                    failed += 1
+                else:
+                    click.echo(click.style("OK", fg="green"))
+                    passed += 1
+            click.echo(f"\nSummary: {passed} passed, {failed} failed.")
+
+
 # ── test flow ─────────────────────────────────────────────────────────────────
 
 def _run_test_flow(count: int, verbose: bool):

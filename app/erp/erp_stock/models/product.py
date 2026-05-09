@@ -62,7 +62,6 @@ class StockProduct(ArasGen.Model, module=Stock):
     account_cogs     = db.relationship("AccAccount", foreign_keys=[account_cogs_id])
     uom_alts         = db.relationship("StockProductUom", back_populates="product", cascade="all, delete-orphan")
     prices           = db.relationship("StockPriceList", back_populates="product", cascade="all, delete-orphan")
-    account_links    = db.relationship("StockProductAccountLink", back_populates="product", cascade="all, delete-orphan")
     bundle_components = db.relationship(
         "StockProductBundle", foreign_keys="StockProductBundle.bundle_id",
         back_populates="bundle", cascade="all, delete-orphan"
@@ -191,27 +190,3 @@ class StockProductBundle(ArasGen.Model, module=Stock):
     component = db.relationship("StockProduct", foreign_keys=[component_id])
     uom       = db.relationship("StockUom")
     bundle    = db.relationship("StockProduct", foreign_keys=[bundle_id], back_populates="bundle_components")
-
-
-class StockProductAccountLink(ArasGen.Model, module=Stock):
-    __is_child__  = True
-    __url__       = "stock/product-account"
-    """Per-company COA mapping for a product (overrides category defaults)."""
-    __tablename__ = "stock_product_account_link"
-    __table_args__ = (
-        db.UniqueConstraint("product_id", "company_id", name="uq_product_account_link"),
-    )
-
-    product_id          = db.Column(db.Integer, db.ForeignKey("stock_product.id"), nullable=False)
-    company_id          = db.Column(db.Integer, db.ForeignKey("cfg_company.id"), nullable=False)
-    account_stock_id    = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
-    account_cogs_id     = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
-    account_revenue_id  = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
-    account_purchase_id = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
-
-    company          = db.relationship("Company")
-    account_stock    = db.relationship("AccAccount", foreign_keys=[account_stock_id])
-    account_cogs     = db.relationship("AccAccount", foreign_keys=[account_cogs_id])
-    account_revenue  = db.relationship("AccAccount", foreign_keys=[account_revenue_id])
-    account_purchase = db.relationship("AccAccount", foreign_keys=[account_purchase_id])
-    product          = db.relationship("StockProduct", back_populates="account_links")

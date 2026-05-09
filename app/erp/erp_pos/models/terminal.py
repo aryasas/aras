@@ -1,7 +1,7 @@
 from arasCore.arasgen import ArasGen
 from app.erp.erp_pos.manifest import Pos
 from datetime import datetime
-from arasCore.lib.core.base_model import ArasModel, db
+from arasCore.lib.core.base_model import db
 
 
 class PosTerminal(ArasGen.Model, module=Pos):
@@ -66,7 +66,6 @@ class PosSession(ArasGen.Model, module=Pos):
     entries  = db.relationship("PosShiftEntry", back_populates="session", lazy="dynamic",
                               cascade="all, delete-orphan")
     terminal = db.relationship("PosTerminal", back_populates="sessions")
-    shift_balances = db.relationship("PosShiftBalance", back_populates="session", lazy="dynamic")
 
     def __repr__(self):
         return f"<PosSession terminal={self.terminal_id} [{self.state}]>"
@@ -91,23 +90,3 @@ class PosShiftEntry(ArasGen.Model, module=Pos):
 
     def __repr__(self):
         return f"<PosShiftEntry {self.entry_type} {self.amount}>"
-
-
-class PosShiftBalance(ArasGen.Model, module=Pos):
-    """Per-MOP opening/closing balance for a shift — auto expected vs manual count."""
-    __tablename__ = "pos_shift_balance"
-
-    __table_args__ = (
-        db.UniqueConstraint("session_id", "mode_of_payment_id", name="uq_shift_balance_mop"),
-    )
-
-    session_id         = db.Column(db.Integer, db.ForeignKey("pos_session.id"), nullable=False)
-    mode_of_payment_id = db.Column(db.Integer, db.ForeignKey("main_mode_of_payment.id"), nullable=False)
-    opening_balance    = db.Column(db.Numeric(18, 4), default=0, nullable=False)
-    closing_balance    = db.Column(db.Numeric(18, 4), default=0, nullable=False)
-
-    session         = db.relationship("PosSession", back_populates="shift_balances")
-    # mode_of_payment resolved via query
-
-    def __repr__(self):
-        return f"<PosShiftBalance session={self.session_id} mop={self.mode_of_payment_id}>"

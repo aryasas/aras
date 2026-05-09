@@ -28,15 +28,3 @@ class Charge(ArasGen.Model, module=Config):
 
     def __repr__(self):
         return f"<Charge {self.code}>"
-
-
-class CompanyDefaultCharge(ArasGen.Model, module=Config):
-    """Default charges auto-applied per company — shown as child table on Company form."""
-    __tablename__ = "cfg_company_default_charge"
-
-    company_id = db.Column(db.Integer, db.ForeignKey("cfg_company.id"), nullable=False)
-    charge_id  = db.Column(db.Integer, db.ForeignKey("cfg_charge.id"), nullable=False)
-    apply_to   = db.Column(db.String(20), default="sales")  # sales/purchase/both/pos
-
-    company = db.relationship("Company", backref=db.backref("default_charges", lazy="dynamic"))
-    charge  = db.relationship("Charge")

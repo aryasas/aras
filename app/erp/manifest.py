@@ -8,9 +8,23 @@ This file holds: app declaration, model imports (registration trigger),
 URL-shaped CustomRoutes (POS), settings schema.
 """
 from arasCore.lib.services.app_helper import AppHelper, MenuGroup, ResourceDef, CustomRoute
-from arasCore.arasgen import auto_menu_groups
+from arasCore.arasgen import auto_menu_groups, set_naming_provider
+from arasCore.lib.core.utils import set_company_settings_provider
 
 from app.erp import ERP  # noqa: F401  (registers app)
+
+# Register ERP doc-series as the framework's naming-series provider
+from app.erp.erp_main.services.doc_series import next_for_table as _next_name
+set_naming_provider(_next_name)
+
+
+# Register Company as the framework's company-settings provider
+def _active_company():
+    from flask import session
+    from app.erp.erp_config.models.company import Company
+    cid = session.get("company_id")
+    return (Company.query.get(cid) if cid else None) or Company.query.first()
+set_company_settings_provider(_active_company)
 
 
 # ── URL-shaped POS handlers (have <int:session_id> path params, can't auto-derive)

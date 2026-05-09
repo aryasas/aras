@@ -24,3 +24,15 @@ class ERP(ArasGen.App):
     namespace_aliases = {"stk": "stock"}
 
 ArasGen.autodiscover(__name__)
+
+
+# Run ERP seed on remigrate (formerly hardcoded in arasCore/lib/cli/cli_db.py)
+def _on_remigrate(_app):
+    try:
+        from app.erp.erp_main.seed import run_seed
+        run_seed(_app)
+    except Exception:
+        pass
+
+from arasCore.lib.core.events import on as _on_event
+_on_event("framework.remigrate", _on_remigrate)

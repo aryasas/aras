@@ -42,17 +42,3 @@ class AccAccount(ArasGen.Model, module=Acc):
     allow_manual    = db.Column(db.Boolean, default=True, nullable=False)
 
     parent = db.relationship("AccAccount", remote_side=[id], backref="children")
-
-
-class AccAnalyticTag(ArasGen.Model, module=Acc):
-    __title__     = "Analytic Tags"
-    __icon__      = "fa-tag"
-    __menu_order__= 1
-    __tablename__ = "acc_analytic_tag"
-
-    company_id = db.Column(db.Integer, db.ForeignKey("cfg_company.id"), nullable=False)
-    code       = db.Column(db.String(20), nullable=False)
-    name       = db.Column(db.String(100), nullable=False)
-    parent_id  = db.Column(db.Integer, db.ForeignKey("acc_analytic_tag.id"), nullable=True)
-    type       = db.Column(db.Enum("cost_center", "project", "department", "custom"),
-                           nullable=False, default="custom")
