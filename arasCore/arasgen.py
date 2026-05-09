@@ -314,8 +314,31 @@ def _sa_type(col: Col):
     return _db.String(255)
 
 
+def _resolve_fk_type(fk: str):
+    """Resolve the SA type of the parent column for an FK like 'table.col'.
+    Returns None if the parent table isn't in metadata yet (caller falls back)."""
+    try:
+        tbl_name, col_name = fk.split(".", 1)
+    except ValueError:
+        return None
+    tbl = _db.metadata.tables.get(tbl_name)
+    if tbl is None:
+        return None
+    parent = tbl.c.get(col_name)
+    if parent is None:
+        return None
+    return parent.type
+
+
 def _to_sa_column(col: Col):
-    args, kw = [_sa_type(col)], {
+    sa_type = _sa_type(col)
+    # When fk is set and the user didn't override the type, match the parent PK
+    # type (e.g. BigInteger). MariaDB rejects FKs whose type doesn't match.
+    if col.fk and not col._explicit:
+        parent_type = _resolve_fk_type(col.fk)
+        if parent_type is not None:
+            sa_type = parent_type
+    args, kw = [sa_type], {
         "nullable": col.null,
         "default":  col.default,
         "unique":   col.unique,

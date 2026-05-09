@@ -666,11 +666,17 @@ def sync_helper_to_db(helper, db, flask_app=None) -> "object":
     stale = AppManagerTable.query.filter_by(app_id=app_rec.id).filter(
         ~AppManagerTable.name.in_(canonical)
     ).all()
-    for s in stale:
-        db.session.delete(s)
-        stats["tables_removed"] += 1
-        logger.info(f"[sync]   removed stale table: {s.name}")
     if stale:
+        stale_ids = [s.id for s in stale]
+        # Null out mgr_column.relation_table_id references before deleting parent rows
+        from arasCore.admin.models import AppManagerColumn
+        (AppManagerColumn.query
+            .filter(AppManagerColumn.relation_table_id.in_(stale_ids))
+            .update({"relation_table_id": None}, synchronize_session=False))
+        for s in stale:
+            db.session.delete(s)
+            stats["tables_removed"] += 1
+            logger.info(f"[sync]   removed stale table: {s.name}")
         db.session.flush()
 
     def _sync_resource(res, parent_id, order):

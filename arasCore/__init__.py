@@ -86,10 +86,14 @@ def create_app(config_type=None):
 
         # Early auto-migrate for core tables (mgr_app, cfg_company etc)
         # to prevent "Unknown column" errors during app discovery.
+        # CRITICAL: skip_drops=True — at this point only admin/auth models are
+        # imported, so the diff would see every app table as orphan and try to
+        # drop it. Drops are safe only in the late pass after register_app_modules
+        # + load_all_built_apps have populated the metadata.
         try:
             from .admin import models as _admin_models  # noqa: F401
             from .lib.services.auto_migrate import run as _auto_migrate
-            _auto_migrate(app)
+            _auto_migrate(app, skip_drops=True)
         except Exception as _early_ame:
             app.logger.debug(f"[arasCore] early auto_migrate: {_early_ame}")
 

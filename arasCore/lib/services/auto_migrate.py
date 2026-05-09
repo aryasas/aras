@@ -52,6 +52,40 @@ def _enabled() -> bool:
     return val in ("1", "true", "yes", "on")
 
 
+def _schema_hash(meta) -> str:
+    """Stable hash of SQLAlchemy metadata — table+column names and types."""
+    import hashlib, json
+    sig = {}
+    for tname, tbl in sorted(meta.tables.items()):
+        sig[tname] = {c.name: str(c.type) for c in tbl.columns}
+    return hashlib.sha256(json.dumps(sig, sort_keys=True).encode()).hexdigest()
+
+
+def _hash_path(flask_app) -> str:
+    root = os.path.dirname(os.path.dirname(os.path.abspath(flask_app.root_path)))
+    return os.path.join(root, "instance", "schema_hash.json")
+
+
+def _read_stored_hash(flask_app) -> str | None:
+    try:
+        import json
+        with open(_hash_path(flask_app)) as f:
+            return json.load(f).get("hash")
+    except Exception:
+        return None
+
+
+def _write_hash(flask_app, h: str) -> None:
+    import json
+    try:
+        path = _hash_path(flask_app)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            json.dump({"hash": h}, f)
+    except Exception:
+        pass
+
+
 # ── Diff result ─────────────────────────────────────────────────────────────
 
 @dataclass
@@ -124,7 +158,7 @@ def _quote(name: str) -> str:
 
 # ── The engine ──────────────────────────────────────────────────────────────
 
-def run(flask_app, *, autoload_had_errors: bool = False) -> MigrationReport:
+def run(flask_app, *, autoload_had_errors: bool = False, skip_drops: bool = False) -> MigrationReport:
     report = MigrationReport()
 
     if not _enabled():
@@ -219,10 +253,42 @@ def run(flask_app, *, autoload_had_errors: bool = False) -> MigrationReport:
             insp   = sa_inspect(engine)
             meta   = db.metadata
             dialect = engine.dialect
+
+            # Skip the full diff if schema hasn't changed since last successful run.
+            # The early pass (skip_drops=True) is cheap — let it through to catch
+            # newly added core tables. Only skip on the late pass.
+            if not skip_drops:
+                current_hash = _schema_hash(meta)
+                stored_hash  = _read_stored_hash(flask_app)
+                if current_hash == stored_hash:
+                    logger.info("[auto_migrate] schema unchanged — skipping diff")
+                    report.log_summary()
+                    return report
+
             db_tables = set(insp.get_table_names())
             model_tables = set(meta.tables.keys())
 
-            allow_drop = _allow_drop()
+            allow_drop = _allow_drop() and not skip_drops
+            if skip_drops:
+                logger.info("[auto_migrate] skip_drops=True — destructive ops disabled this pass")
+            _backup_done = {"v": False}
+
+            def _ensure_backup():
+                """Run a DB backup once, on first attempted drop. Aborts the
+                drop (returns False) if the backup fails — better to skip a
+                drop than lose data."""
+                if _backup_done["v"]:
+                    return True
+                _backup_done["v"] = True
+                try:
+                    from arasCore.lib.services.backup import run_backup
+                    path = run_backup(flask_app, label="pre_auto_migrate")
+                    logger.warning(f"[auto_migrate] pre-drop backup: {path}")
+                    return True
+                except Exception as e:
+                    logger.error(f"[auto_migrate] backup FAILED — aborting drops: {e}")
+                    report.errors.append(f"backup failed, drops aborted: {e}")
+                    return False
 
             # ── 1. Create new tables ──
             for tname in sorted(model_tables - db_tables):
@@ -312,6 +378,10 @@ def run(flask_app, *, autoload_had_errors: bool = False) -> MigrationReport:
                     for cname in sorted(drop_cols):
                         report.skipped_unsafe.append(f"DROP COLUMN {tname}.{cname}")
                 elif drop_cols:
+                    if not _ensure_backup():
+                        for cname in sorted(drop_cols):
+                            report.skipped_unsafe.append(f"DROP COLUMN {tname}.{cname} (backup failed)")
+                        continue
                     from sqlalchemy import text
                     with engine.begin() as conn:
                         try:
@@ -349,9 +419,14 @@ def run(flask_app, *, autoload_had_errors: bool = False) -> MigrationReport:
                 if not t.startswith("alembic_")
             ]
             if drop_targets and not allow_drop:
-                for tname in drop_targets:
-                    report.skipped_unsafe.append(f"DROP TABLE {tname}")
+                if not skip_drops:
+                    for tname in drop_targets:
+                        report.skipped_unsafe.append(f"DROP TABLE {tname}")
             elif drop_targets:
+                if not _ensure_backup():
+                    for tname in drop_targets:
+                        report.skipped_unsafe.append(f"DROP TABLE {tname} (backup failed)")
+                    drop_targets = []
                 from sqlalchemy import text
                 # Disable FK checks for the duration so drops succeed regardless of order
                 with engine.begin() as conn:
@@ -414,6 +489,14 @@ def run(flask_app, *, autoload_had_errors: bool = False) -> MigrationReport:
                 pass
 
     report.log_summary()
+    # Persist hash so next boot skips the diff when schema is unchanged.
+    if not skip_drops and not report.errors:
+        try:
+            from arasCore.lib.core.extensions import db as _db
+            with flask_app.app_context():
+                _write_hash(flask_app, _schema_hash(_db.metadata))
+        except Exception:
+            pass
     return report
 
 
