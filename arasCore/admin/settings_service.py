@@ -235,8 +235,8 @@ def make_settings_home_view(app_name: str, app_title: str,
 
         return render_template(
             "admin/setting/setting_app_settings.html",
-            title=f"{app_title} — Settings",
-            main_title=f"{app_title} — Settings",
+            title="Settings",
+            main_title="Settings",
             app_name=app_name,
             app_title=app_title,
             app_row=app_row,
@@ -313,7 +313,7 @@ def make_settings_section_view(app_name: str, app_title: str, section: str,
 
         return render_template(
             "admin/setting/setting_settings_section.html",
-            title=f"{app_title} — {section_label}",
+            title=section_label,
             main_title=section_label,
             app_name=app_name,
             app_title=app_title,

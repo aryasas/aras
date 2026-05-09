@@ -515,7 +515,7 @@ def apps_edit(app_id):
         return redirect(url_for("admin.apps"))
     return render_template(
         "admin/setting/setting_app_form.html",
-        title=f"Edit — {app_obj.slug}",
+        title="Edit App",
         main_title=f"Edit App: {app_obj.slug}",
         form=form,
         app=app_obj,
@@ -647,7 +647,7 @@ def apps_tables(app_id):
     tables  = AppManagerTable.query.filter_by(app_id=app_id).order_by(AppManagerTable.menu_order).all()
     return render_template(
         "admin/setting/setting_tables.html",
-        title=f"Tables — {app_obj.title}",
+        title="Tables",
         main_title=app_obj.title,
         app_def=app_obj,
         tables=tables,
@@ -737,7 +737,7 @@ def apps_table_edit(app_id, table_id):
         return redirect(url_for("admin.apps_tables", app_id=app_id))
     return render_template(
         "admin/setting/setting_table_form.html",
-        title=f"Edit Table — {tbl.title}",
+        title="Edit Table",
         main_title=app_obj.title,
         app_def=app_obj,
         form=form,
@@ -998,7 +998,7 @@ def apps_columns(app_id, table_id):
 
     return render_template(
         "admin/setting/setting_columns.html",
-        title=f"Columns — {tbl.title}",
+        title="Columns",
         main_title=app_obj.title,
         app_def=app_obj,
         tbl=tbl,
@@ -1117,7 +1117,7 @@ def apps_migrations(app_id):
     history = get_history(app_id)
     return render_template(
         "admin/setting/setting_migrations.html",
-        title=f"Migrations — {app_obj.title}",
+        title="Migrations",
         main_title=app_obj.title,
         app_def=app_obj,
         pending=pending,

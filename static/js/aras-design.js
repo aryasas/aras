@@ -147,12 +147,9 @@
                             foot.addEventListener('click', function() {
                                 setTimeout(function(){ try { ts.close(); } catch(_){} }, 0);
                             });
-                            var inputWrap = ts.dropdown.querySelector('.dropdown-input-wrap');
-                            if (inputWrap) {
-                                inputWrap.parentNode.insertBefore(foot, inputWrap.nextSibling);
-                            } else {
-                                ts.dropdown.insertBefore(foot, ts.dropdown.firstChild);
-                            }
+                            /* Pin "+ Add new" to the BOTTOM of the dropdown so it
+                               reads as a sealed footer beneath the option list. */
+                            ts.dropdown.appendChild(foot);
                         };
                         attachAddNew();
                         ts.on('dropdown_open', attachAddNew);
@@ -315,7 +312,7 @@
     }
 
     // Global Aras Object
-    window.Aras = {
+    window.Aras = Object.assign(window.Aras || {}, {
         toast: function(msg, type) {
             type = type || 'info';
             var wrap = document.querySelector('.aras-alert-toast-wrap');

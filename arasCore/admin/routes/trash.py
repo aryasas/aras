@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+import logging
 from flask import render_template, redirect, url_for, flash, jsonify, request
+
+logger = logging.getLogger(__name__)
 from flask_login import login_required, current_user
 from arasCore.admin import admin_bp
 
@@ -91,4 +94,53 @@ def trash_permanent_delete(group_id):
     DeletedDoc.query.filter_by(group_id=group_id).delete()
     db.session.commit()
     flash("Permanently deleted.", "warning")
+    return redirect(url_for("admin.trash_list"))
+
+
+@admin_bp.route("/trash/restore-all/", methods=["POST"])
+@login_required
+def trash_restore_all():
+    from arasCore.lib.models.deletion_models import DeletedDoc
+    from arasCore.lib.services.deletion_service import execute_restore
+    from arasCore.lib.core.extensions import db
+
+    # Get unique group_ids
+    groups = db.session.query(DeletedDoc.group_id).distinct().all()
+    if not groups:
+        flash("Trash is already empty.", "info")
+        return redirect(url_for("admin.trash_list"))
+
+    count = 0
+    errors = 0
+    for (group_id,) in groups:
+        try:
+            execute_restore(group_id, user_id=current_user.id)
+            count += 1
+        except Exception as ex:
+            db.session.rollback()
+            logger.error(f"Restore all failed for group {group_id}: {ex}")
+            errors += 1
+
+    if errors:
+        flash(f"Restored {count} groups, but {errors} failed.", "warning")
+    else:
+        flash(f"All {count} records restored successfully.", "success")
+
+    return redirect(url_for("admin.trash_list"))
+
+
+@admin_bp.route("/trash/delete-all/", methods=["POST"])
+@login_required
+def trash_permanent_delete_all():
+    from arasCore.lib.models.deletion_models import DeletedDoc
+    from arasCore.lib.core.extensions import db
+
+    count = DeletedDoc.query.delete()
+    db.session.commit()
+
+    if count > 0:
+        flash(f"Permanently deleted all {count} records.", "warning")
+    else:
+        flash("Trash is already empty.", "info")
+
     return redirect(url_for("admin.trash_list"))

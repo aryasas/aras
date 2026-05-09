@@ -1,6 +1,6 @@
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-os.environ.setdefault("ARAS_CONFIG", "development")
+os.environ.setdefault("ARAS_MODE", "development")
 from arasCore import create_app
 from arasCore.lib.core.extensions import db
 from werkzeug.security import generate_password_hash

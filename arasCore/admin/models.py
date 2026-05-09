@@ -37,6 +37,11 @@ class AppManagerApp(ArasModel):
     soft_delete    = db.Column(db.Boolean, default=False)
     audit_log      = db.Column(db.Boolean, default=False)
 
+    # Formatting Overrides
+    date_format    = db.Column(db.String(20), nullable=True)
+    number_format  = db.Column(db.String(20), nullable=True)
+    decimal_precision = db.Column(db.Integer, nullable=True)
+
     tables = db.relationship(
         "AppManagerTable",
         backref="app",

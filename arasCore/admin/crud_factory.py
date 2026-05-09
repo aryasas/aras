@@ -58,6 +58,22 @@ def _load_activity_log(model_name: str, record_id: int) -> list:
 
 # ── FK helpers ────────────────────────────────────────────────────────────────
 
+def _get_col_types(model):
+    from sqlalchemy import inspect as sa_inspect
+    types = {}
+    try:
+        mapper = sa_inspect(model)
+        for sa_col in mapper.columns:
+            tname = sa_col.type.__class__.__name__.lower()
+            if "datetime" in tname: types[sa_col.name] = "datetime"
+            elif "date" in tname:   types[sa_col.name] = "date"
+            elif "numeric" in tname or "decimal" in tname or "float" in tname:
+                types[sa_col.name] = "number"
+    except Exception:
+        pass
+    return types
+
+
 def _build_fk_maps(vcols, model):
     """Build {field_name: {id: label}} maps for FK columns in a vcols list."""
     from sqlalchemy import inspect as sa_inspect
@@ -402,10 +418,10 @@ def _get_inline_columns(child_model, fk_col: str) -> list:
 
 # ── Layout helper ─────────────────────────────────────────────────────────────
 
-def _parse_layout_tabs(tname, layout_json, form, table_id=None, child_tables=None):
+def _parse_layout_tabs(tname, layout_json, form, table_id=None, child_tables=None, model=None):
     try:
         from arasCore.lib.ui.layout import _parse_layout_tabs as _do_parse
-        return _do_parse(tname, layout_json, form, table_id=table_id, child_tables=child_tables)
+        return _do_parse(tname, layout_json, form, table_id=table_id, child_tables=child_tables, model=model)
     except Exception as e:
         logger.error(f"[crud_factory] Layout parsing failed for {tname}: {e}", exc_info=True)
         return None
@@ -511,11 +527,11 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
 
             return render_template(
                 "admin/gen/gen_view_form.html",
-                title=f"Add — {title}", main_title=main_t,
+                title=f"Add {title}", main_title=main_t,
                 form=form, action=f"{burl}/add/", list_url=f"{burl}/",
                 app_title=app_title, app_id=app_id, table_id=table_id,
                 sibling_tabs=adm_tabs, current_tab_url=burl,
-                layout_tabs=_parse_layout_tabs(tname, layout_json, form, table_id=table_id, child_tables=child_defs),
+                layout_tabs=_parse_layout_tabs(tname, layout_json, form, table_id=table_id, child_tables=child_defs, model=model),
                 child_tables=child_defs, res_name=tname,
             )
         return view
@@ -566,13 +582,13 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
             _api_url = get_api_url_for_model(model)
             return render_template(
                 "admin/gen/gen_view_form.html",
-                title=f"Edit — {title}", main_title=main_t,
+                title=f"Edit {title}", main_title=main_t,
                 form=form, action=f"{burl}/{item_id}/", list_url=f"{burl}/",
                 delete_url=f"{burl}/{item_id}/delete/",
                 linked_docs_url=f"{_api_url}{item_id}/linked-docs/" if _api_url else None,
                 app_title=app_title, app_id=app_id, table_id=table_id,
                 sibling_tabs=adm_tabs, current_tab_url=burl,
-                layout_tabs=_parse_layout_tabs(tname, layout_json, form, table_id=table_id, child_tables=child_defs),
+                layout_tabs=_parse_layout_tabs(tname, layout_json, form, table_id=table_id, child_tables=child_defs, model=model),
                 activity_log=_load_activity_log(model.__tablename__, item_id),
                 child_tables=child_defs, res_name=tname,
             )
@@ -806,12 +822,14 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
             "admin/gen/gen_view_list.html",
             title=title, main_title=main_t,
             items=items, view_columns=eff_vcols,
+            col_types=_get_col_types(model),
             pagination=pagination, per_page=eff_pp,
             rel_maps=_build_fk_maps(eff_vcols, model),
             add_url=f"{adm_burl}/add/", edit_url_base=adm_burl, delete_url_base=adm_burl,
             linked_docs_url_base=_api_url,
             workflow_url=f"{adm_burl}/workflow/" if _has_workflow else None,
             app_title=app_title, app_id=app_id, table_id=table_id,
+            app_slug=app_slug,
             sibling_tabs=adm_tabs, current_tab_url=adm_burl,
             search_enabled=True, search_q=search_q,
             filter_cols=all_cols, active_filters=active_filters,
@@ -971,7 +989,7 @@ def make_web_add(model, form_cls, title, main_t, burl, app_title, app_id, table_
             return redirect(f"{burl}/")
         return render_template(
             "admin/gen/gen_view_form.html",
-            title=f"Add — {title}", main_title=f"Add {main_t}",
+            title=f"Add {title}", main_title=f"Add {main_t}",
             form=form, action=f"{burl}/add/", list_url=f"{burl}/",
             app_title=app_title, app_id=app_id, table_id=table_id,
             sibling_tabs=sibling_tabs, current_tab_url=cur_burl,
@@ -997,7 +1015,7 @@ def make_web_edit(model, form_cls, title, main_t, burl, app_title, app_id, table
         _api_url = get_api_url_for_model(model)
         return render_template(
             "admin/gen/gen_view_form.html",
-            title=f"Edit — {title}", main_title=f"Edit {main_t}",
+            title=f"Edit {title}", main_title=f"Edit {main_t}",
             form=form, action=f"{burl}/{item_id}/", list_url=f"{burl}/",
             delete_url=f"{burl}/{item_id}/delete/",
             linked_docs_url=f"{_api_url}{item_id}/linked-docs/" if _api_url else None,

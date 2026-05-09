@@ -271,8 +271,8 @@
 
         const SID = {{ session.id }};
         const CSRF = "{{ csrf_token() }}";
-        const SELLING_PRICELIST_ID = {{ selling_pricelist_id | default('null') }};
-        const PURCHASE_PRICELIST_ID = {{ purchase_pricelist_id | default('null') }};
+        const SELLING_PRICELIST_ID = {{ selling_pricelist_id if selling_pricelist_id else 'null' }};
+        const PURCHASE_PRICELIST_ID = {{ purchase_pricelist_id if purchase_pricelist_id else 'null' }};
 
         const filteredCustomers = computed(() => {
           if (!customerSearch.value) return customers.value;

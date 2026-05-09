@@ -130,12 +130,8 @@ def pos_order(session_id: int):
 
     terminal     = PosTerminal.get(session.terminal_id)
     location_id  = terminal.location_id if terminal else None
-    terminal_mode = terminal.transaction_mode if terminal else "income"
     ui_mode      = data.get("ui_mode", "in")
-    if terminal_mode == "both":
-        tx_mode = "income" if ui_mode == "in" else "outcome"
-    else:
-        tx_mode = terminal_mode
+    tx_mode      = "income" if ui_mode == "in" else "outcome"
 
     if location_id and tx_mode == "income":
         from app.erp.erp_stock.models.warehouse import StockLocation

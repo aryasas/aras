@@ -333,7 +333,7 @@ def make_group_view(app_name: str, app_title: str, registry_key: str = None):
 
         return render_template(
             "admin/base/base_app_home.html",
-            title=f"{grp_rec.get_menu_title()} — {app_title}",
+            title=grp_rec.get_menu_title(),
             main_title=app_title,
             app_name=app_name,
             app_title=app_title,

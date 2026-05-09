@@ -66,5 +66,60 @@ class Company(ArasGen.Model, module=Config):
     # Stock / inventory shorthand
     acc_stock_default_id             = db.Column(db.BigInteger, db.ForeignKey("acc_account.id"), nullable=True)
 
+    # Default App Behaviour
+    date_format                      = db.Column(db.String(20), default="DD/MM/YYYY")
+    number_format                    = db.Column(db.String(20), default="#,###.##")
+    decimal_precision                = db.Column(db.Integer, default=2)
+
+    __layout__ = {
+        "tabs": [
+            {
+                "label": "General Information",
+                "sections": [
+                    {
+                        "columns": [
+                            ["code", "legal_name", "trade_name", "tax_id"],
+                            ["phone", "email", "website"]
+                        ]
+                    },
+                    {
+                        "title": "Address",
+                        "columns": [["address"]]
+                    }
+                ]
+            },
+            {
+                "label": "Accounting & Finance",
+                "sections": [
+                    {
+                        "title": "Configuration",
+                        "columns": [
+                            ["base_currency_id", "fiscal_year_start_month", "default_coa_template"],
+                            ["enable_perpetual_inventory", "avg_cost_by_location", "allow_zero_stock"]
+                        ]
+                    },
+                    {
+                        "title": "Default Accounts",
+                        "columns": [
+                            ["acc_bank_default_id", "acc_cash_default_id", "acc_receivable_default_id", "acc_payable_default_id"],
+                            ["acc_income_default_id", "acc_cogs_default_id", "acc_inventory_default_id", "acc_stock_default_id"]
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Default App Behaviour",
+                "sections": [
+                    {
+                        "title": "Formatting Defaults",
+                        "columns": [
+                            ["date_format", "number_format", "decimal_precision"]
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+
     def __repr__(self):
         return f"<Company {self.code}>"

@@ -112,15 +112,166 @@ def configure_logging(app):
 
 # ── Jinja helpers ─────────────────────────────────────────────────────────────
 
+def get_date_format(app_slug=None):
+    """
+    Get date format following hierarchy:
+    1. App override (mgr_app.date_format)
+    2. Company default (cfg_company.date_format)
+    3. Global Aras default (aras_system_setting 'core.date_format')
+    4. Final fallback
+    """
+    from arasCore.admin.models import ArasSystemSetting, AppManagerApp
+    from flask import session
+    fmt = None
+    
+    # 1. App Override
+    if app_slug:
+        app = AppManagerApp.query.filter_by(url=f"/{app_slug}").first()
+        if app and app.date_format:
+            fmt = app.date_format
+    
+    # 2. Company Default
+    if not fmt:
+        try:
+            from app.erp.erp_config.models.company import Company
+            cid = session.get("company_id")
+            company = None
+            if cid:
+                company = Company.query.get(cid)
+            if not company:
+                company = Company.query.first()
+            if company and hasattr(company, "date_format") and company.date_format:
+                fmt = company.date_format
+        except Exception:
+            pass
+
+    # 3. Global Default
+    if not fmt:
+        fmt = ArasSystemSetting.get("core.date_format", "YYYY-MM-DD")
+    
+    # Normalize DD/MM/YYYY to %d/%m/%Y for strftime
+    norm = fmt.replace("YYYY", "%Y").replace("MM", "%m").replace("DD", "%d")
+    norm = norm.replace("YY", "%y").replace("HH", "%H").replace("mm", "%M").replace("ss", "%S")
+    return norm
+
+def get_number_format(app_slug=None):
+    """
+    Get number format following hierarchy:
+    1. App override (mgr_app.number_format)
+    2. Company default (cfg_company.number_format)
+    3. Global Aras default (aras_system_setting 'core.number_format')
+    """
+    from arasCore.admin.models import ArasSystemSetting, AppManagerApp
+    from flask import session
+    fmt = None
+    
+    # 1. App Override
+    if app_slug:
+        app = AppManagerApp.query.filter_by(url=f"/{app_slug}").first()
+        if app and app.number_format:
+            fmt = app.number_format
+            
+    # 2. Company Default
+    if not fmt:
+        try:
+            from app.erp.erp_config.models.company import Company
+            cid = session.get("company_id")
+            company = None
+            if cid:
+                company = Company.query.get(cid)
+            if not company:
+                company = Company.query.first()
+            if company and hasattr(company, "number_format") and company.number_format:
+                fmt = company.number_format
+        except Exception:
+            pass
+
+    # 3. Global Default
+    if not fmt:
+        fmt = ArasSystemSetting.get("core.number_format", "#,###.##")
+    
+    # Return (thousands, decimal)
+    if fmt == "1.234,56": return (".", ",")
+    if fmt == "1,234.56" or fmt == "#,###.##": return (",", ".")
+    return (",", ".")
+
+def get_decimal_precision(app_slug=None):
+    """
+    Get decimal precision following hierarchy:
+    1. App override (mgr_app.decimal_precision)
+    2. Company default (cfg_company.decimal_precision)
+    3. Global Aras default (aras_system_setting 'core.decimal_precision')
+    4. Final fallback (2)
+    """
+    from arasCore.admin.models import ArasSystemSetting, AppManagerApp
+    from flask import session
+    prec = None
+    
+    # 1. App Override
+    if app_slug:
+        app = AppManagerApp.query.filter_by(url=f"/{app_slug}").first()
+        if app and app.decimal_precision is not None:
+            prec = app.decimal_precision
+    
+    # 2. Company Default
+    if prec is None:
+        try:
+            from app.erp.erp_config.models.company import Company
+            cid = session.get("company_id")
+            company = None
+            if cid:
+                company = Company.query.get(cid)
+            if not company:
+                company = Company.query.first()
+            if company and hasattr(company, "decimal_precision") and company.decimal_precision is not None:
+                prec = company.decimal_precision
+        except Exception:
+            pass
+
+    # 3. Global Default
+    if prec is None:
+        prec = ArasSystemSetting.get("core.decimal_precision", 2)
+    
+    try:
+        return int(prec)
+    except (ValueError, TypeError):
+        return 2
+
+def format_number(value, app_slug=None, precision=None):
+    if value is None: return ""
+    try:
+        val = float(value)
+    except (ValueError, TypeError):
+        return value
+    
+    if precision is None:
+        precision = get_decimal_precision(app_slug)
+        
+    thousands_sep, decimal_sep = get_number_format(app_slug)
+    
+    s = f"{val:,.{precision}f}"
+    # Python uses comma for thousands and dot for decimal by default with :,f
+    if thousands_sep == "." and decimal_sep == ",":
+        # Swap , and .
+        return s.replace(",", "X").replace(".", ",").replace("X", ".")
+    return s
+
 def set_jinja_env(app):
     """Register custom Jinja2 globals and filters."""
     app.jinja_env.add_extension("jinja2.ext.do")
 
     @app.template_filter('datetime')
-    def format_datetime(value, fmt='%Y-%m-%d %H:%M'):
+    def format_datetime_filter(value, fmt=None, app_slug=None):
+        if not value: return ""
+        if not fmt:
+            fmt = get_date_format(app_slug)
         if isinstance(value, datetime):
             return value.strftime(fmt)
         return value
+
+    @app.template_filter('number')
+    def format_number_filter(value, precision=None, app_slug=None):
+        return format_number(value, app_slug=app_slug, precision=precision)
 
     @app.template_filter('tojson_pretty')
     def tojson_pretty(value):

@@ -36,3 +36,6 @@ requests
 
 # Dev only
 Flask-DebugToolbar
+
+# Agents (dev-mode only) — Claude Pro/Max via Agent SDK
+claude-agent-sdk

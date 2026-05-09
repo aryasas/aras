@@ -75,6 +75,11 @@ class AppManagerAppForm(ArasForm):
     soft_delete    = Boolean(label="Soft delete (use deleted_at)")
     audit_log      = Boolean(label="Audit log (track changes)")
 
+    # Formatting Overrides
+    date_format    = String(length=20, label="Date Format Override", help_text="e.g. DD/MM/YYYY or YYYY-MM-DD")
+    number_format  = String(length=20, label="Number Format Override", help_text="e.g. 1.234,56 or 1,234.56")
+    decimal_precision = Integer(label="Decimal Precision", help_text="Number of decimal places (e.g. 2)")
+
 
 class AppManagerTableForm(ArasForm):
     name           = String(null=False, length=100, label="Name (slug)",

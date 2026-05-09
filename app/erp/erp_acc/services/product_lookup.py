@@ -33,11 +33,19 @@ def product_price(product_id: int, qty: float = 1.0, price_type: str = "sales",
         acc_id = (resolve_revenue_account(product, company_id) if price_type == "sales"
                   else resolve_purchase_account(product, company_id))
 
+    uom_label = None
+    if uom_id:
+        from app.erp.erp_stock.models.uom import StockUom
+        _uom = StockUom.query.get(uom_id)
+        if _uom:
+            uom_label = getattr(_uom, "name", None) or getattr(_uom, "code", None) or str(uom_id)
+
     return {
         "product_id":  product_id,
         "name":        product.name,
         "description": product.name,
         "uom_id":      uom_id,
+        "uom_label":   uom_label,
         "unit_price":  float(price),
         "account_id":  acc_id,
     }

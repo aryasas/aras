@@ -38,6 +38,12 @@
         <i class="fa fa-stethoscope mr-1"></i> AUDIT
     </a>
     
+    <a href="{{ url_for('admin.dev_agents') if is_standalone else '#panel-agents' }}"
+       class="hitech-nav-link {{ 'active' if request.endpoint == 'admin.dev_agents' or (not is_standalone and active_panel == 'panel-agents') }}"
+       {% if not is_standalone %}onclick="activatePanel('panel-agents'); return false;"{% endif %}>
+        <i class="fa fa-robot mr-1"></i> AGENTS
+    </a>
+
     <a href="{{ url_for('admin.dev_components') if is_standalone else '#panel-components' }}" 
        class="hitech-nav-link {{ 'active' if request.endpoint == 'admin.dev_components' or (not is_standalone and active_panel == 'panel-components') }}"
        {% if not is_standalone %}onclick="activatePanel('panel-components'); return false;"{% endif %}>

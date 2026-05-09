@@ -1130,6 +1130,168 @@ code {
 .aras-toggle input:checked + .aras-toggle-track .aras-toggle-thumb { transform: translateX(16px); }
 .aras-form-row.is-bool .aras-form-label { display: none; }
 
+/* ── Child Tables — per-line edit pattern ──
+   Read mode: each row is a single, truncated, aligned line.
+   Edit mode: only `.ct-data-row.is-editing` shows inputs.
+   Action cluster (.ct-row-actions) reveals on hover or while editing. */
+
+.ct-data-row { transition: background .12s ease; }
+.ct-data-row > .at__td {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--studio-ink);
+  border-bottom: 1px solid var(--aras-line-3);
+  vertical-align: middle;
+  cursor: text;
+}
+.ct-data-row .ct-cell-text {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ct-data-row:hover { background: var(--aras-line-3); }
+.ct-data-row--link { cursor: pointer; }
+.ct-td-seq {
+  width: 36px;
+  text-align: center;
+  color: var(--aras-ink-3);
+  font: 500 11px var(--aras-font-mono);
+}
+.ct-td-actions {
+  width: 110px;
+  text-align: right;
+  white-space: nowrap;
+  padding: 6px 10px !important;
+}
+.ct-row-actions {
+  display: inline-flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity .12s ease;
+}
+.ct-data-row:hover .ct-row-actions,
+.ct-data-row:focus-within .ct-row-actions,
+.ct-data-row.is-editing .ct-row-actions { opacity: 1; }
+.ct-row-btn {
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  cursor: pointer;
+  color: var(--aras-ink-3);
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1;
+  transition: color .12s, background .12s;
+}
+.ct-row-btn:hover { color: var(--aras-primary); background: var(--aras-line); }
+.ct-row-btn--danger:hover { color: var(--studio-accent); background: var(--studio-accent-50); }
+.ct-row-chev { color: var(--aras-ink-3); font-size: 10px; }
+
+/* Edit mode — inputs sit inside the cell as if they were just text.
+   No field chrome (no border, no radius, no white box). Row height stays
+   identical to read mode; focus reveals a subtle underline only. */
+.ct-data-row.is-editing > .at__td {
+  background: var(--aras-primary-50);
+  /* keep read-mode padding so row height does not jump */
+}
+.ct-data-row.is-editing { position: relative; }
+.ct-data-row.is-editing .ct-cell-text { display: none; }
+.ct-data-row.is-editing .ct-cell-input {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  line-height: inherit;
+  font-family: inherit;
+  color: var(--aras-ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ct-data-row.is-editing .ct-cell-input:focus {
+  border-bottom-color: var(--aras-primary);
+  box-shadow: none;
+}
+.ct-data-row.is-editing .ct-cell-input[readonly] {
+  color: var(--aras-ink-3);
+  cursor: not-allowed;
+}
+/* Custom chevron caret so the select keeps the line-style aesthetic
+   (transparent, no OS chrome) while still reading as a dropdown. */
+.ct-data-row.is-editing select.ct-cell-input {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 16px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='none' stroke='%23667085' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round' d='M1 1l4 4 4-4'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 2px center;
+  cursor: pointer;
+}
+.ct-data-row.is-editing input[type="checkbox"].ct-cell-input {
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  vertical-align: middle;
+}
+
+/* Inline error pill — non-blocking. */
+.ct-row-error {
+  position: absolute;
+  left: 36px;
+  bottom: -8px;
+  z-index: 2;
+  background: var(--studio-accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 10px;
+  box-shadow: var(--aras-shadow-sm);
+}
+
+/* Footer "+ Add row" affordance — full-width, subtle until hovered. */
+.ct-add-foot td { padding: 0; border-bottom: none; background: transparent; }
+.ct-add-row-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-top: 1px dashed var(--aras-line-2);
+  color: var(--aras-ink-3);
+  font: 500 12px var(--aras-font-sans);
+  cursor: pointer;
+  text-align: left;
+  transition: background .12s, color .12s;
+}
+.ct-add-row-btn:hover { background: var(--aras-primary-50); color: var(--aras-primary); }
+.ct-add-row-btn i { font-size: 11px; }
+
+/* Friendly empty state — single line, click to add. */
+.ct-empty-line {
+  padding: 18px 16px;
+  text-align: center;
+  color: var(--aras-ink-3);
+  font: 400 12.5px var(--aras-font-sans);
+  font-style: italic;
+  background: var(--aras-line-3);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.ct-empty-line:hover { background: var(--aras-primary-50); color: var(--aras-primary); }
+.ct-empty-line strong { font-weight: 600; font-style: normal; }
+
 /* ── Child Tables (Stunning) ── */
 .aras-child-table-wrap { overflow-x: auto; }
 .aras-child-table { width: 100%; border-collapse: collapse; }
@@ -1173,17 +1335,43 @@ code {
 .aras-child-toolbar__title { margin: 0; font-size: 13px; font-weight: 700; color: var(--aras-ink); }
 .aras-child-toolbar__actions { display: flex; gap: 6px; position: relative; align-items: center; }
 
-/* ── Inline input row (same design as table rows) ── */
-.ct-input-row td { padding: 6px 8px !important; background: var(--aras-primary-50); }
-.ct-input-cell { padding: 4px 8px !important; }
-.ct-cell-input {
-  width: 100%; min-width: 80px; padding: 5px 8px; font-size: 12px;
-  border: 1px solid var(--aras-line-2); border-radius: 4px;
-  background: #fff; color: var(--aras-ink); outline: none;
-  font-family: var(--aras-font-sans);
+/* ── Inline input row — reads as a table line, not a stack of form fields ── */
+.ct-input-row td {
+  padding: 10px 14px !important;
+  background: var(--aras-primary-50);
+  vertical-align: middle;
 }
-.ct-cell-input:focus { border-color: var(--aras-primary); box-shadow: 0 0 0 2px rgba(45,74,107,.12); }
-.ct-cell-input[readonly] { background: var(--aras-line-3); color: var(--aras-ink-3); cursor: not-allowed; }
+.ct-input-cell { padding: 10px 14px !important; }
+.ct-cell-input {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  line-height: inherit;
+  font-family: inherit;
+  color: var(--aras-ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ct-cell-input:focus { border-bottom-color: var(--aras-primary); box-shadow: none; }
+.ct-cell-input[readonly] { color: var(--aras-ink-3); cursor: not-allowed; }
+select.ct-cell-input {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 16px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='none' stroke='%23667085' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round' d='M1 1l4 4 4-4'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 2px center;
+  cursor: pointer;
+}
+input[type="checkbox"].ct-cell-input { width: auto; margin: 0; vertical-align: middle; }
 .ct-td-seq { padding: 14px 8px 14px 16px !important; }
 .ct-td-actions { text-align: right; white-space: nowrap; padding: 8px 12px !important; }
 
@@ -5846,3 +6034,60 @@ select.ledger-ct__cell-input { cursor: pointer; }
 /* Child table neat overrides */
 .aras-child-table-wrap .at-wrap { margin-bottom: 0; border-radius: 0; border: 0; border-top: 1px solid var(--studio-cream); }
 .aras-child-table-wrap .at__th { background: var(--aras-surface); }
+
+/* ============================================================
+   TomSelect — inline cell variant (used inside child-table edit rows)
+   Closed state mirrors .ct-cell-input: transparent, borderless, line-only.
+   Open state inherits the standard refined dropdown.
+   ============================================================ */
+.ts-wrapper--inline.single .ts-control,
+.ts-wrapper--inline.multi  .ts-control {
+    min-height: 0;
+    padding: 0 16px 0 0;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    font-size: 13px;
+    line-height: inherit;
+    color: var(--aras-ink);
+    cursor: pointer;
+}
+.ts-wrapper--inline.single .ts-control > input,
+.ts-wrapper--inline.multi  .ts-control > input {
+    font-size: 13px;
+    color: var(--aras-ink);
+    background: transparent;
+}
+/* Quiet underline on focus / open — matches .ct-cell-input:focus */
+.ts-wrapper--inline.single.dropdown-active .ts-control,
+.ts-wrapper--inline.single.focus .ts-control,
+.ts-wrapper--inline.multi.dropdown-active  .ts-control,
+.ts-wrapper--inline.multi.focus  .ts-control {
+    border: 0;
+    border-bottom: 1px solid var(--aras-primary);
+    background: transparent;
+    box-shadow: none;
+}
+/* Smaller, lighter chevron sized to the line input */
+.ts-wrapper--inline.single .ts-control::after,
+.ts-wrapper--inline.multi  .ts-control::after {
+    right: 4px;
+    width: 5px;
+    height: 5px;
+    border-color: #98928a;
+}
+.ts-wrapper--inline.single.dropdown-active .ts-control::after,
+.ts-wrapper--inline.multi.dropdown-active  .ts-control::after {
+    border-color: var(--aras-ink-2);
+}
+/* Single-value display: no chip styling, just plain text on the line */
+.ts-wrapper--inline .ts-control .item {
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: 0;
+    color: var(--aras-ink);
+    font-weight: inherit;
+}

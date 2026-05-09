@@ -7,6 +7,24 @@
             <h2 class="aras-page-title"><i class="fa fa-trash mr-2"></i>Trash</h2>
             <small class="text-muted">Deleted documents — restore or permanently delete</small>
         </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+            {% if groups %}
+            <form action="{{ url_for('admin.trash_restore_all') }}" method="POST"
+                  onsubmit="return Aras.ask(event, 'Restore all records in Trash?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="aras-btn aras-btn--primary">
+                    <i class="fa fa-undo"></i> Restore All
+                </button>
+            </form>
+            <form action="{{ url_for('admin.trash_permanent_delete_all') }}" method="POST"
+                  onsubmit="return Aras.ask(event, 'Permanently delete ALL records in Trash? This cannot be undone.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="aras-btn text-danger aras-btn--outline">
+                    <i class="fa fa-trash"></i> Empty Trash
+                </button>
+            </form>
+            {% endif %}
+        </div>
     </div>
 
     <div class="aras-card mt-3">

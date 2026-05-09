@@ -204,14 +204,30 @@ def post_sales_invoice(invoice_id: int) -> "AccSalesInvoice":
         except ValueError:
             pass  # no discount account — exclude discount from AR total too
 
-    # ── Accounts Receivable (DR) — always derived from actual line subtotals ──
-    total  = computed_subtotal + posted_charge - posted_discount
+    # ── Accounts Receivable (DR) OR Direct Payment (DR) ──────────────────────
+    # If this invoice has associated payments (e.g. POS), we can post directly 
+    # to the payment accounts (Cash/Bank) instead of going through AR.
+    total = computed_subtotal + posted_charge - posted_discount
     inv.subtotal = float(computed_subtotal)
     inv.total    = float(total)
-    ar_acc = get_default_account(company_id, "receivable_default")
-    lines.append({"account_id": ar_acc, "debit": float(total), "credit": 0,
-                  "partner_type": "customer", "partner_id": inv.customer_id,
-                  "description": f"Piutang {inv.name}"})
+
+    payments = inv.allocations  # AccPaymentAllocation
+    if payments:
+        for alloc in payments:
+            pay = alloc.payment
+            from app.erp.erp_acc.services.payment import _resolve_payment_account
+            cash_acc = _resolve_payment_account(pay)
+            amt = float(alloc.amount)
+            lines.append({
+                "account_id": cash_acc, "debit": amt, "credit": 0,
+                "partner_type": "customer", "partner_id": inv.customer_id,
+                "description": f"Payment {pay.name} for {inv.name}"
+            })
+    else:
+        ar_acc = get_default_account(company_id, "receivable_default")
+        lines.append({"account_id": ar_acc, "debit": float(total), "credit": 0,
+                      "partner_type": "customer", "partner_id": inv.customer_id,
+                      "description": f"Piutang {inv.name}"})
 
     entry = post_journal(
         company_id=company_id,
@@ -229,6 +245,13 @@ def post_sales_invoice(invoice_id: int) -> "AccSalesInvoice":
         _post_sales_delivery(inv, company_id, location_id)
 
     inv.state = "posted"
+    # Finalize state if paid directly (POS)
+    paid = inv.amount_paid
+    if paid >= float(inv.total) - 0.001:
+        inv.state = "paid"
+    elif paid > 0:
+        inv.state = "partial"
+
     _upsert_sales_prices(inv)
     db.session.commit()
     return inv

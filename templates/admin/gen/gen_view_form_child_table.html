@@ -24,12 +24,24 @@
   - Adding Rows: Handled via `ctAddRow` (inline) or modal (JS trigger).
   - Saving: Uses HTMX for asynchronous save via POST to `ct.api_url`.
   - Persistence: Syncs state using hidden inputs and `static/js/child_table.js`.
+
+  DESIGN ARCHITECTURE (FRAGILE):
+  1. ID Prefixing: JavaScript relies on `ct-<idx>-<field>` (inline) and 
+     `ct-modal-<idx>-<field>` (modal) ID patterns. Changing these requires 
+     syncing with child_table.js `_ctLoadPrice` and `_ctBindCalc`.
+  2. TomSelect: Select elements are enhanced dynamically. Change handlers 
+     must target `tomselect` events if they exist, or fallback to native 
+     'change' events.
+  3. UOM Resolution: On product selection, the UI must clear the `uom_id` 
+     field before triggering the price API to ensure the backend resolves 
+     the new product's default UoM instead of honoring the previous one.
 #}
 {% if ct is defined and ct and ct.model_name is defined and ct.model_name %}
 {% set _ct_footer = ct.footer_totals if ct.footer_totals is defined else [] %}
 {% set _li = ct.model_name if (ct.model_name is defined and ct.model_name) else (loop.index | string) %}
 {% set _ct_all_render = ct.all_columns if (ct.all_columns is defined and ct.all_columns) else ct.vcols %}
 {% set _ct_vcol_names = ct.vcols | map(attribute=1) | list %}
+{% if _ct_all_render is not defined or _ct_all_render is none %}{% set _ct_all_render = [] %}{% endif %}
 
 
 <div class="aras-child-table-wrap" id="ctw-{{ _li }}">
@@ -40,12 +52,8 @@
     <span class="ledger-section__title">{{ ct.title }}</span>
     <span class="ledger-section__hairline" aria-hidden="true"></span>
     <div class="ct-head-actions d-flex gap-2" style="position:relative;">
-      {# #ChildListViewRelated: 'Add Row' displays hidden inline input row. #}
-      {% if ct.api_url and ct.inline_columns %}
-      <button type="button" class="aras-btn aras-btn--primary aras-btn--sm" onclick="ctAddRow('{{ _li }}')" id="ct-add-btn-{{ _li }}">
-        <i class="fa fa-plus"></i> Add Row
-      </button>
-      {% elif ct.adm_url and ct.parent_id %}
+      {# Add-row affordance lives at the table footer (see <tfoot>). #}
+      {% if ct.adm_url and ct.parent_id and not ct.inline_columns %}
       <a href="{{ ct.adm_url }}/add/?{{ ct.fk_col }}={{ ct.parent_id }}" class="aras-btn aras-btn--primary aras-btn--sm">
         <i class="fa fa-plus"></i> Add {{ ct.title }}
       </a>
@@ -114,99 +122,24 @@
 
     </thead>
     <tbody id="ct-tbody-{{ _li }}">
-      {# #ChildListViewRelated: Server-rendered list of rows #}
+      {# #ChildListViewRelated: Server-rendered list of rows (read mode) #}
       {% for row in ct.rows %}
         {% include 'admin/gen/_child_table_row.html' %}
       {% endfor %}
+    </tbody>
 
-      {# ── Inline add row (hidden by default, appears as table row) ── #}
-      {% if ct.api_url and ct.inline_columns %}
-      {% set _inline_map = {} %}
-      {% for col in ct.inline_columns %}{% if _inline_map.update({col.name: col}) %}{% endif %}{% endfor %}
-      {% set _inline_col_names = ct.inline_columns | map(attribute='name') | list %}
-      <tr class="ct-input-row d-none" id="ct-input-row-{{ _li }}" style="background: var(--studio-accent-50);">
-        <td class="ct-td-seq text-center text-muted-aras fs-11" style="padding: 10px 20px;">*</td>
-        {# #ChildListViewRelated: Inline inputs - map columns to form elements #}
-        {% for _, vcol_name in _ct_all_render %}
-        {% set col = _inline_map.get(vcol_name) %}
-        {% set _hidden_td = vcol_name not in _ct_vcol_names %}
-        <td data-field="{{ vcol_name }}" class="ct-input-cell" style="{{ 'display:none; ' if _hidden_td else '' }}padding: 8px 10px;">
-          {% if col %}
-            {% if col.type == 'select' %}
-              <select name="{{ col.name }}" id="ct-{{ _li }}-{{ col.name }}" class="ct-cell-input"
-                      {% if col.name == 'product_id' %}onchange="ctOnProductChange('{{ _li }}', this)"{% endif %}
-                      {% if col.name == 'price_type' %}onchange="ctFilterPriceList('{{ _li }}', this.value)"{% endif %}
-                      style="width: 100%; min-width: 80px; padding: 6px 10px; font-size: 12px; border: 1px solid var(--studio-ochre); border-radius: 4px; background: #fff; outline: none;">
-                <option value="">—</option>
-                {% for opt in col.fk_options %}
-                  <option value="{{ opt.id }}" {% if opt.price_type is defined %}data-price-type="{{ opt.price_type }}"{% endif %}>{{ opt.label }}</option>
-                {% endfor %}
-              </select>
-            {% elif col.type == 'textarea' %}
-              <textarea name="{{ col.name }}" id="ct-{{ _li }}-{{ col.name }}" class="ct-cell-input" rows="1"
-                        style="width: 100%; min-width: 80px; padding: 6px 10px; font-size: 12px; border: 1px solid var(--studio-ochre); border-radius: 4px; background: #fff; outline: none;"></textarea>
-            {% elif col.type == 'checkbox' %}
-              <input type="checkbox" name="{{ col.name }}" id="ct-{{ _li }}-{{ col.name }}" class="ct-cell-input w-auto">
-            {% else %}
-              <input type="{{ col.type }}" name="{{ col.name }}" id="ct-{{ _li }}-{{ col.name }}" class="ct-cell-input"
-                     {% if col.name in ('subtotal','total','amount') %}data-calc="true" readonly tabindex="-1"{% endif %}
-                     style="width: 100%; min-width: 80px; padding: 6px 10px; font-size: 12px; border: 1px solid var(--studio-ochre); border-radius: 4px; background: #fff; outline: none;">
-            {% endif %}
-          {% endif %}
-        </td>
-        {% endfor %}
-        {# Hidden inputs for extra inline columns not rendered above (e.g. account_id) #}
-        {% for col in ct.inline_columns %}
-        {% if col.name not in (_ct_all_render | map(attribute=1) | list) %}
-          <input type="hidden" name="{{ col.name }}" id="ct-{{ _li }}-{{ col.name }}" class="ct-cell-input">
-        {% endif %}
-        {% endfor %}
-        {# #ChildListViewRelated: Row Save/Cancel. Uses htmx to POST and update the tbody. #}
-        <td class="ct-td-actions text-right" style="padding: 8px 20px;">
-          <button type="button" class="ct-btn-edit" title="Edit Detail" onclick="ctOpenModal('{{ _li }}', this, true)" style="color: var(--studio-accent); background: none; border: none; padding: 6px; cursor: pointer;">
-            <i class="fa fa-pencil"></i>
-          </button>
-          <button type="button" class="ct-btn-save" title="Save"
-                  {% if ct.parent_id %}
-                  hx-post="/admin/api/child-table/{{ ct.model_name }}/save?parent_model={{ ct.parent_model_name }}&li={{ _li }}&fk_col={{ ct.fk_col }}&parent_id={{ ct.parent_id }}"
-                  {% else %}
-                  hx-on:click="
-                    var pid = document.querySelector('form[action]')?.action?.split('/').filter(x => x.match(/^[0-9]+$/)).pop() || '';
-                    if (pid) {
-                      var url = '/admin/api/child-table/{{ ct.model_name }}/save?parent_model={{ ct.parent_model_name }}&li={{ _li }}&fk_col={{ ct.fk_col }}&parent_id=' + pid;
-                      this.setAttribute('hx-post', url);
-                      htmx.process(this);
-                      htmx.trigger(this, 'click');
-                    } else {
-                      event.preventDefault();
-                      event.stopImmediatePropagation();
-                      ctSaveInlineRow('{{ _li }}', '{{ ct.api_url }}', '{{ ct.fk_col }}', '__PID__');
-                    }
-                  "
-                  {% endif %}
-                  hx-ext="json-enc"
-                  hx-include="closest tr"
-                  hx-target="#ct-tbody-{{ _li }}"
-                  hx-swap="beforeend"
-                  {% if ct.parent_id %}
-                  hx-on:click="
-                    if (this.getAttribute('hx-post').includes('__PID__')) {
-                       var pid = document.querySelector('form[action]')?.action?.split('/').filter(x => x.match(/^[0-9]+$/)).pop() || '';
-                       if (pid) this.setAttribute('hx-post', this.getAttribute('hx-post').replace('__PID__', pid));
-                    }
-                  "
-                  {% endif %}
-                  hx-on::after-request="if(event.detail.successful) { ctHideInputRow('{{ _li }}'); _ctUpdateSeq('{{ _li }}'); Aras.toast('Row added', 'success'); } else { Aras.toast('Error adding row', 'error'); }"
-                  style="color: #4f6f53; background: none; border: none; padding: 6px; cursor: pointer;">
-            <i class="fa fa-check"></i>
-          </button>
-          <button type="button" class="ct-btn-cancel" title="Cancel" onclick="ctHideInputRow('{{ _li }}')" style="color: var(--aras-ink-3); background: none; border: none; padding: 6px; cursor: pointer;">
-            <i class="fa fa-times"></i>
+    {# ── Add-row affordance ── #}
+    {% if ct.api_url and ct.inline_columns %}
+    <tfoot id="ct-add-foot-{{ _li }}" class="ct-add-foot">
+      <tr>
+        <td colspan="{{ _ct_all_render | length + 2 }}">
+          <button type="button" class="ct-add-row-btn" id="ct-add-btn-{{ _li }}" onclick="ctAddRow('{{ _li }}')">
+            <i class="fa fa-plus"></i> <span>Add row</span>
           </button>
         </td>
       </tr>
-      {% endif %}
-    </tbody>
+    </tfoot>
+    {% endif %}
 
     <tfoot id="ct-footer-{{ _li }}" class="ct-footer" style="display:none; background: var(--studio-paper); border-top: 2px solid var(--studio-cream);">
       <tr>
@@ -234,9 +167,9 @@
   </table>
   </div>
 
-  <div class="aras-child-empty{% if ct.rows %} d-none{% endif %}" id="ct-empty-{{ _li }}" style="padding: 40px; text-align: center; color: var(--aras-ink-3); font-family: var(--aras-font-serif); font-style: italic; border-top: 1px solid var(--studio-cream);">
-    <i class="fa fa-inbox" style="display: block; font-size: 24px; margin-bottom: 12px; opacity: 0.5;"></i>
-    <span>No {{ ct.title }} yet</span>
+  <div class="ct-empty-line{% if ct.rows %} d-none{% endif %}" id="ct-empty-{{ _li }}"
+       {% if ct.api_url and ct.inline_columns %}onclick="ctAddRow('{{ _li }}')" role="button" tabindex="0"{% endif %}>
+    <span>No items yet — click <strong>+ Add row</strong></span>
   </div>
 </div>
 
@@ -244,7 +177,7 @@
 {# ── Edit Modal ── #}
 {# #ChildListViewRelated: Modal for editing existing rows. Form values posted to server API. #}
 {% if ct.api_url and ct.inline_columns %}
-<div class="ct-modal-backdrop" id="ct-modal-{{ _li }}" onclick="ctCloseModal('{{ _li }}', event)">
+<div class="ct-modal-backdrop" id="ct-modal-{{ _li }}" data-ct-modal="{{ _li }}" data-model-name="{{ ct.model_name }}" onclick="ctCloseModal('{{ _li }}', event)">
   <div class="ct-modal">
     <div class="ct-modal__head">
       <span class="ct-modal__title">Edit {{ ct.title }}</span>
@@ -253,14 +186,12 @@
     <div class="ct-modal__body">
       <input type="hidden" id="ct-modal-id-{{ _li }}" value="">
       {% for col in ct.inline_columns %}
-      <div class="aras-form-row">
+      <div class="aras-form-row" data-field-row="{{ col.name }}">
         <label class="aras-form-label {% if col.required %}is-required{% endif %}">{{ col.label }}</label>
         <div class="aras-form-control-wrap">
         {% if col.type == 'select' %}
           <select name="{{ col.name }}" id="ct-modal-{{ _li }}-{{ col.name }}" class="aras-form-select"
-                  {% if col.rel_add_url %}data-rel-add-url="{{ col.rel_add_url }}"{% endif %}
-                  {% if col.name == 'product_id' %}onchange="ctOnProductChangeModal('{{ _li }}', this)"{% endif %}
-                  {% if col.name == 'price_type' %}onchange="ctFilterPriceListModal('{{ _li }}', this.value)"{% endif %}>
+                  {% if col.rel_add_url %}data-rel-add-url="{{ col.rel_add_url }}"{% endif %}>
             <option value="">—</option>
             {% for opt in col.fk_options %}
               <option value="{{ opt.id }}" {% if opt.price_type is defined %}data-price-type="{{ opt.price_type }}"{% endif %}>{{ opt.label }}</option>
@@ -292,6 +223,7 @@
     </div>
   </div>
 </div>
+{% endif %}
 
 {# #ChildListViewRelated: JSON config passed to js/child_table.js for runtime orchestration #}
 <script type="application/json" id="ct-meta-{{ _li }}">
@@ -309,10 +241,25 @@
   "parent_model_name": {{ ct.parent_model_name | default(none) | tojson }},
   "fk_col": {{ ct.fk_col | default(none) | tojson }},
   "parent_id": {{ ct.parent_id | default(none) | tojson }},
-  "price_list_field": {{ ct.parent_price_list_field | default(none) | tojson }}
+  "price_list_field": {{ ct.parent_price_list_field | default(none) | tojson }},
+  "inline_columns": [
+    {%- for col in ct.inline_columns | default([]) -%}
+    {
+      "name":     {{ col.name | tojson }},
+      "label":    {{ col.label | default(col.name) | tojson }},
+      "type":     {{ col.type | default('text') | tojson }},
+      "required": {{ (col.required | default(false)) | tojson }},
+      "readonly": {{ ((col.name in ('subtotal','total','amount')) or (col.readonly | default(false))) | tojson }},
+      "rel_add_url": {{ col.rel_add_url | default(none) | tojson }},
+      "options":  [{%- for opt in col.fk_options | default([]) -%}
+        {"value": {{ opt.id | tojson }}, "label": {{ opt.label | tojson }}{% if opt.price_type is defined %}, "price_type": {{ opt.price_type | tojson }}{% endif %}}{{ ', ' if not loop.last }}
+      {%- endfor -%}]
+    }{{ ', ' if not loop.last }}
+    {%- endfor -%}
+  ]
 }
 </script>
 <script src="{{ url_for('static', filename='js/child_table.js') }}"></script>
 <script>initChildTable({{ _li | tojson }});</script>
 {% endif %}
-{% endif %}{# /ct guard #}
+{# /ct guard #}

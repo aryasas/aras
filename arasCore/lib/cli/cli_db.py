@@ -56,6 +56,12 @@ def register_db_commands(aras):
         report.log_summary()
         click.echo("[migrate] done.")
 
+    @aras.command("fix-db", help="Alias for migrate")
+    @click.option("--force", is_flag=True, default=False)
+    @click.pass_context
+    def fix_db(ctx, force):
+        ctx.invoke(migrate, force=force)
+
     @aras.command("remigrate", help="db.create_all + auto_migrate + sync all manifests + ERP seed")
     @click.option("--yes", is_flag=True, default=False, help="Skip confirmation prompt")
     @click.option("--force", is_flag=True, default=False,

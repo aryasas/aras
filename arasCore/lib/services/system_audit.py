@@ -201,7 +201,7 @@ class SystemAudit:
             "status": "warning" if is_debug else "ok"
         })
         
-        env = os.getenv("FLASK_ENV", "production")
+        env = os.getenv("ARAS_MODE", "production")
         section["items"].append({
             "label": "Flask Environment",
             "value": env,

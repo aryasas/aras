@@ -37,26 +37,42 @@ def post_purchase_invoice(invoice_id: int, location_id: int = None) -> AccPurcha
         inv.subtotal = float(computed_sub)
         inv.total    = float(computed_sub)
 
+    payable_acc = get_default_account(company_id, "payable_default")
     for line in inv.lines:
         qty      = Decimal(str(line.qty or 0))
         price    = Decimal(str(line.unit_price or 0))
         subtotal = Decimal(str(line.subtotal or (qty * price)))
 
-        product   = StockProduct.get(line.product_id) if line.product_id else None
+        product = StockProduct.get(line.product_id) if line.product_id else None
 
-        if product:
-            acc_stock    = resolve_stock_account(product, company_id)
-            acc_purchase = resolve_purchase_account(product, company_id)
-            if not acc_stock:
-                acc_stock = get_default_account(company_id, "stock_default")
-            if not acc_purchase:
-                acc_purchase = get_default_account(company_id, "payable_default")
+        # Resolve Debit Account (Inventory or Expense)
+        dr_acc = getattr(line, "account_id", None)
+        if not dr_acc:
+            if product:
+                if getattr(product, "is_stock_item", True):
+                    dr_acc = resolve_stock_account(product, company_id)
+                else:
+                    dr_acc = resolve_purchase_account(product, company_id)
+            
+            if not dr_acc:
+                dr_acc = get_default_account(company_id, "stock_default")
+
+        journal_lines.append({"account_id": dr_acc,      "debit": float(subtotal), "credit": 0})
+        
+        # Resolve Credit Account (Payable or Direct Payment)
+        payments = inv.allocations
+        if payments:
+            for alloc in payments:
+                pay = alloc.payment
+                from app.erp.erp_acc.services.payment import _resolve_payment_account
+                cash_acc = _resolve_payment_account(pay)
+                # For purchase, we credit the cash account (money out)
+                journal_lines.append({
+                    "account_id": cash_acc, "debit": 0, "credit": float(alloc.amount),
+                    "description": f"Payment {pay.name} for {inv.name}"
+                })
         else:
-            acc_stock    = get_default_account(company_id, "stock_default")
-            acc_purchase = get_default_account(company_id, "payable_default")
-
-        journal_lines.append({"account_id": acc_stock,    "debit": float(subtotal), "credit": 0})
-        journal_lines.append({"account_id": acc_purchase, "debit": 0, "credit": float(subtotal)})
+            journal_lines.append({"account_id": payable_acc, "debit": 0, "credit": float(subtotal)})
 
         if product and not getattr(product, "is_stock_item", True) and product.bundle_components:
             # Bundle: expand components; parent is non-stock, components move
@@ -126,6 +142,13 @@ def post_purchase_invoice(invoice_id: int, location_id: int = None) -> AccPurcha
             post_movement(mv.id, skip_journal=True)
 
     inv.state = "posted"
+    # Finalize state if paid directly (POS)
+    paid = inv.amount_paid
+    if paid >= float(inv.total) - 0.001:
+        inv.state = "paid"
+    elif paid > 0:
+        inv.state = "partial"
+
     _upsert_purchase_prices(inv)
     db.session.commit()
     return inv

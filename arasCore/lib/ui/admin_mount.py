@@ -192,7 +192,7 @@ class AdminResourceMounter:
         self.model     = res.model
         self.base_url  = f"{adm_prefix}/{res.name}"
         self.app_title = helper.title
-        self.res_title = res.name.replace("/", " › ").replace("_", " ").title()
+        self.res_title = res.get_menu_title()
 
     def _rbac(self, action):
         from arasCore.rbac import check_permission
@@ -737,7 +737,7 @@ class AdminResourceMounter:
             api_slug = self.helper.api_slug if getattr(self.helper, "api_slug", None) else self.helper.name
             wf = get_workflow(f"{api_slug}/{self.res.name}")
             if wf:
-                self.bp.add_url_rule(f"{url}/workflow/", endpoint=f"{ep}_workflow", view_func=make_adm_workflow(wf, self.res.menu_title or self.res.name, self.helper.title, None, None, [], url))
+                self.bp.add_url_rule(f"{url}/workflow/", endpoint=f"{ep}_workflow", view_func=make_adm_workflow(wf, self.res.get_menu_title(), self.helper.title, None, None, [], url))
 
         except Exception as ex:
             logger.error(f"[admin_mount] failed to mount {url}: {ex}")

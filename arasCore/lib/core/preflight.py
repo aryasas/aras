@@ -20,7 +20,7 @@ def run_preflight_check(app):
     
     Only prints warnings to stdout if inconsistencies are found.
     """
-    if not app.config.get("DEBUG") and os.getenv("FLASK_ENV") != "development":
+    if not app.config.get("DEBUG") and os.getenv("ARAS_MODE") != "development":
         return
     # Skip during migration to avoid holding metadata locks
     if os.getenv("ARAS_SKIP_PREFLIGHT") == "1":

@@ -370,6 +370,54 @@ def api_dev_cli_execute():
         return jsonify({"error": str(e)}), 500
 
 
+@admin_bp.route("/dev/agents")
+@login_required
+def dev_agents():
+    if not _is_dev_authorized():
+        flash("Unauthorized. Debug mode or SUPERADMIN role required.", "danger")
+        return redirect(url_for("admin.dev"))
+    return render_template(
+        "admin/setting/setting_dev_standalone.html",
+        dev_partial="admin/setting/setting_agents.html",
+        main_title="Agents Console",
+    )
+
+
+@admin_bp.route("/api/dev/agents/run", methods=["POST"])
+@login_required
+def api_dev_agents_run():
+    if not _is_dev_authorized():
+        return jsonify({"error": "Unauthorized"}), 403
+    from arasCore.lib.agent_runtime import is_dev_mode
+    if not is_dev_mode():
+        return jsonify({"error": "ARAS_MODE must be 'development'"}), 403
+
+    data = request.json or {}
+    agent = (data.get("agent") or "").strip()
+    payload = data.get("input") or {}
+
+    registry = {
+        "uiux":        ("app.dev_agents.agents.uiux",          "run", ("feature",)),
+        "coder":       ("app.dev_agents.agents.coder",         "run", ("task",)),
+        "reviewer":    ("app.dev_agents.agents.reviewer",      "run", ("target",)),
+        "doc_sync":    ("app.maint_agents.agents.doc_sync",    "run", ()),
+        "form_layout": ("app.maint_agents.agents.form_layout", "run", ("model",)),
+    }
+    if agent not in registry:
+        return jsonify({"error": f"Unknown agent: {agent}"}), 400
+
+    mod_path, fn_name, arg_keys = registry[agent]
+    try:
+        mod = importlib.import_module(mod_path)
+        fn = getattr(mod, fn_name)
+        args = [payload.get(k, "") for k in arg_keys]
+        result = fn(*args) if args else fn()
+        return jsonify({"agent": agent, "result": result})
+    except Exception as e:
+        current_app.logger.exception("agent run failed")
+        return jsonify({"error": str(e)}), 500
+
+
 @admin_bp.route("/dev/api/docs")
 @login_required
 def dev_api_docs_redirect():

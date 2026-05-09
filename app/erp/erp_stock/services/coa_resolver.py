@@ -91,7 +91,7 @@ def resolve_purchase_account(product, company_id: int):
         val = _get_setting("erp.account_purchase_default", company_id)
         if val:
             return val
-    return _company_default(company_id, "acc_payable_default_id")
+    return _company_default(company_id, "acc_cogs_default_id")
 
 
 def resolve_cogs_account(product, company_id: int):

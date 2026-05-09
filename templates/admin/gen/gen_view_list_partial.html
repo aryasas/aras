@@ -237,7 +237,15 @@ doctype_key, app_id, table_id, linked_report_url, extra_buttons, _list_id
               </td>
               {% else %}
               <td data-field="{{ field }}" data-id="{{ item.id }}" class="js-inline-cell{{ _lid }}">
-                {% if loop.first %}<span class="hash">{{ raw if raw is not none else '' }}</span>{% else %}{{ raw if raw is not none else '' }}{% endif %}
+                {% set formatted = raw %}
+                {% if col_types is defined and field in col_types %}
+                  {% if col_types[field] == 'datetime' or col_types[field] == 'date' %}
+                    {% set formatted = raw | datetime(app_slug=app_slug) %}
+                  {% elif col_types[field] == 'number' %}
+                    {% set formatted = raw | number(app_slug=app_slug) %}
+                  {% endif %}
+                {% endif %}
+                {% if loop.first %}<span class="hash">{{ formatted if raw is not none else '' }}</span>{% else %}{{ formatted if raw is not none else '' }}{% endif %}
               </td>
               {% endif %}
             {% endfor %}

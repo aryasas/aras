@@ -149,7 +149,7 @@ def allocate(payment_id: int, invoice_type: str, invoice_id: int, amount: float)
 def _do_allocate(payment: AccPayment, invoice_type: str, invoice_id: int, amount: float) -> AccPaymentAllocation:
     """Internal — create allocation row and update invoice state. Does NOT commit."""
     inv = _get_invoice(invoice_type, invoice_id)
-    if inv.state not in ("posted", "partial"):
+    if inv.state not in ("posted", "partial", "draft"):
         raise ValueError(f"Invoice {inv.name} is not in a payable state ({inv.state}).")
 
     alloc = AccPaymentAllocation(
@@ -161,6 +161,9 @@ def _do_allocate(payment: AccPayment, invoice_type: str, invoice_id: int, amount
     db.session.add(alloc)
     payment.allocated_amount = float(payment.allocated_amount) + amount
     db.session.flush()
+
+    if inv.state == "draft":
+        return alloc
 
     new_paid = inv.amount_paid
     if new_paid >= float(inv.total) - 0.001:

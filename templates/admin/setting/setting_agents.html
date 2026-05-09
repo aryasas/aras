@@ -1,0 +1,116 @@
+{# Agents Console — one-shot runner for dev_agents + maint_agents #}
+{% include 'admin/setting/_setting_dev_nav.html' %}
+
+<div class="hitech-card">
+    <div class="hitech-card-header">
+        <h3 class="hitech-card-title">AGENTS_CONSOLE</h3>
+        <span class="hitech-badge hitech-badge-info">MODE::CLAUDE_SDK</span>
+    </div>
+    <div class="hitech-card-body">
+        <div style="display:grid;grid-template-columns:200px 1fr;gap:1rem;align-items:start;">
+            <label style="color:var(--hitech-text-dim);font-size:0.8rem;">AGENT</label>
+            <select id="agent-pick" class="form-control" style="background:#000;color:var(--hitech-accent);border:1px solid var(--hitech-border);">
+                <optgroup label="Build">
+                    <option value="uiux">uiux — write UI/UX spec</option>
+                    <option value="coder">coder — generate code</option>
+                    <option value="reviewer">reviewer — review code/PR</option>
+                </optgroup>
+                <optgroup label="Maintenance">
+                    <option value="doc_sync">doc_sync — refresh CLAUDE.md tables</option>
+                    <option value="form_layout">form_layout — generate layout_json</option>
+                </optgroup>
+            </select>
+
+            <label style="color:var(--hitech-text-dim);font-size:0.8rem;" id="input-label">FEATURE</label>
+            <textarea id="agent-input" rows="6" class="form-control"
+                      style="background:#000;color:var(--hitech-text);border:1px solid var(--hitech-border);font-family:monospace;"
+                      placeholder="Describe the task..."></textarea>
+
+            <div></div>
+            <div>
+                <button id="agent-run" class="hitech-btn hitech-btn-primary">
+                    <i class="fa fa-play mr-1"></i> RUN
+                </button>
+                <span id="agent-status" style="margin-left:1rem;color:var(--hitech-text-dim);font-size:0.85rem;"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="hitech-card mt-4">
+    <div class="hitech-card-header">
+        <h3 class="hitech-card-title">OUTPUT</h3>
+    </div>
+    <div class="hitech-card-body" style="padding:0;">
+        <pre id="agent-output" class="hitech-console" style="height:480px;border:none;border-radius:0;margin:0;white-space:pre-wrap;">— ready —</pre>
+    </div>
+</div>
+
+<div class="hitech-card mt-4" style="border-style: dashed; opacity: 0.7;">
+    <div class="hitech-card-body" style="font-size: 0.75rem; color: var(--hitech-text-dim);">
+        <i class="fa fa-info-circle"></i> Agents run synchronously and may take 30s–several minutes. Requires <code>ARAS_MODE=development</code> and admin role. Auth uses your Claude Code CLI session (Pro/Max).
+    </div>
+</div>
+
+<script>
+(function() {
+    const PROMPTS = {
+        uiux:        { label: "FEATURE",   ph: "e.g. add a customer KYC page" },
+        coder:       { label: "TASK",      ph: "e.g. create app/crm with Lead model" },
+        reviewer:    { label: "TARGET",    ph: "e.g. app/crm/  (file or dir)" },
+        doc_sync:    { label: "(no input)", ph: "doc_sync takes no arguments — just press RUN" },
+        form_layout: { label: "MODEL",     ph: "e.g. app.erp.erp_acc.models.AccAccount" },
+    };
+    const pick   = document.getElementById('agent-pick');
+    const lbl    = document.getElementById('input-label');
+    const input  = document.getElementById('agent-input');
+    const btn    = document.getElementById('agent-run');
+    const status = document.getElementById('agent-status');
+    const out    = document.getElementById('agent-output');
+
+    function syncLabel() {
+        const p = PROMPTS[pick.value] || { label: "INPUT", ph: "" };
+        lbl.textContent = p.label;
+        input.placeholder = p.ph;
+        input.disabled = (pick.value === "doc_sync");
+        if (input.disabled) input.value = "";
+    }
+    pick.addEventListener('change', syncLabel);
+    syncLabel();
+
+    btn.addEventListener('click', async () => {
+        const agent = pick.value;
+        const text = input.value.trim();
+        const keyMap = { uiux: "feature", coder: "task", reviewer: "target", form_layout: "model" };
+        const body = { agent: agent, input: {} };
+        if (keyMap[agent]) body.input[keyMap[agent]] = text;
+
+        btn.disabled = true;
+        status.textContent = "running...";
+        out.textContent = "— running, please wait —";
+        const t0 = Date.now();
+
+        try {
+            const resp = await fetch('/admin/api/dev/agents/run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const data = await resp.json();
+            const dt = ((Date.now() - t0) / 1000).toFixed(1);
+            if (!resp.ok || data.error) {
+                out.textContent = "ERROR: " + (data.error || resp.status);
+                status.textContent = "failed in " + dt + "s";
+            } else {
+                out.textContent = (typeof data.result === "string") ? data.result : JSON.stringify(data.result, null, 2);
+                status.textContent = "done in " + dt + "s";
+            }
+        } catch (e) {
+            out.textContent = "FETCH_ERROR: " + e.message;
+            status.textContent = "failed";
+        } finally {
+            btn.disabled = false;
+        }
+    });
+})();
+</script>

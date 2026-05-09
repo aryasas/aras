@@ -134,7 +134,7 @@ def _save_layout_to_db(table_id, layout_data):
         logger.warning(f"[layout] Could not save default layout to DB: {e}")
 
 
-def _parse_layout_tabs(table_name, layout_json, form, table_id=None, child_tables=None) -> list:
+def _parse_layout_tabs(table_name, layout_json, form, table_id=None, child_tables=None, model=None) -> list:
     """
     Main layout engine. Always reads from / writes to layout_json in DB.
     Default layout is generated once, saved to DB, then parsed like any saved layout.
@@ -169,15 +169,21 @@ def _parse_layout_tabs(table_name, layout_json, form, table_id=None, child_table
         except Exception as e:
             logger.warning(f"[layout] DB read failed for table {table_id}: {e}")
             actual_json = layout_json  # fallback to snapshot on DB error
+    
     if actual_json is None:
         actual_json = layout_json
 
     # Generate default if still empty, then save it
     if not actual_json:
-        default_data = _build_default_json(table_name, table_id, field_map, child_tables)
-        if table_id:
-            _save_layout_to_db(table_id, default_data)
-        data = default_data
+        if model and hasattr(model, "__layout__"):
+            data = model.__layout__
+            if table_id:
+                _save_layout_to_db(table_id, data)
+        else:
+            default_data = _build_default_json(table_name, table_id, field_map, child_tables)
+            if table_id:
+                _save_layout_to_db(table_id, default_data)
+            data = default_data
     else:
         try:
             data = json.loads(actual_json) if isinstance(actual_json, str) else actual_json
@@ -185,7 +191,10 @@ def _parse_layout_tabs(table_name, layout_json, form, table_id=None, child_table
                 raise ValueError("empty")
         except Exception as e:
             logger.error(f"[layout] JSON parse failed for {table_name}: {e}")
-            data = _build_default_json(table_name, table_id, field_map, child_tables)
+            if model and hasattr(model, "__layout__"):
+                data = model.__layout__
+            else:
+                data = _build_default_json(table_name, table_id, field_map, child_tables)
 
     # Normalize single-tab (dict) to list
     if not isinstance(data, list):

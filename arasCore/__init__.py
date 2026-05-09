@@ -24,7 +24,7 @@ def _read_mode_file():
 
 def create_app(config_type=None):
     if config_type is None:
-        env_key  = os.getenv("ARAS_CONFIG")
+        env_key  = os.getenv("ARAS_MODE")
         file_key = _read_mode_file()
         key      = env_key or file_key or "default"
         config_type = config.get(key, config["default"])
@@ -83,6 +83,15 @@ def create_app(config_type=None):
 
         # Database — create tables first so _is_app_enabled() can query AppManagerApp
         configure_database(app)
+
+        # Early auto-migrate for core tables (mgr_app, cfg_company etc)
+        # to prevent "Unknown column" errors during app discovery.
+        try:
+            from .admin import models as _admin_models  # noqa: F401
+            from .lib.services.auto_migrate import run as _auto_migrate
+            _auto_migrate(app)
+        except Exception as _early_ame:
+            app.logger.debug(f"[arasCore] early auto_migrate: {_early_ame}")
 
         # Schema migrations are model-driven via auto_migrate (called below).
         # App modules from aras/ gated by DB install status + admin last

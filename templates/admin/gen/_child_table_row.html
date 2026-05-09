@@ -1,52 +1,45 @@
-{# 
-  _child_table_row.html — child table data row
+{#
+  _child_table_row.html — child table data row (read mode)
   Vars: row, loop, ct, _li, _ct_vcol_names, _ct_all_render
+  Edit mode is rendered by JS (child_table.js → ctRowEdit) using
+  ct.inline_columns metadata serialized in the meta JSON.
 #}
 {% if row is mapping %}{% set row_id = row.get('id', '') %}
 {% else %}{% set row_id = row.id if row.id is not none else '' %}{% endif %}
+{% set _ct_rel = ct.rel_maps if ct.rel_maps is defined else {} %}
 
 <tr data-id="{{ row_id }}" id="ct-row-{{ _li }}-{{ row_id }}"
-    class="ct-data-row{% if ct.adm_url and not ct.api_url %} at__tr--link{% endif %}"
-    {% if ct.adm_url and not ct.api_url %}onclick="window.location='{{ ct.adm_url }}/{{ row_id }}/';"{% endif %}>
+    class="ct-data-row{% if ct.adm_url and not ct.api_url %} ct-data-row--link{% endif %}"
+    {% if ct.api_url and ct.inline_columns %}onclick="ctRowEdit('{{ _li }}', this, event)"{% elif ct.adm_url and not ct.api_url %}onclick="window.location='{{ ct.adm_url }}/{{ row_id }}/';"{% endif %}>
 
-  <td class="at__td ct-td-seq" style="text-align:center;width:36px;color:var(--aras-ink-3);font-size:11px;font-family:var(--aras-font-mono);">
-    {{ loop.index if loop is defined else '—' }}
-  </td>
+  <td class="at__td ct-td-seq">{{ loop.index if loop is defined else '—' }}</td>
 
-  {% set _ct_rel = ct.rel_maps if ct.rel_maps is defined else {} %}
   {% for _, field_name in _ct_all_render %}
     {% if row is mapping %}{% set raw = row.get(field_name) %}
     {% else %}{% set raw = row|attr(field_name) if row|attr(field_name) is defined else none %}{% endif %}
-    <td class="at__td" data-raw="{{ raw if raw is not none else '' }}"
+    <td class="at__td ct-td-cell"
         data-field="{{ field_name }}"
+        data-raw="{{ raw if raw is not none else '' }}"
         {% if field_name not in _ct_vcol_names %}style="display:none;"{% endif %}>
-      {%- if field_name in _ct_rel and raw is not none -%}
-        {%- set raw_str = raw | string -%}
-        {{ _ct_rel[field_name][raw_str] if raw_str in _ct_rel[field_name] else raw }}
-      {%- else -%}{{ raw if raw is not none else '—' }}{%- endif -%}
+      <span class="ct-cell-text">
+        {%- if field_name in _ct_rel and raw is not none -%}
+          {%- set raw_str = raw | string -%}
+          {{ _ct_rel[field_name][raw_str] if raw_str in _ct_rel[field_name] else raw }}
+        {%- else -%}{{ raw if raw is not none else '—' }}{%- endif -%}
+      </span>
     </td>
   {% endfor %}
 
   {% if ct.api_url and ct.inline_columns %}
-  <td class="at__td ct-td-actions" style="text-align:right;white-space:nowrap;">
-    <button type="button" class="ct-btn-edit aras-iconbtn" title="Edit"
-            onclick="ctOpenModal('{{ _li }}', this)">
-      <i class="fa fa-pencil"></i>
-    </button>
-    <button type="button" class="ct-btn-del aras-iconbtn aras-iconbtn--danger" title="Delete"
-            hx-delete="{{ ct.api_url }}{{ row_id }}/"
-            hx-confirm="Delete this row?"
-            hx-target="closest tr"
-            hx-swap="delete"
-            hx-on::after-settle="_ctUpdateSeq('{{ _li }}')">
-      <i class="fa fa-trash"></i>
-    </button>
+  <td class="at__td ct-td-actions">
+    <div class="ct-row-actions">
+      <button type="button" class="ct-row-btn" title="Move up"   onclick="ctRowMove('{{ _li }}', this, -1, event)"><i class="fa fa-arrow-up"></i></button>
+      <button type="button" class="ct-row-btn" title="Move down" onclick="ctRowMove('{{ _li }}', this,  1, event)"><i class="fa fa-arrow-down"></i></button>
+      <button type="button" class="ct-row-btn" title="Edit in dialog" onclick="event.stopPropagation(); ctOpenModal('{{ _li }}', this)"><i class="fa fa-pencil"></i></button>
+      <button type="button" class="ct-row-btn ct-row-btn--danger" title="Delete" onclick="ctRowDelete('{{ _li }}', this, event)"><i class="fa fa-times"></i></button>
+    </div>
   </td>
-  {% else %}
-  <td class="at__td" style="text-align:right;width:32px;">
-    {% if ct.adm_url %}
-    <i class="fa fa-chevron-right" style="color:var(--aras-ink-3);font-size:10px;"></i>
-    {% endif %}
-  </td>
+  {% elif ct.adm_url %}
+  <td class="at__td ct-td-actions"><i class="fa fa-chevron-right ct-row-chev"></i></td>
   {% endif %}
 </tr>

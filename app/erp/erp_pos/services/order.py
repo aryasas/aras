@@ -21,7 +21,8 @@ def open_session(terminal_id: int, cashier_id: int, opening_balance: Decimal = D
         except ValueError:
             pass
     session = PosSession(terminal_id=terminal_id, cashier_id=cashier_id,
-                         opening_balance=opening_balance, shift_number=shift_number)
+                         opening_balance=opening_balance, shift_number=shift_number,
+                         company_id=company_id)
     db.session.add(session)
     db.session.commit()
     return session
@@ -38,6 +39,13 @@ def close_session(session_id: int, cash_counted: Decimal, notes: str = "") -> Po
         for alloc in inv.allocations:
             if alloc.payment and alloc.payment.method == "cash":
                 cash_total += Decimal(str(alloc.amount))
+    
+    # Subtract cash payments for purchases (outcome mode)
+    for bill in AccPurchaseInvoice.find_all(pos_session_id=session_id):
+        for alloc in bill.allocations:
+            if alloc.payment and alloc.payment.method == "cash":
+                cash_total -= Decimal(str(alloc.amount))
+
     session.closing_balance = session.opening_balance + cash_total
     session.cash_counted    = cash_counted
     session.cash_difference = cash_counted - session.closing_balance
@@ -153,23 +161,39 @@ def _make_sales_invoice(session, terminal, lines, payments,
             subtotal=l["subtotal"], account_id=rev_acc,
         ))
 
-    db.session.flush()
-    post_sales_invoice(inv.id)  # journal + COGS + stock via location_id
+    # Record payments BEFORE posting invoice to trigger direct-payment journal entries
+    from app.erp.erp_acc.services.payment import allocate
+    from app.erp.erp_main.models.payment_mode import ModeOfPayment
 
-    # Record payments
     for p in payments:
+        method_name = p.get("method", "cash")
+        if method_name == 'credit':
+            continue
+            
         amt = Decimal(str(p["amount"]))
+        if amt <= 0.001:
+            continue
+
+        mop = ModeOfPayment.query.filter(ModeOfPayment.name.ilike(method_name)).first()
+        
         pay = AccPayment(
-            company_id=company_id, name=f"POS-{inv.name}-{p['method']}",
+            company_id=company_id, name=f"POS-{inv.name}-{method_name}",
             payment_type="inbound", partner_type="customer", partner_id=customer_id,
             payment_date=__import__("datetime").date.today(),
-            method=p["method"], total_amount=amt, allocated_amount=amt, state="posted",
+            method=method_name, 
+            mode_of_payment_id=mop.id if mop else None,
+            total_amount=amt, 
+            state="posted", # Mark as posted directly as its JE is handled by the invoice
         )
         db.session.add(pay)
         db.session.flush()
-        db.session.add(AccPaymentAllocation(payment_id=pay.id, sales_invoice_id=inv.id, amount=amt))
-
+        
+        # Allocate to invoice while it's still draft
+        allocate(pay.id, "sales", inv.id, float(amt))
+        
     db.session.flush()
+    post_sales_invoice(inv.id)  # This now creates one JE with cash lines directly
+
     return inv
 
 
@@ -224,22 +248,39 @@ def _make_purchase_invoice(session, terminal, lines, payments,
             subtotal=l["subtotal"], account_id=acc_id or payable_acc,
         ))
 
-    db.session.flush()
-    post_purchase_invoice(bill.id)  # journal + stock receipt via location_id
+    # Record payments BEFORE posting
+    from app.erp.erp_acc.services.payment import allocate
+    from app.erp.erp_main.models.payment_mode import ModeOfPayment
 
     for p in payments:
+        method_name = p.get("method", "cash")
+        if method_name == 'credit':
+            continue
+
         amt = Decimal(str(p["amount"]))
+        if amt <= 0.001:
+            continue
+
+        mop = ModeOfPayment.query.filter(ModeOfPayment.name.ilike(method_name)).first()
+
         pay = AccPayment(
-            company_id=company_id, name=f"POS-{bill.name}-{p['method']}",
+            company_id=company_id, name=f"POS-{bill.name}-{method_name}",
             payment_type="outbound", partner_type="supplier", partner_id=supplier_id,
             payment_date=__import__("datetime").date.today(),
-            method=p["method"], total_amount=amt, allocated_amount=amt, state="posted",
+            method=method_name, 
+            mode_of_payment_id=mop.id if mop else None,
+            total_amount=amt, 
+            state="posted", # Handled by invoice JE
         )
         db.session.add(pay)
         db.session.flush()
-        db.session.add(AccPaymentAllocation(payment_id=pay.id, purchase_invoice_id=bill.id, amount=amt))
+
+        # Allocate to invoice while draft
+        allocate(pay.id, "purchase", bill.id, float(amt))
 
     db.session.flush()
+    post_purchase_invoice(bill.id)  # Creates one JE with credit to cash accounts directly
+
     return bill
 
 
