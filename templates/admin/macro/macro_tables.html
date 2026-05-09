@@ -105,11 +105,23 @@
                 <span class="at__hash">
                   {%- if field in _rel and raw is not none -%}
                     {{ _rel[field][raw|string] if raw|string in _rel[field] else raw }}
-                  {%- else -%}{{ raw if raw is not none else '' }}{%- endif -%}
+                  {%- else -%}
+                    {%- if raw is number or (raw is string and raw|float(default=none) is not none) -%}
+                      {{ raw | number(app_slug=app_slug) }}
+                    {%- else -%}
+                      {{ raw if raw is not none else '' }}
+                    {%- endif -%}
+                  {%- endif -%}
                 </span>
               {%- elif field in _rel and raw is not none -%}
                 {{ _rel[field][raw|string] if raw|string in _rel[field] else raw }}
-              {%- else -%}{{ raw if raw is not none else '' }}{%- endif -%}
+              {%- else -%}
+                {%- if raw is number or (raw is string and raw|float(default=none) is not none) -%}
+                  {{ raw | number(app_slug=app_slug) }}
+                {%- else -%}
+                  {{ raw if raw is not none else '' }}
+                {%- endif -%}
+              {%- endif -%}
             </td>
           {% endfor %}
         </tr>

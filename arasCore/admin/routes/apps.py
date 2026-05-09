@@ -457,6 +457,9 @@ def apps_new():
             export_excel=form.export_excel.data,
             soft_delete=form.soft_delete.data,
             audit_log=form.audit_log.data,
+            date_format=form.date_format.data or None,
+            number_format=form.number_format.data or None,
+            decimal_precision=form.decimal_precision.data,
         )
         db.session.add(app_obj)
         db.session.flush()
@@ -495,6 +498,9 @@ def apps_edit(app_id):
         app_obj.export_excel   = form.export_excel.data
         app_obj.soft_delete    = form.soft_delete.data
         app_obj.audit_log      = form.audit_log.data
+        app_obj.date_format    = form.date_format.data or None
+        app_obj.number_format  = form.number_format.data or None
+        app_obj.decimal_precision = form.decimal_precision.data
         current_user.log_activity("app_updated", module="app_manager", payload={"app": app_obj.slug})
         db.session.commit()
         try:

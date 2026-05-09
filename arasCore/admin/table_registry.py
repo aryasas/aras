@@ -205,6 +205,12 @@ def make_table_model(tbl, app_name, all_tables_in_app=None):
     if db_tname in _table_registry:
         return _table_registry[db_tname][0]
 
+    # Check if a model already exists for this table (could be code-based or already mapped)
+    existing_model = _find_model_by_table(db_tname)
+    if existing_model:
+        _table_registry.setdefault(db_tname, (existing_model, None, []))
+        return existing_model
+
     try:
         existing = db.Model.registry._class_registry.get(class_name)
     except Exception:

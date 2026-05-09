@@ -55,4 +55,12 @@
         var theme = localStorage.getItem('aras-theme') || 'light';
         document.documentElement.setAttribute('data-theme', theme);
     })();
+
+    window.ArasConfig = {
+        numberFormat: {
+            thousandsSep: "{{ get_number_format(app_slug)[0] }}",
+            decimalSep: "{{ get_number_format(app_slug)[1] }}",
+            precision: {{ get_decimal_precision(app_slug) }}
+        }
+    };
 </script>

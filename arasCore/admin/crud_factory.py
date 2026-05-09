@@ -323,6 +323,17 @@ def _get_child_tables_for_model(model):
                 app_id = mgr_tbl.app_id
                 table_id = mgr_tbl.id
 
+            inline_cols = _get_inline_columns(child_cls, fk_col)
+            col_types = {}
+            for c in inline_cols:
+                ft = c.get("field_type", "").lower()
+                if "decimal" in ft or "float" in ft or "numeric" in ft:
+                    col_types[c["name"]] = "number"
+                elif "datetime" in ft:
+                    col_types[c["name"]] = "datetime"
+                elif "date" in ft:
+                    col_types[c["name"]] = "date"
+
             result.append({
                 "title":          child_cls.__tablename__.replace("_", " ").title(),
                 "model":          child_cls,
@@ -331,7 +342,8 @@ def _get_child_tables_for_model(model):
                 "adm_url":        None,
                 "fk_col":         fk_col,
                 "api_url":        get_api_url_for_model(child_cls),
-                "inline_columns": _get_inline_columns(child_cls, fk_col),
+                "inline_columns": inline_cols,
+                "col_types":      col_types,
                 "footer_totals":  footer_totals,
                 "view_in_tab":    view_in_tab,
                 "price_api_url":  price_api_path,
@@ -349,6 +361,7 @@ def _get_child_tables_for_model(model):
 def _get_inline_columns(child_model, fk_col: str) -> list:
     from sqlalchemy import inspect as sa_inspect
     from arasCore.lib.services.api_handler import get_api_url_for_model
+    from arasCore.admin.models import AppManagerTable, AppManagerColumn
 
     rel_fk_map: dict[str, str] = {}
     try:
@@ -359,10 +372,15 @@ def _get_inline_columns(child_model, fk_col: str) -> list:
     except Exception:
         pass
 
+    # Fetch AppManagerColumn metadata to enhance SQLAlchemy introspection
+    tname = child_model.__tablename__
+    tbl = AppManagerTable.query.filter((AppManagerTable.name == tname) | (AppManagerTable.db_table_name == tname)).first()
+    mgr_cols = {c.name: c for c in tbl.columns} if tbl else {}
+
     _type_map = {
         "integer": "number", "float": "number", "numeric": "number",
-        "boolean": "checkbox", "text": "textarea", "date": "date",
-        "datetime": "datetime-local",
+        "decimal": "number", "boolean": "checkbox", "text": "textarea",
+        "date": "date", "datetime": "datetime-local", "formula": "text",
     }
     # Columns that are auto-filled server-side — skip from inline input
     _auto_fill_cols = set()
@@ -371,12 +389,18 @@ def _get_inline_columns(child_model, fk_col: str) -> list:
         _auto_fill_cols.add("invoice_type")
 
     cols = []
+    # 1. Process physical SQLAlchemy columns
     for col in child_model.__table__.columns:
         if col.primary_key or col.name in _SYSTEM_COLS or col.name == fk_col:
             continue
         if col.name in _auto_fill_cols:
             continue
+        
+        m_col = mgr_cols.get(col.name)
         input_type = _type_map.get(str(col.type.__class__.__name__).lower(), "text")
+        if m_col and m_col.field_type in _type_map:
+            input_type = _type_map[m_col.field_type]
+            
         fk_table = fk_api_url = None
         fk_options = []
 
@@ -408,11 +432,34 @@ def _get_inline_columns(child_model, fk_col: str) -> list:
             input_type = "select"
 
         cols.append({
-            "name": col.name, "label": _humanize_label(col.name),
-            "type": input_type, "required": not col.nullable and col.default is None,
+            "name": col.name, 
+            "label": m_col.label if m_col and m_col.label else _humanize_label(col.name),
+            "type": input_type, 
+            "required": m_col.required if m_col else (not col.nullable and col.default is None),
             "fk_table": fk_table, "fk_api_url": fk_api_url, "fk_options": fk_options,
             "rel_add_url": rel_add_url,
+            "field_type": m_col.field_type if m_col else str(col.type.__class__.__name__).lower(),
+            "formula": m_col.formula if m_col else None,
+            "readonly": m_col.readonly if m_col else False,
         })
+        
+    # 2. Add virtual (formula) columns from AppManagerColumn that aren't in SQLAlchemy
+    for cname, m_col in mgr_cols.items():
+        if cname in _col_names or cname in _SYSTEM_COLS or cname == "id" or cname == fk_col:
+            continue
+        if m_col.field_type == "formula" or m_col.formula:
+            cols.append({
+                "name": m_col.name,
+                "label": m_col.label or _humanize_label(m_col.name),
+                "type": _type_map.get(m_col.field_type, "text"),
+                "required": False,
+                "fk_table": None, "fk_api_url": None, "fk_options": [],
+                "rel_add_url": None,
+                "field_type": "formula",
+                "formula": m_col.formula,
+                "readonly": True,
+            })
+            
     return cols
 
 
@@ -530,6 +577,7 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
                 title=f"Add {title}", main_title=main_t,
                 form=form, action=f"{burl}/add/", list_url=f"{burl}/",
                 app_title=app_title, app_id=app_id, table_id=table_id,
+                app_slug=app_slug,
                 sibling_tabs=adm_tabs, current_tab_url=burl,
                 layout_tabs=_parse_layout_tabs(tname, layout_json, form, table_id=table_id, child_tables=child_defs, model=model),
                 child_tables=child_defs, res_name=tname,
@@ -572,11 +620,25 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
 
             # Merge DB rows and local rows for re-render
             if child_defs:
+                from arasCore.lib.services.api_handler import _row_to_dict
+                from arasCore.lib.services.formula import apply_formulas
+                from arasCore.admin.models import AppManagerTable
+
                 for cd in child_defs:
                     cd["parent_id"] = item_id
                     db_rows = cd["model"].query.filter(getattr(cd["model"], cd["fk_col"]) == item_id).all()
+                    
+                    # Apply formulas to db_rows
+                    processed_rows = []
+                    tbl = AppManagerTable.query.filter((AppManagerTable.name == cd["model"].__tablename__) | (AppManagerTable.db_table_name == cd["model"].__tablename__)).first()
+                    for r in db_rows:
+                        rd = _row_to_dict(r)
+                        if tbl:
+                            rd = apply_formulas(rd, tbl.columns)
+                        processed_rows.append(rd)
+                        
                     local_rows = _get_local_child_rows(cd["model_name"])
-                    cd["rows"] = db_rows + local_rows
+                    cd["rows"] = processed_rows + local_rows
 
             from arasCore.lib.services.api_handler import get_api_url_for_model
             _api_url = get_api_url_for_model(model)
@@ -587,6 +649,7 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
                 delete_url=f"{burl}/{item_id}/delete/",
                 linked_docs_url=f"{_api_url}{item_id}/linked-docs/" if _api_url else None,
                 app_title=app_title, app_id=app_id, table_id=table_id,
+                app_slug=app_slug,
                 sibling_tabs=adm_tabs, current_tab_url=burl,
                 layout_tabs=_parse_layout_tabs(tname, layout_json, form, table_id=table_id, child_tables=child_defs, model=model),
                 activity_log=_load_activity_log(model.__tablename__, item_id),
@@ -779,6 +842,22 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
             page = _req.args.get("page", 1, type=int)
             pagination = q_obj.paginate(page=page, per_page=eff_pp, error_out=False)
             items = pagination.items
+
+        # Apply formulas to list items
+        try:
+            from arasCore.lib.services.api_handler import _row_to_dict
+            from arasCore.lib.services.formula import apply_formulas
+            from arasCore.admin.models import AppManagerTable
+            tbl = AppManagerTable.query.filter((AppManagerTable.name == tname) | (AppManagerTable.db_table_name == tname)).first()
+            if tbl:
+                processed_items = []
+                for itm in items:
+                    rd = _row_to_dict(itm)
+                    rd = apply_formulas(rd, tbl.columns)
+                    processed_items.append(rd)
+                items = processed_items
+        except Exception as e:
+            logger.debug(f"[crud_factory] List apply_formulas failed: {e}")
 
         linked_report_url = None
         try:

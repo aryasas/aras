@@ -157,7 +157,7 @@
                 {%- endif -%}
                 {%- if _val is not none -%}{%- set _total.v = _total.v + (_val | float) -%}{%- endif -%}
               {%- endfor -%}
-              <strong>{{ "%.2f"|format(_total.v) }}</strong>
+              <strong>{{ _total.v | number(app_slug=app_slug) }}</strong>
             {%- endif -%}
           </td>
         {% endfor %}
@@ -242,6 +242,9 @@
   "fk_col": {{ ct.fk_col | default(none) | tojson }},
   "parent_id": {{ ct.parent_id | default(none) | tojson }},
   "price_list_field": {{ ct.parent_price_list_field | default(none) | tojson }},
+  "decimal_precision": {{ get_decimal_precision(app_slug) | tojson }},
+  "thousands_sep": {{ get_number_format(app_slug)[0] | tojson }},
+  "decimal_sep": {{ get_number_format(app_slug)[1] | tojson }},
   "inline_columns": [
     {%- for col in ct.inline_columns | default([]) -%}
     {

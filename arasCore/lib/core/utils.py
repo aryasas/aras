@@ -8,7 +8,7 @@ import sys
 import inspect
 import json
 from datetime import datetime
-from flask import request
+from flask import request, session
 from itertools import chain
 from functools import wraps
 
@@ -121,12 +121,16 @@ def get_date_format(app_slug=None):
     4. Final fallback
     """
     from arasCore.admin.models import ArasSystemSetting, AppManagerApp
-    from flask import session
+    from arasCore.lib.core.extensions import db
     fmt = None
     
     # 1. App Override
     if app_slug:
-        app = AppManagerApp.query.filter_by(url=f"/{app_slug}").first()
+        slug = app_slug.strip("/").lower()
+        app = AppManagerApp.query.filter(db.or_(
+            db.func.lower(AppManagerApp.url) == slug,
+            db.func.lower(AppManagerApp.url) == f"/{slug}"
+        )).first()
         if app and app.date_format:
             fmt = app.date_format
     
@@ -162,12 +166,16 @@ def get_number_format(app_slug=None):
     3. Global Aras default (aras_system_setting 'core.number_format')
     """
     from arasCore.admin.models import ArasSystemSetting, AppManagerApp
-    from flask import session
+    from arasCore.lib.core.extensions import db
     fmt = None
     
     # 1. App Override
     if app_slug:
-        app = AppManagerApp.query.filter_by(url=f"/{app_slug}").first()
+        slug = app_slug.strip("/").lower()
+        app = AppManagerApp.query.filter(db.or_(
+            db.func.lower(AppManagerApp.url) == slug,
+            db.func.lower(AppManagerApp.url) == f"/{slug}"
+        )).first()
         if app and app.number_format:
             fmt = app.number_format
             
@@ -190,9 +198,28 @@ def get_number_format(app_slug=None):
     if not fmt:
         fmt = ArasSystemSetting.get("core.number_format", "#,###.##")
     
-    # Return (thousands, decimal)
-    if fmt == "1.234,56": return (".", ",")
-    if fmt == "1,234.56" or fmt == "#,###.##": return (",", ".")
+    # Robust detection:
+    # If both , and . exist, the last one is the decimal separator.
+    if "," in fmt and "." in fmt:
+        if fmt.rfind(",") > fmt.rfind("."):
+            return (".", ",")
+        else:
+            return (",", ".")
+    
+    # If only one exists, it depends on its position.
+    # If it's towards the end (last 3 chars), it's likely a decimal separator.
+    if "," in fmt:
+        last_comma = fmt.rfind(",")
+        if last_comma >= len(fmt) - 3:
+            return ("", ",")
+        return (",", ".")
+    
+    if "." in fmt:
+        last_dot = fmt.rfind(".")
+        if last_dot >= len(fmt) - 3:
+            return ("", ".")
+        return (".", ",")
+        
     return (",", ".")
 
 def get_decimal_precision(app_slug=None):
@@ -204,12 +231,16 @@ def get_decimal_precision(app_slug=None):
     4. Final fallback (2)
     """
     from arasCore.admin.models import ArasSystemSetting, AppManagerApp
-    from flask import session
+    from arasCore.lib.core.extensions import db
     prec = None
     
     # 1. App Override
     if app_slug:
-        app = AppManagerApp.query.filter_by(url=f"/{app_slug}").first()
+        slug = app_slug.strip("/").lower()
+        app = AppManagerApp.query.filter(db.or_(
+            db.func.lower(AppManagerApp.url) == slug,
+            db.func.lower(AppManagerApp.url) == f"/{slug}"
+        )).first()
         if app and app.decimal_precision is not None:
             prec = app.decimal_precision
     
@@ -230,8 +261,11 @@ def get_decimal_precision(app_slug=None):
 
     # 3. Global Default
     if prec is None:
-        prec = ArasSystemSetting.get("core.decimal_precision", 2)
+        prec = ArasSystemSetting.get("core.decimal_precision")
     
+    if prec is None or prec == "":
+        return 2
+        
     try:
         return int(prec)
     except (ValueError, TypeError):
@@ -246,15 +280,63 @@ def format_number(value, app_slug=None, precision=None):
     
     if precision is None:
         precision = get_decimal_precision(app_slug)
+    
+    try:
+        precision = int(precision)
+    except (ValueError, TypeError):
+        precision = 2
         
     thousands_sep, decimal_sep = get_number_format(app_slug)
     
+    # Start with standard Python formatting (comma thousands, dot decimal)
     s = f"{val:,.{precision}f}"
-    # Python uses comma for thousands and dot for decimal by default with :,f
+    
+    # If separators match standard, return as is
+    if thousands_sep == "," and decimal_sep == ".":
+        return s
+        
+    # Handle the common Indonesian swap (comma -> dot, dot -> comma)
     if thousands_sep == "." and decimal_sep == ",":
-        # Swap , and .
-        return s.replace(",", "X").replace(".", ",").replace("X", ".")
-    return s
+        return s.replace(",", "TEMP").replace(".", ",").replace("TEMP", ".")
+        
+    # Generic replacement
+    # First, handle decimal separator (it's always a dot in 's')
+    # Use a temporary placeholder if thousands_sep is a dot
+    temp_s = s.replace(".", "DEC_SEP")
+    
+    # Then handle thousands separator (it's always a comma in 's')
+    if thousands_sep != ",":
+        temp_s = temp_s.replace(",", thousands_sep)
+    
+    # Finally, put the correct decimal separator in
+    return temp_s.replace("DEC_SEP", decimal_sep)
+
+def parse_number(value, app_slug=None):
+    if value is None or value == "": return None
+    if isinstance(value, (int, float)): return value
+    s = str(value).strip()
+    if not s: return None
+    
+    thousands_sep, decimal_sep = get_number_format(app_slug)
+    
+    # Remove thousands separator
+    if thousands_sep:
+        s = s.replace(thousands_sep, "")
+    
+    # Replace decimal separator with dot
+    if decimal_sep and decimal_sep != ".":
+        s = s.replace(decimal_sep, ".")
+        
+    try:
+        # Check if it's an integer or float
+        if "." in s:
+            return float(s)
+        return int(s)
+    except (ValueError, TypeError):
+        try:
+            return float(s)
+        except (ValueError, TypeError):
+            return None
 
 def set_jinja_env(app):
     """Register custom Jinja2 globals and filters."""
@@ -282,4 +364,7 @@ def set_jinja_env(app):
         enumerate=enumerate,
         zip=zip,
         len=len,
+        get_decimal_precision=get_decimal_precision,
+        get_number_format=get_number_format,
+        get_date_format=get_date_format
     )

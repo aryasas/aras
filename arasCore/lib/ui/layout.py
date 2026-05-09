@@ -31,10 +31,35 @@ def parse_layout(data: dict, field_map: dict, child_table_map: dict = None) -> l
             continue
 
         label  = item.get("label", "")
+        # Fallback to title if label is missing
+        if not label: label = item.get("title", "")
+        
         width  = item.get("width", 12)
         fields = []
 
-        for fitem in item.get("fields", []):
+        # Support both 'fields' (list of dicts/names) and 'columns' (list of lists)
+        raw_fields = item.get("fields")
+        if not raw_fields and "columns" in item:
+            # Flatten columns [[a,b], [c,d]] into fields with appropriate widths
+            raw_columns = item["columns"]
+            if isinstance(raw_columns, list):
+                # If it's a list of lists, calculate width based on number of columns
+                num_cols = len(raw_columns)
+                col_width = 12 // num_cols if num_cols > 0 else 12
+                for col_list in raw_columns:
+                    if isinstance(col_list, list):
+                        for fname in col_list:
+                            raw_fields = raw_fields or []
+                            raw_fields.append({"name": fname, "width": col_width})
+                    else:
+                        # Single list of fields
+                        raw_fields = raw_fields or []
+                        raw_fields.append({"name": col_list, "width": 12})
+        
+        if not raw_fields:
+            raw_fields = []
+
+        for fitem in raw_fields:
             fname  = fitem["name"] if isinstance(fitem, dict) else fitem
             fwidth = fitem.get("width", 12) if isinstance(fitem, dict) else 12
 
@@ -164,26 +189,28 @@ def _parse_layout_tabs(table_name, layout_json, form, table_id=None, child_table
             from arasCore.admin.models import AppManagerTable
             from arasCore.lib.core.extensions import db
             tbl = db.session.query(AppManagerTable).filter_by(id=table_id).first()
-            if tbl:
+            if tbl and tbl.layout_json:
                 actual_json = tbl.layout_json
         except Exception as e:
             logger.warning(f"[layout] DB read failed for table {table_id}: {e}")
-            actual_json = layout_json  # fallback to snapshot on DB error
     
     if actual_json is None:
         actual_json = layout_json
 
-    # Generate default if still empty, then save it
-    if not actual_json:
-        if model and hasattr(model, "__layout__"):
-            data = model.__layout__
-            if table_id:
-                _save_layout_to_db(table_id, data)
-        else:
-            default_data = _build_default_json(table_name, table_id, field_map, child_tables)
-            if table_id:
-                _save_layout_to_db(table_id, default_data)
-            data = default_data
+    # PRIORITY: If model has __layout__, use it as the source of truth if DB is empty or matches code-base app.
+    # We detect code-base app by checking if model is not a DynModel.
+    is_dynamic = model and model.__name__.startswith("DynModel_")
+    
+    if model and hasattr(model, "__layout__") and (not is_dynamic or not actual_json):
+        data = model.__layout__
+        # If we have a table_id and DB is empty, save the code layout to DB as a base
+        if table_id and (not actual_json or actual_json == "[]" or actual_json == "{}"):
+             _save_layout_to_db(table_id, data)
+    elif not actual_json or actual_json == "[]" or actual_json == "{}":
+        default_data = _build_default_json(table_name, table_id, field_map, child_tables)
+        if table_id:
+            _save_layout_to_db(table_id, default_data)
+        data = default_data
     else:
         try:
             data = json.loads(actual_json) if isinstance(actual_json, str) else actual_json
@@ -195,6 +222,10 @@ def _parse_layout_tabs(table_name, layout_json, form, table_id=None, child_table
                 data = model.__layout__
             else:
                 data = _build_default_json(table_name, table_id, field_map, child_tables)
+
+    # Support "tabs" key in dict-style layout
+    if isinstance(data, dict) and "tabs" in data:
+        data = data["tabs"]
 
     # Normalize single-tab (dict) to list
     if not isinstance(data, list):

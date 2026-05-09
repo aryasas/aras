@@ -277,11 +277,27 @@ document.addEventListener('change', function(e) {
   if (el.classList.contains('system-setting-toggle') || el.classList.contains('system-setting-input')) {
     var key = el.dataset.key;
     var value = el.type === 'checkbox' ? el.checked : el.value;
-    fetch('{{ url_for("admin.server_settings_save") }}', {
+    
+    // Visual feedback
+    var parent = el.closest('.aras-field-view');
+    if (parent) parent.style.opacity = '0.5';
+
+    fetch('{{ url_for("admin.system_settings_save") }}', {
       method: 'POST',
       headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrf_token]')?.value || ''},
       body: JSON.stringify({[key]: value})
-    }).then(function(r){ if(!r.ok) console.warn('System setting save failed'); });
+    }).then(function(r){ 
+        if(!r.ok) {
+            console.warn('System setting save failed');
+            if (parent) parent.style.border = '1px solid var(--aras-danger)';
+        } else {
+            if (parent) {
+                parent.style.opacity = '1';
+                parent.style.borderColor = 'var(--aras-success)';
+                setTimeout(() => { parent.style.borderColor = 'var(--aras-line-2)'; }, 1000);
+            }
+        }
+    });
   }
 });
 </script>

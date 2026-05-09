@@ -158,6 +158,29 @@ def settings():
     )
 
 
+@admin_bp.route("/api/settings/system/save", methods=["POST"])
+@login_required
+def system_settings_save():
+    from arasCore.admin.models import ArasSystemSetting
+    from flask import jsonify
+    data = request.json or {}
+    if not data:
+        return jsonify({"success": False, "message": "No data provided"}), 400
+    
+    # data is {key: value}
+    for key, value in data.items():
+        row = ArasSystemSetting.query.filter_by(key=key).first()
+        if row:
+            row.set_value(value)
+    
+    try:
+        db.session.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 @admin_bp.route("/settings/theme")
 @login_required
 def settings_theme():

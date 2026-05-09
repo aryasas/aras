@@ -25,7 +25,19 @@
         {%- if field_name in _ct_rel and raw is not none -%}
           {%- set raw_str = raw | string -%}
           {{ _ct_rel[field_name][raw_str] if raw_str in _ct_rel[field_name] else raw }}
-        {%- else -%}{{ raw if raw is not none else '—' }}{%- endif -%}
+        {%- else -%}
+          {%- if raw is number or (raw is string and raw|float(default=none) is not none) -%}
+            {{ raw | number(app_slug=app_slug) }}
+          {%- elif ct.col_types is defined and field_name in ct.col_types -%}
+            {%- if ct.col_types[field_name] == 'datetime' or ct.col_types[field_name] == 'date' -%}
+              {{ raw | datetime(app_slug=app_slug) }}
+            {%- else -%}
+              {{ raw if raw is not none else '—' }}
+            {%- endif -%}
+          {%- else -%}
+            {{ raw if raw is not none else '—' }}
+          {%- endif -%}
+        {%- endif -%}
       </span>
     </td>
   {% endfor %}

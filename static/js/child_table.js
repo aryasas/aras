@@ -461,8 +461,10 @@ function ctRowCommit(idx, tr, advance) {
     if (!tr || !tr.classList.contains('is-editing')) return;
     var meta = _ctGetMeta(idx);
     var data = {};
-    var byName = {};
-    (meta.inline_columns || []).forEach(function(c) { byName[c.name] = c; });
+    var prefix = 'ct-' + idx + '-';
+    
+    /* Ensure formulas and subtotals are calculated before reading values. */
+    _ctRecalcRow(idx, prefix);
 
     tr.querySelectorAll('.ct-cell-input').forEach(function(el) {
         if (el.type === 'checkbox') { data[el.name] = el.checked; return; }
@@ -482,17 +484,6 @@ function ctRowCommit(idx, tr, advance) {
     if (missing.length) {
         _ctShowRowError(tr, 'Required: ' + missing.join(', '));
         return;
-    }
-
-    /* Compute subtotal/defaults (preserves existing behaviour). */
-    if (data['qty'] === undefined && byName['qty'])                 data['qty']          = '1';
-    if (data['unit_price'] === undefined && byName['unit_price'])   data['unit_price']   = '0';
-    if (data['discount_pct'] === undefined && byName['discount_pct']) data['discount_pct'] = '0';
-    if (byName['subtotal']) {
-        var qty   = parseFloat(data['qty'] || 1);
-        var price = parseFloat(data['unit_price'] || 0);
-        var disc  = parseFloat(data['discount_pct'] || 0);
-        data['subtotal'] = (qty * price * (1 - disc / 100)).toFixed(4);
     }
 
     var fkCol    = meta.fk_col;
@@ -693,6 +684,11 @@ function _setCtLocalData(idx, arr) {
 function ctSaveInlineRow(idx, apiUrl, fkCol, parentId) {
     var row = document.getElementById('ct-input-row-' + idx);
     var data = {};
+    var prefix = 'ct-' + idx + '-';
+    
+    /* Ensure formulas and subtotals are calculated before reading values. */
+    _ctRecalcRow(idx, prefix);
+
     data[fkCol] = parentId;
     row.querySelectorAll('.ct-cell-input').forEach(function(el) {
         if (el.type === 'checkbox') { data[el.name] = el.checked; return; }
@@ -708,14 +704,6 @@ function ctSaveInlineRow(idx, apiUrl, fkCol, parentId) {
             data['description'] = prodSel.options[prodSel.selectedIndex].text;
         }
     }
-    /* Apply defaults/recalc subtotal */
-    if (!data['qty'])           data['qty']           = '1';
-    if (!data['unit_price'])    data['unit_price']    = '0';
-    if (!data['discount_pct'])  data['discount_pct']  = '0';
-    var qty   = parseFloat(data['qty'] || 1);
-    var price = parseFloat(data['unit_price'] || 0);
-    var disc  = parseFloat(data['discount_pct'] || 0);
-    data['subtotal'] = (qty * price * (1 - disc / 100)).toFixed(4);
 
     if (!parentId || parentId === 'None' || parentId === 'null' || parentId === '__PID__') {
         var fakeId = 'local_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
@@ -931,20 +919,15 @@ function ctSaveModalRow(idx) {
     var modal = document.getElementById('ct-modal-' + idx);
     var idVal = document.getElementById('ct-modal-id-' + idx).value;
     var data = {};
+    var prefix = 'ct-modal-' + idx + '-';
     
+    /* Ensure formulas and subtotals are calculated before reading values. */
+    _ctRecalcRow(idx, prefix);
+
     modal.querySelectorAll('[name]').forEach(function(el) {
         if (el.type === 'checkbox') data[el.name] = el.checked;
         else if (el.value !== '') data[el.name] = el.value;
     });
-
-    if (!data['qty'])           data['qty']           = '1';
-    if (!data['unit_price'])    data['unit_price']    = '0';
-    if (!data['discount_pct'])  data['discount_pct']  = '0';
-
-    var qty   = parseFloat(data['qty'] || 1);
-    var price = parseFloat(data['unit_price'] || 0);
-    var disc  = parseFloat(data['discount_pct'] || 0);
-    data['subtotal'] = (qty * price * (1 - disc / 100)).toFixed(4);
 
     var arr = _getCtLocalData(idx);
     if (idVal && String(idVal).startsWith('local_')) {
@@ -1062,21 +1045,126 @@ function _ctLoadPrice(idx, productId, qtyEl, priceEl, descEl, uomEl, prefix) {
     }).catch(function(err) { /* silent fail */ });
 }
 
-/** Recalculates subtotal for a single row based on price/qty/disc. */
+/** Formats a number based on metadata settings. */
+function _ctFormatNumber(idx, val, precOverride) {
+    var cfg = (window.ArasConfig && window.ArasConfig.numberFormat) || {};
+    var meta = _ctGetMeta(idx);
+    var prec = (precOverride !== undefined) ? precOverride : (meta.decimal_precision || cfg.precision || 2);
+    var tSep = meta.thousands_sep || cfg.thousandsSep || ',';
+    var dSep = meta.decimal_sep || cfg.decimalSep || '.';
+
+    var n = parseFloat(val);
+    if (isNaN(n)) return val;
+
+    var s = n.toFixed(prec);
+    var parts = s.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, tSep);
+    return parts.join(dSep);
+}
+
+/** Parses a formatted number back to float. */
+function _ctParseNumber(idx, val) {
+    if (!val) return 0;
+    var cfg = (window.ArasConfig && window.ArasConfig.numberFormat) || {};
+    var meta = _ctGetMeta(idx);
+    var tSep = meta.thousands_sep || cfg.thousandsSep || ',';
+    var dSep = meta.decimal_sep || cfg.decimalSep || '.';
+    
+    var s = String(val);
+    if (tSep) {
+        s = s.replace(new RegExp('\\' + tSep, 'g'), '');
+    }
+    s = s.replace(dSep, '.');
+    return parseFloat(s) || 0;
+}
+
+/** Evaluates a Python-like formula expression in JavaScript. */
+function _ctEvaluateFormula(formula, context) {
+    if (!formula) return null;
+    try {
+        /* Simple Python-to-JS translation for common math functions. */
+        var jsFormula = formula.replace(/round\(/g, 'Math.round(')
+                               .replace(/abs\(/g, 'Math.abs(')
+                               .replace(/max\(/g, 'Math.max(')
+                               .replace(/min\(/g, 'Math.min(');
+        
+        var keys = Object.keys(context);
+        var vals = keys.map(function(k) { return context[k]; });
+        var fn = new Function(...keys, 'return ' + jsFormula);
+        return fn(...vals);
+    } catch (e) {
+        /* Fallback: if variables are missing from context, try replacing them with 0. */
+        try {
+            var keys = Object.keys(context);
+            var safeFormula = jsFormula;
+            /* This is a very basic attempt to handle missing fields in formulas. */
+            return eval(jsFormula); // risky but sometimes needed for complex cases
+        } catch (e2) {
+            console.warn('Formula eval failed:', formula, e2);
+            return null;
+        }
+    }
+}
+
+/** Recalculates all formula fields for a single row. */
 function _ctRecalcRow(idx, prefix) {
-    var qty   = parseFloat((document.getElementById(prefix + 'qty')          || {}).value) || 0;
-    var price = parseFloat((document.getElementById(prefix + 'unit_price')   || {}).value) || 0;
-    var disc  = parseFloat((document.getElementById(prefix + 'discount_pct') || {}).value) || 0;
-    var subEl = document.getElementById(prefix + 'subtotal');
-    if (subEl) subEl.value = (qty * price * (1 - disc / 100)).toFixed(4);
+    var meta = _ctGetMeta(idx);
+    var data = {};
+    
+    /* 1. Gather all current field values for context. */
+    (meta.inline_columns || []).forEach(function(col) {
+        var el = document.getElementById(prefix + col.name);
+        if (!el) return;
+        var val = el.value;
+        if (col.type === 'number' || col.field_type === 'integer' || col.field_type === 'float' || col.field_type === 'decimal' || col.field_type === 'numeric') {
+            data[col.name] = _ctParseNumber(idx, val);
+        } else if (col.type === 'checkbox') {
+            data[col.name] = el.checked ? 1 : 0;
+        } else {
+            data[col.name] = val;
+        }
+    });
+
+    /* 2. Evaluate formulas. */
+    (meta.inline_columns || []).forEach(function(col) {
+        if (col.formula) {
+            var res = _ctEvaluateFormula(col.formula, data);
+            var el = document.getElementById(prefix + col.name);
+            if (el && res !== null) {
+                if (typeof res === 'number') {
+                    // Always set as formatted if readonly, otherwise set as raw for type="number"
+                    if (col.readonly) {
+                        el.value = _ctFormatNumber(idx, res);
+                    } else {
+                        var prec = meta.decimal_precision || 2;
+                        el.value = res.toFixed(prec);
+                    }
+                    data[col.name] = res; /* allow cascading formulas */
+                } else {
+                    el.value = res;
+                    data[col.name] = res;
+                }
+            }
+        }
+    });
 }
 
 /** Binds UI inputs to trigger recalcs on input change. */
 function _ctBindCalc(idx, prefix) {
-    ['qty', 'unit_price', 'discount_pct'].forEach(function(f) {
-        var el = document.getElementById(prefix + f);
-        if (el) el.addEventListener('input', function() { _ctRecalcRow(idx, prefix); });
+    var meta = _ctGetMeta(idx);
+    (meta.inline_columns || []).forEach(function(col) {
+        /* Bind to any field that is NOT a formula, as it can be an input for one. */
+        if (!col.formula) {
+            var el = document.getElementById(prefix + col.name);
+            if (el) {
+                el.addEventListener('input', function() { _ctRecalcRow(idx, prefix); });
+                /* Also bind to change for Selects/TomSelects. */
+                el.addEventListener('change', function() { _ctRecalcRow(idx, prefix); });
+            }
+        }
     });
+    
+    /* Also bind manual-edit flags. */
     ['unit_price', 'description'].forEach(function(f) {
         var el = document.getElementById(prefix + f);
         if (el) el.addEventListener('input', function() { this.dataset.manualEdit = '1'; });
@@ -1089,14 +1177,41 @@ function _ctRecalcFooter(idx) {
     if (!meta.footer_totals || !meta.footer_totals.length) return;
     var footer = document.getElementById('ct-footer-' + idx);
     if (!footer) return;
+    
+    var totals = {};
     meta.footer_totals.forEach(function(field) {
         var sum = 0;
         document.querySelectorAll('#ct-tbody-' + idx + ' .ct-data-row td[data-field="' + field + '"]').forEach(function(td) {
-            sum += parseFloat(td.dataset.raw || td.textContent) || 0;
+            var raw = td.dataset.raw;
+            if (raw !== undefined && raw !== null && raw !== '') {
+                sum += parseFloat(raw) || 0;
+            } else {
+                sum += _ctParseNumber(idx, td.textContent.trim()) || 0;
+            }
         });
+        totals[field] = sum;
         var fc = footer.querySelector('[data-total-field="' + field + '"]');
-        if (fc) fc.innerHTML = '<strong>' + sum.toFixed(2) + '</strong>';
+        if (fc) fc.innerHTML = '<strong>' + _ctFormatNumber(idx, sum) + '</strong>';
     });
+
+    /* PUSH TO PARENT FORM: Update header fields if they exist (e.g., subtotal, charge_amt) */
+    if (totals['subtotal'] !== undefined && (idx.endsWith('_line') || idx.endsWith('_lines'))) {
+        var parentSub = document.getElementById('subtotal');
+        if (parentSub) {
+            parentSub.value = _ctFormatNumber(idx, totals['subtotal']);
+            /* Trigger change to allow other header fields (like total) to recalc if they have JS */
+            parentSub.dispatchEvent(new Event('change', { bubbles: true }));
+            parentSub.dispatchEvent(new Event('input',  { bubbles: true }));
+        }
+    }
+    if (totals['amount'] !== undefined && idx.endsWith('_charge')) {
+        var parentCharge = document.getElementById('charge_amt');
+        if (parentCharge) {
+            parentCharge.value = _ctFormatNumber(idx, totals['amount']);
+            parentCharge.dispatchEvent(new Event('change', { bubbles: true }));
+            parentCharge.dispatchEvent(new Event('input',  { bubbles: true }));
+        }
+    }
 }
 
 /** Resolves the display label for a field value (rel_maps lookup). */
@@ -1178,6 +1293,11 @@ function _ctAppendRow(idx, obj, extraLabels) {
         var display = _ctResolveDisplay(idx, field, raw);
         if ((display === raw || display == null) && extraLabels && extraLabels[field]) {
             display = extraLabels[field];
+        }
+        
+        // Apply number formatting if field is numeric and display is raw
+        if (display === raw && !isNaN(parseFloat(raw)) && isFinite(raw)) {
+            display = _ctFormatNumber(idx, raw);
         }
         
         td.textContent = display != null ? display : '—';

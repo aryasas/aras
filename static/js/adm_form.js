@@ -28,6 +28,74 @@
         });
         mainForm.addEventListener("submit", function () { isDirty = false; });
     }
+
+    /* Aras Document Totals (Header recalc) */
+    function formatNumber(val) {
+        var cfg = (window.ArasConfig && window.ArasConfig.numberFormat) || { thousandsSep: ',', decimalSep: '.', precision: 2 };
+        var n = parseFloat(val);
+        if (isNaN(n)) return val;
+        var s = n.toFixed(cfg.precision);
+        var parts = s.split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, cfg.thousandsSep);
+        return parts.join(cfg.decimalSep);
+    }
+
+    function parseNumber(val) {
+        var cfg = (window.ArasConfig && window.ArasConfig.numberFormat) || { thousandsSep: ',', decimalSep: '.', precision: 2 };
+        if (!val) return 0;
+        var s = String(val);
+        if (cfg.thousandsSep) {
+            s = s.replace(new RegExp('\\' + cfg.thousandsSep, 'g'), '');
+        }
+        s = s.replace(cfg.decimalSep, '.');
+        return parseFloat(s) || 0;
+    }
+
+    function recalcHeaderTotal() {
+        var sub    = parseNumber(document.getElementById('subtotal')?.value);
+        var charge = parseNumber(document.getElementById('charge_amt')?.value);
+        var disc   = parseNumber(document.getElementById('discount_amt')?.value);
+        var totalEl = document.getElementById('total');
+        if (totalEl) {
+            totalEl.value = formatNumber(sub + charge - disc);
+        }
+    }
+    ['subtotal', 'charge_amt', 'discount_amt'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input',  recalcHeaderTotal);
+            el.addEventListener('change', recalcHeaderTotal);
+        }
+    });
+
+    /* Global Numeric Formatting */
+    function initNumericFields() {
+        document.querySelectorAll(".aras-numeric-input").forEach(function (el) {
+            if (el.dataset.numericInited) return;
+            el.dataset.numericInited = "1";
+
+            el.addEventListener("focus", function () {
+                if (this.readOnly) return;
+                var val = parseNumber(this.value);
+                if (val === 0 && this.value === "") return;
+                this.value = val; // raw number for editing
+                this.select();
+            });
+
+            el.addEventListener("blur", function () {
+                if (this.readOnly) return;
+                this.value = formatNumber(this.value);
+            });
+            
+            // Initial formatting if value is present and not formatted
+            if (this.value && !this.value.includes((window.ArasConfig?.numberFormat?.thousandsSep || ","))) {
+                this.value = formatNumber(this.value);
+            }
+        });
+    }
+    initNumericFields();
+    // Re-init on HTMX load if needed
+    document.addEventListener("htmx:afterSwap", initNumericFields);
 })();
 
 /* Legacy Inline Child Table Actions */

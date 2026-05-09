@@ -54,9 +54,9 @@ class _Type:
 
 _TString   = _Type("String",   str,   "text")
 _TText     = _Type("Text",     str,   "textarea")
-_TInteger  = _Type("Integer",  int,   "number")
-_TDecimal  = _Type("Decimal",  float, "number")
-_TFloat    = _Type("Float",    float, "number")
+_TInteger  = _Type("Integer",  int,   "text")
+_TDecimal  = _Type("Decimal",  float, "text")
+_TFloat    = _Type("Float",    float, "text")
 _TBoolean  = _Type("Boolean",  bool,  "checkbox")
 _TDate     = _Type("Date",     str,   "date")
 _TDateTime = _Type("DateTime", str,   "datetime-local")
@@ -517,7 +517,12 @@ class ArasModel(_BaseModel, ArasBase, metaclass=_ArasModelMeta):
         if FormCls is None:
             FormCls = ArasForm.from_model(cls, exclude=exclude)
             setattr(cls, cache_attr, FormCls)
-        return FormCls(data=data, obj=obj)
+        
+        # Pass model's __app__ slug if present
+        app_slug = getattr(cls, "__app__", None)
+        if app_slug and hasattr(app_slug, "url"):
+            app_slug = app_slug.url
+        return FormCls(data=data, obj=obj, app_slug=app_slug)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -543,9 +548,20 @@ def _form_validate(col: Col, value: Any) -> str | None:
     py = col.type.py
     try:
         if py is int and not isinstance(value, bool):
-            int(value)
+            # If value is string, it might be formatted
+            if isinstance(value, str):
+                from arasCore.lib.core.utils import parse_number
+                v = parse_number(value)
+                if v is None: raise ValueError()
+            else:
+                int(value)
         elif py is float:
-            float(value)
+            if isinstance(value, str):
+                from arasCore.lib.core.utils import parse_number
+                v = parse_number(value)
+                if v is None: raise ValueError()
+            else:
+                float(value)
         elif py is bool:
             if isinstance(value, str) and value.lower() not in (
                 "true", "false", "1", "0", "on", "off", "yes", "no"
@@ -565,7 +581,7 @@ def _form_validate(col: Col, value: Any) -> str | None:
     return None
 
 
-def _form_coerce(col: Col, value: Any) -> Any:
+def _form_coerce(col: Col, value: Any, app_slug: str | None = None) -> Any:
     if value in (None, ""):
         if col.default is not None:
             return col.default
@@ -573,12 +589,21 @@ def _form_coerce(col: Col, value: Any) -> Any:
     py = col.type.py
     try:
         if py is int and not isinstance(value, bool):
-            iv = int(value)
+            if isinstance(value, str):
+                from arasCore.lib.core.utils import parse_number
+                iv = parse_number(value, app_slug=app_slug)
+                if iv is None: return 0
+                iv = int(iv)
+            else:
+                iv = int(value)
             # FK sentinel: "0" from <select> "— Select —" means NULL when FK is nullable
             if iv == 0 and col.fk and col.null:
                 return None
             return iv
         if py is float:
+            if isinstance(value, str):
+                from arasCore.lib.core.utils import parse_number
+                return parse_number(value, app_slug=app_slug)
             return float(value)
         if py is bool:
             if isinstance(value, bool):
@@ -628,7 +653,8 @@ def _derive_cols_from_sa(model_cls) -> dict[str, Col]:
             or sa_col.server_default is not None
         )
         readonly_set = set(getattr(model_cls, "__readonly_fields__", None) or [])
-        form_nullable = bool(sa_col.nullable) or has_default or (name in readonly_set)
+        is_readonly = (name in readonly_set)
+        form_nullable = bool(sa_col.nullable) or has_default or is_readonly
         col = Col(
             type     = t,
             null     = form_nullable,
@@ -637,6 +663,7 @@ def _derive_cols_from_sa(model_cls) -> dict[str, Col]:
             index    = bool(sa_col.index),
             fk       = fk,
             length   = length,
+            readonly = is_readonly,
         )
         col.name = name
         col._owner_table = getattr(model_cls, "__tablename__", "") or ""
@@ -670,9 +697,10 @@ class ArasForm(ArasBase):
                 fields[key] = val
         cls._aras_fields = fields
 
-    def __init__(self, data: dict | None = None, obj: Any = None):
+    def __init__(self, data: dict | None = None, obj: Any = None, app_slug: str | None = None):
         self.data: dict[str, Any] = {}
         self.errors: dict[str, str] = {}
+        self._app_slug = app_slug
         if obj is not None:
             for name in self._aras_fields:
                 if hasattr(obj, name):
@@ -713,7 +741,7 @@ class ArasForm(ArasBase):
             if col.readonly or col.primary:
                 continue
             if name in self.data:
-                v = _form_coerce(col, self.data[name])
+                v = _form_coerce(col, self.data[name], app_slug=self._app_slug)
                 # Belt-and-suspenders: nullable FK with value 0 → None
                 if v == 0 and col.fk and col.null:
                     v = None
@@ -727,13 +755,34 @@ class ArasForm(ArasBase):
         if request.method not in ("POST", "PUT", "PATCH", "DELETE"):
             return False
         if request.form:
-            for name in self._aras_fields:
+            for name, col in self._aras_fields.items():
+                val_raw = None
                 if name in request.form:
-                    val = request.form.getlist(name)
+                    vals = request.form.getlist(name)
                     # Collapse duplicate inputs (e.g. visible + hidden) to first non-empty
-                    nonempty = [v for v in val if v not in (None, "")]
-                    self.data[name] = (nonempty[0] if nonempty else (val[0] if val else ""))
+                    nonempty = [v for v in vals if v not in (None, "")]
+                    val_raw = (nonempty[0] if nonempty else (vals[0] if vals else ""))
+                elif col.type is _TBoolean:
+                    # Checkbox: if missing from form data during POST, it means unchecked
+                    val_raw = False
+                
+                if val_raw is not None:
+                    self.data[name] = _form_coerce(col, val_raw, app_slug=self._app_slug)
+
         return self.validate()
+
+    def __getattribute__(self, name):
+        # Intercept field access to return _FieldProxy instead of raw Col
+        if name.startswith('_') or name in ('data', 'errors'):
+            return object.__getattribute__(self, name)
+        fields = object.__getattribute__(self, '_aras_fields')
+        if name in fields:
+            return _FieldProxy(self, name, fields[name])
+        return object.__getattribute__(self, name)
+
+    def __iter__(self):
+        for n, c in self._aras_fields.items():
+            yield _FieldProxy(self, n, c)
 
     def hidden_tag(self) -> str:
         from markupsafe import Markup
@@ -805,7 +854,8 @@ class _FieldProxy:
         return {}
     @property
     def data(self):
-        return self._form.data.get(self._name)
+        val = self._form.data.get(self._name)
+        return _form_coerce(self._col, val, app_slug=getattr(self._form, "_app_slug", None))
     @property
     def choices(self):
         return getattr(self._col, "_fk_choices", None) or self._col.choices or []
@@ -815,9 +865,29 @@ class _FieldProxy:
         col = self._col
         widget = "select" if (col.choices or getattr(col, "_fk_choices", None)) else col.type.widget
         val = self._form.data.get(self._name, "")
+        
+        # Apply formatting to numeric values for display
+        # ONLY if widget is NOT 'number' (browsers reject formatted strings in type="number")
+        if val not in (None, "") and col.type.name in ("Decimal", "Float", "Integer") and widget != "number":
+            try:
+                from arasCore.lib.core.utils import format_number
+                # Pass app_slug to respect hierarchical formatting
+                app_slug = getattr(self._form, "_app_slug", None)
+                val = format_number(val, app_slug=app_slug)
+            except Exception:
+                pass
+
         attrs = {"name": self._name, "id": self._name}
-        if kw.get("class_"):
+        if col.readonly:
+            attrs["readonly"] = True
+        
+        # Add class for numeric fields to allow global JS formatting
+        if col.type.name in ("Decimal", "Float", "Integer"):
+            attrs["class"] = "aras-numeric-input " + kw.get("class_", "")
+            if "class_" in kw: del kw["class_"]
+        elif kw.get("class_"):
             attrs["class"] = kw.pop("class_")
+        
         for k, v in kw.items():
             attrs[k.rstrip("_").replace("_", "-")] = v
         attrs_str = " ".join(f'{k}="{escape(str(v))}"' for k, v in attrs.items() if v not in (None, False))
@@ -839,25 +909,6 @@ class _FieldProxy:
             return Markup(f'<select {attrs_str}>{"".join(opts)}</select>')
         v_attr = f' value="{escape(str(val))}"' if val not in (None, "") else ""
         return Markup(f'<input type="{widget}" {attrs_str}{v_attr}>')
-
-
-def _form_getattribute(self, name):
-    # Intercept field access to return _FieldProxy instead of raw Col
-    if name.startswith('_') or name in ('data', 'errors'):
-        return object.__getattribute__(self, name)
-    fields = object.__getattribute__(self, '_aras_fields')
-    if name in fields:
-        return _FieldProxy(self, name, fields[name])
-    return object.__getattribute__(self, name)
-
-
-def _form_iter(self):
-    for n, c in self._aras_fields.items():
-        yield _FieldProxy(self, n, c)
-
-
-ArasForm.__getattribute__ = _form_getattribute
-ArasForm.__iter__    = _form_iter
 
 
 # ════════════════════════════════════════════════════════════════════════════

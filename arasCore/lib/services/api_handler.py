@@ -308,7 +308,21 @@ def _build_api_blueprint() -> Blueprint:
                 if s is not None:
                     return s
             fn = entry.get("serializer")
-            return fn(obj) if fn else _row_to_dict(obj)
+            res = fn(obj) if fn else _row_to_dict(obj)
+            
+            # Apply formulas (computed fields) from AppManagerColumn
+            try:
+                from arasCore.lib.services.formula import apply_formulas
+                from arasCore.admin.models import AppManagerTable
+                tname = getattr(obj, "__tablename__", None)
+                if tname:
+                    tbl = AppManagerTable.query.filter((AppManagerTable.name == tname) | (AppManagerTable.db_table_name == tname)).first()
+                    if tbl and tbl.columns:
+                        res = apply_formulas(res, tbl.columns)
+            except Exception as e:
+                logger.debug(f"[api_handler] apply_formulas failed: {e}")
+                
+            return res
 
         if request.method == "GET":
             from arasCore.lib.core.query import ArasQuery

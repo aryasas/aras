@@ -48,6 +48,7 @@ def apply_formulas(row_dict: dict, table_columns) -> dict:
     """
     result = dict(row_dict)
     for col in table_columns:
-        if getattr(col, "field_type", "") == "formula" and getattr(col, "formula", None):
-            result[col.name] = evaluate_formula(col.formula, result)
+        formula = getattr(col, "formula", None)
+        if formula and formula.strip():
+            result[col.name] = evaluate_formula(formula, result)
     return result

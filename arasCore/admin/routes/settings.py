@@ -3,7 +3,7 @@
 arasCore/admin/routes/settings.py
 Refactored into modules under settings_modules/
 """
-from .settings_modules.core import settings
+from .settings_modules.core import settings, system_settings_save
 from .settings_modules.database import db_table_detail, db_generate_view
 from .settings_modules.server import settings_upload_save, server_settings_save
 from .settings_modules.roles import role_new, role_edit

@@ -245,6 +245,17 @@ def _register_table_routes(bp, snap, all_snaps):
         if fk_col:
             from arasCore.lib.services.api_handler import get_api_url_for_model
             from arasCore.admin.crud_factory import _all_model_columns
+            inline_cols = _get_inline_columns(cs["model"], fk_col)
+            col_types = {}
+            for c in inline_cols:
+                ft = c.get("field_type", "").lower()
+                if "decimal" in ft or "float" in ft or "numeric" in ft:
+                    col_types[c["name"]] = "number"
+                elif "datetime" in ft:
+                    col_types[c["name"]] = "datetime"
+                elif "date" in ft:
+                    col_types[c["name"]] = "date"
+
             child_defs.append({
                 "title":          cs["title"],
                 "model":          cs["model"],
@@ -253,7 +264,8 @@ def _register_table_routes(bp, snap, all_snaps):
                 "adm_url":        f"/admin{cs['url']}",
                 "fk_col":         fk_col,
                 "api_url":        f"/api{cs['url']}/",
-                "inline_columns": _get_inline_columns(cs["model"], fk_col),
+                "inline_columns": inline_cols,
+                "col_types":      col_types,
                 "footer_totals":  list(getattr(cs["model"], "__footer_totals__", None) or []),
                 "view_in_tab":    bool(getattr(cs["model"], "__view_in_tab__", False)),
                 "price_api_url":  getattr(cs["model"], "__price_api_path__", None),

@@ -109,12 +109,16 @@ def _build_model_form(model, obj=None, *, data=None):
     Templates iterate ``form.fields`` (list of dicts from Col.to_schema()).
     FK choices are resolved per-request and attached to the schema dict.
     """
+    app_slug = getattr(model, "__app__", None)
+    if app_slug and hasattr(app_slug, "url"):
+        app_slug = app_slug.url
+
     if hasattr(model, "form") and callable(getattr(model, "form")):
         form = model.form(data=data, obj=obj)
     else:
         from arasCore.arasgen import ArasForm
         FormCls = ArasForm.from_model(model)
-        form = FormCls(data=data, obj=obj)
+        form = FormCls(data=data, obj=obj, app_slug=app_slug)
 
     # Resolve FK choices once per request and merge into schema dicts so
     # the template renderer can populate <select> options without re-querying.
@@ -283,6 +287,7 @@ class AdminResourceMounter:
                     rel_maps = _build_fk_maps(cols, model)
 
             from arasCore.lib.services.api_handler import get_api_url_for_model
+            from arasCore.admin.crud_factory import _get_col_types
             _api_url = get_api_url_for_model(model)
             return render_template(
                 "admin/gen/gen_view_list.html",
@@ -291,6 +296,8 @@ class AdminResourceMounter:
                 items=items,
                 view_columns=cols,
                 all_columns=all_cols,
+                col_types=_get_col_types(model),
+                app_slug=helper.name,
                 pagination=pagination,
                 rel_maps=rel_maps,
                 add_url=f"{base_url}/add/",
@@ -438,8 +445,8 @@ class AdminResourceMounter:
 
             _app_id, _table_id = self._resolve_app_table_ids()
 
-            from arasCore.admin.crud_factory import _parse_layout_tabs
-            layout_tabs = _parse_layout_tabs(res_title, None, form, table_id=_table_id, child_tables=child_tables)
+            from arasCore.admin.crud_factory import _parse_layout_tabs, _get_col_types
+            layout_tabs = _parse_layout_tabs(res_title, None, form, table_id=_table_id, child_tables=child_tables, model=model)
 
             return render_template(
                 "admin/gen/gen_view_form.html",
@@ -448,6 +455,8 @@ class AdminResourceMounter:
                 form=form,
                 action=f"{base_url}/add/",
                 list_url=f"{base_url}/",
+                app_slug=_helper.name,
+                col_types=_get_col_types(model),
                 child_tables=child_tables,
                 show_save_btn=show_save_btn,
                 readonly_fields=set(getattr(model, "__readonly_fields__", None) or []),
@@ -619,8 +628,8 @@ class AdminResourceMounter:
             _app_id, _table_id = self._resolve_app_table_ids()
 
             # Resolve custom layout
-            from arasCore.admin.crud_factory import _parse_layout_tabs
-            layout_tabs = _parse_layout_tabs(res_title, None, form, table_id=_table_id, child_tables=child_tables)
+            from arasCore.admin.crud_factory import _parse_layout_tabs, _get_col_types
+            layout_tabs = _parse_layout_tabs(res_title, None, form, table_id=_table_id, child_tables=child_tables, model=model)
 
             _readonly_fields = set(getattr(model, "__readonly_fields__", None) or [])
             # Build linked-docs preview URL for delete dialog
@@ -635,6 +644,8 @@ class AdminResourceMounter:
                 action=f"{base_url}/{item_id}/",
                 delete_url=f"{base_url}/{item_id}/delete/",
                 list_url=f"{base_url}/",
+                app_slug=_helper.name,
+                col_types=_get_col_types(model),
                 child_tables=child_tables,
                 readonly_fields=_readonly_fields,
                 show_save_btn=show_save_btn,

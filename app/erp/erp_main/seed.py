@@ -53,11 +53,32 @@ def run_seed(app):
         _seed_role(company)
         _seed_sequences(company)
         _seed_settings()
+        _seed_system_formatting()
         _seed_customer(company)
         _seed_supplier(company)
         seed_reports()
         db.session.commit()
         print("[seed] core data seeded.")
+
+
+def _seed_system_formatting():
+    """Seed global framework formatting into ArasSystemSetting."""
+    from arasCore.admin.models import ArasSystemSetting
+    
+    defaults = [
+        ("core.date_format", "DD/MM/YYYY", "Global Date Format", "e.g. DD/MM/YYYY or YYYY-MM-DD"),
+        ("core.number_format", "#,###.##", "Global Number Format", "e.g. 1.234,56 or 1,234.56"),
+        ("core.decimal_precision", "2", "Global Decimal Precision", "Default decimal places for numbers")
+    ]
+    
+    for key, val, label, help_text in defaults:
+        ArasSystemSetting.set(
+            key, val, 
+            value_type="integer" if "precision" in key else "string",
+            label=label, 
+            help_text=help_text,
+            section="formatting"
+        )
 
 
 def _seed_currency():

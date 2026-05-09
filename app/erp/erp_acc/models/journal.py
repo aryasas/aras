@@ -9,6 +9,7 @@ class AccJournalEntry(ArasGen.Model, module=Acc):
     __url__       = "acc/entry"
     __menu_order__= 1
     __tablename__ = "acc_journal_entry"
+    __readonly_fields__ = {"amount_total", "posted_at", "posted_by"}
     __table_args__ = (
         db.Index("ix_acc_je_company_date", "company_id", "date_entry"),
         db.Index("ix_acc_je_origin", "origin_model", "origin_id"),
