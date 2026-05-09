@@ -1,0 +1,27 @@
+// Thin wrapper — same-origin, uses Flask session cookie automatically
+export async function apiFetch(path, options = {}) {
+  const res = await fetch(path, {
+    headers: { 'Content-Type': 'application/json', ...options.headers },
+    credentials: 'same-origin',
+    ...options,
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }))
+    throw new Error(err.error || res.statusText)
+  }
+  return res.json()
+}
+
+export const api = {
+  list: (app, resource, params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return apiFetch(`/api/${app}/${resource}/${qs ? '?' + qs : ''}`)
+  },
+  get: (app, resource, id) => apiFetch(`/api/${app}/${resource}/${id}/`),
+  create: (app, resource, data) =>
+    apiFetch(`/api/${app}/${resource}/`, { method: 'POST', body: JSON.stringify(data) }),
+  update: (app, resource, id, data) =>
+    apiFetch(`/api/${app}/${resource}/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (app, resource, id) =>
+    apiFetch(`/api/${app}/${resource}/${id}/`, { method: 'DELETE' }),
+}

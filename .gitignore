@@ -140,3 +140,6 @@ smart_read.py
 smart_read.sh
 claudefraud.txt
 run_test*
+
+# Vite frontend build output
+static/dist/

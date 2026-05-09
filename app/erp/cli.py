@@ -383,6 +383,72 @@ def register_erp_commands(aras):
             _run_test_flow(count, verbose)
 
 
+    @erp_group.command("seed-standard",
+                       help="Seed standard/reference data: CoA, currencies, UoMs, warehouses, "
+                            "payment modes, fiscal year, doc series, taxes, price types, "
+                            "customer/supplier groups, CRM pipeline, product categories, "
+                            "print/report templates")
+    def erp_seed_standard():
+        import flask
+        app = flask.current_app._get_current_object()
+        with app.app_context():
+            from arasCore.lib.core.extensions import db
+            from app.erp.erp_config.models.company import Company
+            from app.erp.seed_standard import run_seed
+
+            _hdr("ERP Seed — Standard Data")
+            company = Company.find(code="HQ") or Company.query.first()
+            if not company:
+                _err("No company found. Run: flask aras db seed first.")
+                return
+            cid = company.id
+            _ok(f"Company: {company.legal_name} (id={cid})")
+
+            out = run_seed(cid)
+            _ok(f"Currencies:       {', '.join(out['currencies'].keys())}")
+            _ok(f"CoA:              {len(out['coa'])} key accounts wired")
+            _ok(f"UoMs:             {len(out['uoms'])} units")
+            _ok(f"Warehouses:       {len(out['warehouses'])} locations")
+            _ok(f"Payment modes:    {', '.join(out['payment_modes'].keys())}")
+            _ok(f"Price types:      {len(out['price_types'])}")
+            _ok(f"Customer groups:  {', '.join(out['customer_groups'].keys())}")
+            _ok(f"Supplier groups:  {', '.join(out['supplier_groups'].keys())}")
+            _ok(f"Product categories: {len(out['categories'])}")
+            _ok("Fiscal year, doc series, taxes, CRM pipeline, templates — done")
+            click.echo(click.style("\nStandard seed complete.", bold=True, fg="green"))
+
+
+    @erp_group.command("seed-demo",
+                       help="Seed demo data: customers, suppliers, products, UoM conversions, "
+                            "price lists, bundle, opening stock, POS terminal, CRM leads. "
+                            "Run seed-standard first.")
+    def erp_seed_demo():
+        import flask
+        app = flask.current_app._get_current_object()
+        with app.app_context():
+            from app.erp.erp_config.models.company import Company
+            from app.erp.seed_demo import run_seed
+
+            _hdr("ERP Seed — Demo Data")
+            company = Company.find(code="HQ") or Company.query.first()
+            if not company:
+                _err("No company found. Run: flask aras db seed first.")
+                return
+            cid = company.id
+            _ok(f"Company: {company.legal_name} (id={cid})")
+
+            out = run_seed(cid)
+            _ok(f"Customers:   {len(out['customers'])} — {', '.join(out['customers'].keys())}")
+            _ok(f"Suppliers:   {len(out['suppliers'])} — {', '.join(out['suppliers'].keys())}")
+            _ok(f"Products:    {len(out['products'])} (incl. bundle, UoM conversions, price breaks)")
+            if out.get("opening_movement"):
+                _ok(f"Opening stock movement: id={out['opening_movement'].id} (draft)")
+            if out.get("terminal"):
+                _ok(f"POS terminal: {out['terminal'].code} — {out['terminal'].name}")
+            _ok(f"CRM leads:   {len(out['leads'])}")
+            click.echo(click.style("\nDemo seed complete.", bold=True, fg="green"))
+
+
     @aras.command("erp-init", help="Run ERP seed (idempotent)")
     def erp_init():
         import flask

@@ -62,5 +62,12 @@ def optimize(output):
         click.echo(f"Total optimized context size: {len(final_string)} chars")
         click.echo("Use -o <file> to save to a file.")
 
+@ai_context.command()
+@click.argument("query")
+def dev_rag(query):
+    """Query the Aras RAG Assistant."""
+    from arasCore.lib.services.rag_assistant import rag_assistant
+    click.echo(rag_assistant.query(query))
+
 def register_ai_commands(cli):
     cli.add_command(ai_context)
