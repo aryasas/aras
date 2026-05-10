@@ -1,19 +1,18 @@
 {# Mount a React component built with Vite into any Jinja2 template.
    Usage:
      {% from "admin/macro/macro_react.html" import react_mount, react_assets %}
-     {{ react_assets() }}           {# in head or before </body> #}
-     {{ react_mount("ArasListView", app="erp", resource="customer",
-                    columns=[{"key":"name","label":"Name"}], title="Customers") }}
+     {{ react_assets() }}
+     {{ react_mount("ComponentName", props={...}) }}
 #}
 
 {% macro react_assets() %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='dist/aras.main.css') }}">
-  <script type="module" src="{{ url_for('static', filename='dist/aras.main.js') }}"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dist/aras.main.css') }}?v={{ range(1000, 9999) | random }}">
+  <script type="module" src="{{ url_for('static', filename='dist/aras.main.js') }}?v={{ range(1000, 9999) | random }}"></script>
 {% endmacro %}
 
-{% macro react_mount(component, **props) %}
+{% macro react_mount(component) %}
   <div
     data-aras-mount="{{ component }}"
-    data-aras-props="{{ props | tojson | e }}"
+    data-aras-props='{{ kwargs | tojson }}'
   ></div>
 {% endmacro %}

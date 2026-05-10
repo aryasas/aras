@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title | default('Aras Studio') }}</title>
+    
+    <!-- Modern Sans-Serif Font (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- React Assets (Vite) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='dist/aras.main.css') }}?v={{ range(1000, 9999) | random }}">
+    <script type="module" src="{{ url_for('static', filename='dist/aras.main.js') }}?v={{ range(1000, 9999) | random }}"></script>
+    
+    <style>
+        :root {
+            --bg-main: #fcfcfd;
+            --text-primary: #101828;
+            --text-secondary: #667085;
+            --accent: #7f56d9; /* Modern Violet */
+        }
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            height: 100%; 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-main); 
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+        }
+        /* Custom scrollbar for an elegant feel */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e4e7ec; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #d0d5dd; }
+
+        #root:empty { display: flex; align-items: center; justify-content: center; height: 100vh; background: #fff; }
+        #root:empty::after { 
+            content: '';
+            width: 24px;
+            height: 24px;
+            border: 2px solid #eaecf0;
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div 
+        id="root" 
+        data-aras-mount="ReactAppShell" 
+        data-aras-props='{{ react_config | tojson | safe }}'
+    ></div>
+</body>
+</html>

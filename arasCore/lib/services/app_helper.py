@@ -161,7 +161,7 @@ class ResourceDef:
         """Cek handler.serialize dulu, lalu ResourceDef.serializer, lalu None."""
         if self.handler:
             result = self.handler.serialize
-            if result is not SubHandler.serialize:
+            if getattr(result, "__func__", result) is not getattr(SubHandler.serialize, "__func__", SubHandler.serialize):
                 return result
         return self.serializer
 

@@ -289,8 +289,33 @@ class AdminResourceMounter:
             from arasCore.lib.services.api_handler import get_api_url_for_model
             from arasCore.admin.crud_factory import _get_col_types
             _api_url = get_api_url_for_model(model)
+            
+            if helper.name == "erp" and res.name == "sup/supplier":
+                return render_template("admin/gen/gen_view_supplier_react.html", title=res_title)
+
+            _v_engine = request.args.get('view_engine', 'legacy')
+            if _v_engine == 'react' and helper.name == "erp" and res.name == "crm/customer":
+                return render_template(
+                    "admin/react_app_shell.html",
+                    title=res_title,
+                    react_config={
+                        "viewType": "list",
+                        "appSlug": helper.name,
+                        "resource": res.name,
+                        "title": res_title,
+                        "mainTitle": res_title,
+                        "columns": [{"name": fn, "label": lbl} for lbl, fn in cols],
+                        "addUrl": f"{base_url}/add/?view_engine=react",
+                        "editUrlBase": base_url,
+                        "perPage": 20,
+                        "userRole": "admin", # Or dynamic if available
+                    }
+                )
+
+            template = "admin/gen/gen_view_list.html"
+
             return render_template(
-                "admin/gen/gen_view_list.html",
+                template,
                 title=res_title,
                 main_title=res_title,
                 items=items,
@@ -448,14 +473,53 @@ class AdminResourceMounter:
             from arasCore.admin.crud_factory import _parse_layout_tabs, _get_col_types
             layout_tabs = _parse_layout_tabs(res_title, None, form, table_id=_table_id, child_tables=child_tables, model=model)
 
+            from arasCore.lib.services.api_handler import get_api_url_for_model
+            _api_url = get_api_url_for_model(model)
+
+            _v_engine = request.args.get('view_engine', 'legacy')
+            if _v_engine == 'react' and _helper.name == "erp" and self.res.name == "crm/customer":
+                import json
+                react_fields = []
+                for field in form:
+                    if field.name in ['csrf_token', 'submit']: continue
+                    field_def = {
+                        "name": field.name,
+                        "label": field.label.text,
+                        "type": field.type,
+                        "required": getattr(field.flags, 'required', False),
+                        "widget": "textarea" if field.type == "TextAreaField" else "select" if field.type == "SelectField" else "text"
+                    }
+                    if hasattr(field, 'choices'):
+                        field_def["choices"] = field.choices
+                    react_fields.append(field_def)
+
+                return render_template(
+                    "admin/react_app_shell.html",
+                    title=f"Add {res_title}",
+                    react_config={
+                        "viewType": "form",
+                        "action": "add",
+                        "appSlug": _helper.name,
+                        "resource": self.res.name,
+                        "id": None,
+                        "title": res_title,
+                        "fields": react_fields,
+                        "listUrl": f"{base_url}/?view_engine=react",
+                        "apiUrl": _api_url
+                    }
+                )
+
+            template = "admin/gen/gen_view_form.html"
+
             return render_template(
-                "admin/gen/gen_view_form.html",
+                template,
                 title=f"Add {res_title}",
                 main_title=app_title,
                 form=form,
                 action=f"{base_url}/add/",
                 list_url=f"{base_url}/",
                 app_slug=_helper.name,
+                doctype_key=f"{_helper.name}/{self.res.name}",
                 col_types=_get_col_types(model),
                 child_tables=child_tables,
                 show_save_btn=show_save_btn,
@@ -636,8 +700,44 @@ class AdminResourceMounter:
             from arasCore.lib.services.api_handler import get_api_url_for_model
             _api_url = get_api_url_for_model(model)
             _linked_docs_url = f"{_api_url}{item_id}/linked-docs/" if _api_url else None
+
+            _v_engine = request.args.get('view_engine', 'legacy')
+            if _v_engine == 'react' and _helper.name == "erp" and self.res.name == "crm/customer":
+                import json
+                react_fields = []
+                for field in form:
+                    if field.name in ['csrf_token', 'submit']: continue
+                    field_def = {
+                        "name": field.name,
+                        "label": field.label.text,
+                        "type": field.type,
+                        "required": getattr(field.flags, 'required', False),
+                        "widget": "textarea" if field.type == "TextAreaField" else "select" if field.type == "SelectField" else "text"
+                    }
+                    if hasattr(field, 'choices'):
+                        field_def["choices"] = field.choices
+                    react_fields.append(field_def)
+
+                return render_template(
+                    "admin/react_app_shell.html",
+                    title=f"Edit {res_title}",
+                    react_config={
+                        "viewType": "form",
+                        "action": "edit",
+                        "appSlug": _helper.name,
+                        "resource": self.res.name,
+                        "id": item_id,
+                        "title": res_title,
+                        "fields": react_fields,
+                        "listUrl": f"{base_url}/?view_engine=react",
+                        "apiUrl": _api_url
+                    }
+                )
+
+            template = "admin/gen/gen_view_form.html"
+
             return render_template(
-                "admin/gen/gen_view_form.html",
+                template,
                 title=f"Edit {res_title}",
                 main_title=app_title,
                 form=form,
@@ -645,6 +745,7 @@ class AdminResourceMounter:
                 delete_url=f"{base_url}/{item_id}/delete/",
                 list_url=f"{base_url}/",
                 app_slug=_helper.name,
+                doctype_key=f"{_helper.name}/{self.res.name}",
                 col_types=_get_col_types(model),
                 child_tables=child_tables,
                 readonly_fields=_readonly_fields,

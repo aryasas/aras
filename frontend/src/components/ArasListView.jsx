@@ -1,83 +1,83 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
+import ArasTableToolbar from './ArasTableToolbar'
 
 export default function ArasListView({ app, resource, columns = [], title }) {
+  useEffect(() => {
+    console.log('[aras] ArasListView mounting:', { app, resource, title });
+  }, [app, resource, title]);
+
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: [app, resource, page, q],
     queryFn: () => api.list(app, resource, { page, q: q || undefined }),
   })
 
-  const rows = data?.items ?? data ?? []
-  const total = data?.total ?? rows.length
+  const rows = data?.data ?? []
+  const total = data?.meta?.total ?? rows.length
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-800">{title ?? resource}</h2>
-        <div className="flex gap-2">
-          <input
-            type="search"
-            placeholder="Search..."
-            value={q}
-            onChange={e => { setQ(e.target.value); setPage(1) }}
-            className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <a
-            href={`/admin/${app}/${resource}/add/`}
-            className="bg-blue-600 text-white text-sm px-3 py-1.5 rounded hover:bg-blue-700"
-          >
-            + Add
-          </a>
-        </div>
-      </div>
+    <div className="flex flex-col bg-white border border-gray-200 rounded-none overflow-hidden shadow-sm h-full min-h-[400px]">
+      <ArasTableToolbar
+        title={title ?? resource}
+        searchValue={q}
+        onSearch={(val) => { setQ(val); setPage(1) }}
+        onAdd={() => window.location.href = `/admin/${app}/${resource}/add/`}
+        totalRecords={total}
+        onRefresh={() => refetch()}
+        isLoading={isLoading}
+      />
 
       {error && (
-        <div className="text-red-600 text-sm mb-3">{error.message}</div>
+        <div className="p-3 bg-red-50 text-red-700 text-[13px] border-b border-red-100">
+          {error.message}
+        </div>
       )}
 
-      <div className="overflow-x-auto rounded border border-gray-200">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
+      <div className="overflow-x-auto">
+        <table className="w-full text-[13px]">
+          <thead className="bg-[#f8fafc] text-gray-500 uppercase text-[11px] font-bold tracking-wider border-b border-gray-200">
             <tr>
               {columns.map(col => (
-                <th key={col.key} className="px-4 py-3 text-left font-medium">
-                  {col.label ?? col.key}
+                <th key={col.name} className="px-4 py-3 text-left">
+                  {col.label ?? col.name}
                 </th>
               ))}
-              <th className="px-4 py-3 text-right font-medium">Actions</th>
+              <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {isLoading ? (
+            {isLoading && rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + 1} className="px-4 py-8 text-center text-gray-400">
-                  Loading...
+                <td colSpan={columns.length + 1} className="px-4 py-12 text-center text-gray-400 italic">
+                  Loading data...
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + 1} className="px-4 py-8 text-center text-gray-400">
+                <td colSpan={columns.length + 1} className="px-4 py-12 text-center text-gray-400 italic">
                   No records found.
                 </td>
               </tr>
-            ) : rows.map(row => (
-              <tr key={row.id} className="hover:bg-gray-50">
+            ) : rows.map((row, i) => (
+              <tr key={row?.id ?? i} className="hover:bg-[#f1f5f9] transition-colors group">
                 {columns.map(col => (
-                  <td key={col.key} className="px-4 py-3 text-gray-700">
-                    {row[col.key] ?? '—'}
+                  <td key={col.name} className="px-4 py-3 text-gray-700">
+                    {row?.[col.name] ?? '—'}
                   </td>
                 ))}
                 <td className="px-4 py-3 text-right">
-                  <a
-                    href={`/admin/${app}/${resource}/${row.id}/edit/`}
-                    className="text-blue-600 hover:underline text-xs mr-3"
-                  >
-                    Edit
-                  </a>
+                  {row?.id && (
+                    <a
+                      href={`/admin/${app}/${resource}/${row.id}/edit/`}
+                      className="text-[#2d4a6b] hover:text-[#0f1b2d] font-semibold text-xs"
+                    >
+                      Edit
+                    </a>
+                  )}
                 </td>
               </tr>
             ))}
@@ -85,27 +85,26 @@ export default function ArasListView({ app, resource, columns = [], title }) {
         </table>
       </div>
 
-      {total > 20 && (
-        <div className="flex justify-between items-center mt-3 text-sm text-gray-500">
-          <span>{total} total</span>
-          <div className="flex gap-2">
-            <button
-              disabled={page === 1}
-              onClick={() => setPage(p => p - 1)}
-              className="px-3 py-1 border rounded disabled:opacity-40"
-            >
-              Prev
-            </button>
-            <button
-              disabled={rows.length < 20}
-              onClick={() => setPage(p => p + 1)}
-              className="px-3 py-1 border rounded disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
+      {/* FOOTER */}
+      <div className="bg-[#faf8f3] px-4 py-2 border-t border-gray-200 flex justify-between items-center text-[12px] text-gray-500 mt-auto">
+        <span>Showing {rows.length} of {total} total</span>
+        <div className="flex gap-1">
+          <button
+            disabled={page === 1}
+            onClick={() => setPage(p => p - 1)}
+            className="p-1 px-3 border border-gray-300 rounded-none bg-white hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-white shadow-sm transition-all"
+          >
+            Prev
+          </button>
+          <button
+            disabled={rows.length < 20}
+            onClick={() => setPage(p => p + 1)}
+            className="p-1 px-3 border border-gray-300 rounded-none bg-white hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-white shadow-sm transition-all"
+          >
+            Next
+          </button>
         </div>
-      )}
+      </div>
     </div>
   )
 }

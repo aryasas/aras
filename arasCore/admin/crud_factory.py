@@ -642,9 +642,48 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
 
             from arasCore.lib.services.api_handler import get_api_url_for_model
             _api_url = get_api_url_for_model(model)
+
+            _v_engine = _req.args.get('view_engine', 'react') # Default to react for test
+            if _v_engine == 'react' and app_slug == "erp" and tname == "crm/customer":
+                import json
+                
+                # Format fields for the React form
+                react_fields = []
+                for field in form:
+                    if field.name in ['csrf_token', 'submit']: continue
+                    field_def = {
+                        "name": field.name,
+                        "label": field.label.text,
+                        "type": field.type,
+                        "required": getattr(field.flags, 'required', False),
+                        "widget": "textarea" if field.type == "TextAreaField" else "select" if field.type == "SelectField" else "text"
+                    }
+                    if hasattr(field, 'choices'):
+                        field_def["choices"] = field.choices
+                    react_fields.append(field_def)
+
+                return render_template(
+                    "admin/react_app_shell.html",
+                    title=title if action == 'add' else f"Edit {title}",
+                    react_config={
+                        "viewType": "form",
+                        "action": action,
+                        "appSlug": app_slug,
+                        "resource": tname,
+                        "id": item_id if action == 'edit' else None,
+                        "title": title,
+                        "fields": react_fields,
+                        "listUrl": f"{burl}/?view_engine=react",
+                        "apiUrl": _api_url
+                    }
+                )
+
+            template = "admin/gen/gen_view_form.html"
+
             return render_template(
-                "admin/gen/gen_view_form.html",
-                title=f"Edit {title}", main_title=main_t,
+                template,
+                title=title if action == 'add' else f"Edit {title}", main_title=main_t,
+
                 form=form, action=f"{burl}/{item_id}/", list_url=f"{burl}/",
                 delete_url=f"{burl}/{item_id}/delete/",
                 linked_docs_url=f"{_api_url}{item_id}/linked-docs/" if _api_url else None,
@@ -892,8 +931,14 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
         _res_key = adm_burl.replace("/admin/", "").strip("/")
         _has_workflow = get_workflow(_res_key) is not None
 
+        # Check if React template exists for this resource
+        template = "admin/gen/gen_view_list.html"
+        _v_engine = request.args.get('view_engine', 'legacy')
+        if _v_engine == 'react' and app_slug == "erp" and _res_key == "crm/customer":
+            template = "admin/gen/gen_view_list_react.html"
+
         return render_template(
-            "admin/gen/gen_view_list.html",
+            template,
             title=title, main_title=main_t,
             items=items, view_columns=eff_vcols,
             col_types=_get_col_types(model),

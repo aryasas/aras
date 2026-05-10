@@ -470,7 +470,7 @@
             });
             return false;
         }
-    };
+    });
 
     // Override native browser dialogs
     window.alert = function(msg) { Aras.alert(msg); };

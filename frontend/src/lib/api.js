@@ -1,5 +1,6 @@
 // Thin wrapper — same-origin, uses Flask session cookie automatically
 export async function apiFetch(path, options = {}) {
+  console.log(`[api] ${options.method ?? 'GET'} ${path}`)
   const res = await fetch(path, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
     credentials: 'same-origin',
@@ -7,9 +8,12 @@ export async function apiFetch(path, options = {}) {
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }))
+    console.error(`[api] error ${res.status}:`, err)
     throw new Error(err.error || res.statusText)
   }
-  return res.json()
+  const data = await res.json()
+  console.log(`[api] success ${path}:`, data)
+  return data
 }
 
 export const api = {

@@ -1,0 +1,28 @@
+{% extends extends_layout if extends_layout else 'admin/base_index.html' %}
+
+{% from "admin/macro/macro_react.html" import react_assets, react_mount %}
+
+{% block page_content %}
+  {{ react_assets() }}
+
+  {# Include standard Aras hero #}
+  {% set hero_title = title %}
+  {% set hero_icon = "fa-user-circle" %}
+  {% include 'admin/base/base_partial_hero.html' %}
+
+  <div class="h-screen bg-gray-50 flex flex-col">
+    {{ react_mount("ArasFullListView",
+         app="erp",
+         resource="crm/customer",
+         title="Customers",
+         columns=[
+           {"name": "code", "label": "Code"},
+           {"name": "name", "label": "Name"},
+           {"name": "email", "label": "Email"},
+           {"name": "phone", "label": "Phone"},
+           {"name": "segment", "label": "Segment"}
+         ]
+       )
+    }}
+  </div>
+{% endblock %}

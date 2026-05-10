@@ -1,0 +1,28 @@
+{% extends extends_layout if extends_layout else 'admin/base_index.html' %}
+
+{% from "admin/macro/macro_react.html" import react_assets, react_mount %}
+
+{% block page_content %}
+  {{ react_assets() }}
+
+  {# Include standard Aras hero #}
+  {% set hero_title = title %}
+  {% set hero_icon = "fa-user-circle" %}
+  {% include 'admin/base/base_partial_hero.html' %}
+
+  <div class="aras-studio-theme p-6">
+    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px; margin-bottom: 20px; color: #166534; border-radius: 6px;">
+        <i class="fa fa-info-circle"></i> React Form Enabled
+    </div>
+    <div class="aras-card shadow-sm border border-gray-100 rounded-lg bg-white overflow-hidden">
+        {{ react_mount("ArasFormView",
+             app=app_slug,
+             resource=doctype_key.split("/", 1)[1] if "/" in doctype_key else doctype_key,
+             id=form.data.id if form.data and form.data.id else None,
+             fields=form.fields,
+             redirectOnSave=list_url
+           )
+        }}
+    </div>
+  </div>
+{% endblock %}
