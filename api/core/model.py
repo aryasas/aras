@@ -14,6 +14,7 @@ T = TypeVar("T", bound="ArasModel")
 
 class ArasModel(Base, Aras):
     __abstract__ = True
+    _registry: Dict[str, Type['ArasModel']] = {}
 
     __soft_delete__: bool = False
     __serialize_relations__: dict = {}

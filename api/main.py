@@ -74,7 +74,7 @@ async def get_sidebar_data():
     """
     Endpoint untuk menyuplai data menu ke frontend secara dinamis.
     """
-    registered_apps = Aras.get_registered("apps")
+    registered_apps = Aras.get_registered("app")
     sidebar = []
 
     for app_name, app_cls in registered_apps.items():

@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
-from pydantic import BaseModel
 
+from ..aras import Aras
 from ..lib.database import get_db
 from .service import (
     create_access_token, 
@@ -19,14 +19,14 @@ router = APIRouter(
     tags=["Authentication"]
 )
 
-class ChangePasswordRequest(BaseModel):
+class ChangePasswordRequest(Aras.Validation):
     old_password: str
     new_password: str
 
-class ForgotPasswordRequest(BaseModel):
+class ForgotPasswordRequest(Aras.Validation):
     email: str
 
-class ResetPasswordRequest(BaseModel):
+class ResetPasswordRequest(Aras.Validation):
     token: str
     new_password: str
 

@@ -29,7 +29,7 @@ def register_app_routes(app: FastAPI, prefix: str = "/api/v1"):
     """
     Mengambil semua ArasApp yang terdaftar dan mendaftarkan route CRUD untuk setiap modelnya.
     """
-    registered_apps = Aras.get_registered("apps")
+    registered_apps = Aras.App._registry
 
     for app_cls_name, app_cls in registered_apps.items():
         # Instance dari ArasApp (seperti ErpApp)
@@ -40,4 +40,3 @@ def register_app_routes(app: FastAPI, prefix: str = "/api/v1"):
             router = Aras.Router(model)
             app.include_router(router, prefix=app_prefix)
             print(f"Registered route: {app_prefix}/{model.__tablename__}")
-

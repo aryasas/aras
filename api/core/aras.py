@@ -1,59 +1,55 @@
 from typing import Dict, Any, Type, List, Optional
+from pydantic import BaseModel
 
 class Aras:
     """
-    The ultimate abstract base and namespace for all Aras components.
-    Handles registration and serves as a container for core framework classes.
+    The ultimate abstract root for the Aras framework.
+    Handles automated namespace mapping and generic registration.
     """
-    _registry: Dict[str, Dict[str, Type['Aras']]] = {
-        "models": {},
-        "apps": {},
-        "forms": {},
-        "services": {}
-    }
+    @classmethod
+    def get_registered(cls, name: str) -> dict:
+        target = getattr(cls, name.capitalize(), None)
+        if target is None:
+            raise AttributeError(f"Aras has no namespace '{name.capitalize()}'")
+        return getattr(target, "_registry", {})
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
 
-        # Don't register abstract base classes
-        if cls.__dict__.get("__abstract__"):
-            return
+        # 1. Automatic Namespace Attachment (ArasSomething -> Aras.Something)
+        if cls.__name__.startswith("Aras") and cls.__name__ != "Aras":
+            attr_name = cls.__name__[4:]
+            if attr_name:
+                setattr(Aras, attr_name, cls)
 
-        # Simple registration based on class names or specific attributes
-        if hasattr(cls, "__tablename__"):
-            cls._registry["models"][cls.__name__] = cls
-        elif cls.__name__.endswith("App") or hasattr(cls, "manifest"):
-            cls._registry["apps"][cls.__name__] = cls
+        # 2. Generic Registration
+        # If the direct parent has a _registry, register this class into it
+        if not cls.__dict__.get("__abstract__"):
+            # We look for _registry in the base classes
+            for base in cls.__bases__:
+                if hasattr(base, "_registry") and isinstance(getattr(base, "_registry"), dict):
+                    # Register the class in the parent's registry
+                    base._registry[cls.__name__] = cls
 
-    @classmethod
-    def get_registered(cls, category: str) -> Dict[str, Type['Aras']]:
-        return cls._registry.get(category, {})
-
-    # Framework components will be attached below after their definitions
-    App: Any = None
-    Model: Any = None
-    SoftModel: Any = None
-    Column: Any = None
-    Base: Any = None
-    User: Any = None
-    Router: Any = None
-    db: Any = None
-    get_db: Any = None
-    engine: Any = None
+class ArasValidation(Aras, BaseModel):
+    """
+    Base class for all Aras Pydantic models (schemas/validation).
+    """
+    __abstract__ = True
+    _registry: Dict[str, Type['ArasValidation']] = {}
 
 class ArasApp(Aras):
     """
     Abstract base for application modules (e.g., ERP, CRM).
     """
     __abstract__ = True
+    _registry: Dict[str, Type['ArasApp']] = {}
 
     app_name: str = ""
     app_label: str = ""
     description: str = ""
     version: str = "1.0.0"
     icon: str = "Package"
-
-    # List of model classes for this app
     models: List[Any] = []
 
     @classmethod
@@ -71,10 +67,7 @@ class ArasApp(Aras):
 from .model import ArasModel, ArasSoftModel, ArasColumn, Base
 from .lib.database import SessionLocal, get_db, engine
 
-# Attach core components first so they are available to other modules
-Aras.App = ArasApp
-Aras.Model = ArasModel
-Aras.SoftModel = ArasSoftModel
+# Attach non-class utilities
 Aras.Column = ArasColumn
 Aras.Base = Base
 Aras.db = SessionLocal

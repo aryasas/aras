@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Type, Any, Optional
-from pydantic import create_model, BaseModel
+from pydantic import create_model
 
+from .aras import Aras
 from .lib.database import get_db
 from .auth.service import get_current_user
 from .lib.permissions import check_permissions
@@ -29,7 +30,8 @@ def create_aras_router(model_class: Type[Any]):
         
         fields[column.name] = (Optional[python_type] if column.nullable else python_type, ... if not column.nullable else None)
 
-    Schema = create_model(f"{model_class.__name__}Schema", **fields)
+    # Use Aras.Validation as the base for the dynamic model
+    Schema = create_model(f"{model_class.__name__}Schema", __base__=Aras.Validation, **fields)
     # Enable ORM mode for Pydantic v2
     Schema.model_config = {"from_attributes": True}
 
