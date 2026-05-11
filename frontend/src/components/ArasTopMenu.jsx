@@ -1,38 +1,42 @@
 import React from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 
-export default function ArasTopMenu({ menu, currentApp }) {
+export default function ArasTopMenu({ menu = [], currentApp, currentResource }) {
   const location = useLocation()
-  const app = menu.find(m => m.slug === currentApp)
+  
+  // Find the current top-level app in the menu
+  const app = menu.find(m => m.app_slug === currentApp)
+  
+  // Get children (e.g. Accounting, Stock, Configuration) for the secondary nav bar
   const items = app?.children || []
 
   const isActive = (item) => {
     if (!item.url) return false
-    return location.pathname.startsWith(item.url)
+    const currentPath = location.pathname.toLowerCase().replace(/\/+$/, '')
+    const itemPath = item.url.toLowerCase().replace(/\/+$/, '')
+    return currentPath === itemPath || currentPath.startsWith(itemPath + '/')
   }
 
-  return (
-    <header className="h-14 bg-white border-b border-[#dde3e7] flex items-center px-6 gap-6 flex-shrink-0 z-20">
-      {/* APP TITLE */}
-...
-      </div>
+  if (items.length === 0) return null
 
-      {/* MODULE NAVIGATION LINKS */}
+  return (
+    <div className="h-12 bg-white border-b border-[#dde3e7] flex items-center px-6 gap-8 flex-shrink-0 z-10 overflow-x-auto no-scrollbar">
+      {/* SECONDARY NAVIGATION LINKS (Module Home / Groups) */}
       <nav className="flex items-center gap-1 h-full">
         {items.map((item, idx) => (
-          <Link
+          <a
             key={idx}
-            to={item.url}
-            className={`h-full flex items-center px-3 text-xs font-bold uppercase tracking-widest border-b-2 transition-colors ${
+            href={`${item.url}${item.url.includes('?') ? '&' : '?'}view_engine=react`}
+            className={`h-full flex items-center px-4 text-[10px] font-bold uppercase tracking-[0.2em] border-b-2 transition-all duration-200 ${
               isActive(item)
-                ? 'border-aras-accent text-aras-accent'
-                : 'border-transparent text-aras-primary/60 hover:text-aras-primary'
+                ? 'border-aras-accent text-aras-accent bg-aras-accent/5'
+                : 'border-transparent text-aras-primary/40 hover:text-aras-primary hover:bg-[#f8fafb]'
             }`}
           >
             {item.title}
-          </Link>
+          </a>
         ))}
       </nav>
-    </header>
+    </div>
   )
 }

@@ -14,10 +14,15 @@ def _build_raw_menu() -> list:
     from arasCore.admin.models import AppManagerApp, AppManagerTable
 
     def _node_to_dict(t, app_url):
+        full_path = t.get_full_url(app_url)
+        # Normalize slashes: ensure starts with /, no trailing, no doubles
+        import re
+        clean = re.sub(r"/+", "/", f"/{full_path.strip('/')}")
         return {
             "title":    t.get_menu_title(),
             "icon":     t.menu_icon or "fa-table",
-            "url":      f"/admin{t.get_full_url(app_url)}/",
+            "url":      f"/admin{clean}/",
+            "type":     t.page_type if hasattr(t, "page_type") else "list",
             "children": [],
         }
 

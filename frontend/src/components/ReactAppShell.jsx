@@ -1,16 +1,18 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLocation } from 'react-router-dom'
-import ArasFullListView from './ArasFullListView'
+import ArasListView from './ArasListView'
 import ArasFormView from './ArasFormView'
 import ArasAppHome from './ArasAppHome'
 import CustomerPage from './CustomerPage'
 import SettingsPage from './SettingsPage'
-...
+import AppSettingsPage from './AppSettingsPage'
 import TrashPage from './TrashPage'
 import { TweakPanel } from './TweakPanel'
 import { useThemeStore } from '../lib/themeStore'
 import { api } from '../lib/api'
+import ArasSidebar from './ArasSidebar'
+import ArasTopMenu from './ArasTopMenu'
 
 /**
  * Parses the current pathname into a config object.
@@ -21,7 +23,7 @@ import { api } from '../lib/api'
  * /admin/:appSlug/:resource/list -> list view
  * /admin/:appSlug/:resource/form/:id -> form view
  */
-function parsePath(path) {
+function parsePath(path, currentMenu = []) {
   const parts = path.split('/').filter(Boolean)
   // parts[0] is 'admin'
   if (parts.length <= 1) return { viewType: 'dashboard' }
@@ -34,15 +36,53 @@ function parsePath(path) {
   // Check for app home: /admin/:app/
   if (parts.length === 2) return { viewType: 'appHome', appSlug: slug }
 
-  // Resource views: /admin/:app/:resource/.../viewType
-  // Resource can be multiple parts, e.g. erp/crm/customer
-  // We look for 'list' or 'form' as keywords
-  const viewIdx = parts.findIndex(p => p === 'list' || p === 'form' || p === 'report')
-  if (viewIdx > 2) {
-    const resource = parts.slice(2, viewIdx).join('/')
-    const viewType = parts[viewIdx]
-    const id = viewType === 'form' ? parts[viewIdx + 1] : null
-    return { appSlug: slug, resource, viewType, id }
+  const last = parts[parts.length - 1]
+  
+  // 1. ADD Form
+  if (last === 'add') {
+    const resource = parts.slice(2, -1).join('/')
+    return { appSlug: slug, resource, viewType: 'form', action: 'add' }
+  }
+
+  // 2. EDIT Form
+  let id = null
+  let isEdit = false
+  if (last === 'edit') {
+    id = parts[parts.length - 2]
+    isEdit = true
+  } else if (!isNaN(last) && !isNaN(parseFloat(last))) {
+    id = last
+    isEdit = true
+  }
+
+  if (isEdit && id) {
+    const resource = parts.slice(2, last === 'edit' ? -2 : -1).join('/')
+    return { appSlug: slug, resource, viewType: 'form', id, action: 'edit' }
+  }
+
+  // 3. LIST or GROUP View
+  if (last === 'list' || parts.length > 2) {
+    const resource = parts.slice(2, last === 'list' ? -1 : undefined).join('/')
+    
+    // Check menu for group type
+    const findInMenu = (items) => {
+      if (!items) return null
+      for (const item of items) {
+        if (item.url === path || item.url === (path + '/')) return item
+        if (item.children) {
+          const found = findInMenu(item.children)
+          if (found) return found
+        }
+      }
+      return null
+    }
+
+    const menuItem = findInMenu(currentMenu)
+    if (menuItem && menuItem.type === 'group') {
+      return { appSlug: slug, resource, viewType: 'appHome', title: menuItem.title }
+    }
+
+    return { appSlug: slug, resource, viewType: 'list' }
   }
 
   return { viewType: 'appHome', appSlug: slug }
@@ -52,28 +92,36 @@ export default function ReactAppShell(initialConfig) {
   const location = useLocation()
   const theme = useThemeStore()
   
-  // Local state for the current view configuration
-  const [config, setConfig] = useState(initialConfig)
-
-  // Sync config with URL changes
-  useEffect(() => {
-    const pathConfig = parsePath(location.pathname)
-    // Only update if it's a "real" change to avoid flickering
-    if (pathConfig.resource !== config.resource || pathConfig.viewType !== config.viewType || pathConfig.id !== config.id) {
-      console.log('[shell] route change detected:', pathConfig)
-      setConfig(prev => ({ ...prev, ...pathConfig }))
-    }
-  }, [location.pathname])
-
   const { data: ui, isLoading: uiLoading } = useQuery({
     queryKey: ['ui-init'],
     queryFn: () => api.uiInit(),
   })
 
+  const [config, setConfig] = useState(() => ({
+    ...initialConfig,
+    ...parsePath(window.location.pathname, initialConfig.menu || [])
+  }))
+
+  useEffect(() => {
+    const pathConfig = parsePath(location.pathname, ui?.menu || initialConfig.menu || [])
+    setConfig(prev => {
+      const isNewResource = pathConfig.resource !== prev.resource || pathConfig.appSlug !== prev.appSlug;
+      const next = { ...prev, ...pathConfig };
+      
+      // If we moved to a new resource/module home, drop old tiles/widgets
+      // so we don't show stale data (e.g. POS tiles when clicking Accounting)
+      if (isNewResource) {
+        if (!pathConfig.tiles) delete next.tiles;
+        if (!pathConfig.widgets) delete next.widgets;
+      }
+      return next;
+    })
+  }, [location.pathname, ui?.menu])
+
   // Fetch resource metadata dynamically if we have a resource but no columns/fields
   const { data: resourceMeta, isLoading: metaLoading } = useQuery({
-    queryKey: ['resource-config', config.resource],
-    queryFn: () => api.resourceConfig(config.resource),
+    queryKey: ['resource-config', config.appSlug, config.resource],
+    queryFn: () => api.resourceConfig(`${config.appSlug}/${config.resource}`),
     enabled: !!config.resource && (!config.columns || !config.fields),
   })
 
@@ -110,9 +158,44 @@ export default function ReactAppShell(initialConfig) {
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-aras-bg">
+        {/* PRIMARY TOPBAR (System-wide) */}
+        <header className="h-14 bg-white border-b border-[#dde3e7] flex items-center justify-between px-6 flex-shrink-0 z-20">
+            <div className="flex items-center gap-4 flex-1">
+                <div className="relative w-full max-w-md group">
+                    <i className="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[#9aacb8] text-xs group-focus-within:text-aras-accent transition-colors"></i>
+                    <input 
+                        type="text" 
+                        placeholder="Search resources, records, or commands..." 
+                        className="w-full bg-[#f8fafb] border border-[#dde3e7] rounded-md py-1.5 pl-9 pr-4 text-xs focus:outline-none focus:ring-1 focus:ring-aras-accent/20 focus:border-aras-accent transition-all"
+                    />
+                </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+                <button className="w-8 h-8 flex items-center justify-center text-[#9aacb8] hover:text-aras-accent hover:bg-aras-accent/5 rounded-full transition-all">
+                    <i className="fa fa-bell-o text-sm"></i>
+                </button>
+                <button className="w-8 h-8 flex items-center justify-center text-[#9aacb8] hover:text-aras-accent hover:bg-aras-accent/5 rounded-full transition-all">
+                    <i className="fa fa-cog text-sm"></i>
+                </button>
+                <div className="h-6 w-px bg-[#dde3e7] mx-1"></div>
+                <div className="flex items-center gap-3 pl-2">
+                    <div className="text-right hidden sm:block">
+                        <p className="text-[10px] font-bold text-aras-primary uppercase tracking-wider leading-none mb-1">{user.email || 'Admin User'}</p>
+                        <p className="text-[9px] text-[#9aacb8] font-studio-serif italic leading-none">System Administrator</p>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-aras-accent text-white flex items-center justify-center text-[10px] font-bold shadow-sm">
+                        {user.email ? user.email.substring(0,2).toUpperCase() : 'AD'}
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        {/* SECONDARY TOPBAR (Module-specific) */}
         <ArasTopMenu 
           menu={menu} 
           currentApp={appSlug}
+          currentResource={resource}
         />
         
         <main className="flex-1 overflow-auto p-8 relative">
@@ -131,7 +214,7 @@ export default function ReactAppShell(initialConfig) {
               ) : (
                 <>
                   {viewType === 'list' && (
-                    <ArasFullListView app={appSlug} resource={resource} columns={activeConfig.columns} title={activeConfig.title} />
+                    <ArasListView app={appSlug} resource={resource} columns={activeConfig.columns} title={activeConfig.title} />
                   )}
                   {viewType === 'form' && (
                     <ArasFormView app={appSlug} resource={resource} id={activeConfig.id} fields={activeConfig.fields} childTables={activeConfig.child_tables} redirectOnSave={activeConfig.listUrl} />
@@ -141,27 +224,6 @@ export default function ReactAppShell(initialConfig) {
                   )}
                   {viewType === 'appSettings' && (
                     <AppSettingsPage {...activeConfig} />
-                  )}
-                  {viewType === 'posHome' && (
-                    <PosHomePage terminals={activeConfig.terminals} open_sessions={activeConfig.open_sessions} />
-                  )}
-                  {viewType === 'report' && (
-                    <ReportsPage initialReportId={activeConfig.id} />
-                  )}
-                  {viewType === 'posAction' && (
-                    <PosActionPage 
-                      action={activeConfig.action} 
-                      terminal={activeConfig.terminal} 
-                      session={activeConfig.session} 
-                      order_count={activeConfig.order_count}
-                      current_user={user}
-                    />
-                  )}
-                  {viewType === 'posShiftReport' && (
-                    <PosShiftReportPage data={activeConfig.data} />
-                  )}
-                  {viewType === 'posSession' && (
-                    <PosSessionPage config={activeConfig} />
                   )}
                   {viewType === 'trash' && (
                     <TrashPage />
@@ -173,3 +235,8 @@ export default function ReactAppShell(initialConfig) {
               )}
             </div>
           </div>
+        </main>
+      </div>
+    </div>
+  )
+}

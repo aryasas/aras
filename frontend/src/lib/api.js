@@ -28,4 +28,8 @@ export const api = {
     apiFetch(`/api/${app}/${resource}/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (app, resource, id) =>
     apiFetch(`/api/${app}/${resource}/${id}/`, { method: 'DELETE' }),
+
+  // UI System
+  uiInit: () => apiFetch('/admin/api/ui/init'),
+  resourceConfig: (resource) => apiFetch(`/admin/api/ui/resource-config/${resource}`),
 }

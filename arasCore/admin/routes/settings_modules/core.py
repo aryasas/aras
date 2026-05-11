@@ -140,6 +140,21 @@ def settings():
     import sys as _sys
     modules = sorted(k for k in _sys.modules if k.startswith("arasCore") or k.startswith("app."))
 
+    _v_engine = request.args.get('view_engine', 'react')
+    if _v_engine == 'react':
+        return render_template(
+            "admin/react_app_shell.html",
+            title="Settings",
+            react_config={
+                "viewType": "settings",
+                "appSlug": "admin",
+                "server_info": server_info,
+                "config": {
+                    "APP_NAME": current_app.config.get("APP_NAME", "Aras Framework"),
+                }
+            }
+        )
+
     return render_template(
         "admin/setting/setting_settings.html",
         title="Settings", main_title="Settings",

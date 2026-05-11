@@ -293,8 +293,8 @@ class AdminResourceMounter:
             if helper.name == "erp" and res.name == "sup/supplier":
                 return render_template("admin/gen/gen_view_supplier_react.html", title=res_title)
 
-            _v_engine = request.args.get('view_engine', 'legacy')
-            if _v_engine == 'react' and helper.name == "erp" and res.name == "crm/customer":
+            _v_engine = request.args.get('view_engine', 'react')
+            if _v_engine == 'react':
                 return render_template(
                     "admin/react_app_shell.html",
                     title=res_title,
@@ -308,7 +308,7 @@ class AdminResourceMounter:
                         "addUrl": f"{base_url}/add/?view_engine=react",
                         "editUrlBase": base_url,
                         "perPage": 20,
-                        "userRole": "admin", # Or dynamic if available
+                        "userRole": "admin",
                     }
                 )
 
@@ -476,8 +476,8 @@ class AdminResourceMounter:
             from arasCore.lib.services.api_handler import get_api_url_for_model
             _api_url = get_api_url_for_model(model)
 
-            _v_engine = request.args.get('view_engine', 'legacy')
-            if _v_engine == 'react' and _helper.name == "erp" and self.res.name == "crm/customer":
+            _v_engine = request.args.get('view_engine', 'react')
+            if _v_engine == 'react':
                 import json
                 react_fields = []
                 for field in form:
@@ -485,12 +485,25 @@ class AdminResourceMounter:
                     field_def = {
                         "name": field.name,
                         "label": field.label.text,
-                        "type": field.type,
+                        "type": str(type(field).__name__),
                         "required": getattr(field.flags, 'required', False),
                         "widget": "textarea" if field.type == "TextAreaField" else "select" if field.type == "SelectField" else "text"
                     }
                     if hasattr(field, 'choices'):
                         field_def["choices"] = field.choices
+                        # Attempt to resolve rel_add_url for FKs
+                        try:
+                            col_c = model.__table__.c.get(field.name)
+                            if col_c is not None and col_c.foreign_keys:
+                                raw_fk = list(col_c.foreign_keys)[0].column.table.name
+                                from arasCore.admin.models import AppManagerTable as _AMT, AppManagerApp as _AMA
+                                _ref_tbl = _AMT.query.filter((_AMT.name == raw_fk) | (_AMT.db_table_name == raw_fk)).first()
+                                if _ref_tbl:
+                                    _ref_app = _AMA.query.get(_ref_tbl.app_id)
+                                    if _ref_app:
+                                        field_def["rel_add_url"] = f"/admin{_ref_app.url_prefix}{_ref_tbl.get_full_url(_ref_app.url_prefix)}/add/?view_engine=react"
+                        except Exception:
+                            pass
                     react_fields.append(field_def)
 
                 return render_template(
@@ -701,8 +714,8 @@ class AdminResourceMounter:
             _api_url = get_api_url_for_model(model)
             _linked_docs_url = f"{_api_url}{item_id}/linked-docs/" if _api_url else None
 
-            _v_engine = request.args.get('view_engine', 'legacy')
-            if _v_engine == 'react' and _helper.name == "erp" and self.res.name == "crm/customer":
+            _v_engine = request.args.get('view_engine', 'react')
+            if _v_engine == 'react':
                 import json
                 react_fields = []
                 for field in form:
@@ -710,12 +723,25 @@ class AdminResourceMounter:
                     field_def = {
                         "name": field.name,
                         "label": field.label.text,
-                        "type": field.type,
+                        "type": str(type(field).__name__),
                         "required": getattr(field.flags, 'required', False),
                         "widget": "textarea" if field.type == "TextAreaField" else "select" if field.type == "SelectField" else "text"
                     }
                     if hasattr(field, 'choices'):
                         field_def["choices"] = field.choices
+                        # Attempt to resolve rel_add_url for FKs
+                        try:
+                            col_c = model.__table__.c.get(field.name)
+                            if col_c is not None and col_c.foreign_keys:
+                                raw_fk = list(col_c.foreign_keys)[0].column.table.name
+                                from arasCore.admin.models import AppManagerTable as _AMT, AppManagerApp as _AMA
+                                _ref_tbl = _AMT.query.filter((_AMT.name == raw_fk) | (_AMT.db_table_name == raw_fk)).first()
+                                if _ref_tbl:
+                                    _ref_app = _AMA.query.get(_ref_tbl.app_id)
+                                    if _ref_app:
+                                        field_def["rel_add_url"] = f"/admin{_ref_app.url_prefix}{_ref_tbl.get_full_url(_ref_app.url_prefix)}/add/?view_engine=react"
+                        except Exception:
+                            pass
                     react_fields.append(field_def)
 
                 return render_template(
@@ -841,6 +867,7 @@ class AdminResourceMounter:
             self.bp.add_url_rule(f"{url}/",                      endpoint=f"{ep}_list",        view_func=self.make_list())
             self.bp.add_url_rule(f"{url}/add/",                  endpoint=f"{ep}_add",         view_func=self.make_add(),         methods=["GET", "POST"])
             self.bp.add_url_rule(f"{url}/<int:item_id>/",        endpoint=f"{ep}_edit",        view_func=self.make_edit(),        methods=["GET", "POST"])
+            self.bp.add_url_rule(f"{url}/<int:item_id>/edit/",   endpoint=f"{ep}_edit_alt",    view_func=self.make_edit(),        methods=["GET", "POST"])
             self.bp.add_url_rule(f"{url}/<int:item_id>/delete/", endpoint=f"{ep}_delete",      view_func=self.make_delete(),      methods=["POST"])
             self.bp.add_url_rule(f"{url}/bulk-delete/",          endpoint=f"{ep}_bulk_delete", view_func=self.make_bulk_delete(), methods=["POST"])
 

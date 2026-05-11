@@ -5,10 +5,28 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import ArasListView from './components/ArasListView.jsx'
 import ArasFormView from './components/ArasFormView.jsx'
-import ArasFullListView from './components/ArasFullListView.jsx'
 import ReactAppShell from './components/ReactAppShell.jsx'
-import SupplierPage from './components/SupplierPage.jsx'
-...
+
+class ErrorBoundary extends ReactComponent {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '20px', color: 'red', fontFamily: 'sans-serif' }}>
+          <h2>Something went wrong.</h2>
+          <pre>{this.state.error?.toString()}</pre>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },

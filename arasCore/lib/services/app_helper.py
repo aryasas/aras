@@ -270,7 +270,7 @@ class AppHelper:
         Jika ada menu_groups, children berisi groups.
         Jika tidak, children berisi resources langsung.
         """
-        adm = self.get_admin_prefix()
+        adm = self.get_admin_prefix().rstrip("/")
 
         if self.menu_groups:
             children = []
@@ -279,7 +279,7 @@ class AppHelper:
                     {
                         "title": res.get_menu_title(),
                         "icon":  res.menu_icon,
-                        "url":   res.url if res.url else f"{adm}/{res.name}/",
+                        "url":   res.url if res.url else f"{adm}/{res.name.strip('/')}/",
                     }
                     for res in grp.resources if res.admin_list
                 ]
@@ -297,7 +297,7 @@ class AppHelper:
                 {
                     "title":    res.get_menu_title(),
                     "icon":     res.menu_icon,
-                    "url":      res.url if res.url else f"{adm}/{res.name}/",
+                    "url":      res.url if res.url else f"{adm}/{res.name.strip('/')}/",
                     "children": [],
                 }
                 for res in self.resources if res.admin_list

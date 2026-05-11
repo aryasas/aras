@@ -1,0 +1,371 @@
+[
+  {
+    "title": "ERP",
+    "icon": "fa-building",
+    "order": 5,
+    "url": "/admin/erp/",
+    "children": [
+      {
+        "title": "Configuration",
+        "icon": "fa-cogs",
+        "url": "/admin/erp/configuration/",
+        "type": "group",
+        "children": [
+          {
+            "title": "Doc Series",
+            "icon": "fa-sort-numeric-asc",
+            "url": "/admin/erp/main/doc-series/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Fiscal Year",
+            "icon": "fa-calendar",
+            "url": "/admin/erp/main/fiscal-year/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Roles",
+            "icon": "fa-shield",
+            "url": "/admin/erp/main/role/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Permissions",
+            "icon": "fa-key",
+            "url": "/admin/erp/main/permission/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Print Template Version",
+            "icon": "fa-table",
+            "url": "/admin/erp/main/print-template-version/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Erp Notification",
+            "icon": "fa-table",
+            "url": "/admin/erp/main/notification/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Erp Report Setting",
+            "icon": "fa-table",
+            "url": "/admin/erp/main/report-setting/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Erp Report Favorite",
+            "icon": "fa-table",
+            "url": "/admin/erp/main/report-favorite/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Mode of Payment",
+            "icon": "fa-credit-card",
+            "url": "/admin/erp/main/mode-of-payment/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Company",
+            "icon": "fa-building-o",
+            "url": "/admin/erp/cfg/company/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Currency",
+            "icon": "fa-dollar",
+            "url": "/admin/erp/cfg/currency/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Charges",
+            "icon": "fa-percent",
+            "url": "/admin/erp/cfg/charge/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Price Types",
+            "icon": "fa-tag",
+            "url": "/admin/erp/stock/price-type/",
+            "type": "list",
+            "children": []
+          }
+        ]
+      },
+      {
+        "title": "Reports",
+        "icon": "fa-cogs",
+        "url": "/admin/erp/reports/",
+        "type": "group",
+        "children": [
+          {
+            "title": "Print Templates",
+            "icon": "fa-print",
+            "url": "/admin/erp/main/print-template/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Report Templates",
+            "icon": "fa-file-text-o",
+            "url": "/admin/erp/main/report/",
+            "type": "list",
+            "children": []
+          }
+        ]
+      },
+      {
+        "title": "Accounting",
+        "icon": "fa-calculator",
+        "url": "/admin/erp/accounting/",
+        "type": "group",
+        "children": [
+          {
+            "title": "Chart of Accounts",
+            "icon": "fa-sitemap",
+            "url": "/admin/erp/acc/account/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Journal Entries",
+            "icon": "fa-pencil-square-o",
+            "url": "/admin/erp/acc/entry/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Sales Orders",
+            "icon": "fa-file-text",
+            "url": "/admin/erp/acc/sales-order/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Sales Invoices",
+            "icon": "fa-file-text-o",
+            "url": "/admin/erp/acc/sales-invoice/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Purchase Invoices",
+            "icon": "fa-file-o",
+            "url": "/admin/erp/acc/purchase-invoice/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Payments",
+            "icon": "fa-money",
+            "url": "/admin/erp/acc/payment/",
+            "type": "list",
+            "children": []
+          }
+        ]
+      },
+      {
+        "title": "CRM",
+        "icon": "fa-handshake-o",
+        "url": "/admin/erp/crm/",
+        "type": "group",
+        "children": [
+          {
+            "title": "Customer Group",
+            "icon": "fa-users",
+            "url": "/admin/erp/crm/customer-group/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Customers",
+            "icon": "fa-user-circle",
+            "url": "/admin/erp/crm/customer/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Pipelines",
+            "icon": "fa-random",
+            "url": "/admin/erp/crm/pipeline/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Leads",
+            "icon": "fa-filter",
+            "url": "/admin/erp/crm/lead/",
+            "type": "list",
+            "children": []
+          }
+        ]
+      },
+      {
+        "title": "Supplier",
+        "icon": "fa-truck",
+        "url": "/admin/erp/supplier/",
+        "type": "group",
+        "children": [
+          {
+            "title": "Supplier Group",
+            "icon": "fa-users",
+            "url": "/admin/erp/sup/supplier-group/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Suppliers",
+            "icon": "fa-truck",
+            "url": "/admin/erp/sup/supplier/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Purchase Orders",
+            "icon": "fa-shopping-basket",
+            "url": "/admin/erp/sup/purchase-order/",
+            "type": "list",
+            "children": []
+          }
+        ]
+      },
+      {
+        "title": "arasPos",
+        "icon": "fa-shopping-cart",
+        "url": "/admin/erp/araspos/",
+        "type": "group",
+        "children": [
+          {
+            "title": "Open POS",
+            "icon": "fa-cash-register",
+            "url": "/admin/erp/pos/",
+            "type": "link",
+            "children": []
+          },
+          {
+            "title": "Terminals",
+            "icon": "fa-desktop",
+            "url": "/admin/erp/pos/terminal/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Sessions",
+            "icon": "fa-clock-o",
+            "url": "/admin/erp/pos/session/",
+            "type": "list",
+            "children": []
+          }
+        ]
+      },
+      {
+        "title": "Stock",
+        "icon": "fa-cubes",
+        "url": "/admin/erp/stock/",
+        "type": "group",
+        "children": [
+          {
+            "title": "Units of Measure",
+            "icon": "fa-balance-scale",
+            "url": "/admin/erp/stock/uom/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Product Categories",
+            "icon": "fa-folder-o",
+            "url": "/admin/erp/stock/product-category/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Products",
+            "icon": "fa-cube",
+            "url": "/admin/erp/stock/product/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Price List",
+            "icon": "fa-money",
+            "url": "/admin/erp/stock/price-list-item/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Product Bundles",
+            "icon": "fa-cubes",
+            "url": "/admin/erp/stock/product-bundle/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Promo Bundles",
+            "icon": "fa-gift",
+            "url": "/admin/erp/stock/promo-bundle/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Locations",
+            "icon": "fa-building-o",
+            "url": "/admin/erp/stock/location/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Stock Movements",
+            "icon": "fa-exchange",
+            "url": "/admin/erp/stock/movement/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Delivery Trips",
+            "icon": "fa-road",
+            "url": "/admin/erp/stock/delivery-trip/",
+            "type": "list",
+            "children": []
+          },
+          {
+            "title": "Delivery Orders",
+            "icon": "fa-map-marker",
+            "url": "/admin/erp/stock/delivery-order/",
+            "type": "list",
+            "children": []
+          }
+        ]
+      },
+      {
+        "title": "Settings",
+        "icon": "fa-cog",
+        "url": "/admin/erp/settings/",
+        "type": "settings",
+        "children": []
+      }
+    ],
+    "source": "db",
+    "app_slug": "erp"
+  },
+  {
+    "title": "Trash",
+    "icon": "fa-trash-o",
+    "order": 999,
+    "url": "/admin/trash/",
+    "children": [],
+    "source": "framework",
+    "app_slug": "trash"
+  }
+]

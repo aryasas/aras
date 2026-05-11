@@ -126,6 +126,69 @@ def _row_to_dict(obj) -> dict:
     return result
 
 
+def _save_api_child_data(obj, data: dict):
+    """
+    Look for keys in data that match child table names and save them.
+    Used for Universal API POST/PUT.
+    """
+    from sqlalchemy import inspect as sa_inspect
+    from arasCore.lib.core.extensions import db
+    
+    try:
+        mapper = sa_inspect(obj.__class__)
+        for rel in mapper.relationships:
+            if rel.uselist:
+                child_cls = rel.mapper.class_
+                child_table_name = child_cls.__tablename__
+                
+                # We check both the relationship key (e.g. 'items') 
+                # and the tablename (e.g. 'sales_invoice_item')
+                rows = data.get(rel.key) or data.get(child_table_name)
+                
+                if rows is not None and isinstance(rows, list):
+                    # For now, we use a "sync" approach: 
+                    # 1. Identify existing children
+                    existing_children = {getattr(c, 'id'): c for c in getattr(obj, rel.key)}
+                    
+                    new_collection = []
+                    for row_data in rows:
+                        row_id = row_data.get('id')
+                        if row_id and str(row_id).isdigit() and int(row_id) in existing_children:
+                            # Update existing
+                            child_obj = existing_children[int(row_id)]
+                            for k, v in row_data.items():
+                                if k != 'id' and hasattr(child_obj, k):
+                                    if v == "" or v == "0" or v == 0:
+                                        if k.endswith("_id"):
+                                            v = None
+                                    setattr(child_obj, k, v)
+                            new_collection.append(child_obj)
+                        else:
+                            # Create new
+                            child_obj = child_cls()
+                            # Find FK to parent
+                            from arasCore.admin.crud_factory import _detect_parent_fk
+                            fk_col = _detect_parent_fk(child_cls, obj.__class__)
+                            if fk_col:
+                                setattr(child_obj, fk_col, obj.id)
+                            
+                            for k, v in row_data.items():
+                                if k != 'id' and hasattr(child_obj, k):
+                                    if v == "" or v == "0" or v == 0:
+                                        if k.endswith("_id"):
+                                            v = None
+                                    setattr(child_obj, k, v)
+                            db.session.add(child_obj)
+                            new_collection.append(child_obj)
+                    
+                    # 2. Set the relationship (SQLAlchemy handles the rest if properly configured,
+                    # but we might need to delete orphans manually if cascade is not set)
+                    setattr(obj, rel.key, new_collection)
+                    
+    except Exception as e:
+        logger.warning(f"[api_handler] _save_api_child_data failed: {e}")
+
+
 def _match_custom_route(pattern: str, key: str) -> dict | None:
     """Match a URL key against a custom route pattern with <int:name> or <name> segments.
     Returns a dict of captured kwargs if matched, or None."""
@@ -335,6 +398,23 @@ def _build_api_blueprint() -> Blueprint:
                         res = apply_formulas(res, tbl.columns)
             except Exception as e:
                 logger.debug(f"[api_handler] apply_formulas failed: {e}")
+            
+            # ── Discover and include child table data ──
+            try:
+                from sqlalchemy import inspect as sa_inspect
+                mapper = sa_inspect(obj.__class__)
+                for rel in mapper.relationships:
+                    if rel.uselist: # It's a collection (1-to-many)
+                        child_cls = rel.mapper.class_
+                        child_table_name = child_cls.__tablename__
+                        child_rows = getattr(obj, rel.key)
+                        if child_rows:
+                            # Use simple serialization for children to avoid deep nesting issues
+                            res[child_table_name] = [_row_to_dict(cr) for cr in child_rows]
+                        else:
+                            res[child_table_name] = []
+            except Exception as _ce:
+                logger.debug(f"[api_handler] child data discovery failed: {_ce}")
                 
             return res
 
@@ -416,6 +496,8 @@ def _build_api_blueprint() -> Blueprint:
                     obj.updated_by_id = user_id
                 obj.before_save(is_new=True)
                 db.session.add(obj)
+                db.session.flush()
+                _save_api_child_data(obj, data)
                 db.session.commit()
                 obj.after_save(is_new=True)
                 _rse(_app_slug, _res_slug, "after_insert", obj)
@@ -431,6 +513,8 @@ def _build_api_blueprint() -> Blueprint:
                     h.before_create(data, obj)
                 _rse(_app_slug, _res_slug, "before_insert", obj)
                 db.session.add(obj)
+                db.session.flush()
+                _save_api_child_data(obj, data)
                 db.session.commit()
                 _rse(_app_slug, _res_slug, "after_insert", obj)
                 if h:
@@ -516,7 +600,9 @@ def _build_api_blueprint() -> Blueprint:
                     for col in obj.__table__.columns:
                         if col.name != "id" and col.name in data:
                             setattr(obj, col.name, data[col.name])
+                    _save_api_child_data(obj, data)
                     db.session.commit()
+
                 record_field_diff(obj, _before, _snapshot(obj))
                 _rse(_app_slug, _res_slug, "after_update", obj)
                 if h:

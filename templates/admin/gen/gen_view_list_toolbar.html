@@ -94,7 +94,7 @@
 
       {# View switcher: list / tree / report #}
       {% set _cur_view = request.args.get('view', 'list') %}
-      {% set _v_engine = request.args.get('view_engine', 'legacy') %}
+      {% set _v_engine = request.args.get('view_engine', 'react') %}
       <div class="aras-toolbar__menu">
         <button type="button" class="aras-iconbtn aras-iconbtn--label" id="viewToggleBtn{{ _lid }}">
           {% if _v_engine == 'react' %}<i class="fa fa-bolt" style="color:var(--studio-ochre)"></i><span>Modern</span>
@@ -105,17 +105,14 @@
         </button>
         <div id="viewTogglePopover{{ _lid }}" class="aras-popover aras-popover--right" style="display:none;min-width:170px;">
           <div class="aras-popover__list">
+            <a class="aras-popover__row{% if _v_engine == 'react' %} is-active{% endif %}"
+               href="{{ url_for(request.endpoint, view_engine='react', **request.view_args) }}">
+              <i class="fa fa-bolt" style="color:var(--studio-ochre)"></i><span>Modern Grid</span>
+            </a>
             <a class="aras-popover__row{% if _v_engine == 'legacy' and _cur_view == 'list' %} is-active{% endif %}"
                href="{{ url_for(request.endpoint, view='list', view_engine='legacy', **request.view_args) }}">
               <i class="fa fa-list"></i><span>Standard List</span>
-            </a>
-            {% if app_slug == "erp" and request.path.endswith('crm/customer/') %}
-            <a class="aras-popover__row{% if _v_engine == 'react' %} is-active{% endif %}"
-               href="{{ url_for(request.endpoint, view_engine='react', **request.view_args) }}">
-              <i class="fa fa-bolt" style="color:var(--studio-ochre)"></i><span>Modern Grid (Beta)</span>
-            </a>
-            {% endif %}
-            {% if all_columns is defined and 'parent_id' in (all_columns | map(attribute=1) | list) %}
+            </a>            {% if all_columns is defined and 'parent_id' in (all_columns | map(attribute=1) | list) %}
             <a class="aras-popover__row{% if _cur_view == 'tree' %} is-active{% endif %}"
                href="{{ url_for(request.endpoint, view='tree', **request.view_args) }}">
               <i class="fa fa-sitemap"></i><span>Tree</span>

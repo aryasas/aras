@@ -8,47 +8,46 @@
         </button>
     </div>
 
-    <nav class="aras-sidebar__nav" id="sidebar-nav" 
-         hx-target="#main-content" 
-         hx-select="#main-content" 
-         hx-swap="innerHTML"
-         hx-push-url="true">
-        <div class="kicker sidebar-kicker sidebar-kicker--top">Workspace</div>
-        <ul class="no-list-style">
-            <li>
-                <a href="{{ url_for('admin.dashboard') }}" class="side-item">
-                    <i class="ti-home"></i>
-                    <span>Dashboard</span>
-                </a>
-            </li>
+    <nav class="aras-sidebar__nav" id="sidebar-nav">
+        {% if g.gmenu %}
+            {% set apps = [] %}
+            {% set systems = [] %}
+            {% for item in g.gmenu %}
+                {% if item.source == 'db' or item.source == 'manifest' %}
+                    {% set _ = apps.append(item) %}
+                {% elif item.app_slug == 'admin' or item.app_slug == 'trash' %}
+                    {% set _ = systems.append(item) %}
+                {% endif %}
+            {% endfor %}
 
-            {% if g.gmenu %} 
-                {% for app in g.gmenu %}
+            {% if apps %}
+            <div class="kicker sidebar-kicker">Applications</div>
+            <ul class="no-list-style">
+                {% for app in apps %}
                 <li>
-                    <a href="{{ app.url or '#' }}" class="side-item">
+                    <a href="{{ app.url or '#' }}" class="side-item {% if request.path == app.url %}active{% endif %}">
                         <i class="fa {{ app.icon or 'fa-cubes' }}"></i>
                         <span>{{ app.title }}</span>
                     </a>
                 </li>
-                {% endfor %} 
+                {% endfor %}
+            </ul>
             {% endif %}
-        </ul>
 
-        <div class="kicker sidebar-kicker sidebar-kicker--bottom">System</div>
-        <ul class="no-list-style">
-            <li>
-                <a href="{{ url_for('admin.settings') }}" class="side-item">
-                    <i class="ti-settings"></i>
-                    <span>Settings</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ url_for('admin.help_page') }}" class="side-item">
-                    <i class="ti-help-alt"></i>
-                    <span>Help</span>
-                </a>
-            </li>
-        </ul>
+            {% if systems %}
+            <div class="kicker sidebar-kicker">System</div>
+            <ul class="no-list-style">
+                {% for sys in systems %}
+                <li>
+                    <a href="{{ sys.url or '#' }}" class="side-item {% if request.path == sys.url %}active{% endif %}">
+                        <i class="fa {{ sys.icon or 'fa-cog' }}"></i>
+                        <span>{{ sys.title }}</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        {% endif %}
     </nav>
 </aside>
 

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { useForm } from '@tanstack/react-form'
 import { useEffect, useState, useMemo } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
 import ArasChildTable from './ArasChildTable'
 import ArasSearchableSelect from './ArasSearchableSelect'
 
@@ -10,14 +11,15 @@ import ArasSearchableSelect from './ArasSearchableSelect'
  * Features: Multi-section layout, Engraved inputs, Sticky actions, and Child Table integration.
  */
 export default function ArasFormView({ app, resource, id, fields = [], childTables = [], redirectOnSave }) {
+  const navigate = useNavigate()
   const qc = useQueryClient()
   const isNew = !id
   const [isDirty, setIsDirty] = useState(false)
 
   // Fetch resource metadata if fields or childTables are missing
   const { data: config, isLoading: configLoading } = useQuery({
-    queryKey: ['resource-config', resource],
-    queryFn: () => api.resourceConfig(resource),
+    queryKey: ['resource-config', app, resource],
+    queryFn: () => api.resourceConfig(`${app}/${resource}`),
     enabled: !fields?.length || !childTables?.length,
   })
 
@@ -58,7 +60,7 @@ export default function ArasFormView({ app, resource, id, fields = [], childTabl
     onSuccess: () => {
       qc.invalidateQueries([app, resource])
       const dest = redirectOnSave ?? `/admin/${app}/${resource}/`
-      window.location.href = dest
+      navigate(dest)
     },
   })
 
@@ -93,11 +95,11 @@ export default function ArasFormView({ app, resource, id, fields = [], childTabl
         
         {/* BREADCRUMB / NAV */}
         <div className="mb-6 flex items-center gap-2 text-[11px] font-bold text-[#9aacb8] uppercase tracking-widest">
-          <a href="/admin/" className="hover:text-[#0f1b2d] transition-colors">Aras</a>
+          <Link to="/admin/" className="hover:text-[#0f1b2d] transition-colors">Aras</Link>
           <span>/</span>
-          <a href={`/admin/${app}/`} className="hover:text-[#0f1b2d] transition-colors">{app}</a>
+          <Link to={`/admin/${app}/`} className="hover:text-[#0f1b2d] transition-colors">{app}</Link>
           <span>/</span>
-          <a href={`/admin/${app}/${resource}/`} className="hover:text-[#0f1b2d] transition-colors">{formattedTitle}</a>
+          <Link to={`/admin/${app}/${resource}/`} className="hover:text-[#0f1b2d] transition-colors">{formattedTitle}</Link>
         </div>
 
         <div className="bg-white border border-[#dde3e7] rounded-md shadow-2xl overflow-hidden animate-slide-up">
@@ -276,12 +278,12 @@ export default function ArasFormView({ app, resource, id, fields = [], childTabl
           </div>
 
           <div className="flex items-center gap-6">
-            <a
-              href={`/admin/${app}/${resource}/`}
+            <Link
+              to={`/admin/${app}/${resource}/`}
               className="text-[12px] font-bold text-[#9aacb8] hover:text-[#6b2c2c] transition-colors uppercase tracking-[0.2em]"
             >
               Cancel
-            </a>
+            </Link>
             
             <form.Subscribe
               selector={(state) => [state.canSubmit, state.isSubmitting]}

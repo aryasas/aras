@@ -183,7 +183,10 @@ class AppManagerTable(ArasModel):
         return f"{safe}_{self.name}"
 
     def get_full_url(self, app_url):
-        return f"{app_url}{self.url_suffix}"
+        # Normalize: ensure app_url doesn't end with / and url_suffix starts with /
+        base = app_url.rstrip("/")
+        suffix = self.url_suffix if self.url_suffix.startswith("/") else f"/{self.url_suffix}"
+        return f"{base}{suffix}"
 
     @property
     def edit_url(self):

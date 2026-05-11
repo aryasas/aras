@@ -1,0 +1,5679 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doc Series</title>
+    
+    <!-- Modern Sans-Serif Font (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- React Assets (Vite) -->
+    <link rel="stylesheet" href="/static/dist/aras.main.css?v=7976">
+    <script type="module" src="/static/dist/aras.main.js?v=2844"></script>
+    
+    <style>
+        :root {
+            --bg-main: #fcfcfd;
+            --text-primary: #101828;
+            --text-secondary: #667085;
+            --accent: #7f56d9; /* Modern Violet */
+        }
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            height: 100%; 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-main); 
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+        }
+        /* Custom scrollbar for an elegant feel */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e4e7ec; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #d0d5dd; }
+
+        #root:empty { display: flex; align-items: center; justify-content: center; height: 100vh; background: #fff; }
+        #root:empty::after { 
+            content: '';
+            width: 24px;
+            height: 24px;
+            border: 2px solid #eaecf0;
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div 
+        id="root" 
+        data-aras-mount="ReactAppShell" 
+        data-aras-props='{"addUrl": "/admin/erp/main/doc-series/add/?view_engine=react", "appSlug": "erp", "columns": [{"label": "Company", "name": "company_id"}, {"label": "Code", "name": "code"}, {"label": "Description", "name": "description"}, {"label": "Prefix", "name": "prefix"}, {"label": "Suffix", "name": "suffix"}, {"label": "Padding", "name": "padding"}], "editUrlBase": "/admin/erp/main/doc-series", "mainTitle": "Doc Series", "perPage": 20, "resource": "main/doc-series", "title": "Doc Series", "userRole": "admin", "viewType": "list"}'
+    ></div>
+<div id="flDebug" style="display:none;" role="navigation">
+  <script type="text/javascript">var DEBUG_TOOLBAR_STATIC_PATH = '/_debug_toolbar/static/'</script>
+  <script type="text/javascript" src="/_debug_toolbar/static/js/jquery.js"></script>
+  <!-- Temporarily adding jquery-migrate during the Jquery upgrade process, this can be removed post-upgrade -->
+  <script src="/_debug_toolbar/static/js/jquery-migrate.js"></script>
+  <script type="text/javascript" src="/_debug_toolbar/static/js/jquery.tablesorter.js"></script>
+  <script type="text/javascript" src="/_debug_toolbar/static/js/toolbar.js"></script>
+
+  <div style="display: none;" id="flDebugToolbar">
+    <ol id="flDebugPanelList">
+      
+      <li><a id="flDebugHideToolBarButton" href="#" title="Hide Toolbar">Hide &raquo;</a></li>
+      
+
+      
+      <li id="flDebugVersionPanel">
+        
+        <a href="" title="Versions" class="flDebugVersionPanel">
+        
+
+        Versions
+        <br /><small>Flask 3.1.3</small>
+
+        
+        </a>
+        
+        
+      </li>
+      
+      <li id="flDebugTimerPanel">
+        
+        <a href="" title="Resource Usage" class="flDebugTimerPanel">
+        
+
+        Time
+        <br /><small>CPU: 14.88ms (16.19ms)</small>
+
+        
+        </a>
+        
+        
+      </li>
+      
+      <li id="flDebugHeaderPanel">
+        
+        <a href="" title="HTTP Headers" class="flDebugHeaderPanel">
+        
+
+        HTTP Headers
+        
+
+        
+        </a>
+        
+        
+      </li>
+      
+      <li id="flDebugRequestVarsPanel">
+        
+        <a href="" title="Request Vars" class="flDebugRequestVarsPanel">
+        
+
+        Request Vars
+        
+
+        
+        </a>
+        
+        
+      </li>
+      
+      <li id="flDebugConfigVarsPanel">
+        
+        <a href="" title="Config" class="flDebugConfigVarsPanel">
+        
+
+        Config
+        
+
+        
+        </a>
+        
+        
+      </li>
+      
+      <li id="flDebugTemplatePanel">
+        
+        <a href="" title="Templates" class="flDebugTemplatePanel">
+        
+
+        Templates
+        <br /><small>1 rendered</small>
+
+        
+        </a>
+        
+        
+      </li>
+      
+      <li id="flDebugSQLAlchemyPanel">
+        
+        <a href="" title="SQLAlchemy queries" class="flDebugSQLAlchemyPanel">
+        
+
+        SQLAlchemy
+        <br /><small>Unavailable</small>
+
+        
+        </a>
+        
+        
+      </li>
+      
+      <li id="flDebugLoggingPanel">
+        
+        <a href="" title="Log Messages" class="flDebugLoggingPanel">
+        
+
+        Logging
+        <br /><small>0 messages</small>
+
+        
+        </a>
+        
+        
+      </li>
+      
+      <li id="flDebugRouteListPanel">
+        
+        <a href="" title="Route List" class="flDebugRouteListPanel">
+        
+
+        Route List
+        <br /><small>426 routes</small>
+
+        
+        </a>
+        
+        
+      </li>
+      
+      <li id="flDebugProfilerPanel">
+        
+        <div class="flDebugContentless">
+        
+
+        Profiler
+        <br /><small>in-active</small>
+
+        
+        </div>
+        
+        
+        <span class="flDebugSwitch flDebugInactive" title="Enable or disable the panel"></span>
+        
+      </li>
+      
+      <li id="flDebuggPanel">
+        
+        <a href="" title="flask.g content" class="flDebuggPanel">
+        
+
+        flask.g
+        
+
+        
+        </a>
+        
+        
+      </li>
+      
+    </ol>
+  </div>
+  <div style="display:none;" id="flDebugToolbarHandle">
+    <a title="Show Toolbar" id="flDebugShowToolBarButton" href="#">&laquo;</a>
+  </div>
+  
+    
+    <div id="flDebugVersionPanel-content" class="flDebugPanelContentParent">
+      <div class="flDebugPanelTitle">
+        <a href="" class="flDebugClose">Close</a>
+        <h3>Versions</h3>
+      </div>
+      <div class="flDebugPanelContent">
+        <div class="flDebugScroll">
+          <h4>Installed Packages</h4>
+
+<p>
+  Current Site Packages Directory:
+</p>
+<pre>
+/Users/aras/Dev/aras/venv/lib/python3.14/site-packages
+</pre>
+
+<table>
+  <thead>
+    <tr>
+      <th>Package</th>
+      <th>Version</th>
+      <th>Homepage</th>
+      <th>Summary</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+      <tr class="flDebugOdd">
+        <td>alembic</td>
+        <td>1.18.4</td>
+        <td>None</td>
+        <td>A database migration tool for SQLAlchemy.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>amqp</td>
+        <td>5.3.1</td>
+        <td>http://github.com/celery/py-amqp</td>
+        <td>Low-level AMQP client for Python (fork of amqplib).</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>annotated-doc</td>
+        <td>0.0.4</td>
+        <td>None</td>
+        <td>Document parameters, class attributes, return types, and variables inline, with Annotated.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>annotated-types</td>
+        <td>0.7.0</td>
+        <td>None</td>
+        <td>Reusable constraint types to use with typing.Annotated</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>anyio</td>
+        <td>4.13.0</td>
+        <td>None</td>
+        <td>High-level concurrency and networking framework on top of asyncio or Trio</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>aras</td>
+        <td>0.1</td>
+        <td>None</td>
+        <td>Aras Framework.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>aras</td>
+        <td>0.1</td>
+        <td>None</td>
+        <td>Aras Framework.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>aras</td>
+        <td>0.1</td>
+        <td>None</td>
+        <td>Aras Framework.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>attrs</td>
+        <td>26.1.0</td>
+        <td>None</td>
+        <td>Classes Without Boilerplate</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>bcrypt</td>
+        <td>5.0.0</td>
+        <td>None</td>
+        <td>Modern password hashing for your software and your servers</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>billiard</td>
+        <td>4.2.4</td>
+        <td>https://github.com/celery/billiard</td>
+        <td>Python multiprocessing fork with improvements and bugfixes</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>blinker</td>
+        <td>1.9.0</td>
+        <td>None</td>
+        <td>Fast, simple object-to-object and broadcast signaling</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>build</td>
+        <td>1.5.0</td>
+        <td>None</td>
+        <td>A simple, correct Python build frontend</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>cachelib</td>
+        <td>0.13.0</td>
+        <td>https://github.com/pallets-eco/cachelib/</td>
+        <td>A collection of cache libraries in the same API interface.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>celery</td>
+        <td>5.6.3</td>
+        <td>https://docs.celeryq.dev/</td>
+        <td>Distributed Task Queue.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>certifi</td>
+        <td>2026.4.22</td>
+        <td>https://github.com/certifi/python-certifi</td>
+        <td>Python package for providing Mozilla&#39;s CA Bundle.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>cffi</td>
+        <td>2.0.0</td>
+        <td>None</td>
+        <td>Foreign Function Interface for Python calling C code.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>charset-normalizer</td>
+        <td>3.4.7</td>
+        <td>None</td>
+        <td>The Real First Universal Charset Detector. Open, modern and actively maintained alternative to Chardet.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>chromadb</td>
+        <td>1.5.9</td>
+        <td>None</td>
+        <td>Chroma.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>claude-agent-sdk</td>
+        <td>0.1.80</td>
+        <td>None</td>
+        <td>Python SDK for Claude Code</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>click</td>
+        <td>8.3.2</td>
+        <td>None</td>
+        <td>Composable command line interface toolkit</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>click-didyoumean</td>
+        <td>0.3.1</td>
+        <td>https://github.com/click-contrib/click-didyoumean</td>
+        <td>Enables git-like *did-you-mean* feature in click</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>click-plugins</td>
+        <td>1.1.1.2</td>
+        <td>https://github.com/click-contrib/click-plugins</td>
+        <td>An extension module for click to enable registering CLI commands via setuptools entry-points.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>click-repl</td>
+        <td>0.3.0</td>
+        <td>https://github.com/untitaker/click-repl</td>
+        <td>REPL plugin for Click</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>croniter</td>
+        <td>6.2.2</td>
+        <td>None</td>
+        <td>croniter provides iteration for datetime object with cron like format</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>cryptography</td>
+        <td>48.0.0</td>
+        <td>None</td>
+        <td>cryptography is a package which provides cryptographic recipes and primitives to Python developers.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>durationpy</td>
+        <td>0.10</td>
+        <td>https://github.com/icholy/durationpy</td>
+        <td>Module for converting between datetime.timedelta and Go&#39;s Duration strings.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>filelock</td>
+        <td>3.29.0</td>
+        <td>None</td>
+        <td>A platform independent file lock.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>Flask</td>
+        <td>3.1.3</td>
+        <td>None</td>
+        <td>A simple framework for building complex web applications.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>Flask-Caching</td>
+        <td>2.4.0</td>
+        <td>None</td>
+        <td>Adds caching support to Flask applications.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>Flask-Celery</td>
+        <td>2.4.3</td>
+        <td>http://github.com/ask/flask-celery/</td>
+        <td>Celery integration for Flask</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>Flask-DebugToolbar</td>
+        <td>0.16.0</td>
+        <td>None</td>
+        <td>A toolbar overlay for debugging Flask applications.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>Flask-Login</td>
+        <td>0.6.3</td>
+        <td>https://github.com/maxcountryman/flask-login</td>
+        <td>User authentication and session management for Flask.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>Flask-Mail</td>
+        <td>0.10.0</td>
+        <td>None</td>
+        <td>Flask extension for sending email</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>flask-marshmallow</td>
+        <td>1.5.0</td>
+        <td>None</td>
+        <td>Flask + marshmallow for beautiful APIs</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>Flask-Migrate</td>
+        <td>4.1.0</td>
+        <td>None</td>
+        <td>SQLAlchemy database migrations for Flask applications using Alembic.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>Flask-Moment</td>
+        <td>1.0.6</td>
+        <td>None</td>
+        <td>Formatting of dates and times in Flask templates using moment.js.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>Flask-Script</td>
+        <td>2.0.6</td>
+        <td>http://github.com/smurfix/flask-script</td>
+        <td>Scripting support for Flask</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>Flask-SQLAlchemy</td>
+        <td>3.1.1</td>
+        <td>None</td>
+        <td>Add SQLAlchemy support to your Flask application.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>flatbuffers</td>
+        <td>25.12.19</td>
+        <td>https://google.github.io/flatbuffers/</td>
+        <td>The FlatBuffers serialization format for Python</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>fsspec</td>
+        <td>2026.4.0</td>
+        <td>None</td>
+        <td>File-system specification</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>googleapis-common-protos</td>
+        <td>1.75.0</td>
+        <td>None</td>
+        <td>Common protobufs used in Google APIs</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>grpcio</td>
+        <td>1.80.0</td>
+        <td>None</td>
+        <td>HTTP/2-based RPC framework</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>h11</td>
+        <td>0.16.0</td>
+        <td>https://github.com/python-hyper/h11</td>
+        <td>A pure-Python, bring-your-own-I/O implementation of HTTP/1.1</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>hf-xet</td>
+        <td>1.5.0</td>
+        <td>None</td>
+        <td>Fast transfer of large files with the Hugging Face Hub.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>httpcore</td>
+        <td>1.0.9</td>
+        <td>None</td>
+        <td>A minimal low-level HTTP client.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>httptools</td>
+        <td>0.7.1</td>
+        <td>None</td>
+        <td>A collection of framework independent HTTP protocol utils.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>httpx</td>
+        <td>0.28.1</td>
+        <td>None</td>
+        <td>The next generation HTTP client.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>httpx-sse</td>
+        <td>0.4.3</td>
+        <td>None</td>
+        <td>Consume Server-Sent Event (SSE) messages with HTTPX.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>huggingface_hub</td>
+        <td>1.14.0</td>
+        <td>https://github.com/huggingface/huggingface_hub</td>
+        <td>Client library to download and publish models, datasets and other repos on the huggingface.co hub</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>idna</td>
+        <td>3.13</td>
+        <td>None</td>
+        <td>Internationalized Domain Names in Applications (IDNA)</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>importlib_metadata</td>
+        <td>8.7.1</td>
+        <td>None</td>
+        <td>Read metadata from Python packages</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>importlib_resources</td>
+        <td>7.1.0</td>
+        <td>None</td>
+        <td>Read resources from Python packages</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>infinity</td>
+        <td>1.5</td>
+        <td>https://github.com/kvesteri/infinity</td>
+        <td>All-in-one infinity value for Python. Can be compared to any object.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>iniconfig</td>
+        <td>2.3.0</td>
+        <td>None</td>
+        <td>brain-dead simple config-ini parsing</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>intervals</td>
+        <td>0.9.2</td>
+        <td>https://github.com/kvesteri/intervals</td>
+        <td>Python tools for handling intervals (ranges of comparable objects).</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>itsdangerous</td>
+        <td>2.2.0</td>
+        <td>None</td>
+        <td>Safely pass data to untrusted environments and back.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>Jinja2</td>
+        <td>3.1.6</td>
+        <td>None</td>
+        <td>A very fast and expressive template engine.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>joblib</td>
+        <td>1.5.3</td>
+        <td>None</td>
+        <td>Lightweight pipelining with Python functions</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>jsonschema</td>
+        <td>4.26.0</td>
+        <td>None</td>
+        <td>An implementation of JSON Schema validation for Python</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>jsonschema-specifications</td>
+        <td>2025.9.1</td>
+        <td>None</td>
+        <td>The JSON Schema meta-schemas and vocabularies, exposed as a Registry</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>kombu</td>
+        <td>5.6.2</td>
+        <td>https://kombu.readthedocs.io</td>
+        <td>Messaging library for Python.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>kubernetes</td>
+        <td>35.0.0</td>
+        <td>https://github.com/kubernetes-client/python</td>
+        <td>Kubernetes python client</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>logging</td>
+        <td>0.4.9.6</td>
+        <td>http://www.red-dove.com/python_logging.html</td>
+        <td>A logging module for Python</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>Mako</td>
+        <td>1.3.11</td>
+        <td>https://www.makotemplates.org/</td>
+        <td>A super-fast templating language that borrows the best ideas from the existing templating languages.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>mariadb</td>
+        <td>1.1.14</td>
+        <td>https://www.github.com/mariadb-corporation/mariadb-connector-python</td>
+        <td>Python MariaDB extension</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>markdown-it-py</td>
+        <td>4.2.0</td>
+        <td>None</td>
+        <td>Python port of markdown-it. Markdown parsing, done right!</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>MarkupSafe</td>
+        <td>3.0.3</td>
+        <td>None</td>
+        <td>Safely add untrusted strings to HTML/XML markup.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>marshmallow</td>
+        <td>4.3.0</td>
+        <td>None</td>
+        <td>A lightweight library for converting complex datatypes to and from native Python datatypes.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>marshmallow-sqlalchemy</td>
+        <td>1.5.0</td>
+        <td>None</td>
+        <td>SQLAlchemy integration with the marshmallow (de)serialization library</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>mcp</td>
+        <td>1.27.1</td>
+        <td>None</td>
+        <td>Model Context Protocol SDK</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>mdurl</td>
+        <td>0.1.2</td>
+        <td>None</td>
+        <td>Markdown URL utilities</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>mmh3</td>
+        <td>5.2.1</td>
+        <td>None</td>
+        <td>Python extension for MurmurHash (MurmurHash3), a set of fast and robust hash functions.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>mpmath</td>
+        <td>1.3.0</td>
+        <td>http://mpmath.org/</td>
+        <td>Python library for arbitrary-precision floating-point arithmetic</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>networkx</td>
+        <td>3.6.1</td>
+        <td>None</td>
+        <td>Python package for creating and manipulating graphs and networks</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>numpy</td>
+        <td>2.4.4</td>
+        <td>None</td>
+        <td>Fundamental package for array computing in Python</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>oauthlib</td>
+        <td>3.3.1</td>
+        <td>https://github.com/oauthlib/oauthlib</td>
+        <td>A generic, spec-compliant, thorough implementation of the OAuth request-signing logic</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>onnxruntime</td>
+        <td>1.26.0</td>
+        <td>https://onnxruntime.ai</td>
+        <td>ONNX Runtime is a runtime accelerator for Machine Learning models</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>opentelemetry-api</td>
+        <td>1.41.1</td>
+        <td>None</td>
+        <td>OpenTelemetry Python API</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>opentelemetry-exporter-otlp-proto-common</td>
+        <td>1.41.1</td>
+        <td>None</td>
+        <td>OpenTelemetry Protobuf encoding</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>opentelemetry-exporter-otlp-proto-grpc</td>
+        <td>1.41.1</td>
+        <td>None</td>
+        <td>OpenTelemetry Collector Protobuf over gRPC Exporter</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>opentelemetry-proto</td>
+        <td>1.41.1</td>
+        <td>None</td>
+        <td>OpenTelemetry Python Proto</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>opentelemetry-sdk</td>
+        <td>1.41.1</td>
+        <td>None</td>
+        <td>OpenTelemetry Python SDK</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>opentelemetry-semantic-conventions</td>
+        <td>0.62b1</td>
+        <td>None</td>
+        <td>OpenTelemetry Semantic Conventions</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>orjson</td>
+        <td>3.11.9</td>
+        <td>None</td>
+        <td>Fast, correct Python JSON library supporting dataclasses, datetimes, and numpy</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>overrides</td>
+        <td>7.7.0</td>
+        <td>https://github.com/mkorpela/overrides</td>
+        <td>A decorator to automatically detect mismatch when overriding a method.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>packaging</td>
+        <td>26.1</td>
+        <td>None</td>
+        <td>Core utilities for Python packages</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>pip</td>
+        <td>26.1.1</td>
+        <td>None</td>
+        <td>The PyPA recommended tool for installing Python packages.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>pluggy</td>
+        <td>1.6.0</td>
+        <td>None</td>
+        <td>plugin and hook calling mechanisms for python</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>prompt_toolkit</td>
+        <td>3.0.52</td>
+        <td>None</td>
+        <td>Library for building powerful interactive command lines in Python</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>protobuf</td>
+        <td>6.33.6</td>
+        <td>https://developers.google.com/protocol-buffers/</td>
+        <td>None</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>pybase64</td>
+        <td>1.4.3</td>
+        <td>https://github.com/mayeut/pybase64</td>
+        <td>Fast Base64 encoding/decoding</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>pycparser</td>
+        <td>3.0</td>
+        <td>None</td>
+        <td>C parser in Python</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>pydantic</td>
+        <td>2.13.4</td>
+        <td>None</td>
+        <td>Data validation using Python type hints</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>pydantic-settings</td>
+        <td>2.14.1</td>
+        <td>None</td>
+        <td>Settings management using Pydantic</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>pydantic_core</td>
+        <td>2.46.4</td>
+        <td>https://github.com/pydantic/pydantic</td>
+        <td>Core functionality for Pydantic validation and serialization</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>Pygments</td>
+        <td>2.20.0</td>
+        <td>None</td>
+        <td>Pygments is a syntax highlighting package written in Python.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>PyJWT</td>
+        <td>2.12.1</td>
+        <td>None</td>
+        <td>JSON Web Token implementation in Python</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>PyPika</td>
+        <td>0.51.1</td>
+        <td>https://github.com/kayak/pypika</td>
+        <td>A SQL query builder API for Python</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>pyproject_hooks</td>
+        <td>1.2.0</td>
+        <td>None</td>
+        <td>Wrappers to call pyproject.toml-based build backend hooks.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>pytest</td>
+        <td>9.0.3</td>
+        <td>None</td>
+        <td>pytest: simple powerful testing with Python</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>python-dateutil</td>
+        <td>2.9.0.post0</td>
+        <td>https://github.com/dateutil/dateutil</td>
+        <td>Extensions to the standard Python datetime module</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>python-dotenv</td>
+        <td>1.2.2</td>
+        <td>None</td>
+        <td>Read key-value pairs from a .env file and set them as environment variables</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>python-multipart</td>
+        <td>0.0.27</td>
+        <td>None</td>
+        <td>A streaming multipart parser for Python</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>PyYAML</td>
+        <td>6.0.3</td>
+        <td>https://pyyaml.org/</td>
+        <td>YAML parser and emitter for Python</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>redis</td>
+        <td>7.4.0</td>
+        <td>None</td>
+        <td>Python client for Redis database and key-value store</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>referencing</td>
+        <td>0.37.0</td>
+        <td>None</td>
+        <td>JSON Referencing + Python</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>regex</td>
+        <td>2026.4.4</td>
+        <td>None</td>
+        <td>Alternative regular expression module, to replace re.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>requests</td>
+        <td>2.33.1</td>
+        <td>None</td>
+        <td>Python HTTP for Humans.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>requests-oauthlib</td>
+        <td>2.0.0</td>
+        <td>https://github.com/requests/requests-oauthlib</td>
+        <td>OAuthlib authentication support for Requests.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>rich</td>
+        <td>15.0.0</td>
+        <td>None</td>
+        <td>Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>rpds-py</td>
+        <td>0.30.0</td>
+        <td>None</td>
+        <td>Python bindings to Rust&#39;s persistent data structures (rpds)</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>rq</td>
+        <td>2.8.0</td>
+        <td>None</td>
+        <td>RQ is a simple, lightweight, library for creating background jobs, and processing them.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>safetensors</td>
+        <td>0.7.0</td>
+        <td>None</td>
+        <td>None</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>scikit-learn</td>
+        <td>1.8.0</td>
+        <td>None</td>
+        <td>A set of python modules for machine learning and data mining</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>scipy</td>
+        <td>1.17.1</td>
+        <td>None</td>
+        <td>Fundamental algorithms for scientific computing in Python</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>sentence-transformers</td>
+        <td>5.4.1</td>
+        <td>None</td>
+        <td>Embeddings, Retrieval, and Reranking</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>setuptools</td>
+        <td>81.0.0</td>
+        <td>None</td>
+        <td>Easily download, build, install, upgrade, and uninstall Python packages</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>shellingham</td>
+        <td>1.5.4</td>
+        <td>https://github.com/sarugaku/shellingham</td>
+        <td>Tool to Detect Surrounding Shell</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>six</td>
+        <td>1.17.0</td>
+        <td>https://github.com/benjaminp/six</td>
+        <td>Python 2 and 3 compatibility utilities</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>sniffio</td>
+        <td>1.3.1</td>
+        <td>None</td>
+        <td>Sniff out which async library your code is running under</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>SQLAlchemy</td>
+        <td>2.0.49</td>
+        <td>https://www.sqlalchemy.org</td>
+        <td>Database Abstraction Library</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>SQLAlchemy-Utils</td>
+        <td>0.42.1</td>
+        <td>None</td>
+        <td>Various utility functions for SQLAlchemy.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>sse-starlette</td>
+        <td>3.4.2</td>
+        <td>None</td>
+        <td>SSE plugin for Starlette</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>starlette</td>
+        <td>1.0.0</td>
+        <td>None</td>
+        <td>The little ASGI library that shines.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>sympy</td>
+        <td>1.14.0</td>
+        <td>https://sympy.org</td>
+        <td>Computer algebra system (CAS) in Python</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>tenacity</td>
+        <td>9.1.4</td>
+        <td>https://github.com/jd/tenacity</td>
+        <td>Retry code until it succeeds</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>threadpoolctl</td>
+        <td>3.6.0</td>
+        <td>https://github.com/joblib/threadpoolctl</td>
+        <td>threadpoolctl</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>tokenizers</td>
+        <td>0.22.2</td>
+        <td>None</td>
+        <td>None</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>torch</td>
+        <td>2.11.0</td>
+        <td>None</td>
+        <td>Tensors and Dynamic neural networks in Python with strong GPU acceleration</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>tqdm</td>
+        <td>4.67.3</td>
+        <td>None</td>
+        <td>Fast, Extensible Progress Meter</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>transformers</td>
+        <td>5.8.0</td>
+        <td>https://github.com/huggingface/transformers</td>
+        <td>Transformers: the model-definition framework for state-of-the-art machine learning models in text, vision, audio, and multimodal models, for both inference and training.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>typer</td>
+        <td>0.25.1</td>
+        <td>None</td>
+        <td>Typer, build great CLIs. Easy to code. Based on Python type hints.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>typing-inspection</td>
+        <td>0.4.2</td>
+        <td>None</td>
+        <td>Runtime typing introspection tools</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>typing_extensions</td>
+        <td>4.15.0</td>
+        <td>None</td>
+        <td>Backported and Experimental Type Hints for Python 3.9+</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>tzdata</td>
+        <td>2026.2</td>
+        <td>https://github.com/python/tzdata</td>
+        <td>Provider of IANA time zone data</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>tzlocal</td>
+        <td>5.3.1</td>
+        <td>None</td>
+        <td>tzinfo object for the local timezone</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>urllib3</td>
+        <td>2.6.3</td>
+        <td>None</td>
+        <td>HTTP library with thread-safe connection pooling, file post, and more.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>uvicorn</td>
+        <td>0.46.0</td>
+        <td>None</td>
+        <td>The lightning-fast ASGI server.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>uvloop</td>
+        <td>0.22.1</td>
+        <td>None</td>
+        <td>Fast implementation of asyncio event loop on top of libuv</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>validators</td>
+        <td>0.35.0</td>
+        <td>None</td>
+        <td>Python Data Validation for Humans™</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>vine</td>
+        <td>5.1.0</td>
+        <td>https://github.com/celery/vine</td>
+        <td>Python promises.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>watchfiles</td>
+        <td>1.1.1</td>
+        <td>https://github.com/samuelcolvin/watchfiles</td>
+        <td>Simple, modern and high performance file watching and code reload in python.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>wcwidth</td>
+        <td>0.6.0</td>
+        <td>None</td>
+        <td>Measures the displayed width of unicode strings in a terminal</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>websocket-client</td>
+        <td>1.9.0</td>
+        <td>https://github.com/websocket-client/websocket-client.git</td>
+        <td>WebSocket client for Python with low level API options</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>websockets</td>
+        <td>16.0</td>
+        <td>None</td>
+        <td>An implementation of the WebSocket Protocol (RFC 6455 &amp; 7692)</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>Werkzeug</td>
+        <td>3.1.8</td>
+        <td>None</td>
+        <td>The comprehensive WSGI web application library.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>WTForms-Alchemy</td>
+        <td>0.19.1</td>
+        <td>https://github.com/kvesteri/wtforms-alchemy</td>
+        <td>Generates WTForms forms from SQLAlchemy models.</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>WTForms-Components</td>
+        <td>0.11.0</td>
+        <td>https://github.com/kvesteri/wtforms-components</td>
+        <td>Additional fields, validators and widgets for WTForms.</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>zipp</td>
+        <td>3.23.1</td>
+        <td>None</td>
+        <td>Backport of pathlib-compatible object wrapper for zip files</td>
+      </tr>
+    
+  </tbody>
+</table>
+        </div>
+      </div>
+    </div>
+    
+  
+    
+    <div id="flDebugTimerPanel-content" class="flDebugPanelContentParent">
+      <div class="flDebugPanelTitle">
+        <a href="" class="flDebugClose">Close</a>
+        <h3>Resource Usage</h3>
+      </div>
+      <div class="flDebugPanelContent">
+        <div class="flDebugScroll">
+          <table>
+  <colgroup>
+    <col style="width:20%"/>
+    <col/>
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Resource</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+      <tr class="flDebugOdd">
+        <td>User CPU time</td>
+        <td>14.157 msec</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>System CPU time</td>
+        <td>0.722 msec</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>Total CPU time</td>
+        <td>14.879 msec</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>Elapsed time</td>
+        <td>16.195 msec</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>Context switches</td>
+        <td>0 voluntary, 21 involuntary</td>
+      </tr>
+    
+  </tbody>
+</table>
+        </div>
+      </div>
+    </div>
+    
+  
+    
+    <div id="flDebugHeaderPanel-content" class="flDebugPanelContentParent">
+      <div class="flDebugPanelTitle">
+        <a href="" class="flDebugClose">Close</a>
+        <h3>HTTP Headers</h3>
+      </div>
+      <div class="flDebugPanelContent">
+        <div class="flDebugScroll">
+          <table>
+  <thead>
+    <tr>
+      <th>Key</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+      <tr class="flDebugOdd">
+        <td>HTTP_HOST</td>
+        <td>localhost</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>HTTP_USER_AGENT</td>
+        <td>Werkzeug/3.1.8</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>QUERY_STRING</td>
+        <td></td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>REMOTE_ADDR</td>
+        <td>127.0.0.1</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>REQUEST_METHOD</td>
+        <td>GET</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>SCRIPT_NAME</td>
+        <td></td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>SERVER_NAME</td>
+        <td>localhost</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>SERVER_PORT</td>
+        <td>80</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>SERVER_PROTOCOL</td>
+        <td>HTTP/1.1</td>
+      </tr>
+    
+  </tbody>
+</table>
+        </div>
+      </div>
+    </div>
+    
+  
+    
+    <div id="flDebugRequestVarsPanel-content" class="flDebugPanelContentParent">
+      <div class="flDebugPanelTitle">
+        <a href="" class="flDebugClose">Close</a>
+        <h3>Request Vars</h3>
+      </div>
+      <div class="flDebugPanelContent">
+        <div class="flDebugScroll">
+          
+<h4>View information</h4>
+<table>
+  <thead>
+    <tr>
+      <th>View Function</th>
+      <th>kwargs</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>arasCore.lib.ui.admin_mount.view</td>
+      <td>
+        
+          None
+        
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+
+
+
+<h4>COOKIES Variables</h4>
+
+  
+<table>
+  <colgroup>
+    <col style="width:20%"/>
+    <col/>
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Variable</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+    <tr class="flDebugOdd">
+      <td>&#39;session&#39;</td>
+      <td>&#39;eyJfZnJlc2giOnRydWUsIl91c2VyX2lkIjoiMSJ9.agFv_w.UJpgaSrv9l2TBYMhzQ7Whw6uVrc&#39;</td>
+    </tr>
+    
+  </tbody>
+</table>
+
+
+
+<h4>SESSION Variables</h4>
+
+  
+<table>
+  <colgroup>
+    <col style="width:20%"/>
+    <col/>
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Variable</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+    <tr class="flDebugOdd">
+      <td>&#39;_fresh&#39;</td>
+      <td>False</td>
+    </tr>
+    
+    <tr class="flDebugEven">
+      <td>&#39;_user_id&#39;</td>
+      <td>&#39;1&#39;</td>
+    </tr>
+    
+  </tbody>
+</table>
+
+
+
+
+
+
+
+<h4>GET Variables</h4>
+
+  
+<table>
+  <thead>
+    <tr>
+      <th>Variable</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+  </tbody>
+</table>
+
+
+
+<h4>POST Variables</h4>
+
+  
+<table>
+  <thead>
+    <tr>
+      <th>Variable</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+  </tbody>
+</table>
+
+
+        </div>
+      </div>
+    </div>
+    
+  
+    
+    <div id="flDebugConfigVarsPanel-content" class="flDebugPanelContentParent">
+      <div class="flDebugPanelTitle">
+        <a href="" class="flDebugClose">Close</a>
+        <h3>Config</h3>
+      </div>
+      <div class="flDebugPanelContent">
+        <div class="flDebugScroll">
+          <table>
+    <thead>
+        <tr>
+            <th>Key</th>
+            <th>Value</th>
+        </tr>
+    </thead>
+    <tbody>
+        
+            <tr class="flDebugOdd">
+                <td>_SERVER_START_TIME</td>
+                <td><code>datetime.datetime(2026, 5, 11, 5, 58, 22, 474937)</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>APP_ROOT_FOLDER</td>
+                <td><code>&#39;/Users/aras/Dev/aras/aras&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>APPLICATION_ROOT</td>
+                <td><code>&#39;/&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>ARAS_ADMIN</td>
+                <td><code>None</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>ASSETS_DEBUG</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>CACHE_TYPE</td>
+                <td><code>&#39;SimpleCache&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>CELERY_ALWAYS_EAGER</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>CELERY_BROKER_URL</td>
+                <td><code>&#39;redis://localhost:6379/10&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>CELERY_RESULT_BACKEND</td>
+                <td><code>&#39;redis://localhost:6379/11&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>CSRF_ENABLED</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>DEBUG</td>
+                <td><code>True</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>DEBUG_TB_ENABLED</td>
+                <td><code>True</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>DEBUG_TB_HOSTS</td>
+                <td><code>()</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>DEBUG_TB_INTERCEPT_REDIRECTS</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>DEBUG_TB_PANELS</td>
+                <td><code>(&#39;flask_debugtoolbar.panels.versions.VersionDebugPanel&#39;, &#39;flask_debugtoolbar.panels.timer.TimerDebugPanel&#39;, &#39;flask_debugtoolbar.panels.headers.HeaderDebugPanel&#39;, &#39;flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel&#39;, &#39;flask_debugtoolbar.panels.config_vars.ConfigVarsDebugPanel&#39;, &#39;flask_debugtoolbar.panels.template.TemplateDebugPanel&#39;, &#39;flask_debugtoolbar.panels.sqlalchemy.SQLAlchemyDebugPanel&#39;, &#39;flask_debugtoolbar.panels.logger.LoggingPanel&#39;, &#39;flask_debugtoolbar.panels.route_list.RouteListDebugPanel&#39;, &#39;flask_debugtoolbar.panels.profiler.ProfilerDebugPanel&#39;, &#39;flask_debugtoolbar.panels.g.GDebugPanel&#39;)</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>DEBUG_TB_PROFILER_ENABLED</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>DEBUG_TB_ROUTES_HOST</td>
+                <td><code>None</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>DEBUG_TB_TEMPLATE_EDITOR_ENABLED</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>DEFAULT_PAGINATION_PER_PAGE</td>
+                <td><code>10</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>DOC_ALLOWED_EXTENSIONS</td>
+                <td><code>[&#39;txt&#39;, &#39;pdf&#39;]</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>EXPLAIN_TEMPLATE_LOADING</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>FOLLOWER_PER_PAGE</td>
+                <td><code>20</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>FOLLOWERS_PER_PAGE</td>
+                <td><code>20</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>IMAGE_ALLOWED_EXTENSIONS</td>
+                <td><code>[&#39;png&#39;, &#39;jpg&#39;, &#39;jpeg&#39;, &#39;gif&#39;]</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>JSON_AS_ASCII</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>JSON_SORT_KEYS</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>LOAD_DATA_AS_DICT</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>LOGGING_CONFIG</td>
+                <td><code>&#39;/Users/aras/Dev/aras/log/logging.cfg&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>LOGGING_FILE</td>
+                <td><code>&#39;/Users/aras/Dev/aras/log/logging.log&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>LOGGING_FOLDER</td>
+                <td><code>&#39;/Users/aras/Dev/aras/log/&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>LOGGING_FORMAT</td>
+                <td><code>&#39;default&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>LOGGING_LEVEL</td>
+                <td><code>30</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>LOGGING_LOCATION</td>
+                <td><code>&#39;logging.log&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>LOGIN_VIEW</td>
+                <td><code>&#39;auth.login_view&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>MAIL_PASSWORD</td>
+                <td><code>&#39;Aa999999&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>MAIL_PORT</td>
+                <td><code>465</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>MAIL_SENDER</td>
+                <td><code>[&#39;aryasasubiakti@yahoo.com&#39;]</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>MAIL_SERVER</td>
+                <td><code>&#39;smtp.mail.yahoo.com&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>MAIL_SUBJECT_PREFIX</td>
+                <td><code>&#39;[ARAS]&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>MAIL_USE_SSL</td>
+                <td><code>True</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>MAIL_USE_TLS</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>MAIL_USERNAME</td>
+                <td><code>&#39;aryasasubiakti@yahoo.com&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>MAX_CONTENT_LENGTH</td>
+                <td><code>None</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>MAX_COOKIE_SIZE</td>
+                <td><code>4093</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>MAX_FORM_MEMORY_SIZE</td>
+                <td><code>500000</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>MAX_FORM_PARTS</td>
+                <td><code>1000</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>PASSTHROUGH_ERROR</td>
+                <td><code>True</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>PERMANENT_SESSION_LIFETIME</td>
+                <td><code>datetime.timedelta(days=31)</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>POSTS_PER_PAGE</td>
+                <td><code>5</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>PREFERRED_URL_SCHEME</td>
+                <td><code>&#39;http&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>PROJECT_ROOT_FOLDER</td>
+                <td><code>&#39;/Users/aras/Dev/aras&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>PROPAGATE_EXCEPTIONS</td>
+                <td><code>None</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>PROVIDE_AUTOMATIC_OPTIONS</td>
+                <td><code>True</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>RBAC_ENABLED</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>RELOADER</td>
+                <td><code>True</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>SECRET_KEY</td>
+                <td><code>&#39;hard to guess string&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>SECRET_KEY_FALLBACKS</td>
+                <td><code>None</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>SEND_FILE_MAX_AGE_DEFAULT</td>
+                <td><code>None</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>SERVER_NAME</td>
+                <td><code>None</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>SESSION_COOKIE_DOMAIN</td>
+                <td><code>None</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>SESSION_COOKIE_HTTPONLY</td>
+                <td><code>True</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>SESSION_COOKIE_NAME</td>
+                <td><code>&#39;session&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>SESSION_COOKIE_PARTITIONED</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>SESSION_COOKIE_PATH</td>
+                <td><code>None</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>SESSION_COOKIE_SAMESITE</td>
+                <td><code>None</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>SESSION_COOKIE_SECURE</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>SESSION_REFRESH_EACH_REQUEST</td>
+                <td><code>True</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>SQLALCHEMY_BINDS</td>
+                <td><code>{}</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>SQLALCHEMY_COMMIT_ON_TEARDOWN</td>
+                <td><code>True</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>SQLALCHEMY_DATABASE_URI</td>
+                <td><code>&#39;mariadb+mariadbconnector://root:999999@localhost:3306/arasdev&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>SQLALCHEMY_ECHO</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>SQLALCHEMY_ENGINE_OPTIONS</td>
+                <td><code>{}</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>SQLALCHEMY_RECORD_QUERIES</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>SQLALCHEMY_TRACK_MODIFICATIONS</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>STATIC_DIR</td>
+                <td><code>&#39;/Users/aras/Dev/aras/static&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>TEMPLATE_DIR</td>
+                <td><code>&#39;/Users/aras/Dev/aras/templates&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>TEMPLATES_AUTO_RELOAD</td>
+                <td><code>True</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>TESTING</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>TRAP_BAD_REQUEST_ERRORS</td>
+                <td><code>None</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>TRAP_HTTP_EXCEPTIONS</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>TRUSTED_HOSTS</td>
+                <td><code>None</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>UPLOAD_AUDIO_FOLDER</td>
+                <td><code>&#39;/Users/aras/Dev/aras/aras/static/media/audio/&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>UPLOAD_DOC_FOLDER</td>
+                <td><code>&#39;/Users/aras/Dev/aras/aras/static/media/doc/&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>UPLOAD_FOLDER</td>
+                <td><code>&#39;/Users/aras/Dev/aras/aras/static/media/&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>UPLOAD_IMAGE_FOLDER</td>
+                <td><code>&#39;/Users/aras/Dev/aras/aras/static/media/img/&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>UPLOAD_PDF_FOLDER</td>
+                <td><code>&#39;/Users/aras/Dev/aras/aras/static/media/pdf/&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>UPLOAD_TXT_FOLDER</td>
+                <td><code>&#39;/Users/aras/Dev/aras/aras/static/media/txt/&#39;</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>USE_DEBUGER</td>
+                <td><code>(True,)</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>USE_PAGINATION</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>USE_RELOADER</td>
+                <td><code>(True,)</code></td>
+            </tr>
+        
+            <tr class="flDebugOdd">
+                <td>USE_X_SENDFILE</td>
+                <td><code>False</code></td>
+            </tr>
+        
+            <tr class="flDebugEven">
+                <td>WTF_CSRF_ENABLED</td>
+                <td><code>True</code></td>
+            </tr>
+        
+    </tbody>
+</table>
+        </div>
+      </div>
+    </div>
+    
+  
+    
+    <div id="flDebugTemplatePanel-content" class="flDebugPanelContentParent">
+      <div class="flDebugPanelTitle">
+        <a href="" class="flDebugClose">Close</a>
+        <h3>Templates</h3>
+      </div>
+      <div class="flDebugPanelContent">
+        <div class="flDebugScroll">
+          
+  
+  
+    <h4>admin/react_app_shell.html</h4>
+    <table>
+      <thead>
+        <tr>
+          <th>Variable</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr class="flDebugOdd">
+          <td>aras_theme_tokens</td>
+          <td>{}</td>
+        </tr>
+        
+        <tr class="flDebugEven">
+          <td>current_user</td>
+          <td>&lt;User admin&gt;</td>
+        </tr>
+        
+        <tr class="flDebugOdd">
+          <td>g</td>
+          <td>&lt;flask.g of &#39;arasCore&#39;&gt;</td>
+        </tr>
+        
+        <tr class="flDebugEven">
+          <td>gmenu</td>
+          <td>[{&#39;title&#39;: &#39;ERP&#39;, &#39;icon&#39;: &#39;fa-building&#39;, &#39;order&#39;: 5, &#39;url&#39;: &#39;/admin/erp/&#39;, &#39;children&#39;: [{&#39;title&#39;: &#39;Configuration&#39;, &#39;icon&#39;: &#39;fa-cogs&#39;, &#39;url&#39;: &#39;/admin/erp/configuration/&#39;, &#39;type&#39;: &#39;group&#39;, &#39;children&#39;: [{&#39;title&#39;: &#39;Doc Series&#39;, &#39;icon&#39;: &#39;fa-sort-numeric-asc&#39;, &#39;url&#39;: &#39;/admin/erp/main/doc-series/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Fiscal Year&#39;, &#39;icon&#39;: &#39;fa-calendar&#39;, &#39;url&#39;: &#39;/admin/erp/main/fiscal-year/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Roles&#39;, &#39;icon&#39;: &#39;fa-shield&#39;, &#39;url&#39;: &#39;/admin/erp/main/role/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Permissions&#39;, &#39;icon&#39;: &#39;fa-key&#39;, &#39;url&#39;: &#39;/admin/erp/main/permission/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Print Template Version&#39;, &#39;icon&#39;: &#39;fa-table&#39;, &#39;url&#39;: &#39;/admin/erp/main/print-template-version/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Erp Notification&#39;, &#39;icon&#39;: &#39;fa-table&#39;, &#39;url&#39;: &#39;/admin/erp/main/notification/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Erp Report Setting&#39;, &#39;icon&#39;: &#39;fa-table&#39;, &#39;url&#39;: &#39;/admin/erp/main/report-setting/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Erp Report Favorite&#39;, &#39;icon&#39;: &#39;fa-table&#39;, &#39;url&#39;: &#39;/admin/erp/main/report-favorite/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Mode of Payment&#39;, &#39;icon&#39;: &#39;fa-credit-card&#39;, &#39;url&#39;: &#39;/admin/erp/main/mode-of-payment/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Company&#39;, &#39;icon&#39;: &#39;fa-building-o&#39;, &#39;url&#39;: &#39;/admin/erp/cfg/company/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Currency&#39;, &#39;icon&#39;: &#39;fa-dollar&#39;, &#39;url&#39;: &#39;/admin/erp/cfg/currency/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Charges&#39;, &#39;icon&#39;: &#39;fa-percent&#39;, &#39;url&#39;: &#39;/admin/erp/cfg/charge/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Price Types&#39;, &#39;icon&#39;: &#39;fa-tag&#39;, &#39;url&#39;: &#39;/admin/erp/stock/price-type/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}]}, {&#39;title&#39;: &#39;Reports&#39;, &#39;icon&#39;: &#39;fa-cogs&#39;, &#39;url&#39;: &#39;/admin/erp/reports/&#39;, &#39;type&#39;: &#39;group&#39;, &#39;children&#39;: [{&#39;title&#39;: &#39;Print Templates&#39;, &#39;icon&#39;: &#39;fa-print&#39;, &#39;url&#39;: &#39;/admin/erp/main/print-template/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Report Templates&#39;, &#39;icon&#39;: &#39;fa-file-text-o&#39;, &#39;url&#39;: &#39;/admin/erp/main/report/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}]}, {&#39;title&#39;: &#39;Accounting&#39;, &#39;icon&#39;: &#39;fa-calculator&#39;, &#39;url&#39;: &#39;/admin/erp/accounting/&#39;, &#39;type&#39;: &#39;group&#39;, &#39;children&#39;: [{&#39;title&#39;: &#39;Chart of Accounts&#39;, &#39;icon&#39;: &#39;fa-sitemap&#39;, &#39;url&#39;: &#39;/admin/erp/acc/account/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Journal Entries&#39;, &#39;icon&#39;: &#39;fa-pencil-square-o&#39;, &#39;url&#39;: &#39;/admin/erp/acc/entry/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Sales Orders&#39;, &#39;icon&#39;: &#39;fa-file-text&#39;, &#39;url&#39;: &#39;/admin/erp/acc/sales-order/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Sales Invoices&#39;, &#39;icon&#39;: &#39;fa-file-text-o&#39;, &#39;url&#39;: &#39;/admin/erp/acc/sales-invoice/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Purchase Invoices&#39;, &#39;icon&#39;: &#39;fa-file-o&#39;, &#39;url&#39;: &#39;/admin/erp/acc/purchase-invoice/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Payments&#39;, &#39;icon&#39;: &#39;fa-money&#39;, &#39;url&#39;: &#39;/admin/erp/acc/payment/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}]}, {&#39;title&#39;: &#39;CRM&#39;, &#39;icon&#39;: &#39;fa-handshake-o&#39;, &#39;url&#39;: &#39;/admin/erp/crm/&#39;, &#39;type&#39;: &#39;group&#39;, &#39;children&#39;: [{&#39;title&#39;: &#39;Customer Group&#39;, &#39;icon&#39;: &#39;fa-users&#39;, &#39;url&#39;: &#39;/admin/erp/crm/customer-group/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Customers&#39;, &#39;icon&#39;: &#39;fa-user-circle&#39;, &#39;url&#39;: &#39;/admin/erp/crm/customer/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Pipelines&#39;, &#39;icon&#39;: &#39;fa-random&#39;, &#39;url&#39;: &#39;/admin/erp/crm/pipeline/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Leads&#39;, &#39;icon&#39;: &#39;fa-filter&#39;, &#39;url&#39;: &#39;/admin/erp/crm/lead/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}]}, {&#39;title&#39;: &#39;Supplier&#39;, &#39;icon&#39;: &#39;fa-truck&#39;, &#39;url&#39;: &#39;/admin/erp/supplier/&#39;, &#39;type&#39;: &#39;group&#39;, &#39;children&#39;: [{&#39;title&#39;: &#39;Supplier Group&#39;, &#39;icon&#39;: &#39;fa-users&#39;, &#39;url&#39;: &#39;/admin/erp/sup/supplier-group/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Suppliers&#39;, &#39;icon&#39;: &#39;fa-truck&#39;, &#39;url&#39;: &#39;/admin/erp/sup/supplier/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Purchase Orders&#39;, &#39;icon&#39;: &#39;fa-shopping-basket&#39;, &#39;url&#39;: &#39;/admin/erp/sup/purchase-order/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}]}, {&#39;title&#39;: &#39;arasPos&#39;, &#39;icon&#39;: &#39;fa-shopping-cart&#39;, &#39;url&#39;: &#39;/admin/erp/araspos/&#39;, &#39;type&#39;: &#39;group&#39;, &#39;children&#39;: [{&#39;title&#39;: &#39;Open POS&#39;, &#39;icon&#39;: &#39;fa-cash-register&#39;, &#39;url&#39;: &#39;/admin/erp/pos/&#39;, &#39;type&#39;: &#39;link&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Terminals&#39;, &#39;icon&#39;: &#39;fa-desktop&#39;, &#39;url&#39;: &#39;/admin/erp/pos/terminal/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Sessions&#39;, &#39;icon&#39;: &#39;fa-clock-o&#39;, &#39;url&#39;: &#39;/admin/erp/pos/session/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}]}, {&#39;title&#39;: &#39;Stock&#39;, &#39;icon&#39;: &#39;fa-cubes&#39;, &#39;url&#39;: &#39;/admin/erp/stock/&#39;, &#39;type&#39;: &#39;group&#39;, &#39;children&#39;: [{&#39;title&#39;: &#39;Units of Measure&#39;, &#39;icon&#39;: &#39;fa-balance-scale&#39;, &#39;url&#39;: &#39;/admin/erp/stock/uom/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Product Categories&#39;, &#39;icon&#39;: &#39;fa-folder-o&#39;, &#39;url&#39;: &#39;/admin/erp/stock/product-category/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Products&#39;, &#39;icon&#39;: &#39;fa-cube&#39;, &#39;url&#39;: &#39;/admin/erp/stock/product/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Price List&#39;, &#39;icon&#39;: &#39;fa-money&#39;, &#39;url&#39;: &#39;/admin/erp/stock/price-list-item/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Product Bundles&#39;, &#39;icon&#39;: &#39;fa-cubes&#39;, &#39;url&#39;: &#39;/admin/erp/stock/product-bundle/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Promo Bundles&#39;, &#39;icon&#39;: &#39;fa-gift&#39;, &#39;url&#39;: &#39;/admin/erp/stock/promo-bundle/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Locations&#39;, &#39;icon&#39;: &#39;fa-building-o&#39;, &#39;url&#39;: &#39;/admin/erp/stock/location/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Stock Movements&#39;, &#39;icon&#39;: &#39;fa-exchange&#39;, &#39;url&#39;: &#39;/admin/erp/stock/movement/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Delivery Trips&#39;, &#39;icon&#39;: &#39;fa-road&#39;, &#39;url&#39;: &#39;/admin/erp/stock/delivery-trip/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Delivery Orders&#39;, &#39;icon&#39;: &#39;fa-map-marker&#39;, &#39;url&#39;: &#39;/admin/erp/stock/delivery-order/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}]}, {&#39;title&#39;: &#39;Settings&#39;, &#39;icon&#39;: &#39;fa-cog&#39;, &#39;url&#39;: &#39;/admin/erp/settings/&#39;, &#39;type&#39;: &#39;settings&#39;, &#39;children&#39;: []}], &#39;source&#39;: &#39;db&#39;, &#39;app_slug&#39;: &#39;erp&#39;}, {&#39;title&#39;: &#39;Trash&#39;, &#39;icon&#39;: &#39;fa-trash-o&#39;, &#39;order&#39;: 999, &#39;url&#39;: &#39;/admin/trash/&#39;, &#39;children&#39;: [], &#39;source&#39;: &#39;framework&#39;, &#39;app_slug&#39;: &#39;trash&#39;}]</td>
+        </tr>
+        
+        <tr class="flDebugOdd">
+          <td>moment</td>
+          <td>&lt;class &#39;flask_moment.moment&#39;&gt;</td>
+        </tr>
+        
+        <tr class="flDebugEven">
+          <td>react_config</td>
+          <td>{&#39;viewType&#39;: &#39;list&#39;, &#39;appSlug&#39;: &#39;erp&#39;, &#39;resource&#39;: &#39;main/doc-series&#39;, &#39;title&#39;: &#39;Doc Series&#39;, &#39;mainTitle&#39;: &#39;Doc Series&#39;, &#39;columns&#39;: [{&#39;name&#39;: &#39;company_id&#39;, &#39;label&#39;: &#39;Company&#39;}, {&#39;name&#39;: &#39;code&#39;, &#39;label&#39;: &#39;Code&#39;}, {&#39;name&#39;: &#39;description&#39;, &#39;label&#39;: &#39;Description&#39;}, {&#39;name&#39;: &#39;prefix&#39;, &#39;label&#39;: &#39;Prefix&#39;}, {&#39;name&#39;: &#39;suffix&#39;, &#39;label&#39;: &#39;Suffix&#39;}, {&#39;name&#39;: &#39;padding&#39;, &#39;label&#39;: &#39;Padding&#39;}], &#39;addUrl&#39;: &#39;/admin/erp/main/doc-series/add/?view_engine=react&#39;, &#39;editUrlBase&#39;: &#39;/admin/erp/main/doc-series&#39;, &#39;perPage&#39;: 20, &#39;userRole&#39;: &#39;admin&#39;}</td>
+        </tr>
+        
+        <tr class="flDebugOdd">
+          <td>request</td>
+          <td>&lt;Request &#39;http://localhost/admin/erp/main/doc-series/&#39; [GET]&gt;</td>
+        </tr>
+        
+        <tr class="flDebugEven">
+          <td>title</td>
+          <td>&#39;Doc Series&#39;</td>
+        </tr>
+        
+        <tr class="flDebugOdd">
+          <td>user</td>
+          <td>&lt;User admin&gt;</td>
+        </tr>
+        
+      </tbody>
+    </table>
+  
+
+        </div>
+      </div>
+    </div>
+    
+  
+    
+    <div id="flDebugSQLAlchemyPanel-content" class="flDebugPanelContentParent">
+      <div class="flDebugPanelTitle">
+        <a href="" class="flDebugClose">Close</a>
+        <h3>SQLAlchemy queries</h3>
+      </div>
+      <div class="flDebugPanelContent">
+        <div class="flDebugScroll">
+          <h4>Queries Unavailable</h4>
+
+<p>
+  The toolbar was unable to fetch the SQLAlchemy queries for this request.
+  To enable the SQLAlchemy query display, please:
+</p>
+
+<ol>
+  
+
+  
+
+  
+  <li>
+    <h5>Enable query recording:</h5>
+    <p>
+      Since this app is not currently running in <code>DEBUG</code> mode, Flask-SQLAlchemy will not record queries by default. To enable query recording in non-debug mode, set the following configuration value:
+    </p>
+    <pre>app.config['SQLALCHEMY_RECORD_QUERIES'] = True</pre>
+    <p>
+      See the
+      <a href="https://flask-sqlalchemy.palletsprojects.com/en/master/api/#flask_sqlalchemy.get_debug_queries">
+        documention of Flask-SQLAlchemy's <code>get_debug_queries()</code></a>
+      for additional details.
+    </p>
+  </li>
+  
+</ol>
+        </div>
+      </div>
+    </div>
+    
+  
+    
+    <div id="flDebugLoggingPanel-content" class="flDebugPanelContentParent">
+      <div class="flDebugPanelTitle">
+        <a href="" class="flDebugClose">Close</a>
+        <h3>Log Messages</h3>
+      </div>
+      <div class="flDebugPanelContent">
+        <div class="flDebugScroll">
+          
+  <p>No messages logged.</p>
+
+        </div>
+      </div>
+    </div>
+    
+  
+    
+    <div id="flDebugRouteListPanel-content" class="flDebugPanelContentParent">
+      <div class="flDebugPanelTitle">
+        <a href="" class="flDebugClose">Close</a>
+        <h3>Route List</h3>
+      </div>
+      <div class="flDebugPanelContent">
+        <div class="flDebugScroll">
+          <table>
+  <thead>
+    <tr>
+      <th>URL route</th>
+      <th>Endpoint name</th>
+      <th>HTTP methods</th>
+      <th>Is alias</th>
+      <th>Redirect to</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+      
+        <tr>
+          <td>/</td>
+          <td>root</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/</td>
+          <td>admin.dashboard</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/_health/</td>
+          <td>aras_health.health_check</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/actions/dispatch/</td>
+          <td>aras_actions.dispatch</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/api/child-table/&lt;string:model_name&gt;/save</td>
+          <td>admin.child_table_save</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/api/dependent-choices/</td>
+          <td>admin.api_dependent_choices</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/api/dev/agents/run</td>
+          <td>admin.api_dev_agents_run</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/api/dev/cli/execute</td>
+          <td>admin.api_dev_cli_execute</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/api/dev/logs</td>
+          <td>admin.api_dev_logs</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/api/dev/sql/execute</td>
+          <td>admin.api_dev_sql_execute</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/api/dev/sql/schema</td>
+          <td>admin.api_dev_sql_schema</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/api/dev/sync/app/&lt;int:app_id&gt;</td>
+          <td>admin.api_dev_sync_app</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/api/fk-choices/</td>
+          <td>admin.api_fk_choices</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/api/list-pref/</td>
+          <td>admin.list_pref_save</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/api/page-view/save</td>
+          <td>admin.page_view_save</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/api/render-child-row/&lt;string:model_name&gt;/&lt;int:item_id&gt;</td>
+          <td>admin.render_child_row</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/api/settings/system/save</td>
+          <td>admin.system_settings_save</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/api/settings/theme/save</td>
+          <td>admin.api_settings_theme_save</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/api/ui/init</td>
+          <td>admin.ui_init</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/api/ui/resource-config/&lt;path:resource&gt;</td>
+          <td>admin.ui_resource_config</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps</td>
+          <td>admin.apps</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/</td>
+          <td>admin.apps_detail</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/activate</td>
+          <td>admin.apps_activate</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/deactivate</td>
+          <td>admin.apps_deactivate</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/delete</td>
+          <td>admin.apps_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/edit</td>
+          <td>admin.apps_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/export/json</td>
+          <td>admin.apps_export_json</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/export/yaml</td>
+          <td>admin.apps_export_yaml</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/fields</td>
+          <td>admin.apps_fields</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/fields/&lt;int:field_id&gt;/delete</td>
+          <td>admin.apps_field_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/migrations</td>
+          <td>admin.apps_migrations</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/migrations/apply</td>
+          <td>admin.apps_migrations_apply</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/migrations/apply-all</td>
+          <td>admin.apps_migrations_apply_all</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/migrations/diff</td>
+          <td>admin.apps_migrations_diff</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/sync</td>
+          <td>admin.apps_sync</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/tables</td>
+          <td>admin.apps_tables</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/tables/&lt;int:table_id&gt;/columns</td>
+          <td>admin.apps_columns</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/tables/&lt;int:table_id&gt;/columns/&lt;int:col_id&gt;/delete</td>
+          <td>admin.apps_column_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/tables/&lt;int:table_id&gt;/columns/&lt;int:col_id&gt;/edit</td>
+          <td>admin.apps_column_edit</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/tables/&lt;int:table_id&gt;/delete</td>
+          <td>admin.apps_table_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/tables/&lt;int:table_id&gt;/edit</td>
+          <td>admin.apps_table_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/tables/&lt;int:table_id&gt;/form-builder</td>
+          <td>admin.apps_table_form_builder</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/tables/&lt;int:table_id&gt;/layout</td>
+          <td>admin.apps_table_layout_save</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/tables/&lt;int:table_id&gt;/layout/reset</td>
+          <td>admin.apps_table_layout_reset</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/&lt;int:app_id&gt;/tables/new</td>
+          <td>admin.apps_table_new</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/bulk-delete/</td>
+          <td>admin.apps_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/doctypes</td>
+          <td>admin.apps_doctypes</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/install</td>
+          <td>admin.apps_install</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/install-manifest/&lt;app_name&gt;</td>
+          <td>admin.apps_install_manifest</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/list</td>
+          <td>admin.apps_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/new</td>
+          <td>admin.apps_new</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/tables/bulk-delete/</td>
+          <td>admin.apps_tables_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/template/json</td>
+          <td>admin.apps_template_json</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/template/yaml</td>
+          <td>admin.apps_template_yaml</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/apps/wizard</td>
+          <td>admin.apps_wizard</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/dashboard</td>
+          <td>admin.dashboard</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/dashboard/builder/add-widget</td>
+          <td>admin.dashboard_add_widget</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/dashboard/builder/delete-widget/&lt;int:widget_id&gt;</td>
+          <td>admin.dashboard_delete_widget</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/dashboard/builder/save-layout</td>
+          <td>admin.dashboard_save_layout</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/dev</td>
+          <td>admin.dev</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/dev/agents</td>
+          <td>admin.dev_agents</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/dev/api/docs</td>
+          <td>admin.dev_api_docs_redirect</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/dev/audit/</td>
+          <td>admin.dev_audit</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/dev/audit/data/</td>
+          <td>admin.api_dev_audit</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/dev/cli</td>
+          <td>admin.dev_cli</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/dev/components</td>
+          <td>admin.dev_components</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/dev/logs</td>
+          <td>admin.dev_logs</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/dev/sql</td>
+          <td>admin.dev_sql</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/dev/sync</td>
+          <td>admin.dev_sync</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/dev_agents/</td>
+          <td>_helper_dev_agents.home_dev_agents</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/dev_agents/settings/</td>
+          <td>_helper_dev_agents.settings_dev_agents</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/dev_agents/settings/&lt;section&gt;/</td>
+          <td>_helper_dev_agents.settings_dev_agents_section</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/</td>
+          <td>_helper_erp.home_erp</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/&lt;group_slug&gt;/</td>
+          <td>_helper_erp.group_erp</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/account/</td>
+          <td>_helper_erp.adm_erp_acc_account_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/account/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_acc_account_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/account/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_acc_account_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/account/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_acc_account_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/account/add/</td>
+          <td>_helper_erp.adm_erp_acc_account_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/account/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_acc_account_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/entry/</td>
+          <td>_helper_erp.adm_erp_acc_entry_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/entry/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_acc_entry_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/entry/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_acc_entry_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/entry/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_acc_entry_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/entry/add/</td>
+          <td>_helper_erp.adm_erp_acc_entry_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/entry/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_acc_entry_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/payment/</td>
+          <td>_helper_erp.adm_erp_acc_payment_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/payment/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_acc_payment_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/payment/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_acc_payment_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/payment/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_acc_payment_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/payment/add/</td>
+          <td>_helper_erp.adm_erp_acc_payment_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/payment/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_acc_payment_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/purchase-invoice/</td>
+          <td>_helper_erp.adm_erp_acc_purchase-invoice_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/purchase-invoice/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_acc_purchase-invoice_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/purchase-invoice/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_acc_purchase-invoice_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/purchase-invoice/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_acc_purchase-invoice_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/purchase-invoice/add/</td>
+          <td>_helper_erp.adm_erp_acc_purchase-invoice_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/purchase-invoice/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_acc_purchase-invoice_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/sales-invoice/</td>
+          <td>_helper_erp.adm_erp_acc_sales-invoice_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/sales-invoice/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_acc_sales-invoice_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/sales-invoice/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_acc_sales-invoice_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/sales-invoice/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_acc_sales-invoice_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/sales-invoice/add/</td>
+          <td>_helper_erp.adm_erp_acc_sales-invoice_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/sales-invoice/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_acc_sales-invoice_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/sales-order/</td>
+          <td>_helper_erp.adm_erp_acc_sales-order_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/sales-order/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_acc_sales-order_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/sales-order/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_acc_sales-order_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/sales-order/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_acc_sales-order_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/sales-order/add/</td>
+          <td>_helper_erp.adm_erp_acc_sales-order_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/acc/sales-order/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_acc_sales-order_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/api/list-setting/</td>
+          <td>erp_views.api_save_list_setting</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/api/report-setting/&lt;int:report_id&gt;/</td>
+          <td>erp_views.api_report_setting</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/cfg/charge/</td>
+          <td>_helper_erp.adm_erp_cfg_charge_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/cfg/charge/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_cfg_charge_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/cfg/charge/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_cfg_charge_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/cfg/charge/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_cfg_charge_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/cfg/charge/add/</td>
+          <td>_helper_erp.adm_erp_cfg_charge_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/cfg/charge/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_cfg_charge_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/cfg/company/</td>
+          <td>_helper_erp.adm_erp_cfg_company_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/cfg/company/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_cfg_company_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/cfg/company/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_cfg_company_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/cfg/company/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_cfg_company_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/cfg/company/add/</td>
+          <td>_helper_erp.adm_erp_cfg_company_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/cfg/company/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_cfg_company_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/cfg/currency/</td>
+          <td>_helper_erp.adm_erp_cfg_currency_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/cfg/currency/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_cfg_currency_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/cfg/currency/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_cfg_currency_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/cfg/currency/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_cfg_currency_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/cfg/currency/add/</td>
+          <td>_helper_erp.adm_erp_cfg_currency_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/cfg/currency/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_cfg_currency_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/customer-group/</td>
+          <td>_helper_erp.adm_erp_crm_customer-group_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/customer-group/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_crm_customer-group_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/customer-group/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_crm_customer-group_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/customer-group/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_crm_customer-group_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/customer-group/add/</td>
+          <td>_helper_erp.adm_erp_crm_customer-group_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/customer-group/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_crm_customer-group_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/customer/</td>
+          <td>_helper_erp.adm_erp_crm_customer_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/customer/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_crm_customer_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/customer/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_crm_customer_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/customer/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_crm_customer_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/customer/add/</td>
+          <td>_helper_erp.adm_erp_crm_customer_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/customer/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_crm_customer_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/lead/</td>
+          <td>_helper_erp.adm_erp_crm_lead_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/lead/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_crm_lead_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/lead/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_crm_lead_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/lead/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_crm_lead_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/lead/add/</td>
+          <td>_helper_erp.adm_erp_crm_lead_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/lead/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_crm_lead_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/pipeline/</td>
+          <td>_helper_erp.adm_erp_crm_pipeline_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/pipeline/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_crm_pipeline_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/pipeline/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_crm_pipeline_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/pipeline/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_crm_pipeline_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/pipeline/add/</td>
+          <td>_helper_erp.adm_erp_crm_pipeline_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/crm/pipeline/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_crm_pipeline_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/erp_static/&lt;path:filename&gt;</td>
+          <td>erp_views.static</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/doc-series/</td>
+          <td>_helper_erp.adm_erp_main_doc-series_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/doc-series/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_main_doc-series_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/doc-series/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_main_doc-series_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/doc-series/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_main_doc-series_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/doc-series/add/</td>
+          <td>_helper_erp.adm_erp_main_doc-series_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/doc-series/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_main_doc-series_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/fiscal-year/</td>
+          <td>_helper_erp.adm_erp_main_fiscal-year_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/fiscal-year/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_main_fiscal-year_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/fiscal-year/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_main_fiscal-year_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/fiscal-year/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_main_fiscal-year_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/fiscal-year/add/</td>
+          <td>_helper_erp.adm_erp_main_fiscal-year_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/fiscal-year/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_main_fiscal-year_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/mode-of-payment/</td>
+          <td>_helper_erp.adm_erp_main_mode-of-payment_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/mode-of-payment/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_main_mode-of-payment_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/mode-of-payment/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_main_mode-of-payment_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/mode-of-payment/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_main_mode-of-payment_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/mode-of-payment/add/</td>
+          <td>_helper_erp.adm_erp_main_mode-of-payment_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/mode-of-payment/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_main_mode-of-payment_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/notification/</td>
+          <td>_helper_erp.adm_erp_main_notification_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/notification/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_main_notification_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/notification/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_main_notification_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/notification/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_main_notification_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/notification/add/</td>
+          <td>_helper_erp.adm_erp_main_notification_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/notification/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_main_notification_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/permission/</td>
+          <td>_helper_erp.adm_erp_main_permission_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/permission/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_main_permission_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/permission/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_main_permission_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/permission/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_main_permission_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/permission/add/</td>
+          <td>_helper_erp.adm_erp_main_permission_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/permission/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_main_permission_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/print-template-version/</td>
+          <td>_helper_erp.adm_erp_main_print-template-version_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/print-template-version/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_main_print-template-version_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/print-template-version/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_main_print-template-version_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/print-template-version/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_main_print-template-version_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/print-template-version/add/</td>
+          <td>_helper_erp.adm_erp_main_print-template-version_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/print-template-version/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_main_print-template-version_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/print-template/</td>
+          <td>_helper_erp.adm_erp_main_print-template_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/print-template/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_main_print-template_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/print-template/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_main_print-template_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/print-template/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_main_print-template_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/print-template/add/</td>
+          <td>_helper_erp.adm_erp_main_print-template_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/print-template/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_main_print-template_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/report-favorite/</td>
+          <td>_helper_erp.adm_erp_main_report-favorite_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/report-favorite/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_main_report-favorite_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/report-favorite/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_main_report-favorite_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/report-favorite/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_main_report-favorite_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/report-favorite/add/</td>
+          <td>_helper_erp.adm_erp_main_report-favorite_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/report-favorite/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_main_report-favorite_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/report-setting/</td>
+          <td>_helper_erp.adm_erp_main_report-setting_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/report-setting/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_main_report-setting_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/report-setting/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_main_report-setting_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/report-setting/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_main_report-setting_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/report-setting/add/</td>
+          <td>_helper_erp.adm_erp_main_report-setting_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/report-setting/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_main_report-setting_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/report/</td>
+          <td>_helper_erp.adm_erp_main_report_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/report/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_main_report_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/report/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_main_report_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/report/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_main_report_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/report/add/</td>
+          <td>_helper_erp.adm_erp_main_report_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/report/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_main_report_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/role/</td>
+          <td>_helper_erp.adm_erp_main_role_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/role/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_main_role_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/role/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_main_role_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/role/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_main_role_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/role/add/</td>
+          <td>_helper_erp.adm_erp_main_role_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/main/role/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_main_role_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/</td>
+          <td>erp_views.pos_home</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/invoice/&lt;int:invoice_id&gt;/print</td>
+          <td>erp_views.pos_invoice_print</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/invoice/&lt;int:invoice_id&gt;/print.pdf</td>
+          <td>erp_views.pos_invoice_pdf</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/invoice/&lt;int:invoice_id&gt;/receipt</td>
+          <td>erp_views.pos_receipt_html</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/invoice/&lt;int:invoice_id&gt;/receipt.jpg</td>
+          <td>erp_views.pos_receipt_jpg</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/invoice/&lt;int:invoice_id&gt;/receipt.pdf</td>
+          <td>erp_views.pos_receipt_pdf</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/open/&lt;int:terminal_id&gt;</td>
+          <td>erp_views.pos_open_session</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/print-template/&lt;int:tpl_id&gt;/preview</td>
+          <td>erp_views.pos_print_template_preview</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/session/</td>
+          <td>_helper_erp.adm_erp_pos_session_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/session/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_pos_session_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/session/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_pos_session_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/session/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_pos_session_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/session/&lt;int:session_id&gt;</td>
+          <td>erp_views.pos_session</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/session/&lt;int:session_id&gt;/cash-entry</td>
+          <td>erp_views.pos_cash_entry</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/session/&lt;int:session_id&gt;/close</td>
+          <td>erp_views.pos_close_session</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/session/&lt;int:session_id&gt;/shift-report</td>
+          <td>erp_views.pos_session_shift_report</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/session/add/</td>
+          <td>_helper_erp.adm_erp_pos_session_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/session/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_pos_session_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/terminal/</td>
+          <td>_helper_erp.adm_erp_pos_terminal_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/terminal/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_pos_terminal_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/terminal/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_pos_terminal_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/terminal/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_pos_terminal_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/terminal/add/</td>
+          <td>_helper_erp.adm_erp_pos_terminal_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/pos/terminal/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_pos_terminal_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/reports/</td>
+          <td>erp_views.reports_index</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/reports/&lt;int:report_id&gt;/</td>
+          <td>erp_views.report_run</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/reports/&lt;int:report_id&gt;/data.json</td>
+          <td>erp_views.report_data_json</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/reports/&lt;int:report_id&gt;/export.csv</td>
+          <td>erp_views.report_export_csv</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/reports/&lt;int:report_id&gt;/meta.json</td>
+          <td>erp_views.report_meta_json</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/settings/</td>
+          <td>_helper_erp.settings_erp</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/settings/&lt;section&gt;/</td>
+          <td>_helper_erp.settings_erp_section</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/delivery-order/</td>
+          <td>_helper_erp.adm_erp_stock_delivery-order_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/delivery-order/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_stock_delivery-order_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/delivery-order/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_stock_delivery-order_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/delivery-order/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_stock_delivery-order_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/delivery-order/add/</td>
+          <td>_helper_erp.adm_erp_stock_delivery-order_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/delivery-order/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_stock_delivery-order_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/delivery-trip/</td>
+          <td>_helper_erp.adm_erp_stock_delivery-trip_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/delivery-trip/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_stock_delivery-trip_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/delivery-trip/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_stock_delivery-trip_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/delivery-trip/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_stock_delivery-trip_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/delivery-trip/add/</td>
+          <td>_helper_erp.adm_erp_stock_delivery-trip_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/delivery-trip/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_stock_delivery-trip_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/location/</td>
+          <td>_helper_erp.adm_erp_stock_location_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/location/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_stock_location_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/location/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_stock_location_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/location/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_stock_location_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/location/add/</td>
+          <td>_helper_erp.adm_erp_stock_location_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/location/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_stock_location_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/movement/</td>
+          <td>_helper_erp.adm_erp_stock_movement_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/movement/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_stock_movement_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/movement/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_stock_movement_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/movement/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_stock_movement_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/movement/add/</td>
+          <td>_helper_erp.adm_erp_stock_movement_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/movement/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_stock_movement_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/price-list-item/</td>
+          <td>_helper_erp.adm_erp_stock_price-list-item_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/price-list-item/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_stock_price-list-item_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/price-list-item/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_stock_price-list-item_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/price-list-item/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_stock_price-list-item_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/price-list-item/add/</td>
+          <td>_helper_erp.adm_erp_stock_price-list-item_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/price-list-item/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_stock_price-list-item_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/price-type/</td>
+          <td>_helper_erp.adm_erp_stock_price-type_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/price-type/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_stock_price-type_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/price-type/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_stock_price-type_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/price-type/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_stock_price-type_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/price-type/add/</td>
+          <td>_helper_erp.adm_erp_stock_price-type_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/price-type/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_stock_price-type_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/product-bundle/</td>
+          <td>_helper_erp.adm_erp_stock_product-bundle_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/product-bundle/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_stock_product-bundle_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/product-bundle/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_stock_product-bundle_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/product-bundle/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_stock_product-bundle_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/product-bundle/add/</td>
+          <td>_helper_erp.adm_erp_stock_product-bundle_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/product-bundle/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_stock_product-bundle_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/product-category/</td>
+          <td>_helper_erp.adm_erp_stock_product-category_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/product-category/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_stock_product-category_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/product-category/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_stock_product-category_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/product-category/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_stock_product-category_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/product-category/add/</td>
+          <td>_helper_erp.adm_erp_stock_product-category_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/product-category/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_stock_product-category_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/product/</td>
+          <td>_helper_erp.adm_erp_stock_product_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/product/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_stock_product_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/product/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_stock_product_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/product/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_stock_product_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/product/add/</td>
+          <td>_helper_erp.adm_erp_stock_product_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/product/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_stock_product_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/promo-bundle/</td>
+          <td>_helper_erp.adm_erp_stock_promo-bundle_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/promo-bundle/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_stock_promo-bundle_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/promo-bundle/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_stock_promo-bundle_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/promo-bundle/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_stock_promo-bundle_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/promo-bundle/add/</td>
+          <td>_helper_erp.adm_erp_stock_promo-bundle_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/promo-bundle/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_stock_promo-bundle_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/uom/</td>
+          <td>_helper_erp.adm_erp_stock_uom_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/uom/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_stock_uom_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/uom/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_stock_uom_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/uom/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_stock_uom_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/uom/add/</td>
+          <td>_helper_erp.adm_erp_stock_uom_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/stock/uom/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_stock_uom_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/sup/purchase-order/</td>
+          <td>_helper_erp.adm_erp_sup_purchase-order_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/sup/purchase-order/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_sup_purchase-order_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/sup/purchase-order/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_sup_purchase-order_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/sup/purchase-order/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_sup_purchase-order_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/sup/purchase-order/add/</td>
+          <td>_helper_erp.adm_erp_sup_purchase-order_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/sup/purchase-order/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_sup_purchase-order_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/sup/supplier-group/</td>
+          <td>_helper_erp.adm_erp_sup_supplier-group_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/sup/supplier-group/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_sup_supplier-group_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/sup/supplier-group/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_sup_supplier-group_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/sup/supplier-group/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_sup_supplier-group_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/sup/supplier-group/add/</td>
+          <td>_helper_erp.adm_erp_sup_supplier-group_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/sup/supplier-group/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_sup_supplier-group_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/sup/supplier/</td>
+          <td>_helper_erp.adm_erp_sup_supplier_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/sup/supplier/&lt;int:item_id&gt;/</td>
+          <td>_helper_erp.adm_erp_sup_supplier_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/sup/supplier/&lt;int:item_id&gt;/delete/</td>
+          <td>_helper_erp.adm_erp_sup_supplier_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/sup/supplier/&lt;int:item_id&gt;/edit/</td>
+          <td>_helper_erp.adm_erp_sup_supplier_edit_alt</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/sup/supplier/add/</td>
+          <td>_helper_erp.adm_erp_sup_supplier_add</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/erp/sup/supplier/bulk-delete/</td>
+          <td>_helper_erp.adm_erp_sup_supplier_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/help</td>
+          <td>admin.help_page</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/maint_agents/</td>
+          <td>_helper_maint_agents.home_maint_agents</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/maint_agents/settings/</td>
+          <td>_helper_maint_agents.settings_maint_agents</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/maint_agents/settings/&lt;section&gt;/</td>
+          <td>_helper_maint_agents.settings_maint_agents_section</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/notifications/&lt;category&gt;</td>
+          <td>admin.notifications</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/roles/&lt;int:role_id&gt;/edit</td>
+          <td>admin.role_edit</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/roles/new</td>
+          <td>admin.role_new</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/settings</td>
+          <td>admin.settings</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/settings/db/&lt;table_name&gt;/</td>
+          <td>admin.db_table_detail</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/settings/db/generate-view</td>
+          <td>admin.db_generate_view</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/settings/menu/data</td>
+          <td>admin.menu_data</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/settings/menu/save</td>
+          <td>admin.menu_save</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/settings/scripts/&lt;int:sc_id&gt;/delete</td>
+          <td>admin.script_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/settings/scripts/&lt;int:sc_id&gt;/edit</td>
+          <td>admin.script_edit</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/settings/scripts/new</td>
+          <td>admin.script_new</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/settings/server/save</td>
+          <td>admin.server_settings_save</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/settings/theme</td>
+          <td>admin.settings_theme</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/settings/theme/preview</td>
+          <td>admin.settings_theme_preview</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/settings/uploads/save</td>
+          <td>admin.settings_upload_save</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/settings/webhooks/&lt;int:ep_id&gt;/toggle</td>
+          <td>admin.webhook_toggle</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/settings/webhooks/new</td>
+          <td>admin.webhook_new</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/trash/</td>
+          <td>admin.trash_list</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/trash/&lt;group_id&gt;/inspect/</td>
+          <td>admin.trash_inspect</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/trash/&lt;group_id&gt;/permanent-delete/</td>
+          <td>admin.trash_permanent_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/trash/&lt;group_id&gt;/restore/</td>
+          <td>admin.trash_restore</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/trash/delete-all/</td>
+          <td>admin.trash_permanent_delete_all</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/trash/doc/&lt;int:doc_id&gt;/</td>
+          <td>admin.trash_view_doc</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/trash/restore-all/</td>
+          <td>admin.trash_restore_all</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/user-log</td>
+          <td>admin.user_log</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/user-log/bulk-delete/</td>
+          <td>admin.userlog_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/users</td>
+          <td>admin.users</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/users/&lt;int:user_id&gt;/</td>
+          <td>admin.user_detail</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/users/&lt;int:user_id&gt;/activate</td>
+          <td>admin.user_activate</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/users/&lt;int:user_id&gt;/deactivate</td>
+          <td>admin.user_deactivate</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/users/&lt;int:user_id&gt;/toggle-admin</td>
+          <td>admin.user_toggle_admin</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/users/bulk-delete/</td>
+          <td>admin.users_bulk_delete</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/users/export-csv</td>
+          <td>admin.users_export_csv</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/admin/users/new</td>
+          <td>admin.users_new</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/</td>
+          <td>aras_api.api_index</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/&lt;path:resource_path&gt;/</td>
+          <td>aras_api.api_collection</td>
+          <td>DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/&lt;path:resource_path&gt;/&lt;int:item_id&gt;/</td>
+          <td>aras_api.api_item</td>
+          <td>DELETE, GET, HEAD, OPTIONS, PUT</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/&lt;path:resource_path&gt;/&lt;int:item_id&gt;/linked-docs/</td>
+          <td>aras_api.api_linked_docs</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/&lt;path:resource_path&gt;/_schema/</td>
+          <td>aras_api.api_schema</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/_meta/resources</td>
+          <td>aras_api.api_meta_resources</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/_search/</td>
+          <td>aras_api.api_global_search</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/dev_agents/coder/</td>
+          <td>_helper_dev_agents.api_dev_agents_coder</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/dev_agents/pipeline/</td>
+          <td>_helper_dev_agents.api_dev_agents_pipeline</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/dev_agents/reviewer/</td>
+          <td>_helper_dev_agents.api_dev_agents_reviewer</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/dev_agents/uiux/</td>
+          <td>_helper_dev_agents.api_dev_agents_uiux</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/docs/</td>
+          <td>aras_api.api_docs</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/acc/payment/allocate/</td>
+          <td>_helper_erp.action_erp_acc_payment_allocate</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/acc/payment/auto_allocate/</td>
+          <td>_helper_erp.action_erp_acc_payment_auto_allocate</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/acc/payment/deallocate/</td>
+          <td>_helper_erp.action_erp_acc_payment_deallocate</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/acc/payment/post_payment/</td>
+          <td>_helper_erp.action_erp_acc_payment_post_payment</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/acc/posting/post_sales_invoice/</td>
+          <td>_helper_erp.action_erp_acc_posting_post_sales_invoice</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/acc/product_lookup/product_price/</td>
+          <td>_helper_erp.action_erp_acc_product_lookup_product_price</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/acc/purchase_posting/post_purchase_invoice/</td>
+          <td>_helper_erp.action_erp_acc_purchase_posting_post_purchase_invoice</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/acc/sales_order/confirm_order/</td>
+          <td>_helper_erp.action_erp_acc_sales_order_confirm_order</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/acc/sales_order/create_invoice_from_order/</td>
+          <td>_helper_erp.action_erp_acc_sales_order_create_invoice_from_order</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/crm/lead/convert_to_customer/</td>
+          <td>_helper_erp.action_erp_crm_lead_convert_to_customer</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/crm/lead/convert_to_opportunity/</td>
+          <td>_helper_erp.action_erp_crm_lead_convert_to_opportunity</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/crm/lead/log_activity/</td>
+          <td>_helper_erp.action_erp_crm_lead_log_activity</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/crm/lead/mark_activity_done/</td>
+          <td>_helper_erp.action_erp_crm_lead_mark_activity_done</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/crm/lead/mark_lost/</td>
+          <td>_helper_erp.action_erp_crm_lead_mark_lost</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/crm/lead/mark_won/</td>
+          <td>_helper_erp.action_erp_crm_lead_mark_won</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/pos/session/&lt;int:session_id&gt;/order/</td>
+          <td>_helper_erp.api_erp_pos_session_x_order</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/pos/session/&lt;int:session_id&gt;/products/</td>
+          <td>_helper_erp.api_erp_pos_session_x_products</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/pos/session/&lt;int:session_id&gt;/stock/&lt;int:product_id&gt;/</td>
+          <td>_helper_erp.api_erp_pos_session_x_stock_x</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/stock/delivery/assign_to_trip/</td>
+          <td>_helper_erp.action_erp_stock_delivery_assign_to_trip</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/stock/delivery/create_delivery_from_invoice/</td>
+          <td>_helper_erp.action_erp_stock_delivery_create_delivery_from_invoice</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/stock/delivery/create_delivery_from_order/</td>
+          <td>_helper_erp.action_erp_stock_delivery_create_delivery_from_order</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/stock/delivery/mark_delivered/</td>
+          <td>_helper_erp.action_erp_stock_delivery_mark_delivered</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/stock/promo/get_bundle_promo/</td>
+          <td>_helper_erp.action_erp_stock_promo_get_bundle_promo</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/sup/purchase_order/confirm_order/</td>
+          <td>_helper_erp.action_erp_sup_purchase_order_confirm_order</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/erp/sup/purchase_order/create_invoice_from_order/</td>
+          <td>_helper_erp.action_erp_sup_purchase_order_create_invoice_from_order</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/maint_agents/doc-sync/</td>
+          <td>_helper_maint_agents.api_maint_agents_doc-sync</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/maint_agents/form-layout/</td>
+          <td>_helper_maint_agents.api_maint_agents_form-layout</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/openapi.json</td>
+          <td>aras_api.openapi_json</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/workflow/actions/</td>
+          <td>aras_api.workflow_actions</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/api/workflow/transition/</td>
+          <td>aras_api.workflow_transition</td>
+          <td>OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/auth/change-email</td>
+          <td>auth.change_email_request</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/auth/change-email/&lt;token&gt;</td>
+          <td>auth.change_email</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/auth/change-password</td>
+          <td>auth.change_password</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/auth/login</td>
+          <td>auth.login_view</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/auth/logout</td>
+          <td>auth.logout_view</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/auth/password-reset</td>
+          <td>auth.password_reset_request</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/auth/password-reset/&lt;token&gt;</td>
+          <td>auth.password_reset</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/auth/register</td>
+          <td>auth.register_view</td>
+          <td>GET, HEAD, OPTIONS, POST</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/auth/user/&lt;username&gt;</td>
+          <td>auth.user</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+        <tr>
+          <td>/static/&lt;path:filename&gt;</td>
+          <td>static</td>
+          <td>GET, HEAD, OPTIONS</td>
+          <td>False</td>
+          <td>None</td>
+        </tr>
+      
+    
+  </tbody>
+</table>
+        </div>
+      </div>
+    </div>
+    
+  
+    
+  
+    
+    <div id="flDebuggPanel-content" class="flDebugPanelContentParent">
+      <div class="flDebugPanelTitle">
+        <a href="" class="flDebugClose">Close</a>
+        <h3>flask.g content</h3>
+      </div>
+      <div class="flDebugPanelContent">
+        <div class="flDebugScroll">
+          <table>
+  <thead>
+    <tr>
+      <th>Key</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+      <tr class="flDebugOdd">
+        <td>_login_user</td>
+        <td>&lt;User admin&gt;</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>activities</td>
+        <td>SELECT adm_user_activity.id AS adm_user_activity_id, adm_user_activity.user_id AS adm_user_activity_user_id, adm_user_activity.name AS adm_user_activity_name, adm_user_activity.module AS adm_user_activity_module, adm_user_activity.payload_json AS adm_user_activity_payload_json, adm_user_activity.created_at AS adm_user_activity_created_at, adm_user_activity.created_by_id AS adm_user_activity_created_by_id, adm_user_activity.updated_by_id AS adm_user_activity_updated_by_id, adm_user_activity.is_active AS adm_user_activity_is_active, adm_user_activity.updated_at AS adm_user_activity_updated_at 
+FROM adm_user_activity 
+WHERE ? = adm_user_activity.user_id ORDER BY adm_user_activity.created_at DESC</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>debug_toolbar</td>
+        <td>&lt;flask_debugtoolbar.DebugToolbarExtension object at 0x106f9d7f0&gt;</td>
+      </tr>
+    
+      <tr class="flDebugEven">
+        <td>gmenu</td>
+        <td>[{&#39;title&#39;: &#39;ERP&#39;, &#39;icon&#39;: &#39;fa-building&#39;, &#39;order&#39;: 5, &#39;url&#39;: &#39;/admin/erp/&#39;, &#39;children&#39;: [{&#39;title&#39;: &#39;Configuration&#39;, &#39;icon&#39;: &#39;fa-cogs&#39;, &#39;url&#39;: &#39;/admin/erp/configuration/&#39;, &#39;type&#39;: &#39;group&#39;, &#39;children&#39;: [{&#39;title&#39;: &#39;Doc Series&#39;, &#39;icon&#39;: &#39;fa-sort-numeric-asc&#39;, &#39;url&#39;: &#39;/admin/erp/main/doc-series/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Fiscal Year&#39;, &#39;icon&#39;: &#39;fa-calendar&#39;, &#39;url&#39;: &#39;/admin/erp/main/fiscal-year/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Roles&#39;, &#39;icon&#39;: &#39;fa-shield&#39;, &#39;url&#39;: &#39;/admin/erp/main/role/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Permissions&#39;, &#39;icon&#39;: &#39;fa-key&#39;, &#39;url&#39;: &#39;/admin/erp/main/permission/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Print Template Version&#39;, &#39;icon&#39;: &#39;fa-table&#39;, &#39;url&#39;: &#39;/admin/erp/main/print-template-version/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Erp Notification&#39;, &#39;icon&#39;: &#39;fa-table&#39;, &#39;url&#39;: &#39;/admin/erp/main/notification/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Erp Report Setting&#39;, &#39;icon&#39;: &#39;fa-table&#39;, &#39;url&#39;: &#39;/admin/erp/main/report-setting/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Erp Report Favorite&#39;, &#39;icon&#39;: &#39;fa-table&#39;, &#39;url&#39;: &#39;/admin/erp/main/report-favorite/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Mode of Payment&#39;, &#39;icon&#39;: &#39;fa-credit-card&#39;, &#39;url&#39;: &#39;/admin/erp/main/mode-of-payment/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Company&#39;, &#39;icon&#39;: &#39;fa-building-o&#39;, &#39;url&#39;: &#39;/admin/erp/cfg/company/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Currency&#39;, &#39;icon&#39;: &#39;fa-dollar&#39;, &#39;url&#39;: &#39;/admin/erp/cfg/currency/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Charges&#39;, &#39;icon&#39;: &#39;fa-percent&#39;, &#39;url&#39;: &#39;/admin/erp/cfg/charge/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Price Types&#39;, &#39;icon&#39;: &#39;fa-tag&#39;, &#39;url&#39;: &#39;/admin/erp/stock/price-type/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}]}, {&#39;title&#39;: &#39;Reports&#39;, &#39;icon&#39;: &#39;fa-cogs&#39;, &#39;url&#39;: &#39;/admin/erp/reports/&#39;, &#39;type&#39;: &#39;group&#39;, &#39;children&#39;: [{&#39;title&#39;: &#39;Print Templates&#39;, &#39;icon&#39;: &#39;fa-print&#39;, &#39;url&#39;: &#39;/admin/erp/main/print-template/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Report Templates&#39;, &#39;icon&#39;: &#39;fa-file-text-o&#39;, &#39;url&#39;: &#39;/admin/erp/main/report/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}]}, {&#39;title&#39;: &#39;Accounting&#39;, &#39;icon&#39;: &#39;fa-calculator&#39;, &#39;url&#39;: &#39;/admin/erp/accounting/&#39;, &#39;type&#39;: &#39;group&#39;, &#39;children&#39;: [{&#39;title&#39;: &#39;Chart of Accounts&#39;, &#39;icon&#39;: &#39;fa-sitemap&#39;, &#39;url&#39;: &#39;/admin/erp/acc/account/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Journal Entries&#39;, &#39;icon&#39;: &#39;fa-pencil-square-o&#39;, &#39;url&#39;: &#39;/admin/erp/acc/entry/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Sales Orders&#39;, &#39;icon&#39;: &#39;fa-file-text&#39;, &#39;url&#39;: &#39;/admin/erp/acc/sales-order/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Sales Invoices&#39;, &#39;icon&#39;: &#39;fa-file-text-o&#39;, &#39;url&#39;: &#39;/admin/erp/acc/sales-invoice/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Purchase Invoices&#39;, &#39;icon&#39;: &#39;fa-file-o&#39;, &#39;url&#39;: &#39;/admin/erp/acc/purchase-invoice/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Payments&#39;, &#39;icon&#39;: &#39;fa-money&#39;, &#39;url&#39;: &#39;/admin/erp/acc/payment/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}]}, {&#39;title&#39;: &#39;CRM&#39;, &#39;icon&#39;: &#39;fa-handshake-o&#39;, &#39;url&#39;: &#39;/admin/erp/crm/&#39;, &#39;type&#39;: &#39;group&#39;, &#39;children&#39;: [{&#39;title&#39;: &#39;Customer Group&#39;, &#39;icon&#39;: &#39;fa-users&#39;, &#39;url&#39;: &#39;/admin/erp/crm/customer-group/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Customers&#39;, &#39;icon&#39;: &#39;fa-user-circle&#39;, &#39;url&#39;: &#39;/admin/erp/crm/customer/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Pipelines&#39;, &#39;icon&#39;: &#39;fa-random&#39;, &#39;url&#39;: &#39;/admin/erp/crm/pipeline/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Leads&#39;, &#39;icon&#39;: &#39;fa-filter&#39;, &#39;url&#39;: &#39;/admin/erp/crm/lead/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}]}, {&#39;title&#39;: &#39;Supplier&#39;, &#39;icon&#39;: &#39;fa-truck&#39;, &#39;url&#39;: &#39;/admin/erp/supplier/&#39;, &#39;type&#39;: &#39;group&#39;, &#39;children&#39;: [{&#39;title&#39;: &#39;Supplier Group&#39;, &#39;icon&#39;: &#39;fa-users&#39;, &#39;url&#39;: &#39;/admin/erp/sup/supplier-group/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Suppliers&#39;, &#39;icon&#39;: &#39;fa-truck&#39;, &#39;url&#39;: &#39;/admin/erp/sup/supplier/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Purchase Orders&#39;, &#39;icon&#39;: &#39;fa-shopping-basket&#39;, &#39;url&#39;: &#39;/admin/erp/sup/purchase-order/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}]}, {&#39;title&#39;: &#39;arasPos&#39;, &#39;icon&#39;: &#39;fa-shopping-cart&#39;, &#39;url&#39;: &#39;/admin/erp/araspos/&#39;, &#39;type&#39;: &#39;group&#39;, &#39;children&#39;: [{&#39;title&#39;: &#39;Open POS&#39;, &#39;icon&#39;: &#39;fa-cash-register&#39;, &#39;url&#39;: &#39;/admin/erp/pos/&#39;, &#39;type&#39;: &#39;link&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Terminals&#39;, &#39;icon&#39;: &#39;fa-desktop&#39;, &#39;url&#39;: &#39;/admin/erp/pos/terminal/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Sessions&#39;, &#39;icon&#39;: &#39;fa-clock-o&#39;, &#39;url&#39;: &#39;/admin/erp/pos/session/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}]}, {&#39;title&#39;: &#39;Stock&#39;, &#39;icon&#39;: &#39;fa-cubes&#39;, &#39;url&#39;: &#39;/admin/erp/stock/&#39;, &#39;type&#39;: &#39;group&#39;, &#39;children&#39;: [{&#39;title&#39;: &#39;Units of Measure&#39;, &#39;icon&#39;: &#39;fa-balance-scale&#39;, &#39;url&#39;: &#39;/admin/erp/stock/uom/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Product Categories&#39;, &#39;icon&#39;: &#39;fa-folder-o&#39;, &#39;url&#39;: &#39;/admin/erp/stock/product-category/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Products&#39;, &#39;icon&#39;: &#39;fa-cube&#39;, &#39;url&#39;: &#39;/admin/erp/stock/product/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Price List&#39;, &#39;icon&#39;: &#39;fa-money&#39;, &#39;url&#39;: &#39;/admin/erp/stock/price-list-item/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Product Bundles&#39;, &#39;icon&#39;: &#39;fa-cubes&#39;, &#39;url&#39;: &#39;/admin/erp/stock/product-bundle/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Promo Bundles&#39;, &#39;icon&#39;: &#39;fa-gift&#39;, &#39;url&#39;: &#39;/admin/erp/stock/promo-bundle/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Locations&#39;, &#39;icon&#39;: &#39;fa-building-o&#39;, &#39;url&#39;: &#39;/admin/erp/stock/location/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Stock Movements&#39;, &#39;icon&#39;: &#39;fa-exchange&#39;, &#39;url&#39;: &#39;/admin/erp/stock/movement/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Delivery Trips&#39;, &#39;icon&#39;: &#39;fa-road&#39;, &#39;url&#39;: &#39;/admin/erp/stock/delivery-trip/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}, {&#39;title&#39;: &#39;Delivery Orders&#39;, &#39;icon&#39;: &#39;fa-map-marker&#39;, &#39;url&#39;: &#39;/admin/erp/stock/delivery-order/&#39;, &#39;type&#39;: &#39;list&#39;, &#39;children&#39;: []}]}, {&#39;title&#39;: &#39;Settings&#39;, &#39;icon&#39;: &#39;fa-cog&#39;, &#39;url&#39;: &#39;/admin/erp/settings/&#39;, &#39;type&#39;: &#39;settings&#39;, &#39;children&#39;: []}], &#39;source&#39;: &#39;db&#39;, &#39;app_slug&#39;: &#39;erp&#39;}, {&#39;title&#39;: &#39;Trash&#39;, &#39;icon&#39;: &#39;fa-trash-o&#39;, &#39;order&#39;: 999, &#39;url&#39;: &#39;/admin/trash/&#39;, &#39;children&#39;: [], &#39;source&#39;: &#39;framework&#39;, &#39;app_slug&#39;: &#39;trash&#39;}]</td>
+      </tr>
+    
+      <tr class="flDebugOdd">
+        <td>user</td>
+        <td>&lt;User admin&gt;</td>
+      </tr>
+    
+  </tbody>
+</table>
+        </div>
+      </div>
+    </div>
+    
+  
+  <div id="flDebugWindow" class="flDebugPanelContentParent"></div>
+</div></body>
+</html>

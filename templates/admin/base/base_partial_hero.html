@@ -13,10 +13,11 @@
 {% set _bc = namespace(app=none, child=none) %}
 {% for app in g.gmenu %}
   {% set _slug = app.app_slug or '' %}
-  {% set _prefix = '/admin/' ~ _slug %}
-  {% if _slug and (_path == _prefix or _path == _prefix ~ '/' or _path.startswith(_prefix ~ '/')) %}
+  {% set _prefix = '/admin/' ~ _slug if _slug else none %}
+  
+  {% if _prefix and (_path == _prefix or _path == _prefix ~ '/' or _path.startswith(_prefix ~ '/')) %}
     {% set _bc.app = app %}
-  {% elif app.url and (_path == app.url or _path.startswith(app.url)) and app.url != '/admin/' %}
+  {% elif app.url and app.url != '/admin/' and (_path == app.url or _path.startswith(app.url)) %}
     {% set _bc.app = app %}
   {% endif %}
 {% endfor %}

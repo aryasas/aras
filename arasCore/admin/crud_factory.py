@@ -572,6 +572,54 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
                 for cd in child_defs:
                     cd["rows"] = _get_local_child_rows(cd["model_name"])
 
+            from arasCore.lib.services.api_handler import get_api_url_for_model
+            _api_url = get_api_url_for_model(model)
+
+            _v_engine = _req.args.get('view_engine', 'react')
+            if _v_engine == 'react':
+                react_fields = []
+                for field in form:
+                    if field.name in ['csrf_token', 'submit']: continue
+                    field_def = {
+                        "name": field.name,
+                        "label": field.label.text,
+                        "type": str(type(field).__name__),
+                        "widget": "textarea" if field.type == "TextAreaField" else "select" if field.type == "SelectField" else "text",
+                        "required": getattr(field.flags, 'required', False) or any(hasattr(v, 'field_flags') and getattr(v, 'field_flags').get('required') for v in getattr(field, 'validators', []))
+                    }
+                    if hasattr(field, 'choices'):
+                        field_def["choices"] = field.choices
+                        # Attempt to resolve rel_add_url for FKs
+                        try:
+                            col_c = model.__table__.c.get(field.name)
+                            if col_c is not None and col_c.foreign_keys:
+                                raw_fk = list(col_c.foreign_keys)[0].column.table.name
+                                from arasCore.admin.models import AppManagerTable as _AMT, AppManagerApp as _AMA
+                                _ref_tbl = _AMT.query.filter((_AMT.name == raw_fk) | (_AMT.db_table_name == raw_fk)).first()
+                                if _ref_tbl:
+                                    _ref_app = _AMA.query.get(_ref_tbl.app_id)
+                                    if _ref_app:
+                                        field_def["rel_add_url"] = f"/admin{_ref_app.url_prefix}{_ref_tbl.get_full_url(_ref_app.url_prefix)}/add/?view_engine=react"
+                        except Exception:
+                            pass
+                    react_fields.append(field_def)
+
+                return render_template(
+                    "admin/react_app_shell.html",
+                    title=f"Add {title}" if action == 'add' else f"Edit {title}",
+                    react_config={
+                        "viewType": "form",
+                        "action": action,
+                        "appSlug": app_slug,
+                        "resource": tname,
+                        "id": item_id if action == 'edit' else None,
+                        "title": title,
+                        "fields": react_fields,
+                        "listUrl": f"{burl}/?view_engine=react",
+                        "apiUrl": _api_url
+                    }
+                )
+
             return render_template(
                 "admin/gen/gen_view_form.html",
                 title=f"Add {title}", main_title=main_t,
@@ -643,23 +691,33 @@ def _make_crud_view(action, *, model, form_cls=None, title=None, main_t=None,
             from arasCore.lib.services.api_handler import get_api_url_for_model
             _api_url = get_api_url_for_model(model)
 
-            _v_engine = _req.args.get('view_engine', 'react') # Default to react for test
-            if _v_engine == 'react' and app_slug == "erp" and tname == "crm/customer":
-                import json
-                
-                # Format fields for the React form
+            _v_engine = _req.args.get('view_engine', 'react')
+            if _v_engine == 'react':
                 react_fields = []
                 for field in form:
                     if field.name in ['csrf_token', 'submit']: continue
                     field_def = {
                         "name": field.name,
                         "label": field.label.text,
-                        "type": field.type,
-                        "required": getattr(field.flags, 'required', False),
-                        "widget": "textarea" if field.type == "TextAreaField" else "select" if field.type == "SelectField" else "text"
+                        "type": str(type(field).__name__),
+                        "widget": "textarea" if field.type == "TextAreaField" else "select" if field.type == "SelectField" else "text",
+                        "required": getattr(field.flags, 'required', False) or any(hasattr(v, 'field_flags') and getattr(v, 'field_flags').get('required') for v in getattr(field, 'validators', []))
                     }
                     if hasattr(field, 'choices'):
                         field_def["choices"] = field.choices
+                        # Attempt to resolve rel_add_url for FKs
+                        try:
+                            col_c = model.__table__.c.get(field.name)
+                            if col_c is not None and col_c.foreign_keys:
+                                raw_fk = list(col_c.foreign_keys)[0].column.table.name
+                                from arasCore.admin.models import AppManagerTable as _AMT, AppManagerApp as _AMA
+                                _ref_tbl = _AMT.query.filter((_AMT.name == raw_fk) | (_AMT.db_table_name == raw_fk)).first()
+                                if _ref_tbl:
+                                    _ref_app = _AMA.query.get(_ref_tbl.app_id)
+                                    if _ref_app:
+                                        field_def["rel_add_url"] = f"/admin{_ref_app.url_prefix}{_ref_tbl.get_full_url(_ref_app.url_prefix)}/add/?view_engine=react"
+                        except Exception:
+                            pass
                     react_fields.append(field_def)
 
                 return render_template(
@@ -928,14 +986,24 @@ def _make_gen_view_list_direct(model, title, main_t, vcols, adm_burl, app_title,
 
         # Check for workflow
         from arasCore.lib.services.workflow import get_workflow
-        _res_key = adm_burl.replace("/admin/", "").strip("/")
-        _has_workflow = get_workflow(_res_key) is not None
+        _has_workflow = get_workflow(tname) is not None
 
-        # Check if React template exists for this resource
+        _v_engine = request.args.get('view_engine', 'react')
+        if _v_engine == 'react':
+            return render_template(
+                "admin/react_app_shell.html",
+                title=title,
+                react_config={
+                    "viewType": "list",
+                    "appSlug": app_slug,
+                    "resource": tname,
+                    "title": title,
+                    "columns": [{"name": c[1], "label": c[0]} for c in eff_vcols],
+                    "apiUrl": _api_url
+                }
+            )
+
         template = "admin/gen/gen_view_list.html"
-        _v_engine = request.args.get('view_engine', 'legacy')
-        if _v_engine == 'react' and app_slug == "erp" and _res_key == "crm/customer":
-            template = "admin/gen/gen_view_list_react.html"
 
         return render_template(
             template,

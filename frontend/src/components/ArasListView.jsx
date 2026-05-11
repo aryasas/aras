@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import ArasTableToolbar from './ArasTableToolbar'
 
 export default function ArasListView({ app, resource, columns = [], title }) {
+  const navigate = useNavigate()
+  
   useEffect(() => {
     console.log('[aras] ArasListView mounting:', { app, resource, title });
   }, [app, resource, title]);
@@ -25,7 +28,7 @@ export default function ArasListView({ app, resource, columns = [], title }) {
         title={title ?? resource}
         searchValue={q}
         onSearch={(val) => { setQ(val); setPage(1) }}
-        onAdd={() => window.location.href = `/admin/${app}/${resource}/add/`}
+        onAdd={() => navigate(`/admin/${app}/${resource}/add/`)}
         totalRecords={total}
         onRefresh={() => refetch()}
         isLoading={isLoading}
@@ -71,12 +74,12 @@ export default function ArasListView({ app, resource, columns = [], title }) {
                 ))}
                 <td className="px-4 py-3 text-right">
                   {row?.id && (
-                    <a
-                      href={`/admin/${app}/${resource}/${row.id}/edit/`}
+                    <Link
+                      to={`/admin/${app}/${resource}/${row.id}/edit/`}
                       className="text-[#2d4a6b] hover:text-[#0f1b2d] font-semibold text-xs"
                     >
                       Edit
-                    </a>
+                    </Link>
                   )}
                 </td>
               </tr>

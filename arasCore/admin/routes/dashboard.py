@@ -10,10 +10,25 @@ from arasCore.lib.core.extensions import db
 
 
 @admin_bp.route("/dashboard", methods=["GET", "POST"])
+@admin_bp.route("/", methods=["GET", "POST"])
 @login_required
 def dashboard():
     widgets = get_dashboard_widgets(current_user)
     builder_enabled = ArasSystemSetting.get("dashboard_builder_enabled", False)
+
+    _v_engine = request.args.get('view_engine', 'react')
+    if _v_engine == 'react':
+        return render_template(
+            "admin/react_app_shell.html",
+            title="Dashboard",
+            react_config={
+                "viewType": "dashboard",
+                "appSlug": "admin",
+                "widgets": widgets,
+                "builder_enabled": builder_enabled,
+            }
+        )
+
     return render_template(
         "admin/base/base_dashboard.html",
         title="Dashboard",

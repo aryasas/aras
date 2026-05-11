@@ -4,29 +4,29 @@
     {% set _active_app = namespace(found=none) %}
     
     {% for app in g.gmenu %}
-        {# Normalize slugs and paths for comparison #}
         {% set _app_slug = app.app_slug or '' %}
-        {% set _admin_prefix = '/admin/' ~ _app_slug %}
+        {% set _prefix = '/admin/' ~ _app_slug if _app_slug else none %}
         
-        {# Match exact app root or any path starting with /admin/slug/ #}
-        {% if _app_slug and (_path == _admin_prefix or _path == _admin_prefix ~ '/' or _path.startswith(_admin_prefix ~ '/')) %}
+        {# 1. Check for standard /admin/slug prefix #}
+        {% if _prefix and (_path == _prefix or _path == _prefix ~ '/' or _path.startswith(_prefix ~ '/')) %}
             {% set _active_app.found = app %}
-        {% elif app.url and (_path == app.url or _path.startswith(app.url)) and app.url != '/admin/' %}
+        {# 2. Fallback to exact URL match if custom home_url is used #}
+        {% elif app.url and app.url != '/admin/' and (_path == app.url or _path.startswith(app.url)) %}
             {% set _active_app.found = app %}
         {% endif %}
     {% endfor %}
 
     <div class="app-menu-bar">
-        {# 1. All Apps Dropdown #}
+        {# 1. Dashboard / Home Link #}
         <div class="appmenu-item">
             <a href="{{ url_for('admin.dashboard') }}" class="appmenu-item-link {{ 'active' if _path == url_for('admin.dashboard') }}">
-                <i class="ti-layout-grid2"></i>
-                <span>Apps</span>
+                <i class="ti-home"></i>
+                <span>Admin</span>
                 <i class="fa fa-caret-down ml-1"></i>
             </a>
             <div class="appmenu-dropdown">
                 <a href="{{ url_for('admin.dashboard') }}">
-                    <i class="ti-home"></i> Dashboard
+                    <i class="ti-layout-grid2"></i> Dashboard
                 </a>
                 <div class="app-menu-divider-horizontal"></div>
                 {% for app in g.gmenu %}
@@ -52,14 +52,21 @@
                 {% if child.children %}
                     {# Group Dropdown #}
                     <div class="appmenu-item">
-                        <a href="{{ child.url if child.url else '#' }}" class="appmenu-item-link">
+                        <a href="{{ child.url or '#' }}" class="appmenu-item-link {{ 'active' if _path == child.url or _path == child.url ~ '/' }}">
                             <i class="fa {{ child.icon or 'fa-folder-o' }}"></i>
                             {{ child.title }}
                             <i class="fa fa-caret-down ml-1"></i>
                         </a>
                         <div class="appmenu-dropdown">
+                            {% if child.url and child.url != '#' %}
+                                <a href="{{ child.url }}" class="{{ 'active' if _path == child.url or _path == child.url ~ '/' }}">
+                                    <i class="fa {{ child.icon or 'fa-folder-open-o' }}"></i>
+                                    {{ child.title }} Home
+                                </a>
+                                <div class="app-menu-divider-horizontal"></div>
+                            {% endif %}
                             {% for item in child.children %}
-                                <a href="{{ item.url }}">
+                                <a href="{{ item.url }}" class="{{ 'active' if _path == item.url or _path == item.url ~ '/' }}">
                                     <i class="fa {{ item.icon or 'fa-file-o' }}"></i>
                                     {{ item.title }}
                                 </a>
@@ -68,7 +75,7 @@
                     </div>
                 {% else %}
                     {# Flat Item #}
-                    <a href="{{ child.url }}" class="appmenu-item-link">
+                    <a href="{{ child.url }}" class="appmenu-item-link {{ 'active' if _path == child.url or _path == child.url ~ '/' }}">
                         <i class="fa {{ child.icon or 'fa-table' }}"></i>
                         {{ child.title }}
                     </a>
@@ -76,7 +83,7 @@
             {% endfor %}
         {% else %}
              <span class="app-menu-divider"></span>
-             <span class="appmenu-item-link text-muted">No module selected</span>
+             <span class="appmenu-item-link text-muted">Select an application from the sidebar</span>
         {% endif %}
     </div>
 {% endif %}

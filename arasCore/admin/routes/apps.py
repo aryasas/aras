@@ -39,6 +39,22 @@ def apps_list():
         )
     all_apps = query.all()
     cols = [("Name", "name"), ("Title", "title"), ("URL", "url"), ("Active", "is_active")]
+
+    _v_engine = request.args.get('view_engine', 'react')
+    if _v_engine == 'react':
+        return render_template(
+            "admin/react_app_shell.html",
+            title="App Manager",
+            react_config={
+                "viewType": "list",
+                "appSlug": "admin",
+                "resource": "apps",
+                "title": "App Manager",
+                "columns": [{"name": c[1], "label": c[0]} for c in cols],
+                "apiUrl": "/api/admin/apps/"
+            }
+        )
+
     return render_template(
         "admin/gen/gen_view_list.html",
         title="App Manager",
@@ -74,6 +90,22 @@ def apps_doctypes():
         )
     all_tables = query.all()
     cols = [("Name", "name"), ("DB Table", "db_table_name"), ("Type", "page_type"), ("Active", "is_active")]
+
+    _v_engine = request.args.get('view_engine', 'react')
+    if _v_engine == 'react':
+        return render_template(
+            "admin/react_app_shell.html",
+            title="DocTypes",
+            react_config={
+                "viewType": "list",
+                "appSlug": "admin",
+                "resource": "apps/tables",
+                "title": "DocTypes",
+                "columns": [{"name": c[1], "label": c[0]} for c in cols],
+                "apiUrl": "/api/admin/apps/tables/"
+            }
+        )
+
     return render_template(
         "admin/gen/gen_view_list.html",
         title="DocTypes",

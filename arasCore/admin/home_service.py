@@ -247,8 +247,22 @@ def make_home_view(app_name: str, app_title: str, is_dynamic: bool = False, regi
         app_row = _get_app_record(_registry_key)
 
         tiles = _get_page_tiles(app_name, registry_key=_registry_key) if is_dynamic else _get_helper_tiles(app_name, registry_key=_registry_key)
-
         widgets = _get_dashboard_widgets(app_row)
+
+        from flask import request
+        _v_engine = request.args.get('view_engine', 'react')
+        if _v_engine == 'react':
+            return render_template(
+                "admin/react_app_shell.html",
+                title=app_title,
+                react_config={
+                    "viewType": "appHome",
+                    "appSlug": app_name,
+                    "title": app_title,
+                    "tiles": tiles,
+                    "widgets": widgets
+                }
+            )
 
         # Description & icon
         description = (app_row.description if app_row else "") or ""
@@ -301,11 +315,14 @@ def make_group_view(app_name: str, app_title: str, registry_key: str = None):
         if not app_rec:
             abort(404)
 
-        # Find the group row by matching url_suffix to the slug
+        # Find the group row by matching url_suffix to the slug (case-insensitive)
         grp_rec = None
-        for t in AppManagerTable.query.filter_by(app_id=app_rec.id, page_type="group", is_active=True).all():
-            slug = (t.url_suffix or "").strip("/").split("/")[-1]
-            if slug == group_slug:
+        target_slug = group_slug.strip("/").lower()
+        
+        all_groups = AppManagerTable.query.filter_by(app_id=app_rec.id, page_type="group", is_active=True).all()
+        for t in all_groups:
+            stored_slug = (t.url_suffix or "").strip("/").split("/")[-1].lower()
+            if stored_slug == target_slug:
                 grp_rec = t
                 break
 
@@ -330,6 +347,22 @@ def make_group_view(app_name: str, app_title: str, registry_key: str = None):
                 "page_type":   page_type,
                 "count":       _count_rows(t.get_db_table_name(_registry_key)) if page_type == "list" else None,
             })
+
+        from flask import request
+        _v_engine = request.args.get('view_engine', 'react')
+        if _v_engine == 'react':
+            return render_template(
+                "admin/react_app_shell.html",
+                title=grp_rec.get_menu_title(),
+                react_config={
+                    "viewType": "appHome",
+                    "appSlug": app_name,
+                    "title": grp_rec.get_menu_title(),
+                    "tiles": tiles,
+                    "isSubmodule": True,
+                    "backUrl": f"/admin/{app_name}/?view_engine=react"
+                }
+            )
 
         return render_template(
             "admin/base/base_app_home.html",
