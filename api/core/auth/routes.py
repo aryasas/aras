@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
 
-from ..aras import Aras
+from ..base.validation import Validation
 from ..lib.database import get_db
 from .service import (
     create_access_token, 
@@ -19,14 +19,14 @@ router = APIRouter(
     tags=["Authentication"]
 )
 
-class ChangePasswordRequest(Aras.Validation):
+class ChangePasswordRequest(Validation):
     old_password: str
     new_password: str
 
-class ForgotPasswordRequest(Aras.Validation):
+class ForgotPasswordRequest(Validation):
     email: str
 
-class ResetPasswordRequest(Aras.Validation):
+class ResetPasswordRequest(Validation):
     token: str
     new_password: str
 

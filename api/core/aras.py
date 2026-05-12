@@ -1,86 +1,81 @@
-from typing import Dict, Any, Type, List, Optional
-from pydantic import BaseModel
+"""
+Purpose: The main Facade and Unified Namespace for the Aras Framework.
+Context: Root of the api/core module. Consolidates Levels 1, 2, and 3.
+Impact: The primary API surface for framework users.
+"""
+from typing import Type
 
-class Aras:
-    """
-    The ultimate abstract root for the Aras framework.
-    Handles automated namespace mapping and generic registration.
-    """
-    @classmethod
-    def get_registered(cls, name: str) -> dict:
-        target = getattr(cls, name.capitalize(), None)
-        if target is None:
-            raise AttributeError(f"Aras has no namespace '{name.capitalize()}'")
-        return getattr(target, "_registry", {})
+# 1. Level 1 Base
+from .base.aras import Aras as BaseAras
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
+# 2. Level 2 Core Abstractions
+from .base.model import Model, SoftModel, Base
+from .base.app import App
+from .base.field import Field
+from .base.validation import Validation
+from .manager.manager import Manager
 
-        # 1. Automatic Namespace Attachment (ArasSomething -> Aras.Something)
-        if cls.__name__.startswith("Aras") and cls.__name__ != "Aras":
-            attr_name = cls.__name__[4:]
-            if attr_name:
-                setattr(Aras, attr_name, cls)
+# 3. Registry (Level 3 implementations)
+from .registry.app_model import AppModel
+from .registry.resource_model import ResourceModel
+from .registry.field_model import FieldModel
+from .registry.activity_log import ActivityLog
+from .registry.role import Role
+from .registry.permission import Permission
+from .registry.user_role import UserRole
 
-        # 2. Generic Registration
-        # If the direct parent has a _registry, register this class into it
-        if not cls.__dict__.get("__abstract__"):
-            # We look for _registry in the base classes
-            for base in cls.__bases__:
-                if hasattr(base, "_registry") and isinstance(getattr(base, "_registry"), dict):
-                    # Register the class in the parent's registry
-                    base._registry[cls.__name__] = cls
+# 4. Managers & Sync
+from .manager.sync_manager import SyncManager
+from .manager.audit_manager import AuditManager
+from .manager.workflow_manager import WorkflowManager
 
-class ArasValidation(Aras, BaseModel):
-    """
-    Base class for all Aras Pydantic models (schemas/validation).
-    """
-    __abstract__ = True
-    _registry: Dict[str, Type['ArasValidation']] = {}
-
-class ArasApp(Aras):
-    """
-    Abstract base for application modules (e.g., ERP, CRM).
-    """
-    __abstract__ = True
-    _registry: Dict[str, Type['ArasApp']] = {}
-
-    app_name: str = ""
-    app_label: str = ""
-    description: str = ""
-    version: str = "1.0.0"
-    icon: str = "Package"
-    models: List[Any] = []
-
-    @classmethod
-    def get_manifest(cls):
-        return {
-            "name": cls.app_name,
-            "label": cls.app_label,
-            "description": cls.description,
-            "version": cls.version,
-            "icon": cls.icon,
-            "models": [m.__tablename__ for m in cls.models if hasattr(m, "__tablename__")]
-        }
-
-# "Connect" components from other modules to the Aras class
-from .model import ArasModel, ArasSoftModel, ArasColumn, Base
+# 5. Utilities & Libraries
 from .lib.database import SessionLocal, get_db, engine
+from .lib.discovery import discover_apps
 
-# Attach non-class utilities
-Aras.Column = ArasColumn
-Aras.Base = Base
-Aras.db = SessionLocal
-Aras.get_db = get_db
-Aras.engine = engine
+class Aras(BaseAras):
+    """
+    Unified Aras Namespace.
+    Consolidates the hierarchy into a single, clean API.
+    """
+    
+    # Core Abstractions (Level 2)
+    Model = Model
+    SoftModel = SoftModel
+    Base = Base
+    App = App
+    Field = Field
+    Column = Field # Alias for backward compatibility
+    Validation = Validation
+    Manager = Manager
+    
+    # Registry Models (Level 3)
+    AppModel = AppModel
+    ResourceModel = ResourceModel
+    FieldModel = FieldModel
+    ActivityLog = ActivityLog
+    Role = Role
+    Permission = Permission
+    UserRole = UserRole
+    
+    # Database Layer
+    db = SessionLocal
+    get_db = get_db
+    engine = engine
+    
+    # Logic
+    discover_apps = discover_apps
 
-# Now import modules that depend on Aras.Model/Column
+# Attach Specialized Managers
+Aras.Manager.Sync = SyncManager
+Aras.Manager.Audit = AuditManager
+Aras.Manager.Workflow = WorkflowManager
+
+# 6. Delayed Implementation Attachments (Level 3)
 from .auth.models import User
-from .crud import create_aras_router
+from .lib.router_factory import RouterFactory
 
-# Attach remaining components
 Aras.User = User
-Aras.Router = create_aras_router
+Aras.Router = RouterFactory.create_router
 
-# Expose only the Aras class
 __all__ = ["Aras"]

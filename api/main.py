@@ -58,6 +58,12 @@ app.add_middleware(
 # Core Routes
 app.include_router(auth_router, prefix="/api/v1")
 
+from core.lib.query_api import router as query_router
+app.include_router(query_router, prefix="/api/v1")
+
+from core.lib.workflow_api import router as workflow_router
+app.include_router(workflow_router, prefix="/api/v1")
+
 # Dynamic App Discovery & Route Registration
 register_app_routes(app, prefix="/api/v1")
 
@@ -74,7 +80,8 @@ async def get_sidebar_data():
     """
     Endpoint untuk menyuplai data menu ke frontend secara dinamis.
     """
-    registered_apps = Aras.get_registered("app")
+    from core.base.app import App
+    registered_apps = App._registry
     sidebar = []
 
     for app_name, app_cls in registered_apps.items():
@@ -92,10 +99,16 @@ async def get_sidebar_data():
     return sidebar
 
 @app.on_event("startup")
-def seed_data():
+def startup_event():
     db = next(Aras.get_db())
 
-    # Seed Admin
+    # 1. Register Global Listeners
+    Aras.Manager.Audit.register_listeners()
+
+    # 2. Sync Metadata (Code -> DB Registry)
+    Aras.Manager.Sync.sync_all(db)
+
+    # 2. Seed Admin
     admin = db.query(Aras.User).filter(Aras.User.username == "admin").first()
     if not admin:
         print("Creating default admin user...")
@@ -110,7 +123,7 @@ def seed_data():
         print("Admin user created (admin/admin)")
 
     # Seed Settings
-    from apps.system.models import ArasSetting
+    from apps.admin.models import ArasSetting
     defaults = [
         {"key": "app_name", "value": "Aras ERP", "description": "Application display name"},
         {"key": "maintenance_mode", "value": "false", "description": "Disable public access"},
