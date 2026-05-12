@@ -96,7 +96,6 @@ async def get_sidebar_data():
     sidebar = [
         {"type": "link", "name": "dashboard", "label": "Dashboard", "icon": "LayoutDashboard", "path": "/"},
         {"type": "link", "name": "app_manager", "label": "App Manager", "icon": "Package", "path": "/apps"},
-        {"type": "link", "name": "dev_dashboard", "label": "Dev Tools Hub", "icon": "Activity", "path": "/dev"},
     ]
 
     # 2. Dynamic Apps
@@ -105,17 +104,25 @@ async def get_sidebar_data():
         if app_name in ["admin"]:
             continue
         
+        models_list = []
+        
+        # Inject the Dev Tools Hub page into the Dev App menu
+        if app_name == "dev":
+            models_list.append({"name": "", "label": "Overview"})
+            
+        models_list.extend([
+            {
+                "name": m.__tablename__,
+                "label": getattr(m, "__title__", m.__tablename__.replace("_", " ").title())
+            } for m in app_cls.models
+        ])
+        
         apps_group.append({
             "type": "app",
             "name": app_cls.app_name,
             "label": app_cls.app_label,
             "icon": app_cls.icon,
-            "models": [
-                {
-                    "name": m.__tablename__,
-                    "label": getattr(m, "__title__", m.__tablename__.replace("_", " ").title())
-                } for m in app_cls.models
-            ]
+            "models": models_list
         })
     
     sidebar.extend(apps_group)

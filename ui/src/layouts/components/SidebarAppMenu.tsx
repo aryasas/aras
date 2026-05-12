@@ -15,10 +15,10 @@ export function SidebarAppMenu({ app, isOpen, currentPath }: SidebarAppMenuProps
   const IconComponent = (LucideIcons as any)[app.icon] || LucideIcons.Package
   
   const models = app.models || []
-  const isActive = models.some(m => currentPath === `/${app.name}/${m.name}`)
+  const isActive = models.some(m => currentPath === (m.name ? `/${app.name}/${m.name}` : `/${app.name}`))
 
   if (!isOpen) {
-    const firstModelPath = models.length > 0 ? `/${app.name}/${models[0]?.name}` : `/${app.name}`
+    const firstModelPath = models.length > 0 ? (models[0]?.name ? `/${app.name}/${models[0]?.name}` : `/${app.name}`) : `/${app.name}`
     return (
       <div className="relative group">
         <Link 
@@ -51,15 +51,18 @@ export function SidebarAppMenu({ app, isOpen, currentPath }: SidebarAppMenuProps
       
       {isExpanded && (
         <div className="ml-9 mt-1 space-y-1 border-l border-slate-100 pl-4 py-1 animate-in slide-in-from-top-1 duration-200">
-          {models.map(model => (
-            <Link 
-              key={model.name}
-              to={`/${app.name}/${model.name}`}
-              className={`block py-2 text-sm transition-all ${currentPath === `/${app.name}/${model.name}` ? 'text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-900'}`}
-            >
-              {model.label}
-            </Link>
-          ))}
+          {models.map(model => {
+            const targetPath = model.name ? `/${app.name}/${model.name}` : `/${app.name}`
+            return (
+              <Link 
+                key={model.name || 'home'}
+                to={targetPath}
+                className={`block py-2 text-sm transition-all ${currentPath === targetPath ? 'text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-900'}`}
+              >
+                {model.label}
+              </Link>
+            )
+          })}
         </div>
       )}
     </div>
