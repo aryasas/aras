@@ -9,8 +9,7 @@ __pycache__/
 log/
 *.sqlite3
 *.db
-aras/static/media/
-.claude_cache/
+
 dist/
 *.lock
 *.min.js
@@ -19,11 +18,9 @@ bu/
 .qwen/
 .vscode/
 next/
-node_modules/
-ui/node_modules/
 *.egg-info/
 run_test*
-.aider.chat.history.md
-.aider.input.history
-.gitignore
-.aider.tags.cache.v4/
+.aider/
+ui/dist/
+ui/node_modules/
+GEMINI.md

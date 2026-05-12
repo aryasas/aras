@@ -80,7 +80,7 @@ The following response structures are BANNED:
 - LIMIT I/O: Only read the specific `docs/*.md` file relevant to the current task. Track read files.
 - DO NOT rewrite entire files — output specific diffs or targeted function replacements.
 - CRITICAL: Do not re-read files unnecessarily. read-once hook will block unchanged files automatically.
-- To read ANY file, execute: `./smart_read.sh <filepath>` — this script handles deduplication and diffing automatically.
+- To read ANY file, execute: `tools/smart_read.sh <filepath>` — this script handles deduplication and diffing automatically.
 - DO NOT WASTE TOKENS.
 - If you are about to read a file listed in "Do NOT Re-read", STOP. Ask for the specific info needed instead.
 

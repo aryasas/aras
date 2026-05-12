@@ -70,6 +70,9 @@ app.include_router(admin_router, prefix="/api/v1/admin")
 from core.lib.dev_api import router as dev_router
 app.include_router(dev_router, prefix="/api/v1/dev")
 
+from core.lib.registry_api import router as registry_router
+app.include_router(registry_router, prefix="/api/v1")
+
 # Dynamic App Discovery & Route Registration
 register_app_routes(app, prefix="/api/v1")
 
@@ -91,6 +94,8 @@ async def get_sidebar_data():
     sidebar = []
 
     for app_name, app_cls in registered_apps.items():
+        if app_name in ["admin", "dev_tools"]:
+            continue
         sidebar.append({
             "name": app_cls.app_name,
             "label": app_cls.app_label,

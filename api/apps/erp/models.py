@@ -5,6 +5,7 @@ from core import Aras
 class Product(Aras.Model):
     __tablename__ = "erp_products"
     __title__ = "Product Catalog"
+    __features__ = ["audit"]
 
     name: Mapped[str] = Aras.Column(String(100), unique=True, label="Product Name", searchable=True)
     sku: Mapped[str] = Aras.Column(String(50), unique=True, label="SKU / Item Code")
@@ -15,6 +16,7 @@ class Product(Aras.Model):
 class Customer(Aras.Model):
     __tablename__ = "erp_customers"
     __title__ = "Customer Relationship"
+    __features__ = ["audit"]
 
     name: Mapped[str] = Aras.Column(String(100), label="Customer Name", searchable=True)
     email: Mapped[str] = Aras.Column(String(100), nullable=True, label="Email", ui_type="email")

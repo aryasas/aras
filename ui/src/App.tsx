@@ -11,7 +11,10 @@ import ProfileView from './views/Profile'
 import DynamicView from './views/DynamicView'
 import DevToolsView from './views/DevTools'
 import AppManagerView from './views/AppManager'
+import AuditLogsView from './views/AuditLogs'
+import RBACManagerView from './views/RBACManager'
 import RegionalSettingsView from './views/RegionalSettings'
+import SysSettingsView from './views/SysSettings'
 import InspectRoutesView from './views/InspectRoutes'
 import GlobalDialog from './aras-core/components/GlobalDialog'
 import { useEffect } from 'react'
@@ -78,9 +81,14 @@ function App() {
           <Route index element={<HomeView />} />
           <Route path="settings" element={<SettingsView />} />
           <Route path="admin/regional_settings" element={<RegionalSettingsView />} />
+          <Route path="admin/sys_settings" element={<SysSettingsView />} />
+          <Route path="admin/audit_logs" element={<AuditLogsView />} />
+          <Route path="admin/rbac" element={<RBACManagerView />} />
           <Route path="devtools" element={<DevToolsView />} />
           <Route path="devtools/routes" element={<InspectRoutesView />} />
           <Route path="api/v1/dev/inspect/routes" element={<InspectRoutesView />} />
+          <Route path="devtools/table/:app/:model" element={<DynamicView />} />
+          <Route path="devtools/table/:app/:model/:id" element={<DynamicView />} />
           <Route path="apps" element={<AppManagerView />} />
           <Route path="profile" element={<ProfileView />} />
           <Route path=":app/:model" element={<DynamicView />} />

@@ -1,4 +1,4 @@
-import { Settings as SettingsIcon, Shield, Database, Globe, Bell, Package, Terminal } from 'lucide-react'
+import { Settings as SettingsIcon, Shield, Database, Globe, Package, Terminal, History } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 function Settings() {
@@ -6,9 +6,9 @@ function Settings() {
     { id: 'apps', label: 'App Manager', icon: <Package size={20} />, description: 'Install, update, and manage framework extensions.', path: '/apps' },
     { id: 'devtools', label: 'Developer Tools', icon: <Terminal size={20} />, description: 'System inspection, metadata sync, and database stats.', path: '/devtools' },
     { id: 'general', label: 'Regional Settings', icon: <Globe size={20} />, description: 'Date/Number formats, language, and regional defaults.', path: '/admin/regional_settings' },
-    { id: 'security', label: 'Security & Auth', icon: <Shield size={20} />, description: 'Password policies, 2FA, and session management.', path: '/admin/auth_users' },
-    { id: 'database', label: 'System & Database', icon: <Database size={20} />, description: 'Maintenance mode, backups, and system logs.', path: '/admin/sys_settings' },
-    { id: 'notifications', label: 'Notifications', icon: <Bell size={20} />, description: 'Email templates and system alert configuration.', path: '/admin/sys_settings' },
+    { id: 'security', label: 'Security & Auth', icon: <Shield size={20} />, description: 'Password policies, roles, and session management.', path: '/admin/rbac' },
+    { id: 'database', label: 'System & DB Config', icon: <Database size={20} />, description: 'Maintenance mode and platform behavior.', path: '/admin/sys_settings' },
+    { id: 'audit', label: 'Activity Audit Trail', icon: <History size={20} />, description: 'System changes and user activity logs.', path: '/admin/audit_logs' },
   ]
 
   return (

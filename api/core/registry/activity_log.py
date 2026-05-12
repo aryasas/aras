@@ -4,8 +4,9 @@ Context: Part of Aras.Registry namespace. Populated by AuditManager events.
 Impact: Essential for compliance and change history tracking.
 """
 from sqlalchemy import String, Integer, JSON, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped
 from ..base.model import Model
+from ..base.field import Field
 
 class ActivityLog(Model):
     """
@@ -15,9 +16,9 @@ class ActivityLog(Model):
     __tablename__ = "aras_activity_logs"
     __title__ = "Activity Audit Trail"
 
-    resource: Mapped[str] = mapped_column(String(100), index=True) # Table name
-    resource_id: Mapped[int] = mapped_column(Integer, index=True)
-    action: Mapped[str] = mapped_column(String(20)) # "INSERT", "UPDATE", "DELETE"
-    changes: Mapped[dict] = mapped_column(JSON, nullable=True) # {"field": [old, new]}
-    note: Mapped[str] = mapped_column(Text, nullable=True)
-    user_id: Mapped[int] = mapped_column(Integer, nullable=True, index=True)
+    resource: Mapped[str] = Field(String(100), index=True, label="Resource")
+    resource_id: Mapped[int] = Field(Integer, index=True, label="Record ID")
+    action: Mapped[str] = Field(String(20), label="Action")
+    changes: Mapped[dict] = Field(JSON, nullable=True, label="Data Changes")
+    note: Mapped[str] = Field(Text, nullable=True, label="Internal Note")
+    user_id: Mapped[int] = Field(Integer, nullable=True, index=True, label="Changed By User")

@@ -449,6 +449,7 @@ const renderCellValue = (value: any, type: string) => {
     case 'email':
       return <span className="text-indigo-600 underline">{value}</span>
     default:
+      if (typeof value === 'object') return <span className="text-[10px] font-mono text-slate-400 truncate block max-w-[200px]">{JSON.stringify(value)}</span>
       return String(value)
   }
 }

@@ -12,24 +12,26 @@ from .manager import Manager
 class AuditManager(Manager):
     """
     Handles automated auditing for all models marked with the 'audit' feature.
+    Uses SQLAlchemy session events to capture changes before they are committed.
     """
 
     @classmethod
     def register_listeners(cls):
-        """Attaches event listeners to the base Model class."""
-        # Use a central event listener for all Aras models
+        """Attaches event listeners to the Session class."""
         event.listen(Session, "after_flush", cls.after_flush)
 
     @classmethod
     def after_flush(cls, session, flush_context):
         """Captures changes and creates ActivityLog records."""
+        # Note: We use after_flush because IDs are assigned but transaction not committed yet.
         for obj in session.new:
             if cls._is_auditable(obj):
                 cls._log_change(session, obj, "INSERT")
 
         for obj in session.dirty:
             if cls._is_auditable(obj):
-                cls._log_change(session, obj, "UPDATE")
+                if session.is_modified(obj):
+                    cls._log_change(session, obj, "UPDATE")
 
         for obj in session.deleted:
             if cls._is_auditable(obj):
@@ -44,18 +46,57 @@ class AuditManager(Manager):
     def _log_change(cls, session, obj, action):
         """Generates the changes dict and persists the log."""
         changes = {}
-        if action == "UPDATE":
-            for col in obj.__table__.columns:
-                history = getattr(obj.__class__, col.name).get_history(obj)
-                if history.has_changes():
-                    changes[col.name] = [history.deleted[0] if history.deleted else None, 
-                                        history.added[0] if history.added else None]
         
+        if action == "UPDATE":
+            # Capture field-level diffs
+            for col in obj.__table__.columns:
+                if col.name in ["updated_at", "updated_by"]:
+                    continue
+                    
+                attr = getattr(obj.__class__, col.name)
+                # Ensure it's a regular attribute (not a relationship)
+                if hasattr(attr, "property") and hasattr(attr.property, "columns"):
+                    history = attr.get_history(obj)
+                    if history.has_changes():
+                        old_val = history.deleted[0] if history.deleted else None
+                        new_val = history.added[0] if history.added else None
+                        
+                        # Only log if they are actually different (avoid redundant logs)
+                        if old_val != new_val:
+                            changes[col.name] = [cls._serialize(old_val), cls._serialize(new_val)]
+        
+        elif action == "INSERT":
+            # Log all non-null initial values
+            for col in obj.__table__.columns:
+                val = getattr(obj, col.name, None)
+                if val is not None:
+                    changes[col.name] = [None, cls._serialize(val)]
+
+        elif action == "DELETE":
+            # Log final state before deletion
+            for col in obj.__table__.columns:
+                val = getattr(obj, col.name, None)
+                changes[col.name] = [cls._serialize(val), None]
+
+        if action == "UPDATE" and not changes:
+            return # No relevant changes
+
         log = ActivityLog(
             resource=obj.__tablename__,
             resource_id=obj.id,
             action=action,
             changes=changes,
-            user_id=getattr(obj, "updated_by", None)
+            user_id=getattr(obj, "updated_by", None) or getattr(obj, "created_by", None)
         )
         session.add(log)
+
+    @staticmethod
+    def _serialize(val):
+        """Converts values to JSON-serializable format."""
+        from datetime import datetime, date
+        from decimal import Decimal
+        if isinstance(val, (datetime, date)):
+            return val.isoformat()
+        if isinstance(val, Decimal):
+            return float(val)
+        return val

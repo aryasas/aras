@@ -48,7 +48,8 @@ class RouterFactory:
         @router.get("/metadata", response_model=dict)
         async def get_metadata(
             lang: Optional[str] = Query(None),
-            db: Session = Depends(get_db)
+            db: Session = Depends(get_db),
+            _: Any = Depends(check_permissions(model_class.__tablename__, "READ"))
         ):
             """Returns metadata for dynamic GUI generation with translation support."""
             translations = {}
@@ -67,7 +68,6 @@ class RouterFactory:
                         translations[f"resource.{t.property_name}"] = t.translated_value
 
                     # 3. Fetch Field Translations
-                    # Join Translation with FieldModel to get translations for all fields of this resource
                     field_trans = db.query(Aras.TranslationModel, Aras.FieldModel.name).join(
                         Aras.FieldModel, Aras.FieldModel.id == Aras.TranslationModel.registry_id
                     ).filter(
@@ -89,7 +89,7 @@ class RouterFactory:
             order_by: Optional[str] = None,
             desc: bool = True,
             db: Session = Depends(get_db), 
-            user: Any = Depends(get_current_user)
+            user: Any = Depends(check_permissions(model_class.__tablename__, "READ"))
         ):
             """Lists records with pagination, filtering, and search."""
             parsed_filters = None
@@ -113,15 +113,18 @@ class RouterFactory:
         async def create_item(
             data: Schema, 
             db: Session = Depends(get_db), 
-            user: Any = Depends(get_current_user),
-            _: Any = Depends(check_permissions(required_admin=getattr(model_class, "__admin_only__", False)))
+            user: Any = Depends(check_permissions(model_class.__tablename__, "CREATE"))
         ):
             """Creates a new record with hooks support."""
             new_item = model_class.create(db, data.dict(), user_id=user.id)
             return new_item.to_dict()
 
         @router.get("/{item_id}")
-        async def get_item(item_id: int, db: Session = Depends(get_db), user: Any = Depends(get_current_user)):
+        async def get_item(
+            item_id: int, 
+            db: Session = Depends(get_db), 
+            user: Any = Depends(check_permissions(model_class.__tablename__, "READ"))
+        ):
             """Fetches a single record by ID."""
             item = model_class.get(db, item_id)
             if not item:
@@ -135,8 +138,7 @@ class RouterFactory:
             item_id: int, 
             data: Schema, 
             db: Session = Depends(get_db), 
-            user: Any = Depends(get_current_user),
-            _: Any = Depends(check_permissions(required_admin=getattr(model_class, "__admin_only__", False)))
+            user: Any = Depends(check_permissions(model_class.__tablename__, "UPDATE"))
         ):
             """Updates an existing record with hooks support."""
             item = model_class.get(db, item_id)
@@ -153,8 +155,7 @@ class RouterFactory:
             item_id: int, 
             data: dict = Body(...), 
             db: Session = Depends(get_db), 
-            user: Any = Depends(get_current_user),
-            _: Any = Depends(check_permissions(required_admin=getattr(model_class, "__admin_only__", False)))
+            user: Any = Depends(check_permissions(model_class.__tablename__, "UPDATE"))
         ):
             """Partially updates an existing record."""
             item = model_class.get(db, item_id)
@@ -170,8 +171,7 @@ class RouterFactory:
         async def delete_item(
             item_id: int, 
             db: Session = Depends(get_db), 
-            user: Any = Depends(get_current_user),
-            _: Any = Depends(check_permissions(required_admin=True))
+            user: Any = Depends(check_permissions(model_class.__tablename__, "DELETE"))
         ):
             """Deletes or soft-deletes a record."""
             item = model_class.get(db, item_id)
@@ -185,8 +185,7 @@ class RouterFactory:
         async def bulk_delete(
             ids: List[int],
             db: Session = Depends(get_db),
-            user: Any = Depends(get_current_user),
-            _: Any = Depends(check_permissions(required_admin=True))
+            user: Any = Depends(check_permissions(model_class.__tablename__, "DELETE"))
         ):
             """Performs bulk deletion of multiple records."""
             deleted_count = 0

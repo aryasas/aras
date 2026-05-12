@@ -4,8 +4,9 @@ Context: Part of Aras.Registry namespace. Level 3 implementation.
 Impact: Enables advanced RBAC by grouping permissions into roles.
 """
 from sqlalchemy import String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped
 from ..base.model import Model
+from ..base.field import Field
 
 class Role(Model):
     """
@@ -14,5 +15,5 @@ class Role(Model):
     __tablename__ = "auth_roles"
     __title__ = "User Roles"
 
-    name: Mapped[str] = mapped_column(String(50), unique=True, index=True)
-    description: Mapped[str] = mapped_column(String(255), nullable=True)
+    name: Mapped[str] = Field(String(50), unique=True, index=True, label="Role Name")
+    description: Mapped[str] = Field(String(255), nullable=True, label="Description")
