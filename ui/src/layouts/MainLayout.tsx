@@ -5,6 +5,7 @@ import api from '../lib/api'
 import type { SidebarApp } from './types'
 import { Sidebar } from './components/Sidebar'
 import { Header } from './components/Header'
+import { Breadcrumbs } from './components/Breadcrumbs'
 
 export default function MainLayout() {
   const [isSidebarOpen, setSidebarOpen] = useState(true)
@@ -36,6 +37,7 @@ export default function MainLayout() {
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <Header />
+        <Breadcrumbs />
 
         {/* Content Area */}
         <div className="flex-1 overflow-auto p-8 bg-slate-50/50">

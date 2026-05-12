@@ -1,12 +1,14 @@
-import { Settings as SettingsIcon, Shield, Database, Globe, Bell } from 'lucide-react'
+import { Settings as SettingsIcon, Shield, Database, Globe, Bell, Package, Terminal } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 function Settings() {
   const sections = [
-    { id: 'general', label: 'General Settings', icon: <Globe size={20} />, description: 'Regional settings, language, and global defaults.' },
-    { id: 'security', label: 'Security & Auth', icon: <Shield size={20} />, description: 'Password policies, 2FA, and session management.' },
-    { id: 'database', label: 'System & Database', icon: <Database size={20} />, description: 'Maintenance mode, backups, and system logs.' },
-    { id: 'notifications', label: 'Notifications', icon: <Bell size={20} />, description: 'Email templates and system alert configuration.' },
+    { id: 'apps', label: 'App Manager', icon: <Package size={20} />, description: 'Install, update, and manage framework extensions.', path: '/apps' },
+    { id: 'devtools', label: 'Developer Tools', icon: <Terminal size={20} />, description: 'System inspection, metadata sync, and database stats.', path: '/devtools' },
+    { id: 'general', label: 'Regional Settings', icon: <Globe size={20} />, description: 'Date/Number formats, language, and regional defaults.', path: '/admin/regional_settings' },
+    { id: 'security', label: 'Security & Auth', icon: <Shield size={20} />, description: 'Password policies, 2FA, and session management.', path: '/admin/auth_users' },
+    { id: 'database', label: 'System & Database', icon: <Database size={20} />, description: 'Maintenance mode, backups, and system logs.', path: '/admin/sys_settings' },
+    { id: 'notifications', label: 'Notifications', icon: <Bell size={20} />, description: 'Email templates and system alert configuration.', path: '/admin/sys_settings' },
   ]
 
   return (
@@ -22,11 +24,11 @@ function Settings() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {sections.map(section => (
           <Link 
             key={section.id} 
-            to={section.id === 'security' ? '/system/auth_users' : '/system/sys_settings'}
+            to={section.path}
             className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group cursor-pointer"
           >
             <div className="flex items-start gap-4">
@@ -54,7 +56,7 @@ function Settings() {
             <p className="text-indigo-200">Access the raw configuration table to modify system-level variables directly.</p>
           </div>
           <Link 
-            to="/system/sys_settings"
+            to="/admin/sys_settings"
             className="px-8 py-4 bg-white text-indigo-900 rounded-2xl font-black hover:bg-indigo-50 transition-all shadow-xl whitespace-nowrap"
           >
             Open Settings Table

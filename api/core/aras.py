@@ -19,6 +19,8 @@ from .manager.manager import Manager
 from .registry.app_model import AppModel
 from .registry.resource_model import ResourceModel
 from .registry.field_model import FieldModel
+from .registry.link_model import LinkModel
+from .registry.translation_model import TranslationModel
 from .registry.activity_log import ActivityLog
 from .registry.role import Role
 from .registry.permission import Permission
@@ -53,6 +55,8 @@ class Aras(BaseAras):
     AppModel = AppModel
     ResourceModel = ResourceModel
     FieldModel = FieldModel
+    LinkModel = LinkModel
+    TranslationModel = TranslationModel
     ActivityLog = ActivityLog
     Role = Role
     Permission = Permission
@@ -65,6 +69,14 @@ class Aras(BaseAras):
     
     # Logic
     discover_apps = discover_apps
+
+    @classmethod
+    def get_registered(cls, type_name: str):
+        """Returns the in-memory registry for a given framework type (e.g., 'Model', 'App')."""
+        target = getattr(cls, type_name, None)
+        if target and hasattr(target, "_registry"):
+            return target._registry
+        return {}
 
 # Attach Specialized Managers
 Aras.Manager.Sync = SyncManager

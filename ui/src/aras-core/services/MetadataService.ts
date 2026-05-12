@@ -20,7 +20,7 @@ export const MetadataService = {
    * Fetches data for a resource using the Query API.
    */
   async queryResource(resourceName: string, filters: any[] = []) {
-    const response = await axios.post(`${API_BASE}/query/${resourceName}`, filters);
-    return response.data;
+    const response = await axios.post(`${API_BASE}/query/${resourceName}`, { filters });
+    return response.data.items;
   }
 };

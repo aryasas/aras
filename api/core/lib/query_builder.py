@@ -31,7 +31,7 @@ class QueryBuilder:
             elif op == "<": conditions.append(field < val)
             elif op == ">=": conditions.append(field >= val)
             elif op == "<=": conditions.append(field <= val)
-            elif op == "like": conditions.append(field.ilike(f"%{val}%"))
+            elif op == "like" or op == "ilike": conditions.append(field.ilike(f"%{val}%"))
             
         if conditions:
             stmt = stmt.where(and_(*conditions))

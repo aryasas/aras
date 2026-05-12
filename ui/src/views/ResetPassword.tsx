@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
 import api from '../lib/api'
-import { Lock, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react'
+import { Lock, CheckCircle, AlertCircle } from 'lucide-react'
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
-  const navigate = useNavigate()
   
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')

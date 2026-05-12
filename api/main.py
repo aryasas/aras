@@ -64,6 +64,12 @@ app.include_router(query_router, prefix="/api/v1")
 from core.lib.workflow_api import router as workflow_router
 app.include_router(workflow_router, prefix="/api/v1")
 
+from core.lib.admin_api import router as admin_router
+app.include_router(admin_router, prefix="/api/v1/admin")
+
+from core.lib.dev_api import router as dev_router
+app.include_router(dev_router, prefix="/api/v1/dev")
+
 # Dynamic App Discovery & Route Registration
 register_app_routes(app, prefix="/api/v1")
 
@@ -128,6 +134,11 @@ def startup_event():
         {"key": "app_name", "value": "Aras ERP", "description": "Application display name"},
         {"key": "maintenance_mode", "value": "false", "description": "Disable public access"},
         {"key": "default_language", "value": "en", "description": "System-wide default language"},
+        {"key": "core.date_format", "value": "YYYY-MM-DD", "description": "Global date format"},
+        {"key": "core.number_format", "value": "#,###.##", "description": "Global number format"},
+        {"key": "core.decimal_precision", "value": "2", "description": "Global decimal precision"},
+        {"key": "core.currency_symbol", "value": "$", "description": "Global currency symbol"},
+        {"key": "core.language_default", "value": "en", "description": "Global default language"},
     ]
     for d in defaults:
         if not db.query(ArasSetting).filter(ArasSetting.key == d["key"]).first():

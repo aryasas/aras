@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Body, HTTPException
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 
-from ..base.aras import Aras
+from ..aras import Aras
 from ..lib.database import get_db
 from ..auth.service import get_current_user
 

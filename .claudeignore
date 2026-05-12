@@ -20,5 +20,10 @@ bu/
 .vscode/
 next/
 node_modules/
+ui/node_modules/
 *.egg-info/
 run_test*
+.aider.chat.history.md
+.aider.input.history
+.gitignore
+.aider.tags.cache.v4/

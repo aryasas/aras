@@ -1,6 +1,10 @@
 - YOU ARE STRONGLY NOT ALLOW TO USE GIT COMMAND THAT WILL BRING CHANGE. ONLY ALLOW GIT TO READ (git diff atau git log)
 
-- # Aras Framework — Context & Guidelines
+- # Aras Framework — Context & Guidelines (LEGACY)
+
+> [!WARNING]
+> This directory contains the **Legacy Flask-based version** of the Aras Framework.
+> For the current FastAPI/SQLAlchemy version, please refer to the [Root GEMINI.md](../GEMINI.md).
 
 Aras is a modular, metadata-driven ERP and Application Framework built with Flask, SQLAlchemy, and MariaDB. It consists of a core engine (`arasCore`) and various application modules (`aras/app_*`).
 
