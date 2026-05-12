@@ -1,4 +1,5 @@
-import { LayoutDashboard, Settings, LogOut, Menu, Terminal, Package } from 'lucide-react'
+import { LogOut, Menu } from 'lucide-react'
+import * as LucideIcons from 'lucide-react'
 import { SidebarNavItem } from './SidebarNavItem'
 import { SidebarAppMenu } from './SidebarAppMenu'
 import { SidebarBrand } from './SidebarBrand'
@@ -18,19 +19,43 @@ export function Sidebar({ isOpen, setOpen, sidebarData, currentPath, onLogout }:
       <SidebarBrand isOpen={isOpen} />
 
       <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">
-        <SidebarNavItem to="/" icon={<LayoutDashboard size={20} />} label="Dashboard" active={currentPath === '/'} isOpen={isOpen} />
-        
-        <SidebarNavItem to="/apps" icon={<Package size={20} />} label="App Manager" active={currentPath === '/apps'} isOpen={isOpen} />
-        <SidebarNavItem to="/dev" icon={<Terminal size={20} />} label="Dev Tools" active={currentPath === '/dev'} isOpen={isOpen} />
-        
-        <div className="py-2">
-          {isOpen && <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">Applications</p>}
-          {sidebarData.map(app => (
-            <SidebarAppMenu key={app.name} app={app} isOpen={isOpen} currentPath={currentPath} />
-          ))}
-        </div>
+        {sidebarData.map((item, index) => {
+          // Backward compatibility check if 'type' is missing
+          const type = item.type || 'app'
+          
+          if (type === 'link') {
+            const IconComponent = (LucideIcons as any)[item.icon] || LucideIcons.Package
+            return (
+              <SidebarNavItem 
+                key={item.name} 
+                to={item.path!} 
+                icon={<IconComponent size={20} />} 
+                label={item.label} 
+                active={currentPath === item.path} 
+                isOpen={isOpen} 
+              />
+            )
+          }
 
-        <SidebarNavItem to="/settings" icon={<Settings size={20} />} label="Settings" active={currentPath === '/settings'} isOpen={isOpen} />
+          if (type === 'app') {
+            // Check if we need to render the "Applications" header
+            const prevItem = index > 0 ? sidebarData[index - 1] : null
+            const shouldRenderHeader = prevItem?.type === 'link'
+            
+            return (
+              <div key={`container-${item.name}`}>
+                {shouldRenderHeader && isOpen && (
+                  <div className="py-2">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">Applications</p>
+                  </div>
+                )}
+                <SidebarAppMenu app={item} isOpen={isOpen} currentPath={currentPath} />
+              </div>
+            )
+          }
+
+          return null
+        })}
       </nav>
 
       <div className="p-4 border-t border-slate-100 space-y-2">

@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
-import type { SidebarApp } from '../types'
+import type { SidebarItem } from '../types'
 
 interface SidebarAppMenuProps {
-  app: SidebarApp
+  app: SidebarItem
   isOpen: boolean
   currentPath: string
 }
@@ -14,10 +14,11 @@ export function SidebarAppMenu({ app, isOpen, currentPath }: SidebarAppMenuProps
   const [isExpanded, setIsExpanded] = useState(false)
   const IconComponent = (LucideIcons as any)[app.icon] || LucideIcons.Package
   
-  const isActive = app.models.some(m => currentPath === `/${app.name}/${m.name}`)
+  const models = app.models || []
+  const isActive = models.some(m => currentPath === `/${app.name}/${m.name}`)
 
   if (!isOpen) {
-    const firstModelPath = `/${app.name}/${app.models[0]?.name}`
+    const firstModelPath = models.length > 0 ? `/${app.name}/${models[0]?.name}` : `/${app.name}`
     return (
       <div className="relative group">
         <Link 
@@ -50,7 +51,7 @@ export function SidebarAppMenu({ app, isOpen, currentPath }: SidebarAppMenuProps
       
       {isExpanded && (
         <div className="ml-9 mt-1 space-y-1 border-l border-slate-100 pl-4 py-1 animate-in slide-in-from-top-1 duration-200">
-          {app.models.map(model => (
+          {models.map(model => (
             <Link 
               key={model.name}
               to={`/${app.name}/${model.name}`}

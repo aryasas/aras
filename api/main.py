@@ -91,12 +91,22 @@ async def get_sidebar_data():
     """
     from core.base.app import App
     registered_apps = App._registry
-    sidebar = []
+    
+    # 1. Main Navigation Links
+    sidebar = [
+        {"type": "link", "name": "dashboard", "label": "Dashboard", "icon": "LayoutDashboard", "path": "/"},
+        {"type": "link", "name": "app_manager", "label": "App Manager", "icon": "Package", "path": "/apps"},
+        {"type": "link", "name": "dev_dashboard", "label": "Dev Tools Hub", "icon": "Activity", "path": "/dev"},
+    ]
 
+    # 2. Dynamic Apps
+    apps_group = []
     for app_name, app_cls in registered_apps.items():
-        if app_name in ["admin", "dev"]:
+        if app_name in ["admin"]:
             continue
-        sidebar.append({
+        
+        apps_group.append({
+            "type": "app",
             "name": app_cls.app_name,
             "label": app_cls.app_label,
             "icon": app_cls.icon,
@@ -107,6 +117,12 @@ async def get_sidebar_data():
                 } for m in app_cls.models
             ]
         })
+    
+    sidebar.extend(apps_group)
+
+    # 3. Settings Link
+    sidebar.append({"type": "link", "name": "settings", "label": "Settings", "icon": "Settings", "path": "/settings"})
+    
     return sidebar
 
 @app.on_event("startup")

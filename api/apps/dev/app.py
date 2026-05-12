@@ -9,6 +9,12 @@ class DevToolsApp(Aras.App):
     description = "Framework inspection, metadata management, and database tools."
     icon = "Terminal"
     
-    # Core models are now strictly part of the framework registry.
-    # DevTools simply provides a custom UI to inspect them.
-    models = []
+    models = [
+        Aras.AppModel, 
+        Aras.ResourceModel, 
+        Aras.FieldModel, 
+        Aras.LinkModel,
+        Aras.ActivityLog,
+        Aras.User,
+        Aras.ArasSetting
+    ]
