@@ -147,49 +147,49 @@ export default function DevTools() {
             title="App Registry" 
             count={info?.apps_discovered.length || 0} 
             icon={<Box size={24} />} 
-            to="/devtools/table/registry/aras_apps"
+            to="/dev/table/registry/aras_apps"
             color="indigo"
           />
           <RegistryCard 
             title="Resource Registry" 
             count={stats.find(s => s.table === 'aras_resources')?.rows as number || 0} 
             icon={<Layout size={24} />} 
-            to="/devtools/table/registry/aras_resources"
+            to="/dev/table/registry/aras_resources"
             color="purple"
           />
           <RegistryCard 
             title="Field Registry" 
             count={stats.find(s => s.table === 'aras_fields')?.rows as number || 0} 
             icon={<Table size={24} />} 
-            to="/devtools/table/registry/aras_fields"
+            to="/dev/table/registry/aras_fields"
             color="blue"
           />
           <RegistryCard 
             title="Link Registry" 
             count={stats.find(s => s.table === 'aras_links')?.rows as number || 0} 
             icon={<LinkIcon size={24} />} 
-            to="/devtools/table/registry/aras_links"
+            to="/dev/table/registry/aras_links"
             color="emerald"
           />
           <RegistryCard 
             title="Activity Audit Trail" 
             count={stats.find(s => s.table === 'aras_activity_logs')?.rows as number || 0} 
             icon={<Terminal size={24} />} 
-            to="/devtools/table/registry/aras_activity_logs"
+            to="/dev/table/registry/aras_activity_logs"
             color="slate"
           />
           <RegistryCard 
             title="System Users" 
             count={stats.find(s => s.table === 'auth_users')?.rows as number || 0} 
             icon={<Users size={24} />} 
-            to="/devtools/table/registry/auth_users"
+            to="/dev/table/registry/auth_users"
             color="indigo"
           />
           <RegistryCard 
             title="System Settings" 
             count={stats.find(s => s.table === 'sys_settings')?.rows as number || 0} 
             icon={<Settings size={24} />} 
-            to="/devtools/table/registry/sys_settings"
+            to="/dev/table/registry/sys_settings"
             color="slate"
           />
         </div>
@@ -202,7 +202,7 @@ export default function DevTools() {
              
              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 <button 
-                  onClick={() => navigate('/devtools/routes')}
+                  onClick={() => navigate('/dev/routes')}
                   className="p-4 bg-slate-800 hover:bg-slate-700 rounded-2xl border border-slate-700 transition-all flex flex-col items-center gap-2 group"
                 >
                   <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg group-hover:scale-110 transition-transform">

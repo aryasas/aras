@@ -32,7 +32,7 @@ export default function InspectRoutes() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => navigate('/devtools')}
+            onClick={() => navigate('/dev')}
             className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
           >
             <ChevronLeft size={20} />

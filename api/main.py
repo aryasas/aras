@@ -94,7 +94,7 @@ async def get_sidebar_data():
     sidebar = []
 
     for app_name, app_cls in registered_apps.items():
-        if app_name in ["admin", "dev_tools"]:
+        if app_name in ["admin", "dev"]:
             continue
         sidebar.append({
             "name": app_cls.app_name,

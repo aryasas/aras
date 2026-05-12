@@ -271,7 +271,7 @@ function GlobalSettings() {
             You can view, add, or delete all raw key-value pairs directly in the generic List View for advanced configuration.
           </p>
           <a 
-            href="/devtools/table/registry/sys_settings"
+            href="/dev/table/registry/sys_settings"
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold transition-all border border-slate-700"
           >
             <Activity size={16} />

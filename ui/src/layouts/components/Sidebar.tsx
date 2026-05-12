@@ -21,7 +21,7 @@ export function Sidebar({ isOpen, setOpen, sidebarData, currentPath, onLogout }:
         <SidebarNavItem to="/" icon={<LayoutDashboard size={20} />} label="Dashboard" active={currentPath === '/'} isOpen={isOpen} />
         
         <SidebarNavItem to="/apps" icon={<Package size={20} />} label="App Manager" active={currentPath === '/apps'} isOpen={isOpen} />
-        <SidebarNavItem to="/devtools" icon={<Terminal size={20} />} label="Dev Tools" active={currentPath === '/devtools'} isOpen={isOpen} />
+        <SidebarNavItem to="/dev" icon={<Terminal size={20} />} label="Dev Tools" active={currentPath === '/dev'} isOpen={isOpen} />
         
         <div className="py-2">
           {isOpen && <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">Applications</p>}

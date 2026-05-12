@@ -82,11 +82,11 @@ function App() {
           <Route path="settings/global" element={<GlobalSettingsView />} />
           <Route path="settings/audit" element={<AuditLogsView />} />
           <Route path="settings/rbac" element={<RBACManagerView />} />
-          <Route path="devtools" element={<DevToolsView />} />
-          <Route path="devtools/routes" element={<InspectRoutesView />} />
+          <Route path="dev" element={<DevToolsView />} />
+          <Route path="dev/routes" element={<InspectRoutesView />} />
           <Route path="api/v1/dev/inspect/routes" element={<InspectRoutesView />} />
-          <Route path="devtools/table/:app/:model" element={<DynamicView />} />
-          <Route path="devtools/table/:app/:model/:id" element={<DynamicView />} />
+          <Route path="dev/table/:app/:model" element={<DynamicView />} />
+          <Route path="dev/table/:app/:model/:id" element={<DynamicView />} />
           <Route path="apps" element={<AppManagerView />} />
           <Route path="profile" element={<ProfileView />} />
           <Route path=":app/:model" element={<DynamicView />} />

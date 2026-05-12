@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 function Settings() {
   const sections = [
     { id: 'apps', label: 'App Manager', icon: <Package size={20} />, description: 'Install, update, and manage framework extensions.', path: '/apps' },
-    { id: 'devtools', label: 'Developer Tools', icon: <Terminal size={20} />, description: 'System inspection, metadata sync, and database stats.', path: '/devtools' },
+    { id: 'devtools', label: 'Developer Tools', icon: <Terminal size={20} />, description: 'System inspection, metadata sync, and database stats.', path: '/dev' },
     { id: 'global', label: 'Global Preferences', icon: <Globe size={20} />, description: 'Date/Number formats, localization, and system constraints.', path: '/settings/global' },
     { id: 'security', label: 'Security & Auth', icon: <Shield size={20} />, description: 'Password policies, roles, and session management.', path: '/settings/rbac' },
     { id: 'audit', label: 'Activity Audit Trail', icon: <History size={20} />, description: 'System changes and user activity logs.', path: '/settings/audit' },
