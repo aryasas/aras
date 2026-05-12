@@ -114,7 +114,7 @@ async def get_sidebar_data():
             {
                 "name": m.__tablename__,
                 "label": getattr(m, "__title__", m.__tablename__.replace("_", " ").title())
-            } for m in app_cls.models
+            } for m in app_cls.models if m.__tablename__ not in ["auth_users", "sys_settings"]
         ])
         
         apps_group.append({
