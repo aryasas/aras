@@ -85,9 +85,11 @@ Aras.Manager.Workflow = WorkflowManager
 
 # 6. Delayed Implementation Attachments (Level 3)
 from .auth.models import User
+from .registry.sys_settings import ArasSetting
 from .lib.router_factory import RouterFactory
 
 Aras.User = User
+Aras.ArasSetting = ArasSetting
 Aras.Router = RouterFactory.create_router
 
 __all__ = ["Aras"]

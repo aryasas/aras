@@ -134,7 +134,7 @@ def startup_event():
         print("Admin user created (admin/admin)")
 
     # Seed Settings
-    from apps.admin.models import ArasSetting
+    from core.registry.sys_settings import ArasSetting
     defaults = [
         {"key": "app_name", "value": "Aras ERP", "description": "Application display name"},
         {"key": "maintenance_mode", "value": "false", "description": "Disable public access"},

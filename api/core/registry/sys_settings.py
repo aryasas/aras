@@ -1,19 +1,21 @@
 from sqlalchemy import String, Text
 from sqlalchemy.orm import Mapped
-from core import Aras
+from ..base.model import Model
+from ..base.field import Field
+import core
 
-class ArasSetting(Aras.Model):
+class ArasSetting(Model):
     __tablename__ = "sys_settings"
     __title__ = "System Settings"
 
-    key: Mapped[str] = Aras.Column(String(100), unique=True, label="Setting Key", searchable=True)
-    value: Mapped[str] = Aras.Column(Text, label="Value", ui_type="textarea")
-    description: Mapped[str] = Aras.Column(String(255), nullable=True, label="Description")
+    key: Mapped[str] = Field(String(100), unique=True, label="Setting Key", searchable=True)
+    value: Mapped[str] = Field(Text, label="Value", ui_type="textarea")
+    description: Mapped[str] = Field(String(255), nullable=True, label="Description")
 
     @classmethod
     def get(cls, key: str, default: str = None):
         """Fetch a setting value by key."""
-        db = Aras.db()
+        db = core.Aras.db()
         try:
             row = db.query(cls).filter(cls.key == key).first()
             return row.value if row else default
@@ -23,7 +25,7 @@ class ArasSetting(Aras.Model):
     @classmethod
     def set(cls, key: str, value: str, description: str = None):
         """Set a setting value by key."""
-        db = Aras.db()
+        db = core.Aras.db()
         try:
             row = db.query(cls).filter(cls.key == key).first()
             if row:

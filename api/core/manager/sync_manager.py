@@ -79,9 +79,9 @@ class SyncManager(Manager):
         """Seeds global framework settings if they don't exist."""
         # Import here to avoid circular dependencies
         try:
-            from apps.admin.models import ArasSetting
+            from core.registry.sys_settings import ArasSetting
         except ImportError:
-            print("[SyncManager] Warning: apps.admin.models.ArasSetting not found. Skipping settings seed.")
+            print("[SyncManager] Warning: core.registry.sys_settings.ArasSetting not found. Skipping settings seed.")
             return
 
         defaults = [

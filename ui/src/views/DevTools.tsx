@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Terminal, Database, RefreshCw, Cpu, Box, Layout, Table } from 'lucide-react'
+import { Terminal, Database, RefreshCw, Cpu, Box, Layout, Table, Link as LinkIcon, Users, Settings } from 'lucide-react'
 import api from '../lib/api'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -147,28 +147,49 @@ export default function DevTools() {
             title="App Registry" 
             count={info?.apps_discovered.length || 0} 
             icon={<Box size={24} />} 
-            to="/dev_tools/aras_apps"
+            to="/devtools/table/registry/aras_apps"
             color="indigo"
           />
           <RegistryCard 
             title="Resource Registry" 
             count={stats.find(s => s.table === 'aras_resources')?.rows as number || 0} 
             icon={<Layout size={24} />} 
-            to="/dev_tools/aras_resources"
+            to="/devtools/table/registry/aras_resources"
             color="purple"
           />
           <RegistryCard 
             title="Field Registry" 
             count={stats.find(s => s.table === 'aras_fields')?.rows as number || 0} 
             icon={<Table size={24} />} 
-            to="/dev_tools/aras_fields"
+            to="/devtools/table/registry/aras_fields"
             color="blue"
           />
           <RegistryCard 
-            title="Activity Log" 
-            count={stats.find(s => s.table === 'aras_activity_log')?.rows as number || 0} 
+            title="Link Registry" 
+            count={stats.find(s => s.table === 'aras_links')?.rows as number || 0} 
+            icon={<LinkIcon size={24} />} 
+            to="/devtools/table/registry/aras_links"
+            color="emerald"
+          />
+          <RegistryCard 
+            title="Activity Audit Trail" 
+            count={stats.find(s => s.table === 'aras_activity_logs')?.rows as number || 0} 
             icon={<Terminal size={24} />} 
-            to="/dev_tools/aras_activity_log"
+            to="/devtools/table/registry/aras_activity_logs"
+            color="slate"
+          />
+          <RegistryCard 
+            title="System Users" 
+            count={stats.find(s => s.table === 'auth_users')?.rows as number || 0} 
+            icon={<Users size={24} />} 
+            to="/devtools/table/registry/auth_users"
+            color="indigo"
+          />
+          <RegistryCard 
+            title="System Settings" 
+            count={stats.find(s => s.table === 'sys_settings')?.rows as number || 0} 
+            icon={<Settings size={24} />} 
+            to="/devtools/table/registry/sys_settings"
             color="slate"
           />
         </div>
