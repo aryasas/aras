@@ -76,6 +76,7 @@ class Aras(BaseAras):
     Role = Role
     Permission = Permission
     UserRole = UserRole
+    WidgetModel = WidgetModel
     
     # Database Layer
     db = lib.database.SessionLocal
@@ -107,3 +108,4 @@ Aras.ArasSetting = ArasSetting
 Aras.Router = logic.router_factory.RouterFactory.create_router
 
 __all__ = ["Aras"]
+all__ = ["Aras"]

@@ -69,7 +69,8 @@ Aras.logic.discovery.register_app_routes(app, prefix="/api/v1")
 # Register Core Models at Root for UI Compatibility
 core_models = [
     Aras.User, Aras.Role, Aras.Permission, Aras.ActivityLog, Aras.ArasSetting,
-    Aras.AppModel, Aras.ResourceModel, Aras.FieldModel, Aras.LinkModel, Aras.TranslationModel
+    Aras.AppModel, Aras.ResourceModel, Aras.FieldModel, Aras.LinkModel, Aras.TranslationModel,
+    Aras.WidgetModel
 ]
 for model in core_models:
     router = Aras.Router(model)
@@ -152,6 +153,23 @@ def startup_event():
         db.commit()
         print("Admin user created (admin/admin)")
 
+    # Seed Widgets
+    if not db.query(Aras.WidgetModel).first():
+        print("Seeding default widgets...")
+        db.add(Aras.WidgetModel(
+            name="total_users", title="Total Users", widget_type="stat", 
+            resource_name="auth_users", config_json={"icon": "Users", "color": "indigo"}, order=1
+        ))
+        db.add(Aras.WidgetModel(
+            name="recent_activity", title="Recent Activity", widget_type="list", 
+            resource_name="aras_activity_logs", config_json={"limit": 5}, order=2, size="col-span-2"
+        ))
+        db.add(Aras.WidgetModel(
+            name="active_apps", title="Installed Apps", widget_type="stat", 
+            resource_name="aras_apps", config_json={"icon": "Package", "color": "emerald"}, order=3
+        ))
+        db.commit()
+
     # Seed Settings
     from core.registry.sys_settings import ArasSetting
     defaults = [
@@ -169,6 +187,11 @@ def startup_event():
             print(f"Seeding setting: {d['key']}")
             db.add(ArasSetting(**d))
     db.commit()
+
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+it()
 
 
 if __name__ == "__main__":

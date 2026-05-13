@@ -174,9 +174,9 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
       document.body.appendChild(link)
       link.click()
       link.remove()
-      showAlert("Export Success", "Data has been exported to CSV")
+      notify("Data exported successfully", "success")
     } catch (err: any) {
-      showError("Export Error", "Failed to export data")
+      notify("Failed to export data", "error")
     } finally {
       setIsExporting(false)
     }
@@ -493,6 +493,37 @@ const renderCellValue = (value: any, type: string) => {
       return <span className="text-slate-900">{FormattingService.formatNumber(value)}</span>
     case 'boolean':
       return value ? <span className="px-2 py-0.5 bg-green-50 text-green-600 text-[10px] font-bold rounded uppercase">Active</span> : <span className="px-2 py-0.5 bg-slate-50 text-slate-400 text-[10px] font-bold rounded uppercase">Inactive</span>
+    case 'date':
+    case 'datetime':
+      return FormattingService.formatDate(value)
+    case 'email':
+      return <span className="text-indigo-600 underline">{value}</span>
+    default:
+      if (typeof value === 'object') return <span className="text-[10px] font-mono text-slate-400 truncate block max-w-[200px]">{JSON.stringify(value)}</span>
+      return String(value)
+  }
+}
+
+export default ListView
+(value)}</span>
+      return String(value)
+  }
+}
+
+export default ListView
+ate block max-w-[200px]">{JSON.stringify(value)}</span>
+      return String(value)
+  }
+}
+
+export default ListView
+late-400 truncate block max-w-[200px]">{JSON.stringify(value)}</span>
+      return String(value)
+  }
+}
+
+export default ListView
+an>
     case 'date':
     case 'datetime':
       return FormattingService.formatDate(value)

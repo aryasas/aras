@@ -15,6 +15,8 @@ import AuditLogsView from './views/AuditLogs'
 import RBACManagerView from './views/RBACManager'
 import GlobalSettingsView from './views/GlobalSettings'
 import InspectRoutesView from './views/InspectRoutes'
+import HealthIntegrityView from './views/HealthIntegrity'
+import { CommandPalette } from './aras-core/components/CommandPalette'
 import GlobalDialog from './aras-core/components/GlobalDialog'
 import SidePanel from './aras-core/components/SidePanel'
 import { useEffect } from 'react'
@@ -62,7 +64,9 @@ function App() {
   }, [showAlert, showConfirm, showError]);
 
   return (
-    <Router>
+    <>
+      <CommandPalette />
+      <Router>
       <GlobalDialog />
       <SidePanel />
       <Routes>
@@ -85,6 +89,7 @@ function App() {
           <Route path="settings/audit" element={<AuditLogsView />} />
           <Route path="settings/rbac" element={<RBACManagerView />} />
           <Route path="dev" element={<DevToolsView />} />
+          <Route path="dev/health" element={<HealthIntegrityView />} />
           <Route path="dev/routes" element={<InspectRoutesView />} />
           <Route path="api/v1/dev/inspect/routes" element={<InspectRoutesView />} />
           <Route path="dev/table/:app/:model" element={<DynamicView />} />
@@ -102,6 +107,11 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
+  )
+}
+
+export default App
+ </Router>
   )
 }
 

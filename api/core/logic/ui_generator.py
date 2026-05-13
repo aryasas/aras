@@ -67,6 +67,13 @@ class UIGenerator(Service):
                 elif isinstance(col_type, Date): ui_type = "date"
                 else: ui_type = "string"
 
+            # 3. Auto-detect Files/Images by Name
+            if not column.info.get("ui_type") and ui_type == "string":
+                if any(suffix in column.name for suffix in ["_file", "_path", "_attachment"]):
+                    ui_type = "file"
+                elif any(suffix in column.name for suffix in ["_image", "_photo", "_avatar"]):
+                    ui_type = "image"
+
             # Apply DB Overrides if present
             label = db_field.label if db_field and db_field.label else \
                     translations.get(f"field.{column.name}.label") or \

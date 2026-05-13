@@ -378,6 +378,13 @@ const renderInput = (field: Field, value: any, onChange: (val: any) => void) => 
         onChange={(e) => onChange(e.target.value)}
         className={commonClass}
       />;
+    case 'file':
+    case 'image':
+      return <FileField 
+        value={value} 
+        onChange={onChange} 
+        label={field.label} 
+      />;
     case 'currency':
     case 'number':
       return <input 
