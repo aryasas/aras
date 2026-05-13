@@ -61,49 +61,47 @@ function App() {
   }, [showAlert, showConfirm, showError]);
 
   return (
-    <>
+    <Router>
       <CommandPalette />
-      <Router>
-        <GlobalDialog />
-        <SidePanel />
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+      <GlobalDialog />
+      <SidePanel />
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
-          {/* Authenticated Routes with MainLayout */}
-          <Route 
-            path="/" 
-            element={
-              <ProtectedRoute>
-                <MainLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<HomeView />} />
-            <Route path="settings" element={<SettingsView />} />
-            <Route path="settings/global" element={<GlobalSettingsView />} />
-            <Route path="settings/audit" element={<AuditLogsView />} />
-            <Route path="settings/rbac" element={<RBACManagerView />} />
-            <Route path="dev" element={<DevToolsView />} />
-            <Route path="dev/health" element={<HealthIntegrityView />} />
-            <Route path="dev/routes" element={<InspectRoutesView />} />
-            <Route path="dev/table/:app/:model" element={<DynamicView />} />
-            <Route path="dev/table/:app/:model/:id" element={<DynamicView />} />
-            <Route path="apps" element={<AppManagerView />} />
-            <Route path="profile" element={<ProfileView />} />
-            <Route path=":app/:model" element={<DynamicView />} />
-            <Route path=":app/:model/:id" element={<DynamicView />} />
+        {/* Authenticated Routes with MainLayout */}
+        <Route 
+          path="/" 
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<HomeView />} />
+          <Route path="settings" element={<SettingsView />} />
+          <Route path="settings/global" element={<GlobalSettingsView />} />
+          <Route path="settings/audit" element={<AuditLogsView />} />
+          <Route path="settings/rbac" element={<RBACManagerView />} />
+          <Route path="dev" element={<DevToolsView />} />
+          <Route path="dev/health" element={<HealthIntegrityView />} />
+          <Route path="dev/routes" element={<InspectRoutesView />} />
+          <Route path="dev/table/:app/:model" element={<DynamicView />} />
+          <Route path="dev/table/:app/:model/:id" element={<DynamicView />} />
+          <Route path="apps" element={<AppManagerView />} />
+          <Route path="profile" element={<ProfileView />} />
+          <Route path=":app/:model" element={<DynamicView />} />
+          <Route path=":app/:model/:id" element={<DynamicView />} />
 
-            {/* Catch all for authenticated area */}
-            <Route path="*" element={<div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200">View not implemented yet.</div>} />
-          </Route>
+          {/* Catch all for authenticated area */}
+          <Route path="*" element={<div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200">View not implemented yet.</div>} />
+        </Route>
 
-          {/* Global Catch all */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
-    </>
+        {/* Global Catch all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
   )
 }
 
