@@ -62,6 +62,8 @@ app.include_router(Aras.api.workflow.router, prefix="/api/v1")
 app.include_router(Aras.api.admin.router, prefix="/api/v1/admin")
 app.include_router(Aras.api.dev.router, prefix="/api/v1/dev")
 app.include_router(Aras.api.registry.router, prefix="/api/v1")
+app.include_router(Aras.api.files.router, prefix="/api/v1")
+app.include_router(Aras.api.dashboard.router, prefix="/api/v1")
 
 # Dynamic App Discovery & Route Registration
 Aras.logic.discovery.register_app_routes(app, prefix="/api/v1")
@@ -129,6 +131,7 @@ async def get_sidebar_data():
     sidebar.extend(apps_group)
 
     return sidebar
+
 @app.on_event("startup")
 def startup_event():
     db = next(Aras.get_db())
@@ -139,7 +142,7 @@ def startup_event():
     # 2. Sync Metadata (Code -> DB Registry)
     Aras.Manager.Sync.sync_all(db)
 
-    # 2. Seed Admin
+    # 3. Seed Admin
     admin = db.query(Aras.User).filter(Aras.User.username == "admin").first()
     if not admin:
         print("Creating default admin user...")
@@ -187,11 +190,6 @@ def startup_event():
             print(f"Seeding setting: {d['key']}")
             db.add(ArasSetting(**d))
     db.commit()
-
-
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
-it()
 
 
 if __name__ == "__main__":

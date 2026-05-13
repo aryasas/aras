@@ -56,7 +56,7 @@ class HealthManager(Aras.Manager):
         # System tables to ignore (Level 3 core registry and auth)
         ignored = {
             "aras_apps", "aras_resources", "aras_fields", "aras_links", 
-            "aras_translations", "aras_activity_logs", "sys_settings",
+            "aras_translations", "aras_activity_logs", "aras_widgets", "sys_settings",
             "auth_roles", "auth_permissions", "auth_user_roles", "auth_users",
             "mock_model", "test_parents", "test_children"
         }
