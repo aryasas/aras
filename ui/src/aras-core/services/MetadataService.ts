@@ -10,9 +10,11 @@ export const MetadataService = {
    * Fetches schema and layout for a given resource.
    */
   async getResourceMetadata(resourcePath: string) {
-    const response = await api.get(`${resourcePath}/metadata`);
+    const cleanPath = resourcePath.startsWith('/') ? resourcePath.substring(1) : resourcePath;
+    const response = await api.get(`/metadata/${cleanPath}`);
     return response.data;
-  },
+  }
+,
 
   /**
    * Fetches data for a resource using the Query API.

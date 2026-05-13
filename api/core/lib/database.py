@@ -3,7 +3,11 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path="../.env")
+# Load .env from project root (two levels up from core/lib/)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+env_path = os.path.join(project_root, ".env")
+load_dotenv(dotenv_path=env_path)
 
 # Gunakan MariaDB/MySQL (Standard untuk ERP)
 # Format: mysql+pymysql://user:password@host:port/dbname

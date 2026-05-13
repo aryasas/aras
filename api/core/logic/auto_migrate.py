@@ -131,6 +131,11 @@ def run(engine, metadata) -> MigrationReport:
                         default = _safe_default_sql(mcol)
                         default_sql = f" DEFAULT {default}" if default is not None else ""
                         
+                        # SQLite does not support MODIFY. We skip or use batch migration.
+                        # For simplicity in this framework, we skip SQLite MODIFY for now.
+                        if dialect.name == "sqlite":
+                            continue
+
                         sql = f"ALTER TABLE {_quote(tname)} MODIFY {_quote(cname)} {target_type}{default_sql}{nullable_sql}"
                         with engine.begin() as conn:
                             conn.execute(text(sql))

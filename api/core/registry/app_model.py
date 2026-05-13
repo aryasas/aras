@@ -27,5 +27,5 @@ class AppModel(Model):
         (including dropping physical tables and deleting filesystem directories)
         rather than just deleting the registry record.
         """
-        from ..lib.installer import AppInstaller
+        from ..logic.installer import AppInstaller
         AppInstaller.uninstall_app(self.name, db)

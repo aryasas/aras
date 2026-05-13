@@ -1,6 +1,10 @@
 import json
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
+import csv
+import io
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Body, UploadFile, File
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 from typing import List, Type, Any, Optional
 from pydantic import create_model
 
@@ -148,6 +152,84 @@ class RouterFactory(Router):
                 order_by=order_by, 
                 desc=desc
             )
+
+        @router.get("/export")
+        async def export_items(
+            search: Optional[str] = None,
+            filters: Optional[str] = None,
+            order_by: Optional[str] = None,
+            desc: bool = True,
+            db: Session = Depends(get_db),
+            _: Any = Depends(check_permissions(model_class.__tablename__, "READ"))
+        ):
+            """Exports records to a CSV file based on current filters and search."""
+            parsed_filters = None
+            if filters:
+                try: parsed_filters = json.loads(filters)
+                except: raise HTTPException(status_code=400, detail="Invalid filters format")
+
+            # 1. Build Query
+            stmt = model_class._q()
+            stmt = model_class.apply_filters(stmt, parsed_filters)
+            stmt = model_class.apply_search(stmt, search)
+            
+            sort_col = getattr(model_class, order_by) if order_by and hasattr(model_class, order_by) else model_class.id
+            stmt = stmt.order_by(sort_col.desc() if desc else sort_col.asc())
+
+            # 2. Fetch All (Warning: Large datasets might need chunking, but for MVP we fetch all)
+            items = db.scalars(stmt).all()
+            if not items:
+                raise HTTPException(status_code=404, detail="No items to export")
+
+            # 3. Create CSV in Memory
+            output = io.StringIO()
+            writer = csv.DictWriter(output, fieldnames=[c.name for c in model_class.__table__.columns])
+            writer.writeheader()
+            for item in items:
+                writer.writerow(item.to_dict())
+            
+            output.seek(0)
+            return StreamingResponse(
+                iter([output.getvalue()]),
+                media_type="text/csv",
+                headers={"Content-Disposition": f"attachment; filename={model_class.__tablename__}_export.csv"}
+            )
+
+        @router.post("/import")
+        async def import_items(
+            file: UploadFile = File(...),
+            db: Session = Depends(get_db),
+            user: Any = Depends(check_permissions(model_class.__tablename__, "CREATE"))
+        ):
+            """Imports records from a CSV file."""
+            if not file.filename.endswith(".csv"):
+                raise HTTPException(status_code=400, detail="Only CSV files are supported")
+            
+            content = await file.read()
+            stream = io.StringIO(content.decode("utf-8"))
+            reader = csv.DictReader(stream)
+            
+            imported_count = 0
+            errors = []
+            
+            for i, row in enumerate(reader):
+                try:
+                    # Basic cleaning: convert empty strings to None for nullable columns
+                    for key, val in row.items():
+                        if val == "": row[key] = None
+                    
+                    # Create Item
+                    model_class.create(db, row, user_id=user.id)
+                    imported_count += 1
+                except Exception as e:
+                    errors.append(f"Row {i+1}: {str(e)}")
+            
+            if errors:
+                db.rollback()
+                raise HTTPException(status_code=400, detail={"message": "Import failed", "errors": errors})
+            
+            db.commit()
+            return {"message": f"Successfully imported {imported_count} items", "count": imported_count}
 
         @router.post("/", status_code=status.HTTP_201_CREATED)
         async def create_item_slashed(

@@ -18,13 +18,16 @@ The framework is organized into a strict hierarchical structure. Every class in 
 - **`Aras.Auth`**: Security and authorization logic.
 - **`Aras.App`**: Application manifests.
 - **`Aras.Manager`**: System-wide orchestration services.
+  - **`AuditManager`**: Automated field-level activity logging.
+  - **`WorkflowManager`**: State-machine engine for document lifecycles.
+  - **`SyncManager`**: Code-to-DB registry synchronization.
 - **`Aras.Validation`**: Base for data validation DTOs.
 
 ### Level 2.5: Tiered Architecture & Utility Access (MANDATORY)
 To prevent circular dependencies and maintain modularity, the core is split into three tiers:
 1. **`Aras.lib` (Tier 0: Pure Utilities)**: Foundational tools (database, helpers, query_builder) with **ZERO** framework dependencies.
-2. **`Aras.logic` (Tier 1: Framework Engine)**: Core business logic (installer, discovery, ui_generator). Depends on `lib` and `base`.
-3. **`Aras.api` (Tier 2: External Interface)**: FastAPI routers (admin, dev, query). Can depend on any lower tier.
+2. **`Aras.logic` (Tier 1: Framework Engine)**: Core business logic (installer, discovery, ui_generator, permissions). Depends on `lib` and `base`.
+3. **`Aras.api` (Tier 2: External Interface)**: FastAPI routers (admin, dev, query, registry, workflow). Can depend on any lower tier.
 
 ### Level 3: Registry Implementation (`api/core/registry/`)
 - **`AppModel`**: Database record for an installed application.
@@ -38,11 +41,11 @@ To prevent circular dependencies and maintain modularity, the core is split into
 
 - **`api/`**: The backend framework and application logic.
   - **`core/`**: The engine of Aras.
-  - **`apps/`**: Pluggable application modules (e.g., `admin`, `erp`, `inventory`).
+  - **`apps/`**: Pluggable application modules (e.g., `dev`, `erp`).
   - **`manage.py`**: The primary CLI for framework management.
 - **`ui/`**: The frontend React (TypeScript) dashboard.
 - **`docs/`**: Technical documentation and progress logs.
-- **`aras-old/`**: **LEGACY** version of the framework (Flask-based). Do not use for new features, use olnly for reference.
+- **`aras-old/`**: **LEGACY** version of the framework (Flask-based). Do not use for new features.
 
 ---
 
@@ -51,33 +54,37 @@ To prevent circular dependencies and maintain modularity, the core is split into
 ### 1. Installation (`install`)
 - Supports **YAML**, **JSON**, and **ZIP** bundles.
 - Scaffolds a new directory in `api/apps/`.
-- **MANDATE**: Table names MUST be prefixed with the app name (e.g., `inventory_products`) to avoid SQLAlchemy MetaData collisions.
+- **MANDATE**: Table names MUST be prefixed with the app name (e.g., `inventory_products`).
 
 ### 2. Synchronization (`sync`)
 - Scans `api/apps/` for registered `Aras.App` classes.
 - Upserts metadata into the Registry DB.
-- **Deactivation**: If an app exists in the DB but is missing from the filesystem, it is marked as `is_active=False`.
+- **Auto-Migration**: Automatically handles physical schema changes (safe for SQLite).
 
-### 3. Activation & Deactivation (`activate` / `deactivate`)
-- Toggles the `is_active` flag in the `aras_apps` registry.
-- **Behavior**: Deactivated apps are hidden from the UI but their data and files remain intact.
+### 3. Feature: Zero-Code Customization (Hybrid Metadata)
+Aras provides a **Hybrid Metadata** system via `UIGenerator`.
+1. **Auto-Detection**: Scans SQLAlchemy models for types, labels, and relations.
+2. **DB Overrides**: Users can override labels, hide fields, or change UI types via the `ResourceModel` and `FieldModel` registries at runtime.
 
-### 4. Uninstallation (`uninstall`)
-- **Clean Purge**: Removes the app directory, drops all associated physical SQL tables, and deletes all registry records (Apps, Resources, Fields, Links).
+### 4. Feature: Workflow Engine
+Models using the `workflow` feature benefit from a state-machine engine:
+- **States & Transitions**: Defined in code, manageable via API.
+- **Permission Gating**: Integrated with RBAC.
+- **Dynamic UI**: Action buttons automatically appear in forms based on status.
 
 ---
 
 ## 🛠️ CLI Reference (`api/manage.py`)
 
-Run from the `api/` directory or use `python api/manage.py` from root.
+Run from the `api/` directory.
 
 | Command | Argument | Description |
 | :--- | :--- | :--- |
-| `sync` | - | Sync code manifests to DB registry. |
+| `sync` | - | Sync code manifests to DB registry and migrate schema. |
 | `install` | `<file>` | Install app from .yaml, .json, or .zip. |
-| `uninstall`| `<name>` | **Destructive**: Remove files and purge DB/Tables. |
-| `activate` | `<name>` | Mark app as active in registry. |
-| `deactivate`| `<name>` | Mark app as inactive in registry. |
+| `uninstall`| `<name>` | Purge app files and registry records. |
+| `activate` | `<name>` | Mark app as active. |
+| `deactivate`| `<name>` | Mark app as inactive. |
 | `discover` | - | List all apps currently registered in code. |
 | `check` | - | Run framework health and integrity checks. |
 
@@ -86,14 +93,7 @@ Run from the `api/` directory or use `python api/manage.py` from root.
 ## ⚠️ Development Mandates
 
 1. **Table Naming**: Always use `{app_name}_{table_name}` for `__tablename__`.
-2. **Registry Sync**: After changing `app.py` or `models.py`, you MUST run `python manage.py sync`. This now automatically handles physical schema migrations.
-3. **Dependencies**: Use `Aras.App.models` to list all models belonging to an app for registration.
-4. **Environment**: Ensure `sys.path` includes the `api/` directory when running scripts from the root.
-5. **Metadata Syncing**: The `sync` process automatically handles `ui_type` defaults to `'string'` if not explicitly defined or if set to `None`, ensuring compatibility with the registry's non-null constraints.
-6. **Integrity Checks**: Regularly run `python manage.py check` to ensure consistency between the registry, codebase, and physical database.
-
-
-## ⚠️ Mandates
-
-1. If you use and create tools. and it can be generic, create it in tools/ and dont delete it for future reuse.
-2. Always add to docs/feature.md for new feature added
+2. **Registry Sync**: After changing `app.py` or `models.py`, you MUST run `python manage.py sync`.
+3. **Integrity Checks**: Regularly run `python manage.py check`.
+4. **Environment**: Ensure `sys.path` includes the `api/` directory.
+5. **NoForeground**: Never run long-running commands (servers) in the foreground in this environment.

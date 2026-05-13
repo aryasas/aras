@@ -16,6 +16,7 @@ import RBACManagerView from './views/RBACManager'
 import GlobalSettingsView from './views/GlobalSettings'
 import InspectRoutesView from './views/InspectRoutes'
 import GlobalDialog from './aras-core/components/GlobalDialog'
+import SidePanel from './aras-core/components/SidePanel'
 import { useEffect } from 'react'
 import { FormattingService } from './aras-core/services/FormattingService'
 
@@ -63,6 +64,7 @@ function App() {
   return (
     <Router>
       <GlobalDialog />
+      <SidePanel />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />

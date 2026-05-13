@@ -3,7 +3,7 @@ import api from '../../lib/api'
 import { 
   Search, Filter, Plus, ChevronLeft, ChevronRight, 
   Settings, Trash2, CheckSquare, Square, X, 
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, Download
 } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
 import { FormattingService } from '../services/FormattingService'
@@ -42,6 +42,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const [error, setError] = useState<string | null>(null)
   const showConfirm = useUIStore((state) => state.showConfirm);
   const showError = useUIStore((state) => state.showError);
+  const showAlert = useUIStore((state) => state.showAlert);
   
   // Query State
   const [page, setPage] = useState(1)
@@ -58,17 +59,18 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [visibleColumns, setVisibleColumns] = useState<string[]>([])
   const [isColumnPickerOpen, setIsColumnPickerOpen] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   // Fetch Metadata & Initial Data
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
-        const metadataPath = resource.startsWith('/') ? resource.substring(1) : resource
-        const res = await api.get(`${metadataPath}/metadata`)
+        const cleanResource = resource.startsWith('/') ? resource.substring(1) : resource
+        const res = await api.get(`/metadata/${cleanResource}`)
         setMetadata(res.data)
         setVisibleColumns(res.data.fields.filter((f: Field) => !f.hidden).map((f: Field) => f.name))
       } catch (err: any) {
-        setError("Failed to load metadata")
+        showError("Metadata Error", "Failed to load resource metadata")
       }
     }
     fetchMetadata()
@@ -143,6 +145,43 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     )
   }
 
+  const handleExport = async () => {
+    try {
+      setIsExporting(true)
+      const finalFilters = [...filters]
+      if (fixedFilters) {
+        Object.entries(fixedFilters).forEach(([field, value]) => {
+          finalFilters.push({ field, op: '=', value })
+        })
+      }
+
+      const params = {
+        search: search || undefined,
+        filters: finalFilters.length > 0 ? JSON.stringify(finalFilters) : undefined,
+        order_by: orderBy,
+        desc
+      }
+      const cleanResource = resource.startsWith('/') ? resource.substring(1) : resource
+      const res = await api.get(`/${cleanResource}/export`, { 
+        params, 
+        responseType: 'blob' 
+      })
+      
+      const url = window.URL.createObjectURL(new Blob([res.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `${cleanResource}_export_${new Date().toISOString().split('T')[0]}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      showAlert("Export Success", "Data has been exported to CSV")
+    } catch (err: any) {
+      showError("Export Error", "Failed to export data")
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   const addFilter = () => {
     if (!metadata) return
     const firstField = metadata.fields[0].name
@@ -201,6 +240,15 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                 <span>Delete ({selectedIds.length})</span>
               </button>
             )}
+
+            <button 
+              onClick={handleExport}
+              disabled={isExporting}
+              className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+              title="Export to CSV"
+            >
+              <Download size={18} className={isExporting ? 'animate-bounce' : ''} />
+            </button>
             
             <button 
               className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 relative"

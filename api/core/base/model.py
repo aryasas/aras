@@ -32,7 +32,10 @@ class Model(Aras, Base):
         super().__init_subclass__(**kwargs)
         # 1. Automatically register non-abstract subclasses
         if not cls.__dict__.get("__abstract__"):
+            # Register by class name AND tablename
             Model._registry[cls.__name__] = cls
+            if hasattr(cls, "__tablename__"):
+                Model._registry[cls.__tablename__] = cls
             
             # 2. Handle Parent-Child Auto Discovery
             parent_table = getattr(cls, "__parent__", None)
@@ -272,6 +275,17 @@ class Model(Aras, Base):
             db.commit()
 
     # ── Serialization ─────────────────────────────────────────────────────────
+
+    @classmethod
+    def get_ui_metadata(cls):
+        """Unified access to UI metadata, prioritizing Views and falling back to UIGenerator."""
+        from .view import View
+        from ..logic.ui_generator import UIGenerator
+        
+        view = View.get_for_model(cls)
+        if view:
+            return view.render_metadata()
+        return UIGenerator.generate_metadata(cls)
 
     def to_dict(self, include: list = None, exclude: list = None) -> dict:
         """Generic serialization into a dictionary, respecting metadata flags."""

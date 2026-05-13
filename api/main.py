@@ -67,7 +67,10 @@ app.include_router(Aras.api.registry.router, prefix="/api/v1")
 Aras.logic.discovery.register_app_routes(app, prefix="/api/v1")
 
 # Register Core Models at Root for UI Compatibility
-core_models = [Aras.User, Aras.Role, Aras.Permission, Aras.ActivityLog, Aras.ArasSetting]
+core_models = [
+    Aras.User, Aras.Role, Aras.Permission, Aras.ActivityLog, Aras.ArasSetting,
+    Aras.AppModel, Aras.ResourceModel, Aras.FieldModel, Aras.LinkModel, Aras.TranslationModel
+]
 for model in core_models:
     router = Aras.Router(model)
     app.include_router(router, prefix="/api/v1")

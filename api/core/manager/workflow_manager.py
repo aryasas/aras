@@ -1,45 +1,78 @@
-"""
-Purpose: Core Workflow Engine for managing state transitions in ERP documents.
-Context: Level 3 Implementation. Inherits from Manager (Level 2).
-Impact: Centralizes transition logic and ensures state integrity.
-"""
-from typing import Type, Any
+from typing import List, Dict, Any, Type, Optional
 from sqlalchemy.orm import Session
+from ..base.aras import Aras
+from ..base.service import Service
 from ..base.model import Model
-from .manager import Manager
 
-class WorkflowManager(Manager):
+class WorkflowManager(Service):
     """
-    Orchestrates state transitions and validates against __transitions__ metadata.
+    Centralized engine for managing document state transitions.
     """
 
     @classmethod
-    def transition(cls, db: Session, obj: Model, target_state: str, user: Any):
+    def get_available_actions(cls, item: Model, user: Any) -> List[Dict[str, Any]]:
         """
-        Generic transition handler.
-        Validates the transition path and updates status.
+        Returns a list of actions the user can perform on the current item state.
         """
-        current_state = getattr(obj, "status", None)
-        transitions = getattr(obj, "__transitions__", [])
+        if not hasattr(item, "__transitions__") or not hasattr(item, "status"):
+            return []
+
+        current_state = getattr(item, "status", "Draft")
+        available = []
         
-        # 1. Validate Transition Path
-        valid_path = False
-        required_permission = None
+        # Delayed import to avoid circular dependencies
+        from ..logic.permissions import RBAC
+
+        for trans in item.__transitions__:
+            if trans["from"] == current_state:
+                # Check permission if defined
+                permission = trans.get("permission")
+                if permission and not user.is_admin:
+                    # Logic to check if user has the specific permission
+                    # For now, we use a simple RBAC check
+                    if not RBAC.has_permission(None, user, item.__tablename__, permission):
+                        continue
+                
+                available.append({
+                    "name": trans.get("name", trans["to"]),
+                    "to": trans["to"],
+                    "label": trans.get("label", trans["to"]),
+                    "icon": trans.get("icon", "ArrowRight")
+                })
         
-        for t in transitions:
-            if t["from"] == current_state and t["to"] == target_state:
-                valid_path = True
-                required_permission = t.get("permission")
+        return available
+
+    @classmethod
+    def trigger_action(cls, db: Session, item: Model, action_name: str, user: Any) -> bool:
+        """
+        Validates and executes a state transition.
+        """
+        current_state = getattr(item, "status", "Draft")
+        
+        # Find the transition definition
+        transition = None
+        for trans in item.__transitions__:
+            name = trans.get("name", trans["to"])
+            if trans["from"] == current_state and name == action_name:
+                transition = trans
                 break
         
-        if not valid_path:
-            return False, f"Invalid transition from '{current_state}' to '{target_state}'"
+        if not transition:
+            raise ValueError(f"Action '{action_name}' is not valid for current state '{current_state}'")
 
-        # 2. Permission Gating (Integrate with RBAC)
-        # Note: RBAC logic is in permissions.py, WorkflowManager delegates check.
+        # 1. Check Permission
+        from ..logic.permissions import RBAC
+        permission = transition.get("permission")
+        if permission and not user.is_admin:
+            if not RBAC.has_permission(db, user, item.__tablename__, permission):
+                raise PermissionError(f"User does not have permission '{permission}'")
+
+        # 2. Update Status
+        old_state = item.status
+        item.status = transition["to"]
         
-        # 3. Apply Transition
-        obj.status = target_state
-        db.commit()
+        # 3. Log the transition (using ActivityLog via AuditManager or manually)
+        from .audit_manager import AuditManager
+        # ActivityLog will be captured by AuditManager if enabled on the model
         
-        return True, "Transition successful"
+        return True

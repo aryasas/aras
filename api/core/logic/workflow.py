@@ -15,14 +15,9 @@ class WorkflowMixin(Aras):
     # Level 3 models will define these
     __states__: List[str] = ["Draft", "Submitted", "Cancelled"]
     __transitions__: List[Dict[str, Any]] = [
-        {"from": "Draft", "to": "Submitted", "permission": "submit_doc"},
-        {"from": "Submitted", "to": "Cancelled", "permission": "cancel_doc"}
+        {"name": "submit", "from": "Draft", "to": "Submitted", "label": "Submit", "permission": "submit_doc", "icon": "Check"},
+        {"name": "cancel", "from": "Submitted", "to": "Cancelled", "label": "Cancel", "permission": "cancel_doc", "icon": "X"}
     ]
 
-    status: Mapped[str] = mapped_column(String(50), default="Draft")
+    status: Mapped[str] = mapped_column(String(50), default="Draft", info={"label": "Status", "read_only": True})
 
-    def transition_to(self, new_state: str, user: Any):
-        """Attempts to move the document to a new state."""
-        # Generic validation logic would go here
-        self.status = new_state
-        return True

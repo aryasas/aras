@@ -4,9 +4,10 @@ Context: Part of Aras.Registry namespace. Link between Apps and Models.
 Impact: Stores traits (features) and layout metadata for the GUI.
 """
 from sqlalchemy import String, JSON, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..base.model import Model
 from ..base.field import Field
+from typing import List
 
 class ResourceModel(Model):
     """Stores metadata about models/tables registered in the system."""
@@ -21,3 +22,11 @@ class ResourceModel(Model):
     layout: Mapped[dict] = mapped_column(JSON, default=dict)
     is_dynamic: Mapped[bool] = mapped_column(default=False)
     is_active: Mapped[bool] = mapped_column(default=True)
+
+    # Relationships
+    fields: Mapped[List["FieldModel"]] = relationship("FieldModel", backref="resource", cascade="all, delete-orphan")
+    links: Mapped[List["LinkModel"]] = relationship(
+        "LinkModel", 
+        primaryjoin="ResourceModel.id == LinkModel.source_resource_id",
+        cascade="all, delete-orphan"
+    )

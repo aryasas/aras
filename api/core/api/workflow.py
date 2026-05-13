@@ -10,19 +10,17 @@ from ..auth.service import get_current_user
 
 router = APIRouter(tags=["Workflow API"])
 
-@router.post("/{resource_name}/{item_id}/action/{action_name}")
-async def trigger_action(
+@router.get("/{resource_name}/{item_id}/actions")
+async def get_actions(
     resource_name: str,
     item_id: int,
-    action_name: str,
-    payload: Dict[str, Any] = Body(...),
     db: Session = Depends(get_db),
     current_user: Any = Depends(get_current_user)
 ):
-    """
-    Trigger a workflow action on a specific resource item.
-    """
+    """Get available workflow actions for an item."""
     from ..base.model import Model
+    from ..manager.workflow_manager import WorkflowManager
+    
     model_class = Model._registry.get(resource_name)
     if not model_class:
         raise HTTPException(status_code=404, detail="Resource not found")
@@ -31,10 +29,42 @@ async def trigger_action(
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
 
-    # TODO: Implement actual workflow engine invocation
-    return {
-        "status": "success",
-        "message": f"Action '{action_name}' triggered on {resource_name}:{item_id}",
-        "action": action_name,
-        "item": item_id
-    }
+    actions = WorkflowManager.get_available_actions(item, current_user)
+    return actions
+
+@router.post("/{resource_name}/{item_id}/action/{action_name}")
+async def trigger_action(
+    resource_name: str,
+    item_id: int,
+    action_name: str,
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(get_current_user)
+):
+    """
+    Trigger a workflow action on a specific resource item.
+    """
+    from ..base.model import Model
+    from ..manager.workflow_manager import WorkflowManager
+
+    model_class = Model._registry.get(resource_name)
+    if not model_class:
+        raise HTTPException(status_code=404, detail="Resource not found")
+
+    item = db.get(model_class, item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    try:
+        WorkflowManager.trigger_action(db, item, action_name, current_user)
+        db.commit()
+        return {
+            "status": "success",
+            "message": f"Action '{action_name}' executed successfully",
+            "new_status": item.status
+        }
+    except (ValueError, PermissionError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Workflow error: {str(e)}")
+

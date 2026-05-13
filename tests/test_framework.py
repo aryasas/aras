@@ -23,7 +23,7 @@ def test_full_cycle():
         os.remove("test_aras.db")
         
     # 0. Import apps to register models in metadata
-    from apps.admin.app import AdminApp
+    from apps.dev.app import DevApp
     from apps.erp.app import ErpApp
 
     # 1. Initialize Database
@@ -45,15 +45,18 @@ def test_full_cycle():
     # 3. Test Audit Trail
     print("\n[Step 2] Testing Auto-Audit Trail...")
     Aras.Manager.Audit.register_listeners()
-    
+
     from apps.erp.models import Product
     # Manually add 'audit' feature for test if not present
     Product.__features__ = ["audit"]
-    
+
+    # Cleanup existing test product to avoid IntegrityError
+    db.query(Product).filter(Product.name == "Test Gadget").delete()
+    db.commit()
+
     test_product = Product(name="Test Gadget", sku="TG001", price=99.99)
     db.add(test_product)
     db.commit()
-    
     log = db.query(Aras.ActivityLog).filter(Aras.ActivityLog.resource == "erp_products").first()
     if log:
         print(f"Result: Audit log captured for {log.action} on {log.resource}.")
@@ -62,18 +65,22 @@ def test_full_cycle():
 
     # 4. Test Workflow Transition
     print("\n[Step 3] Testing Workflow Engine...")
-    from core.lib.workflow import WorkflowMixin
+    from core.logic.workflow import WorkflowMixin
     
     # Add workflow trait to Product for testing
     Product.__features__.append("workflow")
     Product.__transitions__ = [
-        {"from": "Draft", "to": "Submitted", "permission": None}
+        {"name": "submit", "from": "Draft", "to": "Submitted", "permission": None}
     ]
     test_product.status = "Draft"
     db.commit()
     
-    success, msg = Aras.Manager.Workflow.transition(db, test_product, "Submitted", user=None)
-    print(f"Result: Transition to Submitted -> {success} ({msg})")
+    # Create a mock admin user for transition
+    from core.auth.models import User
+    mock_user = User(username="test_admin", is_admin=True)
+    
+    success = Aras.Manager.Workflow.trigger_action(db, test_product, "submit", user=mock_user)
+    print(f"Result: Transition 'submit' to Submitted -> {success}")
     assert test_product.status == "Submitted"
 
     # 5. Test Query Builder
