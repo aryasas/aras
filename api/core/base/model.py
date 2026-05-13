@@ -58,6 +58,7 @@ class Model(Aras, Base):
     __serialize_relations__: dict = {}
     __display_fields__: tuple = ()
     __parent__: str = None # Tablename of the parent model
+    __layout__: list = None # Layout configuration (sections/tabs)
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     is_active: Mapped[bool] = mapped_column(default=True, server_default="1")

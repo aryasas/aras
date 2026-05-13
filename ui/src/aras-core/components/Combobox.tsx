@@ -9,6 +9,7 @@ interface ComboboxProps {
   onChange: (value: any) => void;
   placeholder?: string;
   displayField?: string;
+  disabled?: boolean;
 }
 
 const Combobox: React.FC<ComboboxProps> = ({ 
@@ -16,7 +17,8 @@ const Combobox: React.FC<ComboboxProps> = ({
   value, 
   onChange, 
   placeholder = "Select...", 
-  displayField = "name" 
+  displayField = "name",
+  disabled = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -56,7 +58,7 @@ const Combobox: React.FC<ComboboxProps> = ({
 
   // Fetch items based on search
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || disabled) return;
 
     const timer = setTimeout(async () => {
       try {
@@ -75,7 +77,7 @@ const Combobox: React.FC<ComboboxProps> = ({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [search, resource, isOpen]);
+  }, [search, resource, isOpen, disabled]);
 
   const handleSelect = (item: any) => {
     setSelectedItem(item);
@@ -86,11 +88,13 @@ const Combobox: React.FC<ComboboxProps> = ({
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (disabled) return;
     setSelectedItem(null);
     onChange(null);
   };
 
   const handleAddNew = () => {
+    if (disabled) return;
     // Determine app from resource (assuming app_model format)
     const parts = resource.split('_');
     const app = parts[0];
@@ -99,10 +103,10 @@ const Combobox: React.FC<ComboboxProps> = ({
   };
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className={`relative ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`} ref={containerRef}>
       <div 
-        onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between w-full px-4 py-2.5 bg-slate-50 border rounded-xl text-sm transition-all cursor-pointer ${isOpen ? 'border-indigo-500 ring-2 ring-indigo-500/10' : 'border-slate-200 hover:border-slate-300'}`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`flex items-center justify-between w-full px-4 py-2.5 bg-slate-50 border rounded-xl text-sm transition-all ${disabled ? 'border-slate-200' : (isOpen ? 'border-indigo-500 ring-2 ring-indigo-500/10 cursor-pointer' : 'border-slate-200 hover:border-slate-300 cursor-pointer')}`}
       >
         <div className="flex-1 truncate">
           {selectedItem ? (
@@ -112,7 +116,7 @@ const Combobox: React.FC<ComboboxProps> = ({
           )}
         </div>
         <div className="flex items-center gap-1">
-          {selectedItem && (
+          {selectedItem && !disabled && (
             <button onClick={handleClear} className="p-1 hover:bg-slate-200 rounded-lg text-slate-400">
               <X size={14} />
             </button>
@@ -121,7 +125,7 @@ const Combobox: React.FC<ComboboxProps> = ({
         </div>
       </div>
 
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
           <div className="p-2 border-b border-slate-100">
             <div className="relative">

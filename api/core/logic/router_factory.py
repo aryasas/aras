@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from typing import List, Type, Any, Optional
-from pydantic import create_model
+from pydantic import create_model, BaseModel
 
 from ..lib.database import get_db
 from ..auth.service import get_current_user
@@ -300,34 +300,53 @@ class RouterFactory(Router):
         # ── 3. Custom Model Actions ───────────────────────────────────────────
         for action_name, model_action in model_class._actions.items():
             # Create a dynamic Pydantic model for the action's input if schema is provided
-            ActionInputSchema = model_action.input_schema if model_action.input_schema else BaseModel
-
-            @router.post(f"/{model_class.__tablename__}/{{item_id}}/action/{action_name}", response_model=dict)
-            async def run_custom_action(
-                item_id: int,
-                input_data: ActionInputSchema = Body(ActionInputSchema()), # Use default for no input schema
-                db: Session = Depends(get_db),
-                user: Any = Depends(check_permissions(model_class.__tablename__, model_action.permission))
-            ):
-                """
-                Executes a custom action on a model instance.
-                """
-                item = model_class.get(db, item_id)
-                if not item:
-                    raise HTTPException(status_code=404, detail="Item not found")
+            ActionInputSchema = model_action.input_schema
+            
+            # Helper to create the route with correct closure
+            def create_action_route(name, action):
+                InputModel = ActionInputSchema
                 
-                # Execute the action handler method from the model instance
-                try:
-                    # Pass db and user to the action method
-                    result = await model_action.handler(item, db=db, user=user, **input_data.dict())
-                    db.commit() # Commit changes made by the action
-                    return {"status": "success", "message": f"Action '{action_name}' executed.", "result": result}
-                except PermissionError as e:
-                    raise HTTPException(status_code=403, detail=str(e))
-                except ValueError as e:
-                    raise HTTPException(status_code=400, detail=str(e))
-                except Exception as e:
-                    db.rollback()
-                    raise HTTPException(status_code=500, detail=f"Action '{action_name}' failed: {str(e)}")
+                if InputModel:
+                    @router.post(f"/{{item_id}}/action/{name}", response_model=dict)
+                    async def run_custom_action(
+                        item_id: int,
+                        input_data: InputModel,
+                        db: Session = Depends(get_db),
+                        user: Any = Depends(check_permissions(model_class.__tablename__, action.permission))
+                    ):
+                        item = model_class.get(db, item_id)
+                        if not item:
+                            raise HTTPException(status_code=404, detail="Item not found")
+                        
+                        try:
+                            # Pass input data to handler
+                            handler = getattr(item, action.handler.__name__)
+                            result = handler(input_data)
+                            db.commit()
+                            return {"message": f"Action '{name}' completed", "result": result}
+                        except Exception as e:
+                            db.rollback()
+                            raise HTTPException(status_code=500, detail=str(e))
+                else:
+                    @router.post(f"/{{item_id}}/action/{name}", response_model=dict)
+                    async def run_custom_action(
+                        item_id: int,
+                        db: Session = Depends(get_db),
+                        user: Any = Depends(check_permissions(model_class.__tablename__, action.permission))
+                    ):
+                        item = model_class.get(db, item_id)
+                        if not item:
+                            raise HTTPException(status_code=404, detail="Item not found")
+                        
+                        try:
+                            handler = getattr(item, action.handler.__name__)
+                            result = handler()
+                            db.commit()
+                            return {"message": f"Action '{name}' completed", "result": result}
+                        except Exception as e:
+                            db.rollback()
+                            raise HTTPException(status_code=500, detail=str(e))
+            
+            create_action_route(action_name, model_action)
 
         return router

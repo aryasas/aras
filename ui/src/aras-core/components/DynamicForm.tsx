@@ -2,11 +2,10 @@ import React, { useEffect, useState } from 'react';
 import api from '../../lib/api';
 import { 
   Save, ArrowLeft, Plus, RefreshCw, ChevronRight, 
-  History as HistoryIcon 
+  History as HistoryIcon, Zap
 } from 'lucide-react';
 import ListView from './ListView';
-import Combobox from './Combobox';
-import { FileField } from './FileField';
+import { SchemaRegistry } from '../services/SchemaRegistry';
 import { useAras } from '../hooks/useAras';
 import { useUIStore } from '../../store/uiStore';
 
@@ -17,6 +16,7 @@ interface Field {
   required: boolean;
   read_only: boolean;
   hidden: boolean;
+  depends_on?: string; // Conditional visibility logic
   target_resource?: string;
   options?: { label: string; value: any }[];
 }
@@ -28,12 +28,26 @@ interface WorkflowAction {
   icon?: string;
 }
 
+interface ModelAction {
+  name: string;
+  label: string;
+  icon?: string;
+  has_input_schema: boolean;
+}
+
+interface LayoutSection {
+  title: string;
+  fields: string[];
+}
+
 interface Metadata {
   resource: string;
   title: string;
   fields: Field[];
   children?: string[];
   workflow?: any;
+  actions?: ModelAction[];
+  layout?: LayoutSection[];
   is_auditable?: boolean;
 }
 
@@ -56,10 +70,11 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const [formData, setFormData] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [actions, setActions] = useState<WorkflowAction[]>([]);
+  const [workflowActions, setWorkflowActions] = useState<WorkflowAction[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   
-  const { notify } = useAras();
+  const { notify, confirm } = useAras();
   const showPanel = useUIStore((state) => state.showPanel);
   const closePanel = useUIStore((state) => state.closePanel);
 
@@ -80,13 +95,12 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           if (meta.workflow) {
             try {
               const actionRes = await api.get(`/workflow/${cleanResource}/${id}/actions`);
-              setActions(actionRes.data);
+              setWorkflowActions(actionRes.data);
             } catch (aErr) {
               console.warn("Could not fetch workflow actions", aErr);
             }
           }
         } else {
-          // Initialize with defaults from metadata + initialData
           const defaults: any = { ...initialData };
           meta.fields.forEach((f: any) => {
              if (defaults[f.name] !== undefined) return;
@@ -107,6 +121,34 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
 
   const handleChange = (name: string, value: any) => {
     setFormData((prev: any) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => {
+        const n = { ...prev };
+        delete n[name];
+        return n;
+      });
+    }
+  };
+
+  const isFieldVisible = (field: Field) => {
+    if (field.hidden) return false;
+    if (!field.depends_on) return true;
+    
+    try {
+      // Basic implementation of depends_on (e.g. "status=Approved" or "type!=Draft")
+      const parts = field.depends_on.split(/(!=|=)/);
+      if (parts.length === 3) {
+        const [targetField, op, targetValue] = parts;
+        const actualValue = String(formData[targetField.trim()]);
+        const expectedValue = targetValue.trim().replace(/^'|'$/g, '').replace(/^"|"$/g, '');
+        
+        if (op === '=') return actualValue === expectedValue;
+        if (op === '!=') return actualValue !== expectedValue;
+      }
+    } catch (e) {
+      console.warn("Invalid depends_on logic", field.depends_on);
+    }
+    return true;
   };
 
   const handleShowHistory = () => {
@@ -143,20 +185,43 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     );
   };
 
-  const handleAction = async (actionName: string) => {
+  const handleWorkflowAction = async (actionName: string) => {
     setSaving(true);
     try {
       const cleanResource = resource.startsWith('/') ? resource.substring(1) : resource;
       await api.post(`/workflow/${cleanResource}/${id}/action/${actionName}`);
-      notify(`Action completed successfully`, "success");
-      
-      // Refresh data and actions
-      const dataRes = await api.get(`/${cleanResource}/${id}`);
-      setFormData(dataRes.data);
-      const actionRes = await api.get(`/workflow/${cleanResource}/${id}/actions`);
-      setActions(actionRes.data);
+      notify(`Workflow action completed`, "success");
+      setRefreshTrigger(prev => prev + 1);
     } catch (err: any) {
-      notify(err.response?.data?.detail || "Could not trigger workflow action", "error");
+      notify(err.response?.data?.detail || "Workflow action failed", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleModelAction = async (action: ModelAction) => {
+    if (action.has_input_schema) {
+      // Future: Show dialog with input schema form
+      notify("Action requires input schema (not yet implemented in UI)", "info");
+      return;
+    }
+
+    const ok = await confirm({
+      title: action.label,
+      message: `Are you sure you want to execute "${action.label}"?`,
+      type: 'primary'
+    });
+
+    if (!ok) return;
+
+    setSaving(true);
+    try {
+      const cleanResource = resource.startsWith('/') ? resource.substring(1) : resource;
+      await api.post(`/${cleanResource}/${id}/action/${action.name}`);
+      notify(`${action.label} completed successfully`, "success");
+      setRefreshTrigger(prev => prev + 1);
+    } catch (err: any) {
+      notify(err.response?.data?.detail || "Action failed", "error");
     } finally {
       setSaving(false);
     }
@@ -176,7 +241,16 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       notify('Record saved successfully', 'success');
       if (onSave) onSave(res.data);
     } catch (err: any) {
-      notify(err.response?.data?.detail || "Failed to save record", "error");
+      if (err.response?.status === 422) {
+        const valErrors: Record<string, string> = {};
+        err.response.data.detail.forEach((d: any) => {
+          if (d.loc && d.loc.length > 1) valErrors[d.loc[1]] = d.msg;
+        });
+        setErrors(valErrors);
+        notify("Please correct validation errors", "error");
+      } else {
+        notify(err.response?.data?.detail || "Failed to save record", "error");
+      }
     } finally {
       setSaving(false);
     }
@@ -185,10 +259,36 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   if (loading) return <div className="p-12 text-center animate-pulse text-slate-400">Loading form...</div>;
   if (!metadata) return <div className="p-12 text-center text-red-500">Metadata not found.</div>;
 
+  const renderField = (field: Field) => {
+    if (!isFieldVisible(field)) return null;
+    const Component = SchemaRegistry.get(field.type);
+    
+    return (
+      <div key={field.name} className={`flex flex-col gap-1.5 ${field.type === 'textarea' ? 'md:col-span-2' : ''}`}>
+        <label className="text-sm font-bold text-slate-700 flex items-center gap-1">
+          {field.label}
+          {field.required && <span className="text-rose-500">*</span>}
+        </label>
+        
+        <Component 
+          field={field} 
+          value={formData[field.name]} 
+          onChange={(val) => handleChange(field.name, val)}
+          formData={formData}
+          disabled={field.read_only}
+        />
+        
+        {errors[field.name] && (
+          <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">{errors[field.name]}</span>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-20">
       {/* ── Header ────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm sticky top-0 z-20">
+      <div className="flex items-center justify-between bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-slate-200 shadow-sm sticky top-0 z-20">
         <div className="flex items-center gap-3">
           <button 
             onClick={onCancel}
@@ -223,11 +323,24 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             </button>
           )}
 
-          {/* Workflow Actions */}
-          {actions.map(action => (
+          {/* Model Actions */}
+          {id && id !== 'new' && metadata.actions?.map(action => (
             <button
               key={action.name}
-              onClick={() => handleAction(action.name)}
+              onClick={() => handleModelAction(action)}
+              disabled={saving}
+              className="p-2 hover:bg-indigo-50 rounded-xl text-indigo-600 transition-colors"
+              title={action.label}
+            >
+              <Zap size={20} />
+            </button>
+          ))}
+
+          {/* Workflow Actions */}
+          {workflowActions.map(action => (
+            <button
+              key={action.name}
+              onClick={() => handleWorkflowAction(action.name)}
               disabled={saving}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all"
             >
@@ -236,7 +349,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             </button>
           ))}
 
-          {actions.length > 0 && <div className="w-px h-6 bg-slate-200 mx-1" />}
+          {(workflowActions.length > 0 || (metadata.actions?.length ?? 0) > 0) && <div className="w-px h-6 bg-slate-200 mx-1" />}
 
           <button 
             type="button" 
@@ -256,24 +369,29 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         </div>
       </div>
 
-      {/* ── Main Form Grid ────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {metadata.fields.map((field) => {
-            if (field.hidden) return null;
-
-            return (
-              <div key={field.name} className={`flex flex-col gap-1.5 ${field.type === 'textarea' ? 'md:col-span-2' : ''}`}>
-                <label className="text-sm font-bold text-slate-700 flex items-center gap-1">
-                  {field.label}
-                  {field.required && <span className="text-rose-500">*</span>}
-                </label>
-                
-                {renderInput(field, formData[field.name], (val) => handleChange(field.name, val))}
+      {/* ── Main Form Content ────────────────────────────────────────────── */}
+      <div className="space-y-6">
+        {metadata.layout ? (
+          metadata.layout.map((section, idx) => (
+            <div key={idx} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-8 py-4 bg-slate-50 border-b border-slate-100">
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">{section.title}</h3>
               </div>
-            );
-          })}
-        </div>
+              <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                {section.fields.map(fieldName => {
+                  const field = metadata.fields.find(f => f.name === fieldName);
+                  return field ? renderField(field) : null;
+                })}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {metadata.fields.map(renderField)}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Child Tables Section ─────────────────────────────────────────── */}
@@ -303,105 +421,4 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       )}
     </div>
   );
-};
-
-const renderInput = (field: Field, value: any, onChange: (val: any) => void) => {
-  const commonClass = "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-300";
-  
-  if (field.read_only) {
-    return (
-      <div className={`${commonClass} bg-slate-100 text-slate-500 cursor-not-allowed font-medium`}>
-        {value || '-'}
-      </div>
-    );
-  }
-
-  switch (field.type) {
-    case 'lookup':
-      return (
-        <Combobox 
-          resource={field.target_resource || ''} 
-          value={value} 
-          onChange={onChange} 
-          placeholder={`Select ${field.label}...`}
-        />
-      );
-    case 'select':
-      return (
-        <select
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          className={commonClass}
-        >
-          <option value="">Select {field.label}...</option>
-          {field.options?.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-      );
-    case 'textarea':
-      return <textarea 
-        rows={4}
-        value={value || ''} 
-        onChange={(e) => onChange(e.target.value)}
-        className={commonClass}
-        placeholder={`Enter ${field.label.toLowerCase()}...`}
-      />;
-    case 'boolean':
-      return (
-        <label className="flex items-center gap-3 py-2 cursor-pointer group">
-          <div className="relative">
-            <input 
-              type="checkbox"
-              checked={!!value}
-              onChange={(e) => onChange(e.target.checked)}
-              className="peer sr-only"
-            />
-            <div className="w-10 h-6 bg-slate-200 rounded-full peer-checked:bg-indigo-600 transition-all"></div>
-            <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all peer-checked:left-5 shadow-sm"></div>
-          </div>
-          <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900 transition-colors">
-            {value ? 'Yes' : 'No'}
-          </span>
-        </label>
-      );
-    case 'date':
-      return <input 
-        type="date"
-        value={value ? value.split('T')[0] : ''}
-        onChange={(e) => onChange(e.target.value)}
-        className={commonClass}
-      />;
-    case 'datetime':
-      return <input 
-        type="datetime-local"
-        value={value ? value.split('.')[0] : ''}
-        onChange={(e) => onChange(e.target.value)}
-        className={commonClass}
-      />;
-    case 'file':
-    case 'image':
-      return <FileField 
-        value={value} 
-        onChange={onChange} 
-        label={field.label} 
-      />;
-    case 'currency':
-    case 'number':
-      return <input 
-        type="number"
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        className={commonClass}
-        placeholder="0.00"
-      />;
-    default:
-      return <input 
-        type={field.type === 'email' ? 'email' : 'text'}
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        className={commonClass}
-        placeholder={`Enter ${field.label.toLowerCase()}...`}
-      />;
-  }
 };

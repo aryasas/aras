@@ -1,5 +1,5 @@
 from core import Aras
-from .models import Product, Customer
+from .models import Product, Customer, Order
 from . import views # Register Views
 from . import schemas # Register Schemas
 
@@ -9,4 +9,4 @@ class ErpApp(Aras.App):
     description = "Core ERP modules including Products and Customers."
     icon = "Briefcase"
     
-    models = [Product, Customer]
+    models = [Product, Customer, Order]

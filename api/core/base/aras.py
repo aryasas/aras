@@ -10,4 +10,8 @@ class Aras:
     All framework components must inherit from this class directly (Level 2)
     or indirectly (Level 3+).
     """
-    pass
+    @staticmethod
+    def action(*args, **kwargs):
+        from ..logic.model_actions import action
+        return action(*args, **kwargs)
+

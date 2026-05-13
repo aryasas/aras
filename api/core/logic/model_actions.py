@@ -28,9 +28,9 @@ def action(
             return func(instance, *args, **kwargs)
         
         # Attach action metadata to the wrapped function
-        if not hasattr(func, "_aras_actions"):
-            func._aras_actions = []
-        func._aras_actions.append(
+        if not hasattr(wrapper, "_aras_actions"):
+            wrapper._aras_actions = []
+        wrapper._aras_actions.append(
             ModelAction(name, func, permission, input_schema, label, icon)
         )
         return wrapper

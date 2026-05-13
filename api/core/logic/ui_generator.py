@@ -98,6 +98,7 @@ class UIGenerator(Service):
                 "hidden": is_hidden,
                 "read_only": is_read_only,
                 "searchable": is_searchable,
+                "depends_on": column.info.get("depends_on"),
                 "link_column": db_field.link_column if db_field and db_field.link_column else column.info.get("link_column"),
                 "display_column": db_field.display_column if db_field and db_field.display_column else column.info.get("display_column")
             }
@@ -110,6 +111,7 @@ class UIGenerator(Service):
             "fields": fields,
             "children": child_map.get(resource_name, []),
             "workflow": getattr(model_class, "__workflow__", None),
+            "layout": getattr(model_class, "__layout__", None),
             "is_auditable": "audit" in getattr(model_class, "__features__", [])
         }
 
