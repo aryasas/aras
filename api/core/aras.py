@@ -26,6 +26,7 @@ from .registry.resource_model import ResourceModel
 from .registry.field_model import FieldModel
 from .registry.link_model import LinkModel
 from .registry.translation_model import TranslationModel
+from .registry.dashboard_layout_model import DashboardLayoutModel
 from .registry.activity_log import ActivityLog
 from .registry.role import Role
 from .registry.permission import Permission
@@ -73,6 +74,7 @@ class Aras(BaseAras):
     FieldModel = FieldModel
     LinkModel = LinkModel
     TranslationModel = TranslationModel
+    DashboardLayoutModel = DashboardLayoutModel
     ActivityLog = ActivityLog
     Role = Role
     Permission = Permission

@@ -31,9 +31,9 @@ class View(Aras):
         return cls._view_map.get(model_class.__tablename__)
 
     @classmethod
-    def render_metadata(cls, translations: Dict[str, str] = None) -> Dict[str, Any]:
+    def render_metadata(cls, db: Any = None, lang: Optional[str] = None) -> Dict[str, Any]: # Changed to accept db and lang
         """Generates metadata, applying View-level overrides to the generated defaults."""
-        metadata = UIGenerator.generate_metadata(cls.model, translations=translations)
+        metadata = UIGenerator.generate_metadata(cls.model, db=db, lang=lang) # Pass db and lang
         
         # Override with custom view settings
         if cls.title:

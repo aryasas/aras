@@ -2,9 +2,10 @@
 Purpose: Centralized utility for automatically generating UI metadata from SQLAlchemy models.
 Context: Decouples UI logic from core database models.
 """
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from sqlalchemy import String, Integer, Boolean, DateTime, Date, Numeric
 from ..base.service import Service
+from ..lib.i18n import TranslationService # Import TranslationService
 
 class UIGenerator(Service):
     """
@@ -13,13 +14,12 @@ class UIGenerator(Service):
     """
 
     @classmethod
-    def generate_metadata(cls, model_class: Any, db: Any = None, translations: Dict[str, str] = None) -> Dict[str, Any]:
+    def generate_metadata(cls, model_class: Any, db: Any = None, lang: Optional[str] = None) -> Dict[str, Any]: # Changed translations to lang
         """Generates metadata for a given model, merging code detection with DB overrides."""
         from ..registry.resource_model import ResourceModel
         from ..registry.field_model import FieldModel
 
         fields = []
-        translations = translations or {}
         table = model_class.__table__
         resource_name = table.name
         
@@ -75,8 +75,8 @@ class UIGenerator(Service):
                     ui_type = "image"
 
             # Apply DB Overrides if present
+            # Removed direct translation logic here, will be handled by TranslationService
             label = db_field.label if db_field and db_field.label else \
-                    translations.get(f"field.{column.name}.label") or \
                     column.info.get("label", column.name.replace("_id", "").replace("_", " ").title())
             
             final_ui_type = db_field.ui_type if db_field and db_field.ui_type else ui_type
@@ -90,7 +90,7 @@ class UIGenerator(Service):
 
             field_info = {
                 "name": column.name,
-                "label": label,
+                "label": label, # Label is still raw here, will be translated later
                 "type": final_ui_type,
                 "required": is_required,
                 "target_resource": target_resource,
@@ -103,14 +103,31 @@ class UIGenerator(Service):
             }
             fields.append(field_info)
 
-        return {
+        metadata = {
             "resource": resource_name,
             "title": db_resource.title if db_resource and db_resource.title else \
-                     translations.get("resource.title") or \
                      getattr(model_class, "__title__", resource_name.replace("_", " ").title()),
             "fields": fields,
             "children": child_map.get(resource_name, []),
             "workflow": getattr(model_class, "__workflow__", None),
             "is_auditable": "audit" in getattr(model_class, "__features__", [])
         }
+
+        # 4. Apply Translations if lang is provided
+        if lang and db:
+            metadata = TranslationService.translate_metadata_dict(metadata, lang, db)
+        
+        # 5. Add Custom Model Actions Metadata
+        actions_metadata = []
+        for action_name, model_action in model_class._actions.items():
+            actions_metadata.append({
+                "name": model_action.name,
+                "label": model_action.label,
+                "permission": model_action.permission,
+                "icon": model_action.icon,
+                "has_input_schema": model_action.input_schema is not None
+            })
+        metadata["actions"] = actions_metadata
+            
+        return metadata
 

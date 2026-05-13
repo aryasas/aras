@@ -1,3 +1,7 @@
+import logging
+import os
+from pythonjsonlogger.json import JsonFormatter
+
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -6,12 +10,36 @@ import uvicorn
 
 from core import Aras
 
+# --- Logging Configuration ---
+def setup_logging():
+    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    
+    root = logging.getLogger()
+    root.setLevel(log_level)
+    
+    handler = logging.StreamHandler()
+    formatter = JsonFormatter(
+        '%(levelname)s %(asctime)s %(filename)s %(lineno)d %(process)d %(thread)d %(name)s %(message)s'
+    )
+    handler.setFormatter(formatter)
+    root.addHandler(handler)
+    
+    # Suppress verbose loggers
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+    logging.getLogger("uvicorn.error").setLevel(logging.WARNING)
+    logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
+
+setup_logging()
+logger = logging.getLogger(__name__)
+
 # Discover and load all apps
 Aras.logic.discovery.discover_apps(package_path="apps")
 
 # Create tables and handle migrations
+logger.info("Initializing database schema and running migrations...")
 Aras.Base.metadata.create_all(bind=Aras.engine)
 Aras.logic.auto_migrate.run(Aras.engine, Aras.Base.metadata)
+logger.info("Database schema and migrations complete.")
 
 app = FastAPI(
     title="Aras API",
@@ -22,6 +50,7 @@ app = FastAPI(
 # Exception Handlers
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
+    logger.warning("HTTP Exception: %s", exc.detail, extra={"status_code": exc.status_code, "path": request.url.path})
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -33,12 +62,13 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled Exception: %s", exc, extra={"path": request.url.path})
     return JSONResponse(
         status_code=500,
         content={
             "status": "error",
             "message": "An unexpected internal server error occurred.",
-            "detail": str(exc) if app.debug else "Please contact administrator",
+            "detail": "Please contact administrator" if not app.debug else str(exc), # Hide detail in production
             "code": 500
         },
     )
@@ -72,10 +102,11 @@ Aras.logic.discovery.register_app_routes(app, prefix="/api/v1")
 core_models = [
     Aras.User, Aras.Role, Aras.Permission, Aras.ActivityLog, Aras.ArasSetting,
     Aras.AppModel, Aras.ResourceModel, Aras.FieldModel, Aras.LinkModel, Aras.TranslationModel,
-    Aras.WidgetModel
+    Aras.WidgetModel, Aras.DashboardLayoutModel # Added DashboardLayoutModel
 ]
 for model in core_models:
-    router = Aras.Router(model)
+    # Ensure RouterFactory has access to Aras
+    router = Aras.logic.router_factory.RouterFactory.create_router(model)
     app.include_router(router, prefix="/api/v1")
 
 @app.get("/")
@@ -96,7 +127,7 @@ async def get_sidebar_data():
 
     # 1. Main Navigation Links
     sidebar = [
-        {"type": "link", "name": "dashboard", "label": "Dashboard", "icon": "LayoutDashboard", "path": "/"},
+        {"type": "link", "name": "dashboard", "label": "Dashboard", "icon": "LayoutDashboard", "path": "/dashboard"}, # Updated path
         {"type": "link", "name": "settings", "label": "Settings", "icon": "Settings", "path": "/settings"},
     ]
 
@@ -145,7 +176,7 @@ def startup_event():
     # 3. Seed Admin
     admin = db.query(Aras.User).filter(Aras.User.username == "admin").first()
     if not admin:
-        print("Creating default admin user...")
+        logger.info("Creating default admin user...")
         new_admin = Aras.User(
             username="admin",
             email="admin@aras.local",
@@ -154,11 +185,11 @@ def startup_event():
         )
         db.add(new_admin)
         db.commit()
-        print("Admin user created (admin/admin)")
+        logger.info("Admin user created (admin/admin).")
 
     # Seed Widgets
     if not db.query(Aras.WidgetModel).first():
-        print("Seeding default widgets...")
+        logger.info("Seeding default widgets...")
         db.add(Aras.WidgetModel(
             name="total_users", title="Total Users", widget_type="stat", 
             resource_name="auth_users", config_json={"icon": "Users", "color": "indigo"}, order=1
@@ -172,6 +203,7 @@ def startup_event():
             resource_name="aras_apps", config_json={"icon": "Package", "color": "emerald"}, order=3
         ))
         db.commit()
+        logger.info("Default widgets seeded.")
 
     # Seed Settings
     from core.registry.sys_settings import ArasSetting
@@ -187,9 +219,10 @@ def startup_event():
     ]
     for d in defaults:
         if not db.query(ArasSetting).filter(ArasSetting.key == d["key"]).first():
-            print(f"Seeding setting: {d['key']}")
+            logger.info(f"Seeding setting: {d['key']}")
             db.add(ArasSetting(**d))
     db.commit()
+    logger.info("Default settings seeded.")
 
 
 if __name__ == "__main__":

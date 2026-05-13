@@ -80,6 +80,7 @@ function App() {
           }
         >
           <Route index element={<HomeView />} />
+          <Route path="dashboard" element={<HomeView />} />
           <Route path="settings" element={<SettingsView />} />
           <Route path="settings/global" element={<GlobalSettingsView />} />
           <Route path="settings/audit" element={<AuditLogsView />} />

@@ -4,7 +4,7 @@ Context: Part of Aras.Registry namespace. Maintained by SyncManager.
 Impact: Acts as the primary inventory for apps accessible via the GUI.
 """
 from sqlalchemy import String, JSON
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, Session
 from ..base.model import Model
 
 class AppModel(Model):

@@ -66,50 +66,27 @@ class RouterFactory(Router):
             Schema = create_model(f"{model_class.__name__}Schema", __base__=Validation, **fields)
             Schema.model_config = {"from_attributes": True}
 
-        # ── 2. Standard Endpoints ─────────────────────────────────────────────
+        # Determine Public Access
+        allow_public = getattr(model_class, "__public_read__", False)
+
+        # ── 2. Standard Endpoints (existing CRUD, etc.) ─────────────────────────
         
         @router.get("/metadata", response_model=dict)
         async def get_metadata(
             lang: Optional[str] = Query(None),
             db: Session = Depends(get_db),
-            _: Any = Depends(check_permissions(model_class.__tablename__, "READ"))
+            _: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=allow_public))
         ):
             """Returns metadata for dynamic GUI generation with translation support."""
-            translations = {}
-            if lang:
-                from ..aras import Aras
-                # 1. Fetch Resource ID
-                res = db.query(Aras.ResourceModel).filter(Aras.ResourceModel.name == model_class.__tablename__).first()
-                if res:
-                    # 2. Fetch Resource Translations
-                    res_trans = db.query(Aras.TranslationModel).filter(
-                        Aras.TranslationModel.registry_type == "resource",
-                        Aras.TranslationModel.registry_id == res.id,
-                        Aras.TranslationModel.language_code == lang
-                    ).all()
-                    for t in res_trans:
-                        translations[f"resource.{t.property_name}"] = t.translated_value
-
-                    # 3. Fetch Field Translations
-                    field_trans = db.query(Aras.TranslationModel, Aras.FieldModel.name).join(
-                        Aras.FieldModel, Aras.FieldModel.id == Aras.TranslationModel.registry_id
-                    ).filter(
-                        Aras.TranslationModel.registry_type == "field",
-                        Aras.FieldModel.resource_id == res.id,
-                        Aras.TranslationModel.language_code == lang
-                    ).all()
-                    for t, field_name in field_trans:
-                        translations[f"field.{field_name}.{t.property_name}"] = t.translated_value
-
             # Check for Custom View
             from ..aras import Aras
             view = Aras.View.get_for_model(model_class)
             if view:
-                return view.render_metadata(translations=translations)
+                return view.render_metadata(db=db, lang=lang)
             
             # Fallback to standard auto-generation
             from ..logic.ui_generator import UIGenerator
-            return UIGenerator.generate_metadata(model_class, translations=translations)
+            return UIGenerator.generate_metadata(model_class, db=db, lang=lang)
 
         @router.get("/")
         async def list_items_slashed(
@@ -120,7 +97,7 @@ class RouterFactory(Router):
             order_by: Optional[str] = None,
             desc: bool = True,
             db: Session = Depends(get_db), 
-            user: Any = Depends(check_permissions(model_class.__tablename__, "READ"))
+            user: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=allow_public))
         ):
             return await list_items(page, per_page, search, filters, order_by, desc, db, user)
 
@@ -133,7 +110,7 @@ class RouterFactory(Router):
             order_by: Optional[str] = None,
             desc: bool = True,
             db: Session = Depends(get_db), 
-            user: Any = Depends(check_permissions(model_class.__tablename__, "READ"))
+            user: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=allow_public))
         ):
             """Lists records with pagination, filtering, and search."""
             parsed_filters = None
@@ -160,7 +137,7 @@ class RouterFactory(Router):
             order_by: Optional[str] = None,
             desc: bool = True,
             db: Session = Depends(get_db),
-            _: Any = Depends(check_permissions(model_class.__tablename__, "READ"))
+            _: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=allow_public))
         ):
             """Exports records to a CSV file based on current filters and search."""
             parsed_filters = None
@@ -198,10 +175,10 @@ class RouterFactory(Router):
         @router.post("/import")
         async def import_items(
             file: UploadFile = File(...),
-            db: Session = Depends(get_db),
+            # db: Session = Depends(get_db), # DB session not needed for direct import here, only for background task
             user: Any = Depends(check_permissions(model_class.__tablename__, "CREATE"))
         ):
-            """Imports records from a CSV file."""
+            """Imports records from a CSV file via background task."""
             if not file.filename.endswith(".csv"):
                 raise HTTPException(status_code=400, detail="Only CSV files are supported")
             
@@ -209,27 +186,18 @@ class RouterFactory(Router):
             stream = io.StringIO(content.decode("utf-8"))
             reader = csv.DictReader(stream)
             
-            imported_count = 0
-            errors = []
+            # Read all rows into memory to pass to background task
+            data_to_import = list(reader)
             
-            for i, row in enumerate(reader):
-                try:
-                    # Basic cleaning: convert empty strings to None for nullable columns
-                    for key, val in row.items():
-                        if val == "": row[key] = None
-                    
-                    # Create Item
-                    model_class.create(db, row, user_id=user.id)
-                    imported_count += 1
-                except Exception as e:
-                    errors.append(f"Row {i+1}: {str(e)}")
+            from ..manager.task_manager import TaskManager
+            task_id = TaskManager.enqueue_task(
+                'task_manager.import_csv_task', 
+                model_class_name=model_class.__tablename__, 
+                data=data_to_import, 
+                user_id=user.id
+            )
             
-            if errors:
-                db.rollback()
-                raise HTTPException(status_code=400, detail={"message": "Import failed", "errors": errors})
-            
-            db.commit()
-            return {"message": f"Successfully imported {imported_count} items", "count": imported_count}
+            return {"message": "CSV import initiated in background", "task_id": task_id}
 
         @router.post("/", status_code=status.HTTP_201_CREATED)
         async def create_item_slashed(
@@ -253,7 +221,7 @@ class RouterFactory(Router):
         async def get_item(
             item_id: int, 
             db: Session = Depends(get_db), 
-            user: Any = Depends(check_permissions(model_class.__tablename__, "READ"))
+            user: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=allow_public))
         ):
             """Fetches a single record by ID."""
             item = model_class.get(db, item_id)
@@ -328,5 +296,38 @@ class RouterFactory(Router):
                     except Exception as e:
                         print(f"[Bulk Delete] Failed to delete item {item_id}: {e}")
             return {"message": f"Successfully deleted {deleted_count} items", "deleted_count": deleted_count}
+        
+        # ── 3. Custom Model Actions ───────────────────────────────────────────
+        for action_name, model_action in model_class._actions.items():
+            # Create a dynamic Pydantic model for the action's input if schema is provided
+            ActionInputSchema = model_action.input_schema if model_action.input_schema else BaseModel
+
+            @router.post(f"/{model_class.__tablename__}/{{item_id}}/action/{action_name}", response_model=dict)
+            async def run_custom_action(
+                item_id: int,
+                input_data: ActionInputSchema = Body(ActionInputSchema()), # Use default for no input schema
+                db: Session = Depends(get_db),
+                user: Any = Depends(check_permissions(model_class.__tablename__, model_action.permission))
+            ):
+                """
+                Executes a custom action on a model instance.
+                """
+                item = model_class.get(db, item_id)
+                if not item:
+                    raise HTTPException(status_code=404, detail="Item not found")
+                
+                # Execute the action handler method from the model instance
+                try:
+                    # Pass db and user to the action method
+                    result = await model_action.handler(item, db=db, user=user, **input_data.dict())
+                    db.commit() # Commit changes made by the action
+                    return {"status": "success", "message": f"Action '{action_name}' executed.", "result": result}
+                except PermissionError as e:
+                    raise HTTPException(status_code=403, detail=str(e))
+                except ValueError as e:
+                    raise HTTPException(status_code=400, detail=str(e))
+                except Exception as e:
+                    db.rollback()
+                    raise HTTPException(status_code=500, detail=f"Action '{action_name}' failed: {str(e)}")
 
         return router

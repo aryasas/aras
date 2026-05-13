@@ -27,6 +27,7 @@ class Model(Aras, Base):
     __abstract__ = True
     _registry: Dict[str, Type['Model']] = {}
     _child_map: Dict[str, List[str]] = {} # Map parent_tablename -> [child_tablenames]
+    _actions: Dict[str, 'ModelAction'] = {} # Store registered model actions (Delayed Type)
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -45,7 +46,11 @@ class Model(Aras, Base):
                 if cls.__tablename__ not in Model._child_map[parent_table]:
                     Model._child_map[parent_table].append(cls.__tablename__)
 
-        # 3. Inject Generic Features (Traits)
+            # 3. Discover and register custom actions
+            from ..logic.model_actions import get_model_actions # Delayed import
+            cls._actions = get_model_actions(cls)
+
+        # 4. Inject Generic Features (Traits)
         from ..logic.trait_injector import TraitInjector
         TraitInjector.inject(cls)
 

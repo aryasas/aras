@@ -25,7 +25,7 @@ export const DashboardView: React.FC = () => {
   const loadWidgets = async () => {
     try {
       const res = await api.get('/dashboard/widgets')
-      setWidgets(res.data)
+      setWidgets(res.data.layout_config?.widgets || [])
     } catch (err) {
       notify('Failed to load dashboard widgets', 'error')
     } finally {

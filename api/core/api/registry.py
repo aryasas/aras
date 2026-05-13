@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends
-from typing import TYPE_CHECKING
+from fastapi import APIRouter, Depends, Query
+from typing import TYPE_CHECKING, Optional
 from sqlalchemy.orm import Session
 from ..lib.database import get_db
 from ..logic.ui_generator import UIGenerator
@@ -10,7 +10,11 @@ if TYPE_CHECKING:
 router = APIRouter(tags=["Registry Management"])
 
 @router.get("/metadata/{resource_name:path}")
-async def get_resource_metadata(resource_name: str, db: Session = Depends(get_db)):
+async def get_resource_metadata(
+    resource_name: str, 
+    db: Session = Depends(get_db),
+    lang: Optional[str] = Query(None) # Add lang parameter
+):
     """Returns full UI metadata for a resource, including DB overrides."""
     from ..base.model import Model
     
@@ -34,7 +38,7 @@ async def get_resource_metadata(resource_name: str, db: Session = Depends(get_db
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail=f"Resource '{tablename}' not found in registry")
 
-    return UIGenerator.generate_metadata(model_class, db=db)
+    return UIGenerator.generate_metadata(model_class, db=db, lang=lang) # Pass lang parameter
 
 @router.get("/models")
 async def get_registered_models():

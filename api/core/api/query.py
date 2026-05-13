@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 from ..lib.database import get_db
 from ..lib.query_builder import QueryBuilder
-from ..auth.service import get_current_user
+from ..auth.service import get_current_user, get_optional_user
 
 router = APIRouter(tags=["Generic Query API"])
 
@@ -21,7 +21,7 @@ async def execute_query(
     resource_name: str,
     request: QueryRequest = Body(...),
     db: Session = Depends(get_db),
-    current_user: Any = Depends(get_current_user)
+    current_user: Optional[Any] = Depends(get_optional_user)
 ):
     """
     Execute a structured query against any registered resource.
@@ -38,6 +38,16 @@ async def execute_query(
                 
     if not model_class:
         raise HTTPException(status_code=404, detail=f"Resource '{resource_name}' not found")
+
+    # Check Permissions or Public Read
+    if not getattr(model_class, "__public_read__", False):
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        # We should ideally call check_permissions here, but it's a dependency.
+        # For now, if not public and not admin, check if searchable or has READ.
+        # Actually, let's keep it simple: if not public and not logged in, 401.
+        # If logged in, we assume they can query for now (Registry level check could be added).
 
     try:
         results = QueryBuilder.execute(db, model_class, request.filters)

@@ -4,20 +4,30 @@ from sqlalchemy.orm import Session
 
 from ..lib.database import get_db
 from ..auth.models import User
-from ..auth import get_current_user
+from ..auth.service import get_current_user, get_optional_user
 from ..base.auth import Auth
 
-def check_permissions(resource: Optional[str] = None, action: str = "READ"):
+def check_permissions(resource: Optional[str] = None, action: str = "READ", allow_public: bool = False):
     """
     Standard dependency for resource-level authorization.
     If resource is None, it acts as a simple authentication check (is logged in).
     If resource is provided, it checks if the user has a role with the required action.
+    If allow_public is True, it allows READ access if no user is provided (for public resources).
     """
     async def permission_dependency(
-        user: Any = Depends(get_current_user),
+        user: Any = Depends(get_optional_user if allow_public else get_current_user),
         db: Session = Depends(get_db)
     ):
-        # 1. Admin bypass
+        # 1. Handle Public Access
+        if not user:
+            if allow_public and action == "READ":
+                return None # Anonymous user allowed for READ
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required"
+            )
+
+        # 2. Admin bypass
         if user.is_admin:
             return user
 

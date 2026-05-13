@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Optional
 from dataclasses import dataclass, field
 from sqlalchemy import inspect as sa_inspect, text
 from sqlalchemy.schema import CreateTable
@@ -43,7 +44,7 @@ def _quote(name: str) -> str:
 def _column_type_sql(col, dialect) -> str:
     return col.type.compile(dialect=dialect)
 
-def _safe_default_sql(col) -> str | None:
+def _safe_default_sql(col) -> Optional[str]:
     """Return inline DEFAULT clause for ADD COLUMN, or None."""
     if col.server_default is not None:
         sd = col.server_default

@@ -26,7 +26,7 @@ The framework is organized into a strict hierarchical structure. Every class in 
 ### Level 2.5: Tiered Architecture & Utility Access (MANDATORY)
 To prevent circular dependencies and maintain modularity, the core is split into three tiers:
 1. **`Aras.lib` (Tier 0: Pure Utilities)**: Foundational tools (database, helpers, query_builder) with **ZERO** framework dependencies.
-2. **`Aras.logic` (Tier 1: Framework Engine)**: Core business logic (installer, discovery, ui_generator, permissions). Depends on `lib` and `base`.
+2. **`Aras.logic` (Tier 1: Framework Engine)**: Core business logic (installer, discovery, ui_generator, permissions, model_actions). Depends on `lib` and `base`.
 3. **`Aras.api` (Tier 2: External Interface)**: FastAPI routers (admin, dev, query, registry, workflow). Can depend on any lower tier.
 
 ### Level 3: Registry Implementation (`api/core/registry/`)
@@ -34,6 +34,9 @@ To prevent circular dependencies and maintain modularity, the core is split into
 - **`ResourceModel`**: Database record for a data table/model.
 - **`FieldModel`**: Database record for field-level metadata and UI overrides.
 - **`LinkModel`**: Database record for relationships (Lookups and Child Tables).
+- **`TranslationModel`**: Database record for UI-level metadata translations.
+- **`WidgetModel`**: Database record for dashboard widget definitions.
+- **`DashboardLayoutModel`**: Database record for user-specific dashboard layouts and configurations.
 
 ---
 
@@ -44,7 +47,7 @@ To prevent circular dependencies and maintain modularity, the core is split into
   - **`apps/`**: Pluggable application modules (e.g., `dev`, `erp`).
   - **`manage.py`**: The primary CLI for framework management.
 - **`ui/`**: The frontend React (TypeScript) dashboard.
-- **`docs/`**: Technical documentation and progress logs.
+- **`docs/`**: Technical documentation and progress logs (see `docs/feature.md` for detailed feature list).
 - **`aras-old/`**: **LEGACY** version of the framework (Flask-based). Do not use for new features.
 
 ---
@@ -71,6 +74,28 @@ Models using the `workflow` feature benefit from a state-machine engine:
 - **States & Transitions**: Defined in code, manageable via API.
 - **Permission Gating**: Integrated with RBAC.
 - **Dynamic UI**: Action buttons automatically appear in forms based on status.
+
+---
+
+## 🚀 New Core Features & Enhancements (May 2026)
+
+To make Aras more robust, complete, and low-code, the following enhancements have been integrated:
+
+-   **Enhanced Internationalization (i18n):**
+    -   Dedicated `TranslationService` for managing and retrieving translations for metadata (app names, resource titles, field labels).
+    -   API endpoints support a `lang` parameter for dynamically translated UI metadata.
+-   **Centralized Background Task Processor:**
+    -   Integration with Celery for asynchronous processing of long-running tasks.
+    -   `TaskManager` provides a unified API for enqueuing and monitoring tasks (e.g., asynchronous CSV imports).
+-   **Dynamic Dashboard Builder:**
+    -   `DashboardLayoutModel` allows user-specific, customizable dashboard layouts.
+    -   CRUD APIs for managing user dashboards, including setting a default layout.
+-   **Advanced Logging and Monitoring:**
+    -   Structured logging using `pythonjsonlogger` for improved observability.
+    -   Enhanced global exception handling ensures consistent error responses and detailed logging.
+-   **Custom Model Actions Framework:**
+    -   `@action` decorator for declarative definition of custom business logic methods on models.
+    -   Automatic API exposure for these actions (`POST /resource/{item_id}/action/{action_name}`) with integrated permission checks and input validation.
 
 ---
 

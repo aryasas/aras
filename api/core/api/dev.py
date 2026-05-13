@@ -1,11 +1,31 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Dict, Any, Optional
+from pydantic import BaseModel
+
 if TYPE_CHECKING:
     from ..aras import Aras
 from ..lib.database import get_db
+from ..manager.task_manager import TaskManager # Import TaskManager
 
 router = APIRouter(tags=["Developer Tools"])
+
+class TaskEnqueueRequest(BaseModel):
+    task_name: str
+    args: Optional[List[Any]] = []
+    kwargs: Optional[Dict[str, Any]] = {}
+
+@router.post("/tasks/enqueue")
+async def enqueue_background_task(request: TaskEnqueueRequest):
+    """Enqueue a new background task."""
+    task_id = TaskManager.enqueue_task(request.task_name, *request.args, **request.kwargs)
+    return {"message": "Task enqueued successfully", "task_id": task_id}
+
+@router.get("/tasks/{task_id}/status")
+async def get_background_task_status(task_id: str):
+    """Get the status of a background task."""
+    status = TaskManager.get_task_status(task_id)
+    return status
 
 @router.post("/sync")
 async def sync_metadata(db: Session = Depends(get_db)):
