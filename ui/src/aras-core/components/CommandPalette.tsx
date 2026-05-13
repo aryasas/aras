@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import * as LucideIcons from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { api } from '../../lib/api'
+import api from '../../lib/api'
 
 export const CommandPalette: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false)

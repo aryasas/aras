@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useCallback } from 'react'
-import { GlobalDialog } from '../components/GlobalDialog'
 
 interface ConfirmOptions {
   title: string
@@ -38,31 +37,30 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
     <ConfirmContext.Provider value={{ confirm }}>
       {children}
       {dialog && (
-        <GlobalDialog
-          isOpen={true}
-          onClose={handleCancel}
-          title={dialog.title}
-        >
-          <div className="p-6">
-            <p className="text-slate-600 mb-8">{dialog.message}</p>
-            <div className="flex justify-end gap-3">
-              <button 
-                onClick={handleCancel}
-                className="px-5 py-2.5 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-colors"
-              >
-                {dialog.cancelText || 'Cancel'}
-              </button>
-              <button 
-                onClick={handleConfirm}
-                className={`px-5 py-2.5 rounded-xl font-bold text-white transition-all shadow-lg ${
-                  dialog.type === 'danger' ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-100' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'
-                }`}
-              >
-                {dialog.confirmText || 'Confirm'}
-              </button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-slate-900">{dialog.title}</h3>
+              <p className="text-slate-600 mt-2 mb-8">{dialog.message}</p>
+              <div className="flex justify-end gap-3">
+                <button 
+                  onClick={handleCancel}
+                  className="px-5 py-2.5 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-colors"
+                >
+                  {dialog.cancelText || 'Cancel'}
+                </button>
+                <button 
+                  onClick={handleConfirm}
+                  className={`px-5 py-2.5 rounded-xl font-bold text-white transition-all shadow-lg ${
+                    dialog.type === 'danger' ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-100' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'
+                  }`}
+                >
+                  {dialog.confirmText || 'Confirm'}
+                </button>
+              </div>
             </div>
           </div>
-        </GlobalDialog>
+        </div>
       )}
     </ConfirmContext.Provider>
   )

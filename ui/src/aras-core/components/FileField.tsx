@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import * as LucideIcons from 'lucide-react'
-import { api } from '../../lib/api'
+import api from '../../lib/api'
 import { useNotify } from '../contexts/NotificationContext'
 
 interface FileFieldProps {

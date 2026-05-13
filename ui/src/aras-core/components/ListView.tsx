@@ -3,10 +3,10 @@ import api from '../../lib/api'
 import { 
   Search, Filter, Plus, ChevronLeft, ChevronRight, 
   Settings, Trash2, CheckSquare, Square, X, 
-  ChevronDown, ChevronUp, Download
+  ChevronDown, ChevronUp, Download, Upload
 } from 'lucide-react'
-import { useUIStore } from '../../store/uiStore'
 import { FormattingService } from '../services/FormattingService'
+import { useAras } from '../hooks/useAras'
 
 interface Field {
   name: string
@@ -40,9 +40,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const showConfirm = useUIStore((state) => state.showConfirm);
-  const showError = useUIStore((state) => state.showError);
-  const showAlert = useUIStore((state) => state.showAlert);
+  const { notify, confirm } = useAras()
   
   // Query State
   const [page, setPage] = useState(1)
@@ -70,11 +68,11 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         setMetadata(res.data)
         setVisibleColumns(res.data.fields.filter((f: Field) => !f.hidden).map((f: Field) => f.name))
       } catch (err: any) {
-        showError("Metadata Error", "Failed to load resource metadata")
+        notify("Failed to load resource metadata", "error")
       }
     }
     fetchMetadata()
-  }, [resource])
+  }, [resource, notify])
 
   const fetchData = useCallback(async () => {
     if (!metadata) return
@@ -130,19 +128,23 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   }
 
   const handleDeleteBulk = async () => {
-    showConfirm(
-      'Delete Items', 
-      `Are you sure you want to delete ${selectedIds.length} items?`,
-      async () => {
-        try {
-          await api.post(`/${resource}/bulk-delete`, selectedIds)
-          setSelectedIds([])
-          fetchData()
-        } catch (err: any) {
-          showError("Delete Error", err.response?.data?.message || "Failed to delete items")
-        }
+    const ok = await confirm({
+      title: 'Delete Items',
+      message: `Are you sure you want to delete ${selectedIds.length} items? This action cannot be undone.`,
+      type: 'danger',
+      confirmText: 'Delete Now'
+    })
+    
+    if (ok) {
+      try {
+        await api.post(`/${resource}/bulk-delete`, selectedIds)
+        setSelectedIds([])
+        notify(`Successfully deleted ${selectedIds.length} items`, 'success')
+        fetchData()
+      } catch (err: any) {
+        notify(err.response?.data?.message || "Failed to delete items", 'error')
       }
-    )
+    }
   }
 
   const handleExport = async () => {
@@ -179,6 +181,29 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
       notify("Failed to export data", "error")
     } finally {
       setIsExporting(false)
+    }
+  }
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      setLoading(true)
+      const cleanResource = resource.startsWith('/') ? resource.substring(1) : resource
+      await api.post(`/${cleanResource}/import`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      notify('Data imported successfully', 'success')
+      fetchData()
+    } catch (err: any) {
+      const msg = err.response?.data?.detail?.message || 'Import failed'
+      notify(msg, 'error')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -249,6 +274,11 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
             >
               <Download size={18} className={isExporting ? 'animate-bounce' : ''} />
             </button>
+
+            <label className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 cursor-pointer" title="Import from CSV">
+              <Upload size={18} />
+              <input type="file" accept=".csv" className="hidden" onChange={handleImport} />
+            </label>
             
             <button 
               className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 relative"
@@ -493,37 +523,6 @@ const renderCellValue = (value: any, type: string) => {
       return <span className="text-slate-900">{FormattingService.formatNumber(value)}</span>
     case 'boolean':
       return value ? <span className="px-2 py-0.5 bg-green-50 text-green-600 text-[10px] font-bold rounded uppercase">Active</span> : <span className="px-2 py-0.5 bg-slate-50 text-slate-400 text-[10px] font-bold rounded uppercase">Inactive</span>
-    case 'date':
-    case 'datetime':
-      return FormattingService.formatDate(value)
-    case 'email':
-      return <span className="text-indigo-600 underline">{value}</span>
-    default:
-      if (typeof value === 'object') return <span className="text-[10px] font-mono text-slate-400 truncate block max-w-[200px]">{JSON.stringify(value)}</span>
-      return String(value)
-  }
-}
-
-export default ListView
-(value)}</span>
-      return String(value)
-  }
-}
-
-export default ListView
-ate block max-w-[200px]">{JSON.stringify(value)}</span>
-      return String(value)
-  }
-}
-
-export default ListView
-late-400 truncate block max-w-[200px]">{JSON.stringify(value)}</span>
-      return String(value)
-  }
-}
-
-export default ListView
-an>
     case 'date':
     case 'datetime':
       return FormattingService.formatDate(value)

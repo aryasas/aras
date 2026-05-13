@@ -1,6 +1,6 @@
 import { useNotify } from '../contexts/NotificationContext'
 import { useConfirm } from '../contexts/ConfirmContext'
-import { api } from '../../lib/api'
+import api from '../../lib/api'
 
 export const useAras = () => {
   const notify = useNotify()

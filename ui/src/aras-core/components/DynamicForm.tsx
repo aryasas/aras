@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import ListView from './ListView';
 import Combobox from './Combobox';
+import { FileField } from './FileField';
+import { useAras } from '../hooks/useAras';
 import { useUIStore } from '../../store/uiStore';
 
 interface Field {
@@ -57,8 +59,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const [actions, setActions] = useState<WorkflowAction[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   
-  const showAlert = useUIStore((state) => state.showAlert);
-  const showError = useUIStore((state) => state.showError);
+  const { notify } = useAras();
   const showPanel = useUIStore((state) => state.showPanel);
   const closePanel = useUIStore((state) => state.closePanel);
 
@@ -96,13 +97,13 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           setFormData(defaults);
         }
       } catch (err: any) {
-        showError("Load Error", err.response?.data?.detail || "Failed to load form");
+        notify(err.response?.data?.detail || "Failed to load form", "error");
       } finally {
         setLoading(false);
       }
     };
     init();
-  }, [resource, id, showError, initialData, refreshTrigger]);
+  }, [resource, id, notify, initialData, refreshTrigger]);
 
   const handleChange = (name: string, value: any) => {
     setFormData((prev: any) => ({ ...prev, [name]: value }));
@@ -147,7 +148,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     try {
       const cleanResource = resource.startsWith('/') ? resource.substring(1) : resource;
       await api.post(`/workflow/${cleanResource}/${id}/action/${actionName}`);
-      showAlert('Success', `Action completed successfully`);
+      notify(`Action completed successfully`, "success");
       
       // Refresh data and actions
       const dataRes = await api.get(`/${cleanResource}/${id}`);
@@ -155,7 +156,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       const actionRes = await api.get(`/workflow/${cleanResource}/${id}/actions`);
       setActions(actionRes.data);
     } catch (err: any) {
-      showError("Action Failed", err.response?.data?.detail || "Could not trigger workflow action");
+      notify(err.response?.data?.detail || "Could not trigger workflow action", "error");
     } finally {
       setSaving(false);
     }
@@ -172,10 +173,10 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       } else {
         res = await api.post(`/${cleanResource}`, formData);
       }
-      showAlert('Success', 'Record saved successfully');
+      notify('Record saved successfully', 'success');
       if (onSave) onSave(res.data);
     } catch (err: any) {
-      showError("Save Error", err.response?.data?.detail || "Failed to save record");
+      notify(err.response?.data?.detail || "Failed to save record", "error");
     } finally {
       setSaving(false);
     }

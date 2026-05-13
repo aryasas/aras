@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import * as LucideIcons from 'lucide-react'
-import { api } from '../lib/api'
+import api from '../lib/api'
 
 export default function HealthIntegrityView() {
   const [stats, setStats] = useState<any[]>([])

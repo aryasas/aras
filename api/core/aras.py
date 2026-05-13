@@ -30,6 +30,7 @@ from .registry.activity_log import ActivityLog
 from .registry.role import Role
 from .registry.permission import Permission
 from .registry.user_role import UserRole
+from .registry.widget_model import WidgetModel
 
 # 4. Managers & Sync
 from .manager.sync_manager import SyncManager
@@ -108,4 +109,3 @@ Aras.ArasSetting = ArasSetting
 Aras.Router = logic.router_factory.RouterFactory.create_router
 
 __all__ = ["Aras"]
-all__ = ["Aras"]

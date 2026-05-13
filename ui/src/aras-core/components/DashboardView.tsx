@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import * as LucideIcons from 'lucide-react'
-import { api } from '../../lib/api'
+import api from '../../lib/api'
 import { useAras } from '../hooks/useAras'
 
 interface Widget {
@@ -55,7 +55,7 @@ const StatWidget: React.FC<{ widget: Widget }> = ({ widget }) => {
   const Icon = (LucideIcons as any)[config.icon || 'Activity']
 
   useEffect(() => {
-    api.get(`/${widget.resource_name}`).then(res => {
+    api.get(`/${widget.resource_name}`).then((res: any) => {
       setValue(res.data.total || res.data.length || 0)
     })
   }, [widget.resource_name])
@@ -81,7 +81,7 @@ const ListWidget: React.FC<{ widget: Widget }> = ({ widget }) => {
   const config = widget.config_json || {}
 
   useEffect(() => {
-    api.get(`/${widget.resource_name}?per_page=${config.limit || 5}`).then(res => {
+    api.get(`/${widget.resource_name}?per_page=${config.limit || 5}`).then((res: any) => {
       setItems(res.data.items || res.data)
     })
   }, [widget.resource_name])
