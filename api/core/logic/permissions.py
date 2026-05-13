@@ -2,9 +2,10 @@ from fastapi import HTTPException, status, Depends
 from typing import List, Callable, Any, Optional
 from sqlalchemy.orm import Session
 
-from .database import get_db
+from ..lib.database import get_db
 from ..auth.models import User
 from ..auth import get_current_user
+from ..base.auth import Auth
 
 def check_permissions(resource: Optional[str] = None, action: str = "READ"):
     """
@@ -33,7 +34,7 @@ def check_permissions(resource: Optional[str] = None, action: str = "READ"):
         return user
     return permission_dependency
 
-class RBAC:
+class RBAC(Auth):
     """
     Engine for Role-Based Access Control logic.
     """

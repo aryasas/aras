@@ -41,14 +41,24 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ resource, id, onSave, 
     const init = async () => {
       try {
         setLoading(true);
-        const metaRes = await api.get(`/${resource}/metadata`);
-        setMetadata(metaRes.data);
+        const metadataPath = resource.startsWith('/') ? resource.substring(1) : resource;
+        const metaRes = await api.get(`${metadataPath}/metadata`);
+        const meta = metaRes.data;
+        setMetadata(meta);
 
         if (id && id !== 'new') {
-          const dataRes = await api.get(`/${resource}/${id}`);
+          const dataPath = resource.startsWith('/') ? resource.substring(1) : resource;
+          const dataRes = await api.get(`${dataPath}/${id}`);
           setFormData(dataRes.data);
         } else {
-          setFormData({});
+          // Initialize with defaults from metadata
+          const defaults: any = {};
+          meta.fields.forEach((f: any) => {
+             if (f.type === 'boolean') defaults[f.name] = false;
+             else if (f.type === 'number' || f.type === 'currency') defaults[f.name] = 0;
+             else defaults[f.name] = '';
+          });
+          setFormData(defaults);
         }
       } catch (err: any) {
         showError("Load Error", err.response?.data?.message || "Failed to load form");
@@ -67,11 +77,12 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ resource, id, onSave, 
     e.preventDefault();
     try {
       setSaving(true);
+      const cleanResource = resource.startsWith('/') ? resource.substring(1) : resource;
       let res;
       if (id && id !== 'new') {
-        res = await api.put(`/${resource}/${id}`, formData);
+        res = await api.put(`${cleanResource}/${id}`, formData);
       } else {
-        res = await api.post(`/${resource}/`, formData);
+        res = await api.post(`${cleanResource}`, formData);
       }
       if (onSave) onSave(res.data);
     } catch (err: any) {

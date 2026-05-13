@@ -43,7 +43,7 @@ class Model(Aras, Base):
                     Model._child_map[parent_table].append(cls.__tablename__)
 
         # 3. Inject Generic Features (Traits)
-        from ..lib.trait_injector import TraitInjector
+        from ..logic.trait_injector import TraitInjector
         TraitInjector.inject(cls)
 
     __soft_delete__: bool = False
@@ -296,57 +296,6 @@ class Model(Aras, Base):
             related = getattr(self, rel_attr, None)
             result[out_key] = getattr(related, rel_field, None) if related is not None else None
         return result
-
-    @classmethod
-    def get_ui_metadata(cls, translations: Dict[str, str] = None) -> Dict[str, Any]:
-        """Generates metadata for automatic UI form/list generation."""
-        fields = []
-        translations = translations or {}
-        
-        for column in cls.__table__.columns:
-            if column.name in cls._SYSTEM: continue
-            
-            # Detect Foreign Key (Lookup)
-            target_resource = None
-            ui_type = column.info.get("ui_type")
-            
-            if column.foreign_keys:
-                # Basic FK detection
-                target_resource = list(column.foreign_keys)[0].column.table.name
-                if not ui_type:
-                    ui_type = "lookup"
-            
-            if not ui_type:
-                # Map SQLAlchemy types to UI types
-                from sqlalchemy import String, Integer, Boolean, DateTime, Date, Numeric
-                col_type = column.type
-                if isinstance(col_type, String): ui_type = "string"
-                elif isinstance(col_type, (Integer, Numeric)): ui_type = "number"
-                elif isinstance(col_type, Boolean): ui_type = "boolean"
-                elif isinstance(col_type, DateTime): ui_type = "datetime"
-                elif isinstance(col_type, Date): ui_type = "date"
-                else: ui_type = "string"
-
-            # Apply Translation if available
-            label = translations.get(f"field.{column.name}.label") or column.info.get("label", column.name.replace("_id", "").replace("_", " ").title())
-
-            field_info = {
-                "name": column.name,
-                "label": label,
-                "type": ui_type,
-                "required": not column.nullable,
-                "target": target_resource,
-                "hidden": column.info.get("hidden", False)
-            }
-            fields.append(field_info)
-
-        return {
-            "resource": cls.__tablename__,
-            "title": translations.get("resource.title") or getattr(cls, "__title__", cls.__tablename__.replace("_", " ").title()),
-            "fields": fields,
-            "children": cls._child_map.get(cls.__tablename__, []),
-            "workflow": getattr(cls, "__workflow__", None),
-        }
 
     def __repr__(self):
         return f"<{self.__class__.__name__} id={getattr(self, 'id', '?')}>"

@@ -1,6 +1,6 @@
 from core import Aras
 
-class DevToolsApp(Aras.App):
+class DevApp(Aras.App):
     """
     Advanced Developer Tools for framework maintenance and inspection.
     """

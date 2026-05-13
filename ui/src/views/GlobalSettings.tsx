@@ -19,7 +19,7 @@ function GlobalSettings() {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const response = await api.post('/query/sys_settings', { filters: [] });
+      const response = await api.post('/sys_settings/query', { filters: [] });
       
       const settingsMap: Record<string, Setting> = {};
       response.data.items.forEach((s: Setting) => {
@@ -39,18 +39,30 @@ function GlobalSettings() {
   }, []);
 
   const handleUpdate = (key: string, value: string) => {
-    setSettings(prev => ({
-      ...prev,
-      [key]: { ...prev[key], value }
-    }));
+    setSettings(prev => {
+      const current = prev[key] || { key, value: '' };
+      return {
+        ...prev,
+        [key]: { ...current, value }
+      };
+    });
   };
 
   const saveSettings = async () => {
     setSaving(true);
     try {
-      const promises = Object.values(settings).map(s => 
-        api.patch(`/registry/sys_settings/${s.id}`, { value: s.value })
+      // Filter out settings that don't have an ID (shouldn't happen with seeded data, but safe)
+      const validSettings = Object.values(settings).filter(s => s.id);
+      
+      const promises = validSettings.map(s => 
+        api.patch(`/sys_settings/${s.id}`, { value: s.value })
       );
+      
+      if (promises.length === 0) {
+        showAlert('Info', 'No settings to update.');
+        return;
+      }
+
       await Promise.all(promises);
       showAlert('Success', 'Global settings updated successfully.');
     } catch (err) {

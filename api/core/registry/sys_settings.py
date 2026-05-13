@@ -13,7 +13,7 @@ class ArasSetting(Model):
     description: Mapped[str] = Field(String(255), nullable=True, label="Description")
 
     @classmethod
-    def get(cls, key: str, default: str = None):
+    def get_value(cls, key: str, default: str = None):
         """Fetch a setting value by key."""
         db = core.Aras.db()
         try:
@@ -23,7 +23,7 @@ class ArasSetting(Model):
             db.close()
 
     @classmethod
-    def set(cls, key: str, value: str, description: str = None):
+    def set_value(cls, key: str, value: str, description: str = None):
         """Set a setting value by key."""
         db = core.Aras.db()
         try:

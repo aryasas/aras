@@ -113,7 +113,7 @@ export default function AppManager() {
         throw new Error('Please select a file or provide content.')
       }
 
-      await api.post('/admin/apps/install', payload, config)
+      await api.post('/admin/install', payload, config)
       setInstallModalOpen(false)
       fetchApps()
       alert('App installed successfully!')

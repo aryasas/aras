@@ -19,7 +19,7 @@ let config: RegionalConfig = {
 export const FormattingService = {
   async init() {
     try {
-      const response = await api.post('/query/sys_settings', {
+      const response = await api.post('/sys_settings/query', {
         filters: [{ field: 'key', op: 'ilike', value: 'core.' }]
       });
       

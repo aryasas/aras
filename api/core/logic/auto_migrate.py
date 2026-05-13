@@ -4,11 +4,12 @@ from dataclasses import dataclass, field
 from sqlalchemy import inspect as sa_inspect, text
 from sqlalchemy.schema import CreateTable
 from sqlalchemy import String, Text
+from ..base.aras import Aras
 
 logger = logging.getLogger(__name__)
 
 @dataclass
-class MigrationReport:
+class MigrationReport(Aras):
     created_tables:  list[str] = field(default_factory=list)
     added_columns:   list[str] = field(default_factory=list)
     added_indexes:   list[str] = field(default_factory=list)

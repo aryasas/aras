@@ -1,7 +1,7 @@
 """
 Purpose: JSON-to-SQLAlchemy Query Builder for Reporting and Advanced Filtering.
-Context: Level 3 Utility. Used by the BI/Reporting layer.
-Impact: Standardizes how the frontend requests complex filtered data.
+Context: Tier 0 Utility. Pure logic for translating filters to SQL.
+Rule: Zero framework dependencies (Removed inheritance from Service).
 """
 from typing import Type, Any, Dict, List
 from sqlalchemy import select, and_, or_
@@ -21,6 +21,8 @@ class QueryBuilder:
         
         conditions = []
         for f in filters:
+            if not hasattr(model_class, f["field"]):
+                continue
             field = getattr(model_class, f["field"])
             op = f["op"]
             val = f["value"]

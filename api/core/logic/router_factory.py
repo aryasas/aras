@@ -4,11 +4,12 @@ from sqlalchemy.orm import Session
 from typing import List, Type, Any, Optional
 from pydantic import create_model
 
-from .database import get_db
+from ..lib.database import get_db
 from ..auth.service import get_current_user
-from .permissions import check_permissions
+from ..logic.permissions import check_permissions
+from ..base.router import Router
 
-class RouterFactory:
+class RouterFactory(Router):
     """
     Generic factory for generating standardized CRUD routes for any Aras Model.
     Supports Enterprise features: Pagination, Advanced Filtering, Global Search, and Bulk Actions.
@@ -25,23 +26,41 @@ class RouterFactory:
         )
 
         # ── 1. Dynamic Pydantic Schema Generation ─────────────────────────────
-        fields = {}
-        for column in model_class.__table__.columns:
-            if column.name in ['id', 'created_at', 'updated_at', 'deleted_at', 'created_by', 'updated_by']:
-                continue
+        from ..aras import Aras
+        
+        # Check for Custom Schema Override
+        Schema = Aras.Schema.get_for_model(model_class.__tablename__)
+        
+        if not Schema:
+            # Auto-generate if no custom schema exists
+            fields = {}
+            # System fields that are never part of the request body
+            system_skip = {'id', 'created_at', 'updated_at', 'deleted_at', 'created_by', 'updated_by'}
             
-            python_type = Any
-            try:
-                python_type = column.type.python_type
-            except:
-                python_type = str
-            
-            default_val = ... if not column.nullable else None
-            fields[column.name] = (Optional[python_type] if column.nullable else python_type, default_val)
+            for column in model_class.__table__.columns:
+                if column.name in system_skip:
+                    continue
+                
+                python_type = Any
+                try:
+                    python_type = column.type.python_type
+                except:
+                    python_type = str
+                
+                # Determine if the field is required
+                has_default = (
+                    column.nullable or 
+                    column.default is not None or 
+                    column.server_default is not None or
+                    column.name == 'is_active'
+                )
+                
+                default_val = None if has_default else ...
+                fields[column.name] = (Optional[python_type] if has_default else python_type, default_val)
 
-        from ..base.validation import Validation
-        Schema = create_model(f"{model_class.__name__}Schema", __base__=Validation, **fields)
-        Schema.model_config = {"from_attributes": True}
+            from ..base.validation import Validation
+            Schema = create_model(f"{model_class.__name__}Schema", __base__=Validation, **fields)
+            Schema.model_config = {"from_attributes": True}
 
         # ── 2. Standard Endpoints ─────────────────────────────────────────────
         
@@ -78,9 +97,30 @@ class RouterFactory:
                     for t, field_name in field_trans:
                         translations[f"field.{field_name}.{t.property_name}"] = t.translated_value
 
-            return model_class.get_ui_metadata(translations=translations)
+            # Check for Custom View
+            from ..aras import Aras
+            view = Aras.View.get_for_model(model_class)
+            if view:
+                return view.render_metadata(translations=translations)
+            
+            # Fallback to standard auto-generation
+            from ..logic.ui_generator import UIGenerator
+            return UIGenerator.generate_metadata(model_class, translations=translations)
 
         @router.get("/")
+        async def list_items_slashed(
+            page: int = Query(1, ge=1),
+            per_page: int = Query(20, ge=1, le=100),
+            search: Optional[str] = None,
+            filters: Optional[str] = None,
+            order_by: Optional[str] = None,
+            desc: bool = True,
+            db: Session = Depends(get_db), 
+            user: Any = Depends(check_permissions(model_class.__tablename__, "READ"))
+        ):
+            return await list_items(page, per_page, search, filters, order_by, desc, db, user)
+
+        @router.get("")
         async def list_items(
             page: int = Query(1, ge=1),
             per_page: int = Query(20, ge=1, le=100),
@@ -110,6 +150,14 @@ class RouterFactory:
             )
 
         @router.post("/", status_code=status.HTTP_201_CREATED)
+        async def create_item_slashed(
+            data: Schema, 
+            db: Session = Depends(get_db), 
+            user: Any = Depends(check_permissions(model_class.__tablename__, "CREATE"))
+        ):
+            return await create_item(data, db, user)
+
+        @router.post("", status_code=status.HTTP_201_CREATED)
         async def create_item(
             data: Schema, 
             db: Session = Depends(get_db), 
@@ -192,8 +240,11 @@ class RouterFactory:
             for item_id in ids:
                 item = model_class.get(db, item_id)
                 if item:
-                    item.delete_self(db, user_id=user.id)
-                    deleted_count += 1
+                    try:
+                        item.delete_self(db, user_id=user.id)
+                        deleted_count += 1
+                    except Exception as e:
+                        print(f"[Bulk Delete] Failed to delete item {item_id}: {e}")
             return {"message": f"Successfully deleted {deleted_count} items", "deleted_count": deleted_count}
 
         return router

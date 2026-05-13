@@ -3,6 +3,7 @@ Purpose: Logic for synchronizing Python-defined metadata to the Database Registr
 Context: Level 3 Implementation. Inherits from Manager (Level 2).
 Impact: Ensures the DB inventory (Apps, Resources, Fields) is always up-to-date with code.
 """
+import logging
 from typing import List, Type
 from sqlalchemy.orm import Session
 from ..base.app import App
@@ -12,6 +13,9 @@ from ..registry.resource_model import ResourceModel
 from ..registry.field_model import FieldModel
 from ..registry.link_model import LinkModel
 from .manager import Manager
+from ..logic import auto_migrate
+
+logger = logging.getLogger(__name__)
 
 class SyncManager(Manager):
     """
@@ -27,7 +31,7 @@ class SyncManager(Manager):
         Main entry point for framework synchronization.
         Iterates through Aras.App._registry and syncs each app.
         """
-        print("[SyncManager] Starting metadata synchronization...")
+        logger.info("Starting metadata synchronization...")
         
         try:
             # 0. Seed Global Settings
@@ -38,7 +42,7 @@ class SyncManager(Manager):
             
             # 1. Sync active apps
             for app_name, app_cls in apps.items():
-                print(f"[SyncManager] Syncing app: {app_name}")
+                logger.info(f"Syncing app: {app_name}")
                 cls.sync_app(db, app_cls)
             
             db.flush() # Ensure all Resources are in DB and have IDs
@@ -58,7 +62,7 @@ class SyncManager(Manager):
                 ~ResourceModel.name.in_(registered_resource_names)
             ).update({"is_active": False}, synchronize_session=False)
 
-            print("[SyncManager] Syncing relationships (links)...")
+            logger.info("Syncing relationships (links)...")
             for app_name, app_cls in apps.items():
                 for model_cls in app_cls.models:
                     resource_db = db.query(ResourceModel).filter(
@@ -66,12 +70,20 @@ class SyncManager(Manager):
                     ).first()
                     if resource_db:
                         cls.sync_links(db, resource_db.id, model_cls)
-                
+            
             db.commit()
-            print("[SyncManager] Synchronization complete.")
+
+            # 4. Trigger Auto-Migration to ensure physical tables match models
+            logger.info("Running auto-migration...")
+            from ..aras import Aras
+            report = auto_migrate.run(Aras.engine, Aras.Base.metadata)
+            if report.errors:
+                logger.error(f"Auto-migration encountered errors: {report.errors}")
+            
+            logger.info("Synchronization complete.")
         except Exception as e:
             db.rollback()
-            print(f"[SyncManager] CRITICAL: Synchronization failed: {str(e)}")
+            logger.error(f"CRITICAL: Synchronization failed: {str(e)}")
             raise
 
     @classmethod
@@ -81,7 +93,7 @@ class SyncManager(Manager):
         try:
             from core.registry.sys_settings import ArasSetting
         except ImportError:
-            print("[SyncManager] Warning: core.registry.sys_settings.ArasSetting not found. Skipping settings seed.")
+            logger.warning("core.registry.sys_settings.ArasSetting not found. Skipping settings seed.")
             return
 
         defaults = [
@@ -95,7 +107,7 @@ class SyncManager(Manager):
         for key, value, desc in defaults:
             row = db.query(ArasSetting).filter(ArasSetting.key == key).first()
             if not row:
-                print(f"[SyncManager] Seeding setting: {key} = {value}")
+                logger.info(f"Seeding setting: {key} = {value}")
                 db.add(ArasSetting(key=key, value=value, description=desc))
         
         db.flush()
@@ -132,15 +144,20 @@ class SyncManager(Manager):
     @classmethod
     def sync_resource(cls, db: Session, app_id: int, model_cls: Type[Model]):
         """Syncs a Model class to the ResourceRegistry and syncs its fields."""
+        from ..aras import Aras
         table_name = model_cls.__tablename__
         
+        # Determine Title from View or Model
+        view = Aras.View.get_for_model(model_cls)
+        title = getattr(view, "title", None) or getattr(model_cls, "__title__", None) or table_name.replace("_", " ").title()
+
         resource_db = db.query(ResourceModel).filter(ResourceModel.name == table_name).first()
         
         if not resource_db:
             resource_db = ResourceModel(
                 app_id=app_id,
                 name=table_name,
-                title=getattr(model_cls, "__title__", table_name.replace("_", " ").title()),
+                title=title,
                 model_class=model_cls.__name__,
                 features=getattr(model_cls, "__features__", []),
                 is_active=True
@@ -148,7 +165,7 @@ class SyncManager(Manager):
             db.add(resource_db)
             db.flush()
         else:
-            resource_db.title = getattr(model_cls, "__title__", table_name.replace("_", " ").title())
+            resource_db.title = title
             resource_db.features = getattr(model_cls, "__features__", [])
             resource_db.is_active = True
 
@@ -157,7 +174,19 @@ class SyncManager(Manager):
 
     @classmethod
     def sync_fields(cls, db: Session, resource_id: int, model_cls: Type[Model]):
-        """Syncs all columns of a model to the FieldRegistry, preserving GUI overrides."""
+        """Syncs all columns of a model to the FieldRegistry, prioritizing View metadata."""
+        from ..aras import Aras
+        from ..logic.ui_generator import UIGenerator
+
+        # Get Metadata (Prioritize View, Fallback to Auto)
+        view = Aras.View.get_for_model(model_cls)
+        if view:
+            metadata = view.render_metadata()
+        else:
+            metadata = UIGenerator.generate_metadata(model_cls)
+
+        field_meta_map = {f["name"]: f for f in metadata.get("fields", [])}
+
         for column in model_cls.__table__.columns:
             # Skip internal system fields
             if column.name in model_cls._SYSTEM:
@@ -168,16 +197,17 @@ class SyncManager(Manager):
                 FieldModel.name == column.name
             ).first()
 
-            # Metadata from code
+            # Metadata from View/Generator
+            meta = field_meta_map.get(column.name, {})
             code_meta = {
-                "label": column.info.get("label") or column.name.replace("_", " ").title(),
-                "ui_type": column.info.get("ui_type") or "string",
-                "is_required": not column.nullable,
-                "is_read_only": column.info.get("read_only", False),
-                "is_hidden": column.info.get("hidden", False),
-                "is_searchable": column.info.get("searchable", True),
-                "link_column": column.info.get("link_column"),
-                "display_column": column.info.get("display_column")
+                "label": meta.get("label") or column.name.replace("_", " ").title(),
+                "ui_type": meta.get("type") or "string",
+                "is_required": meta.get("required", not column.nullable),
+                "is_read_only": meta.get("read_only", column.info.get("read_only", False)),
+                "is_hidden": meta.get("hidden", column.info.get("hidden", False)),
+                "is_searchable": meta.get("searchable", column.info.get("searchable", True)),
+                "link_column": meta.get("link_column", column.info.get("link_column")),
+                "display_column": meta.get("display_column", column.info.get("display_column"))
             }
 
             if not field_db:

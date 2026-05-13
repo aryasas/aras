@@ -1,15 +1,30 @@
 import { useState } from 'react'
 import ListView from '../aras-core/components/ListView'
+import { DynamicForm } from '../aras-core/components/DynamicForm'
 import { Users, Shield, Lock } from 'lucide-react'
 
 const RBACManager = () => {
   const [activeTab, setActiveTab] = useState<'roles' | 'permissions' | 'users'>('roles')
+  const [editingId, setEditingId] = useState<number | 'new' | null>(null)
 
   const tabs = [
-    { id: 'roles', label: 'Roles', icon: Shield, resource: 'registry/auth_roles' },
-    { id: 'permissions', label: 'Permissions', icon: Lock, resource: 'registry/auth_permissions' },
-    { id: 'users', label: 'Users', icon: Users, resource: 'registry/auth_users' },
+    { id: 'roles', label: 'Roles', icon: Shield, resource: 'auth_roles' },
+    { id: 'permissions', label: 'Permissions', icon: Lock, resource: 'auth_permissions' },
+    { id: 'users', label: 'Users', icon: Users, resource: 'auth_users' },
   ]
+
+  const activeResource = tabs.find(t => t.id === activeTab)?.resource || ''
+
+  if (editingId) {
+    return (
+      <DynamicForm 
+        resource={activeResource} 
+        id={editingId}
+        onSave={() => setEditingId(null)}
+        onCancel={() => setEditingId(null)}
+      />
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -38,9 +53,9 @@ const RBACManager = () => {
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden h-[calc(100vh-280px)]">
         <ListView 
           key={activeTab}
-          resource={tabs.find(t => t.id === activeTab)?.resource || ''} 
-          onRowClick={(id) => console.log(`${activeTab} clicked`, id)}
-          onAdd={() => console.log(`Add ${activeTab}`)}
+          resource={activeResource} 
+          onRowClick={(id) => setEditingId(id)}
+          onAdd={() => setEditingId('new')}
         />
       </div>
     </div>

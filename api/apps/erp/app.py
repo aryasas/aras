@@ -1,5 +1,7 @@
 from core import Aras
 from .models import Product, Customer
+from . import views # Register Views
+from . import schemas # Register Schemas
 
 class ErpApp(Aras.App):
     app_name = "erp"

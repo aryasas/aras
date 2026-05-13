@@ -13,6 +13,11 @@ from .base.model import Model, SoftModel, Base
 from .base.app import App
 from .base.field import Field
 from .base.validation import Validation
+from .base.view import View
+from .base.schema import Schema
+from .base.service import Service
+from .base.router import Router
+from .base.auth import Auth
 from .manager.manager import Manager
 
 # 3. Registry (Level 3 implementations)
@@ -31,9 +36,11 @@ from .manager.sync_manager import SyncManager
 from .manager.audit_manager import AuditManager
 from .manager.workflow_manager import WorkflowManager
 
-# 5. Utilities & Libraries
-from .lib.database import SessionLocal, get_db, engine
-from .lib.discovery import discover_apps
+# 5. Tiers (lib, logic, api)
+from . import lib
+from . import logic
+from . import api
+from .lib import helpers as helper
 
 class Aras(BaseAras):
     """
@@ -41,12 +48,20 @@ class Aras(BaseAras):
     Consolidates the hierarchy into a single, clean API.
     """
     
+    # Tiered Namespaces
+    lib = lib
+    logic = logic
+    api = api
+    helper = helper
+
     # Core Abstractions (Level 2)
     Model = Model
     SoftModel = SoftModel
     Base = Base
     App = App
     Field = Field
+    View = View
+    Schema = Schema
     Column = Field # Alias for backward compatibility
     Validation = Validation
     Manager = Manager
@@ -63,12 +78,12 @@ class Aras(BaseAras):
     UserRole = UserRole
     
     # Database Layer
-    db = SessionLocal
-    get_db = get_db
-    engine = engine
+    db = lib.database.SessionLocal
+    get_db = lib.database.get_db
+    engine = lib.database.engine
     
-    # Logic
-    discover_apps = discover_apps
+    # Engine Logic
+    discover_apps = logic.discovery.discover_apps
 
     @classmethod
     def get_registered(cls, type_name: str):
@@ -86,10 +101,9 @@ Aras.Manager.Workflow = WorkflowManager
 # 6. Delayed Implementation Attachments (Level 3)
 from .auth.models import User
 from .registry.sys_settings import ArasSetting
-from .lib.router_factory import RouterFactory
 
 Aras.User = User
 Aras.ArasSetting = ArasSetting
-Aras.Router = RouterFactory.create_router
+Aras.Router = logic.router_factory.RouterFactory.create_router
 
 __all__ = ["Aras"]

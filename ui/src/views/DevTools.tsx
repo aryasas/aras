@@ -25,7 +25,7 @@ export default function DevTools() {
     try {
       const [infoRes, statsRes] = await Promise.all([
         api.get('/dev/info'),
-        api.get('/dev/db-stats')
+        api.get('/dev/stats')
       ])
       setInfo(infoRes.data)
       setStats(statsRes.data)
@@ -254,7 +254,7 @@ export default function DevTools() {
                 </button>
 
                 <button 
-                  onClick={() => window.open('/api/v1/dev/db-stats', '_blank')}
+                  onClick={() => window.open('/api/v1/dev/stats', '_blank')}
                   className="p-4 bg-slate-800 hover:bg-slate-700 rounded-2xl border border-slate-700 transition-all flex flex-col items-center gap-2 group"
                 >
                   <div className="p-2 bg-purple-500/20 text-purple-400 rounded-lg group-hover:scale-110 transition-transform">

@@ -6,8 +6,9 @@ Impact: Automates status transitions and permission gating for documents.
 from typing import List, Dict, Any, Type
 from sqlalchemy import String
 from sqlalchemy.orm import mapped_column, Mapped
+from ..base.aras import Aras
 
-class WorkflowMixin:
+class WorkflowMixin(Aras):
     """
     Mixin to add workflow capabilities to a model.
     """

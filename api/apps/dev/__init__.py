@@ -1,1 +1,1 @@
-from .app import DevToolsApp
+from .app import DevApp

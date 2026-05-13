@@ -4,7 +4,7 @@ export interface SidebarItem {
   label: string
   icon: string
   path?: string
-  models?: { name: string, label: string }[]
+  models?: { name: string, label: string, path?: string }[]
 }
 
 // For backward compatibility until fully refactored

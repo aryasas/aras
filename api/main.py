@@ -5,16 +5,13 @@ from sqlalchemy.orm import Session
 import uvicorn
 
 from core import Aras
-from core.auth import router as auth_router
-from core.lib.discovery import discover_apps, register_app_routes
-from core.lib.auto_migrate import run as auto_migrate
 
 # Discover and load all apps
-discover_apps(package_path="apps")
+Aras.logic.discovery.discover_apps(package_path="apps")
 
 # Create tables and handle migrations
 Aras.Base.metadata.create_all(bind=Aras.engine)
-auto_migrate(Aras.engine, Aras.Base.metadata)
+Aras.logic.auto_migrate.run(Aras.engine, Aras.Base.metadata)
 
 app = FastAPI(
     title="Aras API",
@@ -56,25 +53,24 @@ app.add_middleware(
 )
 
 # Core Routes
+from core.auth.routes import router as auth_router
 app.include_router(auth_router, prefix="/api/v1")
 
-from core.lib.query_api import router as query_router
-app.include_router(query_router, prefix="/api/v1")
-
-from core.lib.workflow_api import router as workflow_router
-app.include_router(workflow_router, prefix="/api/v1")
-
-from core.lib.admin_api import router as admin_router
-app.include_router(admin_router, prefix="/api/v1/admin")
-
-from core.lib.dev_api import router as dev_router
-app.include_router(dev_router, prefix="/api/v1/dev")
-
-from core.lib.registry_api import router as registry_router
-app.include_router(registry_router, prefix="/api/v1")
+# Tier 2 API Routers
+app.include_router(Aras.api.query.router, prefix="/api/v1")
+app.include_router(Aras.api.workflow.router, prefix="/api/v1")
+app.include_router(Aras.api.admin.router, prefix="/api/v1/admin")
+app.include_router(Aras.api.dev.router, prefix="/api/v1/dev")
+app.include_router(Aras.api.registry.router, prefix="/api/v1")
 
 # Dynamic App Discovery & Route Registration
-register_app_routes(app, prefix="/api/v1")
+Aras.logic.discovery.register_app_routes(app, prefix="/api/v1")
+
+# Register Core Models at Root for UI Compatibility
+core_models = [Aras.User, Aras.Role, Aras.Permission, Aras.ActivityLog, Aras.ArasSetting]
+for model in core_models:
+    router = Aras.Router(model)
+    app.include_router(router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
@@ -91,11 +87,11 @@ async def get_sidebar_data():
     """
     from core.base.app import App
     registered_apps = App._registry
-    
+
     # 1. Main Navigation Links
     sidebar = [
         {"type": "link", "name": "dashboard", "label": "Dashboard", "icon": "LayoutDashboard", "path": "/"},
-        {"type": "link", "name": "app_manager", "label": "App Manager", "icon": "Package", "path": "/apps"},
+        {"type": "link", "name": "settings", "label": "Settings", "icon": "Settings", "path": "/settings"},
     ]
 
     # 2. Dynamic Apps
@@ -103,20 +99,21 @@ async def get_sidebar_data():
     for app_name, app_cls in registered_apps.items():
         if app_name in ["admin"]:
             continue
-        
+
         models_list = []
-        
-        # Inject the Dev Tools Hub page into the Dev App menu
+
+        # Inject special pages
         if app_name == "dev":
-            models_list.append({"name": "", "label": "Overview"})
-            
+            models_list.append({"name": "dev-home", "label": "Dev Home", "path": "/dev"})
+
         models_list.extend([
             {
                 "name": m.__tablename__,
-                "label": getattr(m, "__title__", m.__tablename__.replace("_", " ").title())
+                "label": getattr(m, "__title__", m.__tablename__.replace("_", " ").title()),
+                "path": f"/{app_cls.app_name}/{m.__tablename__}"
             } for m in app_cls.models if m.__tablename__ not in ["auth_users", "sys_settings"]
         ])
-        
+
         apps_group.append({
             "type": "app",
             "name": app_cls.app_name,
@@ -124,14 +121,10 @@ async def get_sidebar_data():
             "icon": app_cls.icon,
             "models": models_list
         })
-    
+
     sidebar.extend(apps_group)
 
-    # 3. Settings Link
-    sidebar.append({"type": "link", "name": "settings", "label": "Settings", "icon": "Settings", "path": "/settings"})
-    
     return sidebar
-
 @app.on_event("startup")
 def startup_event():
     db = next(Aras.get_db())

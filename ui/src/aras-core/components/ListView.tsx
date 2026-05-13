@@ -63,7 +63,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
-        const res = await api.get(`/${resource}/metadata`)
+        const metadataPath = resource.startsWith('/') ? resource.substring(1) : resource
+        const res = await api.get(`${metadataPath}/metadata`)
         setMetadata(res.data)
         setVisibleColumns(res.data.fields.filter((f: Field) => !f.hidden).map((f: Field) => f.name))
       } catch (err: any) {
@@ -94,7 +95,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         order_by: orderBy,
         desc
       }
-      const res = await api.get(`/${resource}/`, { params })
+      const dataPath = resource.startsWith('/') ? resource.substring(1) : resource
+      const res = await api.get(`${dataPath}/`, { params })
       setData(res.data.items)
       setTotal(res.data.total)
       setTotalPages(res.data.pages)

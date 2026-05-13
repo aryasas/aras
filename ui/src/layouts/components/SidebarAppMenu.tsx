@@ -52,7 +52,7 @@ export function SidebarAppMenu({ app, isOpen, currentPath }: SidebarAppMenuProps
       {isExpanded && (
         <div className="ml-9 mt-1 space-y-1 border-l border-slate-100 pl-4 py-1 animate-in slide-in-from-top-1 duration-200">
           {models.map(model => {
-            const targetPath = model.name ? `/${app.name}/${model.name}` : `/${app.name}`
+            const targetPath = model.path || (model.name ? `/${app.name}/${model.name}` : `/${app.name}`)
             return (
               <Link 
                 key={model.name || 'home'}

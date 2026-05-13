@@ -20,3 +20,12 @@ class AppModel(Model):
     config: Mapped[dict] = mapped_column(JSON, default=dict)
     is_dynamic: Mapped[bool] = mapped_column(default=False)
     is_active: Mapped[bool] = mapped_column(default=True)
+
+    def delete_self(self, db: Session, user_id: int = None):
+        """
+        Override the generic delete_self to completely uninstall the app
+        (including dropping physical tables and deleting filesystem directories)
+        rather than just deleting the registry record.
+        """
+        from ..lib.installer import AppInstaller
+        AppInstaller.uninstall_app(self.name, db)

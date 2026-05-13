@@ -10,7 +10,7 @@ const AuditLogs = () => {
       
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden h-[calc(100vh-250px)]">
          <ListView 
-           resource="registry/aras_activity_logs" 
+           resource="aras_activity_logs" 
            onRowClick={(id) => console.log('Audit log clicked', id)}
          />
       </div>

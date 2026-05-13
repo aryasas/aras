@@ -4,9 +4,10 @@ from typing import List, Type
 from fastapi import FastAPI
 
 from ..base.app import App
-from ..lib.router_factory import RouterFactory
+from ..logic.router_factory import RouterFactory
+from ..logic.integrity_checker import IntegrityChecker
 
-def discover_apps(package_path: str = "api.apps"):
+def discover_apps(package_path: str = "apps"):
     """
     Otomatis mencari dan mengimpor semua modul di dalam folder apps/
     yang memiliki class turunan dari App.
@@ -19,8 +20,12 @@ def discover_apps(package_path: str = "api.apps"):
         return
 
     for loader, module_name, is_pkg in pkgutil.walk_packages(package.__path__, package_path + "."):
-        if module_name.endswith(".app"):
-            importlib.import_module(module_name)
+        # Import every module in the app package to ensure full registry and integrity check
+        module = importlib.import_module(module_name)
+        
+        # Enforce Mandatory Aras Inheritance
+        IntegrityChecker.check_module(module)
+
 
 def register_app_routes(app: FastAPI, prefix: str = "/api/v1"):
     """
