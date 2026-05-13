@@ -3,7 +3,7 @@ Purpose: Level 2 Base Model class for all data resources.
 Context: Inherits from Aras (Level 1) and SQLAlchemy Base.
 Impact: Provides generic CRUD, serialization, and metadata logic.
 """
-from typing import Any, Dict, List, Optional, Type, TypeVar, Tuple
+from typing import Any, Dict, List, Optional, Type, TypeVar, Tuple, Callable
 from datetime import datetime, date, timezone
 from sqlalchemy import Column, Integer, Boolean, DateTime, func, String, select, or_, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session
@@ -28,6 +28,7 @@ class Model(Aras, Base):
     _registry: Dict[str, Type['Model']] = {}
     _child_map: Dict[str, List[str]] = {} # Map parent_tablename -> [child_tablenames]
     _actions: Dict[str, 'ModelAction'] = {} # Store registered model actions (Delayed Type)
+    _computed: List[str] = [] # List of method names marked as computed fields
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -50,7 +51,13 @@ class Model(Aras, Base):
             from ..logic.model_actions import get_model_actions # Delayed import
             cls._actions = get_model_actions(cls)
 
-        # 4. Inject Generic Features (Traits)
+            # 4. Discover computed properties
+            cls._computed = [
+                name for name in dir(cls) 
+                if callable(getattr(cls, name)) and getattr(getattr(cls, name), "_aras_computed", False)
+            ]
+
+        # 5. Inject Generic Features (Traits)
         from ..logic.trait_injector import TraitInjector
         TraitInjector.inject(cls)
 
@@ -293,6 +300,12 @@ class Model(Aras, Base):
             return view.render_metadata()
         return UIGenerator.generate_metadata(cls)
 
+    @staticmethod
+    def computed(func: Callable) -> Callable:
+        """Decorator to mark a method as a serializable computed field."""
+        func._aras_computed = True
+        return func
+
     def to_dict(self, include: list = None, exclude: list = None) -> dict:
         """Generic serialization into a dictionary, respecting metadata flags."""
         excl = set(exclude or [])
@@ -315,6 +328,16 @@ class Model(Aras, Base):
             if out_key in excl: continue
             related = getattr(self, rel_attr, None)
             result[out_key] = getattr(related, rel_field, None) if related is not None else None
+
+        # Include Computed Fields
+        for name in self._computed:
+            if incl and name not in incl: continue
+            if name in excl: continue
+            val = getattr(self, name)()
+            if isinstance(val, (datetime, date)): result[name] = val.isoformat()
+            elif isinstance(val, Decimal): result[name] = float(val)
+            else: result[name] = val
+
         return result
 
     def __repr__(self):

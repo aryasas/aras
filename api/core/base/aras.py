@@ -15,3 +15,8 @@ class Aras:
         from ..logic.model_actions import action
         return action(*args, **kwargs)
 
+    @staticmethod
+    def computed(*args, **kwargs):
+        from .model import Model
+        return Model.computed(*args, **kwargs)
+

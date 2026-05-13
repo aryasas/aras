@@ -175,30 +175,35 @@ class RouterFactory(Router):
         @router.post("/import")
         async def import_items(
             file: UploadFile = File(...),
-            # db: Session = Depends(get_db), # DB session not needed for direct import here, only for background task
+            mapping: Optional[str] = Query(None), # JSON string mapping CSV -> Model
             user: Any = Depends(check_permissions(model_class.__tablename__, "CREATE"))
         ):
-            """Imports records from a CSV file via background task."""
+            """Imports records from a CSV file via background task with optional mapping."""
             if not file.filename.endswith(".csv"):
                 raise HTTPException(status_code=400, detail="Only CSV files are supported")
-            
+
+            parsed_mapping = None
+            if mapping:
+                try: parsed_mapping = json.loads(mapping)
+                except: raise HTTPException(status_code=400, detail="Invalid mapping format")
+
             content = await file.read()
             stream = io.StringIO(content.decode("utf-8"))
             reader = csv.DictReader(stream)
-            
+
             # Read all rows into memory to pass to background task
             data_to_import = list(reader)
-            
+
             from ..manager.task_manager import TaskManager
             task_id = TaskManager.enqueue_task(
-                'task_manager.import_csv_task', 
-                model_class_name=model_class.__tablename__, 
-                data=data_to_import, 
-                user_id=user.id
+                'task_manager.import_csv_task',
+                model_class_name=model_class.__tablename__,
+                data=data_to_import,
+                user_id=user.id,
+                mapping=parsed_mapping
             )
-            
-            return {"message": "CSV import initiated in background", "task_id": task_id}
 
+            return {"message": "CSV import initiated in background", "task_id": task_id}
         @router.post("/", status_code=status.HTTP_201_CREATED)
         async def create_item_slashed(
             data: Schema, 

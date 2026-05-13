@@ -47,10 +47,9 @@ class TaskManager(Manager):
         return x + y
 
     @celery_app.task(name='task_manager.import_csv_task')
-    def import_csv_task(model_class_name: str, data: list, user_id: int) -> Dict[str, Any]:
+    def import_csv_task(model_class_name: str, data: list, user_id: int, mapping: Dict[str, str] = None) -> Dict[str, Any]:
         """
-        Background task to import CSV data.
-        This is a placeholder and would interact with the Model.create method.
+        Background task to import CSV data with optional field mapping.
         """
         from ..base.model import Model
         from ..lib.database import SessionLocal # Need a new DB session for the worker
@@ -68,11 +67,20 @@ class TaskManager(Manager):
 
             for i, row in enumerate(data):
                 try:
+                    # Apply Mapping if provided
+                    mapped_row = {}
+                    if mapping:
+                        for csv_col, model_col in mapping.items():
+                            if csv_col in row:
+                                mapped_row[model_col] = row[csv_col]
+                    else:
+                        mapped_row = row
+
                     # Basic cleaning: convert empty strings to None for nullable columns
-                    for key, val in row.items():
-                        if val == "": row[key] = None
+                    for key, val in mapped_row.items():
+                        if val == "": mapped_row[key] = None
                     
-                    model_class.create(db, row, user_id=user_id)
+                    model_class.create(db, mapped_row, user_id=user_id)
                     imported_count += 1
                 except Exception as e:
                     errors.append(f"Row {i+1}: {str(e)}")

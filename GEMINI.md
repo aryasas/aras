@@ -81,6 +81,13 @@ Models using the `workflow` feature benefit from a state-machine engine:
 
 To make Aras more robust, complete, and low-code, the following enhancements have been integrated:
 
+-   **Aras Pro: Advanced Layouts & UX:**
+    *   **Pro Layout Engine**: Supports `__layout__` (sections/tabs) in models for organized UI rendering.
+    *   **Conditional Visibility**: Fields can use `depends_on` metadata to show/hide reactively.
+    *   **Computed Fields**: `@Aras.computed` decorator for dynamic, serializable properties.
+    *   **Pluggable UI Registry**: `SchemaRegistry` allows global registration of custom field widgets.
+-   **Advanced Import/Export Mapping:**
+    *   Asynchronous CSV imports now support a interactive **Field Mapping UI** to translate CSV columns to model fields.
 -   **Enhanced Internationalization (i18n):**
     -   Dedicated `TranslationService` for managing and retrieving translations for metadata (app names, resource titles, field labels).
     -   API endpoints support a `lang` parameter for dynamically translated UI metadata.
@@ -96,6 +103,7 @@ To make Aras more robust, complete, and low-code, the following enhancements hav
 -   **Custom Model Actions Framework:**
     -   `@action` decorator for declarative definition of custom business logic methods on models.
     -   Automatic API exposure for these actions (`POST /resource/{item_id}/action/{action_name}`) with integrated permission checks and input validation.
+    -   **Dynamic UI Integration**: Actions appear automatically as "Quick Action" buttons in form headers.
 
 ---
 

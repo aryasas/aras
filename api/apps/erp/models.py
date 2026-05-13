@@ -48,3 +48,7 @@ class Order(Aras.Model):
         self.total_amount = 99.99 # Dummy logic
         return True
 
+    @Aras.computed
+    def order_summary(self):
+        return f"Order {self.number} for {self.total_amount:.2f}"
+

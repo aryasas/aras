@@ -7,6 +7,8 @@ import {
 } from 'lucide-react'
 import { FormattingService } from '../services/FormattingService'
 import { useAras } from '../hooks/useAras'
+import { useUIStore } from '../../store/uiStore'
+import { ImportMapping } from './ImportMapping'
 
 interface Field {
   name: string
@@ -58,6 +60,9 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const [visibleColumns, setVisibleColumns] = useState<string[]>([])
   const [isColumnPickerOpen, setIsColumnPickerOpen] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+
+  const showPanel = useUIStore(state => state.showPanel)
+  const closePanel = useUIStore(state => state.closePanel)
 
   // Fetch Metadata & Initial Data
   useEffect(() => {
@@ -188,6 +193,35 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     const file = e.target.files?.[0]
     if (!file) return
 
+    // 1. Parse CSV Headers
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      const firstLine = text.split('\n')[0];
+      const headers = firstLine.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+      
+      // 2. Show Mapping Panel
+      showPanel(
+        `Import Mapping: ${metadata?.title}`,
+        <ImportMapping 
+          csvHeaders={headers}
+          resourceFields={metadata?.fields.filter(f => !f.read_only).map(f => ({ name: f.name, label: f.label })) || []}
+          onCancel={closePanel}
+          onConfirm={async (mapping) => {
+            closePanel();
+            await executeImport(file, mapping);
+          }}
+        />,
+        'max-w-2xl'
+      );
+    };
+    reader.readAsText(file);
+    
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  }
+
+  const executeImport = async (file: File, mapping: Record<string, string>) => {
     const formData = new FormData()
     formData.append('file', file)
 
@@ -195,12 +229,13 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
       setLoading(true)
       const cleanResource = resource.startsWith('/') ? resource.substring(1) : resource
       await api.post(`/${cleanResource}/import`, formData, {
+        params: { mapping: JSON.stringify(mapping) },
         headers: { 'Content-Type': 'multipart/form-data' }
       })
-      notify('Data imported successfully', 'success')
+      notify('Data import initiated in background', 'success')
       fetchData()
     } catch (err: any) {
-      const msg = err.response?.data?.detail?.message || 'Import failed'
+      const msg = err.response?.data?.detail || 'Import failed'
       notify(msg, 'error')
     } finally {
       setLoading(false)

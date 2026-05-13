@@ -104,6 +104,23 @@ class UIGenerator(Service):
             }
             fields.append(field_info)
 
+        # 4. Include Computed Fields
+        for name in getattr(model_class, "_computed", []):
+            label = name.replace("_", " ").title()
+            fields.append({
+                "name": name,
+                "label": label,
+                "type": "string", # Default for computed
+                "required": False,
+                "target_resource": None,
+                "options": None,
+                "hidden": False,
+                "read_only": True,
+                "searchable": False,
+                "depends_on": None,
+                "is_computed": True
+            })
+
         metadata = {
             "resource": resource_name,
             "title": db_resource.title if db_resource and db_resource.title else \
