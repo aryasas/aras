@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Package, Plus, RefreshCw, CheckCircle2, Trash2, X, AlertCircle, Upload, Code } from 'lucide-react'
 import api from '../lib/api'
+import { MetadataService } from '../aras-core/services/MetadataService'
 import * as Icons from 'lucide-react'
 
 interface AppManifest {
@@ -83,6 +84,7 @@ export default function AppManager() {
     setSyncing(true)
     try {
       await api.post('/dev/sync')
+      MetadataService.clearCache()
       fetchApps()
     } catch (error) {
       alert('Sync failed')

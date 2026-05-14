@@ -63,8 +63,9 @@ class RouterFactory(Router):
                 fields[column.name] = (Optional[python_type] if has_default else python_type, default_val)
 
             from ..base.validation import Validation
+            from pydantic import ConfigDict
             Schema = create_model(f"{model_class.__name__}Schema", __base__=Validation, **fields)
-            Schema.model_config = {"from_attributes": True}
+            Schema.model_config = ConfigDict(from_attributes=True)
 
         # Determine Public Access
         allow_public = getattr(model_class, "__public_read__", False)
@@ -219,7 +220,7 @@ class RouterFactory(Router):
             user: Any = Depends(check_permissions(model_class.__tablename__, "CREATE"))
         ):
             """Creates a new record with hooks support."""
-            new_item = model_class.create(db, data.dict(), user_id=user.id)
+            new_item = model_class.create(db, data.model_dump(), user_id=user.id)
             return new_item.to_dict()
 
         @router.get("/{item_id}")
@@ -248,7 +249,7 @@ class RouterFactory(Router):
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
             
-            item.update_self(db, data.dict(exclude_unset=True), user_id=user.id)
+            item.update_self(db, data.model_dump(exclude_unset=True), user_id=user.id)
             res = item.to_dict()
             model_class.resolve_labels(db, [res])
             return res

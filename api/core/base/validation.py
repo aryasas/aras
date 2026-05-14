@@ -4,8 +4,9 @@ Context: Inherits from Aras (Level 1) and Pydantic BaseModel.
 Impact: Ensures all data validation logic is rooted in the Aras framework.
 """
 from typing import Dict, Type, List, Optional, Any
-from pydantic import BaseModel, Field as PydanticField, validator
+from pydantic import BaseModel, Field as PydanticField, field_validator, ConfigDict
 from .aras import Aras
+
 
 class Validation(Aras, BaseModel):
     """
@@ -16,8 +17,8 @@ class Validation(Aras, BaseModel):
     __abstract__ = True
     _registry: Dict[str, Type['Validation']] = {}
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class ColumnDefinition(Validation):
     name: str
@@ -29,10 +30,12 @@ class ColumnDefinition(Validation):
     hidden: bool = False
     searchable: bool = True
 
+
 class TableDefinition(Validation):
     name: str
     title: Optional[str] = None
     columns: List[ColumnDefinition]
+
 
 class AppDefinition(Validation):
     name: str
@@ -41,11 +44,13 @@ class AppDefinition(Validation):
     icon: Optional[str] = "Package"
     version: Optional[str] = "1.0.0"
 
+
 class ManifestDefinition(Validation):
     app: AppDefinition
     tables: List[TableDefinition] = []
 
-    @validator("app")
+    @field_validator("app")
+    @classmethod
     def validate_app_name(cls, v):
         if not v.name.replace("_", "").replace("-", "").isalnum():
             raise ValueError("App name must be alphanumeric (underscores and hyphens allowed)")

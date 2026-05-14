@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Terminal, Database, RefreshCw, Cpu, Box, Layout, Table, Link as LinkIcon, Users, Settings } from 'lucide-react'
 import api from '../lib/api'
+import { MetadataService } from '../aras-core/services/MetadataService'
+import { useAras } from '../aras-core/hooks/useAras'
 import { Link, useNavigate } from 'react-router-dom'
 
 interface DbStat {
@@ -20,6 +22,7 @@ export default function DevTools() {
   const [stats, setStats] = useState<DbStat[]>([])
   const [syncing, setSyncing] = useState(false)
   const navigate = useNavigate()
+  const { notify } = useAras()
 
   const fetchData = async () => {
     try {
@@ -38,10 +41,10 @@ export default function DevTools() {
     setSyncing(true)
     try {
       await api.post('/dev/sync')
-      alert('Metadata synchronized successfully!')
+      MetadataService.clearCache()
       fetchData()
     } catch (error) {
-      alert('Sync failed')
+      notify('Sync failed', 'error')
     } finally {
       setSyncing(false)
     }

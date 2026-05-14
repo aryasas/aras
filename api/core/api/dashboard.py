@@ -1,21 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Any, Optional, Dict
-from pydantic import BaseModel
-
 from ..lib.database import get_db
 from ..registry.widget_model import WidgetModel
 from ..registry.dashboard_layout_model import DashboardLayoutModel
 from ..auth.service import get_current_user
+from ..base.validation import Validation
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
-class DashboardLayoutCreate(BaseModel):
+class DashboardLayoutCreate(Validation):
     name: str
     layout_config: Dict[str, Any] = {}
     is_default: bool = False
 
-class DashboardLayoutUpdate(BaseModel):
+class DashboardLayoutUpdate(Validation):
     name: Optional[str] = None
     layout_config: Optional[Dict[str, Any]] = None
     is_default: Optional[bool] = None
@@ -93,7 +92,7 @@ async def update_dashboard_layout(
     if not layout:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dashboard layout not found")
     
-    update_data = layout_data.dict(exclude_unset=True)
+    update_data = layout_data.model_dump(exclude_unset=True)
     if "is_default" in update_data and update_data["is_default"]:
         # Ensure only one default dashboard per user
         db.query(DashboardLayoutModel).filter(

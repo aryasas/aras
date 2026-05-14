@@ -3,10 +3,14 @@ import os
 from pythonjsonlogger.json import JsonFormatter
 
 from fastapi import FastAPI, Depends, HTTPException, Request
+from typing import Any
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 import uvicorn
+
+from core.lib.settings import settings
+settings.validate()
 
 from core import Aras
 
@@ -61,39 +65,35 @@ async def lifespan(app: FastAPI):
         new_admin = Aras.User(
             username="admin",
             email="admin@aras.local",
-            password_hash=Aras.User.hash_password("admin"),
+            password_hash=Aras.User.hash_password(settings.ARAS_ADMIN_PASSWORD),
             is_admin=True
         )
         db.add(new_admin)
         db.commit()
-        logger.info("Admin user created (admin/admin).")
+        logger.info("Admin user created.")
 
     # Seed Widgets
     if not db.query(Aras.WidgetModel).first():
         logger.info("Seeding default widgets...")
         db.add(Aras.WidgetModel(
-            name="total_users", title="Total Users", widget_type="stat", 
+            name="total_users", title="Total Users", widget_type="stat",
             resource_name="auth_users", config_json={"icon": "Users", "color": "indigo"}, order=1
         ))
         db.add(Aras.WidgetModel(
-            name="order_stats", title="Order Status", widget_type="chart", 
-            resource_name="erp_orders", config_json={"chart_type": "bar", "group_by": "status"}, order=2, size="col-span-2"
+            name="recent_activity", title="Recent Activity", widget_type="list",
+            resource_name="aras_activity_logs", config_json={"limit": 5}, order=2, size="col-span-2"
         ))
         db.add(Aras.WidgetModel(
-            name="recent_activity", title="Recent Activity", widget_type="list", 
-            resource_name="aras_activity_logs", config_json={"limit": 5}, order=3, size="col-span-2"
-        ))
-        db.add(Aras.WidgetModel(
-            name="active_apps", title="Installed Apps", widget_type="stat", 
-            resource_name="aras_apps", config_json={"icon": "Package", "color": "emerald"}, order=4
+            name="active_apps", title="Installed Apps", widget_type="stat",
+            resource_name="aras_apps", config_json={"icon": "Package", "color": "emerald"}, order=3
         ))
         db.commit()
         logger.info("Default widgets seeded.")
 
-    # Seed Settings
+    # Seed Settings — single query to find missing keys
     from core.registry.sys_settings import ArasSetting
     defaults = [
-        {"key": "app_name", "value": "Aras ERP", "description": "Application display name"},
+        {"key": "app_name", "value": settings.APP_NAME, "description": "Application display name"},
         {"key": "maintenance_mode", "value": "false", "description": "Disable public access"},
         {"key": "default_language", "value": "en", "description": "System-wide default language"},
         {"key": "core.date_format", "value": "YYYY-MM-DD", "description": "Global date format"},
@@ -102,8 +102,12 @@ async def lifespan(app: FastAPI):
         {"key": "core.currency_symbol", "value": "$", "description": "Global currency symbol"},
         {"key": "core.language_default", "value": "en", "description": "Global default language"},
     ]
+    default_keys = [d["key"] for d in defaults]
+    existing_keys = {
+        row[0] for row in db.query(ArasSetting.key).filter(ArasSetting.key.in_(default_keys)).all()
+    }
     for d in defaults:
-        if not db.query(ArasSetting).filter(ArasSetting.key == d["key"]).first():
+        if d["key"] not in existing_keys:
             logger.info(f"Seeding setting: {d['key']}")
             db.add(ArasSetting(**d))
     db.commit()
@@ -114,7 +118,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Aras API",
-    description="Metadata-driven ERP Engine powered by FastAPI",
+    description="Metadata-driven Application Framework powered by FastAPI",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -140,22 +144,23 @@ async def generic_exception_handler(request: Request, exc: Exception):
         content={
             "status": "error",
             "message": "An unexpected internal server error occurred.",
-            "detail": "Please contact administrator" if not app.debug else str(exc), # Hide detail in production
+            "detail": str(exc) if settings.DEBUG else "Please contact administrator",
             "code": 500
         },
     )
 
-# CORS
+# CORS — allow_origins=["*"] + allow_credentials=True violates the spec and is rejected by browsers
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 # Core Routes
 from core.auth.routes import router as auth_router
+from core.auth.service import get_current_user
 app.include_router(auth_router, prefix="/api/v1")
 
 # Tier 2 API Routers
@@ -190,10 +195,8 @@ async def root():
     }
 
 @app.get("/api/v1/sidebar")
-async def get_sidebar_data():
-    """
-    Endpoint untuk menyuplai data menu ke frontend secara dinamis.
-    """
+async def get_sidebar_data(_: Any = Depends(get_current_user)):
+    """Supplies dynamic navigation data to the frontend."""
     from core.base.app import App
     registered_apps = App._registry
 

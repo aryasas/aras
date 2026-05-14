@@ -1,7 +1,7 @@
 # Aras Framework: Technical Report & Architecture Guide
 
 ## 1. System Overview
-Aras is a metadata-centric ERP engine designed for extreme developer productivity. It follows a **Code-First, GUI-Override** philosophy where the database acts as a registry for code-defined models.
+Aras is a metadata-centric application framework designed for extreme developer productivity. It follows a **Code-First, GUI-Override** philosophy where the database acts as a registry for code-defined models.
 
 ## 2. Inheritance Hierarchy (The Layered Architecture)
 
@@ -51,7 +51,7 @@ Aras provides a unified developer experience via React Contexts:
 - `DashboardView`: Dynamic visualization engine with support for `Stat`, `List`, and `Chart` (Bar/Pie) widgets.
 
 ## 6. Verification & Testing
-The framework has been verified through automated end-to-end tests (`tests/test_framework.py`) and manual stability audits covering:
+The framework has been verified through automated end-to-end tests and manual stability audits covering:
 - **Metadata Sync**: Confirmed Code-to-DB mapping including bridge (M2M) links.
 - **Auto-Audit**: Verified change capture via SQLAlchemy events.
 - **Workflow**: Confirmed state machine transition logic and UI rendering.
@@ -59,6 +59,33 @@ The framework has been verified through automated end-to-end tests (`tests/test_
 - **System Health**: Verified `HealthIntegrityView` for monitoring framework internals.
 - **FastAPI Lifespan**: Modernized startup/shutdown logic for robust orchestration.
 - **Visualization Tier**: Verified SVG-based charting engine with dynamic aggregation.
+- **Security Hardening**: All admin/dev endpoints require authentication. CORS fixed. Pydantic v2 compliant. Test suite in `tests/test_auth_security.py`.
+
+## 7. Security & Configuration
+
+### Environment Configuration
+All runtime config is loaded from `.env` via `api/core/lib/settings.py` (`Settings` class). `settings.validate()` must be called before any framework imports in `main.py`.
+
+| Env Var | Default | Purpose |
+|---|---|---|
+| `SECRET_KEY` | — (required in prod) | JWT signing key |
+| `ARAS_ADMIN_PASSWORD` | — (required in prod) | Bootstrap admin password |
+| `DATABASE_URL` | `mysql+pymysql://root:@localhost/aras` | DB connection string |
+| `CORS_ORIGINS` | `http://localhost:5173` | Allowed browser origins |
+| `APP_NAME` | `Aras` | Application display name |
+| `ARAS_MODE` | `production` | Set to `development` for debug mode |
+
+### Auth Dependency Chain
+```
+require_admin  →  get_current_user  →  JWT decode  →  DB user lookup
+                ↳ raises 403 if not admin
+                              ↳ raises 401 if no/invalid token
+```
+`require_admin` is defined in `api/core/auth/service.py` — single source of truth.
+
+### RBAC Pattern
+- `RBAC.has_permission(db, user, resource, action)` — single permission check
+- `RBAC.get_readable_resources(db, user)` — bulk read of all resources user can READ (use before loops to avoid N+1)
 
 ---
-**Status**: Stable, Robust & Production-Ready for ERP Implementation.
+**Status**: Stable, secure, Pydantic v2 compliant. Ready for app development.

@@ -1,10 +1,10 @@
 from typing import List, Dict, Any, Type, Optional
 from sqlalchemy.orm import Session
 from ..base.aras import Aras
-from ..base.service import Service
+from ..manager.manager import Manager
 from ..base.model import Model
 
-class WorkflowManager(Service):
+class WorkflowManager(Manager):
     """
     Centralized engine for managing document state transitions.
     """

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../lib/api';
+import { cleanResourcePath } from '../../lib/resourceUtils';
 import { 
   Save, ArrowLeft, Plus, RefreshCw, ChevronRight, 
   History as HistoryIcon, Zap
@@ -83,7 +84,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     const init = async () => {
       try {
         setLoading(true);
-        const cleanResource = resource.startsWith('/') ? resource.substring(1) : resource;
+        const cleanResource = cleanResourcePath(resource);
         
         const metaRes = await api.get(`/metadata/${cleanResource}`);
         const meta = metaRes.data;
@@ -139,7 +140,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   };
 
   const handleShowHistory = () => {
-    const cleanResource = resource.startsWith('/') ? resource.substring(1) : resource;
+    const cleanResource = cleanResourcePath(resource);
     showPanel(
       `${metadata?.title} Audit Trail`,
       <div className="h-[calc(100vh-150px)]">
@@ -153,7 +154,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   };
 
   const handleAddChild = (childResource: string) => {
-    const cleanResource = resource.startsWith('/') ? resource.substring(1) : resource;
+    const cleanResource = cleanResourcePath(resource);
     showPanel(
       `Add New ${childResource.replace(/_/g, ' ')}`,
       <div className="bg-slate-50 -m-6 p-6 h-[calc(100vh-80px)] overflow-auto">
@@ -175,7 +176,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const handleWorkflowAction = async (actionName: string) => {
     setSaving(true);
     try {
-      const cleanResource = resource.startsWith('/') ? resource.substring(1) : resource;
+      const cleanResource = cleanResourcePath(resource);
       await api.post(`/workflow/${cleanResource}/${id}/action/${actionName}`);
       notify(`Workflow action completed`, "success");
       setRefreshTrigger(prev => prev + 1);
@@ -203,7 +204,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
 
     setSaving(true);
     try {
-      const cleanResource = resource.startsWith('/') ? resource.substring(1) : resource;
+      const cleanResource = cleanResourcePath(resource);
       await api.post(`/${cleanResource}/${id}/action/${action.name}`);
       notify(`${action.label} completed successfully`, "success");
       setRefreshTrigger(prev => prev + 1);
@@ -218,7 +219,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     if (e) e.preventDefault();
     try {
       setSaving(true);
-      const cleanResource = resource.startsWith('/') ? resource.substring(1) : resource;
+      const cleanResource = cleanResourcePath(resource);
       let res;
       if (id && id !== 'new') {
         res = await api.patch(`/${cleanResource}/${id}`, formData);
@@ -399,7 +400,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                  <ListView 
                    key={`${childResource}-${refreshTrigger}`}
                    resource={childResource} 
-                   fixedFilters={{ [`${resource.startsWith('/') ? resource.substring(1) : resource}_id`]: id }}
+                   fixedFilters={{ [`${cleanResourcePath(resource)}_id`]: id }}
                  />
                </div>
             </div>

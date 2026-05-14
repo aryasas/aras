@@ -1,6 +1,6 @@
-- if i say cmp mean "inpect/review my project. how do you thing about the framework and what can we add to project to make more robust, complete, low code, before we move to create an app? inpect code, function, and ui."
-- if i say ggc mean "give git commit command text with message all we do/add to project but DONT exec/git, i will do the git myself."
-- if i say updd mean "update feature.md to add what we do/add to the project (dont delete just add/update) and update aras.md (if needed, dont delete execept there are something" changed make aras.md irrelevan)"
+- if i say cmp mean "inspect/review my project. what can we add to project to make more robust, complete, nice gui. before we move to create an app? inpect code, function, and ui (easyness, posisiton, and aesthetic)."
+- if i say ggc mean "give git commit command text with message all we do/add to project but you DONT exec/git, i will do the git myself."
+- if i say updd mean "update/edit feature.md to add what we do/add to the project (dont delete just add/update) and update/edit aras.md (if needed, dont delete except there are something changed make aras.md irrelevan)"
 - aras framework login credential: user: admin pass: admin
 
 # Aras Framework — Project Context & Guidelines (Current)

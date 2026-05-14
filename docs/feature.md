@@ -60,3 +60,48 @@ This document outlines the key features and architectural components of the Aras
 -   **Centralized Background Task Processor:** Celery-powered task queue via `TaskManager`.
 -   **Workflow Engine:** State-machine engine for document lifecycles.
 -   **Advanced Logging and Monitoring:** Structured JSON logging and global exception handling.
+
+---
+
+## Framework Security Hardening
+
+### Configuration & Secrets
+
+-   **Centralized Settings (`api/core/lib/settings.py`):** Single source of truth for all environment config. Reads from `.env` via `python-dotenv`. `settings.validate()` is called at startup before any framework imports.
+-   **Fail-Loud in Production:** `RuntimeError` if `SECRET_KEY` or `ARAS_ADMIN_PASSWORD` is missing in production mode. In development mode, an ephemeral key is generated with a warning.
+-   **No Hardcoded Secrets:** All JWT keys, DB URLs, admin passwords, and CORS origins are env-driven. The `.env` file is the only place to configure these.
+
+### API Security
+
+-   **CORS Fixed:** `allow_origins=["*"]` + `allow_credentials=True` violated the CORS spec and was rejected by browsers. Now uses `settings.CORS_ORIGINS` (defaults to `http://localhost:5173`).
+-   **All Admin/Dev Endpoints Authenticated:** Every `/api/v1/admin/*` and `/api/v1/dev/*` endpoint requires `require_admin` dependency (403 for non-admins, 401 for unauthenticated).
+-   **Sidebar Authenticated:** `GET /api/v1/sidebar` requires `get_current_user`.
+-   **File Download Protected:** `GET /api/v1/files/download/{filename}` requires auth + path traversal protection via `os.path.basename()`.
+-   **Full RBAC on Query Endpoints:** `POST /{resource}/query` and `GET /search` both enforce `RBAC.has_permission()` for non-admin users. Global search uses a single bulk `get_readable_resources()` call to avoid N+1 queries.
+-   **`require_admin` Single Source of Truth:** Defined once in `api/core/auth/service.py`; imported everywhere.
+
+### Pydantic v2 Compliance
+
+-   All `class Config: from_attributes = True` replaced with `model_config = ConfigDict(from_attributes=True)`.
+-   All `@validator` decorators replaced with `@field_validator` + `@classmethod`.
+-   All `.dict()` calls replaced with `.model_dump()` across `router_factory.py`, `installer.py`, and `dashboard.py`.
+
+### Test Infrastructure
+
+-   **`api/conftest.py`:** Session-scoped fixtures: `client` (TestClient), `admin_token`, `admin_headers`. Uses SQLite in-memory DB for isolation.
+-   **`tests/test_auth_security.py`:** Verifies all secured endpoints return 401 without auth and 200 with admin token. Covers admin, dev, sidebar, and query endpoints.
+
+### Performance Fixes
+
+-   **N+1 RBAC Eliminated:** `global_search` now calls `RBAC.get_readable_resources()` once (single JOIN query) before the resource loop.
+-   **Search Field Caching:** `_get_search_fields()` caches results on `model_class._search_fields_cache` — column iteration happens only once per model per process lifetime.
+-   **Settings Seed Bulk Query:** Startup settings seed uses a single `IN` query instead of 8 individual SELECTs.
+-   **Dead DB Connection Fixed:** `get_framework_info` no longer opens an unused DB connection.
+
+### Frontend Reliability
+
+-   **`ui/src/lib/resourceUtils.ts`:** `cleanResourcePath()` utility replaces 12+ inline path-normalization occurrences across `DynamicForm`, `ListView`, and `MetadataService`.
+-   **React Error Boundary (`ErrorBoundary.tsx`):** Wraps the entire app; prevents blank screen on component errors. "Try Again" button resets state.
+-   **MetadataService Caching:** In-memory `Map` cache with `clearCache()` and `invalidate()` methods. Prevents redundant `/metadata/` requests on re-navigation.
+-   **API Error Shape Normalization (`api.ts`):** Response interceptor unifies `{message}` (backend custom handler) and `{detail}` (FastAPI 422) into a single `.detail` field.
+-   **ERP Bootstrap Decoupled:** `erp_orders` widget removed from framework seed. App name reads from `settings.APP_NAME` env var.

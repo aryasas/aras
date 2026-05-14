@@ -1,9 +1,9 @@
-from typing import Callable, Dict, Any, Type, Optional, List
+from typing import Callable, Dict, Any, Type, Optional
 from functools import wraps
-from pydantic import BaseModel, create_model
+from pydantic import BaseModel
+from ..base.aras import Aras
 
-# Dataclass to store action metadata
-class ModelAction:
+class ModelAction(Aras):
     def __init__(self, name: str, handler: Callable, permission: str, input_schema: Optional[Type[BaseModel]] = None, label: Optional[str] = None, icon: Optional[str] = None):
         self.name = name
         self.handler = handler
@@ -13,10 +13,10 @@ class ModelAction:
         self.icon = icon
 
 def action(
-    name: str, 
-    permission: str, 
-    input_schema: Optional[Type[BaseModel]] = None, 
-    label: Optional[str] = None, 
+    name: str,
+    permission: str,
+    input_schema: Optional[Type[BaseModel]] = None,
+    label: Optional[str] = None,
     icon: Optional[str] = None
 ) -> Callable:
     """

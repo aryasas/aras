@@ -1,13 +1,30 @@
 @import "tailwindcss";
 
+@theme {
+  --color-brand-indigo: #6366f1;
+  --color-brand-slate: #64748b;
+  
+  --spacing-hero-base: 170px;
+  --spacing-hero-framework-top: 34px;
+  --spacing-hero-vite-top: 107px;
+  
+  --shadow-premium: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  
+  /* Aras Pro Tokens */
+  --aras-accent: var(--color-brand-indigo);
+  --aras-border: #e2e8f0;
+  --aras-bg-main: #f8fafc;
+  
+  color: #1e293b;
+  background-color: white;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -15,8 +32,19 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    color: #f1f5f9;
+    background-color: #0f172a;
+    --aras-border: #1e293b;
+    --aras-bg-main: #020617;
+  }
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background-color: var(--aras-bg-main);
+  color: var(--color-brand-slate);
 }

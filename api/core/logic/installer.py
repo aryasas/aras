@@ -178,7 +178,7 @@ class AppInstaller(Service):
         from ..base.validation import ManifestDefinition
         try:
             manifest = ManifestDefinition(**data)
-            return manifest.dict()
+            return manifest.model_dump()
         except Exception as e:
             raise ValueError(f"Manifest Validation Error: {str(e)}")
 

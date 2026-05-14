@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import api from '../../lib/api'
+import { cleanResourcePath } from '../../lib/resourceUtils'
 import { 
   Search, Filter, Plus, ChevronLeft, ChevronRight, 
   Settings, Trash2, CheckSquare, Square, X, 
@@ -68,7 +69,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
-        const cleanResource = resource.startsWith('/') ? resource.substring(1) : resource
+        const cleanResource = cleanResourcePath(resource)
         const res = await api.get(`/metadata/${cleanResource}`)
         setMetadata(res.data)
         setVisibleColumns(res.data.fields.filter((f: Field) => !f.hidden).map((f: Field) => f.name))
@@ -100,7 +101,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         order_by: orderBy,
         desc
       }
-      const dataPath = resource.startsWith('/') ? resource.substring(1) : resource
+      const dataPath = cleanResourcePath(resource)
       const res = await api.get(`${dataPath}/`, { params })
       setData(res.data.items)
       setTotal(res.data.total)
@@ -168,7 +169,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         order_by: orderBy,
         desc
       }
-      const cleanResource = resource.startsWith('/') ? resource.substring(1) : resource
+      const cleanResource = cleanResourcePath(resource)
       const res = await api.get(`/${cleanResource}/export`, { 
         params, 
         responseType: 'blob' 
@@ -227,7 +228,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
 
     try {
       setLoading(true)
-      const cleanResource = resource.startsWith('/') ? resource.substring(1) : resource
+      const cleanResource = cleanResourcePath(resource)
       await api.post(`/${cleanResource}/import`, formData, {
         params: { mapping: JSON.stringify(mapping) },
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -436,7 +437,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
               {visibleFields.map(field => (
                 <th 
                   key={field.name} 
-                  className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition-colors"
+                  className="px-8 py-5 text-xs font-bold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-slate-50 transition-colors"
+
                   onClick={() => {
                     if (orderBy === field.name) setDesc(!desc)
                     else { setOrderBy(field.name); setDesc(true); }

@@ -16,5 +16,7 @@ class DevApp(Aras.App):
         Aras.LinkModel,
         Aras.ActivityLog,
         Aras.User,
-        Aras.ArasSetting
+        Aras.ArasSetting,
+        Aras.WidgetModel,
+        Aras.DashboardLayoutModel
     ]

@@ -3,6 +3,13 @@
 Jika saya mengatakan:
 "'dde', artinya 'don't do edit' — jangan lakukan perubahan apapun."
 "'rrc', artinya 're read CLAUDE.md' — before anything else, re-read CLAUDE.md rules 1-3"
+- if i say cmp mean "inspect/review my project. what can we add to project to make more robust, complete, nice gui. before we move to create an app? inpect code, function, and ui (easyness, posisiton, and aesthetic)."
+- if i say ggc mean "give git commit command text with message all we do/add to project but you DONT exec/git, i will do the git myself."
+- if i say updd mean "update/edit feature.md to add what we do/add to the project (dont delete just add/update) and update/edit aras.md (if needed, dont delete except there are something changed make aras.md irrelevan)"
+- aras framework login credential: user: admin pass: admin
+
+CLAUDE.md ini obsolete (hanya untuk project lama. project sudah dibuat baru dan file ini harus di update mengukuti frmawork yang baru) lihat GEMINI.md docs/aras.md docs/feature.md. rubah file ini hanya MULAI DARI BARIS 106. JANGAN HAPUS BARIS SEBELUM BARIS 106.
+  
 # CLAUDE.md — Efficiency, Honesty & Agent Constraints
 
 ## Purpose
@@ -92,15 +99,335 @@ The following response structures are BANNED:
 - Before hitting token limit, stop and update `docs/progress.md`.
 - Use English for all comments in code.
 - KEEP code SHORT, SIMPLE, CLEAN, PROFESSIONAL, and easy to understand. Enforce DRY (Don't Repeat Yourself).
-- For design: always reference `static/css/aras_design.css`. Use new CSS only in that file.
 
 
 ## Framework Contract — READ THIS FIRST
 
-### What is arasCore vs an aras app?
-- **arasCore/** is the framework. Never edit it without understanding full impact on BOTH code-based AND dynamic apps.
-- **aras/app_*/** are pluggable apps. They can be installed, removed, changed without touching arasCore. Added via AppManager.
-- Apps declare themselves via `manifest.py` (AppHelper). The framework reads this at startup and auto-generates everything else.
+> This project is a FULL REWRITE. The backend is FastAPI + SQLAlchemy 2.0 (NOT Flask). The frontend is React 19 + TypeScript + Vite (NOT Jinja templates). `aras-old/` is legacy — never touch it.
+
+### Project Root Structure
+```
+api/          FastAPI backend (framework + apps)
+ui/           React TypeScript frontend (Vite)
+docs/         Documentation (aras.md, feature.md)
+tests/        Test suite
+tools/        Dev utilities
+aras-old/     LEGACY Flask framework — DO NOT USE
+```
+
+### What is `api/core/` vs `api/apps/`?
+- **`api/core/`** is the framework engine. Edit with care — changes affect all apps.
+- **`api/apps/`** are pluggable apps (`dev`, `erp`, etc.). Self-contained, isolated.
+- Apps declare themselves via `app.py` (`Aras.App` subclass). The framework discovers and mounts them at startup.
+
+### Architecture: Strict 3-Level Hierarchy
+
+**Level 1 — Root** (`api/core/base/aras.py`):
+- `Aras` — ultimate base class for ALL framework components.
+- Provides `@Aras.model_action` and `@Aras.computed_field` decorators.
+
+**Level 2 — Core Abstractions** (`api/core/base/`):
+| Class | Purpose |
+|---|---|
+| `Aras.Model` | SQLAlchemy model base (CRUD, audit, M2M, workflow, layout) |
+| `Aras.App` | App manifest base |
+| `Aras.Manager` | Orchestration base (Audit, Sync, Workflow, Task, Health) |
+| `Aras.View` | UI metadata config base |
+| `Aras.Schema` | Pydantic validation base |
+| `Aras.Service` | Stateless logic base |
+| `Aras.Router` | API routing base |
+| `Aras.Auth` | Security/authorization base |
+| `Aras.Validation` | Pydantic DTO base |
+| `Aras.Field` | SQLAlchemy column wrapper |
+
+**Level 2.5 — Tiered Core** (MANDATORY: prevents circular imports):
+| Tier | Path | Rule |
+|---|---|---|
+| Tier 0 `lib` | `api/core/lib/` | ZERO framework dependencies |
+| Tier 1 `logic` | `api/core/logic/` | depends on lib + base only |
+| Tier 2 `api` | `api/core/api/` | depends on any lower tier |
+
+**Level 3 — Registry** (`api/core/registry/`):
+| Model | Table | Purpose |
+|---|---|---|
+| `AppModel` | `aras_apps` | installed app records |
+| `ResourceModel` | `aras_resources` | table/model metadata |
+| `FieldModel` | `aras_fields` | field-level UI overrides |
+| `LinkModel` | `aras_links` | relationship metadata |
+| `TranslationModel` | `aras_translations` | i18n label records |
+| `WidgetModel` | `aras_widgets` | dashboard widget definitions |
+| `DashboardLayoutModel` | `aras_dashboard_layouts` | user dashboard configs |
+| `ActivityLog` | `aras_activity_logs` | audit trail |
+| `Role` / `Permission` / `UserRole` | `aras_roles/permissions/user_roles` | RBAC |
+| `ArasSetting` | `aras_settings` | global key-value settings |
+
+### Unified Namespace: `from core import Aras`
+`api/core/aras.py` is the single facade. Always import via:
+```python
+from core import Aras
+```
+Key accessors:
+- `Aras.Model`, `Aras.App`, `Aras.Manager`, `Aras.View`, `Aras.Schema`
+- `Aras.AppModel`, `Aras.ResourceModel`, `Aras.FieldModel`, etc.
+- `Aras.User`, `Aras.ArasSetting`
+- `Aras.lib`, `Aras.logic`, `Aras.api`, `Aras.helper`
+- `Aras.Manager.Sync`, `Aras.Manager.Audit`, `Aras.Manager.Workflow`
+- `Aras.Base` (SQLAlchemy DeclarativeBase), `Aras.engine`, `Aras.get_db`
+- `Aras.Router` = `RouterFactory.create_router`
+
+### App Anatomy — `api/apps/<name>/`
+Every app has:
+```
+app.py       # Aras.App subclass — defines app_name, app_label, icon, models[]
+models.py    # Aras.Model subclasses — define __tablename__, __features__, columns
+views.py     # Aras.View — UI metadata overrides (optional)
+schemas.py   # Aras.Schema / Aras.Validation — custom Pydantic validators (optional)
+__init__.py  # package marker
+```
+
+**Minimal app pattern:**
+```python
+# api/apps/myapp/app.py
+from core import Aras
+from .models import MyModel
+
+class MyApp(Aras.App):
+    app_name = "myapp"
+    app_label = "My App"
+    icon = "Package"
+    models = [MyModel]
+```
+
+```python
+# api/apps/myapp/models.py
+from sqlalchemy import String
+from sqlalchemy.orm import Mapped, mapped_column
+from core import Aras
+
+class MyModel(Aras.Model):
+    __tablename__ = "myapp_items"    # MANDATORY: prefix with app_name
+    __features__ = ["audit"]         # optional: ["audit", "workflow"]
+
+    name: Mapped[str] = mapped_column(String(100))
+```
+
+### Model Class Attributes
+| Attribute | Type | Purpose |
+|---|---|---|
+| `__tablename__` | str | REQUIRED. Format: `{app}_{table}` |
+| `__features__` | list | `["audit"]`, `["audit", "workflow"]` |
+| `__workflow__` | bool | enable workflow engine |
+| `__transitions__` | list | `[{"from": "Draft", "to": "Confirmed", "label": "..."}]` |
+| `__layout__` | list | `[{"title": "Section", "fields": [...]}]` for UI sections |
+| `__m2m__` | dict | M2M relationship definitions (see below) |
+| `__parent__` | str | tablename of parent model (child tables) |
+| `__display_fields__` | tuple | fields used in search/choices display |
+| `__searchable_fields__` | list | fields searched by global search |
+| `__soft_delete__` | bool | enable soft delete |
+| `__serialize_relations__` | dict | `{key: (rel_attr, rel_field)}` for `to_dict()` |
+| `__title__` | str | human label for sidebar/UI |
+
+**Auto-provided base columns** (never declare): `id`, `is_active`, `created_at`, `updated_at`, `created_by`, `updated_by`
+
+### M2M Pattern
+```python
+__m2m__ = {
+    "categories": {
+        "bridge_table": "erp_product_categories",
+        "target_resource": "erp_categories",
+        "source_key": "product_id",
+        "target_key": "category_id",
+        "label": "Product Categories"
+    }
+}
+```
+
+### Custom Actions & Computed Fields
+```python
+@Aras.model_action(name="recalculate", permission="edit", label="Recalculate Totals")
+def recalculate(self):
+    self.total_amount = 99.99
+    return True
+
+@Aras.computed_field
+def order_summary(self):
+    return f"Order {self.number} for {self.total_amount:.2f}"
+```
+- Actions → exposed as `POST /api/v1/{app}/{table}/{id}/action/{name}`
+- Computed fields → included in `to_dict()` / API response
+
+### Startup Flow (`api/main.py`)
+1. `discover_apps("apps")` — scans `api/apps/`, imports all, enforces inheritance
+2. `Base.metadata.create_all(engine)` — create tables
+3. `auto_migrate.run(engine, metadata)` — safe schema migration
+4. FastAPI lifespan:
+   - `AuditManager.register_listeners()` — SQLAlchemy event hooks
+   - `SyncManager.sync_all(db)` — code → DB registry
+   - Seed admin user, widgets, settings
+5. Include routers: auth, query, workflow, admin, dev, registry, files, dashboard
+6. `register_app_routes(app, prefix="/api/v1")` — dynamic app CRUD routes
+7. Core models registered at root level for UI compatibility
+
+### API Endpoints Pattern
+All routes are prefixed `/api/v1/`.
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/api/v1/{table}` | GET | List with pagination & filtering |
+| `/api/v1/{table}` | POST | Create |
+| `/api/v1/{table}/{id}` | GET | Retrieve |
+| `/api/v1/{table}/{id}` | PUT | Update |
+| `/api/v1/{table}/{id}` | DELETE | Delete |
+| `/api/v1/{app}/{table}/{id}/action/{name}` | POST | Custom model action |
+| `/api/v1/search` | POST | Global multi-resource search |
+| `/api/v1/metadata/{resource}` | GET | UI metadata for forms/tables |
+| `/api/v1/admin/...` | * | Admin endpoints |
+| `/api/v1/dev/...` | * | Dev tool endpoints |
+| `/api/v1/dashboard` | GET | Dashboard widgets & layout |
+| `/api/v1/sidebar` | GET | Dynamic sidebar data |
+| `/api/v1/files/...` | * | File upload/download |
+| `/api/v1/workflow/...` | * | Workflow transitions |
+| `/api/v1/auth/login` | POST | JWT login |
+
+### Key Logic Modules (Tier 1 — `api/core/logic/`)
+| File | Class/Function | Purpose |
+|---|---|---|
+| `router_factory.py` | `RouterFactory.create_router(model)` | generates full CRUD FastAPI router |
+| `discovery.py` | `discover_apps(package_path)` | walks apps/, imports all, checks inheritance |
+| `discovery.py` | `register_app_routes(app, prefix)` | mounts per-app CRUD routers |
+| `ui_generator.py` | `UIGenerator.generate_metadata(model, db, lang)` | code → UI JSON (merged with DB overrides) |
+| `auto_migrate.py` | `run(engine, metadata)` | safe SQLAlchemy schema migration (no files) |
+| `integrity_checker.py` | `IntegrityChecker.check_module(module)` | enforces Aras inheritance on all classes |
+| `permissions.py` | `check_permissions(...)` | RBAC enforcement |
+| `model_actions.py` | `action(...)` | `@Aras.model_action` decorator impl |
+| `trait_injector.py` | `TraitInjector.inject(cls)` | injects audit/workflow features into models |
+| `workflow.py` | — | state machine logic |
+| `installer.py` | — | YAML/JSON/ZIP app bundle installer |
+
+### Key Manager Classes (`api/core/manager/`)
+| File | Class | Purpose |
+|---|---|---|
+| `sync_manager.py` | `SyncManager.sync_all(db)` | code-to-DB metadata sync |
+| `audit_manager.py` | `AuditManager.register_listeners()` | SQLAlchemy event-based field logging |
+| `workflow_manager.py` | `WorkflowManager` | state machine orchestration |
+| `task_manager.py` | `TaskManager` | Celery background task queue |
+| `health_manager.py` | `HealthManager` | system health checks |
+
+### CLI Reference (`api/manage.py` — run from `api/`)
+| Command | Purpose |
+|---|---|
+| `python manage.py sync` | sync code manifests → DB registry + migrate |
+| `python manage.py install <file>` | install app from .yaml/.json/.zip |
+| `python manage.py uninstall <name>` | purge app files + registry |
+| `python manage.py activate <name>` | mark app active |
+| `python manage.py deactivate <name>` | mark app inactive |
+| `python manage.py discover` | list all registered apps |
+| `python manage.py check` | health + integrity check |
+
+### Development Mandates
+1. **Table naming**: ALWAYS `{app_name}_{table_name}` (e.g., `erp_products`)
+2. **After changing `app.py` or `models.py`**: run `python manage.py sync`
+3. **One file, one class** — strict modularity
+4. **All file/function headers**: Purpose / Context / Impact
+5. **Run from `api/`** dir — ensure `sys.path` includes `api/`
+6. **Never run long-running servers** as foreground in this env
+
+---
+
+## Frontend Architecture (`ui/`)
+
+**Stack**: React 19.2.6 + TypeScript + Vite 8 + TailwindCSS 4 + Zustand + React Query + Axios
+
+### Key Directories
+```
+ui/src/
+├── App.tsx                    # Router + global error/alert handlers
+├── main.tsx                   # Entry: QueryClient, Auth/UI providers
+├── aras-core/                 # Framework UI components & services
+│   ├── components/            # Core widgets (see table below)
+│   ├── contexts/              # ConfirmContext, NotificationContext
+│   ├── hooks/useAras.ts       # PRIMARY hook: notify, confirm, api
+│   └── services/              # FormattingService, MetadataService, SchemaRegistry
+├── layouts/                   # MainLayout + Sidebar + Header
+├── views/                     # 14 page views
+├── store/                     # authStore (token/user), uiStore (alert/confirm/error)
+└── lib/                       # api.ts (Axios), LogicEvaluator.ts
+```
+
+### Core Components (`ui/src/aras-core/components/`)
+| Component | Purpose |
+|---|---|
+| `DynamicForm.tsx` | metadata-driven form (layout, lookup, file, workflow, M2M, child tables) |
+| `DynamicTable.tsx` | metadata-driven table |
+| `ListView.tsx` | list view with search, filter, pagination, import/export |
+| `DashboardView.tsx` | widget dashboard (stat, list, chart bar/pie) |
+| `CommandPalette.tsx` | CMD+K global search overlay |
+| `MultiSelectCombobox.tsx` | M2M relationship selector |
+| `ImportMapping.tsx` | CSV column→field mapping UI |
+| `Combobox.tsx` | single select with search |
+| `FileField.tsx` | file upload field |
+| `SidePanel.tsx` | slide-in panel for quick views |
+| `GlobalDialog.tsx` | modal dialog |
+
+### Services (`ui/src/aras-core/services/`)
+| Service | Purpose |
+|---|---|
+| `FormattingService.ts` | date/number formatting from `ArasSetting` |
+| `MetadataService.ts` | caches resource metadata per session |
+| `SchemaRegistry.tsx` | plugin registry for custom field widgets |
+
+### Frontend Routing (`App.tsx`)
+| Path | View |
+|---|---|
+| `/login`, `/forgot-password`, `/reset-password` | Auth views |
+| `/` or `/dashboard` | HomeView (dashboard widgets) |
+| `/settings` | SettingsView |
+| `/settings/global` | GlobalSettingsView |
+| `/settings/audit` | AuditLogsView |
+| `/settings/rbac` | RBACManagerView |
+| `/dev` | DevToolsView |
+| `/dev/health` | HealthIntegrityView |
+| `/dev/routes` | InspectRoutesView |
+| `/dev/table/:app/:model` | DynamicView |
+| `/apps` | AppManagerView |
+| `/profile` | ProfileView |
+| `/:app/:model` | DynamicView (list) |
+| `/:app/:model/:id` | DynamicView (form) |
+
+### Primary Hook
+```typescript
+const { notify, confirm, api } = useAras()
+// notify('Message', 'success' | 'error' | 'warning')
+// confirm('Are you sure?', () => doDelete())
+// api.get('/api/v1/erp_orders')
+```
+
+### State Stores
+- `authStore`: `token`, `user`, `setToken`, `logout`
+- `uiStore`: `showAlert`, `showConfirm`, `showError`
+
+### LogicEvaluator (conditional field visibility)
+```typescript
+// Used in DynamicForm for depends_on logic
+// Safe recursive-descent engine — no eval()
+// Example: "total_amount > 5000 && status != 'Draft'"
+import { LogicEvaluator } from './lib/LogicEvaluator'
+```
+
+---
+
+## Do NOT Re-read (use tables above)
+- `api/core/base/aras.py` — Level 1 root, ~27 lines, static
+- `api/core/aras.py` — unified facade, use table above
+- `api/core/base/model.py` — use Model attributes table above
+- `api/main.py` — use Startup Flow section above
+- `aras-old/` — LEGACY, never read
+
+## Token Efficiency Rules
+- Grep first, then read only specific lines needed
+- Never read legacy `aras-old/` files
+- For files 300+ lines, use offset/limit — never read whole file
+- Use Edit with targeted replacements, not full rewrites
 
 ### All app installation methods (any arasCore change must not break these):
 1. **CLI + YAML/JSON**: `flask aras install-app ./app.yaml --activate` → creates DB records (AppManagerApp/Table/Column) + folders
