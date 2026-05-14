@@ -49,72 +49,12 @@ from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup logic
+    from core.manager.bootstrap import run as bootstrap
     db = next(Aras.get_db())
-
-    # 1. Register Global Listeners
     Aras.Manager.Audit.register_listeners()
-
-    # 2. Sync Metadata (Code -> DB Registry)
     Aras.Manager.Sync.sync_all(db)
-
-    # 3. Seed Admin
-    admin = db.query(Aras.User).filter(Aras.User.username == "admin").first()
-    if not admin:
-        logger.info("Creating default admin user...")
-        new_admin = Aras.User(
-            username="admin",
-            email="admin@aras.local",
-            password_hash=Aras.User.hash_password(settings.ARAS_ADMIN_PASSWORD),
-            is_admin=True
-        )
-        db.add(new_admin)
-        db.commit()
-        logger.info("Admin user created.")
-
-    # Seed Widgets
-    if not db.query(Aras.WidgetModel).first():
-        logger.info("Seeding default widgets...")
-        db.add(Aras.WidgetModel(
-            name="total_users", title="Total Users", widget_type="stat",
-            resource_name="auth_users", config_json={"icon": "Users", "color": "indigo"}, order=1
-        ))
-        db.add(Aras.WidgetModel(
-            name="recent_activity", title="Recent Activity", widget_type="list",
-            resource_name="aras_activity_logs", config_json={"limit": 5}, order=2, size="col-span-2"
-        ))
-        db.add(Aras.WidgetModel(
-            name="active_apps", title="Installed Apps", widget_type="stat",
-            resource_name="aras_apps", config_json={"icon": "Package", "color": "emerald"}, order=3
-        ))
-        db.commit()
-        logger.info("Default widgets seeded.")
-
-    # Seed Settings — single query to find missing keys
-    from core.registry.sys_settings import ArasSetting
-    defaults = [
-        {"key": "app_name", "value": settings.APP_NAME, "description": "Application display name"},
-        {"key": "maintenance_mode", "value": "false", "description": "Disable public access"},
-        {"key": "default_language", "value": "en", "description": "System-wide default language"},
-        {"key": "core.date_format", "value": "YYYY-MM-DD", "description": "Global date format"},
-        {"key": "core.number_format", "value": "#,###.##", "description": "Global number format"},
-        {"key": "core.decimal_precision", "value": "2", "description": "Global decimal precision"},
-        {"key": "core.currency_symbol", "value": "$", "description": "Global currency symbol"},
-        {"key": "core.language_default", "value": "en", "description": "Global default language"},
-    ]
-    default_keys = [d["key"] for d in defaults]
-    existing_keys = {
-        row[0] for row in db.query(ArasSetting.key).filter(ArasSetting.key.in_(default_keys)).all()
-    }
-    for d in defaults:
-        if d["key"] not in existing_keys:
-            logger.info(f"Seeding setting: {d['key']}")
-            db.add(ArasSetting(**d))
-    db.commit()
-    logger.info("Default settings seeded.")
-
+    bootstrap(db)
     yield
-    # Shutdown logic (none currently)
 
 app = FastAPI(
     title="Aras API",

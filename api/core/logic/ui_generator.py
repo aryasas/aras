@@ -181,14 +181,52 @@ class UIGenerator(Service):
         # 5. Add Custom Model Actions Metadata
         actions_metadata = []
         for action_name, model_action in model_class._actions.items():
+            schema_fields = None
+            if model_action.input_schema is not None:
+                schema_fields = [
+                    {
+                        "name": fname,
+                        "label": fname.replace("_", " ").title(),
+                        "required": info.is_required(),
+                        "type": _pydantic_type_to_ui(info.annotation),
+                    }
+                    for fname, info in model_action.input_schema.model_fields.items()
+                ]
             actions_metadata.append({
                 "name": model_action.name,
                 "label": model_action.label,
                 "permission": model_action.permission,
                 "icon": model_action.icon,
-                "has_input_schema": model_action.input_schema is not None
+                "has_input_schema": model_action.input_schema is not None,
+                "input_fields": schema_fields,
             })
         metadata["actions"] = actions_metadata
             
         return metadata
 
+
+def _pydantic_type_to_ui(annotation: Any) -> str:
+    """Map a Pydantic field annotation to a simple UI type string."""
+    from typing import get_origin, get_args, Union
+    import inspect
+
+    # Unwrap Optional[X] → X
+    if get_origin(annotation) is Union:
+        args = [a for a in get_args(annotation) if a is not type(None)]
+        annotation = args[0] if args else str
+
+    if annotation is bool:
+        return "boolean"
+    if annotation is int:
+        return "number"
+    if annotation is float:
+        return "number"
+    try:
+        from datetime import datetime, date
+        if annotation is datetime:
+            return "datetime"
+        if annotation is date:
+            return "date"
+    except ImportError:
+        pass
+    return "string"

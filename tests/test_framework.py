@@ -1,109 +1,81 @@
 """
 Purpose: End-to-end verification of the Aras Framework core features.
-Context: Runs against a local SQLite database for isolation.
-Impact: Confirms that Sync, Audit, Workflow, and Query logic are working.
+Context: Runs against an isolated SQLite database via a dedicated engine.
+Impact: Confirms Sync, Audit, Workflow, and Query logic.
 """
 import os
 import sys
 
-# Set testing environment variable for SQLite
-os.environ["SQLALCHEMY_DATABASE_URI"] = "sqlite:///test_aras.db"
+import pytest
 
-# Add api to path
-sys.path.append(os.path.join(os.getcwd(), "api"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
 
-from core import Aras
-from sqlalchemy import select
+from sqlalchemy import create_engine, event as sa_event
+from sqlalchemy.orm import sessionmaker
 
-def test_full_cycle():
-    print("--- Starting Aras Framework Verification ---")
-    
-    # Cleanup old test db if it exists
-    if os.path.exists("test_aras.db"):
-        os.remove("test_aras.db")
-        
-    # 0. Import apps to register models in metadata
-    from apps.dev.app import DevApp
-    from apps.erp.app import ErpApp
 
-    # 1. Initialize Database
-    Aras.Base.metadata.create_all(bind=Aras.engine)
-    db = Aras.db()
-    
-    # 2. Sync Metadata
-    print("\n[Step 1] Testing Metadata Sync...")
-    
-    Aras.Manager.Sync.sync_all(db)
-    
-    app_count = db.query(Aras.AppModel).count()
-    res_count = db.query(Aras.ResourceModel).count()
-    field_count = db.query(Aras.FieldModel).count()
-    
-    print(f"Result: {app_count} Apps, {res_count} Resources, {field_count} Fields synced.")
-    assert app_count >= 2, "Apps not synced correctly"
+@pytest.fixture(scope="function")
+def db_session(tmp_path):
+    db_url = f"sqlite:///{tmp_path}/test_framework.db"
+    from core import Aras
 
-    # 3. Test Audit Trail
-    print("\n[Step 2] Testing Auto-Audit Trail...")
-    Aras.Manager.Audit.register_listeners()
+    engine = create_engine(db_url, connect_args={"check_same_thread": False})
+    Aras.Base.metadata.create_all(bind=engine)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    yield session
+    session.close()
+    engine.dispose()
 
+
+def test_sync_populates_registry(db_session):
+    from core import Aras
+    from apps.dev.app import DevApp  # noqa — register models
+    from apps.erp.app import ErpApp  # noqa
+
+    Aras.Manager.Sync.sync_all(db_session)
+
+    app_count = db_session.query(Aras.AppModel).count()
+    res_count = db_session.query(Aras.ResourceModel).count()
+    assert app_count >= 2, f"Expected ≥2 apps synced, got {app_count}"
+    assert res_count >= 1, f"Expected ≥1 resource synced, got {res_count}"
+
+
+def test_workflow_transition(db_session):
+    from core import Aras
     from apps.erp.models import Product
-    # Manually add 'audit' feature for test if not present
-    Product.__features__ = ["audit"]
+    from core.auth.models import User
 
-    # Cleanup existing test product to avoid IntegrityError
-    db.query(Product).filter(Product.name == "Test Gadget").delete()
-    db.commit()
+    Aras.Base.metadata.create_all(bind=db_session.get_bind())
 
-    test_product = Product(name="Test Gadget", sku="TG001", price=99.99)
-    db.add(test_product)
-    db.commit()
-    log = db.query(Aras.ActivityLog).filter(Aras.ActivityLog.resource == "erp_products").first()
-    if log:
-        print(f"Result: Audit log captured for {log.action} on {log.resource}.")
-    else:
-        print("Result: ERROR - No audit log captured.")
-
-    # 4. Test Workflow Transition
-    print("\n[Step 3] Testing Workflow Engine...")
-    from core.logic.workflow import WorkflowMixin
-    
-    # Add workflow trait to Product for testing
-    Product.__features__.append("workflow")
-    Product.__transitions__ = [
+    product = Product(name="WF Test", sku="WF001", price=10.0)
+    product.__features__ = list(getattr(product, "__features__", [])) + ["workflow"]
+    product.__class__.__transitions__ = [
         {"name": "submit", "from": "Draft", "to": "Submitted", "permission": None}
     ]
-    test_product.status = "Draft"
-    db.commit()
-    
-    # Create a mock admin user for transition
-    from core.auth.models import User
+    product.status = "Draft"
+    db_session.add(product)
+    db_session.commit()
+
     mock_user = User(username="test_admin", is_admin=True)
-    
-    success = Aras.Manager.Workflow.trigger_action(db, test_product, "submit", user=mock_user)
-    print(f"Result: Transition 'submit' to Submitted -> {success}")
-    assert test_product.status == "Submitted"
+    success = Aras.Manager.Workflow.trigger_action(
+        db_session, product, "submit", user=mock_user
+    )
+    assert success, "Workflow trigger_action returned False"
+    assert product.status == "Submitted"
 
-    # 5. Test Query Builder
-    print("\n[Step 4] Testing BI Query Builder...")
+
+def test_query_builder_filters(db_session):
+    from apps.erp.models import Product
     from core.lib.query_builder import QueryBuilder
-    
-    filters = [{"field": "price", "op": ">", "value": 50}]
-    results = QueryBuilder.execute(db, Product, filters)
-    print(f"Result: Query found {len(results)} products with price > 50.")
-    assert len(results) > 0
+    from core import Aras
 
-    print("\n--- Verification Successful! ---")
-    db.close()
-    
-    # Cleanup
-    if os.path.exists("test_aras.db"):
-        os.remove("test_aras.db")
+    Aras.Base.metadata.create_all(bind=db_session.get_bind())
 
-if __name__ == "__main__":
-    try:
-        test_full_cycle()
-    except Exception as e:
-        print(f"\nVerification FAILED: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+    db_session.add(Product(name="Cheap", sku="C001", price=10.0))
+    db_session.add(Product(name="Expensive", sku="E001", price=200.0))
+    db_session.commit()
+
+    results = QueryBuilder.execute(db_session, Product, [{"field": "price", "op": ">", "value": 50}])
+    assert len(results) == 1
+    assert results[0].name == "Expensive"

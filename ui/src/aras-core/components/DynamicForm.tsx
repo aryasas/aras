@@ -30,11 +30,19 @@ interface WorkflowAction {
   icon?: string;
 }
 
+interface ActionInputField {
+  name: string;
+  label: string;
+  type: string;
+  required: boolean;
+}
+
 interface ModelAction {
   name: string;
   label: string;
   icon?: string;
   has_input_schema: boolean;
+  input_fields?: ActionInputField[];
 }
 
 interface LayoutSection {
@@ -74,6 +82,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const [saving, setSaving] = useState(false);
   const [workflowActions, setWorkflowActions] = useState<WorkflowAction[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [actionDialog, setActionDialog] = useState<{ action: ModelAction; inputData: Record<string, any> } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   const { notify, confirm } = useAras();
@@ -188,9 +197,10 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   };
 
   const handleModelAction = async (action: ModelAction) => {
-    if (action.has_input_schema) {
-      // Future: Show dialog with input schema form
-      notify("Action requires input schema (not yet implemented in UI)", "info");
+    if (action.has_input_schema && action.input_fields?.length) {
+      const initial: Record<string, any> = {};
+      action.input_fields.forEach(f => { initial[f.name] = ''; });
+      setActionDialog({ action, inputData: initial });
       return;
     }
 
@@ -199,13 +209,15 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       message: `Are you sure you want to execute "${action.label}"?`,
       type: 'primary'
     });
-
     if (!ok) return;
+    await _runAction(action, undefined);
+  };
 
+  const _runAction = async (action: ModelAction, inputData: Record<string, any> | undefined) => {
     setSaving(true);
     try {
       const cleanResource = cleanResourcePath(resource);
-      await api.post(`/${cleanResource}/${id}/action/${action.name}`);
+      await api.post(`/${cleanResource}/${id}/action/${action.name}`, inputData ?? {});
       notify(`${action.label} completed successfully`, "success");
       setRefreshTrigger(prev => prev + 1);
     } catch (err: any) {
@@ -274,6 +286,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   };
 
   return (
+    <>
     <div className="max-w-6xl mx-auto space-y-6 pb-20">
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-slate-200 shadow-sm sticky top-0 z-20">
@@ -408,5 +421,52 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         </div>
       )}
     </div>
+
+    {/* ── Action Input Dialog ───────────────────────────────────────────── */}
+    {actionDialog && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4">
+          <h3 className="text-lg font-semibold text-slate-900">{actionDialog.action.label}</h3>
+          <div className="space-y-3">
+            {actionDialog.action.input_fields?.map(field => (
+              <div key={field.name}>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {field.label}{field.required && <span className="text-red-500 ml-0.5">*</span>}
+                </label>
+                <input
+                  type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  value={actionDialog.inputData[field.name] ?? ''}
+                  onChange={e => setActionDialog(prev => prev && ({
+                    ...prev,
+                    inputData: { ...prev.inputData, [field.name]: e.target.value }
+                  }))}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={() => setActionDialog(null)}
+              className="px-4 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              disabled={saving}
+              onClick={async () => {
+                const { action, inputData } = actionDialog;
+                setActionDialog(null);
+                await _runAction(action, inputData);
+              }}
+              className="px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-colors disabled:opacity-50"
+            >
+              Run
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 };

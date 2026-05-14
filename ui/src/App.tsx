@@ -1,26 +1,27 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
 import { useAuthStore } from './store/authStore'
 import { useUIStore } from './store/uiStore'
-import Login from './views/Login'
-import ForgotPassword from './views/ForgotPassword'
-import ResetPassword from './views/ResetPassword'
-import MainLayout from './layouts/MainLayout'
-import HomeView from './views/Home'
-import SettingsView from './views/Settings'
-import ProfileView from './views/Profile'
-import DynamicView from './views/DynamicView'
-import DevToolsView from './views/DevTools'
-import AppManagerView from './views/AppManager'
-import AuditLogsView from './views/AuditLogs'
-import RBACManagerView from './views/RBACManager'
-import GlobalSettingsView from './views/GlobalSettings'
-import InspectRoutesView from './views/InspectRoutes'
-import HealthIntegrityView from './views/HealthIntegrity'
 import { CommandPalette } from './aras-core/components/CommandPalette'
 import GlobalDialog from './aras-core/components/GlobalDialog'
 import SidePanel from './aras-core/components/SidePanel'
-import { useEffect } from 'react'
 import { FormattingService } from './aras-core/services/FormattingService'
+
+const Login = lazy(() => import('./views/Login'))
+const ForgotPassword = lazy(() => import('./views/ForgotPassword'))
+const ResetPassword = lazy(() => import('./views/ResetPassword'))
+const MainLayout = lazy(() => import('./layouts/MainLayout'))
+const HomeView = lazy(() => import('./views/Home'))
+const SettingsView = lazy(() => import('./views/Settings'))
+const ProfileView = lazy(() => import('./views/Profile'))
+const DynamicView = lazy(() => import('./views/DynamicView'))
+const DevToolsView = lazy(() => import('./views/DevTools'))
+const AppManagerView = lazy(() => import('./views/AppManager'))
+const AuditLogsView = lazy(() => import('./views/AuditLogs'))
+const RBACManagerView = lazy(() => import('./views/RBACManager'))
+const GlobalSettingsView = lazy(() => import('./views/GlobalSettings'))
+const InspectRoutesView = lazy(() => import('./views/InspectRoutes'))
+const HealthIntegrityView = lazy(() => import('./views/HealthIntegrity'))
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = useAuthStore((state) => state.token)
@@ -65,6 +66,7 @@ function App() {
       <CommandPalette />
       <GlobalDialog />
       <SidePanel />
+      <Suspense fallback={<div className="flex h-screen items-center justify-center text-slate-400 text-sm">Loading…</div>}>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -102,6 +104,7 @@ function App() {
         {/* Global Catch all */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
     </Router>
   )
 }

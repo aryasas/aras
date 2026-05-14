@@ -99,7 +99,7 @@ const Login = () => {
 
         <div className="px-8 pb-8 text-center">
           <p className="text-slate-400 text-sm">
-            Default credentials: <span className="text-slate-600 font-medium">admin / admin</span>
+            Contact your administrator for credentials.
           </p>
         </div>
       </div>

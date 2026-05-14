@@ -1,7 +1,7 @@
 import json
 import csv
 import io
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Body, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -66,6 +66,23 @@ class RouterFactory(Router):
             from pydantic import ConfigDict
             Schema = create_model(f"{model_class.__name__}Schema", __base__=Validation, **fields)
             Schema.model_config = ConfigDict(from_attributes=True)
+
+        # Partial schema for PATCH — every field is Optional
+        from typing import get_args, get_origin, Union
+        from pydantic.fields import FieldInfo
+        def _make_optional(annotation: Any) -> Any:
+            if get_origin(annotation) is Union:
+                return annotation  # already Optional / Union
+            return Optional[annotation]
+
+        patch_fields: dict[str, Any] = {
+            name: (_make_optional(info.annotation), FieldInfo(default=None))
+            for name, info in Schema.model_fields.items()
+        }
+        from pydantic import ConfigDict as _ConfigDict
+        from ..base.validation import Validation as _Validation
+        PatchSchema = create_model(f"{model_class.__name__}PatchSchema", __base__=_Validation, **patch_fields)
+        PatchSchema.model_config = _ConfigDict(from_attributes=True)
 
         # Determine Public Access
         allow_public = getattr(model_class, "__public_read__", False)
@@ -256,17 +273,17 @@ class RouterFactory(Router):
 
         @router.patch("/{item_id}")
         async def patch_item(
-            item_id: int, 
-            data: dict = Body(...), 
-            db: Session = Depends(get_db), 
+            item_id: int,
+            data: PatchSchema,
+            db: Session = Depends(get_db),
             user: Any = Depends(check_permissions(model_class.__tablename__, "UPDATE"))
         ):
             """Partially updates an existing record."""
             item = model_class.get(db, item_id)
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
-            
-            item.update_self(db, data, user_id=user.id)
+
+            item.update_self(db, data.model_dump(exclude_unset=True), user_id=user.id)
             res = item.to_dict()
             model_class.resolve_labels(db, [res])
             return res

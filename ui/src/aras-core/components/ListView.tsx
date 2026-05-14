@@ -143,7 +143,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     
     if (ok) {
       try {
-        await api.post(`/${resource}/bulk-delete`, selectedIds)
+        await api.post(`/${cleanResourcePath(resource)}/bulk-delete`, selectedIds)
         setSelectedIds([])
         notify(`Successfully deleted ${selectedIds.length} items`, 'success')
         fetchData()
