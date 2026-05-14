@@ -66,51 +66,60 @@ async def global_search(
     Returns a list of matching records with their resource type and a display label.
     """
     from ..base.model import Model
-    from ..logic.permissions import check_permissions
+    import logging
+    logger = logging.getLogger(__name__)
     
     results = []
     # Only search in models the user has READ permission for
-    # For performance, we limit to first 5 results per model, max 50 total.
     
+    search_count = 0
     for name, model_class in Model._registry.items():
         # Avoid double processing (registry has both Name and Tablename)
         if name != getattr(model_class, "__tablename__", None):
             continue
             
-        # Check permissions (basic check, could be optimized)
-        # Note: check_permissions returns a dependency function, here we just check if it would pass
-        # In a real scenario, we might want a more efficient way to filter models.
-        
-        # For now, we search in all and rely on the fact that this is a framework-level search.
-        # But we should respect __searchable__ flag if it exists.
-        
-        search_fields = [
-            c.name for c in model_class.__table__.columns 
-            if c.info.get("searchable", False) or isinstance(c.type, String)
-        ]
+        # Respect __searchable__ flag if it exists (explicitly disabled)
+        if getattr(model_class, "__searchable__", True) is False:
+            continue
+            
+        # Determine search fields
+        search_fields = []
+        if hasattr(model_class, "__searchable_fields__"):
+            search_fields = model_class.__searchable_fields__
+        else:
+            # Auto-detect: String, Text, or columns marked as searchable
+            for c in model_class.__table__.columns:
+                type_name = str(c.type).upper()
+                if c.info.get("searchable", False) or \
+                   "VARCHAR" in type_name or "TEXT" in type_name or "STRING" in type_name:
+                    search_fields.append(c.name)
         
         if not search_fields:
             continue
             
         try:
-            stmt = model_class._q().limit(5)
+            stmt = model_class._q().limit(10) # Increased limit per model
             stmt = model_class.apply_search(stmt, q, fields=search_fields)
             items = db.scalars(stmt).all()
             
             for item in items:
-                # Find a display label (name, title, or ID)
-                label = getattr(item, "name", getattr(item, "title", f"{model_class.__name__} #{item.id}"))
+                # Find a display label (name, title, username, number, or ID)
+                label = getattr(item, "name", 
+                        getattr(item, "title", 
+                        getattr(item, "username", 
+                        getattr(item, "number", f"{model_class.__name__} #{item.id}"))))
                 results.append({
                     "resource": model_class.__tablename__,
                     "id": item.id,
                     "label": str(label),
                     "type": getattr(model_class, "__title__", model_class.__name__)
                 })
+                search_count += 1
         except Exception as e:
-            print(f"Global search error in {name}: {e}")
+            logger.error(f"Global search error in {name}: {e}")
             continue
             
-        if len(results) >= 50:
+        if search_count >= 50:
             break
             
     return results

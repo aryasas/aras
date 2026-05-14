@@ -76,12 +76,16 @@ async def lifespan(app: FastAPI):
             resource_name="auth_users", config_json={"icon": "Users", "color": "indigo"}, order=1
         ))
         db.add(Aras.WidgetModel(
+            name="order_stats", title="Order Status", widget_type="chart", 
+            resource_name="erp_orders", config_json={"chart_type": "bar", "group_by": "status"}, order=2, size="col-span-2"
+        ))
+        db.add(Aras.WidgetModel(
             name="recent_activity", title="Recent Activity", widget_type="list", 
-            resource_name="aras_activity_logs", config_json={"limit": 5}, order=2, size="col-span-2"
+            resource_name="aras_activity_logs", config_json={"limit": 5}, order=3, size="col-span-2"
         ))
         db.add(Aras.WidgetModel(
             name="active_apps", title="Installed Apps", widget_type="stat", 
-            resource_name="aras_apps", config_json={"icon": "Package", "color": "emerald"}, order=3
+            resource_name="aras_apps", config_json={"icon": "Package", "color": "emerald"}, order=4
         ))
         db.commit()
         logger.info("Default widgets seeded.")

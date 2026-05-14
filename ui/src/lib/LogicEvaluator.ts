@@ -1,6 +1,7 @@
 /**
- * LogicEvaluator: A lightweight expression evaluator for "depends_on" metadata.
+ * LogicEvaluator: A safe and lightweight expression evaluator for "depends_on" metadata.
  * Supports comparison (==, !=, >, <, >=, <=) and logical (&&, ||, !) operators.
+ * Avoids 'eval' and 'new Function' for security and stability.
  */
 
 export class LogicEvaluator {
@@ -12,13 +13,12 @@ export class LogicEvaluator {
     if (!expression || expression.trim() === "") return true;
 
     try {
-      // 1. Tokenize the expression
+      // 1. Tokenize and normalize
       const tokens = this.tokenize(expression);
-      
-      // 2. Parse and evaluate (simplified recursive descent or shunting-yard)
-      // For MVP, we'll use a safer Function constructor approach with strict sandboxing
-      // or a simple manual parser. Given the complexity of && and ||, a basic parser is better.
-      return this.parseAndEval(tokens, data);
+      if (tokens.length === 0) return true;
+
+      // 2. Evaluate using a simple recursive descent approach
+      return this.evaluateExpression(tokens, data);
     } catch (e) {
       console.error("LogicEvaluator error:", e, "Expression:", expression);
       return true; // Default to visible on error to avoid breaking the UI
@@ -26,63 +26,87 @@ export class LogicEvaluator {
   }
 
   private static tokenize(expr: string): string[] {
-    // Regex to split by operators while preserving them, and handling strings
-    // Operators: &&, ||, ==, !=, >=, <=, >, <, !, (, )
+    // Split by operators and keep them
+    // Supports: &&, ||, ==, !=, >=, <=, >, <, !, (, )
     return expr
       .split(/(&&|\|\||==|!=|>=|<=|>|<|!|\(|\))/g)
       .map(t => t.trim())
       .filter(t => t !== "");
   }
 
-  private static parseAndEval(tokens: string[], data: Record<string, any>): boolean {
-    // Basic implementation: replace field names with values and use a simple evaluator
-    // This is a placeholder for a more robust parser.
-    // For now, let's support the most common case: "field OP value" and combinations with &&
+  private static evaluateExpression(tokens: string[], data: Record<string, any>): boolean {
+    // Simplified: We'll evaluate level by level (OR, then AND, then Comparisons)
     
-    const processedTokens = tokens.map(token => {
-      if (['&&', '||', '==', '!=', '>=', '<=', '>', '<', '!', '(', ')'].includes(token)) {
-        return token;
-      }
-      
-      // Handle strings 'val' or "val"
-      if ((token.startsWith("'") && token.endsWith("'")) || (token.startsWith('"') && token.endsWith('"'))) {
-        return JSON.stringify(token.slice(1, -1));
-      }
-
-      // Handle numbers
-      if (!isNaN(Number(token))) {
-        return token;
-      }
-
-      // Handle booleans
-      if (token === 'true' || token === 'false') {
-        return token;
-      }
-
-      // Handle null/undefined
-      if (token === 'null') return 'null';
-
-      // It's a field name
-      const val = data[token];
-      return JSON.stringify(val);
-    });
-
-    try {
-      // Safer alternative to eval() for basic logical expressions
-      // We only allow logical and comparison operators
-      const safeExpr = processedTokens.join(' ');
-      
-      // Simple validation: only allowed characters
-      if (/[^a-zA-Z0-9\s"'.&|!=><!()[\]{}_-]/g.test(safeExpr)) {
-        throw new Error("Forbidden characters in expression");
-      }
-
-      // Use Function constructor as a scoped sandbox
-      // eslint-disable-next-line no-new-func
-      return new Function(`return (${safeExpr})`)();
-    } catch (e) {
-      console.warn("Failed to evaluate expression:", tokens.join(' '), e);
-      return true;
+    // Handle OR (||)
+    if (tokens.includes('||')) {
+      const parts = this.splitByOperator(tokens, '||');
+      return parts.some(part => this.evaluateExpression(part, data));
     }
+
+    // Handle AND (&&)
+    if (tokens.includes('&&')) {
+      const parts = this.splitByOperator(tokens, '&&');
+      return parts.every(part => this.evaluateExpression(part, data));
+    }
+
+    // Handle Comparisons
+    if (tokens.length >= 3) {
+      const [left, op, right] = tokens;
+      const leftVal = this.getValue(left, data);
+      const rightVal = this.getValue(right, data);
+
+      switch (op) {
+        case '==': return leftVal == rightVal;
+        case '!=': return leftVal != rightVal;
+        case '>':  return Number(leftVal) >  Number(rightVal);
+        case '<':  return Number(leftVal) <  Number(rightVal);
+        case '>=': return Number(leftVal) >= Number(rightVal);
+        case '<=': return Number(leftVal) <= Number(rightVal);
+      }
+    }
+
+    // Handle single value (e.g., "!is_active")
+    if (tokens[0] === '!') {
+      return !this.getValue(tokens[1], data);
+    }
+
+    // Default: Check if the value itself is truthy
+    return !!this.getValue(tokens[0], data);
+  }
+
+  private static splitByOperator(tokens: string[], operator: string): string[][] {
+    const result: string[][] = [];
+    let current: string[] = [];
+    
+    for (const token of tokens) {
+      if (token === operator) {
+        result.push(current);
+        current = [];
+      } else {
+        current.push(token);
+      }
+    }
+    result.push(current);
+    return result;
+  }
+
+  private static getValue(token: string, data: Record<string, any>): any {
+    if (!token) return undefined;
+
+    // Handle Strings
+    if ((token.startsWith("'") && token.endsWith("'")) || (token.startsWith('"') && token.endsWith('"'))) {
+      return token.slice(1, -1);
+    }
+
+    // Handle Booleans
+    if (token === 'true') return true;
+    if (token === 'false') return false;
+    if (token === 'null') return null;
+
+    // Handle Numbers
+    if (!isNaN(Number(token))) return Number(token);
+
+    // Handle Field Access
+    return data[token];
   }
 }
