@@ -41,10 +41,78 @@ Aras.Base.metadata.create_all(bind=Aras.engine)
 Aras.logic.auto_migrate.run(Aras.engine, Aras.Base.metadata)
 logger.info("Database schema and migrations complete.")
 
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup logic
+    db = next(Aras.get_db())
+
+    # 1. Register Global Listeners
+    Aras.Manager.Audit.register_listeners()
+
+    # 2. Sync Metadata (Code -> DB Registry)
+    Aras.Manager.Sync.sync_all(db)
+
+    # 3. Seed Admin
+    admin = db.query(Aras.User).filter(Aras.User.username == "admin").first()
+    if not admin:
+        logger.info("Creating default admin user...")
+        new_admin = Aras.User(
+            username="admin",
+            email="admin@aras.local",
+            password_hash=Aras.User.hash_password("admin"),
+            is_admin=True
+        )
+        db.add(new_admin)
+        db.commit()
+        logger.info("Admin user created (admin/admin).")
+
+    # Seed Widgets
+    if not db.query(Aras.WidgetModel).first():
+        logger.info("Seeding default widgets...")
+        db.add(Aras.WidgetModel(
+            name="total_users", title="Total Users", widget_type="stat", 
+            resource_name="auth_users", config_json={"icon": "Users", "color": "indigo"}, order=1
+        ))
+        db.add(Aras.WidgetModel(
+            name="recent_activity", title="Recent Activity", widget_type="list", 
+            resource_name="aras_activity_logs", config_json={"limit": 5}, order=2, size="col-span-2"
+        ))
+        db.add(Aras.WidgetModel(
+            name="active_apps", title="Installed Apps", widget_type="stat", 
+            resource_name="aras_apps", config_json={"icon": "Package", "color": "emerald"}, order=3
+        ))
+        db.commit()
+        logger.info("Default widgets seeded.")
+
+    # Seed Settings
+    from core.registry.sys_settings import ArasSetting
+    defaults = [
+        {"key": "app_name", "value": "Aras ERP", "description": "Application display name"},
+        {"key": "maintenance_mode", "value": "false", "description": "Disable public access"},
+        {"key": "default_language", "value": "en", "description": "System-wide default language"},
+        {"key": "core.date_format", "value": "YYYY-MM-DD", "description": "Global date format"},
+        {"key": "core.number_format", "value": "#,###.##", "description": "Global number format"},
+        {"key": "core.decimal_precision", "value": "2", "description": "Global decimal precision"},
+        {"key": "core.currency_symbol", "value": "$", "description": "Global currency symbol"},
+        {"key": "core.language_default", "value": "en", "description": "Global default language"},
+    ]
+    for d in defaults:
+        if not db.query(ArasSetting).filter(ArasSetting.key == d["key"]).first():
+            logger.info(f"Seeding setting: {d['key']}")
+            db.add(ArasSetting(**d))
+    db.commit()
+    logger.info("Default settings seeded.")
+
+    yield
+    # Shutdown logic (none currently)
+
 app = FastAPI(
     title="Aras API",
     description="Metadata-driven ERP Engine powered by FastAPI",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Exception Handlers
@@ -162,68 +230,6 @@ async def get_sidebar_data():
     sidebar.extend(apps_group)
 
     return sidebar
-
-@app.on_event("startup")
-def startup_event():
-    db = next(Aras.get_db())
-
-    # 1. Register Global Listeners
-    Aras.Manager.Audit.register_listeners()
-
-    # 2. Sync Metadata (Code -> DB Registry)
-    Aras.Manager.Sync.sync_all(db)
-
-    # 3. Seed Admin
-    admin = db.query(Aras.User).filter(Aras.User.username == "admin").first()
-    if not admin:
-        logger.info("Creating default admin user...")
-        new_admin = Aras.User(
-            username="admin",
-            email="admin@aras.local",
-            password_hash=Aras.User.hash_password("admin"),
-            is_admin=True
-        )
-        db.add(new_admin)
-        db.commit()
-        logger.info("Admin user created (admin/admin).")
-
-    # Seed Widgets
-    if not db.query(Aras.WidgetModel).first():
-        logger.info("Seeding default widgets...")
-        db.add(Aras.WidgetModel(
-            name="total_users", title="Total Users", widget_type="stat", 
-            resource_name="auth_users", config_json={"icon": "Users", "color": "indigo"}, order=1
-        ))
-        db.add(Aras.WidgetModel(
-            name="recent_activity", title="Recent Activity", widget_type="list", 
-            resource_name="aras_activity_logs", config_json={"limit": 5}, order=2, size="col-span-2"
-        ))
-        db.add(Aras.WidgetModel(
-            name="active_apps", title="Installed Apps", widget_type="stat", 
-            resource_name="aras_apps", config_json={"icon": "Package", "color": "emerald"}, order=3
-        ))
-        db.commit()
-        logger.info("Default widgets seeded.")
-
-    # Seed Settings
-    from core.registry.sys_settings import ArasSetting
-    defaults = [
-        {"key": "app_name", "value": "Aras ERP", "description": "Application display name"},
-        {"key": "maintenance_mode", "value": "false", "description": "Disable public access"},
-        {"key": "default_language", "value": "en", "description": "System-wide default language"},
-        {"key": "core.date_format", "value": "YYYY-MM-DD", "description": "Global date format"},
-        {"key": "core.number_format", "value": "#,###.##", "description": "Global number format"},
-        {"key": "core.decimal_precision", "value": "2", "description": "Global decimal precision"},
-        {"key": "core.currency_symbol", "value": "$", "description": "Global currency symbol"},
-        {"key": "core.language_default", "value": "en", "description": "Global default language"},
-    ]
-    for d in defaults:
-        if not db.query(ArasSetting).filter(ArasSetting.key == d["key"]).first():
-            logger.info(f"Seeding setting: {d['key']}")
-            db.add(ArasSetting(**d))
-    db.commit()
-    logger.info("Default settings seeded.")
-
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

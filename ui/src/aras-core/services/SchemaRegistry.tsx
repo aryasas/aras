@@ -1,5 +1,6 @@
 import React from 'react';
 import Combobox from '../components/Combobox';
+import MultiSelectCombobox from '../components/MultiSelectCombobox';
 import { FileField } from '../components/FileField';
 
 export interface FieldProps {
@@ -116,6 +117,15 @@ class FieldRegistry {
       <Combobox 
         resource={props.field.target_resource || ''} 
         value={props.value} 
+        onChange={props.onChange} 
+        placeholder={`Select ${props.field.label}...`}
+        disabled={props.disabled}
+      />
+    ),
+    'bridge': (props) => (
+      <MultiSelectCombobox 
+        resource={props.field.target_resource || ''} 
+        value={props.value || []} 
         onChange={props.onChange} 
         placeholder={`Select ${props.field.label}...`}
         disabled={props.disabled}

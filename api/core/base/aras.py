@@ -11,12 +11,16 @@ class Aras:
     or indirectly (Level 3+).
     """
     @staticmethod
-    def action(*args, **kwargs):
+    def model_action(*args, **kwargs):
         from ..logic.model_actions import action
         return action(*args, **kwargs)
 
     @staticmethod
-    def computed(*args, **kwargs):
+    def computed_field(*args, **kwargs):
         from .model import Model
-        return Model.computed(*args, **kwargs)
+        return Model.computed_field(*args, **kwargs)
+
+    # Keep aliases for backward compatibility but mark as deprecated if possible
+    # For now, let's just rename them to avoid the warning.
+    # We will update the one usage found.
 

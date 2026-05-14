@@ -66,6 +66,7 @@ class Model(Aras, Base):
     __display_fields__: tuple = ()
     __parent__: str = None # Tablename of the parent model
     __layout__: list = None # Layout configuration (sections/tabs)
+    __m2m__: dict = {} # Many-to-Many relationship definitions
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     is_active: Mapped[bool] = mapped_column(default=True, server_default="1")
@@ -165,8 +166,18 @@ class Model(Aras, Base):
     def fetch(cls: Type[T], db: Session, item_id=None, *, active_only=False) -> Any:
         """Fetches a single record by ID or all records if ID is None."""
         if item_id is not None:
-            return db.get(cls, item_id)
-        return db.scalars(cls._q(active_only).order_by(cls.id.desc())).all()
+            item = db.get(cls, item_id)
+            if item:
+                res = item.to_dict()
+                cls.resolve_labels(db, [res])
+                cls.resolve_m2m(db, [res])
+                return res
+            return None
+        items = db.scalars(cls._q(active_only).order_by(cls.id.desc())).all()
+        results = [item.to_dict() for item in items]
+        cls.resolve_labels(db, results)
+        cls.resolve_m2m(db, results)
+        return results
 
     @classmethod
     def get(cls: Type[T], db: Session, item_id) -> Optional[T]:
@@ -245,6 +256,37 @@ class Model(Aras, Base):
                 # Log error or silently skip if target column doesn't exist/query fails
                 print(f"[Model] Warning: Failed to resolve labels for {cls.__tablename__}.{col.name}: {e}")
 
+    @classmethod
+    def resolve_m2m(cls, db: Session, items: List[dict]):
+        """Fetches and attaches Many-to-Many associations for a list of items."""
+        if not items: return
+        m2m_defs = getattr(cls, "__m2m__", {})
+        if not m2m_defs: return
+        
+        item_ids = [item["id"] for item in items if "id" in item]
+        if not item_ids: return
+        
+        for field_name, defs in m2m_defs.items():
+            bridge_table = defs.get("bridge_table")
+            source_key = defs.get("source_key")
+            target_key = defs.get("target_key")
+            if not all([bridge_table, source_key, target_key]): continue
+            
+            try:
+                # Use raw SQL to avoid requiring bridge models to be registered
+                query = text(f"SELECT {source_key}, {target_key} FROM {bridge_table} WHERE {source_key} IN :ids")
+                rows = db.execute(query, {"ids": tuple(item_ids)}).all()
+                
+                mapping = {}
+                for s_id, t_id in rows:
+                    if s_id not in mapping: mapping[s_id] = []
+                    mapping[s_id].append(t_id)
+                
+                for item in items:
+                    item[field_name] = mapping.get(item["id"], [])
+            except Exception as e:
+                print(f"[Model] Warning: Failed to resolve M2M for {cls.__tablename__}.{field_name}: {e}")
+
     def save(self, db: Session, data: dict = None, *, user_id: int = None, is_new: bool = None):
         """Unified create/update logic with audit tracking and hooks."""
         if is_new is None:
@@ -265,10 +307,43 @@ class Model(Aras, Base):
         if is_new:
             db.add(self)
 
+        db.flush() # Ensure ID is available for M2M
+        if data:
+            self.save_m2m(db, data)
+
         db.commit()
         db.refresh(self)
         self.after_save(is_new=is_new)
         return self
+
+    def save_m2m(self, db: Session, data: dict):
+        """Saves Many-to-Many associations from the provided data."""
+        m2m_defs = getattr(self, "__m2m__", {})
+        for field_name, defs in m2m_defs.items():
+            if field_name not in data: continue
+            
+            new_ids = data[field_name]
+            if not isinstance(new_ids, list): continue
+            
+            bridge_table = defs.get("bridge_table")
+            source_key = defs.get("source_key")
+            target_key = defs.get("target_key")
+            if not all([bridge_table, source_key, target_key]): continue
+            
+            source_id = self.id
+            try:
+                # Clear existing
+                db.execute(text(f"DELETE FROM {bridge_table} WHERE {source_key} = :s_id"), {"s_id": source_id})
+                
+                # Insert new
+                for t_id in new_ids:
+                    if t_id is not None:
+                        db.execute(text(f"INSERT INTO {bridge_table} ({source_key}, {target_key}) VALUES (:s_id, :t_id)"), 
+                                   {"s_id": source_id, "t_id": t_id})
+            except Exception as e:
+                print(f"[Model] Warning: Failed to save M2M for {self.__tablename__}.{field_name}: {e}")
+                db.rollback()
+                raise e
 
     @classmethod
     def create(cls: Type[T], db: Session, data: dict, user_id: int = None) -> T:
@@ -301,7 +376,7 @@ class Model(Aras, Base):
         return UIGenerator.generate_metadata(cls)
 
     @staticmethod
-    def computed(func: Callable) -> Callable:
+    def computed_field(func: Callable) -> Callable:
         """Decorator to mark a method as a serializable computed field."""
         func._aras_computed = True
         return func

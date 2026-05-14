@@ -8,6 +8,7 @@ import ListView from './ListView';
 import { SchemaRegistry } from '../services/SchemaRegistry';
 import { useAras } from '../hooks/useAras';
 import { useUIStore } from '../../store/uiStore';
+import { LogicEvaluator } from '../../lib/LogicEvaluator';
 
 interface Field {
   name: string;
@@ -134,21 +135,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     if (field.hidden) return false;
     if (!field.depends_on) return true;
     
-    try {
-      // Basic implementation of depends_on (e.g. "status=Approved" or "type!=Draft")
-      const parts = field.depends_on.split(/(!=|=)/);
-      if (parts.length === 3) {
-        const [targetField, op, targetValue] = parts;
-        const actualValue = String(formData[targetField.trim()]);
-        const expectedValue = targetValue.trim().replace(/^'|'$/g, '').replace(/^"|"$/g, '');
-        
-        if (op === '=') return actualValue === expectedValue;
-        if (op === '!=') return actualValue !== expectedValue;
-      }
-    } catch (e) {
-      console.warn("Invalid depends_on logic", field.depends_on);
-    }
-    return true;
+    return LogicEvaluator.evaluate(field.depends_on, formData);
   };
 
   const handleShowHistory = () => {

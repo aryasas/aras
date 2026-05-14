@@ -1,5 +1,10 @@
+- if i say cmp mean "inpect/review my project. how do you thing about the framework and what can we add to project to make more robust, complete, low code, before we move to create an app? inpect code, function, and ui."
+- if i say ggc mean "give git commit command with message all we do/add to project but dont exec, i will do the git."
+- if i say updd mean "update feature.md to add what we do/add to the project (dont delete just add/update) and update aras.md (if needed, dont delete execept there are something" changed make aras.md irrelevan)"
+
 # Aras Framework — Project Context & Guidelines (Current)
 
+read docs/aras.md
 Aras is a modular, metadata-driven framework built with FastAPI and SQLAlchemy. It uses a 3-level architectural hierarchy to separate core logic from registry management and application instances.
 
 ## 🏗️ Architecture Overview
@@ -83,9 +88,12 @@ To make Aras more robust, complete, and low-code, the following enhancements hav
 
 -   **Aras Pro: Advanced Layouts & UX:**
     *   **Pro Layout Engine**: Supports `__layout__` (sections/tabs) in models for organized UI rendering.
-    *   **Conditional Visibility**: Fields can use `depends_on` metadata to show/hide reactively.
-    *   **Computed Fields**: `@Aras.computed` decorator for dynamic, serializable properties.
+    *   **Advanced Conditional Visibility**: Fields support complex logic via `LogicEvaluator` (e.g., `total_amount > 5000 && status != 'Draft'`).
+    *   **Computed Fields**: `@Aras.computed_field` decorator for dynamic, serializable properties.
     *   **Pluggable UI Registry**: `SchemaRegistry` allows global registration of custom field widgets.
+-   **Advanced Relationship Management:**
+    *   **Many-to-Many (M2M) Support**: Automated M2M handling via `__m2m__` attribute, supporting bridge table synchronization and association management.
+    *   **MultiSelect UI**: Dedicated `MultiSelectCombobox` for managing M2M relationships in the UI.
 -   **Advanced Import/Export Mapping:**
     *   Asynchronous CSV imports now support a interactive **Field Mapping UI** to translate CSV columns to model fields.
 -   **Enhanced Internationalization (i18n):**

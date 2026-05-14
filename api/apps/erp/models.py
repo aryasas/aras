@@ -2,6 +2,11 @@ from sqlalchemy import String, Float, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from core import Aras
 
+class Category(Aras.Model):
+    __tablename__ = "erp_categories"
+    __features__ = ["audit"]
+    name: Mapped[str] = mapped_column(String(50), unique=True)
+
 class Product(Aras.Model):
     __tablename__ = "erp_products"
     __features__ = ["audit"]
@@ -11,6 +16,21 @@ class Product(Aras.Model):
     price: Mapped[float] = mapped_column(Float)
     description: Mapped[str] = mapped_column(String(255), nullable=True)
     stock_quantity: Mapped[float] = mapped_column(Float, default=0)
+
+    __m2m__ = {
+        "categories": {
+            "bridge_table": "erp_product_categories",
+            "target_resource": "erp_categories",
+            "source_key": "product_id",
+            "target_key": "category_id",
+            "label": "Product Categories"
+        }
+    }
+
+class ProductCategory(Aras.Model):
+    __tablename__ = "erp_product_categories"
+    product_id: Mapped[int] = mapped_column(ForeignKey("erp_products.id"))
+    category_id: Mapped[int] = mapped_column(ForeignKey("erp_categories.id"))
 
 class Customer(Aras.Model):
     __tablename__ = "erp_customers"
@@ -43,12 +63,12 @@ class Order(Aras.Model):
         {"from": "Confirmed", "to": "Shipped", "label": "Mark as Shipped"}
     ]
 
-    @Aras.action(name="recalculate", permission="edit", label="Recalculate Totals")
+    @Aras.model_action(name="recalculate", permission="edit", label="Recalculate Totals")
     def recalculate(self):
         self.total_amount = 99.99 # Dummy logic
         return True
 
-    @Aras.computed
+    @Aras.computed_field
     def order_summary(self):
         return f"Order {self.number} for {self.total_amount:.2f}"
 

@@ -250,7 +250,31 @@ class SyncManager(Manager):
                             )
                             db.add(link_db)
 
-        # 2. Detect Child Tables (from the perspective of the Parent)
+        # 2. Detect Many-to-Many (Bridge)
+        m2m_defs = getattr(model_cls, "__m2m__", {})
+        for field_name, defs in m2m_defs.items():
+            target_table = defs.get("target_resource")
+            target_resource = db.query(ResourceModel).filter(ResourceModel.name == target_table).first()
+            if target_resource:
+                link_db = db.query(LinkModel).filter(
+                    LinkModel.source_resource_id == resource_id,
+                    LinkModel.target_resource_id == target_resource.id,
+                    LinkModel.field_name == field_name,
+                    LinkModel.link_type == "bridge"
+                ).first()
+                
+                if not link_db:
+                    link_db = LinkModel(
+                        source_resource_id=resource_id,
+                        target_resource_id=target_resource.id,
+                        field_name=field_name,
+                        link_type="bridge",
+                        label=defs.get("label", field_name.replace("_", " ").title()),
+                        config=defs
+                    )
+                    db.add(link_db)
+
+        # 3. Detect Child Tables (from the perspective of the Parent)
         children = Model._child_map.get(model_cls.__tablename__, [])
         for child_table in children:
             target_resource = db.query(ResourceModel).filter(ResourceModel.name == child_table).first()

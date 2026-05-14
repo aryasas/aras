@@ -104,7 +104,49 @@ class UIGenerator(Service):
             }
             fields.append(field_info)
 
-        # 4. Include Computed Fields
+        # 4. Include Many-to-Many (Bridge) Fields
+        if db and db_resource:
+            from ..registry.link_model import LinkModel
+            from ..registry.resource_model import ResourceModel
+            bridge_links = db.query(LinkModel).filter(
+                LinkModel.source_resource_id == db_resource.id,
+                LinkModel.link_type == "bridge"
+            ).all()
+            for link in bridge_links:
+                target_res = db.query(ResourceModel).filter(ResourceModel.id == link.target_resource_id).first()
+                if target_res:
+                    fields.append({
+                        "name": link.field_name,
+                        "label": link.label,
+                        "type": "bridge",
+                        "required": False,
+                        "target_resource": target_res.name,
+                        "options": None,
+                        "hidden": False,
+                        "read_only": False,
+                        "searchable": False,
+                        "depends_on": None,
+                        "config": link.config
+                    })
+        else:
+            # Fallback to code definition if DB not synced yet
+            m2m_defs = getattr(model_class, "__m2m__", {})
+            for field_name, defs in m2m_defs.items():
+                fields.append({
+                    "name": field_name,
+                    "label": defs.get("label", field_name.replace("_", " ").title()),
+                    "type": "bridge",
+                    "required": False,
+                    "target_resource": defs.get("target_resource"),
+                    "options": None,
+                    "hidden": False,
+                    "read_only": False,
+                    "searchable": False,
+                    "depends_on": None,
+                    "config": defs
+                })
+
+        # 5. Include Computed Fields
         for name in getattr(model_class, "_computed", []):
             label = name.replace("_", " ").title()
             fields.append({
