@@ -3,6 +3,7 @@ export interface SidebarItem {
   name: string
   label: string
   icon: string
+  have_home?: boolean
   path?: string
   models?: { name: string, label: string, path?: string }[]
 }

@@ -26,6 +26,7 @@ class App(Aras):
     description: str = ""
     version: str = "1.0.0"
     icon: str = "Package"
+    have_home: bool = False
     models: List[Any] = []
 
     @classmethod

@@ -314,6 +314,7 @@ class Model(Aras, Base):
         db.commit()
         db.refresh(self)
         self.after_save(is_new=is_new)
+        self._fire_hooks("on_create" if is_new else "on_update")
         return self
 
     def save_m2m(self, db: Session, data: dict):
@@ -352,7 +353,18 @@ class Model(Aras, Base):
     def update_self(self, db: Session, data: dict, user_id: int = None):
         return self.save(db, data, user_id=user_id, is_new=False)
 
+    def _fire_hooks(self, hook_name: str):
+        """Calls all methods on this instance decorated with @Aras.on_create/on_update/on_delete."""
+        for name in dir(type(self)):
+            method = getattr(type(self), name, None)
+            if callable(method) and getattr(method, "_aras_hook", None) == hook_name:
+                try:
+                    getattr(self, name)()
+                except Exception as e:
+                    print(f"[Model] Hook error in {self.__tablename__}.{name}: {e}")
+
     def delete_self(self, db: Session, user_id: int = None):
+        self._fire_hooks("on_delete")
         if self.__soft_delete__ and self.deleted_at is None:
             self.deleted_at = datetime.now(timezone.utc)
             if user_id:

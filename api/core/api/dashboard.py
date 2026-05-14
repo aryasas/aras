@@ -123,29 +123,42 @@ async def delete_dashboard_layout(
     layout.delete_self(db, user_id=user.id)
     return
 
-@router.post("/layouts/{layout_id}/set-default", response_model=dict)
-async def set_default_dashboard_layout(
-    layout_id: int,
+@router.post("/layout", response_model=dict)
+async def update_widget_order(
+    order_data: Dict[str, List[int]],
     db: Session = Depends(get_db),
     user: Any = Depends(get_current_user)
 ):
     """
-    Sets a specific dashboard layout as the default for the current user.
+    Persists the widget order for the current user's default dashboard.
     """
+    widget_order = order_data.get("widget_order")
+    if not widget_order:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing widget_order")
+
     layout = db.query(DashboardLayoutModel).filter(
-        DashboardLayoutModel.id == layout_id,
-        DashboardLayoutModel.user_id == user.id
-    ).first()
-    if not layout:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dashboard layout not found")
-    
-    # Unset current default
-    db.query(DashboardLayoutModel).filter(
         DashboardLayoutModel.user_id == user.id,
         DashboardLayoutModel.is_default == True
-    ).update({"is_default": False})
+    ).first()
+
+    if not layout:
+        # If no layout exists, create a default one
+        layout = DashboardLayoutModel.create(
+            db,
+            {
+                "name": "Default Dashboard",
+                "user_id": user.id,
+                "layout_config": {"widgets": widget_order},
+                "is_default": True
+            },
+            user_id=user.id
+        )
+    else:
+        # Update existing
+        config = layout.layout_config or {}
+        config["widgets"] = widget_order
+        layout.update_self(db, {"layout_config": config}, user_id=user.id)
     
-    layout.update_self(db, {"is_default": True}, user_id=user.id)
     return layout.to_dict()
 
 @router.get("/widgets", response_model=Dict[str, Any]) # Changed response_model to dict for layout

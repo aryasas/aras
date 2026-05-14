@@ -15,6 +15,7 @@ const HomeView = lazy(() => import('./views/Home'))
 const SettingsView = lazy(() => import('./views/Settings'))
 const ProfileView = lazy(() => import('./views/Profile'))
 const DynamicView = lazy(() => import('./views/DynamicView'))
+const AppHomeView = lazy(() => import('./views/AppHome'))
 const DevToolsView = lazy(() => import('./views/DevTools'))
 const AppManagerView = lazy(() => import('./views/AppManager'))
 const AuditLogsView = lazy(() => import('./views/AuditLogs'))
@@ -94,6 +95,7 @@ function App() {
           <Route path="dev/table/:app/:model/:id" element={<DynamicView />} />
           <Route path="apps" element={<AppManagerView />} />
           <Route path="profile" element={<ProfileView />} />
+          <Route path=":appName" element={<AppHomeView />} />
           <Route path=":app/:model" element={<DynamicView />} />
           <Route path=":app/:model/:id" element={<DynamicView />} />
 

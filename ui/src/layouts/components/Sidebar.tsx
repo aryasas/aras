@@ -1,7 +1,6 @@
 import { LogOut, Menu } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { SidebarNavItem } from './SidebarNavItem'
-import { SidebarAppMenu } from './SidebarAppMenu'
 import { SidebarBrand } from './SidebarBrand'
 import type { SidebarApp } from '../types'
 
@@ -38,9 +37,14 @@ export function Sidebar({ isOpen, setOpen, sidebarData, currentPath, onLogout }:
           }
 
           if (type === 'app') {
-            // Check if we need to render the "Applications" header
             const prevItem = index > 0 ? sidebarData[index - 1] : null
             const shouldRenderHeader = prevItem?.type === 'link'
+            const IconComponent = (LucideIcons as any)[item.icon] || LucideIcons.Package
+            const firstModel = item.models?.[0]
+            const appPath = item.have_home
+              ? `/${item.name}`
+              : firstModel?.path || (firstModel?.name ? `/${item.name}/${firstModel.name}` : `/${item.name}`)
+            const isActive = currentPath === appPath || currentPath.startsWith(`/${item.name}/`)
             
             return (
               <div key={`container-${item.name}`}>
@@ -49,7 +53,13 @@ export function Sidebar({ isOpen, setOpen, sidebarData, currentPath, onLogout }:
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">Applications</p>
                   </div>
                 )}
-                <SidebarAppMenu app={item} isOpen={isOpen} currentPath={currentPath} />
+                <SidebarNavItem
+                  to={appPath}
+                  icon={<IconComponent size={20} />}
+                  label={item.label}
+                  active={isActive}
+                  isOpen={isOpen}
+                />
               </div>
             )
           }

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import React from 'react'
 
 interface DialogState {
@@ -22,13 +23,15 @@ interface PanelState {
 interface UIStore {
   dialog: DialogState;
   panel: PanelState;
+  darkMode: boolean;
   showAlert: (title: string, message: string, onConfirm?: () => void) => void;
   showConfirm: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => void;
   showError: (title: string, message: string) => void;
   closeDialog: () => void;
-  
+
   showPanel: (title: string, content: React.ReactNode, width?: string) => void;
   closePanel: () => void;
+  toggleDarkMode: () => void;
 }
 
 const defaultDialog: DialogState = {
@@ -45,50 +48,41 @@ const defaultPanel: PanelState = {
   width: 'max-w-xl'
 }
 
-export const useUIStore = create<UIStore>((set) => ({
-  dialog: defaultDialog,
-  panel: defaultPanel,
-  
-  showAlert: (title, message, onConfirm) => set({
-    dialog: {
-      isOpen: true,
-      title,
-      message,
-      type: 'alert',
-      onConfirm,
-      confirmLabel: 'OK'
-    }
-  }),
-  showConfirm: (title, message, onConfirm, onCancel) => set({
-    dialog: {
-      isOpen: true,
-      title,
-      message,
-      type: 'confirm',
-      onConfirm,
-      onCancel,
-      confirmLabel: 'Confirm',
-      cancelLabel: 'Cancel'
-    }
-  }),
-  showError: (title, message) => set({
-    dialog: {
-      isOpen: true,
-      title,
-      message,
-      type: 'error',
-      confirmLabel: 'Close'
-    }
-  }),
-  closeDialog: () => set({ dialog: defaultDialog }),
+export const useUIStore = create<UIStore>()(
+  persist(
+    (set, get) => ({
+      dialog: defaultDialog,
+      panel: defaultPanel,
+      darkMode: false,
 
-  showPanel: (title, content, width = 'max-w-xl') => set({
-    panel: {
-      isOpen: true,
-      title,
-      content,
-      width
+      showAlert: (title, message, onConfirm) => set({
+        dialog: { isOpen: true, title, message, type: 'alert', onConfirm, confirmLabel: 'OK' }
+      }),
+      showConfirm: (title, message, onConfirm, onCancel) => set({
+        dialog: { isOpen: true, title, message, type: 'confirm', onConfirm, onCancel, confirmLabel: 'Confirm', cancelLabel: 'Cancel' }
+      }),
+      showError: (title, message) => set({
+        dialog: { isOpen: true, title, message, type: 'error', confirmLabel: 'Close' }
+      }),
+      closeDialog: () => set({ dialog: defaultDialog }),
+
+      showPanel: (title, content, width = 'max-w-xl') => set({
+        panel: { isOpen: true, title, content, width }
+      }),
+      closePanel: () => set({ panel: defaultPanel }),
+
+      toggleDarkMode: () => {
+        const next = !get().darkMode
+        document.documentElement.classList.toggle('dark', next)
+        set({ darkMode: next })
+      },
+    }),
+    {
+      name: 'aras-ui-prefs',
+      partialize: (s) => ({ darkMode: s.darkMode }),
+      onRehydrateStorage: () => (state) => {
+        if (state?.darkMode) document.documentElement.classList.add('dark')
+      },
     }
-  }),
-  closePanel: () => set({ panel: defaultPanel })
-}))
+  )
+)

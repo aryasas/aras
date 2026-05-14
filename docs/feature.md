@@ -105,3 +105,34 @@ This document outlines the key features and architectural components of the Aras
 -   **MetadataService Caching:** In-memory `Map` cache with `clearCache()` and `invalidate()` methods. Prevents redundant `/metadata/` requests on re-navigation.
 -   **API Error Shape Normalization (`api.ts`):** Response interceptor unifies `{message}` (backend custom handler) and `{detail}` (FastAPI 422) into a single `.detail` field.
 -   **ERP Bootstrap Decoupled:** `erp_orders` widget removed from framework seed. App name reads from `settings.APP_NAME` env var.
+
+
+## Change Logging Rule + Manual Log Command (2026-05-14)
+  - [Claude Code] mhl command for manual change logging; --log-manual and --submit-review CLI flags; author+notes columns on dev_handoff_runs
+
+## Framework Robustness & UI Completeness (2026-05-14)
+- [Claude Sonnet 4.6] `api/core/lib/rate_limiter.py` — new RateLimiterMiddleware (sliding window, 200 req/60s default, 10/60s on auth endpoints)
+- [Claude Sonnet 4.6] `api/core/logic/router_factory.py` — soft delete routing: `/deleted` list + `POST /{id}/restore` auto-generated for `__soft_delete__` models
+- [Claude Sonnet 4.6] `api/core/base/field.py` + `router_factory.py` — declarative field validation rules: `min_length`, `max_length`, `min_value`, `max_value`, `pattern` wired into auto-generated Pydantic schemas
+- [Claude Sonnet 4.6] `api/core/logic/router_factory.py` — batch API: `POST /batch` accepts up to 100 mixed create/update/delete ops atomically
+- [Claude Sonnet 4.6] `api/core/api/websocket.py` — new WebSocket endpoint `/api/v1/ws?channel=` with JWT auth; `broadcast_sync()` helper for sync callers
+- [Claude Sonnet 4.6] `ui/src/views/AuditLogs.tsx` — full audit log timeline with expandable diff viewer (before/after per field), action filter, pagination; replaces 21-line stub
+- [Claude Sonnet 4.6] `ui/src/aras-core/components/DynamicForm.tsx` — client-side pre-validation (required, min/max length, min/max value, pattern) before submit; Field interface extended
+- [Claude Sonnet 4.6] `ui/src/store/uiStore.ts` + `HeaderActions.tsx` + `index.css` — dark mode toggle with zustand/persist; `html.dark` class toggle; Tailwind v4 `@variant dark` configured
+- [Claude Sonnet 4.6] `ui/src/aras-core/components/ListView.tsx` — bulk edit modal: select field + value, applies via `/batch` to all selected rows
+- [Claude Sonnet 4.6] `ui/src/aras-core/components/ListView.tsx` — inline row editing: double-click text/number cell to edit in-place; Enter saves, Esc cancels
+- [Claude Sonnet 4.6] `ui/src/aras-core/components/CommandPalette.tsx` — `?` key opens keyboard shortcut map modal; shortcut list accessible from palette footer
+
+
+## Dashboard Drag-to-Rearrange + Audit Log Timeline View — revision (2026-05-14)
+  - [Gemini] Added `POST /api/v1/dashboard/layout` endpoint for persisting user dashboard widget order.
+  - [Codex/GPT-5.5] Native HTML5 drag-and-drop dashboard widget reordering with persisted widget_order POST to /dashboard/layout
+
+
+## Dashboard drag-to-rearrange + Audit Log Timeline (2026-05-14)
+  - [Claude Code] HTML5 drag-and-drop widget reorder,POST /dashboard/layout endpoint,GET/POST/PATCH /dev/dev_handoff_runs endpoints
+
+
+## App Navigation Restructure — have_home + Topbar App Menu — revision (2026-05-14)
+  - [Gemini] Implemented `have_home` attribute in `App` base class and app manifests; added `GET /api/v1/app-menu/{app_name}` endpoint.
+  - [Codex/GPT-5.5] Flat app sidebar navigation, topbar app model tabs, generic app home landing page, and /:appName route

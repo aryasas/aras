@@ -1,9 +1,19 @@
-import { Bell } from 'lucide-react'
+import { Bell, Moon, Sun } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useUIStore } from '../../store/uiStore'
 
 export function HeaderActions() {
+  const { darkMode, toggleDarkMode } = useUIStore()
+
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-3">
+      <button
+        onClick={toggleDarkMode}
+        className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors"
+        title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+      >
+        {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+      </button>
       <button className="p-2 text-slate-500 hover:bg-slate-50 rounded-full relative transition-colors">
         <Bell size={20} />
         <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>

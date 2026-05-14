@@ -16,6 +16,8 @@ interface Widget {
 export const DashboardView: React.FC = () => {
   const [widgets, setWidgets] = useState<Widget[]>([])
   const [loading, setLoading] = useState(true)
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const { notify } = useAras()
 
   useEffect(() => {
@@ -33,14 +35,54 @@ export const DashboardView: React.FC = () => {
     }
   }
 
+  const saveLayout = (newOrder: number[]) => {
+    api.post('/dashboard/layout', { widget_order: newOrder }).catch(() => {
+      notify('Failed to save dashboard layout', 'error')
+    })
+  }
+
+  const handleDrop = (dropIndex: number) => {
+    if (dragIndex === null || dragIndex === dropIndex) {
+      setDragIndex(null)
+      setDragOverIndex(null)
+      return
+    }
+
+    const nextWidgets = [...widgets]
+    ;[nextWidgets[dragIndex], nextWidgets[dropIndex]] = [nextWidgets[dropIndex], nextWidgets[dragIndex]]
+    setWidgets(nextWidgets)
+    saveLayout(nextWidgets.map((widget) => widget.id))
+    setDragIndex(null)
+    setDragOverIndex(null)
+  }
+
   if (loading) {
     return <div className="p-12 text-center text-slate-400 animate-pulse">Loading dashboard...</div>
   }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-      {widgets.map((widget) => (
-        <div key={widget.id} className={`${widget.size || 'col-span-1'}`}>
+      {widgets.map((widget, index) => (
+        <div
+          key={widget.id}
+          draggable={true}
+          onDragStart={() => setDragIndex(index)}
+          onDragOver={(event) => {
+            event.preventDefault()
+            setDragOverIndex(index)
+          }}
+          onDragLeave={() => {
+            if (dragOverIndex === index) setDragOverIndex(null)
+          }}
+          onDrop={() => handleDrop(index)}
+          onDragEnd={() => {
+            setDragIndex(null)
+            setDragOverIndex(null)
+          }}
+          className={`${widget.size || 'col-span-1'} cursor-grab transition-transform ${
+            dragIndex === index ? 'opacity-50 scale-95' : ''
+          } ${dragOverIndex === index && dragIndex !== index ? 'ring-2 ring-indigo-400' : ''}`}
+        >
           {widget.widget_type === 'stat' && <StatWidget widget={widget} />}
           {widget.widget_type === 'list' && <ListWidget widget={widget} />}
           {widget.widget_type === 'chart' && <ChartWidget widget={widget} />}

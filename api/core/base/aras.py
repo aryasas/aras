@@ -20,6 +20,33 @@ class Aras:
         from .model import Model
         return Model.computed_field(*args, **kwargs)
 
+    @staticmethod
+    def on_create(fn):
+        """
+        Decorator — marks a method as an on_create hook.
+        The method is called after a new record is committed. Signature: (self) -> None.
+        """
+        fn._aras_hook = "on_create"
+        return fn
+
+    @staticmethod
+    def on_update(fn):
+        """
+        Decorator — marks a method as an on_update hook.
+        The method is called after an existing record is committed. Signature: (self) -> None.
+        """
+        fn._aras_hook = "on_update"
+        return fn
+
+    @staticmethod
+    def on_delete(fn):
+        """
+        Decorator — marks a method as an on_delete hook.
+        The method is called just before deletion / soft-delete. Signature: (self) -> None.
+        """
+        fn._aras_hook = "on_delete"
+        return fn
+
     # Keep aliases for backward compatibility but mark as deprecated if possible
     # For now, let's just rename them to avoid the warning.
     # We will update the one usage found.

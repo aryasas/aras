@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Enable class-based dark mode so the toggle in uiStore works */
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-brand-indigo: #6366f1;
   --color-brand-slate: #64748b;
@@ -47,4 +50,11 @@ body {
   min-height: 100vh;
   background-color: var(--aras-bg-main);
   color: var(--color-brand-slate);
+}
+
+html.dark {
+  color: #f1f5f9;
+  background-color: #0f172a;
+  --aras-border: #1e293b;
+  --aras-bg-main: #020617;
 }

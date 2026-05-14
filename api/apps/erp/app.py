@@ -8,5 +8,6 @@ class ErpApp(Aras.App):
     app_label = "ERP System"
     description = "Core ERP modules including Products and Customers."
     icon = "Briefcase"
+    have_home = True
     
     models = [Product, Customer, Order, Category, ProductCategory]

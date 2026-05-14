@@ -13,6 +13,53 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Developer Tools"])
 
 
+# ── Handoff Runs CRUD ────────────────────────────────────────────────────────
+
+@router.post("/dev_handoff_runs", response_model=dict, status_code=201)
+async def create_handoff_run(
+    payload: Dict[str, Any],
+    db: Session = Depends(get_db),
+    _: Any = Depends(require_admin),
+):
+    from apps.dev.models import HandoffRun
+    valid = {k: v for k, v in payload.items() if hasattr(HandoffRun, k)}
+    run = HandoffRun(**valid)  # type: ignore[arg-type]
+    db.add(run)
+    db.commit()
+    db.refresh(run)
+    return run.to_dict()
+
+
+@router.get("/dev_handoff_runs", response_model=dict)
+async def list_handoff_runs(
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    _: Any = Depends(require_admin),
+):
+    from apps.dev.models import HandoffRun
+    runs = db.query(HandoffRun).order_by(HandoffRun.id.desc()).limit(limit).all()
+    return {"items": [r.to_dict() for r in runs], "total": len(runs)}
+
+
+@router.patch("/dev_handoff_runs/{run_id}", response_model=dict)
+async def patch_handoff_run(
+    run_id: int,
+    payload: Dict[str, Any],
+    db: Session = Depends(get_db),
+    _: Any = Depends(require_admin),
+):
+    from apps.dev.models import HandoffRun
+    run = db.get(HandoffRun, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    for k, v in payload.items():
+        if hasattr(run, k):
+            setattr(run, k, v)
+    db.commit()
+    db.refresh(run)
+    return run.to_dict()
+
+
 class TaskEnqueueRequest(Validation):
     task_name: str
     args: Optional[List[Any]] = []

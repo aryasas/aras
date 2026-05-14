@@ -89,6 +89,10 @@ async def generic_exception_handler(request: Request, exc: Exception):
         },
     )
 
+# Rate limiting — must be added before CORS so it applies to all routes
+from core.lib.rate_limiter import RateLimiterMiddleware
+app.add_middleware(RateLimiterMiddleware)
+
 # CORS — allow_origins=["*"] + allow_credentials=True violates the spec and is rejected by browsers
 app.add_middleware(
     CORSMiddleware,
@@ -111,6 +115,10 @@ app.include_router(Aras.api.dev.router, prefix="/api/v1/dev")
 app.include_router(Aras.api.registry.router, prefix="/api/v1")
 app.include_router(Aras.api.files.router, prefix="/api/v1")
 app.include_router(Aras.api.dashboard.router, prefix="/api/v1")
+
+# WebSocket — real-time push
+from core.api.websocket import router as ws_router
+app.include_router(ws_router, prefix="/api/v1")
 
 # Dynamic App Discovery & Route Registration
 Aras.logic.discovery.register_app_routes(app, prefix="/api/v1")
@@ -142,8 +150,8 @@ async def get_sidebar_data(_: Any = Depends(get_current_user)):
 
     # 1. Main Navigation Links
     sidebar = [
-        {"type": "link", "name": "dashboard", "label": "Dashboard", "icon": "LayoutDashboard", "path": "/dashboard"}, # Updated path
-        {"type": "link", "name": "settings", "label": "Settings", "icon": "Settings", "path": "/settings"},
+        {"type": "link", "name": "dashboard", "label": "Dashboard", "icon": "LayoutDashboard", "path": "/dashboard", "have_home": False},
+        {"type": "link", "name": "settings", "label": "Settings", "icon": "Settings", "path": "/settings", "have_home": False},
     ]
 
     # 2. Dynamic Apps
@@ -171,12 +179,46 @@ async def get_sidebar_data(_: Any = Depends(get_current_user)):
             "name": app_cls.app_name,
             "label": app_cls.app_label,
             "icon": app_cls.icon,
+            "have_home": app_cls.have_home,
             "models": models_list
         })
 
     sidebar.extend(apps_group)
 
     return sidebar
+
+
+@app.get("/api/v1/app-menu/{app_name}")
+async def get_app_menu(app_name: str, _: Any = Depends(get_current_user)):
+    """Returns app metadata and model menu for the topbar."""
+    from core.base.app import App
+    
+    # Find app class
+    app_cls = None
+    for _, cls in App._registry.items():
+        if cls.app_name == app_name:
+            app_cls = cls
+            break
+            
+    if not app_cls:
+        return {"error": "App not found"}, 404
+        
+    models_list = [
+        {
+            "name": m.__tablename__,
+            "label": getattr(m, "__title__", m.__tablename__.replace("_", " ").title()),
+            "path": f"/{app_cls.app_name}/{m.__tablename__}"
+        } for m in app_cls.models if m.__tablename__ not in ["auth_users", "sys_settings"]
+    ]
+    
+    return {
+        "app_name": app_cls.app_name,
+        "app_label": app_cls.app_label,
+        "icon": app_cls.icon,
+        "have_home": app_cls.have_home,
+        "models": models_list
+    }
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

@@ -4,7 +4,7 @@ import io
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, func
 from typing import List, Type, Any, Optional
 from pydantic import create_model, BaseModel
 
@@ -40,26 +40,43 @@ class RouterFactory(Router):
             fields = {}
             # System fields that are never part of the request body
             system_skip = {'id', 'created_at', 'updated_at', 'deleted_at', 'created_by', 'updated_by'}
-            
+
+            from pydantic import Field as PydanticField
+            import re as _re
+
             for column in model_class.__table__.columns:
                 if column.name in system_skip:
                     continue
-                
+
                 python_type = Any
                 try:
                     python_type = column.type.python_type
                 except:
                     python_type = str
-                
+
                 # Determine if the field is required
                 has_default = (
-                    column.nullable or 
-                    column.default is not None or 
+                    column.nullable or
+                    column.default is not None or
                     column.server_default is not None or
                     column.name == 'is_active'
                 )
-                
-                default_val = None if has_default else ...
+
+                # Pull declarative validation rules from Field(info={...})
+                info = column.info or {}
+                pydantic_kwargs = {}
+                if info.get("min_length") is not None:
+                    pydantic_kwargs["min_length"] = info["min_length"]
+                if info.get("max_length") is not None:
+                    pydantic_kwargs["max_length"] = info["max_length"]
+                if info.get("min_value") is not None:
+                    pydantic_kwargs["ge"] = info["min_value"]
+                if info.get("max_value") is not None:
+                    pydantic_kwargs["le"] = info["max_value"]
+                if info.get("pattern") is not None:
+                    pydantic_kwargs["pattern"] = info["pattern"]
+
+                default_val = PydanticField(None if has_default else ..., **pydantic_kwargs) if pydantic_kwargs else (None if has_default else ...)
                 fields[column.name] = (Optional[python_type] if has_default else python_type, default_val)
 
             from ..base.validation import Validation
@@ -290,17 +307,57 @@ class RouterFactory(Router):
 
         @router.delete("/{item_id}")
         async def delete_item(
-            item_id: int, 
-            db: Session = Depends(get_db), 
+            item_id: int,
+            db: Session = Depends(get_db),
             user: Any = Depends(check_permissions(model_class.__tablename__, "DELETE"))
         ):
             """Deletes or soft-deletes a record."""
             item = model_class.get(db, item_id)
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
-            
+
             item.delete_self(db, user_id=user.id)
             return {"message": "Deleted successfully", "id": item_id}
+
+        if getattr(model_class, "__soft_delete__", False):
+            @router.get("/deleted", tags=[getattr(model_class, "__title__", model_class.__tablename__)])
+            async def list_deleted(
+                page: int = Query(1, ge=1),
+                per_page: int = Query(20, ge=1, le=100),
+                db: Session = Depends(get_db),
+                user: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=False))
+            ):
+                """Lists only soft-deleted records."""
+                from sqlalchemy import select as sa_select
+                stmt = sa_select(model_class).where(model_class.deleted_at.isnot(None))
+                total = db.scalar(sa_select(func.count()).select_from(stmt.subquery()))
+                offset = (page - 1) * per_page
+                items = db.scalars(stmt.offset(offset).limit(per_page)).all()
+                return {
+                    "items": [i.to_dict() for i in items],
+                    "total": total,
+                    "page": page,
+                    "pages": (total + per_page - 1) // per_page
+                }
+
+            @router.post("/{item_id}/restore")
+            async def restore_item(
+                item_id: int,
+                db: Session = Depends(get_db),
+                user: Any = Depends(check_permissions(model_class.__tablename__, "UPDATE"))
+            ):
+                """Restores a soft-deleted record."""
+                from sqlalchemy import select as sa_select
+                item = db.scalar(sa_select(model_class).where(model_class.id == item_id))
+                if not item:
+                    raise HTTPException(status_code=404, detail="Item not found")
+                if item.deleted_at is None:
+                    raise HTTPException(status_code=400, detail="Record is not deleted")
+                item.deleted_at = None
+                item.updated_by = user.id
+                db.commit()
+                db.refresh(item)
+                return item.to_dict()
 
         @router.post("/bulk-delete")
         async def bulk_delete(
@@ -319,6 +376,53 @@ class RouterFactory(Router):
                     except Exception as e:
                         print(f"[Bulk Delete] Failed to delete item {item_id}: {e}")
             return {"message": f"Successfully deleted {deleted_count} items", "deleted_count": deleted_count}
+
+        class _BatchOp(BaseModel):
+            action: str  # "create" | "update" | "delete"
+            id: Optional[int] = None
+            data: Optional[dict] = None
+
+        @router.post("/batch")
+        async def batch_operations(
+            operations: List[_BatchOp],
+            db: Session = Depends(get_db),
+            user: Any = Depends(check_permissions(model_class.__tablename__, "UPDATE"))
+        ):
+            """Executes up to 100 mixed create/update/delete operations atomically."""
+            if len(operations) > 100:
+                raise HTTPException(status_code=400, detail="Batch limit is 100 operations")
+            results = []
+            try:
+                for op in operations:
+                    if op.action == "create":
+                        item = model_class.create(db, op.data or {}, user_id=user.id)
+                        results.append({"action": "create", "id": item.id, "status": "ok"})
+                    elif op.action == "update":
+                        if not op.id:
+                            raise HTTPException(status_code=400, detail="update requires id")
+                        item = model_class.get(db, op.id)
+                        if not item:
+                            results.append({"action": "update", "id": op.id, "status": "not_found"})
+                            continue
+                        item.update_self(db, op.data or {}, user_id=user.id)
+                        results.append({"action": "update", "id": op.id, "status": "ok"})
+                    elif op.action == "delete":
+                        if not op.id:
+                            raise HTTPException(status_code=400, detail="delete requires id")
+                        item = model_class.get(db, op.id)
+                        if not item:
+                            results.append({"action": "delete", "id": op.id, "status": "not_found"})
+                            continue
+                        item.delete_self(db, user_id=user.id)
+                        results.append({"action": "delete", "id": op.id, "status": "ok"})
+                    else:
+                        raise HTTPException(status_code=400, detail=f"Unknown action: {op.action}")
+            except HTTPException:
+                raise
+            except Exception as e:
+                db.rollback()
+                raise HTTPException(status_code=500, detail=str(e))
+            return {"results": results, "count": len(results)}
         
         # ── 3. Custom Model Actions ───────────────────────────────────────────
         for action_name, model_action in model_class._actions.items():

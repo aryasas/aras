@@ -21,6 +21,11 @@ interface Field {
   depends_on?: string; // Conditional visibility logic
   target_resource?: string;
   options?: { label: string; value: any }[];
+  min_length?: number;
+  max_length?: number;
+  min_value?: number;
+  max_value?: number;
+  pattern?: string;
 }
 
 interface WorkflowAction {
@@ -227,8 +232,41 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     }
   };
 
+  const validateClient = (): Record<string, string> => {
+    const errs: Record<string, string> = {};
+    if (!metadata) return errs;
+    for (const field of metadata.fields) {
+      if (!isFieldVisible(field)) continue;
+      const val = formData[field.name];
+      const empty = val === null || val === undefined || val === '';
+      if (field.required && empty) {
+        errs[field.name] = `${field.label} is required`;
+        continue;
+      }
+      if (empty) continue;
+      const str = String(val);
+      if (field.min_length !== undefined && str.length < field.min_length)
+        errs[field.name] = `Minimum ${field.min_length} characters`;
+      else if (field.max_length !== undefined && str.length > field.max_length)
+        errs[field.name] = `Maximum ${field.max_length} characters`;
+      else if (field.min_value !== undefined && Number(val) < field.min_value)
+        errs[field.name] = `Minimum value is ${field.min_value}`;
+      else if (field.max_value !== undefined && Number(val) > field.max_value)
+        errs[field.name] = `Maximum value is ${field.max_value}`;
+      else if (field.pattern && !new RegExp(field.pattern).test(str))
+        errs[field.name] = `Invalid format`;
+    }
+    return errs;
+  };
+
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    const clientErrors = validateClient();
+    if (Object.keys(clientErrors).length > 0) {
+      setErrors(clientErrors);
+      notify('Please correct validation errors', 'error');
+      return;
+    }
     try {
       setSaving(true);
       const cleanResource = cleanResourcePath(resource);

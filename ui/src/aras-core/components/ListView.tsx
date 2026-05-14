@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import api from '../../lib/api'
 import { cleanResourcePath } from '../../lib/resourceUtils'
-import { 
-  Search, Filter, Plus, ChevronLeft, ChevronRight, 
-  Settings, Trash2, CheckSquare, Square, X, 
-  ChevronDown, ChevronUp, Download, Upload
+import {
+  Search, Filter, Plus, ChevronLeft, ChevronRight,
+  Settings, Trash2, CheckSquare, Square, X,
+  ChevronDown, ChevronUp, Download, Upload, Edit3
 } from 'lucide-react'
 import { FormattingService } from '../services/FormattingService'
 import { useAras } from '../hooks/useAras'
@@ -61,6 +61,13 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const [visibleColumns, setVisibleColumns] = useState<string[]>([])
   const [isColumnPickerOpen, setIsColumnPickerOpen] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [bulkEditOpen, setBulkEditOpen] = useState(false)
+  const [bulkEditField, setBulkEditField] = useState('')
+  const [bulkEditValue, setBulkEditValue] = useState<any>('')
+  const [bulkEditing, setBulkEditing] = useState(false)
+  // Inline editing: { rowId, fieldName, value }
+  const [inlineEdit, setInlineEdit] = useState<{ rowId: number; field: string; value: any } | null>(null)
+  const inlineInputRef = useRef<HTMLInputElement>(null)
 
   const showPanel = useUIStore(state => state.showPanel)
   const closePanel = useUIStore(state => state.closePanel)
@@ -150,6 +157,40 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
       } catch (err: any) {
         notify(err.response?.data?.message || "Failed to delete items", 'error')
       }
+    }
+  }
+
+  const handleBulkEditSubmit = async () => {
+    if (!bulkEditField) { notify('Select a field to edit', 'error'); return }
+    setBulkEditing(true)
+    try {
+      const operations = selectedIds.map(id => ({
+        action: 'update',
+        id,
+        data: { [bulkEditField]: bulkEditValue }
+      }))
+      await api.post(`/${cleanResourcePath(resource)}/batch`, operations)
+      notify(`Updated ${selectedIds.length} records`, 'success')
+      setBulkEditOpen(false)
+      setBulkEditField('')
+      setBulkEditValue('')
+      setSelectedIds([])
+      fetchData()
+    } catch (err: any) {
+      notify(err.response?.data?.detail || 'Bulk update failed', 'error')
+    } finally {
+      setBulkEditing(false)
+    }
+  }
+
+  const handleInlineSave = async () => {
+    if (!inlineEdit) return
+    try {
+      await api.patch(`/${cleanResourcePath(resource)}/${inlineEdit.rowId}`, { [inlineEdit.field]: inlineEdit.value })
+      setInlineEdit(null)
+      fetchData()
+    } catch (err: any) {
+      notify(err.response?.data?.detail || 'Save failed', 'error')
     }
   }
 
@@ -266,6 +307,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const visibleFields = fields.filter(f => visibleColumns.includes(f.name))
 
   return (
+    <>
     <div className="flex flex-col h-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       {/* ── Toolbar ────────────────────────────────────────────────────────── */}
       <div className="p-4 border-b border-slate-100 space-y-4">
@@ -293,13 +335,22 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
 
           <div className="flex items-center gap-2">
             {selectedIds.length > 0 && (
-              <button 
-                onClick={handleDeleteBulk}
-                className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-sm font-bold hover:bg-rose-100 transition-all"
-              >
-                <Trash2 size={18} />
-                <span>Delete ({selectedIds.length})</span>
-              </button>
+              <>
+                <button
+                  onClick={() => setBulkEditOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-all"
+                >
+                  <Edit3 size={18} />
+                  <span>Edit ({selectedIds.length})</span>
+                </button>
+                <button
+                  onClick={handleDeleteBulk}
+                  className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-sm font-bold hover:bg-rose-100 transition-all"
+                >
+                  <Trash2 size={18} />
+                  <span>Delete ({selectedIds.length})</span>
+                </button>
+              </>
             )}
 
             <button 
@@ -482,11 +533,40 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                       {selectedIds.includes(item.id) ? <CheckSquare size={18} /> : <Square size={18} />}
                     </button>
                   </td>
-                  {visibleFields.map(field => (
-                    <td key={field.name} className="px-6 py-4 text-sm text-slate-600 font-medium">
-                       {renderCellValue(item[`${field.name}_label`] ?? item[field.name], field.type)}
-                    </td>
-                  ))}
+                  {visibleFields.map(field => {
+                    const isInline = inlineEdit?.rowId === item.id && inlineEdit?.field === field.name
+                    const inlineTypes = ['text', 'string', 'number', 'integer', 'email', 'url']
+                    const canInline = !field.read_only && inlineTypes.includes(field.type)
+                    return (
+                      <td
+                        key={field.name}
+                        className="px-6 py-4 text-sm text-slate-600 font-medium"
+                        onDoubleClick={(e) => {
+                          if (!canInline) return
+                          e.stopPropagation()
+                          setInlineEdit({ rowId: item.id, field: field.name, value: item[field.name] ?? '' })
+                          setTimeout(() => inlineInputRef.current?.select(), 30)
+                        }}
+                      >
+                        {isInline ? (
+                          <input
+                            ref={inlineInputRef}
+                            type={field.type === 'number' || field.type === 'integer' ? 'number' : 'text'}
+                            className="w-full border-b-2 border-indigo-400 bg-indigo-50 rounded px-1 py-0.5 text-sm outline-none"
+                            value={inlineEdit.value}
+                            onChange={e => setInlineEdit(prev => prev ? { ...prev, value: e.target.value } : prev)}
+                            onBlur={handleInlineSave}
+                            onKeyDown={e => { if (e.key === 'Enter') handleInlineSave(); if (e.key === 'Escape') setInlineEdit(null); }}
+                            onClick={e => e.stopPropagation()}
+                          />
+                        ) : (
+                          <span title={canInline ? 'Double-click to edit' : undefined} className={canInline ? 'cursor-text' : ''}>
+                            {renderCellValue(item[`${field.name}_label`] ?? item[field.name], field.type)}
+                          </span>
+                        )}
+                      </td>
+                    )
+                  })}
                 </tr>
               ))
             )}
@@ -547,6 +627,59 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         </div>
       </div>
     </div>
+
+    {/* Bulk Edit Modal */}
+    {bulkEditOpen && (
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-extrabold text-slate-900">Bulk Edit — {selectedIds.length} rows</h3>
+            <button onClick={() => setBulkEditOpen(false)} className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-500 transition-all">
+              <X size={18} />
+            </button>
+          </div>
+          <p className="text-sm text-slate-500">Choose a field and set a new value for all selected rows.</p>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-bold text-slate-600 mb-1 block">Field</label>
+              <select
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                value={bulkEditField}
+                onChange={e => setBulkEditField(e.target.value)}
+              >
+                <option value="">— Select field —</option>
+                {(metadata?.fields ?? []).filter(f => !f.read_only && !f.hidden && !['id','created_at','updated_at','created_by','updated_by'].includes(f.name)).map(f => (
+                  <option key={f.name} value={f.name}>{f.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-600 mb-1 block">New Value</label>
+              <input
+                type="text"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                value={bulkEditValue}
+                onChange={e => setBulkEditValue(e.target.value)}
+                placeholder="Enter new value..."
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button onClick={() => setBulkEditOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all">
+              Cancel
+            </button>
+            <button
+              onClick={handleBulkEditSubmit}
+              disabled={bulkEditing || !bulkEditField}
+              className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all"
+            >
+              {bulkEditing ? 'Saving…' : 'Apply'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
 
