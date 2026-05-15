@@ -1,14 +1,19 @@
-from fastapi import APIRouter, Depends, Body, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import Dict, Any, TYPE_CHECKING
+from typing import Any
 
-if TYPE_CHECKING:
-    from ..aras import Aras
-    
 from ..lib.database import get_db
 from ..auth.service import get_current_user
 
 router = APIRouter(tags=["Workflow API"])
+
+
+@router.get("/handlers")
+async def list_handlers(_: Any = Depends(get_current_user)):
+    """Returns all registered workflow handler names and descriptions."""
+    from ..logic.handler_registry import HandlerRegistry
+    return HandlerRegistry.list_handlers()
+
 
 @router.get("/{resource_name}/{item_id}/actions")
 async def get_actions(
@@ -17,10 +22,9 @@ async def get_actions(
     db: Session = Depends(get_db),
     current_user: Any = Depends(get_current_user)
 ):
-    """Get available workflow actions for an item."""
     from ..base.model import Model
     from ..manager.workflow_manager import WorkflowManager
-    
+
     model_class = Model._registry.get(resource_name)
     if not model_class:
         raise HTTPException(status_code=404, detail="Resource not found")
@@ -29,8 +33,8 @@ async def get_actions(
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
 
-    actions = WorkflowManager.get_available_actions(item, current_user)
-    return actions
+    return WorkflowManager.get_available_actions(item, current_user, db=db)
+
 
 @router.post("/{resource_name}/{item_id}/action/{action_name}")
 async def trigger_action(
@@ -40,9 +44,6 @@ async def trigger_action(
     db: Session = Depends(get_db),
     current_user: Any = Depends(get_current_user)
 ):
-    """
-    Trigger a workflow action on a specific resource item.
-    """
     from ..base.model import Model
     from ..manager.workflow_manager import WorkflowManager
 
@@ -67,4 +68,3 @@ async def trigger_action(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Workflow error: {str(e)}")
-

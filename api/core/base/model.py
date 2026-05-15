@@ -340,14 +340,49 @@ class Model(Aras, Base):
                 mapping = {row[0]: row[1] for row in db.execute(
                     select(link_col, display_col_obj).where(link_col.in_(list(ids)))
                 ).all()}
-                
+
                 for item in items:
                     val = item.get(col.name)
                     if val in mapping:
                         item[f"{col.name}_label"] = mapping[val]
             except Exception as e:
-                # Log error or silently skip if target column doesn't exist/query fails
                 print(f"[Model] Warning: Failed to resolve labels for {cls.__tablename__}.{col.name}: {e}")
+
+        # Auto-resolve remaining FK columns that still lack a _label
+        already_resolved = {f"{col.name}_label" for col in cls.__table__.columns if col.info.get("display_column")}
+        for col in cls.__table__.columns:
+            if not col.foreign_keys: continue
+            if col.info.get("display_column"): continue
+            col_label_key = f"{col.name}_label"
+            if col_label_key in already_resolved: continue
+            if items and col_label_key in items[0]: continue
+
+            target_table = list(col.foreign_keys)[0].column.table.name
+            table = cls.metadata.tables.get(target_table)
+            if table is None: continue
+
+            display_col_obj = None
+            for candidate in ("name", "code", "title", "label"):
+                if candidate in table.columns:
+                    display_col_obj = table.columns[candidate]
+                    break
+            if display_col_obj is None: continue
+
+            ids = {item[col.name] for item in items if item.get(col.name) is not None}
+            if not ids: continue
+
+            try:
+                id_col = table.columns.get("id")
+                if id_col is None: continue
+                mapping = {row[0]: row[1] for row in db.execute(
+                    select(id_col, display_col_obj).where(id_col.in_(list(ids)))
+                ).all()}
+                for item in items:
+                    val = item.get(col.name)
+                    if val in mapping:
+                        item[col_label_key] = mapping[val]
+            except Exception:
+                pass
 
     @classmethod
     def resolve_m2m(cls, db: Session, items: List[dict]):

@@ -1,13 +1,20 @@
 from ..app import ERP
 from .models import Company, Currency, Uom, PriceType, Charge, ExchangeRate, Setting, ModeOfPayment, CompanyPaymentAccount, PrintTemplate, Notification
-from . import views # Trigger view registration
+from .workflow_models import WorkflowTemplate, WorkflowState, WorkflowTransition, WorkflowAction
+from core.registry.series import Series
+from . import views  # Trigger view registration
 
 class Config(ERP):
     app_name = "erp_config"
     app_label = "ERP Settings"
     icon = "Settings"
 
-    models = [Company, Currency, Uom, PriceType, Charge, ExchangeRate, Setting, ModeOfPayment, CompanyPaymentAccount, PrintTemplate, Notification]
+    models = [
+        Company, Currency, Uom, PriceType, Charge, ExchangeRate, Setting,
+        ModeOfPayment, CompanyPaymentAccount, PrintTemplate, Notification,
+        WorkflowTemplate, WorkflowState, WorkflowTransition, WorkflowAction,
+        Series,
+    ]
 
     menu_groups = [
         {
@@ -26,9 +33,23 @@ class Config(ERP):
             "models": ["erp_config_uoms"]
         },
         {
+            "label": "Workflow",
+            "icon": "GitBranch",
+            "models": [
+                "erp_config_workflow_templates",
+                "erp_config_workflow_states",
+                "erp_config_workflow_transitions",
+                "erp_config_workflow_actions",
+            ]
+        },
+        {
+            "label": "Series",
+            "icon": "Hash",
+            "models": ["aras_naming_series"]
+        },
+        {
             "label": "System Tools",
             "icon": "Activity",
             "models": ["erp_config_print_templates", "erp_config_notifications"]
-        }
+        },
     ]
-

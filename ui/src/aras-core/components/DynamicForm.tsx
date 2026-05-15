@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
 import { useAuthStore } from '../../store/authStore';
@@ -61,6 +62,7 @@ interface LayoutSection {
 
 interface Metadata {
   resource: string;
+  api_path?: string;
   title: string;
   fields: Field[];
   children?: Array<{ resource: string; fk_column?: string | null }>;
@@ -76,6 +78,7 @@ interface DynamicFormProps {
   onSave?: (data: any) => void;
   onCancel?: () => void;
   initialData?: any;
+  parentResourceTitle?: string;
 }
 
 export const DynamicForm: React.FC<DynamicFormProps> = ({
@@ -83,7 +86,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   id,
   onSave,
   onCancel,
-  initialData
+  initialData,
+  parentResourceTitle
 }) => {
   const { activeCompanyId, companies } = useAuthStore();
   const [metadata, setMetadata] = useState<Metadata | null>(null);
@@ -95,6 +99,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const [actionDialog, setActionDialog] = useState<{ action: ModelAction; inputData: Record<string, any> } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [childRows, setChildRows] = useState<Record<string, any[]>>({});
+  const [resourceSubtitle, setResourceSubtitle] = useState<string | null>(parentResourceTitle ?? null);
+  const [searchParams] = useSearchParams();
   // currentId tracks the actual persisted record ID — updated after POST so child tables appear immediately
   const [currentId, setCurrentId] = useState<number | string | undefined>(() =>
     id != null && id !== 'new' ? id : undefined
@@ -118,8 +124,27 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         const meta = metaRes.data;
         setMetadata(meta);
 
+        const queryResource = searchParams.get('resource');
+        if (queryResource && cleanResource.replace(/-/g, '_') === 'aras_fields') {
+          try {
+            const queryResourcePath = queryResource.replace(/_/g, '-');
+            let resourceMeta;
+            try {
+              resourceMeta = await api.get(`/metadata/${queryResourcePath}`);
+            } catch {
+              resourceMeta = await api.get(`/metadata/${queryResource}`);
+            }
+            setResourceSubtitle(resourceMeta.data?.title || queryResource);
+          } catch {
+            setResourceSubtitle(queryResource);
+          }
+        } else {
+          setResourceSubtitle(parentResourceTitle ?? null);
+        }
+
         if (id != null && id !== 'new') {
-          const dataRes = await api.get(`/${cleanResource}/${id}`);
+          const resourceApiPath = meta.api_path || cleanResource;
+          const dataRes = await api.get(`/${resourceApiPath}/${id}`);
           setFormData(dataRes.data);
 
           // Load existing child rows for every child_table field
@@ -128,11 +153,13 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             const childData: Record<string, any[]> = {};
             await Promise.all(childFields.map(async (f: any) => {
               try {
-                const childRes = cleanResourcePath(f.target_resource);
-                const fkKey = f.fk_column || `${cleanResource.split('/').pop()}_id`;
-                const res = await api.get(`/${childRes}?${fkKey}=${id}&limit=500`);
+                const childRes = f.target_api_path || cleanResourcePath(f.target_resource);
+                const fkKey = f.fk_column || `${resourceApiPath.split('/').pop()}_id`;
+                const filters = JSON.stringify([{ field: fkKey, op: '=', value: id }]);
+                const res = await api.get(`/${childRes}`, { params: { filters, per_page: 500 } });
                 childData[f.name] = res.data?.items ?? res.data ?? [];
-              } catch {
+              } catch (err) {
+                console.error('Child load failed', f.name, err);
                 childData[f.name] = [];
               }
             }));
@@ -181,7 +208,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       }
     };
     init();
-  }, [resource, id, notify, initialData, refreshTrigger]);
+  }, [resource, id, notify, initialData, refreshTrigger, searchParams, parentResourceTitle]);
 
   const handleChange = (name: string, value: any) => {
     setFormData((prev: any) => ({ ...prev, [name]: value }));
@@ -239,6 +266,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                  <DynamicForm 
                    resource="aras_fields" 
                    id={fieldId} 
+                   parentResourceTitle={metadata.title}
                    onSave={() => {
                      notify("Field customized. Refresh to see changes.", "success");
                      setRefreshTrigger(prev => prev + 1);
@@ -339,7 +367,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     }
     try {
       setSaving(true);
-      const cleanResource = cleanResourcePath(resource);
+      const cleanResource = metadata?.api_path || cleanResourcePath(resource);
       const payload = { ...formData };
       let res;
       if (currentId != null) {
@@ -353,8 +381,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       for (const [fieldName, rows] of Object.entries(childRows)) {
         const childField = metadata?.fields.find(f => f.name === fieldName);
         if (!childField?.target_resource || rows.length === 0) continue;
-        const fkKey = childField.fk_column || `${metadata?.resource}_id`;
-        const childRes = cleanResourcePath(childField.target_resource);
+        const fkKey = childField.fk_column || `${cleanResource.split('/').pop()}_id`;
+        const childRes = (childField as any).target_api_path || cleanResourcePath(childField.target_resource);
         for (const row of rows) {
           if (row.id) {
             await api.patch(`/${childRes}/${row.id}`, { ...row, [fkKey]: savedId });
@@ -398,11 +426,13 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     
     // Handle Child Tables inline
     if (field.type === 'child_table') {
-      const fkKey = field.fk_column || `${metadata?.resource}_id`;
+      const parentApiPath = metadata?.api_path || cleanResourcePath(resource);
+      const fkKey = field.fk_column || `${parentApiPath.split('/').pop()}_id`;
+      const childApiPath = (field as any).target_api_path || cleanResourcePath(field.target_resource!);
       return (
         <InlineChildTable
           key={`${field.name}-${refreshTrigger}`}
-          childResource={field.target_resource!}
+          childResource={childApiPath}
           fkColumn={fkKey}
           parentId={currentId}
           rows={childRows[field.name] ?? []}
@@ -473,7 +503,9 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                 </span>
               )}
             </div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-widest">Resource: {resource}</p>
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-widest">
+              Resource: {resourceSubtitle || resource}
+            </p>
           </div>
         </div>
         
@@ -619,7 +651,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
               (cleanResourcePath(f.target_resource || '') === cleanResourcePath(child.resource) || cleanResourcePath(f.name) === cleanResourcePath(child.resource))
             ))
             .map((child) => {
-              const fkKey = child.fk_column || `${metadata.resource}_id`;
+              const parentResourceKey = cleanResourcePath(metadata.resource).split('/').pop();
+              const fkKey = child.fk_column || `${parentResourceKey}_id`;
               return (
                 <InlineChildTable
                   key={`${child.resource}-${refreshTrigger}`}

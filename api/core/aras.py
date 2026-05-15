@@ -39,6 +39,10 @@ from .manager.sync_manager import SyncManager
 from .manager.audit_manager import AuditManager
 from .manager.workflow_manager import WorkflowManager
 
+# Register built-in workflow handlers (import triggers registration)
+from .logic.handler_registry import HandlerRegistry
+from .logic import builtin_handlers as _builtin_handlers  # noqa: F401
+
 # 5. Tiers (lib, logic, api)
 from . import lib
 from . import logic
@@ -82,7 +86,8 @@ class Aras(BaseAras):
     Permission = Permission
     UserRole = UserRole
     WidgetModel = WidgetModel
-    
+    HandlerRegistry = HandlerRegistry
+
     # Database Layer
     db = lib.database.SessionLocal
     get_db = lib.database.get_db

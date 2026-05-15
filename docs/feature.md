@@ -271,3 +271,7 @@ This document outlines the key features and architectural components of the Aras
 - [Claude Sonnet 4.6] Added `api/seed_random_invoices.py` — generates N random sales/purchase invoices from real DB data (customers, suppliers, products, pricelists), with `--count` and `--post` flags
 - [Claude Sonnet 4.6] Fixed `ui/src/aras-core/components/DynamicForm.tsx` — on edit load, fetch existing child rows from each `child_table` field's resource endpoint using FK filter; journal entry lines (and all other child tables) now display correctly in edit forms
 - [Claude Sonnet 4.6] Fixed `apps/erp/accounting/models.py` — `SalesInvoice.amount_paid` and `PurchaseInvoice.amount_paid` computed fields crashed with "no attribute allocations"; rewrote to query `PaymentAllocation` via session using `invoice_type` + `invoice_id` filter
+
+
+## Workflow Engine (DB-driven) + FK Label Fix + Child Table Fix + Series Sub-module + Field Customization Fix + App Manager Sub-module Fix — revision (2026-05-16)
+  - [Codex/GPT-5.5] AppManager groups sub-modules under parent apps; inline child lookup cells use combobox options

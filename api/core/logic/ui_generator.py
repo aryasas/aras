@@ -127,6 +127,20 @@ class UIGenerator(Service):
             }
             fields.append(field_info)
 
+        # Helper: resolve REST API path for any table name
+        from ..base.app import App as _App
+        def resolve_api_path(tablename: str) -> Optional[str]:
+            for a in _App._registry.values():
+                for m in a.models:
+                    if getattr(m, "__tablename__", None) == tablename:
+                        seg = tablename
+                        if a.app_name and seg.startswith(f"{a.app_name}_"):
+                            seg = seg[len(a.app_name)+1:]
+                        elif a.parent_name and seg.startswith(f"{a.parent_name}_"):
+                            seg = seg[len(a.parent_name)+1:]
+                        return f"{a._get_clean_path()}/{seg.replace('_', '-')}".lstrip("/")
+            return None
+
         # 4. Include Many-to-Many (Bridge) and Child Table Fields
         if db and db_resource:
             from ..registry.link_model import LinkModel
@@ -178,6 +192,7 @@ class UIGenerator(Service):
                         "type": "child_table",
                         "required": False,
                         "target_resource": target_res.name,
+                        "target_api_path": resolve_api_path(target_res.name),
                         "fk_column": fk_col,
                         "options": None,
                         "hidden": False,
@@ -238,20 +253,22 @@ class UIGenerator(Service):
             })
 
         # Find the app for this model to use its clean label logic
-        from ..base.app import App
         app_cls = None
-        for a in App._registry.values():
+        for a in _App._registry.values():
             if model_class in a.models:
                 app_cls = a
                 break
-        
+
         def clean_label(name):
             if app_cls:
                 return app_cls._get_clean_label(name)
             return name.replace("_", " ").title()
 
+        api_path = resolve_api_path(resource_name)
+
         metadata = {
             "resource": resource_name,
+            "api_path": api_path,
             "title": db_resource.title if db_resource and db_resource.title else \
                      getattr(model_class, "__title__", clean_label(resource_name)),
             "fields": fields,

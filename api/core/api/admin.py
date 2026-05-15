@@ -28,7 +28,8 @@ async def get_apps_list(db: Session = Depends(get_db), _: Any = Depends(require_
             **manifest,
             "is_installed": db_record is not None,
             "is_active": db_record.is_active if db_record else False,
-            "is_registered": db_record is not None
+            "is_registered": db_record is not None,
+            "is_sub_module": bool(manifest.get("parent_name")),
         })
 
     return results

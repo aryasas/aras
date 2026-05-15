@@ -131,6 +131,9 @@ export default function AppManager() {
     fetchApps()
   }, [])
 
+  const rootApps = apps.filter(app => !app.parent_name)
+  const subModules = apps.filter(app => app.parent_name)
+
   return (
     <div className="p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center justify-between mb-8">
@@ -161,8 +164,12 @@ export default function AppManager() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {apps.map(app => (
-          <AppCard key={app.name} app={app} />
+        {rootApps.map(app => (
+          <AppCard
+            key={app.name}
+            app={app}
+            subModules={subModules.filter(sub => sub.parent_name === app.name)}
+          />
         ))}
         
         {/* Placeholder for "Add New" */}
@@ -286,7 +293,7 @@ export default function AppManager() {
   )
 }
 
-function AppCard({ app }: { app: AppManifest }) {
+function AppCard({ app, subModules }: { app: AppManifest; subModules: AppManifest[] }) {
   // @ts-ignore
   const Icon = Icons[app.icon] || Icons.Package
   const isActive = app.is_active !== false
@@ -309,11 +316,6 @@ function AppCard({ app }: { app: AppManifest }) {
         
         <h3 className="text-xl font-black text-slate-900 mb-2 flex items-center gap-2">
           {app.label}
-          {app.parent_name && (
-            <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded border border-slate-300 uppercase tracking-tighter">
-              Sub of {app.parent_name}
-            </span>
-          )}
         </h3>
         <p className="text-slate-500 text-sm leading-relaxed mb-6 line-clamp-2">
           {app.description || 'No description provided for this application.'}
@@ -336,6 +338,18 @@ function AppCard({ app }: { app: AppManifest }) {
               </span>
             )}
           </div>
+          {subModules.length > 0 && (
+            <div className="pt-3 border-t border-slate-100">
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Sub-modules</div>
+              <div className="flex flex-wrap gap-1">
+                {subModules.map(sub => (
+                  <span key={sub.name} className="px-2 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-md border border-indigo-100">
+                    {sub.label || sub.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
       
