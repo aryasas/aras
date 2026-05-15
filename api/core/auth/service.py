@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from ..lib.database import get_db
 from ..lib.settings import settings
-from ..logic.scope import ScopeContext, scope_from_user
 from .models import User
 
 ALGORITHM = settings.ALGORITHM
@@ -62,10 +61,13 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
 
-    # Surface scope on request.state.scope. Prefer the JWT scope claim;
-    # fall back to user attributes when the token is from a legacy login.
-    scope_claim = payload.get("scope") if isinstance(payload, dict) else None
-    request.state.scope = ScopeContext(scope_claim) if scope_claim else scope_from_user(user)
+    from ..logic.scope import ScopeContext
+    raw = {k: int(v) for k, v in request.headers.items() if k.lower().startswith("x-scope-") and v.isdigit()}
+    cid = int(request.headers.get("X-Company-ID", 0) or 0)
+    if cid:
+        raw["company_id"] = cid
+    request.state.scope = ScopeContext(raw)
+    request.state.company_id = cid  # backwards compat
     return user
 
 

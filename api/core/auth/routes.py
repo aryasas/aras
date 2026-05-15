@@ -43,40 +43,26 @@ async def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    scope = {"company_id": user.current_company_id} if user.current_company_id is not None else {}
     access_token = create_access_token(
-        data={"sub": user.username, "scope": scope},
+        data={"sub": user.username},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-class SwitchScopeRequest(Validation):
-    company_id: int
-
-
-@router.post("/switch-scope")
-async def switch_scope(
-    data: SwitchScopeRequest,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """Re-issue a JWT with the requested scope. Future work: validate access via membership table."""
-    current_user.current_company_id = data.company_id
-    db.commit()
-    access_token = create_access_token(
-        data={"sub": current_user.username, "scope": {"company_id": data.company_id}},
-        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
-    )
-    return {"access_token": access_token, "token_type": "bearer", "scope": {"company_id": data.company_id}}
-
 @router.get("/me")
-async def read_users_me(current_user: User = Depends(get_current_user)):
+async def read_users_me(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from ..logic.permissions import RBAC
+    companies = RBAC.get_user_companies(db, current_user)
     return {
         "id": current_user.id,
         "username": current_user.username,
         "email": current_user.email,
-        "is_admin": current_user.is_admin
+        "is_admin": current_user.is_admin,
+        "companies": companies,
     }
 
 @router.post("/change-password")

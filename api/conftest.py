@@ -8,12 +8,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Override settings before importing the app
-os.environ.setdefault("SQLALCHEMY_DATABASE_URI", "sqlite:///./test_aras.db")
-os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-production")
-os.environ.setdefault("ARAS_ADMIN_PASSWORD", "testadmin123")
-os.environ.setdefault("ARAS_MODE", "development")
-os.environ.setdefault("CORS_ORIGINS", "http://localhost:5173")
-os.environ.setdefault("APP_NAME", "Aras Test")
+os.environ.setdefault("ARAS_MODE", "testing")
 
 
 @pytest.fixture(scope="session")

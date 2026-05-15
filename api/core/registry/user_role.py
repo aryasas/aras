@@ -3,6 +3,7 @@ Purpose: Bridge table linking Users to Roles.
 Context: Part of Aras.Registry namespace. Level 3 implementation.
 Impact: Enables many-to-many relationship between users and roles.
 """
+from typing import Optional
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from ..base.model import Model
@@ -15,3 +16,5 @@ class UserRole(Model):
 
     user_id: Mapped[int] = mapped_column(ForeignKey("auth_users.id"))
     role_id: Mapped[int] = mapped_column(ForeignKey("auth_roles.id"))
+    company_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_companies.id"), nullable=True, index=True)
+

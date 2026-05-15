@@ -68,6 +68,7 @@ class Aras(BaseAras):
     Column = Field # Alias for backward compatibility
     Validation = Validation
     Manager = Manager
+    Service = Service
     
     # Registry Models (Level 3)
     AppModel = AppModel

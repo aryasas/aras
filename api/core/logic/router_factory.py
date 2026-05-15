@@ -11,37 +11,63 @@ from pydantic import create_model, BaseModel
 from ..lib.database import get_db
 from ..auth.service import get_current_user
 from ..logic.permissions import check_permissions
+from ..logic.scope import ScopeContext
 from ..base.router import Router
 
 
-def _scope_filters(model_class) -> list[tuple[str, Any]]:
-    """Returns the [(col_name, fk_table), ...] declared by __scoped_by__."""
-    return list(getattr(model_class, "__scoped_by__", None) or [])
+def _scope_fields(model_class: Type[Any]) -> list[str]:
+    """Return the list of scope field names declared on a model via __scoped_by__."""
+    raw = getattr(model_class, "__scoped_by__", None) or []
+    result = []
+    for item in raw:
+        # supports both ("company_id", "table") tuples and plain "company_id" strings
+        result.append(item[0] if isinstance(item, (list, tuple)) else item)
+    return result
 
 
-def _apply_scope(stmt, model_class, request: Request):
-    """Append WHERE col = current_scope[col] for each __scoped_by__ entry."""
-    scope = getattr(getattr(request, "state", None), "scope", None)
+def _get_scope(request: Request) -> ScopeContext:
+    return getattr(getattr(request, "state", None), "scope", None) or ScopeContext()
+
+
+def _apply_scope_filters(model_class: Type[Any], request: Request, parsed_filters: list) -> list:
+    scope = _get_scope(request)
     if not scope:
-        return stmt
-    for col_name, _fk in _scope_filters(model_class):
-        val = scope.get(col_name)
-        if val is None or not hasattr(model_class, col_name):
-            continue
-        stmt = stmt.where(getattr(model_class, col_name) == val)
-    return stmt
+        return parsed_filters
+    col_names = {c.name for c in model_class.__table__.columns}
+    for field in _scope_fields(model_class):
+        val = scope.get(field)
+        if val is not None and field in col_names:
+            parsed_filters.append({"field": field, "op": "=", "value": val})
+    return parsed_filters
 
 
-def _inject_scope_payload(data: dict, model_class, request: Request) -> dict:
-    """Override scope keys on the request payload with values from request.state.scope."""
-    scope = getattr(getattr(request, "state", None), "scope", None)
-    if not scope:
-        return data
-    for col_name, _fk in _scope_filters(model_class):
-        val = scope.get(col_name)
+def _inject_scope_payload(model_class: Type[Any], request: Request, payload: dict) -> dict:
+    scope = _get_scope(request)
+    for field in _scope_fields(model_class):
+        val = scope.get(field)
         if val is not None:
-            data[col_name] = val
-    return data
+            payload[field] = val
+        elif not payload.get(field):
+            col_names = {c.name for c in model_class.__table__.columns}
+            if field in col_names:
+                col = model_class.__table__.c[field]
+                if not col.nullable and col.default is None and col.server_default is None:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"No active scope for '{field}'. Please select a context first."
+                    )
+    return payload
+
+
+def _check_scope_ownership(model_class: Type[Any], request: Request, item: Any):
+    scope = _get_scope(request)
+    if not scope:
+        return
+    for field in _scope_fields(model_class):
+        val = scope.get(field)
+        if val is not None and getattr(item, field, None) != val:
+            raise HTTPException(status_code=404, detail="Item not found")
+
 
 class RouterFactory(Router):
     """
@@ -94,10 +120,12 @@ class RouterFactory(Router):
                     python_type = _Literal[tuple(_choices)]  # type: ignore[valid-type]
 
                 # Determine if the field is required
+                is_form_hidden = info.get("form_hidden", False)
                 has_default = (
                     column.nullable or
                     column.default is not None or
-                    column.server_default is not None
+                    column.server_default is not None or
+                    is_form_hidden
                 )
 
                 pydantic_kwargs = {}
@@ -193,15 +221,7 @@ class RouterFactory(Router):
                 except:
                     raise HTTPException(status_code=400, detail="Invalid filters format. Must be JSON.")
 
-            # Apply scope filter via parsed_filters expansion: paginate() already
-            # supports filters, so we inject scope values as equality filters.
-            scope = getattr(getattr(request, "state", None), "scope", None)
-            if scope and _scope_filters(model_class):
-                parsed_filters = list(parsed_filters or [])
-                for col_name, _fk in _scope_filters(model_class):
-                    val = scope.get(col_name)
-                    if val is not None and hasattr(model_class, col_name):
-                        parsed_filters.append({"field": col_name, "op": "=", "value": val})
+            parsed_filters = _apply_scope_filters(model_class, request, list(parsed_filters or []))
 
             return model_class.paginate(
                 db,
@@ -304,7 +324,7 @@ class RouterFactory(Router):
             user: Any = Depends(check_permissions(model_class.__tablename__, "CREATE"))
         ):
             """Creates a new record with hooks support."""
-            payload = _inject_scope_payload(data.model_dump(), model_class, request)
+            payload = _inject_scope_payload(model_class, request, data.model_dump())
             new_item = model_class.create(db, payload, user_id=user.id)
             return new_item.to_dict()
 
@@ -319,13 +339,7 @@ class RouterFactory(Router):
             item = model_class.get(db, item_id)
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
-            # Scope guard: hide items belonging to a different tenant.
-            scope = getattr(getattr(request, "state", None), "scope", None)
-            if scope:
-                for col_name, _fk in _scope_filters(model_class):
-                    expected = scope.get(col_name)
-                    if expected is not None and getattr(item, col_name, None) != expected:
-                        raise HTTPException(status_code=404, detail="Item not found")
+            _check_scope_ownership(model_class, request, item)
             res = item.to_dict()
             model_class.resolve_labels(db, [res])
             return res
@@ -342,14 +356,9 @@ class RouterFactory(Router):
             item = model_class.get(db, item_id)
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
-            scope = getattr(getattr(request, "state", None), "scope", None)
-            if scope:
-                for col_name, _fk in _scope_filters(model_class):
-                    expected = scope.get(col_name)
-                    if expected is not None and getattr(item, col_name, None) != expected:
-                        raise HTTPException(status_code=404, detail="Item not found")
+            _check_scope_ownership(model_class, request, item)
 
-            payload = _inject_scope_payload(data.model_dump(exclude_unset=True), model_class, request)
+            payload = data.model_dump(exclude_unset=True)
             item.update_self(db, payload, user_id=user.id)
             res = item.to_dict()
             model_class.resolve_labels(db, [res])
@@ -367,14 +376,9 @@ class RouterFactory(Router):
             item = model_class.get(db, item_id)
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
-            scope = getattr(getattr(request, "state", None), "scope", None)
-            if scope:
-                for col_name, _fk in _scope_filters(model_class):
-                    expected = scope.get(col_name)
-                    if expected is not None and getattr(item, col_name, None) != expected:
-                        raise HTTPException(status_code=404, detail="Item not found")
+            _check_scope_ownership(model_class, request, item)
 
-            payload = _inject_scope_payload(data.model_dump(exclude_unset=True), model_class, request)
+            payload = data.model_dump(exclude_unset=True)
             item.update_self(db, payload, user_id=user.id)
             res = item.to_dict()
             model_class.resolve_labels(db, [res])

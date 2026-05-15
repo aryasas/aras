@@ -1,6 +1,5 @@
-from typing import Optional
 from sqlalchemy.orm import Mapped
-from sqlalchemy import String, Boolean, Integer
+from sqlalchemy import String, Boolean
 from ..base.model import Model
 from ..base.field import Field
 from passlib.context import CryptContext
@@ -17,7 +16,6 @@ class User(Model):
     password_hash: Mapped[str] = Field(String(256), hidden=True, label="Password")
     is_active: Mapped[bool] = Field(Boolean, default=True, label="Is Active")
     is_admin: Mapped[bool] = Field(Boolean, default=False, label="Is Administrator")
-    current_company_id: Mapped[Optional[int]] = Field(Integer, nullable=True, label="Current Company")
 
     def verify_password(self, password: str) -> bool:
         return pwd_context.verify(password, self.password_hash)

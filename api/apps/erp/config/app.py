@@ -1,5 +1,5 @@
 from ..app import ERP
-from .models import Company, Currency, Uom, PriceType, Charge, ExchangeRate, Setting, ModeOfPayment, CompanyPaymentAccount, PrintTemplate, Report, Notification
+from .models import Company, Currency, Uom, PriceType, Charge, ExchangeRate, Setting, ModeOfPayment, CompanyPaymentAccount, PrintTemplate, Notification
 from . import views # Trigger view registration
 
 class Config(ERP):
@@ -7,7 +7,7 @@ class Config(ERP):
     app_label = "ERP Settings"
     icon = "Settings"
 
-    models = [Company, Currency, Uom, PriceType, Charge, ExchangeRate, Setting, ModeOfPayment, CompanyPaymentAccount, PrintTemplate, Report, Notification]
+    models = [Company, Currency, Uom, PriceType, Charge, ExchangeRate, Setting, ModeOfPayment, CompanyPaymentAccount, PrintTemplate, Notification]
 
     menu_groups = [
         {
@@ -28,7 +28,7 @@ class Config(ERP):
         {
             "label": "System Tools",
             "icon": "Activity",
-            "models": ["erp_config_print_templates", "erp_config_reports", "erp_config_notifications"]
+            "models": ["erp_config_print_templates", "erp_config_notifications"]
         }
     ]
 

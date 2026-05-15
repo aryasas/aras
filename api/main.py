@@ -152,6 +152,7 @@ async def get_sidebar_data(_: Any = Depends(get_current_user)):
     # 1. Main Navigation Links
     sidebar = [
         {"type": "link", "name": "dashboard", "label": "Dashboard", "icon": "LayoutDashboard", "path": "/dashboard", "have_home": False},
+        {"type": "link", "name": "reports", "label": "Report Center", "icon": "FileBarChart", "path": "/reports", "have_home": False},
         {"type": "link", "name": "settings", "label": "Settings", "icon": "Settings", "path": "/settings", "have_home": False},
     ]
 

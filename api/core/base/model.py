@@ -296,9 +296,19 @@ class Model(Aras, Base):
 
     @classmethod
     def resolve_labels(cls, db: Session, items: List[dict]):
-        """Automatically fetches human-readable labels for foreign key columns."""
+        """Automatically fetches human-readable labels for foreign key and choice columns."""
         if not items: return
-        
+
+        # Resolve choices fields — convert raw value to human-readable label
+        for col in cls.__table__.columns:
+            choices = col.info.get("choices")
+            if not choices: continue
+            label_map = {c: c.replace("_", " ").title() for c in choices}
+            for item in items:
+                val = item.get(col.name)
+                if val in label_map:
+                    item[f"{col.name}_label"] = label_map[val]
+
         for col in cls.__table__.columns:
             display_col = col.info.get("display_column")
             if not display_col: continue

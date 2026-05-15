@@ -5,7 +5,7 @@ import { Users, Shield, Lock } from 'lucide-react'
 
 const RBACManager = () => {
   const [activeTab, setActiveTab] = useState<'roles' | 'permissions' | 'users'>('roles')
-  const [editingId, setEditingId] = useState<number | 'new' | null>(null)
+  const [editingId, setEditingId] = useState<string | number | null>(null)
 
   const tabs = [
     { id: 'roles', label: 'Roles', icon: Shield, resource: 'auth_roles' },

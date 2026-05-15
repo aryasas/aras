@@ -37,7 +37,6 @@ class UIGenerator(Service):
         child_map = getattr(model_class, "_child_map", {})
         # children: list of {resource, fk_column}
         children = [dict(c) for c in child_map.get(resource_name, [])]
-        
         for column in table.columns:
             if column.name in system_fields:
                 continue

@@ -249,3 +249,25 @@ This document outlines the key features and architectural components of the Aras
     - **Field Metadata Overrides**: Users can now customize `default_value` and `series` patterns for any field directly from the GUI.
     - **Automatic Series Generation**: The framework now automatically generates sequential IDs or formatted strings (e.g., INV-2026-0001) for fields configured with a series pattern upon record creation.
     - **Metadata-Driven Defaults**: `DynamicForm` initialization now respects `default_value` overrides from the database registry.
+
+
+## Replace scope system with Company-aware RBAC (Expanded RBAC) — revision (2026-05-15)
+  - [Codex/GPT-5.5] X-Company-ID API header, company auth state, post-login company loading, company picker, top-bar company switcher, company route guard
+
+
+## Reporting Module & Terminologies (May 2026)
+
+- [Gemini CLI] **Dedicated Report Module**: A new specialized `erp_report` sub-app has been created to centralize all reporting logic, separating it from general configuration.
+- [Gemini CLI] **Standardized "Generate Report" Action**: All reporting triggers have been renamed from "Run" to "Generate Report" across the backend (model actions, services) and the UI (action dialogs) for a more professional and consistent terminology.
+- [Gemini CLI] **Dynamic Report Generation**: `ReportService` now supports executing "query" type reports using the `QueryBuilder`, allowing for complex data extraction through the metadata registry.
+- [Gemini CLI] **Enhanced Action UI**: Generic action buttons in the UI now dynamically use the action's label (e.g., "Generate Report") instead of a hardcoded "Run" text, improving user clarity for all custom model actions.
+
+## Demo Invoice Seed + Posting Bug Fixes (2026-05-16)
+- [Claude Sonnet 4.6] Added `api/seed_invoices.py` — idempotent seed for 3 sales invoices + 3 purchase invoices with `--post` flag that auto-posts and prints journal/stock movement verification table
+- [Claude Sonnet 4.6] Fixed `apps/erp/seed_demo.py`: removed `company_id` filter from `_price_type`, fixed inner `_make` signature (removed `db` arg), renamed PosTerminal lookup key, added missing UoMs (Pcs→Pieces, Carton, Gram, Milliliter), fixed `_seed_opening_stock` to pass `currency_id`, fixed `_make` call at bundle product line
+- [Claude Sonnet 4.6] Fixed `apps/erp/accounting/services/posting.py`: pass `invoice.currency_id` to `JournalService.post_entry` and `_create_stock_movement`, added fallback currency resolution in `_create_stock_movement`
+
+## Random Invoice Seed + Journal Entry Lines Fix (2026-05-16)
+- [Claude Sonnet 4.6] Added `api/seed_random_invoices.py` — generates N random sales/purchase invoices from real DB data (customers, suppliers, products, pricelists), with `--count` and `--post` flags
+- [Claude Sonnet 4.6] Fixed `ui/src/aras-core/components/DynamicForm.tsx` — on edit load, fetch existing child rows from each `child_table` field's resource endpoint using FK filter; journal entry lines (and all other child tables) now display correctly in edit forms
+- [Claude Sonnet 4.6] Fixed `apps/erp/accounting/models.py` — `SalesInvoice.amount_paid` and `PurchaseInvoice.amount_paid` computed fields crashed with "no attribute allocations"; rewrote to query `PaymentAllocation` via session using `invoice_type` + `invoice_id` filter

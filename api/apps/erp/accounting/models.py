@@ -31,7 +31,9 @@ class FiscalPeriod(MasterDataBase):
 class JournalEntry(DocumentBase):
 
     __tablename__ = "erp_accounting_entries"
-    
+
+    currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"))
+
     lines: Mapped[list["JournalEntryLine"]] = relationship("JournalEntryLine", back_populates="parent", cascade="all, delete-orphan")
 
     @Aras.model_action(name="post", permission="edit", label="Post Entry")
@@ -115,6 +117,7 @@ class SalesInvoice(DocumentBase):
     currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"), nullable=True)
     pricelist_id: Mapped[int] = mapped_column(ForeignKey("erp_config_price_types.id"), nullable=True)
     subtotal: Mapped[float] = mapped_column(Float, default=0)
+    total_tax: Mapped[float] = mapped_column(Float, default=0)
     total_charge: Mapped[float] = mapped_column(Float, default=0)
     total_amount: Mapped[float] = mapped_column(Float, default=0)
 
@@ -124,7 +127,7 @@ class SalesInvoice(DocumentBase):
     def recalc(self):
         self.subtotal = sum(line.qty * (line.unit_price - line.discount) for line in self.lines)
         self.total_charge = sum(c.amount for c in self.charges)
-        self.total_amount = self.subtotal + self.total_charge
+        self.total_amount = self.subtotal + self.total_tax + self.total_charge
 
     @Aras.on_update
     @Aras.on_create
@@ -133,11 +136,16 @@ class SalesInvoice(DocumentBase):
 
     @Aras.computed_field
     def amount_paid(self) -> float:
-        return sum(a.amount for a in self.allocations)
+        from sqlalchemy.orm import object_session
+        db = object_session(self)
+        if db is None:
+            return 0.0
+        rows = db.query(PaymentAllocation).filter_by(invoice_type="SalesInvoice", invoice_id=self.id).all()
+        return sum(r.amount for r in rows)
 
     @Aras.computed_field
     def amount_due(self) -> float:
-        return self.total_amount - self.amount_paid
+        return self.total_amount - self.amount_paid()
 
     @Aras.model_action(name="post", permission="edit", label="Post Invoice")
     def post(self):
@@ -226,16 +234,17 @@ class PurchaseInvoice(DocumentBase):
     supplier_id: Mapped[int] = mapped_column(ForeignKey("erp_supplier_suppliers.id"))
     currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"), nullable=True)
     subtotal: Mapped[float] = mapped_column(Float, default=0)
+    total_tax: Mapped[float] = mapped_column(Float, default=0)
     total_charge: Mapped[float] = mapped_column(Float, default=0)
     total_amount: Mapped[float] = mapped_column(Float, default=0)
-    
+
     lines: Mapped[list["PurchaseInvoiceLine"]] = relationship("PurchaseInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["PurchaseInvoiceCharge"]] = relationship("PurchaseInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
 
     def recalc(self):
         self.subtotal = sum(line.qty * (line.unit_price - line.discount) for line in self.lines)
         self.total_charge = sum(c.amount for c in self.charges)
-        self.total_amount = self.subtotal + self.total_charge
+        self.total_amount = self.subtotal + self.total_tax + self.total_charge
 
     @Aras.on_update
     @Aras.on_create
@@ -244,11 +253,16 @@ class PurchaseInvoice(DocumentBase):
 
     @Aras.computed_field
     def amount_paid(self) -> float:
-        return sum(a.amount for a in self.allocations)
+        from sqlalchemy.orm import object_session
+        db = object_session(self)
+        if db is None:
+            return 0.0
+        rows = db.query(PaymentAllocation).filter_by(invoice_type="PurchaseInvoice", invoice_id=self.id).all()
+        return sum(r.amount for r in rows)
 
     @Aras.computed_field
     def amount_due(self) -> float:
-        return self.total_amount - self.amount_paid
+        return self.total_amount - self.amount_paid()
 
     @Aras.model_action(name="post", permission="edit", label="Post Invoice")
     def post(self):

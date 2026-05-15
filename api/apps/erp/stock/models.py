@@ -17,6 +17,8 @@ class Product(MasterDataBase):
     __tablename__ = "erp_stock_products"
     __unique_together__ = [("company_id", "code")]
 
+    sku: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    price: Mapped[float] = mapped_column(Float, default=0.0)
     category_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_categories.id"), nullable=True)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -36,6 +38,9 @@ class Product(MasterDataBase):
 class ProductUom(LineItemBase):
     __tablename__ = "erp_stock_product_uoms"
     __parent__ = "erp_stock_products"
+    code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    company_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_companies.id"), nullable=True)
     product_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"))
     factor: Mapped[float] = mapped_column(Float, default=1.0) # How many base units in 1 of this UOM
@@ -125,6 +130,7 @@ class StockMovement(DocumentBase):
     __tablename__ = "erp_stock_movements"
 
     move_type: Mapped[str] = mapped_column(String(20), default="Internal", info={"choices": ["Incoming", "Outgoing", "Internal", "Opening", "Adjustment"]})
+    currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"))
     from_location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
     to_location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
 

@@ -165,7 +165,7 @@ def main():
         # Imports here, specifically for the seed command
         from core.lib.database import SessionLocal
         from apps.erp.accounting.seed_coa import seed_coa
-        from apps.erp.config.report_seed import run_seed as seed_reports
+        from apps.erp.report.seed_reports import run_seed as seed_reports
         from apps.erp.seed_demo import run_seed as seed_demo_data
         from apps.erp.config.models import Company # For fetching company
 

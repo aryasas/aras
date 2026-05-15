@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
+import { useAuthStore } from '../../store/authStore';
 import {
   Save, ArrowLeft, RefreshCw, ChevronRight,
-  History as HistoryIcon, Zap, Settings
+  History as HistoryIcon, Zap, Settings, AlertCircle
 } from 'lucide-react';
 import ListView from './ListView';
 import { InlineChildTable } from './InlineChildTable';
@@ -19,6 +20,7 @@ interface Field {
   required: boolean;
   read_only: boolean;
   hidden: boolean;
+  form_hidden?: boolean;
   depends_on?: string; // Conditional visibility logic
   target_resource?: string;
   fk_column?: string | null;
@@ -83,6 +85,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   onCancel,
   initialData
 }) => {
+  const { activeCompanyId, companies } = useAuthStore();
   const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [loading, setLoading] = useState(true);
@@ -119,6 +122,23 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           const dataRes = await api.get(`/${cleanResource}/${id}`);
           setFormData(dataRes.data);
 
+          // Load existing child rows for every child_table field
+          const childFields = meta.fields.filter((f: any) => f.type === 'child_table' && f.target_resource);
+          if (childFields.length > 0) {
+            const childData: Record<string, any[]> = {};
+            await Promise.all(childFields.map(async (f: any) => {
+              try {
+                const childRes = cleanResourcePath(f.target_resource);
+                const fkKey = f.fk_column || `${cleanResource.split('/').pop()}_id`;
+                const res = await api.get(`/${childRes}?${fkKey}=${id}&limit=500`);
+                childData[f.name] = res.data?.items ?? res.data ?? [];
+              } catch {
+                childData[f.name] = [];
+              }
+            }));
+            setChildRows(childData);
+          }
+
           if (meta.workflow) {
             try {
               const actionRes = await api.get(`/workflow/${cleanResource}/${id}/actions`);
@@ -130,6 +150,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         } else {
           const today = new Date().toISOString().split('T')[0];
           const defaults: any = { ...initialData };
+          if (activeCompanyId && !defaults['company_id']) defaults['company_id'] = activeCompanyId;
           meta.fields.forEach((f: any) => {
              if (defaults[f.name] !== undefined) return;
              if (f.default_value) {
@@ -148,6 +169,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
              else if (f.type === 'number' || f.type === 'currency') defaults[f.name] = 0;
              else if (f.type === 'date') defaults[f.name] = today;
              else if (f.type === 'datetime') defaults[f.name] = new Date().toISOString().split('.')[0];
+             else if (f.type === 'lookup') defaults[f.name] = null;
              else defaults[f.name] = '';
           });
           setFormData(defaults);
@@ -174,6 +196,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
 
   const isFieldVisible = (field: Field) => {
     if (field.hidden) return false;
+    if (field.form_hidden) return false;
     if (!field.depends_on) return true;
     
     return LogicEvaluator.evaluate(field.depends_on, formData);
@@ -317,11 +340,12 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     try {
       setSaving(true);
       const cleanResource = cleanResourcePath(resource);
+      const payload = { ...formData };
       let res;
       if (currentId != null) {
-        res = await api.patch(`/${cleanResource}/${currentId}`, formData);
+        res = await api.patch(`/${cleanResource}/${currentId}`, payload);
       } else {
-        res = await api.post(`/${cleanResource}`, formData);
+        res = await api.post(`/${cleanResource}`, payload);
         if (res.data?.id != null) setCurrentId(res.data.id);
       }
       const savedId = res.data?.id ?? currentId;
@@ -344,9 +368,18 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     } catch (err: any) {
       if (err.response?.status === 422) {
         const valErrors: Record<string, string> = {};
-        err.response.data.detail.forEach((d: any) => {
-          if (d.loc && d.loc.length > 1) valErrors[d.loc[1]] = d.msg;
-        });
+        const detail = err.response.data.detail;
+        if (Array.isArray(detail)) {
+          detail.forEach((d: any) => {
+            // Pydantic usually gives ["body", "field_name"]
+            const field = (d.loc && d.loc.length > 1) ? d.loc[1] : 'base';
+            valErrors[field] = d.msg;
+          });
+        } else if (typeof detail === 'string') {
+          valErrors['base'] = detail;
+        } else {
+          valErrors['base'] = "Please check your input data.";
+        }
         setErrors(valErrors);
         notify("Please correct validation errors", "error");
       } else {
@@ -379,21 +412,36 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     }
 
     const Component = SchemaRegistry.get(field.type);
-    
+
+    // company_id: render as a select scoped to user's assigned companies
+    const isCompanyField = field.name === 'company_id' && companies.length > 0;
+
     return (
       <div key={field.name} className={`flex flex-col gap-1.5 ${field.type === 'textarea' ? 'md:col-span-2' : ''}`}>
         <label className="text-sm font-bold text-slate-700 flex items-center gap-1">
           {field.label}
           {field.required && <span className="text-rose-500">*</span>}
         </label>
-        
-        <Component 
-          field={field} 
-          value={formData[field.name]} 
-          onChange={(val) => handleChange(field.name, val)}
-          formData={formData}
-          disabled={field.read_only}
-        />
+
+        {isCompanyField ? (
+          <select
+            value={formData[field.name] ?? ''}
+            onChange={(e) => handleChange(field.name, e.target.value ? Number(e.target.value) : null)}
+            disabled={companies.length === 1}
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none disabled:opacity-60"
+          >
+            {companies.length > 1 && <option value="">Select company...</option>}
+            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        ) : (
+          <Component
+            field={field}
+            value={formData[field.name]}
+            onChange={(val) => handleChange(field.name, val)}
+            formData={formData}
+            disabled={field.read_only}
+          />
+        )}
         
         {errors[field.name] && (
           <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">{errors[field.name]}</span>
@@ -498,6 +546,31 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
 
       {/* ── Main Form Content ────────────────────────────────────────────── */}
       <div className="space-y-6">
+        {/* General Errors (errors not mapping to visible fields or mapping to hidden fields) */}
+        {Object.entries(errors).filter(([key]) => {
+          const field = metadata.fields.find(f => f.name === key);
+          return !field || !isFieldVisible(field);
+        }).length > 0 && (
+          <div className="bg-rose-50 border border-rose-100 rounded-3xl p-6 flex items-start gap-4">
+            <AlertCircle className="text-rose-500 shrink-0 mt-0.5" size={24} />
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-rose-700">Please correct the following:</h4>
+              <ul className="list-disc list-inside text-xs text-rose-600 space-y-1">
+                {Object.entries(errors)
+                  .filter(([key]) => {
+                    const field = metadata.fields.find(f => f.name === key);
+                    return !field || !isFieldVisible(field);
+                  })
+                  .map(([key, msg]) => (
+                    <li key={key}>
+                      <span className="font-bold uppercase tracking-tight mr-1">{key.replace(/_/g, ' ')}:</span> {msg}
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
         {metadata.layout && metadata.layout.length > 0 ? (
           metadata.layout.map((section, idx) => {
             const sectionFields = section.fields
@@ -601,7 +674,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
               }}
               className="px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-colors disabled:opacity-50"
             >
-              Run
+              {actionDialog.action.label}
             </button>
           </div>
         </div>

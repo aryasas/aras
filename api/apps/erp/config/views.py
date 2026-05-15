@@ -1,5 +1,5 @@
 from core import Aras
-from .models import Company, Currency, Uom, PriceType, Charge, ExchangeRate, Setting, ModeOfPayment, PrintTemplate, Report, Notification
+from .models import Company, Currency, Uom, PriceType, Charge, ExchangeRate, Setting, ModeOfPayment, PrintTemplate, Notification
 
 class CompanyView(Aras.View):
     model = Company
@@ -69,11 +69,6 @@ class PrintTemplateView(Aras.View):
     model = PrintTemplate
     title = "Print Templates"
     icon = "pi pi-print"
-
-class ReportView(Aras.View):
-    model = Report
-    title = "Reports"
-    icon = "pi pi-file-edit"
 
 class NotificationView(Aras.View):
     model = Notification

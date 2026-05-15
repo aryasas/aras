@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { lazy, Suspense, useEffect } from 'react'
+import api from './lib/api'
 import { useAuthStore } from './store/authStore'
 import { useUIStore } from './store/uiStore'
 import { CommandPalette } from './aras-core/components/CommandPalette'
@@ -8,6 +9,7 @@ import SidePanel from './aras-core/components/SidePanel'
 import { FormattingService } from './aras-core/services/FormattingService'
 
 const Login = lazy(() => import('./views/Login'))
+const CompanyPicker = lazy(() => import('./views/CompanyPicker'))
 const ForgotPassword = lazy(() => import('./views/ForgotPassword'))
 const ResetPassword = lazy(() => import('./views/ResetPassword'))
 const MainLayout = lazy(() => import('./layouts/MainLayout'))
@@ -15,6 +17,7 @@ const HomeView = lazy(() => import('./views/Home'))
 const SettingsView = lazy(() => import('./views/Settings'))
 const ProfileView = lazy(() => import('./views/Profile'))
 const DynamicView = lazy(() => import('./views/DynamicView'))
+const ReportCenterView = lazy(() => import('./views/ReportCenter'))
 const DevToolsView = lazy(() => import('./views/DevTools'))
 const AppManagerView = lazy(() => import('./views/AppManager'))
 const AuditLogsView = lazy(() => import('./views/AuditLogs'))
@@ -30,15 +33,44 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>
 }
 
+const CompanyGuard = ({ children }: { children: React.ReactNode }) => {
+  const companies = useAuthStore((state) => state.companies)
+  const activeCompanyId = useAuthStore((state) => state.activeCompanyId)
+
+  if (companies.length > 0 && activeCompanyId === null) {
+    return <Navigate to="/company" replace />
+  }
+
+  return <>{children}</>
+}
+
 function App() {
   const { showAlert, showConfirm, showError } = useUIStore();
   const token = useAuthStore((state) => state.token);
+  const setUser = useAuthStore((state) => state.setUser);
+  const setCompanies = useAuthStore((state) => state.setCompanies);
 
   useEffect(() => {
     if (token) {
       FormattingService.init();
     }
   }, [token]);
+
+  useEffect(() => {
+    if (!token) return
+
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await api.get('/auth/me')
+        setUser(response.data)
+        setCompanies(response.data.companies || [])
+      } catch (error) {
+        console.error('Failed to fetch current user', error)
+      }
+    }
+
+    fetchCurrentUser()
+  }, [token, setUser, setCompanies]);
 
   useEffect(() => {
     // Override window.alert
@@ -70,6 +102,14 @@ function App() {
       <Suspense fallback={<div className="flex h-screen items-center justify-center text-slate-400 text-sm">Loading…</div>}>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route
+          path="/company"
+          element={
+            <ProtectedRoute>
+              <CompanyPicker />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
@@ -78,7 +118,9 @@ function App() {
           path="/" 
           element={
             <ProtectedRoute>
-              <MainLayout />
+              <CompanyGuard>
+                <MainLayout />
+              </CompanyGuard>
             </ProtectedRoute>
           }
         >
@@ -95,6 +137,7 @@ function App() {
           <Route path="dev/table/:app/:model/:id" element={<DynamicView />} />
           <Route path="apps" element={<AppManagerView />} />
           <Route path="profile" element={<ProfileView />} />
+          <Route path="reports" element={<ReportCenterView />} />
           
           <Route path=":segment1/*" element={<SmartDispatcher />} />
 

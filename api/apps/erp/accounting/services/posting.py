@@ -2,6 +2,45 @@ from sqlalchemy.orm import Session
 from ..models import SalesInvoice, PurchaseInvoice
 from .journal import JournalService
 from ...stock.services.coa_resolver import CoaResolver
+from ...stock.services.uom import UomService
+
+
+def _create_stock_movement(db: Session, invoice_number: str, company_id: int, move_type: str, lines_data: list[dict], currency_id: int = None) -> None:
+    """Create a Posted StockMovement from invoice lines — only when perpetual inventory is enabled."""
+    from ...stock.models import StockMovement, StockMovementLine, Location
+    from ...config.models import Company, Currency
+    co = db.get(Company, company_id)
+    if not co or not co.enable_perpetual_inventory:
+        return
+    loc = db.query(Location).filter_by(company_id=company_id, location_type="Internal").first()
+    if not currency_id:
+        currency_id = co.base_currency_id or (db.query(Currency).first().id if db.query(Currency).first() else None)
+    movement = StockMovement(
+        company_id=company_id,
+        number=f"SM-{invoice_number}",
+        move_type=move_type,
+        currency_id=currency_id,
+        status="Posted",
+        from_location_id=loc.id if move_type == "Outgoing" else None,
+        to_location_id=loc.id if move_type == "Incoming" else None,
+    )
+    db.add(movement)
+    db.flush()
+    from ...stock.models import Product
+    for ld in lines_data:
+        product = db.get(Product, ld["product_id"])
+        base_uom_id = product.uom_id if product else ld["uom_id"]
+        qty_base = UomService.convert_qty(db, ld["product_id"], ld["qty"], ld["uom_id"], base_uom_id) if ld["uom_id"] and ld["uom_id"] != base_uom_id else ld["qty"]
+        ml = StockMovementLine(
+            movement_id=movement.id,
+            product_id=ld["product_id"],
+            qty=qty_base,
+            uom_id=base_uom_id,
+            unit_cost=ld.get("unit_cost", 0),
+            from_location_id=loc.id if move_type == "Outgoing" else None,
+            to_location_id=loc.id if move_type == "Incoming" else None,
+        )
+        db.add(ml)
 
 
 class InvoicePostingService:
@@ -54,8 +93,13 @@ class InvoicePostingService:
             JournalService.post_entry(
                 db, cid, lines,
                 reference=invoice.number,
-                narrative=f"Auto-posted from Sales Invoice {invoice.number}"
+                narrative=f"Auto-posted from Sales Invoice {invoice.number}",
+                currency_id=invoice.currency_id,
             )
+            _create_stock_movement(db, invoice.number, cid, "Outgoing", [
+                {"product_id": l.product_id, "qty": l.qty, "uom_id": l.uom_id, "unit_cost": l.unit_price - l.discount}
+                for l in invoice.lines
+            ], currency_id=invoice.currency_id)
             invoice.status = "Posted"
             db.commit()
             return True
@@ -114,8 +158,13 @@ class InvoicePostingService:
             JournalService.post_entry(
                 db, cid, lines,
                 reference=invoice.number,
-                narrative=f"Auto-posted from Purchase Invoice {invoice.number}"
+                narrative=f"Auto-posted from Purchase Invoice {invoice.number}",
+                currency_id=invoice.currency_id,
             )
+            _create_stock_movement(db, invoice.number, cid, "Incoming", [
+                {"product_id": l.product_id, "qty": l.qty, "uom_id": l.uom_id, "unit_cost": l.unit_price - l.discount}
+                for l in invoice.lines
+            ], currency_id=invoice.currency_id)
             invoice.status = "Posted"
             db.commit()
             return True

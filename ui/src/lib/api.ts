@@ -10,6 +10,12 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
+  const companyId = localStorage.getItem('aras_company_id')
+  if (companyId) {
+    config.headers['X-Company-ID'] = companyId
+  }
+
   return config
 })
 

@@ -4,9 +4,8 @@ from sqlalchemy import String, ForeignKey, Float, Date, Text, JSON, Boolean, Int
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..base import ConfigBase, MasterDataBase, LineItemBase
 
-class Company(MasterDataBase):
+class Company(ConfigBase):
     __tablename__ = "erp_config_companies"
-    __scoped_by__ = None 
 
     # Multi-company / group structure
     is_group: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -103,9 +102,8 @@ class ExchangeRate(MasterDataBase):
     rate_date: Mapped[date] = mapped_column(Date)
 
 
-class Setting(MasterDataBase):
+class Setting(ConfigBase):
     __tablename__ = "erp_config_settings"
-    __scoped_by__ = None
 
     key: Mapped[str] = mapped_column(String(200), unique=True)
     value: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -143,17 +141,6 @@ class PrintTemplate(MasterDataBase):
     footer_html: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     css: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_default: Mapped[bool] = mapped_column(default=False)
-
-
-class Report(MasterDataBase):
-    __tablename__ = "erp_config_reports"
-    
-    report_type: Mapped[str] = mapped_column(String(20), default="query", info={"choices": ["query", "script", "jinja"]})
-    module: Mapped[str] = mapped_column(String(50), default="General")
-    columns_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
-    filters_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
-    script: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    linked_doctype: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
 
 class Notification(MasterDataBase):

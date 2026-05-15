@@ -6,8 +6,10 @@ from core import Aras
 
 class DocumentBase(Aras.Model):
     __abstract__ = True
-    __features__ = ["audit", "workflow", "scoped"]
+    __features__ = ["audit", "workflow"]
     __scoped_by__ = [("company_id", "erp_config_companies")]
+
+    company_id: Mapped[int] = mapped_column(ForeignKey("erp_config_companies.id"), nullable=False, index=True)
 
     number: Mapped[str] = mapped_column(String(32), info={"form_hidden": True})
     doc_date: Mapped[date] = mapped_column(Date, default=date.today)

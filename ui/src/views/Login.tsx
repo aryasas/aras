@@ -11,6 +11,9 @@ const Login = () => {
   const [loading, setLoading] = useState(false)
   
   const setToken = useAuthStore((state) => state.setToken)
+  const setUser = useAuthStore((state) => state.setUser)
+  const setCompanies = useAuthStore((state) => state.setCompanies)
+  const setActiveCompany = useAuthStore((state) => state.setActiveCompany)
   const navigate = useNavigate()
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -25,7 +28,22 @@ const Login = () => {
 
       const response = await api.post('/auth/token', formData)
       setToken(response.data.access_token)
-      navigate('/')
+
+      const me = await api.get('/auth/me')
+      const companies = me.data.companies || []
+      setUser(me.data)
+      setCompanies(companies)
+
+      if (companies.length === 1) {
+        setActiveCompany(companies[0].id)
+        navigate('/')
+      } else if (companies.length > 1) {
+        setActiveCompany(null)
+        navigate('/company')
+      } else {
+        setActiveCompany(null)
+        navigate('/')
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Login failed. Please check your credentials.')
     } finally {

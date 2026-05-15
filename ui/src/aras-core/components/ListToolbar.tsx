@@ -1,8 +1,10 @@
 import React from 'react';
 import { 
   Search, Filter, Plus, Edit3, Trash2, 
-  Download, Upload, Settings 
+  Download, Upload, Settings, List, LayoutGrid, FileText
 } from 'lucide-react';
+
+export type ViewMode = 'list' | 'tree' | 'report';
 
 interface ListToolbarProps {
   title: string;
@@ -23,6 +25,9 @@ interface ListToolbarProps {
   fields: any[];
   visibleColumns: string[];
   onVisibleColumnsChange: (columns: string[]) => void;
+  viewMode?: ViewMode;
+  onViewModeChange?: (mode: ViewMode) => void;
+  hasTreeSupport?: boolean;
 }
 
 export const ListToolbar: React.FC<ListToolbarProps> = ({
@@ -43,13 +48,46 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
   onAdd,
   fields,
   visibleColumns,
-  onVisibleColumnsChange
+  onVisibleColumnsChange,
+  viewMode = 'list',
+  onViewModeChange,
+  hasTreeSupport = false
 }) => {
   return (
     <div className="p-4 border-b border-slate-100 space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-1">
           <h2 className="text-xl font-bold text-slate-900 hidden md:block">{title}</h2>
+          
+          {/* View Mode Switcher */}
+          {onViewModeChange && (
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <button
+                onClick={() => onViewModeChange('list')}
+                className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+                title="List View"
+              >
+                <List size={18} />
+              </button>
+              {hasTreeSupport && (
+                <button
+                  onClick={() => onViewModeChange('tree')}
+                  className={`p-1.5 rounded-lg transition-all ${viewMode === 'tree' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+                  title="Tree View"
+                >
+                  <LayoutGrid size={18} />
+                </button>
+              )}
+              <button
+                onClick={() => onViewModeChange('report')}
+                className={`p-1.5 rounded-lg transition-all ${viewMode === 'report' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+                title="Report View"
+              >
+                <FileText size={18} />
+              </button>
+            </div>
+          )}
+
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import api from '../../lib/api'
 import { cleanResourcePath } from '../../lib/resourceUtils'
 import {
@@ -12,6 +12,9 @@ import { useUIStore } from '../../store/uiStore'
 import { ImportMapping } from './ImportMapping'
 import Combobox from './Combobox'
 import ListToolbar from './ListToolbar'
+import type { ViewMode } from './ListToolbar'
+import TreeView from './TreeView'
+import GenericReport from './GenericReport'
 
 interface Field {
   name: string
@@ -39,7 +42,7 @@ interface FilterRule {
 
 const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: { 
   resource: string, 
-  onRowClick?: (id: number) => void,
+  onRowClick?: (id: string | number) => void,
   onAdd?: () => void,
   fixedFilters?: Record<string, any>
 }) => {
@@ -61,7 +64,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
 
   // UI State
   const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([])
   const [visibleColumns, setVisibleColumns] = useState<string[]>([])
   const [isColumnPickerOpen, setIsColumnPickerOpen] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
@@ -69,12 +72,19 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const [bulkEditField, setBulkEditField] = useState('')
   const [bulkEditValue, setBulkEditValue] = useState<any>('')
   const [bulkEditing, setBulkEditing] = useState(false)
+  const [viewMode, setViewMode] = useState<ViewMode>('list')
+
   // Inline editing: { rowId, fieldName, value }
-  const [inlineEdit, setInlineEdit] = useState<{ rowId: number; field: string; value: any } | null>(null)
+  const [inlineEdit, setInlineEdit] = useState<{ rowId: string | number; field: string; value: any } | null>(null)
   const inlineInputRef = useRef<HTMLInputElement>(null)
 
   const showPanel = useUIStore(state => state.showPanel)
   const closePanel = useUIStore(state => state.closePanel)
+
+  const hasTreeSupport = useMemo(() => {
+    if (!metadata) return false;
+    return metadata.fields.some((f: any) => f.name === 'parent_id');
+  }, [metadata]);
 
   // Fetch Metadata & Initial Data
   useEffect(() => {
@@ -138,7 +148,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     }
   }
 
-  const handleSelectOne = (id: number) => {
+  const handleSelectOne = (id: string | number) => {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     )
@@ -333,6 +343,9 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         fields={fields}
         visibleColumns={visibleColumns}
         onVisibleColumnsChange={setVisibleColumns}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        hasTreeSupport={hasTreeSupport}
       />
 
         {/* ── Advanced Filter Builder ────────────────────────────────────── */}
@@ -428,67 +441,68 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           </div>
         )}
 
-      {/* ── Table ──────────────────────────────────────────────────────────── */}
+      {/* ── Content View ─────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-auto">
-        <table className="w-full text-left border-collapse min-w-[800px]">
-          <thead className="sticky top-0 z-10">
-            <tr className="bg-slate-50/80 backdrop-blur-sm border-b border-slate-200">
-              <th className="px-6 py-4 w-10">
-                <button onClick={handleSelectAll} className="text-slate-400 hover:text-indigo-600">
-                  {selectedIds.length === data.length && data.length > 0 ? <CheckSquare size={18} className="text-indigo-600" /> : <Square size={18} />}
-                </button>
-              </th>
-              {visibleFields.map(field => (
-                <th 
-                  key={field.name} 
-                  className="px-8 py-5 text-xs font-bold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-slate-50 transition-colors"
-
-                  onClick={() => {
-                    if (orderBy === field.name) setDesc(!desc)
-                    else { setOrderBy(field.name); setDesc(true); }
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    {field.label}
-                    {orderBy === field.name && (desc ? <ChevronDown size={14} /> : <ChevronUp size={14} />)}
-                  </div>
+        {viewMode === 'list' && (
+          <table className="w-full text-left border-collapse min-w-[800px]">
+            <thead className="sticky top-0 z-10">
+              <tr className="bg-slate-50/80 backdrop-blur-sm border-b border-slate-200">
+                <th className="px-6 py-4 w-10">
+                  <button onClick={handleSelectAll} className="text-slate-400 hover:text-indigo-600">
+                    {selectedIds.length === data.length && data.length > 0 ? <CheckSquare size={18} className="text-indigo-600" /> : <Square size={18} />}
+                  </button>
                 </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {loading ? (
-              [...Array(5)].map((_, i) => (
-                <tr key={i} className="animate-pulse">
-                  <td className="px-6 py-4"><div className="w-5 h-5 bg-slate-100 rounded"></div></td>
-                  {visibleFields.map(f => <td key={f.name} className="px-6 py-4"><div className="h-4 bg-slate-50 rounded w-3/4"></div></td>)}
-                </tr>
-              ))
-            ) : data.length === 0 ? (
-              <tr>
-                <td colSpan={visibleFields.length + 1} className="px-6 py-12 text-center">
-                  <div className="max-w-xs mx-auto text-slate-400">
-                    <Search size={48} className="mx-auto mb-4 opacity-20" />
-                    <p className="text-sm font-medium">No records found matching your criteria.</p>
-                    <button onClick={() => {setSearch(''); setFilters([]);}} className="mt-2 text-xs text-indigo-600 font-bold hover:underline">Clear all filters</button>
-                  </div>
-                </td>
+                {visibleFields.map(field => (
+                  <th 
+                    key={field.name} 
+                    className="px-8 py-5 text-xs font-bold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-slate-50 transition-colors"
+
+                    onClick={() => {
+                      if (orderBy === field.name) setDesc(!desc)
+                      else { setOrderBy(field.name); setDesc(true); }
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      {field.label}
+                      {orderBy === field.name && (desc ? <ChevronDown size={14} /> : <ChevronUp size={14} />)}
+                    </div>
+                  </th>
+                ))}
               </tr>
-            ) : (
-              data.map((item) => (
-                <tr 
-                  key={item.id} 
-                  className={`hover:bg-indigo-50/30 transition-colors cursor-pointer group ${selectedIds.includes(item.id) ? 'bg-indigo-50/50' : ''}`}
-                  onClick={() => onRowClick ? onRowClick(item.id) : null}
-                >
-                  <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => handleSelectOne(item.id)} className={`${selectedIds.includes(item.id) ? 'text-indigo-600' : 'text-slate-300 group-hover:text-slate-400'}`}>
-                      {selectedIds.includes(item.id) ? <CheckSquare size={18} /> : <Square size={18} />}
-                    </button>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loading ? (
+                [...Array(5)].map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-6 py-4"><div className="w-5 h-5 bg-slate-100 rounded"></div></td>
+                    {visibleFields.map(f => <td key={f.name} className="px-6 py-4"><div className="h-4 bg-slate-50 rounded w-3/4"></div></td>)}
+                  </tr>
+                ))
+              ) : data.length === 0 ? (
+                <tr>
+                  <td colSpan={visibleFields.length + 1} className="px-6 py-12 text-center">
+                    <div className="max-w-xs mx-auto text-slate-400">
+                      <Search size={48} className="mx-auto mb-4 opacity-20" />
+                      <p className="text-sm font-medium">No records found matching your criteria.</p>
+                      <button onClick={() => {setSearch(''); setFilters([]);}} className="mt-2 text-xs text-indigo-600 font-bold hover:underline">Clear all filters</button>
+                    </div>
                   </td>
-                  {visibleFields.map(field => {
-                    const isInline = inlineEdit?.rowId === item.id && inlineEdit?.field === field.name
-                    const inlineTypes = ['text', 'string', 'number', 'integer', 'email', 'url']
+                </tr>
+              ) : (
+                data.map((item) => (
+                  <tr 
+                    key={item.id} 
+                    className={`hover:bg-indigo-50/30 transition-colors cursor-pointer group ${selectedIds.includes(item.id) ? 'bg-indigo-50/50' : ''}`}
+                    onClick={() => onRowClick ? onRowClick(item.id) : null}
+                  >
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                      <button onClick={() => handleSelectOne(item.id)} className={`${selectedIds.includes(item.id) ? 'text-indigo-600' : 'text-slate-300 group-hover:text-slate-400'}`}>
+                        {selectedIds.includes(item.id) ? <CheckSquare size={18} /> : <Square size={18} />}
+                      </button>
+                    </td>
+                    {visibleFields.map(field => {
+                      const isInline = inlineEdit?.rowId === item.id && inlineEdit?.field === field.name
+                      const inlineTypes = ['text', 'string', 'number', 'integer', 'email', 'url']
                     const canInline = !field.read_only && inlineTypes.includes(field.type)
                     return (
                       <td
@@ -525,9 +539,24 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
             )}
           </tbody>
         </table>
+        )}
+
+        {viewMode === 'tree' && (
+          <TreeView resource={resource} onRowClick={onRowClick} />
+        )}
+
+        {viewMode === 'report' && metadata && (
+          <GenericReport
+            title={`${metadata.title} Report`}
+            data={data}
+            columns={visibleFields.map(f => ({ field: f.name, label: f.label, type: f.type }))}
+            onBack={() => setViewMode('list')}
+          />
+        )}
       </div>
 
       {/* ── Footer / Pagination ────────────────────────────────────────────── */}
+      {viewMode === 'list' && (
       <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <span className="text-xs font-medium text-slate-500">
@@ -580,6 +609,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           </button>
         </div>
       </div>
+      )}
     </div>
 
     {/* Bulk Edit Modal */}

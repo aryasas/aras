@@ -9,7 +9,7 @@ REPORTS = [
         "report_type": "query",
         "linked_doctype": "SalesInvoice",
         "script": """SELECT
-  si.name as invoice_no,
+  si.number as invoice_no,
   cu.name as customer,
   si.doc_date as date,
   si.subtotal,
@@ -47,7 +47,7 @@ ORDER BY si.doc_date DESC""",
         "report_type": "query",
         "linked_doctype": "PurchaseInvoice",
         "script": """SELECT
-  pi.name as invoice_no,
+  pi.number as invoice_no,
   s.name as vendor,
   pi.doc_date as date,
   pi.subtotal,
@@ -268,6 +268,63 @@ HAVING balance != 0""",
             {"field": "name",    "label": "Product", "type": "string"},
             {"field": "uom",     "label": "UoM",     "type": "string"},
             {"field": "balance", "label": "Balance", "type": "number"},
+        ],
+        "filters_json": [],
+    },
+    {
+        "code": "general_ledger",
+        "name": "General Ledger",
+        "module": "accounting",
+        "report_type": "query",
+        "script": """SELECT 
+  je.doc_date as date,
+  je.number as reference,
+  a.name as account,
+  jl.debit,
+  jl.credit,
+  jl.description
+FROM erp_accounting_entry_lines jl
+JOIN erp_accounting_entries je ON je.id = jl.entry_id
+JOIN erp_accounting_accounts a ON a.id = jl.account_id
+WHERE je.company_id = :company_id
+  AND je.status = 'Posted'
+  AND (:date_from IS NULL OR je.doc_date >= :date_from)
+  AND (:date_to IS NULL OR je.doc_date <= :date_to)
+ORDER BY je.doc_date ASC, je.id ASC""",
+        "columns_json": [
+            {"field": "date",        "label": "Date",        "type": "date"},
+            {"field": "reference",   "label": "Reference",   "type": "string"},
+            {"field": "account",     "label": "Account",     "type": "string"},
+            {"field": "description", "label": "Description", "type": "string"},
+            {"field": "debit",       "label": "Debit",       "type": "currency"},
+            {"field": "credit",      "label": "Credit",      "type": "currency"},
+        ],
+        "filters_json": [
+            {"field": "date_from", "label": "Date From", "type": "date"},
+            {"field": "date_to",   "label": "Date To",   "type": "date"},
+        ],
+    },
+    {
+        "code": "accounts_receivable",
+        "name": "Accounts Receivable Aging",
+        "module": "accounting",
+        "report_type": "query",
+        "script": """SELECT 
+  c.name as customer,
+  si.number as invoice_no,
+  si.doc_date as date,
+  si.total_amount,
+  si.total_amount - COALESCE((SELECT SUM(pa.amount) FROM erp_accounting_payment_allocations pa JOIN erp_accounting_payments p ON p.id = pa.payment_id WHERE pa.invoice_id = si.id AND p.status = 'Posted'), 0) as balance
+FROM erp_accounting_sales_invoices si
+JOIN erp_crm_customers c ON c.id = si.customer_id
+WHERE si.company_id = :company_id AND si.status = 'Posted'
+  AND (si.total_amount - COALESCE((SELECT SUM(pa.amount) FROM erp_accounting_payment_allocations pa JOIN erp_accounting_payments p ON p.id = pa.payment_id WHERE pa.invoice_id = si.id AND p.status = 'Posted'), 0)) > 0""",
+        "columns_json": [
+            {"field": "customer",     "label": "Customer",   "type": "string"},
+            {"field": "invoice_no",   "label": "Invoice",    "type": "string"},
+            {"field": "date",         "label": "Date",       "type": "date"},
+            {"field": "total_amount", "label": "Total",      "type": "currency"},
+            {"field": "balance",      "label": "Balance",    "type": "currency"},
         ],
         "filters_json": [],
     },

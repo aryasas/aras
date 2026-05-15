@@ -29,7 +29,7 @@ def _category(db: Session, name: str):
 
 def _price_type(db: Session, company_id: int, name: str):
     PriceType = Aras.Model._registry["PriceType"]
-    return PriceType.find(db, company_id=company_id, name=name)
+    return PriceType.find(db, name=name)
 
 
 def _location(db: Session, company_id: int, name: str):
@@ -107,8 +107,14 @@ def _seed_products(db: Session, company_id: int):
     PromoBundle = Aras.Model._registry["PromoBundle"]
     PromoBundleItem = Aras.Model._registry["PromoBundleItem"]
 
+    # Ensure required UoMs exist
+    Uom = Aras.Model._registry["Uom"]
+    for uom_name, uom_code in [("Carton", "CTN"), ("Gram", "G"), ("Milliliter", "ML")]:
+        Uom.get_or_create(db, {"code": uom_code}, name=uom_name)
+    db.flush()
+
     idr = _currency(db, "IDR")
-    pcs = _uom(db, "Pcs")
+    pcs = _uom(db, "Pieces")   # "Pieces" is seeded by core setup
     box = _uom(db, "Box")
     ctn = _uom(db, "Carton")
     kg  = _uom(db, "Kilogram")
@@ -126,7 +132,7 @@ def _seed_products(db: Session, company_id: int):
 
     out = {}
 
-    def _make(db: Session, code, name, cat, uom, for_sales, for_purchase, is_stock, sell_price, buy_price, sell_uom=None):
+    def _make(code, name, cat, uom, for_sales, for_purchase, is_stock, sell_price, buy_price, sell_uom=None):
         prod, _ = Product.get_or_create(
             db,
             {
@@ -249,7 +255,7 @@ def _seed_products(db: Session, company_id: int):
 
     # ── Bundle: Coffee Starter Pack = 1 Coffee + 1 Tea + 1 Sugar ─────────────
     # Create the Product for the bundle (sellable item)
-    bundle_product = _make(db, "P-BSP-001", "Coffee Starter Pack", cat_fnb, pcs, True, False, False, 55000, None)
+    bundle_product = _make("P-BSP-001", "Coffee Starter Pack", cat_fnb, pcs, True, False, False, 55000, None)
     out["bundle_starter"] = bundle_product
 
     # Create the PromoBundle header for the bundle definition
@@ -300,7 +306,7 @@ def _seed_opening_stock(db: Session, company_id: int, products):
         company_id=company_id, code="SHELF-1"
     )
 
-    pcs = _uom(db, "Pcs")
+    pcs = _uom(db, "Pieces")
     kg  = _uom(db, "Kilogram")
 
     # Only seed if no opening movement exists yet
@@ -308,10 +314,12 @@ def _seed_opening_stock(db: Session, company_id: int, products):
     if existing:
         return existing
 
+    idr = _currency(db, "IDR")
     mv = StockMovement.create(db, {
         "company_id":      company_id,
         "number":          "OPEN/DEMO/001",
         "move_type":       "Opening",
+        "currency_id":     idr.id if idr else None,
         "status":          "Draft",
         "doc_date":        date.today(),
         "to_location_id":  wh_loc.id,
@@ -355,11 +363,10 @@ def _seed_pos_terminal(db: Session, company_id: int):
     terminal, _ = PosTerminal.get_or_create(
         db,
         {
-            "name": "Kasir Utama",
             "location_id": loc.id if loc else None,
             "default_mop_id": cash_mop.id if cash_mop else None,
         },
-        company_id=company_id, code="K1",
+        name="Kasir Utama",
     )
     return terminal
 
