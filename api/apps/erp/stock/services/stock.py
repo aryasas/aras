@@ -6,7 +6,7 @@ class StockComputeService:
     """Service for stock quantities and valuation (WAC)."""
 
     @staticmethod
-    def compute_qty(db: Session, product_id: int, warehouse_id: int = None, location_id: int = None) -> float:
+    def compute_qty(db: Session, product_id: int, location_id: int = None, sub_location_id: int = None) -> float:
         in_filters = [
             StockMovementLine.product_id == product_id,
             StockMovement.status == "Posted",
@@ -16,16 +16,16 @@ class StockComputeService:
             StockMovement.status == "Posted",
         ]
 
-        if warehouse_id:
-            in_filters.append(StockMovement.to_warehouse_id == warehouse_id)
-            out_filters.append(StockMovement.from_warehouse_id == warehouse_id)
-        else:
-            in_filters.append(StockMovement.to_warehouse_id != None)
-            out_filters.append(StockMovement.from_warehouse_id != None)
-
         if location_id:
-            in_filters.append(StockMovementLine.to_location_id == location_id)
-            out_filters.append(StockMovementLine.from_location_id == location_id)
+            in_filters.append(StockMovement.to_location_id == location_id)
+            out_filters.append(StockMovement.from_location_id == location_id)
+        else:
+            in_filters.append(StockMovement.to_location_id != None)
+            out_filters.append(StockMovement.from_location_id != None)
+
+        if sub_location_id:
+            in_filters.append(StockMovementLine.to_location_id == sub_location_id)
+            out_filters.append(StockMovementLine.from_location_id == sub_location_id)
 
         qty_in = db.query(func.sum(StockMovementLine.qty)).join(StockMovement).filter(*in_filters).scalar() or 0.0
         qty_out = db.query(func.sum(StockMovementLine.qty)).join(StockMovement).filter(*out_filters).scalar() or 0.0
@@ -33,10 +33,10 @@ class StockComputeService:
         return qty_in - qty_out
 
     @staticmethod
-    def compute_qty_by_location(db: Session, product_id: int, warehouse_id: int) -> dict:
-        locations = db.query(Location).filter(Location.warehouse_id == warehouse_id).all()
+    def compute_qty_by_location(db: Session, product_id: int, parent_location_id: int) -> dict:
+        locations = db.query(Location).filter(Location.parent_id == parent_location_id).all()
         return {
-            loc.id: StockComputeService.compute_qty(db, product_id, warehouse_id=warehouse_id, location_id=loc.id)
+            loc.id: StockComputeService.compute_qty(db, product_id, location_id=parent_location_id, sub_location_id=loc.id)
             for loc in locations
         }
 

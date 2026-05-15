@@ -2,14 +2,16 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import api from '../../lib/api'
 import { cleanResourcePath } from '../../lib/resourceUtils'
 import {
-  Search, Filter, Plus, ChevronLeft, ChevronRight,
-  Settings, Trash2, CheckSquare, Square, X,
-  ChevronDown, ChevronUp, Download, Upload, Edit3
+  Search, Plus, ChevronLeft, ChevronRight,
+  CheckSquare, Square, X,
+  ChevronDown, ChevronUp
 } from 'lucide-react'
 import { FormattingService } from '../services/FormattingService'
 import { useAras } from '../hooks/useAras'
 import { useUIStore } from '../../store/uiStore'
 import { ImportMapping } from './ImportMapping'
+import Combobox from './Combobox'
+import ListToolbar from './ListToolbar'
 
 interface Field {
   name: string
@@ -19,6 +21,8 @@ interface Field {
   read_only: boolean
   hidden: boolean
   searchable: boolean
+  target_resource?: string
+  options?: { label: string; value: any }[]
 }
 
 interface Metadata {
@@ -310,105 +314,26 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     <>
     <div className="flex flex-col h-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       {/* ── Toolbar ────────────────────────────────────────────────────────── */}
-      <div className="p-4 border-b border-slate-100 space-y-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4 flex-1">
-            <h2 className="text-xl font-bold text-slate-900 hidden md:block">{metadata.title}</h2>
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input 
-                type="text" 
-                placeholder={`Search in ${metadata.title}...`}
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <button 
-              onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`p-2 rounded-xl border transition-all flex items-center gap-2 text-sm font-medium ${isFilterOpen ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-            >
-              <Filter size={18} />
-              <span>Filters {filters.length > 0 && `(${filters.length})`}</span>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {selectedIds.length > 0 && (
-              <>
-                <button
-                  onClick={() => setBulkEditOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-all"
-                >
-                  <Edit3 size={18} />
-                  <span>Edit ({selectedIds.length})</span>
-                </button>
-                <button
-                  onClick={handleDeleteBulk}
-                  className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-sm font-bold hover:bg-rose-100 transition-all"
-                >
-                  <Trash2 size={18} />
-                  <span>Delete ({selectedIds.length})</span>
-                </button>
-              </>
-            )}
-
-            <button 
-              onClick={handleExport}
-              disabled={isExporting}
-              className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-              title="Export to CSV"
-            >
-              <Download size={18} className={isExporting ? 'animate-bounce' : ''} />
-            </button>
-
-            <label className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 cursor-pointer" title="Import from CSV">
-              <Upload size={18} />
-              <input type="file" accept=".csv" className="hidden" onChange={handleImport} />
-            </label>
-            
-            <button 
-              className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 relative"
-              onClick={() => setIsColumnPickerOpen(!isColumnPickerOpen)}
-            >
-              <Settings size={18} />
-              {isColumnPickerOpen && (
-                <div 
-                  className="absolute right-0 mt-3 w-64 bg-white border border-slate-200 shadow-xl rounded-2xl z-50 p-4"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">Visible Columns</h4>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {fields.map(f => (
-                      <label key={f.name} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded-lg">
-                        <input 
-                          type="checkbox" 
-                          checked={visibleColumns.includes(f.name)} 
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-                            setVisibleColumns(prev => 
-                              checked ? [...prev, f.name] : prev.filter(c => c !== f.name)
-                            )
-                          }}
-                          className="rounded text-indigo-600 focus:ring-indigo-500"
-                        />
-                        <span className="text-sm text-slate-700">{f.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </button>
-
-            <button 
-              onClick={() => onAdd ? onAdd() : null}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100"
-            >
-              <Plus size={18} />
-              <span className="hidden sm:inline">Add New</span>
-            </button>
-          </div>
-        </div>
+      <ListToolbar 
+        title={metadata.title}
+        search={search}
+        onSearchChange={setSearch}
+        isFilterOpen={isFilterOpen}
+        onFilterToggle={() => setIsFilterOpen(!isFilterOpen)}
+        filterCount={filters.length}
+        selectedCount={selectedIds.length}
+        onBulkEdit={() => setBulkEditOpen(true)}
+        onBulkDelete={handleDeleteBulk}
+        onExport={handleExport}
+        isExporting={isExporting}
+        onImport={handleImport}
+        onColumnPickerToggle={() => setIsColumnPickerOpen(!isColumnPickerOpen)}
+        isColumnPickerOpen={isColumnPickerOpen}
+        onAdd={() => onAdd ? onAdd() : null}
+        fields={fields}
+        visibleColumns={visibleColumns}
+        onVisibleColumnsChange={setVisibleColumns}
+      />
 
         {/* ── Advanced Filter Builder ────────────────────────────────────── */}
         {isFilterOpen && (
@@ -425,17 +350,18 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {filters.map((f, i) => (
                   <div key={i} className="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-200">
-                    <select 
-                      value={f.field} 
-                      onChange={(e) => updateFilter(i, 'field', e.target.value)}
-                      className="text-xs bg-transparent outline-none font-medium text-slate-700 flex-1"
-                    >
-                      {fields.map(field => <option key={field.name} value={field.name}>{field.label}</option>)}
-                    </select>
+                    <div className="flex-1">
+                      <Combobox
+                        options={fields.map(field => ({ label: field.label, value: field.name }))}
+                        value={f.field}
+                        onChange={(val) => updateFilter(i, 'field', val)}
+                        placeholder="Field..."
+                      />
+                    </div>
                     <select 
                       value={f.op} 
                       onChange={(e) => updateFilter(i, 'op', e.target.value)}
-                      className="text-xs bg-indigo-50 text-indigo-700 rounded px-1 outline-none font-bold"
+                      className="text-xs bg-indigo-50 text-indigo-700 rounded-lg p-2 outline-none font-bold h-[42px]"
                     >
                       <option value="=">=</option>
                       <option value="!=">!=</option>
@@ -443,17 +369,45 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                       <option value="<">&lt;</option>
                       <option value="ilike">contains</option>
                     </select>
-                    <input 
-                      type="text" 
-                      value={f.value}
-                      placeholder="Value..."
-                      onChange={(e) => updateFilter(i, 'value', e.target.value)}
-                      className="text-xs bg-transparent outline-none flex-1 border-b border-slate-100 focus:border-indigo-400"
-                    />
-                    <button onClick={() => removeFilter(i)} className="text-slate-400 hover:text-rose-500">
+                    <div className="flex-1">
+                      {(() => {
+                        const field = fields.find(fd => fd.name === f.field)
+                        if (field?.type === 'lookup' && field.target_resource) {
+                          return (
+                            <Combobox 
+                              resource={field.target_resource}
+                              value={f.value}
+                              onChange={(val) => updateFilter(i, 'value', val)}
+                              placeholder="Value..."
+                            />
+                          )
+                        }
+                        if (field?.type === 'select' && field.options) {
+                          return (
+                            <Combobox 
+                              options={field.options}
+                              value={f.value}
+                              onChange={(val) => updateFilter(i, 'value', val)}
+                              placeholder="Value..."
+                            />
+                          )
+                        }
+                        return (
+                          <input 
+                            type="text" 
+                            value={f.value}
+                            placeholder="Value..."
+                            onChange={(e) => updateFilter(i, 'value', e.target.value)}
+                            className="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs outline-none focus:ring-1 focus:ring-indigo-400"
+                          />
+                        )
+                      })()}
+                    </div>
+                    <button onClick={() => removeFilter(i)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
                       <X size={14} />
                     </button>
                   </div>
+
                 ))}
               </div>
             )}
@@ -473,7 +427,6 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
             </div>
           </div>
         )}
-      </div>
 
       {/* ── Table ──────────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-auto">
@@ -589,6 +542,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
             <option value={20}>20 per page</option>
             <option value={50}>50 per page</option>
             <option value={100}>100 per page</option>
+            <option value={999999}>All</option>
           </select>
         </div>
 
@@ -645,7 +599,10 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
               <select
                 className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                 value={bulkEditField}
-                onChange={e => setBulkEditField(e.target.value)}
+                onChange={e => {
+                  setBulkEditField(e.target.value)
+                  setBulkEditValue('')
+                }}
               >
                 <option value="">— Select field —</option>
                 {(metadata?.fields ?? []).filter(f => !f.read_only && !f.hidden && !['id','created_at','updated_at','created_by','updated_by'].includes(f.name)).map(f => (
@@ -655,13 +612,62 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
             </div>
             <div>
               <label className="text-xs font-bold text-slate-600 mb-1 block">New Value</label>
-              <input
-                type="text"
-                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                value={bulkEditValue}
-                onChange={e => setBulkEditValue(e.target.value)}
-                placeholder="Enter new value..."
-              />
+              {(() => {
+                const field = metadata?.fields.find(f => f.name === bulkEditField)
+                if (field?.type === 'lookup' && field.target_resource) {
+                  return (
+                    <Combobox
+                      resource={field.target_resource}
+                      value={bulkEditValue}
+                      onChange={setBulkEditValue}
+                      placeholder={`Select ${field.label}...`}
+                    />
+                  )
+                }
+                if (field?.type === 'select' && field.options) {
+                  return (
+                    <Combobox
+                      options={field.options}
+                      value={bulkEditValue}
+                      onChange={setBulkEditValue}
+                      placeholder={`Select ${field.label}...`}
+                    />
+                  )
+                }
+
+                if (field?.type === 'boolean') {
+                  return (
+                    <select
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      value={bulkEditValue}
+                      onChange={e => setBulkEditValue(e.target.value === 'true')}
+                    >
+                      <option value="">— Select —</option>
+                      <option value="true">True / Active</option>
+                      <option value="false">False / Inactive</option>
+                    </select>
+                  )
+                }
+                if (field?.type === 'date' || field?.type === 'datetime') {
+                  return (
+                    <input
+                      type={field.type === 'date' ? 'date' : 'datetime-local'}
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      value={bulkEditValue}
+                      onChange={e => setBulkEditValue(e.target.value)}
+                    />
+                  )
+                }
+                return (
+                  <input
+                    type={field?.type === 'number' ? 'number' : 'text'}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                    value={bulkEditValue}
+                    onChange={e => setBulkEditValue(e.target.value)}
+                    placeholder="Enter new value..."
+                  />
+                )
+              })()}
             </div>
           </div>
           <div className="flex gap-3 pt-1">

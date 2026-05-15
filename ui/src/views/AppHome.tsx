@@ -9,26 +9,35 @@ interface OutletContext {
 }
 
 export default function AppHome() {
-  const { appName } = useParams()
+  const params = useParams()
   const { sidebarData } = useOutletContext<OutletContext>()
   const [remoteMenu, setRemoteMenu] = useState<AppMenuData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
+  // Combine segments to get the full app path
+  const appPath = useMemo(() => {
+    const splat = params['*'] || ''
+    return [params.segment1, ...splat.split('/').filter(Boolean)].filter(Boolean).join('/')
+  }, [params])
+
   const sidebarApp = useMemo(
-    () => sidebarData.find((item) => (item.type || 'app') === 'app' && item.name === appName),
-    [appName, sidebarData]
+    () => sidebarData.find((item) => {
+      const itemPath = (item.path || `/${item.name}`).replace(/^\//, '')
+      return itemPath === appPath
+    }),
+    [appPath, sidebarData]
   )
 
   useEffect(() => {
     let cancelled = false
 
-    if (!appName) {
+    if (!appPath) {
       setRemoteMenu(null)
       return
     }
 
     setIsLoading(true)
-    api.get(`/app-menu/${appName}`)
+    api.get(`/app-menu/${appPath}`)
       .then((res) => {
         if (!cancelled) setRemoteMenu(res.data)
       })
@@ -42,9 +51,9 @@ export default function AppHome() {
     return () => {
       cancelled = true
     }
-  }, [appName])
+  }, [appPath])
 
-  if (!appName || isLoading) {
+  if (!appPath || isLoading) {
     return (
       <div className="p-12 text-center text-slate-400 bg-white rounded-2xl border border-dashed border-slate-200">
         Loading application...
@@ -61,7 +70,7 @@ export default function AppHome() {
   }
 
   const appInfo = remoteMenu || {
-    app_label: sidebarApp?.label || appName,
+    app_label: sidebarApp?.label || appPath,
     icon: sidebarApp?.icon || 'Package',
     menu: [],
     sub_apps: []

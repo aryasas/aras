@@ -6,8 +6,8 @@ import argparse
 import sys
 import os
 
-# Add current directory to path so core and apps can be imported
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Add parent directory to path so 'api' package is discoverable
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from core import Aras
 
@@ -43,6 +43,7 @@ def main():
     # Seed
     seed_parser = subparsers.add_parser("seed", help="Seed initial data for apps")
     seed_parser.add_argument("--demo", action="store_true", help="Seed with demo data")
+    seed_parser.add_argument("--company-id", type=int, default=1, help="ID of the company to seed data for")
 
     args = parser.parse_args()
 
@@ -161,21 +162,47 @@ def main():
             print("\n[!] Health checks found issues that may need attention.")
 
     elif args.command == "seed":
-        print("Seeding initial data...")
-        db = next(Aras.get_db())
-        # Add seeding logic here. For now, we'll try to find a seeder in erp
+        # Imports here, specifically for the seed command
+        from core.lib.database import SessionLocal
+        from apps.erp.accounting.seed_coa import seed_coa
+        from apps.erp.config.report_seed import run_seed as seed_reports
+        from apps.erp.seed_demo import run_seed as seed_demo_data
+        from apps.erp.config.models import Company # For fetching company
+
+        print("Discovering apps...")
+        Aras.logic.discovery.discover_apps(package_path="apps")
+
+        print(f"Seeding initial data for company ID: {args.company_id}...")
+        db = SessionLocal() # Explicitly manage session
         try:
-            from apps.erp.main.services.seeder import ERPSeeder
-            ERPSeeder.run(db, demo=args.demo)
+            company = Company.find(db, id=args.company_id)
+            if not company:
+                print(f"Error: Company with ID {args.company_id} not found.")
+                sys.exit(1)
+            
+            # Run core ERP seeding
+            print("  - Seeding Chart of Accounts...")
+            seed_coa(db, company.id)
+            print("  - Seeding Reports...")
+            seed_reports(db, company.id)
+            
+            if args.demo:
+                print("  - Seeding Demo Data...")
+                seed_demo_data(db, company.id)
+            
+            db.commit()
             print("Seeding completed successfully.")
-        except ImportError:
-            print("No seeder found for ERP.")
         except Exception as e:
+            db.rollback()
             print(f"Seeding failed: {str(e)}")
+            import traceback
+            traceback.print_exc() # Print full traceback for debugging
+            sys.exit(1)
+        finally:
+            db.close()
 
     else:
 
         parser.print_help()
-
 if __name__ == "__main__":
     main()

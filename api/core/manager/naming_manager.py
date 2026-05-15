@@ -7,7 +7,7 @@ import logging
 from datetime import datetime
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
-from ..registry.naming_series import NamingSeries
+from ..registry.series import Series
 from .manager import Manager
 
 logger = logging.getLogger(__name__)
@@ -22,14 +22,14 @@ class NamingManager(Manager):
         Format: {prefix}{year}{next_value:04d}
         """
         # Use SELECT ... FOR UPDATE to ensure atomicity in concurrent environments
-        stmt = select(NamingSeries).where(NamingSeries.key == key).with_for_update()
+        stmt = select(Series).where(Series.key == key).with_for_update()
         series = db.scalar(stmt)
 
         now = datetime.now()
         year = now.year
 
         if not series:
-            series = NamingSeries(
+            series = Series(
                 key=key,
                 prefix=default_prefix or key.split('_')[-1][:3].upper() + "-",
                 next_value=1,

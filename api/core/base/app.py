@@ -32,6 +32,40 @@ class App(Aras):
     menu_groups: List[Dict[str, Any]] = [] # [{"label": "Group", "icon": "Icon", "models": ["table_name"]}]
 
     @classmethod
+    def _get_clean_label(cls, name: str) -> str:
+        """Strips app and parent prefixes from a name and titles it."""
+        clean = name
+        if cls.app_name and clean.startswith(f"{cls.app_name}_"):
+            clean = clean[len(cls.app_name)+1:]
+        if cls.parent_name and clean.startswith(f"{cls.parent_name}_"):
+            clean = clean[len(cls.parent_name)+1:]
+        return clean.replace("_", " ").title()
+
+    @classmethod
+    def _get_clean_path(cls, model_name: str = None) -> str:
+        """Generates a hierarchical hyphenated path for the app or model."""
+        segments = []
+        if cls.parent_name:
+            segments.append(cls.parent_name.replace("_", "-"))
+        
+        # App name segment (strip parent prefix if present)
+        app_seg = cls.app_name
+        if cls.parent_name and app_seg.startswith(f"{cls.parent_name}_"):
+            app_seg = app_seg[len(cls.parent_name)+1:]
+        segments.append(app_seg.replace("_", "-"))
+        
+        if model_name:
+            # Model segment (strip app prefix if present)
+            model_seg = model_name
+            if cls.app_name and model_seg.startswith(f"{cls.app_name}_"):
+                model_seg = model_seg[len(cls.app_name)+1:]
+            elif cls.parent_name and model_seg.startswith(f"{cls.parent_name}_"):
+                model_seg = model_seg[len(cls.parent_name)+1:]
+            segments.append(model_seg.replace("_", "-"))
+            
+        return "/" + "/".join(segments)
+
+    @classmethod
     def get_menu_structure(cls) -> List[Dict[str, Any]]:
         """
         Generates a hierarchical menu structure for the app.
@@ -66,20 +100,24 @@ class App(Aras):
                         group_items.append({
                             "type": "model",
                             "name": model_name,
-                            "label": getattr(m, "__title__", model_name.replace("_", " ").title()),
-                            "path": f"/{cls.app_name}/{model_name}",
+                            "label": getattr(m, "__title__", cls._get_clean_label(model_name)),
+                            "path": cls._get_clean_path(model_name),
                             "icon": getattr(m, "__icon__", "FileText")
                         })
                         models_already_in_menu.add(model_name)
                 
                 # Also handle nested sub-apps in menu groups if any
                 for sub_app_name in group.get("apps", []):
-                    # We'll just pass the name, frontend will need to fetch or use sidebar data
-                    # But for now, let's just mark it as app
+                    # For sub-apps, we find the registered app class to get its clean path
+                    sub_app_cls = App._registry.get(sub_app_name)
+                    path = f"/{sub_app_name}"
+                    if sub_app_cls:
+                        path = sub_app_cls._get_clean_path()
+                    
                     group_items.append({
                         "type": "app_link",
                         "name": sub_app_name,
-                        "path": f"/{sub_app_name}"
+                        "path": path
                     })
 
                 if group_items:
@@ -98,15 +136,12 @@ class App(Aras):
                 standalone_items.append({
                     "type": "model",
                     "name": model_name,
-                    "label": getattr(m, "__title__", model_name.replace("_", " ").title()),
-                    "path": f"/{cls.app_name}/{model_name}",
+                    "label": getattr(m, "__title__", cls._get_clean_label(model_name)),
+                    "path": cls._get_clean_path(model_name),
                     "icon": getattr(m, "__icon__", "FileText")
                 })
         
         if standalone_items:
-            # Add as a default group or just items? 
-            # Let's add them to a "General" group if there are other groups, 
-            # otherwise just return them.
             if structured_menu:
                 structured_menu.append({
                     "type": "group",

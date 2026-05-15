@@ -128,7 +128,7 @@ core_models = [
     Aras.User, Aras.Role, Aras.Permission, Aras.ActivityLog, Aras.ArasSetting,
     Aras.AppModel, Aras.ResourceModel, Aras.FieldModel, Aras.LinkModel, Aras.TranslationModel,
     Aras.WidgetModel, Aras.DashboardLayoutModel,
-    Aras.logic.discovery.load_class("core.registry.naming_series.NamingSeries")
+    Aras.logic.discovery.load_class("core.registry.series.Series")
 ]
 for model in core_models:
     # Ensure RouterFactory has access to Aras
@@ -170,6 +170,7 @@ async def get_sidebar_data(_: Any = Depends(get_current_user)):
             "label": app_cls.app_label,
             "icon": app_cls.icon,
             "have_home": app_cls.have_home,
+            "path": app_cls._get_clean_path(),
             "sub_apps": []
         }
         apps_by_name[app_cls.app_name] = app_data
@@ -186,17 +187,25 @@ async def get_sidebar_data(_: Any = Depends(get_current_user)):
     return sidebar
 
 
-@app.get("/api/v1/app-menu/{app_name}")
+@app.get("/api/v1/app-menu/{app_name:path}")
 async def get_app_menu(app_name: str, _: Any = Depends(get_current_user)):
-    """Returns app metadata and structured hierarchical menu for the topbar."""
+    """Returns app metadata and structured hierarchical menu for the topbar. Supports paths."""
     from core.base.app import App
     
-    # Find app class
+    # Normalize app_name (ensure leading slash and hyphens for matching)
+    path = app_name if app_name.startswith("/") else f"/{app_name}"
+    path = path.replace("_", "-")
+    
+    # Find app class by clean path
     app_cls = None
     for _, cls in App._registry.items():
-        if cls.app_name == app_name:
+        if cls._get_clean_path() == path:
             app_cls = cls
             break
+            
+    # Fallback to direct name lookup
+    if not app_cls:
+        app_cls = App._registry.get(app_name)
             
     if not app_cls:
         return {"error": "App not found"}, 404
@@ -204,12 +213,12 @@ async def get_app_menu(app_name: str, _: Any = Depends(get_current_user)):
     # Find sub-apps
     sub_apps = []
     for _, cls in App._registry.items():
-        if getattr(cls, "parent_name", None) == app_name:
+        if getattr(cls, "parent_name", None) == app_cls.app_name:
             sub_apps.append({
                 "name": cls.app_name,
                 "label": cls.app_label,
                 "icon": cls.icon,
-                "path": f"/{cls.app_name}" if cls.have_home else f"/{cls.app_name}/home",
+                "path": cls._get_clean_path(),
                 "menu": cls.get_menu_structure()
             })
     

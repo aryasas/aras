@@ -3,7 +3,7 @@ import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
 import {
   Save, ArrowLeft, RefreshCw, ChevronRight,
-  History as HistoryIcon, Zap
+  History as HistoryIcon, Zap, Settings
 } from 'lucide-react';
 import ListView from './ListView';
 import { InlineChildTable } from './InlineChildTable';
@@ -99,6 +99,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   
   const { notify, confirm } = useAras();
   const showPanel = useUIStore((state) => state.showPanel);
+  const closePanel = useUIStore((state) => state.closePanel);
 
   useEffect(() => {
     setCurrentId(id != null && id !== 'new' ? id : undefined);
@@ -131,6 +132,18 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           const defaults: any = { ...initialData };
           meta.fields.forEach((f: any) => {
              if (defaults[f.name] !== undefined) return;
+             if (f.default_value) {
+                defaults[f.name] = f.default_value;
+                if (f.type === 'number' || f.type === 'currency') defaults[f.name] = Number(f.default_value);
+                if (f.type === 'boolean') defaults[f.name] = f.default_value === 'true';
+                return;
+             }
+             if (f.series) {
+                // If it's a naming series field, we might want to handle it specially
+                // But for now just use it as default if it's not empty
+                defaults[f.name] = f.series;
+             }
+
              if (f.type === 'boolean') defaults[f.name] = false;
              else if (f.type === 'number' || f.type === 'currency') defaults[f.name] = 0;
              else if (f.type === 'date') defaults[f.name] = today;
@@ -178,6 +191,47 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       </div>,
       'max-w-5xl'
     );
+  };
+
+  const handleCustomize = async () => {
+    if (!metadata) return;
+    const cleanResource = cleanResourcePath(resource);
+    
+    try {
+      const res = await api.get('/aras_resources', { params: { name: cleanResource } });
+      const resourceRecord = res.data.items[0];
+      if (!resourceRecord) {
+        notify("Resource record not found in registry", "error");
+        return;
+      }
+
+      showPanel(
+        `Customize: ${metadata.title}`,
+        <div className="h-[calc(100vh-150px)]">
+          <ListView 
+            resource="aras_fields" 
+            fixedFilters={{ resource_id: resourceRecord.id }}
+            onRowClick={(fieldId) => {
+               showPanel(`Edit Field Customization`, 
+                 <DynamicForm 
+                   resource="aras_fields" 
+                   id={fieldId} 
+                   onSave={() => {
+                     notify("Field customized. Refresh to see changes.", "success");
+                     setRefreshTrigger(prev => prev + 1);
+                   }}
+                   onCancel={closePanel}
+                 />,
+                 'max-w-4xl'
+               );
+            }}
+          />
+        </div>,
+        'max-w-5xl'
+      );
+    } catch (err) {
+      notify("Failed to load resource record", "error");
+    }
   };
 
   const handleWorkflowAction = async (actionName: string) => {
@@ -275,7 +329,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       for (const [fieldName, rows] of Object.entries(childRows)) {
         const childField = metadata?.fields.find(f => f.name === fieldName);
         if (!childField?.target_resource || rows.length === 0) continue;
-        const fkKey = childField.fk_column || `${cleanResource}_id`;
+        const fkKey = childField.fk_column || `${metadata?.resource}_id`;
         const childRes = cleanResourcePath(childField.target_resource);
         for (const row of rows) {
           if (row.id) {
@@ -386,6 +440,15 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
               <HistoryIcon size={20} />
             </button>
           )}
+
+          {/* Customize Button */}
+          <button
+            onClick={handleCustomize}
+            className="p-2 hover:bg-slate-50 rounded-xl text-slate-500 transition-colors mr-2"
+            title="Customize Form"
+          >
+            <Settings size={20} />
+          </button>
 
           {/* Model Actions */}
           {currentId != null && metadata.actions?.map(action => (

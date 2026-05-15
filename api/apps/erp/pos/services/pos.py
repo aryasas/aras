@@ -15,13 +15,13 @@ class PosService:
 
         terminal = db.query(PosTerminal).get(session.terminal_id)
         pricelist_id = terminal.selling_pricelist_id if terminal else None
-        warehouse_id = terminal.warehouse_id if terminal else None
+        location_id = terminal.location_id if terminal else None
 
         products = db.query(Product).all()
         result = []
         for p in products:
             price_info = {"price": PriceService.get_price(db, p.id, pricelist_id=pricelist_id)}
-            qty = StockComputeService.compute_qty(db, p.id, warehouse_id=warehouse_id)
+            qty = StockComputeService.compute_qty(db, p.id, location_id=location_id)
             result.append({
                 "id": p.id,
                 "name": p.name,

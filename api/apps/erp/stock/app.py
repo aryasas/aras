@@ -1,5 +1,5 @@
 from ..app import ERP
-from .models import ProductCategory, Product, Warehouse, Location, StockMovement, StockMovementLine, \
+from .models import ProductCategory, Product, Location, StockMovement, StockMovementLine, \
     ProductUom, PriceList, PromoBundle, PromoBundleItem, DeliveryNote, DeliveryNoteLine
 from . import views # Trigger view registration
 
@@ -9,7 +9,7 @@ class Stock(ERP):
     icon = "Package"
 
     models = [
-        ProductCategory, Product, Warehouse, Location, StockMovement, StockMovementLine,
+        ProductCategory, Product, Location, StockMovement, StockMovementLine,
         ProductUom, PriceList, PromoBundle, PromoBundleItem, DeliveryNote, DeliveryNoteLine
     ]
 
@@ -17,7 +17,7 @@ class Stock(ERP):
         {
             "label": "Master Data",
             "icon": "Database",
-            "models": ["erp_stock_products", "erp_stock_categories", "erp_stock_warehouses", "erp_stock_locations"]
+            "models": ["erp_stock_products", "erp_stock_categories", "erp_stock_locations"]
         },
         {
             "label": "Operations",

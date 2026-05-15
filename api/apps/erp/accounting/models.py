@@ -8,7 +8,14 @@ from ..base import MasterDataBase, DocumentBase, LineItemBase
 class Account(MasterDataBase):
     __tablename__ = "erp_accounting_accounts"
     
-    account_type: Mapped[str] = mapped_column(String(50), info={"choices": ["Asset", "Liability", "Equity", "Revenue", "Expense", "View"]})
+    account_type: Mapped[str] = mapped_column(String(50), info={"choices": [
+        "asset_current", "asset_fixed", "asset_other",
+        "liability_current", "liability_long",
+        "equity",
+        "income_operating", "income_other",
+        "expense_operating", "expense_cogs", "expense_other",
+        "view"
+    ]})
     parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
     is_group: Mapped[bool] = mapped_column(Boolean, default=False)
     

@@ -51,16 +51,21 @@ class RBAC(Auth):
         from ..registry.user_role import UserRole
         from ..registry.permission import Permission
 
-        return db.query(Permission.id)\
+        query = db.query(Permission.id)\
             .join(Role, Role.id == Permission.role_id)\
             .join(UserRole, UserRole.role_id == Role.id)\
             .filter(
                 UserRole.user_id == user.id,
                 Permission.resource == resource,
-                Permission.action == action,
-                Role.is_active == True,
-                Permission.is_active == True
-            ).first() is not None
+                Permission.action == action
+            )
+        
+        if hasattr(Role, "is_active"):
+            query = query.filter(Role.is_active == True)
+        if hasattr(Permission, "is_active"):
+            query = query.filter(Permission.is_active == True)
+
+        return query.first() is not None
 
     @staticmethod
     def get_readable_resources(db: Session, user: User) -> set:
@@ -69,14 +74,19 @@ class RBAC(Auth):
         from ..registry.user_role import UserRole
         from ..registry.permission import Permission
 
-        rows = db.query(Permission.resource)\
+        query = db.query(Permission.resource)\
             .join(Role, Role.id == Permission.role_id)\
             .join(UserRole, UserRole.role_id == Role.id)\
             .filter(
                 UserRole.user_id == user.id,
-                Permission.action == "READ",
-                Role.is_active == True,
-                Permission.is_active == True
-            ).all()
+                Permission.action == "READ"
+            )
+
+        if hasattr(Role, "is_active"):
+            query = query.filter(Role.is_active == True)
+        if hasattr(Permission, "is_active"):
+            query = query.filter(Permission.is_active == True)
+
+        rows = query.all()
 
         return {row[0] for row in rows}

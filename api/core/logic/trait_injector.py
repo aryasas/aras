@@ -84,8 +84,10 @@ class TraitInjector(Service):
             if col_name in target_cls.__table__.columns:
                 continue
             from sqlalchemy import Column as _Col
-            target_cls.__table__.append_column(
-                _Col(col_name, Integer, ForeignKey(f"{fk_table}.id"),
+            new_col = _Col(col_name, Integer, ForeignKey(f"{fk_table}.id"),
                      nullable=False, index=True,
                      info={"form_hidden": True, "scoped": True})
-            )
+            target_cls.__table__.append_column(new_col)
+            # Also set on class so it's accessible as an attribute
+            if not hasattr(target_cls, col_name):
+                setattr(target_cls, col_name, new_col)

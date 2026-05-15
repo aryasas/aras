@@ -45,9 +45,17 @@ class Model(Aras, Base):
             merged: list = []
             seen: set = set()
             for base in cls.__mro__:
-                vals = base.__dict__.get(attr)
-                if not vals:
+                # Use a marker to distinguish between 'missing' and 'falsy' (like [])
+                vals = base.__dict__.get(attr, "_MISSING_")
+                if vals == "_MISSING_":
                     continue
+
+                # If the child explicitly defines it as None, it means "clear all inheritance"
+                if vals is None:
+                    break 
+
+                if not isinstance(vals, (list, tuple)):
+                    vals = [vals]
                 for v in vals:
                     key = tuple(v) if isinstance(v, (list, tuple)) else v
                     if key in seen:
@@ -378,6 +386,34 @@ class Model(Aras, Base):
                 self.created_by = user_id
             self.updated_by = user_id
 
+        # ── Series Generation ──
+        if is_new:
+            try:
+                # Use local imports to avoid circularity
+                from ..registry.field_model import FieldModel
+                from ..registry.resource_model import ResourceModel
+                from ..manager.naming_manager import NamingManager
+                
+                # Check for fields with 'series' metadata in DB
+                res_rec = db.query(ResourceModel).filter(ResourceModel.name == self.__tablename__).first()
+                if res_rec:
+                    fields_with_series = db.query(FieldModel).filter(
+                        FieldModel.resource_id == res_rec.id,
+                        FieldModel.series.isnot(None),
+                        FieldModel.series != ""
+                    ).all()
+                    
+                    for f_meta in fields_with_series:
+                        current_val = getattr(self, f_meta.name, None)
+                        if not current_val or current_val == "":
+                            # Generate next value using NamingManager
+                            # Key is resource_field for uniqueness
+                            series_key = f"{self.__tablename__}_{f_meta.name}"
+                            generated = NamingManager.get_next(db, key=series_key, default_prefix=f_meta.series)
+                            setattr(self, f_meta.name, generated)
+            except Exception as e:
+                print(f"[Model] Series generation failed: {e}")
+
         self.before_save(is_new=is_new)
         if is_new:
             db.add(self)
@@ -420,6 +456,23 @@ class Model(Aras, Base):
                 print(f"[Model] Warning: Failed to save M2M for {self.__tablename__}.{field_name}: {e}")
                 db.rollback()
                 raise e
+
+    @classmethod
+    def find(cls: Type[T], db: Session, **kwargs) -> Optional[T]:
+        """Return first row matching keyword filters, or None."""
+        return db.scalar(select(cls).filter_by(**kwargs).limit(1))
+
+    @classmethod
+    def get_or_create(cls: Type[T], db: Session, defaults: dict = None, user_id: int = None, **lookup) -> Tuple[T, bool]:
+        """
+        Fetch first row matching lookup kwargs, or create it.
+        Returns (instance, created: bool).
+        """
+        obj = cls.find(db, **lookup)
+        if obj:
+            return obj, False
+        data = {**lookup, **(defaults or {})}
+        return cls.create(db, data, user_id=user_id), True
 
     @classmethod
     def create(cls: Type[T], db: Session, data: dict, user_id: int = None) -> T:

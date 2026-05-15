@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import api from '../lib/api'
 import { Search, Clock, User, ArrowRight, RefreshCw, Database, Plus, Edit2, Trash2 } from 'lucide-react'
+import Combobox from '../aras-core/components/Combobox'
 
 interface LogEntry {
   id: number
@@ -106,6 +107,7 @@ const AuditLogs = () => {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(30)
   const [totalPages, setTotalPages] = useState(1)
   const [actionFilter, setActionFilter] = useState<string>('')
 
@@ -117,7 +119,7 @@ const AuditLogs = () => {
       const res = await api.get('/aras_activity_logs/', {
         params: {
           page,
-          per_page: 30,
+          per_page: perPage,
           search: search || undefined,
           filters: filters.length ? JSON.stringify(filters) : undefined,
           order_by: 'id',
@@ -131,7 +133,7 @@ const AuditLogs = () => {
     } finally {
       setLoading(false)
     }
-  }, [page, search, actionFilter])
+  }, [page, perPage, search, actionFilter])
 
   useEffect(() => { fetchLogs() }, [fetchLogs])
   useEffect(() => { setPage(1) }, [search, actionFilter])
@@ -170,6 +172,22 @@ const AuditLogs = () => {
             </button>
           ))}
         </div>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-xs font-medium text-slate-400">Page size:</span>
+          <Combobox 
+            options={[
+              { label: '10', value: 10 },
+              { label: '20', value: 20 },
+              { label: '30', value: 30 },
+              { label: '50', value: 50 },
+              { label: '100', value: 100 },
+              { label: 'All', value: 999999 }
+            ]}
+            value={perPage}
+            onChange={(val) => { setPerPage(Number(val)); setPage(1); }}
+          />
+        </div>
+
       </div>
 
       {/* Timeline */}

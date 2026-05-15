@@ -51,7 +51,16 @@ class UIGenerator(Service):
             ui_type = column.info.get("ui_type")
             
             if column.foreign_keys:
-                target_resource = list(column.foreign_keys)[0].column.table.name
+                target_table = list(column.foreign_keys)[0].column.table.name
+                target_resource = target_table
+                
+                # Resolve app path for the target resource
+                from ..base.app import App
+                for app_cls in App._registry.values():
+                    if any(hasattr(m, "__tablename__") and m.__tablename__ == target_table for m in app_cls.models):
+                        target_resource = app_cls._get_clean_path(target_table)
+                        break
+                
                 if not ui_type:
                     ui_type = "lookup"
             
@@ -112,6 +121,8 @@ class UIGenerator(Service):
                 "searchable": is_searchable,
                 "form_hidden": form_hidden,
                 "depends_on": column.info.get("depends_on"),
+                "default_value": db_field.default_value if db_field else None,
+                "series": db_field.series if db_field else None,
                 "link_column": db_field.link_column if db_field and db_field.link_column else column.info.get("link_column"),
                 "display_column": db_field.display_column if db_field and db_field.display_column else column.info.get("display_column")
             }
@@ -227,10 +238,23 @@ class UIGenerator(Service):
                 "is_computed": True
             })
 
+        # Find the app for this model to use its clean label logic
+        from ..base.app import App
+        app_cls = None
+        for a in App._registry.values():
+            if model_class in a.models:
+                app_cls = a
+                break
+        
+        def clean_label(name):
+            if app_cls:
+                return app_cls._get_clean_label(name)
+            return name.replace("_", " ").title()
+
         metadata = {
             "resource": resource_name,
             "title": db_resource.title if db_resource and db_resource.title else \
-                     getattr(model_class, "__title__", resource_name.replace("_", " ").title()),
+                     getattr(model_class, "__title__", clean_label(resource_name)),
             "fields": fields,
             "children": children,
             "workflow": getattr(model_class, "__workflow__", None),

@@ -19,6 +19,7 @@ class Product(MasterDataBase):
 
     category_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_categories.id"), nullable=True)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     uoms: Mapped[list["ProductUom"]] = relationship("ProductUom", back_populates="parent", cascade="all, delete-orphan")
     pricelists: Mapped[list["PriceList"]] = relationship("PriceList", back_populates="product", cascade="all, delete-orphan", foreign_keys="[PriceList.product_id]")
@@ -54,6 +55,7 @@ class PriceList(MasterDataBase):
     valid_from: Mapped[date] = mapped_column(Date, nullable=True)
     valid_to: Mapped[date] = mapped_column(Date, nullable=True)
     is_blanket: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     
     product: Mapped["Product"] = relationship("Product", back_populates="pricelists", foreign_keys=[product_id])
 
@@ -77,21 +79,20 @@ class PromoBundleItem(LineItemBase):
 
     parent: Mapped["PromoBundle"] = relationship("PromoBundle", back_populates="items")
 
-class Warehouse(MasterDataBase):
-    __tablename__ = "erp_stock_warehouses"
-    location: Mapped[str] = mapped_column(String(255), nullable=True)
-
-
 class Location(MasterDataBase):
     __tablename__ = "erp_stock_locations"
-    warehouse_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_warehouses.id"))
+    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
+    is_group: Mapped[bool] = mapped_column(Boolean, default=False)
+    location_type: Mapped[str] = mapped_column(String(20), default="Internal", info={"choices": ["Internal", "Transit", "Virtual", "Customer", "Supplier"]})
+
+    parent: Mapped[Optional["Location"]] = relationship("Location", remote_side="Location.id", backref="children")
 
 
 class DeliveryNote(DocumentBase):
     __tablename__ = "erp_stock_delivery_notes"
 
     customer_id: Mapped[int] = mapped_column(ForeignKey("erp_crm_customers.id"), nullable=True)
-    warehouse_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_warehouses.id"), nullable=True)
+    location_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
     
     lines: Mapped[list["DeliveryNoteLine"]] = relationship("DeliveryNoteLine", back_populates="parent", cascade="all, delete-orphan")
 
@@ -123,9 +124,9 @@ class DeliveryNoteLine(LineItemBase):
 class StockMovement(DocumentBase):
     __tablename__ = "erp_stock_movements"
 
-    move_type: Mapped[str] = mapped_column(String(20), default="Internal", info={"choices": ["Incoming", "Outgoing", "Internal"]})
-    from_warehouse_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_warehouses.id"), nullable=True)
-    to_warehouse_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_warehouses.id"), nullable=True)
+    move_type: Mapped[str] = mapped_column(String(20), default="Internal", info={"choices": ["Incoming", "Outgoing", "Internal", "Opening", "Adjustment"]})
+    from_location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
+    to_location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
 
     lines: Mapped[list["StockMovementLine"]] = relationship("StockMovementLine", back_populates="parent", cascade="all, delete-orphan")
 

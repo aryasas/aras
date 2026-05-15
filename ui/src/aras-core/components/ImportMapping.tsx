@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Download, AlertCircle, Check } from 'lucide-react';
+import Combobox from './Combobox';
 
 interface ImportMappingProps {
   csvHeaders: string[];
@@ -40,6 +41,8 @@ export const ImportMapping: React.FC<ImportMappingProps> = ({
     setMapping(newMap);
   };
 
+  const fieldOptions = resourceFields.map(f => ({ label: f.label, value: f.name }));
+
   return (
     <div className="flex flex-col h-full">
       <div className="p-6 space-y-4">
@@ -67,16 +70,12 @@ export const ImportMapping: React.FC<ImportMappingProps> = ({
 
               <div className="flex-1">
                 <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Target Field</span>
-                <select 
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg text-xs p-2 outline-none focus:ring-1 focus:ring-indigo-500"
+                <Combobox 
+                  options={fieldOptions}
                   value={mapping[header] || ''}
-                  onChange={(e) => handleMap(header, e.target.value)}
-                >
-                  <option value="">(Ignore Column)</option>
-                  {resourceFields.map(f => (
-                    <option key={f.name} value={f.name}>{f.label}</option>
-                  ))}
-                </select>
+                  onChange={(val) => handleMap(header, val)}
+                  placeholder="(Ignore Column)"
+                />
               </div>
             </div>
           ))}
@@ -109,3 +108,4 @@ export const ImportMapping: React.FC<ImportMappingProps> = ({
     </div>
   );
 };
+

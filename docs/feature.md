@@ -200,6 +200,12 @@ This document outlines the key features and architectural components of the Aras
 - [Gemini CLI] **Framework CLI Enhancements**: Added a central `python manage.py seed` command with automated ERP seeding (COA, Currencies, UOMs, Warehouses).
 - [Gemini CLI] **Menu Reorganization**: Reorganized the ERP sidebar into logical groups (General Ledger, Sales, Purchase, Payments, Sales Force) with professional icons.
 
+## Framework Refinements & Seeding (2026-05-15)
+- [Gemini CLI] **Inheritance & Scoping Fix**: Improved `Model.__init_subclass__` to allow explicitly disabling inherited features or scoping by setting `__scoped_by__ = None` (used for `Company` and `Setting`).
+- [Gemini CLI] **Dynamic Attribute Injection**: Fixed `TraitInjector` to automatically set injected scoping columns as class attributes, ensuring they are accessible to the SQLAlchemy ORM and query builder.
+- [Gemini CLI] **Automated ERP Seeding**: Implemented a comprehensive Chart of Accounts (COA) for international standards and automated the seeding of reporting templates for the ERP system via `python manage.py seed`.
+- [Gemini CLI] **Multi-Tenant Bootstrap**: Created `api/create_company.py` to facilitate initial system setup and ensured consistent company-id scoping during data seeding.
+
 
 
 ## Simplified Application Registration (May 2026)
@@ -226,9 +232,20 @@ This document outlines the key features and architectural components of the Aras
 - [Gemini CLI] **API App Menu Enhancements**: The `/api/v1/app-menu/{app_name}` endpoint now recursively resolves the menu structure for all nested `sub_apps`, allowing the client to receive the full application hierarchy.
 - [Gemini CLI] **Mega-Menu Topbar**: The Topbar now dynamically identifies the "Root Application" context based on the current URL and the Sidebar structure. Instead of replacing the Topbar with a single module's menu, it persists all sibling modules (e.g., Accounting, Stock, CRM) as top-level dropdown groups, rendering their child menus (e.g., General Ledger, Sales) as nested sections.
 
-## UI Fix: Consolidated ERP Settings & Finance Configuration (2026-05-15)
+## Hierarchical & Clean URL Structure (2026-05-15)
 
-- [Gemini CLI] **Payment Modes Migration**: Moved `ModeOfPayment` and `CompanyPaymentAccount` from the Accounting module to the Config (Settings) module for centralized financial configuration.
-- [Gemini CLI] **System Tools Merge**: Merged the legacy `System Tools` (Print Templates, Reports, Notifications) into the `ERP Settings` module to reduce top-level module clutter.
-- [Gemini CLI] **Menu Reorganization**: Grouped newly moved models into logical sections: "Finance Configuration" (Payment Modes, Charges, Price Types) and "System Tools" (Print Templates, Reports, Notifications) within the Settings module.
-- [Gemini CLI] **Relational Integrity**: Updated all foreign key references in Accounting (Payment) and POS (PosPaymentLine) to point to the new `erp_config_payment_modes` registry.
+-   **Nice URLs (Hierarchical & Hyphenated):** The framework now generates and supports hierarchical, hyphenated paths for both applications and resources (e.g., `http://localhost:5173/erp/accounting/accounts`).
+-   **Clean Labels (Prefix Stripping):** Application and model prefixes (like `erp_` or `erp_accounting_`) are automatically stripped from UI labels and titles, resulting in a cleaner, professional interface (e.g., "Accounts" instead of "Erp Accounting Accounts").
+-   **Unified Smart Dispatcher:** The frontend router utilizes a `SmartDispatcher` to dynamically resolve URL segments into either Application Home views or Resource List/Form views based on the system registry.
+-   **Consistent API Parity:** Backend API endpoints have been synchronized to follow the same hierarchical structure as the frontend, ensuring consistency and ease of debugging.
+-   **Hyphenated Path Support:** All underscores in URL paths are automatically converted to hyphens for improved SEO and readability.
+
+## UI Refactoring & Enhanced Customization (2026-05-15)
+
+- [Gemini CLI] **Generic List Toolbar Component**: Extracted the toolbar logic from `ListView` into a standalone `ListToolbar` component. This ensures a consistent UI across standalone list views and inline child tables, providing standard features like Search, Column Visibility, Bulk Actions, and Export/Import everywhere.
+- [Gemini CLI] **NamingSeries to Series Renaming**: Renamed the core registry `NamingSeries` to `Series` for a cleaner, more intuitive API and UI experience.
+- [Gemini CLI] **Dynamic Form Customization**:
+    - **Customize Button**: Added a "Customize" (Settings icon) button to the `DynamicForm` header for instant access to field-level overrides.
+    - **Field Metadata Overrides**: Users can now customize `default_value` and `series` patterns for any field directly from the GUI.
+    - **Automatic Series Generation**: The framework now automatically generates sequential IDs or formatted strings (e.g., INV-2026-0001) for fields configured with a series pattern upon record creation.
+    - **Metadata-Driven Defaults**: `DynamicForm` initialization now respects `default_value` overrides from the database registry.

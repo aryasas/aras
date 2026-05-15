@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Checklist Prototype — Mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :root {
+    --bg: #f3f3f3;
+    --panel: #ffffff;
+    --rail: #ffffff;
+    --line: #e4e4e4;
+    --line-strong: #d8d8d8;
+    --head: #e2e2e2;
+    --text: #222222;
+    --muted: #6e6e72;
+    --faint: #cfcfd2;
+    --blue: #448cf4;
+    --blue-2: #2f7dea;
+    --yellow: #e7cd4f;
+    --green: #66b72f;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font-family: Inter, Arial, sans-serif; }
+  body { overflow: hidden; }
+  button, input, select { font: inherit; }
+  .app { height: 100vh; display: grid; grid-template-columns: 68px 1fr; grid-template-rows: 64px 1fr; background: var(--bg); }
+  .brand {
+    grid-column: 1 / 2; grid-row: 1 / 2; background: var(--panel); display: flex; align-items: center;
+    padding-left: 18px; border-bottom: 1px solid var(--line); box-shadow: var(--shadow); z-index: 3;
+  }
+  .brand-mark { width: 42px; height: 42px; border-radius: 50%; background: var(--blue); color: #fff; position: relative; flex: 0 0 auto; }
+  .brand-mark::before { content: ""; position: absolute; left: 12px; top: 9px; width: 9px; height: 18px; background: #fff; border-radius: 2px; }
+  .brand-mark::after { content: ""; position: absolute; left: 20px; top: 20px; width: 15px; height: 7px; background: #fff; border-radius: 2px; }
+  .brand-name { color: var(--blue); font-size: 27px; font-weight: 700; letter-spacing: 0.03em; margin-left: 10px; }
+  .topbar {
+    grid-column: 2 / 3; grid-row: 1 / 2; background: var(--panel); display: flex; align-items: center;
+    justify-content: flex-end; border-bottom: 1px solid var(--line); box-shadow: var(--shadow); z-index: 2;
+  }
+  .facility { height: 64px; min-width: 300px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: #f8f8f8; border-left: 1px solid var(--line); border-right: 1px solid var(--line); color: #37373a; font-size: 16px; }
+  .top-icon { width: 56px; height: 64px; border: 0; background: transparent; display: grid; place-items: center; color: #222; cursor: pointer; }
+  .top-icon:hover, .facility:hover { background: #f1f1f1; }
+  .avatar { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #9fd5ff 0 20%, #2e86de 21% 46%, #1d5f9f 47% 100%); box-shadow: inset 0 0 0 2px rgba(255,255,255,0.7); }
+  .rail {
+    grid-column: 1 / 2; grid-row: 2 / 3; background: var(--rail); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; align-items: stretch; padding-top: 28px; z-index: 1;
+  }
+  .rail-btn { height: 72px; border: 0; border-left: 4px solid transparent; background: #fff; display: grid; place-items: center; color: #606064; cursor: pointer; position: relative; }
+  .rail-btn:hover { background: #f7f7f7; color: #1f1f21; }
+  .rail-btn.active { border-left-color: var(--blue); color: #2f2f33; background: #fff; }
+  .notify-dot { position: absolute; right: 19px; top: 15px; width: 11px; height: 11px; border-radius: 50%; background: #63b82d; border: 2px solid #fff; }
+  .content { grid-column: 2 / 3; grid-row: 2 / 3; overflow: auto; padding: 32px 32px 24px; }
+  .page-title { font-size: 52px; line-height: 1; font-weight: 400; letter-spacing: -0.045em; margin: 0 0 8px; }
+  .subtitle { color: #c7c7ca; font-size: 17px; margin-bottom: 42px; }
+  .tabs { width: 500px; display: grid; grid-template-columns: 1fr 1fr; border-bottom: 2px solid #dddddd; margin-bottom: 30px; }
+  .tab { height: 42px; border: 0; background: transparent; color: #66666a; font-weight: 500; text-align: left; padding-left: 20px; position: relative; cursor: pointer; font-size: 16px; }
+  .tab.active { color: #222226; font-weight: 700; }
+  .tab.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px; background: #65a8f8; }
+  .filters { display: grid; grid-template-columns: 250px 250px minmax(280px, 1fr) 180px auto; gap: 30px; align-items: end; margin-bottom: 30px; }
+  .field-label { color: #66666a; font-size: 14px; font-weight: 600; margin-bottom: 10px; letter-spacing: 0.01em; }
+  .selectbox, .searchbox { height: 50px; background: #fff; border: 0; border-bottom: 2px solid #d8d8d8; box-shadow: 0 1px 0 rgba(0,0,0,0.02); display: flex; align-items: center; padding: 0 18px 0 20px; color: #333338; font-size: 16px; }
+  .selectbox { justify-content: space-between; cursor: pointer; }
+  .searchbox { gap: 12px; }
+  .searchbox input { width: 100%; border: 0; outline: 0; color: #333338; background: transparent; font-size: 16px; }
+  .searchbox input::placeholder { color: #c8c8cc; }
+  .toggle-wrap { display: flex; align-items: center; gap: 12px; height: 50px; color: #3e3e42; font-size: 16px; white-space: nowrap; }
+  .switch { width: 43px; height: 19px; border: 0; border-radius: 20px; background: #e0e0e0; padding: 3px; cursor: pointer; transition: background 0.2s; }
+  .switch span { display: block; width: 13px; height: 13px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.14); transition: transform 0.2s; }
+  .switch.on { background: var(--blue); }
+  .switch.on span { transform: translateX(24px); }
+  .primary { height: 50px; padding: 0 24px; border: 0; border-radius: 5px; background: var(--blue); color: #fff; font-size: 16px; cursor: pointer; box-shadow: 0 2px 5px rgba(47,125,234,0.28); white-space: nowrap; }
+  .primary:hover { background: var(--blue-2); }
+  .table-shell { background: #fff; border: 1px solid #eeeeee; min-width: 1180px; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  thead { background: var(--head); }
+  th { text-align: left; padding: 20px 20px; font-size: 16px; font-weight: 700; color: #202024; white-space: nowrap; }
+  td { border-top: 1px solid #e7e7e7; padding: 18px 20px; color: var(--muted); font-size: 17px; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  tbody tr:hover td { background: #fbfbfb; }
+  th:nth-child(1), td:nth-child(1) { width: 33%; }
+  th:nth-child(2), td:nth-child(2) { width: 13%; }
+  th:nth-child(3), td:nth-child(3) { width: 9%; }
+  th:nth-child(4), td:nth-child(4) { width: 17%; }
+  th:nth-child(5), td:nth-child(5) { width: 8%; }
+  th:nth-child(6), td:nth-child(6) { width: 15%; }
+  th:nth-child(7), td:nth-child(7) { width: 5%; }
+  .state { display: inline-flex; align-items: center; gap: 11px; color: #4d4d51; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); }
+  .dot.yellow { background: var(--yellow); }
+  .action { color: var(--blue); border: 0; background: transparent; font-size: 16px; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; padding: 0; }
+  .pagination { min-width: 1180px; display: grid; grid-template-columns: 240px 1fr 140px 80px 64px 64px; align-items: center; height: 61px; background: #fff; border: 1px solid #eeeeee; border-top: 0; color: #55555a; font-size: 16px; }
+  .page-cell { height: 61px; display: flex; align-items: center; padding: 0 20px; border-right: 1px solid #e3e3e3; gap: 10px; }
+  .page-cell:last-child { border-right: 0; justify-content: center; padding: 0; }
+  .page-cell.count { border-right: 0; }
+  .pager-btn { height: 61px; width: 64px; border: 0; background: #fff; border-left: 1px solid #e3e3e3; display: grid; place-items: center; cursor: pointer; color: #111; }
+  .pager-btn:hover { background: #f7f7f7; }
+  .kebab { width: 18px; height: 18px; display: grid; grid-template-columns: repeat(3, 4px); grid-template-rows: repeat(3, 4px); gap: 3px; }
+  .kebab i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  @media (max-width: 1180px) {
+    body { overflow: auto; }
+    .app { min-width: 1000px; }
+    .filters { grid-template-columns: 250px 250px 1fr; }
+    .toggle-wrap, .primary { grid-column: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="brand" aria-label="Leucine brand">
+    <div class="brand-mark"></div>
+    <div class="brand-name">LEUCINE</div>
+  </header>
+  <nav class="topbar" aria-label="Account navigation">
+    <button class="facility">Mumbai Facility <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+    <button class="top-icon" aria-label="Apps"><span class="kebab"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></button>
+    <button class="top-icon" aria-label="Settings"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2a2 2 0 1 1-4 0V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1A1.7 1.7 0 0 0 4.6 15 1.7 1.7 0 0 0 3 14H2.8a2 2 0 1 1 0-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 1 1 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3V2.8a2 2 0 1 1 4 0V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9c.3.6.9 1 1.6 1h.2a2 2 0 1 1 0 4H21c-.7 0-1.3.4-1.6 1Z"/></svg></button>
+    <button class="top-icon" aria-label="Profile"><span class="avatar"></span></button>
+  </nav>
+  <aside class="rail" aria-label="Primary navigation">
+    <button class="rail-btn" aria-label="Notifications"><span class="notify-dot"></span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 6-3 8h18c0-2-3-1-3-8"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></button>
+    <button class="rail-btn" aria-label="Analytics"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 12a9 9 0 1 1-9-9v9Z"/><path d="M13 3.05A9 9 0 0 1 20.95 11H13Z"/></svg></button>
+    <button class="rail-btn" aria-label="Inbox"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 12v7h16v-7"/><path d="m8 12 4 4 4-4"/><path d="M12 3v13"/><path d="M4 12h5"/><path d="M15 12h5"/></svg></button>
+    <button class="rail-btn" aria-label="Briefcase"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1"/><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 12h18"/><path d="M10 12v2h4v-2"/></svg></button>
+    <button class="rail-btn active" aria-label="Checklist"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 8h6"/><path d="M9 13h6"/><path d="m9 17 1.5 1.5L15 14"/></svg></button>
+  </aside>
+  <main class="content">
+    <h1 class="page-title">Checklist</h1>
+    <div class="subtitle">Create, view or edit your Checklists and Prototypes</div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab">Published</button>
+      <button class="tab active" role="tab" aria-selected="true">Prototype</button>
+    </div>
+    <section class="filters" aria-label="Checklist filters">
+      <label>
+        <div class="field-label">Filter by State</div>
+        <div class="selectbox">Choose an option <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+      </label>
+      <label>
+        <div class="field-label">Filter by Role</div>
+        <div class="selectbox">Choose an option <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+      </label>
+      <label>
+        <span class="sr-only">Search</span>
+        <div class="searchbox"><input placeholder="Search" /><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="1.9"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg></div>
+      </label>
+      <div class="toggle-wrap"><button class="switch" id="archiveSwitch" aria-label="Show Archived"><span></span></button> Show Archived</div>
+      <button class="primary">Start a Prototype</button>
+    </section>
+    <section class="table-shell" aria-label="Prototype checklist table">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th><th>State</th><th>Checklist ID</th><th>Type of Equipment</th><th>SOP Number</th><th>Change Control Reference</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Plant Safety and Security Checklist</td><td><span class="state"><span class="dot"></span>Being Built</span></td><td>CHK-DEC21-2</td><td>Dual Polarization Interferometer</td><td>1223</td><td>7989</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
+          <tr><td>Internal Quality/GMP Audit Checklist</td><td><span class="state"><span class="dot"></span>Being Built</span></td><td>CHK-DEC21-2</td><td>Albumin Analyzers</td><td>1804</td><td>1032</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
+          <tr><td>Facility Maintenance and Good Housekeeping Checklist</td><td><span class="state"><span class="dot yellow"></span>Submitted For Review</span></td><td>CHK-DEC21-2</td><td>Hemostasis Analyzer</td><td>1587</td><td>1132</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
+          <tr><td>Material/Component/Label Verification, Storage, Handling Checklist</td><td><span class="state"><span class="dot yellow"></span>Being Reviewed</span></td><td>CHK-DEC21-2</td><td>HbA1c Analyzer</td><td>0665</td><td>2132</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
+          <tr><td>Equipment/Line/Area Cleaning, Preparation, and Clearance</td><td><span class="state"><span class="dot yellow"></span>Submitted For Review</span></td><td>CHK-DEC21-2</td><td>Immunochemistry Analyzer</td><td>1212</td><td>3212</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
+          <tr><td>Operational Process Validation, Production Change Order Control</td><td><span class="state"><span class="dot"></span>Being Built</span></td><td>CHK-DEC21-2</td><td>Hypoxic Chamber</td><td>1512</td><td>1102</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
+          <tr><td>In-Process Inspection, Sampling, and Laboratory Control</td><td><span class="state"><span class="dot"></span>Being Built</span></td><td>CHK-DEC21-2</td><td>Refrigerated Incubator</td><td>1712</td><td>1101</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
+          <tr><td>Reprocessing/Disposition of Materials</td><td><span class="state"><span class="dot yellow"></span>Being Reviewed</span></td><td>CHK-DEC21-2</td><td>Water Jacketed Incubator</td><td>1213</td><td>1331</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
+          <tr><td>Finished Product Verification, Storage, and Handling</td><td><span class="state"><span class="dot yellow"></span>Submitted For Review</span></td><td>CHK-DEC21-2</td><td>Laboratory Pumps</td><td>1214</td><td>1423</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
+          <tr><td>Sampling, Testing, and Release for Distribution</td><td><span class="state"><span class="dot"></span>Being Built</span></td><td>CHK-DEC21-2</td><td>Liquid Pumps</td><td>1244</td><td>0991</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
+          <tr><td>Material/Component/Label Verification, Storage, Handling Checklist</td><td><span class="state"><span class="dot"></span>Being Built</span></td><td>CHK-DEC21-2</td><td>Syringe Infusion Pump</td><td>1244</td><td>1124</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
+          <tr><td>Air Swept Sifter = Type B</td><td><span class="state"><span class="dot"></span>Being Built</span></td><td>CHK-DEC21-2</td><td>Laboratory Spray Drye</td><td>1553</td><td>1243</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
+        </tbody>
+      </table>
+    </section>
+    <footer class="pagination" aria-label="Pagination">
+      <div class="page-cell">Items per page: <strong>100</strong> <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+      <div class="page-cell count">1 - 100 of 1,228 items</div>
+      <div class="page-cell"><strong>12</strong> <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+      <div class="page-cell">of 40 pages</div>
+      <button class="pager-btn" aria-label="Previous page"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="m15 6-6 6 6 6Z"/></svg></button>
+      <button class="pager-btn" aria-label="Next page"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="m9 6 6 6-6 6Z"/></svg></button>
+    </footer>
+  </main>
+</div>
+<script>
+  document.getElementById('archiveSwitch').addEventListener('click', function () {
+    this.classList.toggle('on');
+  });
+</script>
+</body>
+</html>

@@ -34,16 +34,30 @@ def register_app_routes(app: FastAPI, prefix: str = "/api/v1"):
     registered_apps = App._registry
 
     for app_cls_name, app_cls in registered_apps.items():
-        app_prefix = f"{prefix}/{app_cls.app_name}"
+        # Hierarchical App Prefix (e.g., /api/v1/erp/accounting)
+        app_clean_path = app_cls._get_clean_path()
+        app_prefix = f"{prefix}{app_clean_path}"
 
         for model in app_cls.models:
-            router = RouterFactory.create_router(model)
+            if not hasattr(model, "__tablename__"):
+                continue
+                
+            # Clean Model Path (e.g., /accounts)
+            model_seg = model.__tablename__
+            if app_cls.app_name and model_seg.startswith(f"{app_cls.app_name}_"):
+                model_seg = model_seg[len(app_cls.app_name)+1:]
+            elif app_cls.parent_name and model_seg.startswith(f"{app_cls.parent_name}_"):
+                model_seg = model_seg[len(app_cls.parent_name)+1:]
+            
+            model_path = f"/{model_seg.replace('_', '-')}"
+            
+            router = RouterFactory.create_router(model, prefix=model_path)
             app.include_router(router, prefix=app_prefix)
-            print(f"Registered route: {app_prefix}/{model.__tablename__}")
+            print(f"Registered route: {app_prefix}{model_path}")
 
 def load_class(class_path: str):
     """
-    Dynamically loads a class from a string path (e.g., 'core.registry.naming_series.NamingSeries').
+    Dynamically loads a class from a string path (e.g., 'core.registry.series.Series').
     """
     try:
         module_path, class_name = class_path.rsplit(".", 1)

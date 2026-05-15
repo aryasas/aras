@@ -80,18 +80,15 @@ const DateTimeInput: React.FC<FieldProps> = ({ value, onChange, disabled }) => (
 );
 
 const SelectInput: React.FC<FieldProps> = ({ value, onChange, field, disabled }) => (
-  <select
-    value={value || ''}
-    onChange={(e) => onChange(e.target.value)}
+  <Combobox 
+    options={field.options}
+    value={value} 
+    onChange={onChange} 
+    placeholder={`Select ${field.label}...`}
     disabled={disabled}
-    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-  >
-    <option value="">Select {field.label}...</option>
-    {field.options?.map((opt: any) => (
-      <option key={opt.value} value={opt.value}>{opt.label}</option>
-    ))}
-  </select>
+  />
 );
+
 
 const TextAreaInput: React.FC<FieldProps> = ({ value, onChange, field, disabled }) => (
   <textarea 

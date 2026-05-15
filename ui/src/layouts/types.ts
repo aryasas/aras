@@ -6,6 +6,11 @@ export interface SidebarItem {
   have_home?: boolean
   path?: string
   sub_apps?: SidebarItem[]
+  models?: {
+    name: string
+    label: string
+    path?: string
+  }[]
 }
 
 export type SidebarApp = SidebarItem

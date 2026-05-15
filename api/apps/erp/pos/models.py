@@ -9,7 +9,7 @@ class PosTerminal(LineItemBase):
     __tablename__ = "erp_pos_terminals"
 
     name: Mapped[str] = mapped_column(String(100))
-    warehouse_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_warehouses.id"), nullable=True)
+    location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
     selling_pricelist_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_price_types.id"), nullable=True)
     allow_discount: Mapped[bool] = mapped_column(Boolean, default=True)
     receipt_header: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

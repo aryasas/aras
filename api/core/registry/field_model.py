@@ -22,6 +22,10 @@ class FieldModel(Model):
     is_searchable: Mapped[bool] = mapped_column(default=True)
     is_override: Mapped[bool] = mapped_column(default=False) # True if modified via GUI
 
+    # Customization
+    default_value: Mapped[str] = mapped_column(String(255), nullable=True)
+    series: Mapped[str] = mapped_column(String(100), nullable=True) # e.g. "INV-.YYYY.-"
+
     # Lookup Metadata
     link_column: Mapped[str] = mapped_column(String(100), nullable=True) # e.g. "id" or "name"
     display_column: Mapped[str] = mapped_column(String(100), nullable=True) # e.g. "name"

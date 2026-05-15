@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { ChevronDown } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import api from '../../lib/api'
-import type { AppMenuData, MenuItem, MenuGroup, SidebarApp, MenuElement } from '../types'
+import type { AppMenuData, MenuItem, SidebarApp, MenuElement } from '../types'
 
 const hiddenTopbarRoutes = new Set(['dashboard', 'settings'])
 
@@ -173,7 +173,7 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
   }
 
   return (
-    <nav className="bg-white border-b border-slate-200 px-8 sticky top-0 z-10">
+    <nav className="bg-white border-b border-slate-200 px-8 sticky top-0 z-30">
       <div ref={dropdownRef} className="flex flex-wrap min-h-[44px] items-end gap-1">
         {menuData.have_home && renderMenuItem({
           type: 'model',
@@ -183,7 +183,7 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
         })}
         
         {/* Render Root App's own direct menu if any */}
-        {menuData.menu?.map((element, idx) => {
+        {menuData.menu?.map((element) => {
           if (element.type === 'group') {
             return renderTopLevelGroup(element.label, element.items)
           }

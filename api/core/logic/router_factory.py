@@ -50,12 +50,12 @@ class RouterFactory(Router):
     """
 
     @classmethod
-    def create_router(cls, model_class: Type[Any]):
+    def create_router(cls, model_class: Type[Any], prefix: str = None):
         """
         Generates a FastAPI APIRouter for the given Aras.Model.
         """
         router = APIRouter(
-            prefix=f"/{model_class.__tablename__}",
+            prefix=prefix or f"/{model_class.__tablename__}",
             tags=[getattr(model_class, "__title__", model_class.__tablename__)]
         )
 
@@ -163,7 +163,7 @@ class RouterFactory(Router):
         async def list_items_slashed(
             request: Request,
             page: int = Query(1, ge=1),
-            per_page: int = Query(20, ge=1, le=100),
+            per_page: int = Query(20, ge=1, le=999999),
             search: Optional[str] = None,
             filters: Optional[str] = None,
             order_by: Optional[str] = None,
@@ -177,7 +177,7 @@ class RouterFactory(Router):
         async def list_items(
             request: Request,
             page: int = Query(1, ge=1),
-            per_page: int = Query(20, ge=1, le=100),
+            per_page: int = Query(20, ge=1, le=999999),
             search: Optional[str] = None,
             filters: Optional[str] = None,
             order_by: Optional[str] = None,
@@ -398,7 +398,7 @@ class RouterFactory(Router):
             @router.get("/deleted", tags=[getattr(model_class, "__title__", model_class.__tablename__)])
             async def list_deleted(
                 page: int = Query(1, ge=1),
-                per_page: int = Query(20, ge=1, le=100),
+                per_page: int = Query(20, ge=1, le=999999),
                 db: Session = Depends(get_db),
                 user: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=False))
             ):
@@ -463,9 +463,7 @@ class RouterFactory(Router):
             db: Session = Depends(get_db),
             user: Any = Depends(check_permissions(model_class.__tablename__, "UPDATE"))
         ):
-            """Executes up to 100 mixed create/update/delete operations atomically."""
-            if len(operations) > 100:
-                raise HTTPException(status_code=400, detail="Batch limit is 100 operations")
+            """Executes mixed create/update/delete operations atomically."""
             results = []
             try:
                 for op in operations:

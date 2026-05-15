@@ -32,9 +32,12 @@ export function Sidebar({ isOpen, setOpen, sidebarData, currentPath, onLogout }:
     }
 
     if (type === 'app') {
-      const appPath = `/${item.name}`
-      const isSubAppActive = item.sub_apps?.some(sub => currentPath === `/${sub.name}` || currentPath.startsWith(`/${sub.name}/`))
-      const isActive = currentPath === appPath || currentPath.startsWith(`/${item.name}/`) || isSubAppActive
+      const appPath = item.path || `/${item.name}`
+      const isSubAppActive = item.sub_apps?.some(sub => {
+        const subPath = sub.path || `/${sub.name}`
+        return currentPath === subPath || currentPath.startsWith(`${subPath}/`)
+      })
+      const isActive = currentPath === appPath || currentPath.startsWith(`${appPath}/`) || isSubAppActive
       
       return (
         <div key={`container-${item.name}`} style={{ paddingLeft: isOpen ? `${depth * 12}px` : 0 }}>

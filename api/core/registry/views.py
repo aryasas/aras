@@ -7,7 +7,7 @@ from .role import Role
 from .permission import Permission
 from .user_role import UserRole
 from .activity_log import ActivityLog
-from .naming_series import NamingSeries
+from .series import Series
 from .sys_settings import ArasSetting
 from .translation_model import TranslationModel
 from .widget_model import WidgetModel
@@ -45,9 +45,9 @@ class ActivityLogView(View):
     model = ActivityLog
     title = "Activity Audit Trail"
 
-class NamingSeriesView(View):
-    model = NamingSeries
-    title = "Naming Series"
+class SeriesView(View):
+    model = Series
+    title = "Series"
 
 class ArasSettingView(View):
     model = ArasSetting

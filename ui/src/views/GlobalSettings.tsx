@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Globe, Save, RefreshCw, Coins, Languages, Calendar, Cpu, ShieldAlert, Database, Activity } from 'lucide-react'
 import api from '../lib/api'
 import { useUIStore } from '../store/uiStore'
+import Combobox from '../aras-core/components/Combobox'
 
 interface Setting {
   id: number;
@@ -132,21 +133,22 @@ function GlobalSettings() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">Default System Language</label>
-              <select 
+              <Combobox 
+                options={[
+                  { label: 'English (US)', value: 'en' },
+                  { label: 'Bahasa Indonesia', value: 'id' },
+                  { label: 'Español', value: 'es' },
+                  { label: 'Français', value: 'fr' }
+                ]}
                 value={settings['default_language']?.value || 'en'}
-                onChange={(e) => {
-                  handleUpdate('default_language', e.target.value)
-                  handleUpdate('core.language_default', e.target.value)
+                onChange={(val) => {
+                  handleUpdate('default_language', val)
+                  handleUpdate('core.language_default', val)
                 }}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-              >
-                <option value="en">English (US)</option>
-                <option value="id">Bahasa Indonesia</option>
-                <option value="es">Español</option>
-                <option value="fr">Français</option>
-              </select>
+              />
               <p className="text-xs text-slate-500 mt-2">New users will inherit this language setting by default.</p>
             </div>
+
             
             <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 border-dashed">
               <div className="flex items-start gap-3">
@@ -175,29 +177,31 @@ function GlobalSettings() {
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">Date Format</label>
-                <select 
+                <Combobox 
+                  options={[
+                    { label: 'YYYY-MM-DD (2026-05-12)', value: 'YYYY-MM-DD' },
+                    { label: 'DD/MM/YYYY (12/05/2026)', value: 'DD/MM/YYYY' },
+                    { label: 'MM/DD/YYYY (05/12/2026)', value: 'MM/DD/YYYY' },
+                    { label: 'DD-MMM-YYYY (12-May-2026)', value: 'DD-MMM-YYYY' }
+                  ]}
                   value={settings['core.date_format']?.value || 'YYYY-MM-DD'}
-                  onChange={(e) => handleUpdate('core.date_format', e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-                >
-                  <option value="YYYY-MM-DD">YYYY-MM-DD (2026-05-12)</option>
-                  <option value="DD/MM/YYYY">DD/MM/YYYY (12/05/2026)</option>
-                  <option value="MM/DD/YYYY">MM/DD/YYYY (05/12/2026)</option>
-                  <option value="DD-MMM-YYYY">DD-MMM-YYYY (12-May-2026)</option>
-                </select>
+                  onChange={(val) => handleUpdate('core.date_format', val)}
+                />
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">Time Format</label>
-                <select 
-                  defaultValue="HH:mm:ss"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-                >
-                  <option value="HH:mm:ss">24-hour (14:30:05)</option>
-                  <option value="hh:mm:ss A">12-hour (02:30:05 PM)</option>
-                </select>
+                <Combobox 
+                  options={[
+                    { label: '24-hour (14:30:05)', value: 'HH:mm:ss' },
+                    { label: '12-hour (02:30:05 PM)', value: 'hh:mm:ss A' }
+                  ]}
+                  value="HH:mm:ss"
+                  onChange={() => {}}
+                />
               </div>
             </div>
+
           </div>
 
           {/* Numbers & Currency Section */}
@@ -210,16 +214,17 @@ function GlobalSettings() {
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">Number Format</label>
-                <select 
+                <Combobox 
+                  options={[
+                    { label: '1,234.56 (US/UK)', value: '#,###.##' },
+                    { label: '1.234,56 (German/IT)', value: '#.###,##' },
+                    { label: '1 234,56 (French/RU)', value: '# ###,##' }
+                  ]}
                   value={settings['core.number_format']?.value || '#,###.##'}
-                  onChange={(e) => handleUpdate('core.number_format', e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-                >
-                  <option value="#,###.##">1,234.56 (US/UK)</option>
-                  <option value="#.###,##">1.234,56 (German/IT)</option>
-                  <option value="# ###,##">1 234,56 (French/RU)</option>
-                </select>
+                  onChange={(val) => handleUpdate('core.number_format', val)}
+                />
               </div>
+
 
               <div className="grid grid-cols-2 gap-4">
                 <div>

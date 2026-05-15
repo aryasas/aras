@@ -1,12 +1,72 @@
 from datetime import date
 from typing import Optional
-from sqlalchemy import String, ForeignKey, Float, Date, Text, JSON, Boolean
+from sqlalchemy import String, ForeignKey, Float, Date, Text, JSON, Boolean, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..base import ConfigBase, MasterDataBase, LineItemBase
 
 class Company(MasterDataBase):
     __tablename__ = "erp_config_companies"
-    __scoped_by__ = [] 
+    __scoped_by__ = None 
+
+    # Multi-company / group structure
+    is_group: Mapped[bool] = mapped_column(Boolean, default=False)
+    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_companies.id"), nullable=True)
+
+    # Identity & Details
+    legal_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    trade_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    tax_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    website: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    logo_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    
+    # Configuration
+    base_currency_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_currencies.id"), nullable=True)
+    fiscal_year_start_month: Mapped[int] = mapped_column(Integer, default=1)
+    default_coa_template: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    default_charge_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_charges.id"), nullable=True)
+    default_charge_enable: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Accounting mode
+    enable_perpetual_inventory: Mapped[bool] = mapped_column(Boolean, default=False)
+    enable_provisional_non_stock: Mapped[bool] = mapped_column(Boolean, default=False)
+    avg_cost_by_location: Mapped[bool] = mapped_column(Boolean, default=False)
+    allow_zero_stock: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Default Accounts
+    acc_bank_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    acc_cash_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    acc_receivable_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    acc_payable_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    acc_income_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    acc_cogs_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    acc_inventory_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    acc_payroll_payable_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    acc_payment_discount_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    acc_write_off_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    acc_unrealized_gain_loss_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    acc_round_off_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    
+    # Stock / Inventory Accounts
+    acc_stock_received_not_billed_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    acc_stock_provisional_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    acc_stock_adjustment_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    acc_expenses_in_valuation_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    acc_stock_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+
+    # Tax accounts
+    acc_tax_output_ppn_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    acc_tax_input_ppn_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    
+    # Formatting Defaults
+    date_format: Mapped[str] = mapped_column(String(20), default="DD/MM/YYYY")
+    number_format: Mapped[str] = mapped_column(String(20), default="#,###.##")
+    decimal_precision: Mapped[int] = mapped_column(Integer, default=2)
+
+    # Relationships
+    parent: Mapped[Optional["Company"]] = relationship("Company", remote_side="Company.id", backref="children")
 
 class Currency(ConfigBase):
     __tablename__ = "erp_config_currencies"
@@ -45,7 +105,7 @@ class ExchangeRate(MasterDataBase):
 
 class Setting(MasterDataBase):
     __tablename__ = "erp_config_settings"
-    __scoped_by__ = []
+    __scoped_by__ = None
 
     key: Mapped[str] = mapped_column(String(200), unique=True)
     value: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -88,7 +148,7 @@ class PrintTemplate(MasterDataBase):
 class Report(MasterDataBase):
     __tablename__ = "erp_config_reports"
     
-    report_type: Mapped[str] = mapped_column(String(20), default="query", info={"choices": ["Query", "Script", "Jinja"]})
+    report_type: Mapped[str] = mapped_column(String(20), default="query", info={"choices": ["query", "script", "jinja"]})
     module: Mapped[str] = mapped_column(String(50), default="General")
     columns_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     filters_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)

@@ -15,7 +15,6 @@ const HomeView = lazy(() => import('./views/Home'))
 const SettingsView = lazy(() => import('./views/Settings'))
 const ProfileView = lazy(() => import('./views/Profile'))
 const DynamicView = lazy(() => import('./views/DynamicView'))
-const AppHomeView = lazy(() => import('./views/AppHome'))
 const DevToolsView = lazy(() => import('./views/DevTools'))
 const AppManagerView = lazy(() => import('./views/AppManager'))
 const AuditLogsView = lazy(() => import('./views/AuditLogs'))
@@ -23,6 +22,7 @@ const RBACManagerView = lazy(() => import('./views/RBACManager'))
 const GlobalSettingsView = lazy(() => import('./views/GlobalSettings'))
 const InspectRoutesView = lazy(() => import('./views/InspectRoutes'))
 const HealthIntegrityView = lazy(() => import('./views/HealthIntegrity'))
+const SmartDispatcher = lazy(() => import('./views/SmartDispatcher'))
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = useAuthStore((state) => state.token)
@@ -95,9 +95,8 @@ function App() {
           <Route path="dev/table/:app/:model/:id" element={<DynamicView />} />
           <Route path="apps" element={<AppManagerView />} />
           <Route path="profile" element={<ProfileView />} />
-          <Route path=":appName" element={<AppHomeView />} />
-          <Route path=":app/:model" element={<DynamicView />} />
-          <Route path=":app/:model/:id" element={<DynamicView />} />
+          
+          <Route path=":segment1/*" element={<SmartDispatcher />} />
 
           {/* Catch all for authenticated area */}
           <Route path="*" element={<div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200">View not implemented yet.</div>} />

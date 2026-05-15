@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from ..models import DeliveryNote, StockMovement, StockMovementLine, Warehouse, Product, ProductCategory
+from ..models import DeliveryNote, StockMovement, StockMovementLine, Product, ProductCategory
 from ...accounting.models import SalesInvoice, SalesInvoiceLine, Account
 from ...accounting.services.journal import JournalService
 from .stock import StockComputeService
@@ -14,7 +14,7 @@ class StockWorkflowService:
         movement = StockMovement(
             company_id=delivery.company_id,
             move_type="Outgoing",
-            from_warehouse_id=delivery.warehouse_id,
+            from_location_id=delivery.location_id,
             status="Posted",
             notes=f"Auto-generated from {delivery.number}"
         )

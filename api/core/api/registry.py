@@ -17,13 +17,29 @@ async def get_resource_metadata(
 ):
     """Returns full UI metadata for a resource, including DB overrides."""
     from ..base.model import Model
+    from ..base.app import App
     
-    # Resolve the actual table name (strip app prefix if present)
-    tablename = resource_name.split("/")[-1] if "/" in resource_name else resource_name
+    # Normalize resource_name (ensure leading slash for matching)
+    path = resource_name if resource_name.startswith("/") else f"/{resource_name}"
+    path = path.replace("_", "-") # Ensure hyphens
     
-    model_class = Model._registry.get(tablename)
+    model_class = None
+    
+    # 1. Try to match by clean path
+    for app_cls in App._registry.values():
+        for model in app_cls.models:
+            if hasattr(model, "__tablename__") and app_cls._get_clean_path(model.__tablename__) == path:
+                model_class = model
+                break
+        if model_class: break
+        
+    # 2. Fallback to direct registry lookup (legacy/direct support)
     if not model_class:
-        # Check if it's a core model (they might be registered by class name in main.py)
+        tablename = resource_name.split("/")[-1] if "/" in resource_name else resource_name
+        model_class = Model._registry.get(tablename)
+    
+    # 3. Check core models
+    if not model_class:
         from ..aras import Aras
         core_list = [
             Aras.User, Aras.Role, Aras.Permission, Aras.ActivityLog, Aras.ArasSetting,
@@ -36,9 +52,9 @@ async def get_resource_metadata(
     
     if not model_class:
         from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail=f"Resource '{tablename}' not found in registry")
+        raise HTTPException(status_code=404, detail=f"Resource '{resource_name}' not found in registry")
 
-    return UIGenerator.generate_metadata(model_class, db=db, lang=lang) # Pass lang parameter
+    return UIGenerator.generate_metadata(model_class, db=db, lang=lang)
 
 @router.get("/models")
 async def get_registered_models():

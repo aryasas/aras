@@ -1,6 +1,13 @@
 
 # Aras Framework: Technical Report & Architecture Guide
 
+Jika saya mengatakan:
+"'dde', artinya 'don't do edit' — jangan lakukan perubahan apapun."
+"'rrc', artinya 're read CLAUDE.md' — before anything else, re-read CLAUDE.md rules 1-3"
+- if i say cmp mean "inspect/review my project. what can we add to project to make more robust, complete, nice gui. before we move to create an app? inpect code, function, and ui (easyness, posisiton, and aesthetic). and as you go, if you find something repeatable, refactor it."
+- if i say ggc mean "give git commit command text with message all we do/add to project but you DONT exec/git, i will do the git myself."
+- if i say updd mean "update/edit feature.md to add what we do/add to the project (dont delete just add/update) and update/edit aras.md (if needed, dont delete except there are something changed make aras.md irrelevan)"
+
 ## 1. System Overview
 Aras is a metadata-centric application framework designed for extreme developer productivity. It follows a **Code-First, GUI-Override** philosophy where the database acts as a registry for code-defined models.
 
@@ -137,18 +144,24 @@ After any model/app change: `cd api && python manage.py sync`
 
 ---
 
-## 9. API Endpoint Conventions
+## 9. API Endpoint Conventions (Refined May 2026)
+
+The framework uses hierarchical, hyphenated paths for both UI navigation and API consistency.
 
 | Pattern | Example |
 |---|---|
-| App-scoped CRUD | `/api/v1/{app}/{tablename}` |
-| Auth token (form-encoded) | `POST /api/v1/auth/token` with `username=` + `password=` |
-| Dev tools | `GET /api/v1/dev/info`, `GET /api/v1/dev/stats` |
-| Metadata | `GET /api/v1/metadata/{tablename}` |
-| Global search | `POST /api/v1/search` |
+| Hierarchical CRUD | `/api/v1/erp/accounting/accounts` |
+| Deep Hierarchical CRUD| `/api/v1/erp/accounting/sales-invoices` |
+| Auth token (form-encoded) | `POST /api/v1/auth/token` |
+| Metadata | `GET /api/v1/metadata/erp/accounting/accounts` |
 | Sidebar | `GET /api/v1/sidebar` |
+| App Menu | `GET /api/v1/app-menu/erp/accounting` |
 
-Auth header: `Authorization: Bearer <token>`
+### URL Path Generation Logic
+1.  **Hyphenation:** All underscores (`_`) in table/app names are converted to hyphens (`-`) for URL paths.
+2.  **Prefix Stripping:** Current app and parent app prefixes are stripped from the model name for the last segment of the path.
+    -   Example: App `erp_accounting` (parent `erp`), Model `erp_accounting_accounts` → `/erp/accounting/accounts`.
+3.  **UI Redirection:** The frontend utilizes a `SmartDispatcher` to resolve these paths into either an `AppHome` (for 1 or 2 segments that match an app) or a `DynamicView` (for resource lists/forms).
 
 Login (for scripts/tools):
 ```python
@@ -308,3 +321,17 @@ ERP module skeleton (Part B): Unified `erp` application registered under `api/ap
 - [Gemini CLI] **Config Module Expansion**: `erp_config` now serves as the unified hub for all system-wide settings, including Finance (Payment Modes), Standards (UOMs), and System Tools (Printing/Reporting).
 - [Gemini CLI] **Module Purge**: The `erp_main` (System Tools) module has been deprecated and its resources migrated to `erp_config`.
 - [Gemini CLI] **Relational Refactoring**: Standardized cross-module references to ensure that core configuration tables (like Payment Modes) are accessed via the Config registry even from within operational modules like POS or Accounting.
+
+---
+## Framework Change: Scoping Inheritance & Dynamic Attributes (2026-05-15)
+- [Gemini CLI] `Model.__init_subclass__` now supports `__scoped_by__ = None` to explicitly stop feature/scope inheritance from abstract parents.
+- [Gemini CLI] `TraitInjector` now injects columns into the class `__dict__` as well as the `__table__`, ensuring they are visible to the SQLAlchemy Mapper.
+- [Gemini CLI] `manage.py seed` enhanced with `apps.discovery` and improved cross-company data isolation.
+
+---
+## Framework Change: UI Refactoring & Enhanced Customization (2026-05-15)
+- [Gemini CLI] **Generic List Toolbar Component**: Extracted the toolbar logic from `ListView` into a standalone `ListToolbar` component. Integrated into `ListView` and `InlineChildTable` for consistent UX and feature parity (Search, Column Visibility) across all list views.
+- [Gemini CLI] **Series Renaming**: Renamed `NamingSeries` to `Series` throughout the framework (file, class, managers, views) and updated the route registration pattern.
+- [Gemini CLI] **GUI-Based Form Customization**: Added a "Customize" button to `DynamicForm` that allows editing `default_value` and `series` overrides for any field via `FieldModel` registry.
+- [Gemini CLI] **Automatic Sequential ID Generation**: Implemented a series generation hook in `Model.save` that automatically populates fields with `series` metadata on record creation using `NamingManager`.
+- [Gemini CLI] **Metadata Default Injection**: Updated `DynamicForm` initialization to prioritize `default_value` and `series` metadata from the `FieldModel` registry.

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
 import { SchemaRegistry } from '../services/SchemaRegistry';
+import ListToolbar from './ListToolbar';
 
 interface InlineChildTableProps {
   childResource: string;
@@ -20,10 +21,16 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
   onChange
 }) => {
   const [childMeta, setChildMeta] = useState<any>(null);
+  const [search, setSearch] = useState('');
+  const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
+  const [isColumnPickerOpen, setIsColumnPickerOpen] = useState(false);
 
   useEffect(() => {
     const clean = cleanResourcePath(childResource);
-    api.get(`/metadata/${clean}`).then(r => setChildMeta(r.data)).catch(() => {});
+    api.get(`/metadata/${clean}`).then(r => {
+      setChildMeta(r.data);
+      setVisibleColumns(r.data.fields.filter((f: any) => !f.hidden && !f.form_hidden && f.name !== fkColumn && f.type !== 'child_table').map((f: any) => f.name));
+    }).catch(() => {});
     if (parentId != null) {
       api.get(`/${clean}`, { params: { [fkColumn]: parentId, limit: 200 } })
         .then(r => onChange(r.data.items ?? r.data))
@@ -39,6 +46,15 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
   const editableCols = childMeta.fields.filter((f: any) =>
     !f.hidden && !f.form_hidden && f.name !== fkColumn && f.type !== 'child_table'
   );
+
+  const visibleCols = editableCols.filter((f: any) => visibleColumns.includes(f.name));
+
+  const filteredRows = rows.filter(row => {
+    if (!search) return true;
+    return Object.values(row).some(val => 
+      String(val).toLowerCase().includes(search.toLowerCase())
+    );
+  });
 
   const addRow = () => {
     const today = new Date().toISOString().split('T')[0];
@@ -64,23 +80,31 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
 
   return (
     <div className="bg-white overflow-hidden rounded-3xl border border-slate-200 shadow-sm">
-      <div className="flex items-center justify-between px-8 py-4 bg-slate-50 border-b border-slate-100">
-        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">
-          {childMeta.title}
-        </h3>
-        <button
-          type="button"
-          onClick={addRow}
-          className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-100"
-        >
-          <Plus size={14} /> Add Row
-        </button>
-      </div>
+      <ListToolbar 
+        title={childMeta.title}
+        search={search}
+        onSearchChange={setSearch}
+        isFilterOpen={false}
+        onFilterToggle={() => {}}
+        filterCount={0}
+        selectedCount={0}
+        onBulkEdit={() => {}}
+        onBulkDelete={() => {}}
+        onExport={() => {}}
+        isExporting={false}
+        onImport={() => {}}
+        onColumnPickerToggle={() => setIsColumnPickerOpen(!isColumnPickerOpen)}
+        isColumnPickerOpen={isColumnPickerOpen}
+        onAdd={addRow}
+        fields={editableCols}
+        visibleColumns={visibleColumns}
+        onVisibleColumnsChange={setVisibleColumns}
+      />
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-slate-50/50 border-b border-slate-100">
-              {editableCols.map((f: any) => (
+              {visibleCols.map((f: any) => (
                 <th key={f.name} className="px-6 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                   {f.label}
                 </th>
@@ -89,16 +113,18 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && (
+            {filteredRows.length === 0 && (
               <tr>
-                <td colSpan={editableCols.length + 1} className="px-6 py-12 text-center text-slate-400 text-sm italic bg-slate-50/30">
-                  No rows yet — click Add Row
+                <td colSpan={visibleCols.length + 1} className="px-6 py-12 text-center text-slate-400 text-sm italic bg-slate-50/30">
+                  {search ? 'No results found' : 'No rows yet — click Add Row'}
                 </td>
               </tr>
             )}
-            {rows.map((row, idx) => (
+            {filteredRows.map((row) => {
+              const idx = rows.indexOf(row);
+              return (
               <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/30 transition-colors group">
-                {editableCols.map((f: any) => {
+                {visibleCols.map((f: any) => {
                   const Component = SchemaRegistry.get(f.type);
                   return (
                     <td key={f.name} className="px-4 py-3 align-top min-w-[200px]">
@@ -106,7 +132,7 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
                         <Component
                           field={f}
                           value={row[f.name]}
-                          onChange={(val) => updateRow(idx, f.name, val)}
+                          onChange={(val: any) => updateRow(idx, f.name, val)}
                           formData={row}
                           disabled={false}
                         />
@@ -125,7 +151,8 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
                   </button>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
