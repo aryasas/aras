@@ -20,6 +20,12 @@ interface AppMenuData {
   icon: string
   have_home?: boolean
   models: AppMenuModel[]
+  sub_apps?: {
+    name: string
+    label: string
+    icon: string
+    path: string
+  }[]
 }
 
 export default function AppHome() {
@@ -58,12 +64,18 @@ export default function AppHome() {
     }
   }, [appName, sidebarApp?.have_home])
 
-  const appInfo = remoteMenu || (sidebarApp ? {
+  const appInfo: AppMenuData | null = remoteMenu || (sidebarApp ? {
     app_name: sidebarApp.name,
     app_label: sidebarApp.label,
     icon: sidebarApp.icon,
     have_home: sidebarApp.have_home,
     models: sidebarApp.models || [],
+    sub_apps: sidebarApp.sub_apps?.map(s => ({
+       name: s.name,
+       label: s.label,
+       icon: s.icon,
+       path: s.have_home ? `/${s.name}` : (s.models?.[0]?.path || `/${s.name}/${s.models?.[0]?.name}` || `/${s.name}`)
+    })) || [],
   } : null)
 
   if (!appName || isLoading) {
@@ -97,6 +109,26 @@ export default function AppHome() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {/* Render Sub-Apps first if any */}
+        {appInfo.sub_apps?.map((sub) => {
+          const SubIcon = (LucideIcons as any)[sub.icon] || LucideIcons.Package
+          return (
+            <Link
+              key={sub.name}
+              to={sub.path}
+              className="group flex min-h-28 items-center gap-4 rounded-lg border border-indigo-100 bg-indigo-50/30 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md"
+            >
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white text-indigo-600 shadow-sm transition-colors group-hover:bg-indigo-600 group-hover:text-white">
+                <SubIcon size={22} />
+              </div>
+              <div className="min-w-0">
+                <h2 className="truncate text-base font-bold text-slate-900">{sub.label}</h2>
+                <p className="mt-1 text-sm text-slate-600 italic">Module</p>
+              </div>
+            </Link>
+          )
+        })}
+
         {appInfo.models.map((model) => {
           const targetPath = model.path || `/${appName}/${model.name}`
 

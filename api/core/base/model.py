@@ -5,7 +5,7 @@ Impact: Provides generic CRUD, serialization, and metadata logic.
 """
 from typing import Any, Dict, List, Optional, Type, TypeVar, Tuple, Callable
 from datetime import datetime, date, timezone
-from sqlalchemy import Column, Integer, Boolean, DateTime, func, String, select, or_, inspect, text
+from sqlalchemy import Column, Integer, Boolean, DateTime, func, String, select, or_, inspect, text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session
 from decimal import Decimal
 from enum import Enum
@@ -26,26 +26,84 @@ class Model(Aras, Base):
     """
     __abstract__ = True
     _registry: Dict[str, Type['Model']] = {}
-    _child_map: Dict[str, List[str]] = {} # Map parent_tablename -> [child_tablenames]
+    _child_map: Dict[str, List[Dict[str, Optional[str]]]] = {} # Map parent_tablename -> [{resource, fk_column}]
     _actions: Dict[str, 'ModelAction'] = {} # Store registered model actions (Delayed Type)
     _computed: List[str] = [] # List of method names marked as computed fields
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
+
+        # 0. Merge inheritable class attributes from MRO so concrete subclasses
+        #    pick up __features__, __scoped_by__, __unique_together__
+        #    from any abstract base (DocumentBase, MasterDataBase, ...) without
+        #    losing the child's own values. Child wins on conflict by appearing first.
+        for attr, default in (
+            ("__features__", []),
+            ("__scoped_by__", []),
+            ("__unique_together__", []),
+        ):
+            merged: list = []
+            seen: set = set()
+            for base in cls.__mro__:
+                vals = base.__dict__.get(attr)
+                if not vals:
+                    continue
+                for v in vals:
+                    key = tuple(v) if isinstance(v, (list, tuple)) else v
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    merged.append(v)
+            if merged or attr in cls.__dict__:
+                setattr(cls, attr, merged)
+
         # 1. Automatically register non-abstract subclasses
         if not cls.__dict__.get("__abstract__"):
+            # Three-layer inheritance validation: a concrete model may inherit at
+            # most one Level-3a abstract base (DocumentBase OR LineItemBase, etc.).
+            abstract_bases = [
+                b for b in cls.__mro__[1:]
+                if isinstance(b, type) and issubclass(b, Model) and b is not Model
+                and b.__dict__.get("__abstract__") is True
+            ]
+            if len(abstract_bases) > 1:
+                names = ", ".join(b.__name__ for b in abstract_bases)
+                raise TypeError(
+                    f"{cls.__name__} inherits from multiple Level-3a abstract bases ({names}). "
+                    f"Pick exactly one (DocumentBase | LineItemBase | MasterDataBase | ConfigBase)."
+                )
+
             # Register by class name AND tablename
             Model._registry[cls.__name__] = cls
             if hasattr(cls, "__tablename__"):
                 Model._registry[cls.__tablename__] = cls
-            
+
             # 2. Handle Parent-Child Auto Discovery
             parent_table = getattr(cls, "__parent__", None)
             if parent_table:
-                if parent_table not in Model._child_map:
-                    Model._child_map[parent_table] = []
-                if cls.__tablename__ not in Model._child_map[parent_table]:
-                    Model._child_map[parent_table].append(cls.__tablename__)
+                # Detect which local column FKs to the parent table (defer until columns exist)
+                fk_column = None
+                try:
+                    for col in cls.__table__.columns:
+                        for fk in col.foreign_keys:
+                            target_table = getattr(fk, "_column_tokens", [None])[1] if hasattr(fk, "_column_tokens") else fk.target_fullname.split('.')[0]
+                            if target_table == parent_table:
+                                fk_column = col.name
+                                break
+                        if fk_column:
+                            break
+                except Exception as e:
+                    import traceback
+                    print(f"Error determining fk_column for {cls.__tablename__}: {e}")
+                    traceback.print_exc()
+                    fk_column = None
+
+                Model._child_map.setdefault(parent_table, [])
+                if not any(c.get("resource") == cls.__tablename__ for c in Model._child_map[parent_table]):
+                    Model._child_map[parent_table].append({
+                        "resource": cls.__tablename__,
+                        "fk_column": fk_column,
+                    })
 
             # 3. Discover and register custom actions
             from ..logic.model_actions import get_model_actions # Delayed import
@@ -53,7 +111,7 @@ class Model(Aras, Base):
 
             # 4. Discover computed properties
             cls._computed = [
-                name for name in dir(cls) 
+                name for name in dir(cls)
                 if callable(getattr(cls, name)) and getattr(getattr(cls, name), "_aras_computed", False)
             ]
 
@@ -61,15 +119,31 @@ class Model(Aras, Base):
         from ..logic.trait_injector import TraitInjector
         TraitInjector.inject(cls)
 
+        # 6. Apply __unique_together__ as composite UniqueConstraints. Only for
+        #    concrete (mapped) models — abstract bases have no __table__.
+        if not cls.__dict__.get("__abstract__") and hasattr(cls, "__table__"):
+            ut = getattr(cls, "__unique_together__", None) or []
+            if ut:
+                tablename = cls.__tablename__
+                for cols in ut:
+                    cols = tuple(cols)
+                    name = f"uq_{tablename}_{'_'.join(cols)}"
+                    # Skip if already present (sync re-import safety)
+                    existing = {c.name for c in cls.__table__.constraints if c.name}
+                    if name in existing:
+                        continue
+                    try:
+                        cls.__table__.append_constraint(UniqueConstraint(*cols, name=name))
+                    except Exception as e:
+                        print(f"[Model] __unique_together__ skipped for {tablename}{cols}: {e}")
+
     __soft_delete__: bool = False
     __serialize_relations__: dict = {}
     __display_fields__: tuple = ()
     __parent__: str = None # Tablename of the parent model
-    __layout__: list = None # Layout configuration (sections/tabs)
     __m2m__: dict = {} # Many-to-Many relationship definitions
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    is_active: Mapped[bool] = mapped_column(default=True, server_default="1")
     created_at: Mapped[datetime] = mapped_column(default=func.now(), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         default=func.now(),
@@ -93,7 +167,7 @@ class Model(Aras, Base):
     # ── Internal Helpers ──────────────────────────────────────────────────────
 
     _SKIP   = frozenset({"id", "created_at", "updated_at", "created_by", "updated_by", "deleted_at"})
-    _SYSTEM = frozenset({"id", "created_at", "updated_at", "deleted_at", "created_by", "updated_by", "is_active"})
+    _SYSTEM = frozenset({"id", "created_at", "updated_at", "deleted_at", "created_by", "updated_by"})
 
     @classmethod
     def _q(cls, active_only=False):
@@ -101,7 +175,8 @@ class Model(Aras, Base):
         stmt = select(cls)
         if cls.__soft_delete__:
             stmt = stmt.where(cls.deleted_at.is_(None))
-        if active_only:
+        # is_active is now opt-in (activatable trait); only filter if column exists.
+        if active_only and hasattr(cls, "is_active"):
             stmt = stmt.where(cls.is_active == True)
         return stmt
 

@@ -35,6 +35,8 @@ class UIGenerator(Service):
         # 2. Base Metadata from Code
         system_fields = getattr(model_class, "_SYSTEM", set())
         child_map = getattr(model_class, "_child_map", {})
+        # children: list of {resource, fk_column}
+        children = [dict(c) for c in child_map.get(resource_name, [])]
         
         for column in table.columns:
             if column.name in system_fields:
@@ -53,10 +55,16 @@ class UIGenerator(Service):
                 if not ui_type:
                     ui_type = "lookup"
             
+            # Honor info={"choices": [...]} — treat as a typed dropdown.
+            choices = column.info.get("choices")
+            if choices and not ui_type:
+                ui_type = "select"
+                ui_options = [{"label": str(c), "value": c} for c in choices]
+
             if not ui_type:
                 col_type = column.type
                 from sqlalchemy import String, Integer, Boolean, DateTime, Date, Numeric, Enum
-                
+
                 if isinstance(col_type, Enum) or hasattr(col_type, "enums"):
                     ui_type = "select"
                     ui_options = [{"label": str(e), "value": str(e)} for e in getattr(col_type, "enums", [])]
@@ -86,7 +94,11 @@ class UIGenerator(Service):
 
             # Determine if the field is required for the UI
             is_required = db_field.is_required if db_field and db_field.is_required is not None else \
-                          (not column.nullable and column.default is None and column.server_default is None and column.name != 'is_active')
+                          (not column.nullable and column.default is None and column.server_default is None)
+
+            # form_hidden honored from column.info — excludes from auto-form but
+            # leaves the field visible in API/detail responses.
+            form_hidden = bool(column.info.get("form_hidden", False))
 
             field_info = {
                 "name": column.name,
@@ -98,16 +110,19 @@ class UIGenerator(Service):
                 "hidden": is_hidden,
                 "read_only": is_read_only,
                 "searchable": is_searchable,
+                "form_hidden": form_hidden,
                 "depends_on": column.info.get("depends_on"),
                 "link_column": db_field.link_column if db_field and db_field.link_column else column.info.get("link_column"),
                 "display_column": db_field.display_column if db_field and db_field.display_column else column.info.get("display_column")
             }
             fields.append(field_info)
 
-        # 4. Include Many-to-Many (Bridge) Fields
+        # 4. Include Many-to-Many (Bridge) and Child Table Fields
         if db and db_resource:
             from ..registry.link_model import LinkModel
             from ..registry.resource_model import ResourceModel
+            
+            # Bridge Links
             bridge_links = db.query(LinkModel).filter(
                 LinkModel.source_resource_id == db_resource.id,
                 LinkModel.link_type == "bridge"
@@ -121,6 +136,39 @@ class UIGenerator(Service):
                         "type": "bridge",
                         "required": False,
                         "target_resource": target_res.name,
+                        "options": None,
+                        "hidden": False,
+                        "read_only": False,
+                        "searchable": False,
+                        "depends_on": None,
+                        "config": link.config
+                    })
+
+            # Child Table Links
+            child_links = db.query(LinkModel).filter(
+                LinkModel.source_resource_id == db_resource.id,
+                LinkModel.link_type == "child"
+            ).all()
+            for link in child_links:
+                target_res = db.query(ResourceModel).filter(ResourceModel.id == link.target_resource_id).first()
+                if target_res:
+                    code_entry = next(
+                        (c for c in child_map.get(resource_name, []) if c.get("resource") == target_res.name),
+                        None,
+                    )
+                    fk_col = (code_entry or {}).get("fk_column")
+                    if not any(c.get("resource") == target_res.name for c in children):
+                        children.append({
+                            "resource": target_res.name,
+                            "fk_column": fk_col,
+                        })
+                    fields.append({
+                        "name": link.field_name,
+                        "label": link.label,
+                        "type": "child_table",
+                        "required": False,
+                        "target_resource": target_res.name,
+                        "fk_column": fk_col,
                         "options": None,
                         "hidden": False,
                         "read_only": False,
@@ -145,6 +193,22 @@ class UIGenerator(Service):
                     "depends_on": None,
                     "config": defs
                 })
+            
+            # Fallback for children
+            for child_entry in child_map.get(resource_name, []):
+                child_table = child_entry.get("resource")
+                fields.append({
+                    "name": child_table,
+                    "label": child_table.replace("_", " ").title(),
+                    "type": "child_table",
+                    "required": False,
+                    "target_resource": child_table,
+                    "fk_column": child_entry.get("fk_column"),
+                    "options": None,
+                    "hidden": False,
+                    "read_only": False,
+                    "searchable": False
+                })
 
         # 5. Include Computed Fields
         for name in getattr(model_class, "_computed", []):
@@ -168,10 +232,11 @@ class UIGenerator(Service):
             "title": db_resource.title if db_resource and db_resource.title else \
                      getattr(model_class, "__title__", resource_name.replace("_", " ").title()),
             "fields": fields,
-            "children": child_map.get(resource_name, []),
+            "children": children,
             "workflow": getattr(model_class, "__workflow__", None),
-            "layout": getattr(model_class, "__layout__", None),
-            "is_auditable": "audit" in getattr(model_class, "__features__", [])
+            "layout": db_resource.layout if db_resource and db_resource.layout else [],
+            "is_auditable": "audit" in getattr(model_class, "__features__", []),
+            "scoped_by": [list(p) for p in (getattr(model_class, "__scoped_by__", None) or [])],
         }
 
         # 4. Apply Translations if lang is provided

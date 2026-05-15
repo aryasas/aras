@@ -1,13 +1,19 @@
 from core import Aras
-from .models import Product, Customer, Order, Category, ProductCategory
-from . import views # Register Views
-from . import schemas # Register Schemas
 
 class ErpApp(Aras.App):
     app_name = "erp"
     app_label = "ERP System"
-    description = "Core ERP modules including Products and Customers."
     icon = "Briefcase"
     have_home = True
     
-    models = [Product, Customer, Order, Category, ProductCategory]
+    # Models are now managed by sub-apps:
+    # erp_accounting, erp_stock, erp_crm, erp_supplier, erp_pos, erp_config
+    models = []
+
+    menu_groups = [
+        {
+            "label": "Modules",
+            "icon": "LayoutGrid",
+            "apps": ["erp_accounting", "erp_stock", "erp_crm", "erp_supplier", "erp_pos", "erp_config"]
+        }
+    ]

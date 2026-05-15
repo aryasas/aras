@@ -127,7 +127,8 @@ Aras.logic.discovery.register_app_routes(app, prefix="/api/v1")
 core_models = [
     Aras.User, Aras.Role, Aras.Permission, Aras.ActivityLog, Aras.ArasSetting,
     Aras.AppModel, Aras.ResourceModel, Aras.FieldModel, Aras.LinkModel, Aras.TranslationModel,
-    Aras.WidgetModel, Aras.DashboardLayoutModel # Added DashboardLayoutModel
+    Aras.WidgetModel, Aras.DashboardLayoutModel,
+    Aras.logic.discovery.load_class("core.registry.naming_series.NamingSeries")
 ]
 for model in core_models:
     # Ensure RouterFactory has access to Aras
@@ -154,16 +155,16 @@ async def get_sidebar_data(_: Any = Depends(get_current_user)):
         {"type": "link", "name": "settings", "label": "Settings", "icon": "Settings", "path": "/settings", "have_home": False},
     ]
 
-    # 2. Dynamic Apps
-    apps_group = []
-    for app_name, app_cls in registered_apps.items():
-        if app_name in ["admin"]:
+    # 2. Dynamic Apps Organization
+    apps_by_name = {}
+    root_apps = []
+
+    for _, app_cls in registered_apps.items():
+        if app_cls.app_name in ["admin"]:
             continue
-
+            
         models_list = []
-
-        # Inject special pages
-        if app_name == "dev":
+        if app_cls.app_name == "dev":
             models_list.append({"name": "dev-home", "label": "Dev Home", "path": "/dev"})
 
         models_list.extend([
@@ -174,17 +175,28 @@ async def get_sidebar_data(_: Any = Depends(get_current_user)):
             } for m in app_cls.models if m.__tablename__ not in ["auth_users", "sys_settings"]
         ])
 
-        apps_group.append({
+        app_data = {
             "type": "app",
             "name": app_cls.app_name,
+            "parent_name": getattr(app_cls, "parent_name", ""),
             "label": app_cls.app_label,
             "icon": app_cls.icon,
             "have_home": app_cls.have_home,
-            "models": models_list
-        })
+            "models": models_list,
+            "menu_groups": getattr(app_cls, "menu_groups", []),
+            "sub_apps": []
+        }
+        apps_by_name[app_cls.app_name] = app_data
+        
+    # Build hierarchy
+    for app_name, app_data in apps_by_name.items():
+        parent_name = app_data.get("parent_name")
+        if parent_name and parent_name in apps_by_name:
+            apps_by_name[parent_name]["sub_apps"].append(app_data)
+        else:
+            root_apps.append(app_data)
 
-    sidebar.extend(apps_group)
-
+    sidebar.extend(root_apps)
     return sidebar
 
 
@@ -210,13 +222,26 @@ async def get_app_menu(app_name: str, _: Any = Depends(get_current_user)):
             "path": f"/{app_cls.app_name}/{m.__tablename__}"
         } for m in app_cls.models if m.__tablename__ not in ["auth_users", "sys_settings"]
     ]
+
+    # Find sub-apps
+    sub_apps = []
+    for _, cls in App._registry.items():
+        if getattr(cls, "parent_name", None) == app_name:
+            sub_apps.append({
+                "name": cls.app_name,
+                "label": cls.app_label,
+                "icon": cls.icon,
+                "path": f"/{cls.app_name}" if cls.have_home else f"/{cls.app_name}/home"
+            })
     
     return {
         "app_name": app_cls.app_name,
         "app_label": app_cls.app_label,
         "icon": app_cls.icon,
         "have_home": app_cls.have_home,
-        "models": models_list
+        "models": models_list,
+        "menu_groups": getattr(app_cls, "menu_groups", []),
+        "sub_apps": sub_apps
     }
 
 

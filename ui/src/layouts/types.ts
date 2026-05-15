@@ -6,6 +6,7 @@ export interface SidebarItem {
   have_home?: boolean
   path?: string
   models?: { name: string, label: string, path?: string }[]
+  sub_apps?: SidebarItem[]
 }
 
 // For backward compatibility until fully refactored

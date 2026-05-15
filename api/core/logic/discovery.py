@@ -40,3 +40,15 @@ def register_app_routes(app: FastAPI, prefix: str = "/api/v1"):
             router = RouterFactory.create_router(model)
             app.include_router(router, prefix=app_prefix)
             print(f"Registered route: {app_prefix}/{model.__tablename__}")
+
+def load_class(class_path: str):
+    """
+    Dynamically loads a class from a string path (e.g., 'core.registry.naming_series.NamingSeries').
+    """
+    try:
+        module_path, class_name = class_path.rsplit(".", 1)
+        module = importlib.import_module(module_path)
+        return getattr(module, class_name)
+    except (ImportError, AttributeError, ValueError) as e:
+        print(f"Error loading class {class_path}: {e}")
+        return None

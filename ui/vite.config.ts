@@ -1,9 +1,35 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import type { Plugin } from 'vite'
+import fs from 'fs'
+import path from 'path'
+
+function staticMocksPlugin(): Plugin {
+  return {
+    name: 'static-mocks',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url?.startsWith('/mocks/')) {
+          let filePath = path.join(__dirname, 'public', req.url.split('?')[0])
+          if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
+            filePath = path.join(filePath, 'index.html')
+          }
+          if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+            res.setHeader('Content-Type', 'text/html; charset=utf-8')
+            res.end(fs.readFileSync(filePath))
+            return
+          }
+        }
+        next()
+      })
+    },
+  }
+}
 
 export default defineConfig({
   plugins: [
+    staticMocksPlugin(),
     react(),
     tailwindcss(),
   ],
@@ -13,6 +39,9 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
+    },
+    fs: {
+      allow: ['..'],
     },
   },
   build: {

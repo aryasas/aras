@@ -70,9 +70,22 @@ class WorkflowManager(Manager):
         # 2. Update Status
         old_state = item.status
         item.status = transition["to"]
-        
-        # 3. Log the transition (using ActivityLog via AuditManager or manually)
+
+        # 3. Fire registered @Aras.on_transition callbacks for this (model, from, to).
+        from ..logic.transition_registry import TransitionRegistry
+        for cb in TransitionRegistry.get(item.__class__, old_state, item.status):
+            try:
+                cb(db=db, item=item, user=user, transition=transition)
+            except Exception as e:
+                # Roll back the in-memory status change so the transition is atomic.
+                item.status = old_state
+                raise RuntimeError(
+                    f"Transition callback {cb.__name__} failed for "
+                    f"{item.__class__.__name__}#{getattr(item, 'id', '?')}: {e}"
+                ) from e
+
+        # 4. Log the transition (using ActivityLog via AuditManager or manually)
         from .audit_manager import AuditManager
         # ActivityLog will be captured by AuditManager if enabled on the model
-        
+
         return True

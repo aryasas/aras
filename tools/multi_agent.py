@@ -37,8 +37,10 @@ DATE = datetime.now().strftime("%Y-%m-%d")
 
 BACKEND_SYSTEM = (
     "You are a backend developer for the Aras framework (FastAPI + SQLAlchemy 2.0). "
-    "Only implement tasks listed under '## Backend Tasks' or '## Revision Tasks > Backend' in the spec. "
-    "Ignore any frontend tasks. "
+    "Read docs/aras.md first for framework patterns. "
+    "ONLY implement tasks listed under '## Backend Tasks' or '## Revision Tasks > Backend' in the spec below. "
+    "Do NOT implement frontend tasks. Do NOT write any code that was not explicitly requested. "
+    "Claude (the orchestrator) has already designed the solution — your job is to implement it as specified, nothing more. "
     "After writing all files, output a structured report using EXACTLY this format:\n\n"
     "### AGENT REPORT\n"
     "- files_written: <comma-separated paths or 'none'>\n"
@@ -51,8 +53,10 @@ BACKEND_SYSTEM = (
 
 FRONTEND_SYSTEM = (
     "You are a frontend developer for the Aras framework (React 19 + TypeScript + TailwindCSS 4). "
-    "Only implement tasks listed under '## Frontend Tasks' or '## Revision Tasks > Frontend' in the spec. "
-    "Ignore any backend tasks. "
+    "Read docs/aras.md first for framework patterns and component conventions. "
+    "ONLY implement tasks listed under '## Frontend Tasks' or '## Revision Tasks > Frontend' in the spec below. "
+    "Do NOT implement backend tasks. Do NOT write any code that was not explicitly requested. "
+    "Claude (the orchestrator) has already designed the solution — your job is to implement it as specified, nothing more. "
     "After writing all files, output a structured report using EXACTLY this format:\n\n"
     "### AGENT REPORT\n"
     "- files_written: <comma-separated paths or 'none'>\n"
@@ -82,8 +86,8 @@ def run_agent(label: str, cmd: list) -> tuple:
 
 
 def run_backend(handoff: str) -> str:
-    output, _ = run_agent("Gemini 2.5 Flash — Backend", [
-        "gemini", "--yolo", "-p", BACKEND_SYSTEM + handoff,
+    output, _ = run_agent("Gemini 3.1 Flash Preview — Backend", [
+        "gemini -m gemini-3-flash-preview", "--yolo", "-p", BACKEND_SYSTEM + handoff,
     ])
     return output
 
@@ -183,7 +187,7 @@ def update_docs(br: dict, fr: dict, feature: str, is_revision: bool = False):
     rev_label = f"revision ({DATE})" if is_revision else DATE
     summary = (
         f"\n---\n## Agent Reports ({rev_label})\n\n"
-        f"### Backend (Gemini 2.5 Flash)\n"
+        f"### Backend (Gemini 3.1 Flash Preview)\n"
         f"- files_written: {br['files_written']}\n"
         f"- features_added: {br['features_added']}\n"
         f"- fixes_applied: {br['fixes_applied']}\n"
@@ -390,7 +394,7 @@ def main():
     print(f"  Feature  : {feature}")
     print(f"  Mode     : {mode}")
     print(f"  Revision : {'yes #' + str(rev_num + 1) if is_revision else 'no (initial run)'}")
-    print(f"  Backend  : Gemini 2.5 Flash  (gemini CLI)")
+    print(f"  Backend  : Gemini 3.1 Flash Preview (gemini CLI)")
     print(f"  Frontend : GPT-5.5           (codex CLI)")
     print(f"{'='*60}")
 

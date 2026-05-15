@@ -214,7 +214,7 @@ const ListWidget: React.FC<{ widget: Widget }> = ({ widget }) => {
 
   useEffect(() => {
     api.get(`/${widget.resource_name}?per_page=${config.limit || 5}`).then((res: any) => {
-      setItems(res.data.items || res.data)
+      setItems(Array.isArray(res.data.items) ? res.data.items : Array.isArray(res.data) ? res.data : [])
     })
   }, [widget.resource_name])
 

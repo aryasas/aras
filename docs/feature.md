@@ -136,3 +136,55 @@ This document outlines the key features and architectural components of the Aras
 ## App Navigation Restructure — have_home + Topbar App Menu — revision (2026-05-14)
   - [Gemini] Implemented `have_home` attribute in `App` base class and app manifests; added `GET /api/v1/app-menu/{app_name}` endpoint.
   - [Codex/GPT-5.5] Flat app sidebar navigation, topbar app model tabs, generic app home landing page, and /:appName route
+
+## Hierarchical Application Architecture (2026-05-15)
+
+-   **Parent-Child App Relationships:** The `Aras.App` base class now supports a `parent_name` attribute, allowing applications to be organized into a hierarchy.
+-   **Modular ERP Structure:** The ERP system has been refactored from a monolithic app into a set of specialized sub-apps (`accounting`, `stock`, `crm`, `pos`, `supplier`, `config`) nested under a primary `erp` parent.
+-   **Recursive Sidebar Navigation:** The UI sidebar automatically detects and renders the application hierarchy, nesting sub-apps within their parents with visual indentation.
+-   **Drill-Down App Home:** The `AppHome` view serves as a dashboard and module selector, displaying sub-apps as interactive tiles alongside primary models.
+-   **Hierarchical Sync Engine:** `SyncManager` and `AppModel` now track and persist the application hierarchy in the database registry.
+
+## Framework Robustness & GUI Enhancements (2026-05-15)
+
+-   **Default ERP Dashboard Widgets:** Automated seeding of essential ERP analytics widgets (Total Products, Recent Movements, Financial Overview) during the sync process.
+-   **Advanced Section-Based Layouts:** Core ERP models (SalesInvoice, JournalEntry, Product) now utilize the `__layout__` engine to organize fields into logical, titled sections in the UI.
+-   **Automatic Invoice Logic:** Implementation of complex business logic for automatic recalculation of subtotals, taxes, and totals in the new `SalesInvoice` model, migrated from legacy codebase.
+-   **Metadata Integrity Verification:** Enhanced health checks to ensure registry consistency across hierarchical application boundaries.
+
+
+
+## Framework Refinements (2026-05-15)
+- [Claude Opus 4.7] `api/core/base/model.py` — A1 `__unique_together__` composite UniqueConstraint applied in `__init_subclass__`; A4 removed baseline `is_active` (now opt-in `activatable` trait); A5 three-layer inheritance validation (single Level-3a abstract ancestor) + MRO merge of `__features__`/`__scoped_by__`/`__unique_together__`/`__layout__`
+- [Claude Opus 4.7] `api/core/logic/trait_injector.py` — new `_inject_activatable` (opt-in `is_active` column) and `_inject_scoped` (auto FK columns from `__scoped_by__`, marked `form_hidden`)
+- [Claude Opus 4.7] `api/core/logic/scope.py` (NEW) — `ScopeContext` request-scoped object + `scope_from_user` resolver
+- [Claude Opus 4.7] `api/core/auth/service.py` — `get_current_user` now stashes `request.state.scope` from the JWT `scope` claim
+- [Claude Opus 4.7] `api/core/auth/routes.py` — token endpoint includes `scope` claim; new `POST /api/v1/auth/switch-scope` re-issues JWT with updated scope
+- [Claude Opus 4.7] `api/core/auth/models.py` — `User.current_company_id` nullable column added
+- [Claude Opus 4.7] `api/core/logic/router_factory.py` — A2 narrows Pydantic type to `Literal[*choices]` when `info["choices"]` set; A3 list/get/create/update/patch routes filter by + auto-inject scope; dropped `is_active` special-case
+- [Claude Opus 4.7] `api/core/logic/ui_generator.py` — A2 emits `select`/options for `info["choices"]`; honors `info["form_hidden"]`; exposes `scoped_by` at model level
+- [Claude Opus 4.7] `api/core/registry/resource_model.py` — `scoped_by` JSON column added; `api/core/manager/sync_manager.py` persists it
+- [Claude Opus 4.7] `api/core/logic/transition_registry.py` (NEW) — `TransitionRegistry` + decorator; `api/core/manager/workflow_manager.py` fires callbacks after status transition; `Aras.on_transition` exposed via `api/core/base/aras.py`
+- [Claude Opus 4.7] `api/manage.py` — `sync` now runs `auto_migrate` before `sync_all` so new columns are present when registry queries run
+- [Claude Opus 4.7] `api/core/registry/role.py`, `api/core/registry/permission.py` — opted into `__features__ = ["activatable"]` to keep `Role.is_active` / `Permission.is_active` after baseline removal
+- [Claude Opus 4.7] `api/apps/_erp_base/{document,line_item,master_data,config}.py` (NEW) — Level-3a abstract bases for ERP modules (DocumentBase, LineItemBase, MasterDataBase, ConfigBase)
+- [Claude Opus 4.7] `api/apps/{erp_config,erp_stock,erp_accounting,erp_crm,erp_supplier,erp_pos}/` (NEW) — six ERP app skeletons (manifest only, models empty)
+- [Claude Opus 4.7] `api/apps/erp/` (DELETED) — legacy single-app ERP replaced by six properly-scoped modules
+
+## UI Metadata & Relationship Fixes (2026-05-15)
+- [Gemini] **Hybrid Metadata Child Table Fix**: Fixed issue where child tables defined in the database registry (LinkModel) were not appearing in the 'children' metadata, preventing them from being rendered in the parent form.
+- [Gemini] **DynamicForm Child Table Rendering**: Updated `DynamicForm.tsx` to prevent redundant rendering of child table fields as text inputs in the main grid, ensuring they are only rendered as functional ListViews at the bottom of the form.
+
+## Enhanced Child Table UI (2026-05-15)
+- [Gemini] **Inline Child Table ListViews**: `DynamicForm` now renders `child_table` type fields as fully interactive `ListView` components directly within the form sections.
+- [Gemini] **Smart Filter Correction**: Fixed parent-child filtering logic to use the internal resource name (table name) instead of the URL path for foreign key mapping (`parent_table_id`).
+- [Gemini] **New Record Guard**: Child tables now display a friendly "Save first" message when creating a new record, preventing orphans and UI errors.
+
+## UI Standardization for Child Tables (2026-05-15)
+- [Gemini] **Generic Template Alignment**: Child tables now use the exact generic `ListView` template, ensuring full parity in capabilities (Search, Filters, Column Visibility, Bulk Actions, Export/Import).
+- [Gemini] **Embedded Toolbar**: The native `ListView` toolbar is now used for child tables, providing a consistent UX across the entire platform.
+- [Gemini] **Optimized Layout**: Removed redundant custom headers and styling overrides that previously deviated from the framework's standard UI patterns.
+
+
+## InlineChildTable — extract to own file, fix double-wrap, clean toolbar — revision (2026-05-15)
+  - [Codex/GPT-5.5] extracted InlineChildTable component with inline add/edit/delete row UI

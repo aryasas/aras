@@ -28,6 +28,25 @@ def db_session(tmp_path):
     engine.dispose()
 
 
+def _make_test_model():
+    """Synthetic minimal model used in lieu of the removed apps.erp.Product toy."""
+    from sqlalchemy import String, Float
+    from sqlalchemy.orm import Mapped, mapped_column
+    from core.base.model import Model
+
+    if "test_framework_products" in Model._registry:
+        return Model._registry["test_framework_products"]
+
+    class _TestProduct(Model):
+        __tablename__ = "test_framework_products"
+        name: Mapped[str] = mapped_column(String(100))
+        sku: Mapped[str] = mapped_column(String(50))
+        price: Mapped[float] = mapped_column(Float, default=0)
+        status: Mapped[str] = mapped_column(String(20), default="Draft")
+
+    return _TestProduct
+
+
 def test_sync_populates_registry(db_session):
     from core import Aras
     from apps.dev.app import DevApp  # noqa — register models
@@ -38,18 +57,17 @@ def test_sync_populates_registry(db_session):
     app_count = db_session.query(Aras.AppModel).count()
     res_count = db_session.query(Aras.ResourceModel).count()
     assert app_count >= 2, f"Expected ≥2 apps synced, got {app_count}"
-    assert res_count >= 1, f"Expected ≥1 resource synced, got {res_count}"
+    assert res_count >= 5, f"Expected ≥5 resources synced, got {res_count}"
 
 
 def test_workflow_transition(db_session):
     from core import Aras
-    from apps.erp.models import Product
     from core.auth.models import User
 
+    Product = _make_test_model()
     Aras.Base.metadata.create_all(bind=db_session.get_bind())
 
     product = Product(name="WF Test", sku="WF001", price=10.0)
-    product.__features__ = list(getattr(product, "__features__", [])) + ["workflow"]
     product.__class__.__transitions__ = [
         {"name": "submit", "from": "Draft", "to": "Submitted", "permission": None}
     ]
@@ -66,10 +84,10 @@ def test_workflow_transition(db_session):
 
 
 def test_query_builder_filters(db_session):
-    from apps.erp.models import Product
     from core.lib.query_builder import QueryBuilder
     from core import Aras
 
+    Product = _make_test_model()
     Aras.Base.metadata.create_all(bind=db_session.get_bind())
 
     db_session.add(Product(name="Cheap", sku="C001", price=10.0))

@@ -9,7 +9,7 @@ Jika saya mengatakan:
 - if i say rhf mean "review handoff — read docs/handoff.md, check the Agent Reports section, verify the files written exist and are correct, then append a filled ## Claude Review block with verdict APPROVED or NEEDS-FIX. If NEEDS-FIX, also append ## Revision Tasks with specific Backend/Frontend sub-tasks. If APPROVED, delete the ## Revision Tasks placeholder. Also run: cd api && python manage.py sync (if any model/app changed) and note if tests should be run."
 - aras framework login credential: user: admin pass: admin
 
-CLAUDE.md ini obsolete (hanya untuk project lama. project sudah dibuat baru dan file ini harus di update mengukuti frmawork yang baru) lihat GEMINI.md docs/aras.md docs/feature.md. rubah file ini hanya MULAI DARI BARIS 106. JANGAN HAPUS BARIS SEBELUM BARIS 106.
+Rubah file ini hanya MULAI DARI BARIS 106. JANGAN HAPUS BARIS SEBELUM BARIS 106.
   
 # CLAUDE.md — Efficiency, Honesty & Agent Constraints
 
@@ -108,15 +108,21 @@ The following response structures are BANNED:
 
 ## Multi-Agent Handoff Rules
 
+**CRITICAL: When the user says `mha`, Claude is the ORCHESTRATOR only.**
+- Claude writes `docs/handoff.md` spec — NO code, NO file edits, NO implementation.
+- Gemini and Codex are the implementors. Claude designs, they build.
+- If Claude writes code before agents run, it defeats the purpose (wastes tokens + doubles work).
+- Exception: if user explicitly asks Claude to implement directly (not via agents), then write code.
+
 When writing `docs/handoff.md` for `tools/multi_agent.py`:
-- **ALWAYS refer to `docs/aras.md`** for framework patterns, endpoint conventions, model/app anatomy. Do NOT repeat framework boilerplate in the spec.
-- **Keep specs SHORT** — task list + intent only. Agents have `docs/aras.md` injected into their backstory.
+- **ALWAYS refer to `docs/aras.md`** for framework patterns. Do NOT repeat boilerplate in the spec.
+- **Keep specs SHORT** — task list + intent only. Agents have `docs/aras.md` in their context.
 - Format: `ACTION \`path/to/file\` — intent + key fields only` (Actions: `NEW FILE`, `UPDATE`, `DELETE`)
 - Use `docs/handoff_template.md` as the template.
 
 ## Multi-Agent Shortcut Commands
 
-- if i say **`mha`** mean "**Multi-Agent: write handoff** — read docs/handoff_template.md, write docs/handoff.md for the tasks we just discussed, then print: `python tools/multi_agent.py` for user to run."
+- if i say **`mha`** mean "**Multi-Agent: write handoff only** — read docs/handoff_template.md, write docs/handoff.md spec for the tasks discussed. DO NOT write any code. Print: `python tools/multi_agent.py` for user to run."
 - if i say **`mha be`** mean "same as mha but print: `python tools/multi_agent.py --backend-only`"
 - if i say **`mha fe`** mean "same as mha but print: `python tools/multi_agent.py --frontend-only`"
 - if i say **`mha test`** mean "print: `python tools/multi_agent.py --test 'hello'` — for smoke-testing both CLIs"

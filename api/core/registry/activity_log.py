@@ -14,7 +14,6 @@ class ActivityLog(Model):
     Captures old and new values for every tracked change.
     """
     __tablename__ = "aras_activity_logs"
-    __title__ = "Activity Audit Trail"
 
     resource: Mapped[str] = Field(String(100), index=True, label="Resource")
     resource_id: Mapped[int] = Field(Integer, index=True, label="Record ID")

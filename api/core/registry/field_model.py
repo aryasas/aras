@@ -11,7 +11,6 @@ from ..base.field import Field
 class FieldModel(Model):
     """Stores metadata about individual fields/columns."""
     __tablename__ = "aras_fields"
-    __title__ = "Field Registry"
 
     resource_id: Mapped[int] = Field(ForeignKey("aras_resources.id"), display_column="title")
     name: Mapped[str] = mapped_column(String(100), index=True)

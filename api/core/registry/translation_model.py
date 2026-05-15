@@ -13,7 +13,6 @@ class TranslationModel(Model):
     Mappings: (registry_type, registry_id, language_code, property_name) -> translated_value
     """
     __tablename__ = "aras_translations"
-    __title__ = "UI Translations"
 
     # 'app', 'resource', 'field'
     registry_type: Mapped[str] = mapped_column(String(20), index=True) 

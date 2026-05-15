@@ -1,7 +1,7 @@
 import json
 import csv
 import io
-from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
@@ -12,6 +12,36 @@ from ..lib.database import get_db
 from ..auth.service import get_current_user
 from ..logic.permissions import check_permissions
 from ..base.router import Router
+
+
+def _scope_filters(model_class) -> list[tuple[str, Any]]:
+    """Returns the [(col_name, fk_table), ...] declared by __scoped_by__."""
+    return list(getattr(model_class, "__scoped_by__", None) or [])
+
+
+def _apply_scope(stmt, model_class, request: Request):
+    """Append WHERE col = current_scope[col] for each __scoped_by__ entry."""
+    scope = getattr(getattr(request, "state", None), "scope", None)
+    if not scope:
+        return stmt
+    for col_name, _fk in _scope_filters(model_class):
+        val = scope.get(col_name)
+        if val is None or not hasattr(model_class, col_name):
+            continue
+        stmt = stmt.where(getattr(model_class, col_name) == val)
+    return stmt
+
+
+def _inject_scope_payload(data: dict, model_class, request: Request) -> dict:
+    """Override scope keys on the request payload with values from request.state.scope."""
+    scope = getattr(getattr(request, "state", None), "scope", None)
+    if not scope:
+        return data
+    for col_name, _fk in _scope_filters(model_class):
+        val = scope.get(col_name)
+        if val is not None:
+            data[col_name] = val
+    return data
 
 class RouterFactory(Router):
     """
@@ -54,16 +84,22 @@ class RouterFactory(Router):
                 except:
                     python_type = str
 
+                # Pull declarative validation rules from Field(info={...})
+                info = column.info or {}
+
+                # Narrow to Literal[...] when info={"choices": [...]} is set.
+                _choices = info.get("choices")
+                if _choices:
+                    from typing import Literal as _Literal
+                    python_type = _Literal[tuple(_choices)]  # type: ignore[valid-type]
+
                 # Determine if the field is required
                 has_default = (
                     column.nullable or
                     column.default is not None or
-                    column.server_default is not None or
-                    column.name == 'is_active'
+                    column.server_default is not None
                 )
 
-                # Pull declarative validation rules from Field(info={...})
-                info = column.info or {}
                 pydantic_kwargs = {}
                 if info.get("min_length") is not None:
                     pydantic_kwargs["min_length"] = info["min_length"]
@@ -125,26 +161,28 @@ class RouterFactory(Router):
 
         @router.get("/")
         async def list_items_slashed(
+            request: Request,
             page: int = Query(1, ge=1),
             per_page: int = Query(20, ge=1, le=100),
             search: Optional[str] = None,
             filters: Optional[str] = None,
             order_by: Optional[str] = None,
             desc: bool = True,
-            db: Session = Depends(get_db), 
+            db: Session = Depends(get_db),
             user: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=allow_public))
         ):
-            return await list_items(page, per_page, search, filters, order_by, desc, db, user)
+            return await list_items(request, page, per_page, search, filters, order_by, desc, db, user)
 
         @router.get("")
         async def list_items(
+            request: Request,
             page: int = Query(1, ge=1),
             per_page: int = Query(20, ge=1, le=100),
             search: Optional[str] = None,
             filters: Optional[str] = None,
             order_by: Optional[str] = None,
             desc: bool = True,
-            db: Session = Depends(get_db), 
+            db: Session = Depends(get_db),
             user: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=allow_public))
         ):
             """Lists records with pagination, filtering, and search."""
@@ -154,14 +192,24 @@ class RouterFactory(Router):
                     parsed_filters = json.loads(filters)
                 except:
                     raise HTTPException(status_code=400, detail="Invalid filters format. Must be JSON.")
-            
+
+            # Apply scope filter via parsed_filters expansion: paginate() already
+            # supports filters, so we inject scope values as equality filters.
+            scope = getattr(getattr(request, "state", None), "scope", None)
+            if scope and _scope_filters(model_class):
+                parsed_filters = list(parsed_filters or [])
+                for col_name, _fk in _scope_filters(model_class):
+                    val = scope.get(col_name)
+                    if val is not None and hasattr(model_class, col_name):
+                        parsed_filters.append({"field": col_name, "op": "=", "value": val})
+
             return model_class.paginate(
-                db, 
-                page=page, 
-                per_page=per_page, 
-                search=search, 
+                db,
+                page=page,
+                per_page=per_page,
+                search=search,
                 filters=parsed_filters,
-                order_by=order_by, 
+                order_by=order_by,
                 desc=desc
             )
 
@@ -241,55 +289,75 @@ class RouterFactory(Router):
             return {"message": "CSV import initiated in background", "task_id": task_id}
         @router.post("/", status_code=status.HTTP_201_CREATED)
         async def create_item_slashed(
-            data: Schema, 
-            db: Session = Depends(get_db), 
+            request: Request,
+            data: Schema,
+            db: Session = Depends(get_db),
             user: Any = Depends(check_permissions(model_class.__tablename__, "CREATE"))
         ):
-            return await create_item(data, db, user)
+            return await create_item(request, data, db, user)
 
         @router.post("", status_code=status.HTTP_201_CREATED)
         async def create_item(
-            data: Schema, 
-            db: Session = Depends(get_db), 
+            request: Request,
+            data: Schema,
+            db: Session = Depends(get_db),
             user: Any = Depends(check_permissions(model_class.__tablename__, "CREATE"))
         ):
             """Creates a new record with hooks support."""
-            new_item = model_class.create(db, data.model_dump(), user_id=user.id)
+            payload = _inject_scope_payload(data.model_dump(), model_class, request)
+            new_item = model_class.create(db, payload, user_id=user.id)
             return new_item.to_dict()
 
         @router.get("/{item_id}")
         async def get_item(
-            item_id: int, 
-            db: Session = Depends(get_db), 
+            request: Request,
+            item_id: int,
+            db: Session = Depends(get_db),
             user: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=allow_public))
         ):
             """Fetches a single record by ID."""
             item = model_class.get(db, item_id)
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
+            # Scope guard: hide items belonging to a different tenant.
+            scope = getattr(getattr(request, "state", None), "scope", None)
+            if scope:
+                for col_name, _fk in _scope_filters(model_class):
+                    expected = scope.get(col_name)
+                    if expected is not None and getattr(item, col_name, None) != expected:
+                        raise HTTPException(status_code=404, detail="Item not found")
             res = item.to_dict()
             model_class.resolve_labels(db, [res])
             return res
 
         @router.put("/{item_id}")
         async def update_item(
-            item_id: int, 
-            data: Schema, 
-            db: Session = Depends(get_db), 
+            request: Request,
+            item_id: int,
+            data: Schema,
+            db: Session = Depends(get_db),
             user: Any = Depends(check_permissions(model_class.__tablename__, "UPDATE"))
         ):
             """Updates an existing record with hooks support."""
             item = model_class.get(db, item_id)
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
-            
-            item.update_self(db, data.model_dump(exclude_unset=True), user_id=user.id)
+            scope = getattr(getattr(request, "state", None), "scope", None)
+            if scope:
+                for col_name, _fk in _scope_filters(model_class):
+                    expected = scope.get(col_name)
+                    if expected is not None and getattr(item, col_name, None) != expected:
+                        raise HTTPException(status_code=404, detail="Item not found")
+
+            payload = _inject_scope_payload(data.model_dump(exclude_unset=True), model_class, request)
+            item.update_self(db, payload, user_id=user.id)
             res = item.to_dict()
             model_class.resolve_labels(db, [res])
             return res
 
         @router.patch("/{item_id}")
         async def patch_item(
+            request: Request,
             item_id: int,
             data: PatchSchema,
             db: Session = Depends(get_db),
@@ -299,8 +367,15 @@ class RouterFactory(Router):
             item = model_class.get(db, item_id)
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
+            scope = getattr(getattr(request, "state", None), "scope", None)
+            if scope:
+                for col_name, _fk in _scope_filters(model_class):
+                    expected = scope.get(col_name)
+                    if expected is not None and getattr(item, col_name, None) != expected:
+                        raise HTTPException(status_code=404, detail="Item not found")
 
-            item.update_self(db, data.model_dump(exclude_unset=True), user_id=user.id)
+            payload = _inject_scope_payload(data.model_dump(exclude_unset=True), model_class, request)
+            item.update_self(db, payload, user_id=user.id)
             res = item.to_dict()
             model_class.resolve_labels(db, [res])
             return res

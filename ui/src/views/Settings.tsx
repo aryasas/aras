@@ -1,13 +1,15 @@
-import { Settings as SettingsIcon, Shield, Globe, Package, Terminal, History } from 'lucide-react'
+import React from 'react'
+import { Settings as SettingsIcon, Shield, Globe, Package, Terminal, History, Paintbrush } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 function Settings() {
-  const sections = [
+  const sections: { id: string; label: string; icon: React.ReactNode; description: string; path: string; external?: boolean }[] = [
     { id: 'apps', label: 'App Manager', icon: <Package size={20} />, description: 'Install, update, and manage framework extensions.', path: '/apps' },
     { id: 'devtools', label: 'Developer Tools', icon: <Terminal size={20} />, description: 'System inspection, metadata sync, and database stats.', path: '/dev' },
     { id: 'global', label: 'Global Preferences', icon: <Globe size={20} />, description: 'Date/Number formats, localization, and system constraints.', path: '/settings/global' },
     { id: 'security', label: 'Security & Auth', icon: <Shield size={20} />, description: 'Password policies, roles, and session management.', path: '/settings/rbac' },
     { id: 'audit', label: 'Activity Audit Trail', icon: <History size={20} />, description: 'System changes and user activity logs.', path: '/settings/audit' },
+    { id: 'mocks', label: 'UI Mocks', icon: <Paintbrush size={20} />, description: 'Design proposals and UI mockups for review.', path: '/mocks/', external: true },
   ]
 
   return (
@@ -24,12 +26,8 @@ function Settings() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sections.map(section => (
-          <Link 
-            key={section.id} 
-            to={section.path}
-            className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group cursor-pointer"
-          >
+        {sections.map(section => {
+          const cardContent = (
             <div className="flex items-start gap-4">
               <div className="p-4 bg-slate-50 rounded-2xl group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors text-slate-400">
                 {section.icon}
@@ -37,15 +35,20 @@ function Settings() {
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-slate-900 mb-1 group-hover:text-indigo-600 transition-colors">{section.label}</h3>
                 <p className="text-slate-500 text-sm leading-relaxed">{section.description}</p>
-                
                 <div className="mt-4 flex items-center text-indigo-600 text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span>Manage Settings</span>
+                  <span>{section.external ? 'Open Mocks' : 'Manage Settings'}</span>
                   <span className="ml-1 group-hover:translate-x-1 transition-transform">→</span>
                 </div>
               </div>
             </div>
-          </Link>
-        ))}
+          )
+          const cls = "bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group cursor-pointer"
+          return section.external ? (
+            <a key={section.id} href={section.path} target="_blank" rel="noopener noreferrer" className={cls}>{cardContent}</a>
+          ) : (
+            <Link key={section.id} to={section.path} className={cls}>{cardContent}</Link>
+          )
+        })}
       </div>
 
       <div className="mt-12 bg-indigo-900 rounded-[2.5rem] p-12 relative overflow-hidden shadow-2xl shadow-indigo-200">

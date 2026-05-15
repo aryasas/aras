@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 from jose import JWTError, jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from ..lib.database import get_db
 from ..lib.settings import settings
+from ..logic.scope import ScopeContext, scope_from_user
 from .models import User
 
 ALGORITHM = settings.ALGORITHM
@@ -39,7 +40,11 @@ def verify_password_reset_token(token: str) -> Optional[str]:
         return None
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+async def get_current_user(
+    request: Request,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -56,6 +61,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     user = db.query(User).filter(User.username == username).first()
     if user is None:
         raise credentials_exception
+
+    # Surface scope on request.state.scope. Prefer the JWT scope claim;
+    # fall back to user attributes when the token is from a legacy login.
+    scope_claim = payload.get("scope") if isinstance(payload, dict) else None
+    request.state.scope = ScopeContext(scope_claim) if scope_claim else scope_from_user(user)
     return user
 
 

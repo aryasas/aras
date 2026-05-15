@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DataTable Light — ARAS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --surface-2: #f8f9fb;
+    --surface-3: #eef0f4;
+    --border: #e4e7ed;
+    --border-soft: #f0f2f5;
+    --accent: #4f46e5;
+    --accent-light: #eef2ff;
+    --accent-mid: #c7d2fe;
+    --text-1: #111827;
+    --text-2: #6b7280;
+    --text-3: #9ca3af;
+    --green: #059669;
+    --green-bg: #ecfdf5;
+    --green-border: #a7f3d0;
+    --amber: #d97706;
+    --amber-bg: #fffbeb;
+    --amber-border: #fde68a;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --red-border: #fecaca;
+    --blue: #2563eb;
+    --blue-bg: #eff6ff;
+    --blue-border: #bfdbfe;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow: 0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05);
+  }
+
+  html, body { height: 100%; background: var(--bg); color: var(--text-1); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; line-height: 1.5; }
+
+  .shell { display: flex; height: 100vh; overflow: hidden; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 232px; min-width: 232px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    padding: 0;
+    box-shadow: var(--shadow-sm);
+  }
+  .sidebar-logo {
+    padding: 22px 20px 18px;
+    font-family: 'Sora', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-1);
+    letter-spacing: -0.5px;
+    border-bottom: 1px solid var(--border-soft);
+    display: flex; align-items: center; gap: 9px;
+  }
+  .sidebar-logo-icon {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sidebar-section { padding: 16px 12px 8px; }
+  .sidebar-label { font-size: 10.5px; font-weight: 600; color: var(--text-3); letter-spacing: 0.07em; text-transform: uppercase; padding: 0 8px; margin-bottom: 5px; font-family: 'JetBrains Mono', monospace; }
+  .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: var(--radius-sm); cursor: pointer; color: var(--text-2); font-size: 13.5px; font-weight: 500; transition: all 0.12s; user-select: none; }
+  .nav-item:hover { background: var(--surface-2); color: var(--text-1); }
+  .nav-item.active { background: var(--accent-light); color: var(--accent); }
+  .nav-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.6; }
+  .nav-item.active .nav-icon { opacity: 1; }
+  .nav-badge { margin-left: auto; background: var(--surface-3); color: var(--text-3); font-family: 'JetBrains Mono', monospace; font-size: 10px; padding: 1px 7px; border-radius: 20px; border: 1px solid var(--border); font-weight: 500; }
+  .nav-item.active .nav-badge { background: var(--accent-mid); color: var(--accent); border-color: var(--accent-mid); }
+  .sidebar-divider { border: none; border-top: 1px solid var(--border-soft); margin: 4px 12px; }
+
+  /* Main */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Topbar */
+  .topbar {
+    height: 56px; min-height: 56px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 24px;
+    gap: 12px;
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+  }
+  .topbar-breadcrumb { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-2); }
+  .topbar-breadcrumb .sep { color: var(--text-3); }
+  .topbar-breadcrumb .current { color: var(--text-1); font-weight: 600; }
+  .topbar-spacer { flex: 1; }
+  .topbar-search {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    color: var(--text-3);
+    font-size: 12.5px;
+    cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    width: 200px;
+  }
+  .topbar-search kbd { margin-left: auto; background: var(--surface-3); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 10.5px; font-family: 'JetBrains Mono', monospace; color: var(--text-3); }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #818cf8); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; font-family: 'Sora', sans-serif; }
+
+  /* Content */
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+  /* Page header */
+  .page-header { margin-bottom: 20px; display: flex; align-items: flex-start; gap: 14px; }
+  .page-title { font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 700; color: var(--text-1); letter-spacing: -0.4px; margin-bottom: 3px; }
+  .page-subtitle { color: var(--text-2); font-size: 13px; }
+  .model-pill { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--accent); background: var(--accent-light); border: 1px solid var(--accent-mid); padding: 3px 9px; border-radius: 20px; align-self: flex-start; margin-top: 2px; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 15px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; font-family: 'Plus Jakarta Sans', sans-serif; }
+  .btn-primary { background: var(--accent); color: white; box-shadow: 0 2px 8px rgba(79,70,229,0.25); }
+  .btn-primary:hover { background: #4338ca; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(79,70,229,0.3); }
+  .btn-outline { background: white; color: var(--text-2); border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .btn-danger { background: white; color: var(--red); border: 1px solid var(--red-border); }
+  .btn-danger:hover { background: var(--red-bg); }
+
+  /* Stats */
+  .stats-row { display: flex; gap: 14px; margin-bottom: 20px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; flex: 1; display: flex; align-items: center; gap: 14px; box-shadow: var(--shadow-sm); }
+  .stat-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .stat-icon.indigo { background: var(--accent-light); color: var(--accent); }
+  .stat-icon.green { background: var(--green-bg); color: var(--green); }
+  .stat-icon.amber { background: var(--amber-bg); color: var(--amber); }
+  .stat-icon.blue { background: var(--blue-bg); color: var(--blue); }
+  .stat-val { font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 700; color: var(--text-1); line-height: 1; }
+  .stat-label { font-size: 11.5px; color: var(--text-2); margin-top: 3px; font-weight: 500; }
+
+  /* Toolbar */
+  .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .search-wrap { position: relative; flex: 1; min-width: 220px; max-width: 320px; }
+  .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-3); display: flex; align-items: center; }
+  .search-input { width: 100%; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px 8px 34px; color: var(--text-1); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; outline: none; transition: all 0.15s; box-shadow: var(--shadow-sm); }
+  .search-input::placeholder { color: var(--text-3); }
+  .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+
+  .chip { display: inline-flex; align-items: center; gap: 5px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 6px 11px; font-size: 13px; color: var(--text-2); cursor: pointer; transition: all 0.12s; white-space: nowrap; font-weight: 500; box-shadow: var(--shadow-sm); }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip.active { background: var(--accent-light); border-color: var(--accent-mid); color: var(--accent); }
+  .chip .count { background: var(--accent); color: white; border-radius: 10px; padding: 1px 6px; font-size: 10px; font-family: 'JetBrains Mono', monospace; }
+
+  .toolbar-spacer { flex: 1; }
+
+  /* Active filters */
+  .active-filters { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; flex-wrap: wrap; }
+  .af-label { font-size: 11.5px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+  .filter-tag { display: inline-flex; align-items: center; gap: 5px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 20px; padding: 3px 10px 3px 8px; font-size: 12px; }
+  .filter-tag .field { color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; }
+  .filter-tag .op { color: var(--text-3); }
+  .filter-tag .val { color: var(--text-1); font-weight: 500; }
+  .filter-tag .rm { color: var(--text-3); cursor: pointer; margin-left: 2px; font-size: 11px; }
+  .filter-tag .rm:hover { color: var(--red); }
+  .clear-all { font-size: 12px; color: var(--text-3); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+  .clear-all:hover { color: var(--red); }
+
+  /* Bulk bar */
+  .bulk-bar { display: flex; align-items: center; gap: 10px; background: var(--accent-light); border: 1.5px solid var(--accent-mid); border-radius: var(--radius-sm); padding: 9px 14px; margin-bottom: 12px; animation: slideDown 0.18s ease; }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+  .bulk-count { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent); font-weight: 500; }
+
+  /* Table */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--surface-2); border-bottom: 1.5px solid var(--border); }
+  th { text-align: left; padding: 11px 16px; font-size: 11px; font-weight: 600; color: var(--text-3); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.07em; white-space: nowrap; cursor: pointer; user-select: none; transition: color 0.12s; }
+  th:hover { color: var(--text-1); }
+  th.sorted { color: var(--accent); }
+  th .sort-icon { display: inline-block; margin-left: 4px; opacity: 0.4; }
+  th.sorted .sort-icon { opacity: 1; }
+  th.check-col { width: 44px; cursor: default; }
+  td { padding: 12px 16px; border-bottom: 1px solid var(--border-soft); font-size: 13.5px; color: var(--text-1); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tbody tr { transition: background 0.1s; cursor: pointer; }
+  tbody tr:hover td { background: var(--surface-2); }
+  tbody tr.selected td { background: #eef2ff; }
+
+  /* Checkbox */
+  .cb { width: 16px; height: 16px; border: 1.5px solid var(--border); border-radius: 4px; background: white; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.12s; flex-shrink: 0; box-shadow: var(--shadow-sm); }
+  .cb:hover { border-color: var(--accent); }
+  .cb.checked { background: var(--accent); border-color: var(--accent); box-shadow: none; }
+  .cb.checked::after { content: ''; display: block; width: 8px; height: 5px; border-left: 1.5px solid white; border-bottom: 1.5px solid white; transform: rotate(-45deg) translateY(-1px); }
+
+  /* Badges */
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 600; font-family: 'Plus Jakarta Sans', sans-serif; white-space: nowrap; }
+  .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .badge-green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .badge-green::before { background: var(--green); }
+  .badge-amber { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+  .badge-amber::before { background: var(--amber); }
+  .badge-red { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+  .badge-red::before { background: var(--red); }
+  .badge-gray { background: var(--surface-3); color: var(--text-2); border: 1px solid var(--border); }
+  .badge-gray::before { background: var(--text-3); }
+
+  .mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-2); }
+  .currency { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; }
+
+  .avatar-cell { display: flex; align-items: center; gap: 9px; }
+  .avatar-sm { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: white; flex-shrink: 0; font-family: 'Sora', sans-serif; }
+  .avatar-sm.p { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+  .avatar-sm.g { background: linear-gradient(135deg, #10b981, #059669); }
+  .avatar-sm.b { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+  .avatar-sm.r { background: linear-gradient(135deg, #f87171, #dc2626); }
+  .avatar-sm.o { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+  .row-actions { display: flex; align-items: center; gap: 5px; opacity: 0; transition: opacity 0.12s; }
+  tbody tr:hover .row-actions { opacity: 1; }
+  .row-action-btn { width: 28px; height: 28px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-2); transition: all 0.12s; }
+  .row-action-btn:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent-mid); }
+  .row-action-btn.del:hover { background: var(--red-bg); color: var(--red); border-color: var(--red-border); }
+
+  /* Pagination */
+  .pagination { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-top: 1.5px solid var(--border-soft); }
+  .pagination-info { font-size: 12px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
+  .page-btns { display: flex; align-items: center; gap: 4px; }
+  .page-btn { width: 32px; height: 32px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: white; color: var(--text-2); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 12.5px; font-family: 'JetBrains Mono', monospace; transition: all 0.12s; font-weight: 500; }
+  .page-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .page-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+  .page-btn.disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
+  .per-page-sel { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-2); font-family: 'JetBrains Mono', monospace; }
+  .per-page-sel select { background: white; border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 4px 8px; color: var(--text-1); font-family: 'JetBrains Mono', monospace; font-size: 12px; outline: none; cursor: pointer; }
+  .per-page-sel select:focus { border-color: var(--accent); }
+
+  /* Filter panel */
+  .filter-panel { position: fixed; top: 56px; left: 232px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 18px; width: 460px; z-index: 100; box-shadow: var(--shadow); display: none; }
+  .filter-panel.open { display: block; animation: fadeIn 0.14s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+  .panel-title { font-size: 11px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 14px; font-weight: 500; }
+  .filter-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .filter-sel { background: var(--surface-2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 7px 10px; color: var(--text-1); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; outline: none; cursor: pointer; flex: 1; }
+  .filter-sel:focus { border-color: var(--accent); }
+  .filter-input-sm { background: var(--surface-2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 7px 10px; color: var(--text-1); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; outline: none; flex: 1.5; }
+  .filter-input-sm:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+  .rm-rule { color: var(--text-3); cursor: pointer; padding: 5px; border-radius: 5px; transition: all 0.12s; }
+  .rm-rule:hover { color: var(--red); background: var(--red-bg); }
+  .add-rule-btn { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--text-3); cursor: pointer; padding: 4px 0; border: none; background: none; font-family: 'Plus Jakarta Sans', sans-serif; margin-top: 2px; font-weight: 500; }
+  .add-rule-btn:hover { color: var(--accent); }
+  .filter-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 16px; border-top: 1px solid var(--border-soft); padding-top: 14px; }
+
+  /* Col picker */
+  .col-picker { position: fixed; top: 56px; right: 24px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 14px; width: 200px; z-index: 100; box-shadow: var(--shadow); display: none; }
+  .col-picker.open { display: block; animation: fadeIn 0.14s ease; }
+  .col-pick-row { display: flex; align-items: center; gap: 9px; padding: 6px 0; cursor: pointer; }
+  .col-pick-label { font-size: 13px; color: var(--text-2); font-weight: 500; }
+  .col-pick-row:hover .col-pick-label { color: var(--text-1); }
+
+  /* Export dropdown */
+  .dropdown-menu { position: fixed; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 6px; min-width: 170px; z-index: 200; box-shadow: var(--shadow); display: none; }
+  .dropdown-menu.open { display: block; animation: fadeIn 0.14s ease; }
+  .dropdown-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--text-2); transition: all 0.1s; font-weight: 500; }
+  .dropdown-item:hover { background: var(--surface-2); color: var(--text-1); }
+  .dropdown-divider { border: none; border-top: 1px solid var(--border-soft); margin: 4px 0; }
+
+  /* Overlay */
+  .overlay { position: fixed; inset: 0; z-index: 50; display: none; }
+  .overlay.open { display: block; }
+
+  /* Back link */
+  .back-link { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-3); text-decoration: none; margin-bottom: 18px; transition: color 0.12s; font-family: 'JetBrains Mono', monospace; }
+  .back-link:hover { color: var(--accent); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1.2" fill="white"/><rect x="9" y="2" width="5" height="5" rx="1.2" fill="rgba(255,255,255,0.5)"/><rect x="2" y="9" width="5" height="5" rx="1.2" fill="rgba(255,255,255,0.5)"/><rect x="9" y="9" width="5" height="5" rx="1.2" fill="rgba(255,255,255,0.3)"/></svg>
+      </div>
+      aras
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Main</div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="1" width="5.5" height="5.5" rx="1.2"/><rect x="9.5" y="1" width="5.5" height="5.5" rx="1.2"/><rect x="1" y="9.5" width="5.5" height="5.5" rx="1.2"/><rect x="9.5" y="9.5" width="5.5" height="5.5" rx="1.2"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="3" width="14" height="10" rx="1.5"/><line x1="1" y1="6.5" x2="15" y2="6.5"/><line x1="5" y1="3" x2="5" y2="13"/></svg>
+        Products
+        <span class="nav-badge">248</span>
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 4h12l-1.5 8H3.5L2 4z"/><path d="M5.5 4L6 1.5h4L10.5 4"/></svg>
+        Orders
+        <span class="nav-badge">92</span>
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="4.5" r="2.5"/><path d="M1 13.5c0-3 2-4.5 5-4.5s5 1.5 5 4.5"/><circle cx="11.5" cy="5" r="2"/><path d="M14 14c0-2.5-1.5-3.5-4-3.5"/></svg>
+        Customers
+      </div>
+    </div>
+
+    <hr class="sidebar-divider" />
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">System</div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="2.5"/><path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.5 3.5l1 1M11.5 11.5l1 1M12.5 3.5l-1 1M4.5 11.5l-1 1"/></svg>
+        Settings
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6.5"/><path d="M8 5v3l2 1.5"/></svg>
+        Audit Logs
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-breadcrumb">
+        <span>erp</span><span class="sep">/</span><span class="current">products</span>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-search">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="5"/><path d="M11 11l3 3"/></svg>
+        Search anything…
+        <kbd>⌘K</kbd>
+      </div>
+      <div class="avatar">A</div>
+    </div>
+
+    <div class="content">
+      <a class="back-link" href="/mocks/">← mocks index</a>
+
+      <!-- Header -->
+      <div class="page-header">
+        <div style="flex:1">
+          <div class="page-title">Products</div>
+          <div class="page-subtitle">Manage your product catalog, pricing, and inventory.</div>
+        </div>
+        <div class="model-pill">erp.products</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:2px;">
+          <button class="btn btn-outline" onclick="toggleDropdown('export-menu',event)">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v9M5 8l3 3 3-3"/><path d="M2 12v1.5a.5.5 0 00.5.5h11a.5.5 0 00.5-.5V12"/></svg>
+            Export
+          </button>
+          <button class="btn btn-primary">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>
+            New Product
+          </button>
+        </div>
+      </div>
+
+      <!-- Export dropdown -->
+      <div class="dropdown-menu" id="export-menu" style="top:128px;right:178px;">
+        <div class="dropdown-item"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><line x1="5" y1="6" x2="11" y2="6"/><line x1="5" y1="9" x2="9" y2="9"/></svg>Export as CSV</div>
+        <div class="dropdown-item"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 5h6M5 8h4"/></svg>Export as JSON</div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v9M5 8l3 3 3-3"/></svg>Import CSV</div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon indigo"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1.5"/><line x1="1" y1="6.5" x2="15" y2="6.5"/></svg></div>
+          <div><div class="stat-val">248</div><div class="stat-label">Total Records</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M5 8l2 2 4-4"/></svg></div>
+          <div><div class="stat-val">194</div><div class="stat-label">Active</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="8"/><circle cx="8" cy="11" r="0.6" fill="currentColor"/></svg></div>
+          <div><div class="stat-val">31</div><div class="stat-label">Low Stock</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12l4-5 3 3 2-2.5 3 4.5H2z"/></svg></div>
+          <div><div class="stat-val">$184k</div><div class="stat-label">Inventory Value</div></div>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="search-wrap">
+          <div class="search-icon"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="5"/><path d="M11 11l3 3"/></svg></div>
+          <input class="search-input" type="text" placeholder="Search by name, SKU…" id="search-input" />
+        </div>
+        <button class="chip active" onclick="togglePanel('filter-panel')">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+          Filters
+          <span class="count">2</span>
+        </button>
+        <button class="chip" onclick="togglePanel('col-picker')">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="4" y1="2" x2="4" y2="14"/><line x1="8" y1="2" x2="8" y2="14"/><line x1="12" y1="2" x2="12" y2="14"/></svg>
+          Columns
+        </button>
+        <div class="toolbar-spacer"></div>
+        <div style="font-size:12px;color:var(--text-3);font-family:'JetBrains Mono',monospace;font-weight:500;">20 / 248 rows</div>
+      </div>
+
+      <!-- Active filters -->
+      <div class="active-filters">
+        <span class="af-label">active filters:</span>
+        <span class="filter-tag"><span class="field">status</span>&nbsp;<span class="op">is</span>&nbsp;<span class="val">Active</span><span class="rm">✕</span></span>
+        <span class="filter-tag"><span class="field">price</span>&nbsp;<span class="op">&gt;</span>&nbsp;<span class="val">100</span><span class="rm">✕</span></span>
+        <span class="clear-all">clear all</span>
+      </div>
+
+      <!-- Bulk bar -->
+      <div class="bulk-bar" id="bulk-bar">
+        <span class="bulk-count">3 selected</span>
+        <span style="color:var(--text-3);font-size:12px;">—</span>
+        <button class="btn btn-outline" style="padding:5px 10px;font-size:12px;"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11.5 2.5l2 2-9 9H2.5v-2L11.5 2.5z"/></svg>Bulk Edit</button>
+        <button class="btn btn-danger" style="padding:5px 10px;font-size:12px;"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M5 4V2.5a.5.5 0 01.5-.5h5a.5.5 0 01.5.5V4M3 4l.8 9a.5.5 0 00.5.5h7.4a.5.5 0 00.5-.5L13 4"/></svg>Delete</button>
+        <button class="btn btn-outline" style="padding:5px 10px;font-size:12px;"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v9M5 8l3 3 3-3"/></svg>Export</button>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="check-col"><div class="cb checked" onclick="toggleAllRows()"></div></th>
+              <th onclick="sortBy(this)">Name <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy(this)" class="sorted">SKU <span class="sort-icon">↑</span></th>
+              <th onclick="sortBy(this)">Category <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy(this)">Price <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy(this)">Stock <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy(this)">Status <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy(this)">Updated <span class="sort-icon">↕</span></th>
+              <th style="width:80px;cursor:default;"></th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+        <div class="pagination">
+          <div class="per-page-sel">Rows per page: <select><option>10</option><option selected>20</option><option>50</option><option>100</option></select></div>
+          <div class="pagination-info">Page 1 of 13 — 248 total</div>
+          <div class="page-btns">
+            <div class="page-btn disabled">‹</div>
+            <div class="page-btn active">1</div>
+            <div class="page-btn">2</div>
+            <div class="page-btn">3</div>
+            <div class="page-btn" style="pointer-events:none;border:none;background:none;color:var(--text-3)">…</div>
+            <div class="page-btn">13</div>
+            <div class="page-btn">›</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Column Picker -->
+<div class="overlay" id="overlay-col" onclick="closeAll()"></div>
+<div class="col-picker" id="col-picker">
+  <div class="panel-title">Toggle columns</div>
+  <div class="col-pick-row"><div class="cb checked"></div><div class="col-pick-label">Name</div></div>
+  <div class="col-pick-row"><div class="cb checked"></div><div class="col-pick-label">SKU</div></div>
+  <div class="col-pick-row"><div class="cb checked"></div><div class="col-pick-label">Category</div></div>
+  <div class="col-pick-row"><div class="cb checked"></div><div class="col-pick-label">Price</div></div>
+  <div class="col-pick-row"><div class="cb checked"></div><div class="col-pick-label">Stock</div></div>
+  <div class="col-pick-row"><div class="cb checked"></div><div class="col-pick-label">Status</div></div>
+  <div class="col-pick-row"><div class="cb checked"></div><div class="col-pick-label">Updated</div></div>
+  <div class="col-pick-row"><div class="cb"></div><div class="col-pick-label">Created</div></div>
+  <div class="col-pick-row"><div class="cb"></div><div class="col-pick-label">Description</div></div>
+</div>
+
+<!-- Filter Panel -->
+<div class="overlay" id="overlay-filter" onclick="closeAll()"></div>
+<div class="filter-panel" id="filter-panel">
+  <div class="panel-title">Filter Rules</div>
+  <div class="filter-row">
+    <select class="filter-sel"><option>status</option><option>name</option><option>sku</option><option>price</option><option>stock</option></select>
+    <select class="filter-sel" style="flex:0.8"><option>is</option><option>is not</option><option>contains</option></select>
+    <select class="filter-sel"><option>Active</option><option>Inactive</option><option>Draft</option></select>
+    <span class="rm-rule">✕</span>
+  </div>
+  <div class="filter-row">
+    <select class="filter-sel"><option>price</option><option>name</option><option>stock</option><option>status</option></select>
+    <select class="filter-sel" style="flex:0.8"><option>&gt;</option><option>&lt;</option><option>=</option><option>≥</option></select>
+    <input class="filter-input-sm" type="number" value="100" placeholder="Value…" />
+    <span class="rm-rule">✕</span>
+  </div>
+  <button class="add-rule-btn"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>Add rule</button>
+  <div class="filter-actions">
+    <button class="btn btn-outline" style="font-size:12px;padding:6px 12px;" onclick="closeAll()">Cancel</button>
+    <button class="btn btn-primary" style="font-size:12px;padding:6px 12px;" onclick="closeAll()">Apply filters</button>
+  </div>
+</div>
+
+<script>
+const ROWS = [
+  { name:'Wireless Headphones Pro', sku:'WHP-001', category:'Electronics', price:249.99, stock:142, status:'Active', updated:'2h ago', i:'WH', c:'p' },
+  { name:'Ergonomic Office Chair', sku:'EOC-114', category:'Furniture', price:599.00, stock:38, status:'Active', updated:'5h ago', i:'EO', c:'g' },
+  { name:'Mechanical Keyboard TKL', sku:'MK-TKL-07', category:'Electronics', price:159.00, stock:5, status:'Low Stock', updated:'1d ago', i:'MK', c:'b' },
+  { name:'USB-C Hub 7-Port', sku:'USB-HB-7', category:'Accessories', price:79.99, stock:0, status:'Out of Stock', updated:'2d ago', i:'UH', c:'r' },
+  { name:'4K Webcam Ultra', sku:'WC-4K-02', category:'Electronics', price:189.99, stock:67, status:'Active', updated:'3h ago', i:'WC', c:'o' },
+  { name:'Standing Desk 140cm', sku:'SD-140', category:'Furniture', price:849.00, stock:12, status:'Low Stock', updated:'1d ago', i:'SD', c:'g' },
+  { name:'Noise-Cancel Earbuds', sku:'NCE-X3', category:'Electronics', price:129.00, stock:203, status:'Active', updated:'6h ago', i:'NE', c:'b' },
+  { name:'Monitor Arm Dual', sku:'MA-DU-3', category:'Accessories', price:119.00, stock:0, status:'Inactive', updated:'4d ago', i:'MA', c:'r' },
+  { name:'Laptop Backpack 15"', sku:'LBP-15', category:'Bags', price:89.00, stock:88, status:'Active', updated:'1d ago', i:'LB', c:'p' },
+  { name:'Cable Management Kit', sku:'CMK-PRO', category:'Accessories', price:34.99, stock:310, status:'Active', updated:'2d ago', i:'CM', c:'o' },
+];
+const selected = new Set([0,2,4]);
+
+function badgeClass(s) {
+  return {Active:'badge-green','Low Stock':'badge-amber','Out of Stock':'badge-red',Inactive:'badge-gray'}[s]||'badge-gray';
+}
+function render() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const rows = ROWS.filter(r => !q || r.name.toLowerCase().includes(q) || r.sku.toLowerCase().includes(q));
+  document.getElementById('table-body').innerHTML = rows.map((r,i) => `
+    <tr class="${selected.has(i)?'selected':''}" onclick="toggleRow(${i})">
+      <td><div class="cb ${selected.has(i)?'checked':''}"></div></td>
+      <td><div class="avatar-cell"><div class="avatar-sm ${r.c}">${r.i}</div><span style="font-weight:500">${r.name}</span></div></td>
+      <td><span class="mono">${r.sku}</span></td>
+      <td style="color:var(--text-2)">${r.category}</td>
+      <td><span class="currency">$${r.price.toLocaleString('en-US',{minimumFractionDigits:2})}</span></td>
+      <td style="color:${r.stock===0?'var(--red)':r.stock<20?'var(--amber)':'var(--text-1)'};font-weight:${r.stock<20?'600':'400'}">${r.stock}</td>
+      <td><span class="badge ${badgeClass(r.status)}">${r.status}</span></td>
+      <td style="color:var(--text-3);font-size:12.5px;">${r.updated}</td>
+      <td><div class="row-actions">
+        <div class="row-action-btn"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11.5 2.5l2 2-9 9H2.5v-2L11.5 2.5z"/></svg></div>
+        <div class="row-action-btn del"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M5 4V2.5a.5.5 0 01.5-.5h5a.5.5 0 01.5.5V4M3 4l.8 9a.5.5 0 00.5.5h7.4a.5.5 0 00.5-.5L13 4"/></svg></div>
+      </div></td>
+    </tr>`).join('');
+}
+function toggleRow(i) {
+  if(selected.has(i)) selected.delete(i); else selected.add(i);
+  render();
+  document.getElementById('bulk-bar').style.display = selected.size ? 'flex' : 'none';
+}
+function toggleAllRows() {
+  if(selected.size===ROWS.length) selected.clear(); else ROWS.forEach((_,i)=>selected.add(i));
+  render();
+  document.getElementById('bulk-bar').style.display = selected.size ? 'flex' : 'none';
+}
+function sortBy(th) {
+  document.querySelectorAll('th').forEach(t=>t.classList.remove('sorted'));
+  th.classList.add('sorted');
+}
+function togglePanel(id) {
+  const el = document.getElementById(id);
+  const open = el.classList.contains('open');
+  closeAll();
+  if(!open) {
+    el.classList.add('open');
+    const ov = id==='col-picker'?'overlay-col':'overlay-filter';
+    document.getElementById(ov)?.classList.add('open');
+  }
+}
+function toggleDropdown(id,e) {
+  e.stopPropagation();
+  document.getElementById(id).classList.toggle('open');
+}
+function closeAll() {
+  document.querySelectorAll('.col-picker,.filter-panel,.dropdown-menu').forEach(el=>el.classList.remove('open'));
+  document.querySelectorAll('.overlay').forEach(el=>el.classList.remove('open'));
+}
+document.getElementById('search-input').addEventListener('input', render);
+document.addEventListener('click', e => {
+  if(!e.target.closest('.dropdown-menu')&&!e.target.closest('[onclick*="Dropdown"]'))
+    document.querySelectorAll('.dropdown-menu').forEach(el=>el.classList.remove('open'));
+});
+render();
+document.getElementById('bulk-bar').style.display = selected.size ? 'flex' : 'none';
+</script>
+</body>
+</html>

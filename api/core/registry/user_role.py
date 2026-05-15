@@ -12,7 +12,6 @@ class UserRole(Model):
     Assigns one or more roles to a user.
     """
     __tablename__ = "auth_user_roles"
-    __title__ = "User-Role Mapping"
 
     user_id: Mapped[int] = mapped_column(ForeignKey("auth_users.id"))
     role_id: Mapped[int] = mapped_column(ForeignKey("auth_roles.id"))

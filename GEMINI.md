@@ -88,7 +88,7 @@ Models using the `workflow` feature benefit from a state-machine engine:
 To make Aras more robust, complete, and low-code, the following enhancements have been integrated:
 
 -   **Aras Pro: Advanced Layouts & UX:**
-    *   **Pro Layout Engine**: Supports `__layout__` (sections/tabs) in models for organized UI rendering.
+    *   **Pro Layout Engine**: Mandates `layout` definitions in specialized `View` classes (inheriting from `Aras.View`) to keep models focused strictly on data and logic.
     *   **Advanced Conditional Visibility**: Fields support complex logic via `LogicEvaluator` (e.g., `total_amount > 5000 && status != 'Draft'`).
     *   **Computed Fields**: `@Aras.computed_field` decorator for dynamic, serializable properties.
     *   **Pluggable UI Registry**: `SchemaRegistry` allows global registration of custom field widgets.

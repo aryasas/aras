@@ -6,6 +6,7 @@ import * as Icons from 'lucide-react'
 
 interface AppManifest {
   name: string
+  parent_name?: string
   label: string
   description: string
   icon: string
@@ -306,7 +307,14 @@ function AppCard({ app }: { app: AppManifest }) {
           </div>
         </div>
         
-        <h3 className="text-xl font-black text-slate-900 mb-2">{app.label}</h3>
+        <h3 className="text-xl font-black text-slate-900 mb-2 flex items-center gap-2">
+          {app.label}
+          {app.parent_name && (
+            <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded border border-slate-300 uppercase tracking-tighter">
+              Sub of {app.parent_name}
+            </span>
+          )}
+        </h3>
         <p className="text-slate-500 text-sm leading-relaxed mb-6 line-clamp-2">
           {app.description || 'No description provided for this application.'}
         </p>

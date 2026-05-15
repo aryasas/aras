@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
-import { 
-  Save, ArrowLeft, Plus, RefreshCw, ChevronRight, 
+import {
+  Save, ArrowLeft, RefreshCw, ChevronRight,
   History as HistoryIcon, Zap
 } from 'lucide-react';
 import ListView from './ListView';
+import { InlineChildTable } from './InlineChildTable';
 import { SchemaRegistry } from '../services/SchemaRegistry';
 import { useAras } from '../hooks/useAras';
 import { useUIStore } from '../../store/uiStore';
@@ -20,6 +21,7 @@ interface Field {
   hidden: boolean;
   depends_on?: string; // Conditional visibility logic
   target_resource?: string;
+  fk_column?: string | null;
   options?: { label: string; value: any }[];
   min_length?: number;
   max_length?: number;
@@ -59,7 +61,7 @@ interface Metadata {
   resource: string;
   title: string;
   fields: Field[];
-  children?: string[];
+  children?: Array<{ resource: string; fk_column?: string | null }>;
   workflow?: any;
   actions?: ModelAction[];
   layout?: LayoutSection[];
@@ -74,12 +76,12 @@ interface DynamicFormProps {
   initialData?: any;
 }
 
-export const DynamicForm: React.FC<DynamicFormProps> = ({ 
-  resource, 
-  id, 
-  onSave, 
-  onCancel, 
-  initialData 
+export const DynamicForm: React.FC<DynamicFormProps> = ({
+  resource,
+  id,
+  onSave,
+  onCancel,
+  initialData
 }) => {
   const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [formData, setFormData] = useState<any>({});
@@ -89,10 +91,18 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [actionDialog, setActionDialog] = useState<{ action: ModelAction; inputData: Record<string, any> } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [childRows, setChildRows] = useState<Record<string, any[]>>({});
+  // currentId tracks the actual persisted record ID — updated after POST so child tables appear immediately
+  const [currentId, setCurrentId] = useState<number | string | undefined>(() =>
+    id != null && id !== 'new' ? id : undefined
+  );
   
   const { notify, confirm } = useAras();
   const showPanel = useUIStore((state) => state.showPanel);
-  const closePanel = useUIStore((state) => state.closePanel);
+
+  useEffect(() => {
+    setCurrentId(id != null && id !== 'new' ? id : undefined);
+  }, [id]);
 
   useEffect(() => {
     const init = async () => {
@@ -104,7 +114,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         const meta = metaRes.data;
         setMetadata(meta);
 
-        if (id && id !== 'new') {
+        if (id != null && id !== 'new') {
           const dataRes = await api.get(`/${cleanResource}/${id}`);
           setFormData(dataRes.data);
 
@@ -117,11 +127,14 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             }
           }
         } else {
+          const today = new Date().toISOString().split('T')[0];
           const defaults: any = { ...initialData };
           meta.fields.forEach((f: any) => {
              if (defaults[f.name] !== undefined) return;
              if (f.type === 'boolean') defaults[f.name] = false;
              else if (f.type === 'number' || f.type === 'currency') defaults[f.name] = 0;
+             else if (f.type === 'date') defaults[f.name] = today;
+             else if (f.type === 'datetime') defaults[f.name] = new Date().toISOString().split('.')[0];
              else defaults[f.name] = '';
           });
           setFormData(defaults);
@@ -160,30 +173,10 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       <div className="h-[calc(100vh-150px)]">
         <ListView 
           resource="aras_activity_logs" 
-          fixedFilters={{ resource: cleanResource, resource_id: id }}
+          fixedFilters={{ resource: cleanResource, resource_id: currentId }}
         />
       </div>,
       'max-w-5xl'
-    );
-  };
-
-  const handleAddChild = (childResource: string) => {
-    const cleanResource = cleanResourcePath(resource);
-    showPanel(
-      `Add New ${childResource.replace(/_/g, ' ')}`,
-      <div className="bg-slate-50 -m-6 p-6 h-[calc(100vh-80px)] overflow-auto">
-        <DynamicForm 
-          resource={childResource} 
-          id="new" 
-          initialData={{ [`${cleanResource}_id`]: id }}
-          onSave={() => {
-            closePanel();
-            setRefreshTrigger(prev => prev + 1);
-          }}
-          onCancel={closePanel}
-        />
-      </div>,
-      'max-w-4xl'
     );
   };
 
@@ -191,7 +184,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     setSaving(true);
     try {
       const cleanResource = cleanResourcePath(resource);
-      await api.post(`/workflow/${cleanResource}/${id}/action/${actionName}`);
+      await api.post(`/workflow/${cleanResource}/${currentId}/action/${actionName}`);
       notify(`Workflow action completed`, "success");
       setRefreshTrigger(prev => prev + 1);
     } catch (err: any) {
@@ -222,7 +215,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     setSaving(true);
     try {
       const cleanResource = cleanResourcePath(resource);
-      await api.post(`/${cleanResource}/${id}/action/${action.name}`, inputData ?? {});
+      await api.post(`/${cleanResource}/${currentId}/action/${action.name}`, inputData ?? {});
       notify(`${action.label} completed successfully`, "success");
       setRefreshTrigger(prev => prev + 1);
     } catch (err: any) {
@@ -271,10 +264,26 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       setSaving(true);
       const cleanResource = cleanResourcePath(resource);
       let res;
-      if (id && id !== 'new') {
-        res = await api.patch(`/${cleanResource}/${id}`, formData);
+      if (currentId != null) {
+        res = await api.patch(`/${cleanResource}/${currentId}`, formData);
       } else {
         res = await api.post(`/${cleanResource}`, formData);
+        if (res.data?.id != null) setCurrentId(res.data.id);
+      }
+      const savedId = res.data?.id ?? currentId;
+      // POST pending child rows
+      for (const [fieldName, rows] of Object.entries(childRows)) {
+        const childField = metadata?.fields.find(f => f.name === fieldName);
+        if (!childField?.target_resource || rows.length === 0) continue;
+        const fkKey = childField.fk_column || `${cleanResource}_id`;
+        const childRes = cleanResourcePath(childField.target_resource);
+        for (const row of rows) {
+          if (row.id) {
+            await api.patch(`/${childRes}/${row.id}`, { ...row, [fkKey]: savedId });
+          } else {
+            await api.post(`/${childRes}`, { ...row, [fkKey]: savedId });
+          }
+        }
       }
       notify('Record saved successfully', 'success');
       if (onSave) onSave(res.data);
@@ -299,6 +308,22 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
 
   const renderField = (field: Field) => {
     if (!isFieldVisible(field)) return null;
+    
+    // Handle Child Tables inline
+    if (field.type === 'child_table') {
+      const fkKey = field.fk_column || `${metadata?.resource}_id`;
+      return (
+        <InlineChildTable
+          key={`${field.name}-${refreshTrigger}`}
+          childResource={field.target_resource!}
+          fkColumn={fkKey}
+          parentId={currentId}
+          rows={childRows[field.name] ?? []}
+          onChange={(rows) => setChildRows(prev => ({ ...prev, [field.name]: rows }))}
+        />
+      );
+    }
+
     const Component = SchemaRegistry.get(field.type);
     
     return (
@@ -338,7 +363,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-bold text-slate-900">
-                {id && id !== 'new' ? `Edit ${metadata.title}` : `New ${metadata.title}`}
+                {currentId != null ? `Edit ${metadata.title}` : `New ${metadata.title}`}
               </h2>
               {formData.status && (
                 <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-md border border-indigo-100 uppercase tracking-widest">
@@ -352,7 +377,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         
         <div className="flex items-center gap-2">
           {/* History Button */}
-          {id && id !== 'new' && metadata.is_auditable && (
+          {currentId != null && metadata.is_auditable && (
             <button
               onClick={handleShowHistory}
               className="p-2 hover:bg-slate-50 rounded-xl text-slate-500 transition-colors mr-2"
@@ -363,7 +388,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           )}
 
           {/* Model Actions */}
-          {id && id !== 'new' && metadata.actions?.map(action => (
+          {currentId != null && metadata.actions?.map(action => (
             <button
               key={action.name}
               onClick={() => handleModelAction(action)}
@@ -410,52 +435,66 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
 
       {/* ── Main Form Content ────────────────────────────────────────────── */}
       <div className="space-y-6">
-        {metadata.layout ? (
-          metadata.layout.map((section, idx) => (
-            <div key={idx} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-8 py-4 bg-slate-50 border-b border-slate-100">
-                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">{section.title}</h3>
-              </div>
-              <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                {section.fields.map(fieldName => {
-                  const field = metadata.fields.find(f => f.name === fieldName);
-                  return field ? renderField(field) : null;
-                })}
-              </div>
-            </div>
-          ))
+        {metadata.layout && metadata.layout.length > 0 ? (
+          metadata.layout.map((section, idx) => {
+            const sectionFields = section.fields
+              .map(fieldName => metadata.fields.find(f => f.name === fieldName))
+              .filter((f): f is Field => !!f);
+              
+            const normalFields = sectionFields.filter(f => f.type !== 'child_table');
+            const childTableFields = sectionFields.filter(f => f.type === 'child_table');
+
+            return (
+              <React.Fragment key={idx}>
+                {normalFields.length > 0 && (
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="px-8 py-4 bg-slate-50 border-b border-slate-100">
+                      <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">{section.title}</h3>
+                    </div>
+                    <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {normalFields.map(renderField)}
+                    </div>
+                  </div>
+                )}
+                {childTableFields.map(renderField)}
+              </React.Fragment>
+            );
+          })
         ) : (
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-              {metadata.fields.map(renderField)}
-            </div>
-          </div>
+          <>
+            {metadata.fields.filter(f => f.type !== 'child_table').length > 0 && (
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {metadata.fields.filter(f => f.type !== 'child_table').map(renderField)}
+                </div>
+              </div>
+            )}
+            {metadata.fields.filter(f => f.type === 'child_table').map(renderField)}
+          </>
         )}
       </div>
 
-      {/* ── Child Tables Section ─────────────────────────────────────────── */}
-      {id && id !== 'new' && metadata.children && metadata.children.length > 0 && (
+      {/* ── Child Tables Section (Fallback for children not in fields list) ── */}
+      {metadata.children && metadata.children.length > 0 && (
         <div className="space-y-6">
-          {metadata.children.map((childResource) => (
-            <div key={childResource} className="space-y-3">
-               <div className="flex items-center justify-between px-2">
-                  <h3 className="text-lg font-bold text-slate-800 uppercase tracking-tight">{childResource.replace(/_/g, ' ')}</h3>
-                  <button 
-                    onClick={() => handleAddChild(childResource)}
-                    className="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-all"
-                  >
-                    <Plus size={14} /> Add Line
-                  </button>
-               </div>
-               <div className="h-[400px]">
-                 <ListView 
-                   key={`${childResource}-${refreshTrigger}`}
-                   resource={childResource} 
-                   fixedFilters={{ [`${cleanResourcePath(resource)}_id`]: id }}
-                 />
-               </div>
-            </div>
-          ))}
+          {metadata.children
+            .filter(child => !metadata.fields.some(f => 
+              f.type === 'child_table' && 
+              (cleanResourcePath(f.target_resource || '') === cleanResourcePath(child.resource) || cleanResourcePath(f.name) === cleanResourcePath(child.resource))
+            ))
+            .map((child) => {
+              const fkKey = child.fk_column || `${metadata.resource}_id`;
+              return (
+                <InlineChildTable
+                  key={`${child.resource}-${refreshTrigger}`}
+                  childResource={child.resource}
+                  fkColumn={fkKey}
+                  parentId={currentId}
+                  rows={childRows[child.resource] ?? []}
+                  onChange={(rows) => setChildRows(prev => ({ ...prev, [child.resource]: rows }))}
+                />
+              );
+            })}
         </div>
       )}
     </div>

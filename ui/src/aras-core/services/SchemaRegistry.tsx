@@ -55,23 +55,27 @@ const BooleanInput: React.FC<FieldProps> = ({ value, onChange, disabled }) => (
   </label>
 );
 
+const DATE_CLASS = "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
+
 const DateInput: React.FC<FieldProps> = ({ value, onChange, disabled }) => (
-  <input 
+  <input
     type="date"
     value={value ? value.split('T')[0] : ''}
     onChange={(e) => onChange(e.target.value)}
-    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-    disabled={disabled}
+    className={DATE_CLASS}
+    readOnly={disabled}
+    tabIndex={disabled ? -1 : undefined}
   />
 );
 
 const DateTimeInput: React.FC<FieldProps> = ({ value, onChange, disabled }) => (
-  <input 
+  <input
     type="datetime-local"
     value={value ? value.split('.')[0] : ''}
     onChange={(e) => onChange(e.target.value)}
-    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-    disabled={disabled}
+    className={DATE_CLASS}
+    readOnly={disabled}
+    tabIndex={disabled ? -1 : undefined}
   />
 );
 

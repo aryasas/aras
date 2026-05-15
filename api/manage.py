@@ -49,6 +49,13 @@ def main():
         print("Creating tables...")
         Aras.Base.metadata.create_all(bind=Aras.engine)
 
+        # Pre-migrate so sync_all's queries see any new columns (e.g. scoped_by).
+        print("Auto-migrating schema...")
+        from core.logic import auto_migrate
+        report = auto_migrate.run(Aras.engine, Aras.Base.metadata)
+        if report.errors:
+            print(f"Auto-migration errors: {report.errors}")
+
         print("Synchronizing metadata...")
         db = next(Aras.get_db())
         Aras.Manager.Sync.sync_all(db)

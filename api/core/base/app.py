@@ -22,21 +22,26 @@ class App(Aras):
             App._registry[cls.__name__] = cls
 
     app_name: str = ""
+    parent_name: str = "" # Reference to a parent app name
     app_label: str = ""
     description: str = ""
     version: str = "1.0.0"
     icon: str = "Package"
     have_home: bool = False
     models: List[Any] = []
+    menu_groups: List[Dict[str, Any]] = [] # [{"label": "Group", "icon": "Icon", "models": ["table_name"]}]
 
     @classmethod
     def get_manifest(cls) -> dict:
         """Generates the application manifest for the registry sync engine."""
         return {
             "name": cls.app_name,
+            "parent_name": cls.parent_name,
             "label": cls.app_label,
             "description": cls.description,
             "version": cls.version,
             "icon": cls.icon,
-            "models": [m.__tablename__ for m in cls.models if hasattr(m, "__tablename__")]
+            "have_home": cls.have_home,
+            "models": [m.__tablename__ for m in cls.models if hasattr(m, "__tablename__")],
+            "menu_groups": cls.menu_groups
         }

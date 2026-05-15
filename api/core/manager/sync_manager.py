@@ -37,6 +37,9 @@ class SyncManager(Manager):
             # 0. Seed Global Settings
             cls.seed_settings(db)
 
+            # 0.1 Seed Default Widgets
+            cls.seed_widgets(db)
+
             # Get all apps registered via Level 2 App inheritance
             apps = App._registry
             
@@ -113,6 +116,70 @@ class SyncManager(Manager):
         db.flush()
 
     @classmethod
+    def seed_widgets(cls, db: Session):
+        """Seeds default dashboard widgets."""
+        try:
+            from core.registry.widget_model import WidgetModel
+        except ImportError:
+            return
+
+        defaults = [
+            {
+                "name": "total_products",
+                "title": "Total Products",
+                "widget_type": "stat",
+                "resource_name": "erp_stock_products",
+                "config_json": {"icon": "Package", "color": "indigo"},
+                "size": "col-span-1",
+                "order": 1
+            },
+            {
+                "name": "recent_movements",
+                "title": "Recent Stock Movements",
+                "widget_type": "list",
+                "resource_name": "erp_stock_movements",
+                "config_json": {"limit": 5},
+                "size": "col-span-2",
+                "order": 2
+            },
+            {
+                "name": "total_accounts",
+                "title": "Total Accounts",
+                "widget_type": "stat",
+                "resource_name": "erp_accounting_accounts",
+                "config_json": {"icon": "Calculator", "color": "emerald"},
+                "size": "col-span-1",
+                "order": 3
+            },
+            {
+                "name": "recent_entries",
+                "title": "Recent Journal Entries",
+                "widget_type": "list",
+                "resource_name": "erp_accounting_entries",
+                "config_json": {"limit": 5},
+                "size": "col-span-2",
+                "order": 4
+            },
+            {
+                "name": "total_customers",
+                "title": "Total Customers",
+                "widget_type": "stat",
+                "resource_name": "erp_crm_customers",
+                "config_json": {"icon": "Users", "color": "indigo"},
+                "size": "col-span-1",
+                "order": 5
+            }
+        ]
+
+        for w in defaults:
+            row = db.query(WidgetModel).filter(WidgetModel.name == w["name"]).first()
+            if not row:
+                logger.info(f"Seeding widget: {w['name']}")
+                db.add(WidgetModel(**w))
+        
+        db.flush()
+
+    @classmethod
     def sync_app(cls, db: Session, app_cls: Type[App]):
         """Syncs a single App manifest and its associated models."""
         manifest = app_cls.get_manifest()
@@ -122,19 +189,23 @@ class SyncManager(Manager):
         if not app_db:
             app_db = AppModel(
                 name=manifest["name"],
+                parent_name=manifest.get("parent_name"),
                 label=manifest["label"],
                 description=manifest["description"],
                 icon=manifest["icon"],
                 version=manifest["version"],
+                menu_groups=manifest.get("menu_groups", []),
                 is_active=True
             )
             db.add(app_db)
             db.flush() # Get ID
         else:
+            app_db.parent_name = manifest.get("parent_name")
             app_db.label = manifest["label"]
             app_db.description = manifest["description"]
             app_db.icon = manifest["icon"]
             app_db.version = manifest["version"]
+            app_db.menu_groups = manifest.get("menu_groups", [])
             app_db.is_active = True
 
         # 2. Sync Models (Resources)
@@ -147,12 +218,14 @@ class SyncManager(Manager):
         from ..aras import Aras
         table_name = model_cls.__tablename__
         
-        # Determine Title from View or Model
+        # Determine Title and Layout from View or Model
         view = Aras.View.get_for_model(model_cls)
         title = getattr(view, "title", None) or getattr(model_cls, "__title__", None) or table_name.replace("_", " ").title()
+        layout = getattr(view, "layout", None) or []
 
         resource_db = db.query(ResourceModel).filter(ResourceModel.name == table_name).first()
         
+        scoped_by = [list(p) for p in (getattr(model_cls, "__scoped_by__", None) or [])]
         if not resource_db:
             resource_db = ResourceModel(
                 app_id=app_id,
@@ -160,13 +233,17 @@ class SyncManager(Manager):
                 title=title,
                 model_class=model_cls.__name__,
                 features=getattr(model_cls, "__features__", []),
+                scoped_by=scoped_by,
+                layout=layout,
                 is_active=True
             )
             db.add(resource_db)
             db.flush()
         else:
             resource_db.title = title
-            resource_db.features = getattr(model_cls, "__features__", [])
+            resource_db.features = getattr(model_cls, "__features__", []),
+            resource_db.scoped_by = scoped_by
+            resource_db.layout = layout
             resource_db.is_active = True
 
         # 3. Sync Fields
@@ -276,9 +353,24 @@ class SyncManager(Manager):
 
         # 3. Detect Child Tables (from the perspective of the Parent)
         children = Model._child_map.get(model_cls.__tablename__, [])
-        for child_table in children:
+        for child_entry in children:
+            child_table = child_entry.get("resource") if isinstance(child_entry, dict) else child_entry
+            if not child_table:
+                continue
             target_resource = db.query(ResourceModel).filter(ResourceModel.name == child_table).first()
             if target_resource:
+                # Try to find the relationship name on the parent model
+                from sqlalchemy import inspect
+                relationship_name = child_table # Fallback
+                try:
+                    mapper = inspect(model_cls)
+                    for rel in mapper.relationships:
+                        if hasattr(rel.mapper.class_, "__tablename__") and rel.mapper.class_.__tablename__ == child_table:
+                            relationship_name = rel.key
+                            break
+                except Exception:
+                    pass
+
                 link_db = db.query(LinkModel).filter(
                     LinkModel.source_resource_id == resource_id,
                     LinkModel.target_resource_id == target_resource.id,
@@ -289,9 +381,13 @@ class SyncManager(Manager):
                     link_db = LinkModel(
                         source_resource_id=resource_id,
                         target_resource_id=target_resource.id,
-                        field_name="id", # Parent's ID is the anchor
+                        field_name=relationship_name,
                         link_type="child",
                         label=target_resource.title,
                         show_as_child=True
                     )
                     db.add(link_db)
+                else:
+                    # Update field_name if it changed or was "id"
+                    if link_db.field_name != relationship_name:
+                        link_db.field_name = relationship_name

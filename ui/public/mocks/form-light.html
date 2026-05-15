@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Form Light — ARAS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --surface-2: #f8f9fb;
+    --surface-3: #eef0f4;
+    --border: #e4e7ed;
+    --border-soft: #f0f2f5;
+    --border-focus: #4f46e5;
+    --accent: #4f46e5;
+    --accent-light: #eef2ff;
+    --accent-mid: #c7d2fe;
+    --text-1: #111827;
+    --text-2: #6b7280;
+    --text-3: #9ca3af;
+    --green: #059669;
+    --green-bg: #ecfdf5;
+    --green-border: #a7f3d0;
+    --amber: #d97706;
+    --amber-bg: #fffbeb;
+    --amber-border: #fde68a;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --red-border: #fecaca;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow: 0 4px 16px rgba(0,0,0,0.08);
+  }
+
+  html, body { height: 100%; background: var(--bg); color: var(--text-1); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; line-height: 1.5; }
+
+  .shell { display: flex; height: 100vh; overflow: hidden; }
+
+  /* Sidebar */
+  .sidebar { width: 232px; min-width: 232px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; box-shadow: var(--shadow-sm); }
+  .sidebar-logo { padding: 20px 20px 16px; font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700; color: var(--text-1); border-bottom: 1px solid var(--border-soft); display: flex; align-items: center; gap: 9px; }
+  .logo-icon { width: 30px; height: 30px; border-radius: 8px; background: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .sidebar-section { padding: 14px 12px 6px; }
+  .sidebar-label { font-size: 10.5px; font-weight: 600; color: var(--text-3); letter-spacing: 0.07em; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; font-family: 'JetBrains Mono', monospace; }
+  .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: var(--radius-sm); cursor: pointer; color: var(--text-2); font-size: 13.5px; font-weight: 500; transition: all 0.12s; }
+  .nav-item:hover { background: var(--surface-2); color: var(--text-1); }
+  .nav-item.active { background: var(--accent-light); color: var(--accent); }
+  .nav-icon { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.6; }
+  .nav-item.active .nav-icon { opacity: 1; }
+  .nav-badge { margin-left: auto; background: var(--surface-3); color: var(--text-3); font-family: 'JetBrains Mono', monospace; font-size: 10px; padding: 1px 7px; border-radius: 20px; border: 1px solid var(--border); }
+  .nav-item.active .nav-badge { background: var(--accent-mid); color: var(--accent); border-color: var(--accent-mid); }
+  .sidebar-divider { border: none; border-top: 1px solid var(--border-soft); margin: 4px 12px; }
+
+  /* Main */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Topbar */
+  .topbar { height: 56px; min-height: 56px; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; gap: 12px; background: var(--surface); box-shadow: var(--shadow-sm); }
+  .breadcrumb { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-2); }
+  .breadcrumb a { color: var(--text-2); text-decoration: none; transition: color 0.12s; }
+  .breadcrumb a:hover { color: var(--accent); }
+  .breadcrumb .sep { color: var(--text-3); }
+  .breadcrumb .current { color: var(--text-1); font-weight: 600; }
+  .topbar-spacer { flex: 1; }
+  .topbar-search { display: flex; align-items: center; gap: 7px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 12px; color: var(--text-3); font-size: 12.5px; cursor: pointer; width: 200px; }
+  .topbar-search kbd { margin-left: auto; background: var(--surface-3); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 10.5px; font-family: 'JetBrains Mono', monospace; color: var(--text-3); }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #818cf8); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; font-family: 'Sora', sans-serif; }
+
+  /* Content */
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+  .back-link { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-3); text-decoration: none; margin-bottom: 18px; transition: color 0.12s; font-family: 'JetBrains Mono', monospace; }
+  .back-link:hover { color: var(--accent); }
+
+  /* Workflow bar */
+  .workflow-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 22px; margin-bottom: 20px; box-shadow: var(--shadow-sm); }
+  .wf-label { font-size: 10.5px; font-weight: 600; color: var(--text-3); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 14px; }
+  .wf-steps { display: flex; align-items: center; }
+  .wf-step-wrap { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .wf-dot { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-3); background: var(--surface-2); flex-shrink: 0; transition: all 0.2s; }
+  .wf-dot.done { background: var(--green-bg); border-color: var(--green-border); color: var(--green); }
+  .wf-dot.active { background: var(--accent); border-color: var(--accent); color: white; box-shadow: 0 0 0 4px var(--accent-light); }
+  .wf-step-label { font-size: 11px; color: var(--text-3); white-space: nowrap; font-weight: 500; }
+  .wf-step-label.done { color: var(--green); }
+  .wf-step-label.active { color: var(--accent); font-weight: 600; }
+  .wf-line { flex: 1; height: 2px; background: var(--border); margin: 0 6px; margin-bottom: 16px; }
+  .wf-line.done { background: var(--green-border); }
+  .wf-actions { display: flex; gap: 8px; margin-top: 14px; padding-top: 13px; border-top: 1px solid var(--border-soft); flex-wrap: wrap; }
+  .wf-btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 13px; border-radius: 20px; font-size: 12.5px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--surface-2); color: var(--text-2); transition: all 0.13s; }
+  .wf-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .wf-btn.approve { border-color: var(--green-border); color: var(--green); background: var(--green-bg); }
+  .wf-btn.approve:hover { background: #d1fae5; }
+  .wf-btn.reject { border-color: var(--red-border); color: var(--red); background: var(--red-bg); }
+  .wf-btn.reject:hover { background: #fee2e2; }
+
+  /* Layout */
+  .form-layout { display: grid; grid-template-columns: 1fr 300px; gap: 18px; align-items: start; }
+
+  /* Form card */
+  .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); }
+  .form-card-header { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; background: var(--surface); }
+  .form-card-title { font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700; color: var(--text-1); flex: 1; letter-spacing: -0.3px; }
+  .form-card-sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .model-pill { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--accent); background: var(--accent-light); border: 1px solid var(--accent-mid); padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+
+  /* Progress */
+  .progress-wrap { padding: 13px 22px 0; }
+  .progress-meta { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .progress-meta span { font-size: 11.5px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
+  .progress-meta .val { color: var(--accent); font-weight: 500; }
+  .progress-bar { height: 3px; background: var(--surface-3); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 70%; background: linear-gradient(90deg, var(--accent), #818cf8); border-radius: 3px; }
+
+  /* Tabs */
+  .tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 22px; }
+  .tab { padding: 11px 0; margin-right: 22px; font-size: 13px; font-weight: 600; color: var(--text-2); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.13s; }
+  .tab:hover { color: var(--text-1); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* Form body */
+  .form-body { padding: 22px; display: flex; flex-direction: column; gap: 0; }
+
+  /* Sections */
+  .section { margin-bottom: 26px; }
+  .section:last-child { margin-bottom: 0; }
+  .section-title { font-size: 10.5px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.07em; font-family: 'JetBrains Mono', monospace; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border-soft); }
+
+  /* Grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .span-2 { grid-column: span 2; }
+
+  /* Field */
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field-label { font-size: 12.5px; font-weight: 600; color: var(--text-2); display: flex; align-items: center; gap: 4px; }
+  .req { color: var(--accent); }
+  .field-hint { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .field-error { font-size: 11px; color: var(--red); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+
+  /* Input */
+  .input { width: 100%; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; color: var(--text-1); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13.5px; outline: none; transition: all 0.14s; }
+  .input::placeholder { color: var(--text-3); }
+  .input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(79,70,229,0.1); background: var(--surface); }
+  .input.ok { border-color: var(--green-border); background: var(--surface); }
+  .input.err { border-color: var(--red-border); background: var(--red-bg); }
+  textarea.input { resize: vertical; min-height: 88px; line-height: 1.6; }
+  select.input { cursor: pointer; }
+
+  .input-wrap { position: relative; }
+  .input-pre { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-3); font-size: 13px; pointer-events: none; }
+  .input-wrap .input { padding-left: 24px; }
+  .input-suf { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); color: var(--text-3); font-size: 11.5px; font-family: 'JetBrains Mono', monospace; pointer-events: none; }
+
+  /* Toggle */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 11px 14px; }
+  .toggle-text .tl { font-size: 13.5px; font-weight: 500; color: var(--text-1); }
+  .toggle-text .ts { font-size: 11.5px; color: var(--text-3); margin-top: 1px; }
+  .toggle { width: 38px; height: 22px; border-radius: 22px; background: var(--surface-3); border: 1.5px solid var(--border); cursor: pointer; position: relative; transition: all 0.2s; flex-shrink: 0; }
+  .toggle.on { background: var(--accent); border-color: var(--accent); }
+  .toggle::after { content: ''; position: absolute; left: 2px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; border-radius: 50%; background: white; transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .toggle.on::after { left: 19px; }
+
+  /* Custom select */
+  .sel-wrap { position: relative; }
+  .sel-btn { display: flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; cursor: pointer; transition: all 0.13s; }
+  .sel-btn:hover { border-color: var(--accent); }
+  .sel-btn .val { flex: 1; font-size: 13.5px; color: var(--text-1); }
+  .sel-btn .ph { color: var(--text-3); }
+  .sel-drop { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; z-index: 50; box-shadow: var(--shadow); display: none; }
+  .sel-drop.open { display: block; animation: fd 0.12s ease; }
+  @keyframes fd { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .sel-search { padding: 9px 12px; border-bottom: 1px solid var(--border-soft); }
+  .sel-search input { background: none; border: none; outline: none; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: var(--text-1); width: 100%; }
+  .sel-search input::placeholder { color: var(--text-3); }
+  .sel-opts { max-height: 160px; overflow-y: auto; }
+  .sel-opt { padding: 9px 12px; font-size: 13px; color: var(--text-2); cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: background 0.1s; font-weight: 500; }
+  .sel-opt:hover { background: var(--surface-2); color: var(--text-1); }
+  .sel-opt.active { color: var(--accent); background: var(--accent-light); }
+  .sel-opt .ct { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-3); }
+
+  /* Multi select */
+  .multisel { background: var(--surface-2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 6px 10px; min-height: 42px; display: flex; flex-wrap: wrap; gap: 5px; cursor: text; transition: all 0.13s; }
+  .multisel:focus-within { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(79,70,229,0.1); background: var(--surface); }
+  .ms-tag { display: inline-flex; align-items: center; gap: 4px; background: var(--accent-light); border: 1px solid var(--accent-mid); border-radius: 5px; padding: 2px 8px; font-size: 12px; color: var(--accent); font-weight: 600; }
+  .ms-rm { cursor: pointer; color: var(--accent-mid); font-size: 11px; }
+  .ms-rm:hover { color: var(--red); }
+  .ms-input { background: none; border: none; outline: none; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: var(--text-1); flex: 1; min-width: 80px; }
+  .ms-input::placeholder { color: var(--text-3); }
+
+  /* File */
+  .file-drop { border: 1.5px dashed var(--border); border-radius: var(--radius-sm); padding: 20px; text-align: center; cursor: pointer; transition: all 0.14s; background: var(--surface-2); }
+  .file-drop:hover { border-color: var(--accent); background: var(--accent-light); }
+  .file-drop-icon { color: var(--text-3); margin-bottom: 8px; }
+  .file-drop-text { font-size: 13px; color: var(--text-2); font-weight: 500; }
+  .file-drop-text span { color: var(--accent); }
+  .file-drop-sub { font-size: 11.5px; color: var(--text-3); margin-top: 3px; }
+  .file-preview { display: flex; align-items: center; gap: 10px; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 10px; }
+  .file-thumb { width: 38px; height: 38px; border-radius: 8px; background: var(--accent-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--accent); }
+  .file-name { font-size: 13px; color: var(--text-1); font-weight: 500; }
+  .file-size { font-size: 11px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
+  .file-rm { margin-left: auto; color: var(--text-3); cursor: pointer; font-size: 14px; }
+  .file-rm:hover { color: var(--red); }
+
+  /* Form footer */
+  .form-footer { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; background: var(--surface-2); }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.14s; font-family: 'Plus Jakarta Sans', sans-serif; }
+  .btn-primary { background: var(--accent); color: white; box-shadow: 0 2px 8px rgba(79,70,229,0.25); }
+  .btn-primary:hover { background: #4338ca; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(79,70,229,0.3); }
+  .btn-outline { background: white; color: var(--text-2); border: 1.5px solid var(--border); box-shadow: var(--shadow-sm); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: white; color: var(--red); border: 1.5px solid var(--red-border); }
+  .btn-danger:hover { background: var(--red-bg); }
+  .btn-sm { padding: 6px 12px; font-size: 12.5px; }
+
+  /* Right panel */
+  .side { display: flex; flex-direction: column; gap: 14px; }
+  .side-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); }
+  .side-card-head { padding: 12px 16px; border-bottom: 1px solid var(--border-soft); font-size: 12px; font-weight: 600; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
+  .side-card-body { padding: 14px 16px; }
+
+  .meta-row { display: flex; align-items: baseline; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border-soft); }
+  .meta-row:last-child { border-bottom: none; }
+  .meta-k { font-size: 11px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; min-width: 72px; font-weight: 500; }
+  .meta-v { font-size: 12.5px; color: var(--text-1); font-weight: 500; }
+
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 600; }
+  .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .badge-green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .badge-green::before { background: var(--green); }
+  .badge-amber { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+  .badge-amber::before { background: var(--amber); }
+
+  /* Audit */
+  .audit-item { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border-soft); }
+  .audit-item:last-child { border-bottom: none; }
+  .audit-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .audit-event { font-size: 12.5px; color: var(--text-1); line-height: 1.4; font-weight: 500; }
+  .audit-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+
+  /* Related */
+  .rel-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
+  .rel-row:last-child { border-bottom: none; }
+  .rel-label { font-size: 12.5px; color: var(--text-2); font-weight: 500; }
+  .rel-count { font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 500; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1.2" fill="white"/><rect x="9" y="2" width="5" height="5" rx="1.2" fill="rgba(255,255,255,0.5)"/><rect x="2" y="9" width="5" height="5" rx="1.2" fill="rgba(255,255,255,0.5)"/><rect x="9" y="9" width="5" height="5" rx="1.2" fill="rgba(255,255,255,0.3)"/></svg>
+      </div>
+      aras
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Main</div>
+      <div class="nav-item"><svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="1" width="5.5" height="5.5" rx="1.2"/><rect x="9.5" y="1" width="5.5" height="5.5" rx="1.2"/><rect x="1" y="9.5" width="5.5" height="5.5" rx="1.2"/><rect x="9.5" y="9.5" width="5.5" height="5.5" rx="1.2"/></svg>Dashboard</div>
+      <div class="nav-item active"><svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="3" width="14" height="10" rx="1.5"/><line x1="1" y1="6.5" x2="15" y2="6.5"/><line x1="5" y1="3" x2="5" y2="13"/></svg>Products<span class="nav-badge">248</span></div>
+      <div class="nav-item"><svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 4h12l-1.5 8H3.5L2 4z"/><path d="M5.5 4L6 1.5h4L10.5 4"/></svg>Orders</div>
+      <div class="nav-item"><svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="4.5" r="2.5"/><path d="M1 13.5c0-3 2-4.5 5-4.5s5 1.5 5 4.5"/><circle cx="11.5" cy="5" r="2"/><path d="M14 14c0-2.5-1.5-3.5-4-3.5"/></svg>Customers</div>
+    </div>
+    <hr class="sidebar-divider" />
+    <div class="sidebar-section">
+      <div class="sidebar-label">System</div>
+      <div class="nav-item"><svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="2.5"/><path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14"/></svg>Settings</div>
+      <div class="nav-item"><svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6.5"/><path d="M8 5v3l2 1.5"/></svg>Audit Logs</div>
+    </div>
+  </nav>
+
+  <div class="main">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="breadcrumb">
+        <span>erp</span><span class="sep">/</span>
+        <a href="/mocks/datatable-light.html">products</a>
+        <span class="sep">/</span>
+        <span class="current">WHP-001</span>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-search">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="5"/><path d="M11 11l3 3"/></svg>
+        Search anything…<kbd>⌘K</kbd>
+      </div>
+      <div class="avatar">A</div>
+    </div>
+
+    <div class="content">
+      <a class="back-link" href="/mocks/">← mocks index</a>
+
+      <!-- Workflow -->
+      <div class="workflow-bar">
+        <div class="wf-label">Workflow</div>
+        <div class="wf-steps">
+          <div class="wf-step-wrap"><div class="wf-dot done">✓</div><div class="wf-step-label done">Draft</div></div>
+          <div class="wf-line done"></div>
+          <div class="wf-step-wrap"><div class="wf-dot done">✓</div><div class="wf-step-label done">Review</div></div>
+          <div class="wf-line done"></div>
+          <div class="wf-step-wrap"><div class="wf-dot active">3</div><div class="wf-step-label active">Approval</div></div>
+          <div class="wf-line"></div>
+          <div class="wf-step-wrap"><div class="wf-dot">4</div><div class="wf-step-label">Published</div></div>
+        </div>
+        <div class="wf-actions">
+          <div class="wf-btn approve">✓ Approve</div>
+          <div class="wf-btn reject">✕ Reject</div>
+          <div class="wf-btn">↩ Send back</div>
+          <div class="wf-btn">✎ Request changes</div>
+        </div>
+      </div>
+
+      <!-- Form + Side panel -->
+      <div class="form-layout">
+        <div>
+          <div class="form-card">
+            <!-- Header -->
+            <div class="form-card-header">
+              <div style="flex:1">
+                <div class="form-card-title">Wireless Headphones Pro</div>
+                <div class="form-card-sub">Edit product details, pricing and inventory.</div>
+              </div>
+              <div class="model-pill">erp.products</div>
+              <span class="badge badge-green" style="margin-left:8px;">Active</span>
+            </div>
+
+            <!-- Progress -->
+            <div class="progress-wrap">
+              <div class="progress-meta">
+                <span>Form completion</span>
+                <span class="val">7 / 10 fields</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill"></div></div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+              <div class="tab active" onclick="switchTab(this,'general')">General</div>
+              <div class="tab" onclick="switchTab(this,'pricing')">Pricing</div>
+              <div class="tab" onclick="switchTab(this,'inventory')">Inventory</div>
+              <div class="tab" onclick="switchTab(this,'media')">Media</div>
+            </div>
+
+            <!-- General tab -->
+            <div class="form-body" id="tab-general">
+              <div class="section">
+                <div class="section-title">Basic Info</div>
+                <div class="grid-2">
+                  <div class="field span-2">
+                    <label class="field-label">Product Name <span class="req">*</span></label>
+                    <input class="input ok" type="text" value="Wireless Headphones Pro" />
+                  </div>
+                  <div class="field">
+                    <label class="field-label">SKU <span class="req">*</span></label>
+                    <input class="input ok" type="text" value="WHP-001" style="font-family:'JetBrains Mono',monospace;font-size:13px;" />
+                  </div>
+                  <div class="field">
+                    <label class="field-label">Category</label>
+                    <div class="sel-wrap">
+                      <div class="sel-btn" onclick="toggleSel(this)">
+                        <span class="val">Electronics</span>
+                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6l4 4 4-4"/></svg>
+                      </div>
+                      <div class="sel-drop">
+                        <div class="sel-search"><input placeholder="Search…" /></div>
+                        <div class="sel-opts">
+                          <div class="sel-opt active">Electronics <span class="ct">84</span></div>
+                          <div class="sel-opt">Furniture <span class="ct">32</span></div>
+                          <div class="sel-opt">Accessories <span class="ct">61</span></div>
+                          <div class="sel-opt">Bags <span class="ct">18</span></div>
+                          <div class="sel-opt">Audio <span class="ct">27</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="field span-2">
+                    <label class="field-label">Description</label>
+                    <textarea class="input" placeholder="Describe this product…">Premium wireless headphones with active noise cancellation, 40h battery life, and foldable design.</textarea>
+                  </div>
+                  <div class="field span-2">
+                    <label class="field-label">Tags</label>
+                    <div class="multisel">
+                      <span class="ms-tag">wireless <span class="ms-rm">✕</span></span>
+                      <span class="ms-tag">audio <span class="ms-rm">✕</span></span>
+                      <span class="ms-tag">premium <span class="ms-rm">✕</span></span>
+                      <input class="ms-input" placeholder="Add tag…" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="section">
+                <div class="section-title">Settings</div>
+                <div class="grid-2">
+                  <div class="field">
+                    <label class="field-label">Status</label>
+                    <select class="input"><option selected>Active</option><option>Inactive</option><option>Draft</option><option>Archived</option></select>
+                  </div>
+                  <div class="field">
+                    <label class="field-label">Brand</label>
+                    <input class="input" type="text" value="SoundPeak" />
+                  </div>
+                  <div class="field span-2">
+                    <div class="toggle-row">
+                      <div class="toggle-text"><div class="tl">Featured Product</div><div class="ts">Show on homepage and search highlights</div></div>
+                      <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+                    </div>
+                  </div>
+                  <div class="field span-2">
+                    <div class="toggle-row">
+                      <div class="toggle-text"><div class="tl">Taxable</div><div class="ts">Apply tax rules to this product</div></div>
+                      <div class="toggle" onclick="this.classList.toggle('on')"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pricing tab -->
+            <div class="form-body" id="tab-pricing" style="display:none;">
+              <div class="section">
+                <div class="section-title">Pricing</div>
+                <div class="grid-2">
+                  <div class="field">
+                    <label class="field-label">Base Price <span class="req">*</span></label>
+                    <div class="input-wrap"><span class="input-pre">$</span><input class="input ok" type="number" value="249.99" /></div>
+                  </div>
+                  <div class="field">
+                    <label class="field-label">Compare-at Price</label>
+                    <div class="input-wrap"><span class="input-pre">$</span><input class="input" type="number" value="299.99" /></div>
+                    <div class="field-hint">Shown as strikethrough to highlight discount</div>
+                  </div>
+                  <div class="field">
+                    <label class="field-label">Cost per Unit</label>
+                    <div class="input-wrap"><span class="input-pre">$</span><input class="input" type="number" value="112.00" /></div>
+                  </div>
+                  <div class="field">
+                    <label class="field-label">Margin</label>
+                    <div class="input-wrap"><input class="input" type="text" value="55.2%" readonly style="color:var(--green);font-family:'JetBrains Mono',monospace;font-weight:600;" /></div>
+                    <div class="field-hint">Auto-calculated from cost and price</div>
+                  </div>
+                  <div class="field">
+                    <label class="field-label">Currency</label>
+                    <select class="input"><option selected>USD — US Dollar</option><option>EUR — Euro</option><option>IDR — Indonesian Rupiah</option></select>
+                  </div>
+                  <div class="field">
+                    <label class="field-label">Tax Class</label>
+                    <select class="input"><option selected>Standard (10%)</option><option>Zero-rated</option><option>Exempt</option></select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Inventory tab -->
+            <div class="form-body" id="tab-inventory" style="display:none;">
+              <div class="section">
+                <div class="section-title">Stock</div>
+                <div class="grid-2">
+                  <div class="field">
+                    <label class="field-label">Quantity on Hand</label>
+                    <input class="input" type="number" value="142" />
+                  </div>
+                  <div class="field">
+                    <label class="field-label">Low Stock Threshold</label>
+                    <input class="input" type="number" value="20" />
+                    <div class="field-hint">Alert when stock falls below this</div>
+                  </div>
+                  <div class="field">
+                    <label class="field-label">Warehouse</label>
+                    <div class="sel-wrap">
+                      <div class="sel-btn" onclick="toggleSel(this)">
+                        <span class="val">Jakarta — Main</span>
+                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6l4 4 4-4"/></svg>
+                      </div>
+                      <div class="sel-drop">
+                        <div class="sel-search"><input placeholder="Search warehouses…" /></div>
+                        <div class="sel-opts">
+                          <div class="sel-opt active">Jakarta — Main</div>
+                          <div class="sel-opt">Surabaya — East</div>
+                          <div class="sel-opt">Bali — Regional</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label class="field-label">Weight</label>
+                    <div class="input-wrap"><input class="input" type="number" value="0.35" /><span class="input-suf">kg</span></div>
+                  </div>
+                  <div class="field span-2">
+                    <div class="toggle-row">
+                      <div class="toggle-text"><div class="tl">Track Inventory</div><div class="ts">Decrement stock on each order</div></div>
+                      <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+                    </div>
+                  </div>
+                  <div class="field span-2">
+                    <div class="toggle-row">
+                      <div class="toggle-text"><div class="tl">Allow Backorder</div><div class="ts">Sell even when out of stock</div></div>
+                      <div class="toggle" onclick="this.classList.toggle('on')"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Media tab -->
+            <div class="form-body" id="tab-media" style="display:none;">
+              <div class="section">
+                <div class="section-title">Images</div>
+                <div class="grid-2">
+                  <div class="field span-2">
+                    <label class="field-label">Product Images</label>
+                    <div class="file-preview">
+                      <div class="file-thumb"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1.5"/><path d="M1 10l4-3 3 2 2-2 5 3"/><circle cx="11.5" cy="6.5" r="1.2"/></svg></div>
+                      <div><div class="file-name">headphones-hero.jpg</div><div class="file-size">2.4 MB · 1920×1280</div></div>
+                      <div class="file-rm">✕</div>
+                    </div>
+                    <div class="file-drop">
+                      <div class="file-drop-icon"><svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M8 2v9M5 8l3 3 3-3"/><path d="M2 12v1.5a.5.5 0 00.5.5h11a.5.5 0 00.5-.5V12"/></svg></div>
+                      <div class="file-drop-text">Drop files here or <span>browse</span></div>
+                      <div class="file-drop-sub">PNG, JPG, WEBP up to 10MB</div>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label class="field-label">Spec Sheet</label>
+                    <div class="file-drop" style="padding:14px;">
+                      <div class="file-drop-icon"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="1" width="10" height="14" rx="1.5"/><line x1="6" y1="5" x2="10" y2="5"/><line x1="6" y1="8" x2="10" y2="8"/><line x1="6" y1="11" x2="8" y2="11"/></svg></div>
+                      <div class="file-drop-text" style="font-size:12.5px;">Upload PDF</div>
+                      <div class="file-drop-sub">PDF up to 25MB</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="form-footer">
+              <button class="btn btn-danger btn-sm">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M5 4V2.5a.5.5 0 01.5-.5h5a.5.5 0 01.5.5V4M3 4l.8 9a.5.5 0 00.5.5h7.4a.5.5 0 00.5-.5L13 4"/></svg>
+                Delete
+              </button>
+              <div style="flex:1"></div>
+              <button class="btn btn-outline btn-sm">Discard</button>
+              <button class="btn btn-primary">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 8l4 4 8-8"/></svg>
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right panel -->
+        <div class="side">
+          <div class="side-card">
+            <div class="side-card-head">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 5v3l2 1.5"/></svg>
+              Record Info
+            </div>
+            <div class="side-card-body">
+              <div class="meta-row"><span class="meta-k">id</span><span class="meta-v" style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text-2);">prod_0019</span></div>
+              <div class="meta-row"><span class="meta-k">created</span><span class="meta-v">Jan 12, 2025</span></div>
+              <div class="meta-row"><span class="meta-k">updated</span><span class="meta-v">2h ago</span></div>
+              <div class="meta-row"><span class="meta-k">by</span><span class="meta-v">admin</span></div>
+              <div class="meta-row"><span class="meta-k">status</span><span class="badge badge-green">Active</span></div>
+            </div>
+          </div>
+
+          <div class="side-card">
+            <div class="side-card-head">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 8h3l2-5 3 10 2-7 2 2h2"/></svg>
+              Activity
+            </div>
+            <div class="side-card-body" style="padding:10px 16px;">
+              <div class="audit-item">
+                <div class="audit-dot" style="background:var(--accent)"></div>
+                <div><div class="audit-event">Price updated: $229.99 → $249.99</div><div class="audit-meta">admin · 2h ago</div></div>
+              </div>
+              <div class="audit-item">
+                <div class="audit-dot" style="background:var(--green)"></div>
+                <div><div class="audit-event">Status changed to Active</div><div class="audit-meta">admin · 1d ago</div></div>
+              </div>
+              <div class="audit-item">
+                <div class="audit-dot" style="background:var(--amber)"></div>
+                <div><div class="audit-event">Workflow: moved to Review</div><div class="audit-meta">admin · 3d ago</div></div>
+              </div>
+              <div class="audit-item">
+                <div class="audit-dot" style="background:var(--text-3)"></div>
+                <div><div class="audit-event">Record created</div><div class="audit-meta">admin · Jan 12</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="side-card">
+            <div class="side-card-head">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M8 3v10"/><circle cx="8" cy="8" r="6.5"/></svg>
+              Related
+            </div>
+            <div class="side-card-body">
+              <div class="rel-row"><span class="rel-label">Orders containing this</span><span class="rel-count">14</span></div>
+              <div class="rel-row"><span class="rel-label">Linked suppliers</span><span class="rel-count">2</span></div>
+              <div class="rel-row"><span class="rel-label">Reviews</span><span class="rel-count">38</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(el, tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+  el.classList.add('active')
+  ;['general','pricing','inventory','media'].forEach(t => {
+    const el = document.getElementById('tab-' + t)
+    if (el) el.style.display = t === tab ? 'flex' : 'none'
+  })
+}
+
+function toggleSel(btn) {
+  const dd = btn.nextElementSibling
+  const open = dd.classList.contains('open')
+  document.querySelectorAll('.sel-drop').forEach(d => d.classList.remove('open'))
+  if (!open) dd.classList.add('open')
+}
+
+document.querySelectorAll('.sel-opt').forEach(opt => {
+  opt.addEventListener('click', function() {
+    const val = this.textContent.trim().split(/\s{2,}/)[0]
+    this.closest('.sel-wrap').querySelector('.val').textContent = val
+    this.closest('.sel-drop').classList.remove('open')
+    this.closest('.sel-opts').querySelectorAll('.sel-opt').forEach(o => o.classList.remove('active'))
+    this.classList.add('active')
+  })
+})
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.sel-wrap')) {
+    document.querySelectorAll('.sel-drop').forEach(d => d.classList.remove('open'))
+  }
+})
+</script>
+</body>
+</html>

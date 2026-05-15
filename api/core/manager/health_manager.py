@@ -58,6 +58,7 @@ class HealthManager(Aras.Manager):
             "aras_apps", "aras_resources", "aras_fields", "aras_links", 
             "aras_translations", "aras_activity_logs", "aras_widgets", "sys_settings",
             "auth_roles", "auth_permissions", "auth_user_roles", "auth_users",
+            "aras_naming_series", "aras_dashboard_layouts",
             "mock_model", "test_parents", "test_children"
         }
 

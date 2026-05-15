@@ -13,58 +13,71 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen, setOpen, sidebarData, currentPath, onLogout }: SidebarProps) {
+  const renderItem = (item: SidebarApp, depth = 0) => {
+    const type = item.type || 'app'
+    const IconComponent = (LucideIcons as any)[item.icon] || LucideIcons.Package
+    const isSubApp = depth > 0
+
+    if (type === 'link') {
+      return (
+        <SidebarNavItem 
+          key={item.name} 
+          to={item.path!} 
+          icon={<IconComponent size={20} />} 
+          label={item.label} 
+          active={currentPath === item.path} 
+          isOpen={isOpen} 
+        />
+      )
+    }
+
+    if (type === 'app') {
+      const firstModel = item.models?.[0]
+      const appPath = item.have_home
+        ? `/${item.name}`
+        : firstModel?.path || (firstModel?.name ? `/${item.name}/${firstModel.name}` : `/${item.name}`)
+      const isActive = currentPath === appPath || currentPath.startsWith(`/${item.name}/`)
+      
+      return (
+        <div key={`container-${item.name}`} style={{ paddingLeft: isOpen ? `${depth * 12}px` : 0 }}>
+          <SidebarNavItem
+            to={appPath}
+            icon={<IconComponent size={isSubApp ? 16 : 20} />}
+            label={item.label}
+            active={isActive}
+            isOpen={isOpen}
+          />
+          {(item as any).sub_apps && (item as any).sub_apps.length > 0 && (
+            <div className="mt-1">
+              {(item as any).sub_apps.map((sub: SidebarApp) => renderItem(sub, depth + 1))}
+            </div>
+          )}
+        </div>
+      )
+    }
+    return null
+  }
+
   return (
     <aside className={`${isOpen ? 'w-64' : 'w-20'} transition-all duration-300 bg-white border-r border-slate-200 flex flex-col shadow-sm z-20`}>
       <SidebarBrand isOpen={isOpen} />
 
       <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">
         {sidebarData.map((item, index) => {
-          // Backward compatibility check if 'type' is missing
           const type = item.type || 'app'
+          const prevItem = index > 0 ? sidebarData[index - 1] : null
+          const shouldRenderHeader = type === 'app' && (!prevItem || prevItem.type === 'link')
           
-          if (type === 'link') {
-            const IconComponent = (LucideIcons as any)[item.icon] || LucideIcons.Package
-            return (
-              <SidebarNavItem 
-                key={item.name} 
-                to={item.path!} 
-                icon={<IconComponent size={20} />} 
-                label={item.label} 
-                active={currentPath === item.path} 
-                isOpen={isOpen} 
-              />
-            )
-          }
-
-          if (type === 'app') {
-            const prevItem = index > 0 ? sidebarData[index - 1] : null
-            const shouldRenderHeader = prevItem?.type === 'link'
-            const IconComponent = (LucideIcons as any)[item.icon] || LucideIcons.Package
-            const firstModel = item.models?.[0]
-            const appPath = item.have_home
-              ? `/${item.name}`
-              : firstModel?.path || (firstModel?.name ? `/${item.name}/${firstModel.name}` : `/${item.name}`)
-            const isActive = currentPath === appPath || currentPath.startsWith(`/${item.name}/`)
-            
-            return (
-              <div key={`container-${item.name}`}>
-                {shouldRenderHeader && isOpen && (
-                  <div className="py-2">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">Applications</p>
-                  </div>
-                )}
-                <SidebarNavItem
-                  to={appPath}
-                  icon={<IconComponent size={20} />}
-                  label={item.label}
-                  active={isActive}
-                  isOpen={isOpen}
-                />
-              </div>
-            )
-          }
-
-          return null
+          return (
+            <div key={`root-${item.name || index}`}>
+              {shouldRenderHeader && isOpen && (
+                <div className="py-2">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">Applications</p>
+                </div>
+              )}
+              {renderItem(item)}
+            </div>
+          )
         })}
       </nav>
 

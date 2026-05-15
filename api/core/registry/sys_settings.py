@@ -6,7 +6,6 @@ import core
 
 class ArasSetting(Model):
     __tablename__ = "sys_settings"
-    __title__ = "System Settings"
     __public_read__ = True
 
     key: Mapped[str] = Field(String(100), unique=True, label="Setting Key", searchable=True)

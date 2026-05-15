@@ -14,7 +14,7 @@ class Permission(Model):
     Example: Role 'Sales' can 'UPDATE' resource 'erp_invoices'.
     """
     __tablename__ = "auth_permissions"
-    __title__ = "Data Permissions"
+    __features__ = ["activatable"]
 
     role_id: Mapped[int] = Field(ForeignKey("auth_roles.id"), label="Role", display_column="name")
     resource: Mapped[str] = Field(String(100), label="Resource Name")

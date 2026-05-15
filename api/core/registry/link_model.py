@@ -11,7 +11,6 @@ from ..base.field import Field
 class LinkModel(Model):
     """Stores metadata about relationships between models."""
     __tablename__ = "aras_links"
-    __title__ = "Link Registry"
 
     source_resource_id: Mapped[int] = Field(ForeignKey("aras_resources.id"), index=True, display_column="title")
     target_resource_id: Mapped[int] = Field(ForeignKey("aras_resources.id"), index=True, display_column="title")

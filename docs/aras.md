@@ -1,3 +1,4 @@
+
 # Aras Framework: Technical Report & Architecture Guide
 
 ## 1. System Overview
@@ -11,15 +12,17 @@ The system is built on a strict inheritance model to ensure consistency and gene
     - The foundational root class. Every framework component belongs to this root.
     - Provides core decorators: `@Aras.model_action`, `@Aras.computed_field`.
 - **Level 2: The Core Abstractions**
-    - `Model(Aras, Base)`: Data resource abstraction. Supports `__layout__`, `__m2m__`, and automated CRUD hooks.
-    - `App(Aras)`: Application module abstraction.
-    - `Manager(Aras)`: Orchestration abstraction (Audit, Sync, Task).
+    - `Model(Aras, Base)`: Data resource abstraction. Supports `__m2m__` and automated CRUD hooks. UI metadata is externalized to `View` classes.
+    - `View(Aras)`: UI metadata and layout configuration. Allows defining `layout` (Section-based grouping) and field overrides independently of models.
+    - `App(Aras)`: Application module abstraction. Supports `parent_name` for hierarchical organization.
+    - `Manager(Aras)`: Orchestration abstraction (Audit, Sync, Task, Health).
     - `Validation(Aras, BaseModel)`: Data validation abstraction.
     - `WidgetModel(Model)`: Dashboard widget registry.
 - **Level 3: Specific Implementations**
     - `User(Model)`: Authentication resource.
     - `AppModel(Model)`: Metadata persistence for installed apps.
     - `ResourceModel(Model)`: Metadata persistence for tables.
+    - `FieldModel(Model)`: Metadata persistence for fields.
     - `ErpApp(App)`: Pluggable business modules.
 
 ## 3. Modular File Map (Target Phase 1)
@@ -40,6 +43,10 @@ The system is built on a strict inheritance model to ensure consistency and gene
     - **Purpose**: Short description.
     - **Context**: Related files/inheritance.
     - **Impact**: System-wide effect.
+- Jangan hapus tetapi update (hapus hanya yang sudah tidak relevan):
+  - Jika ada fix laporkan di fix.md
+  - Jika ada feature laporkan di feature.md
+  - Jika ada perubahan pada framework laporkan di aras.md
 
 ## 5. UI Standard Hooks & Contexts
 Aras provides a unified developer experience via React Contexts:
@@ -187,6 +194,21 @@ Viewable at `/dev` → "Handoff Runs" tab. Fields: feature, mode, status, prompt
 
 
 ---
+## Framework Change: Hierarchical Application Architecture (2026-05-15)
+- [Gemini CLI] `Aras.App` base class now supports `parent_name` attribute for building application hierarchies.
+- [Gemini CLI] `AppModel` and `SyncManager` updated to persist and synchronize the parent-child relationships.
+- [Gemini CLI] Recursive sidebar rendering implemented in React frontend, supporting visual indentation for sub-apps.
+- [Gemini CLI] `AppHome` view enhanced to display sub-apps as interactive module tiles, improving navigation for complex suites.
+- [Gemini CLI] Refactored ERP from a monolithic app into a hierarchical structure with six specialized sub-apps (`erp_accounting`, `erp_stock`, etc.) nested under a main `erp` shell.
+
+---
+## Framework Change: Section-Based Layouts & Default Analytics (2026-05-15)
+- [Gemini CLI] Enhanced `DynamicForm` and `UIGenerator` to support section-based grouping of fields via the `__layout__` model attribute.
+- [Gemini CLI] Core ERP models (SalesInvoice, JournalEntry, Product) updated with logical section definitions (e.g., 'Header', 'Financials') for better UI aesthetics.
+- [Gemini CLI] `SyncManager.seed_widgets` now automatically populates the dashboard with default ERP analytics (Total Products, Recent Movements, etc.) on first sync.
+- [Gemini CLI] Migrated automatic invoice recalculation logic (subtotal/tax/total) from legacy codebase into the new `SalesInvoice` model using framework hooks.
+
+---
 ## Framework Change: Change Logging Rule + Manual Log Command (2026-05-14)
   - [Claude Code] dev_handoff_runs table: added author, notes columns; mode field now covers manual/claude-direct/human-direct
 
@@ -213,3 +235,57 @@ Viewable at `/dev` → "Handoff Runs" tab. Fields: feature, mode, status, prompt
 ## Framework Change: App Navigation Restructure — have_home + Topbar App Menu — revision (2026-05-14)
   - [Gemini] Updated `App` base class to support `have_home` configuration and enhanced `get_sidebar_data` response to include this new property.
   - [Codex/GPT-5.5] Added have_home support to SidebarItem and app-menu API consumption in layout views
+
+
+---
+## Framework Change: Primitives for Multi-Tenancy, Choices, Composite Uniqueness, and Workflow Hooks (2026-05-15)
+- [Claude Opus 4.7] `__unique_together__: list[tuple[str,...]]` on a `Model` is materialized as composite `UniqueConstraint(...)` named `uq_{tablename}_{cols}` during `Model.__init_subclass__`.
+- [Claude Opus 4.7] `info={"choices": [...]}` on a column is now first-class: `UIGenerator` emits `{type: "select", options: [...]}`; `RouterFactory` narrows the auto-generated Pydantic field to `Literal[*choices]` (server-side rejection of bad values).
+- [Claude Opus 4.7] `__scoped_by__ = [(col_name, fk_table), ...]` declares tenant/company/workspace scoping. `TraitInjector._inject_scoped` auto-creates the FK columns (NOT NULL, indexed, `form_hidden`). `RouterFactory` applies `WHERE col = request.state.scope[col]` to list/get/update/patch and auto-injects scope on writes. The `scope` claim is carried in the JWT and resolved into `request.state.scope` by `get_current_user`. `POST /api/v1/auth/switch-scope` re-issues a token with a new scope.
+- [Claude Opus 4.7] `is_active` is no longer a baseline column. Add `__features__ = ["activatable"]` to opt in. `_q(active_only=True)` is gated on `hasattr(cls, "is_active")`. Use `info={"form_hidden": True}` to exclude any column from auto-form rendering (still visible in API/detail). Existing registry models (`Role`, `Permission`, `User`, `AppModel`, `ResourceModel`, `FieldModel`) opt in explicitly.
+- [Claude Opus 4.7] `@Aras.on_transition(model=Cls, from_="Draft", to="Posted")` registers a workflow callback that `WorkflowManager.trigger_action` fires after the status change. Callback signature: `(db, item, user, transition) -> None`. Failure rolls back the status change.
+- [Claude Opus 4.7] `manage.py sync` now runs `auto_migrate` before the `SyncManager` queries the registry, so new framework columns (e.g. `aras_resources.scoped_by`) are present in time.
+
+## Framework Change: Three-Layer Class Inheritance Contract (2026-05-15)
+
+A concrete `Model` subclass MUST inherit from at most one Level-3a abstract base. `Model.__init_subclass__` validates this and raises `TypeError` on diamond inheritance.
+
+```
+Level 1   Aras                  (root — decorators)
+Level 2   Aras.Model            (CRUD, metadata, traits)         — __abstract__ = True
+Level 3a  App abstract mixins   (DocumentBase | LineItemBase | MasterDataBase | ConfigBase)
+                                                                 — __abstract__ = True, no __tablename__
+Level 3b  Concrete model        (SalesInvoice, StockProduct, ...) — exactly one __tablename__
+```
+
+Rules:
+1. A concrete model picks ONE Level-3a base (`DocumentBase` OR `LineItemBase`, never both).
+2. Level-3a bases set `__abstract__ = True` and have no `__tablename__`.
+3. `__features__`, `__scoped_by__`, `__unique_together__` on the concrete class are MERGED with values from the MRO (deduped, child wins on conflict). UI metadata (labels, layouts, titles) MUST live in `View` classes.
+
+Shared ERP bases live in `api/apps/erp/base/`:
+
+| Base              | Features                                  | Use for                                               |
+|-------------------|-------------------------------------------|-------------------------------------------------------|
+| `DocumentBase`    | audit, workflow, scoped (company_id)      | Invoices, Orders, Payments, Movements                 |
+| `LineItemBase`    | audit                                     | InvoiceLine, JournalLine, OrderLine, MovementLine     |
+| `MasterDataBase`  | audit, activatable, scoped (company_id)   | Product, Customer, Supplier, Account                  |
+| `ConfigBase`      | audit, activatable                        | Currency, Charge, Uom, ProductCategory (global)       |
+
+Form-simplification matrix (codified here):
+
+| Table type                 | `activatable`? | Status mechanism                |
+|----------------------------|----------------|---------------------------------|
+| Master data                | yes            | disable instead of delete       |
+| Configuration              | yes            | disable instead of delete       |
+| Documents                  | no             | `__features__ = ["workflow"]`   |
+| Line items                 | no             | cascade with parent             |
+| Pivot / M2M bridge         | no             | existence = membership          |
+| Logs / immutable history   | no             | immutable by design             |
+
+ERP module skeleton (Part B): Unified `erp` application registered under `api/apps/erp/` with sub-packages for `config`, `stock`, `accounting`, `crm`, `supplier`, and `pos`. Models are organized within these sub-packages and registered centrally in `ErpApp`. Table naming: strict `erp_<module>_<table>`.
+
+## Framework Change: Unified Modular ERP Application (2026-05-15)
+- [Gemini CLI] Consolidated six separate ERP apps into a single `erp` app in `api/apps/erp/`.
+- [Gemini CLI] Implemented sub-package structure (`erp/config`, `erp/stock`, etc.) for better organization of the unified ERP suite.
+- [Gemini CLI] Centralized model registration in `api/apps/erp/app.py`.
