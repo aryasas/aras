@@ -1,10 +1,9 @@
-from core import Aras
+from ..app import ERP
 from .models import Supplier
 from . import views # Trigger view registration
 
-class SupplierApp(Aras.App):
+class Supplier(ERP):
     app_name = "erp_supplier"
-    parent_name = "erp"
     app_label = "Suppliers"
     icon = "Truck"
     

@@ -89,7 +89,7 @@ class AppInstaller(Service):
             from ..aras import Aras
             from .models import {imports_str}
 
-            class {cls._to_camel_case(app_name)}App(Aras.App):
+            class {cls._to_camel_case(app_name)}(Aras.App):
                 app_name = "{app_name}"
                 app_label = "{app_label}"
                 description = "{description}"

@@ -1,19 +1,25 @@
-from core import Aras
-from .models import PosSession, PosOrder, PosOrderLine
+from ..app import ERP
+from .models import PosSession, PosOrder, PosOrderLine, PosTerminal, PosPaymentLine
 from . import views # Trigger view registration
 
-class PosApp(Aras.App):
+class POS(ERP):
     app_name = "erp_pos"
-    parent_name = "erp"
-    app_label = "Point of Sale"
-    icon = "ShoppingCart"
+    app_label = "POS"
+    icon = "CreditCard"
     
-    models = [PosSession, PosOrder, PosOrderLine]
+    models = [PosTerminal, PosSession, PosOrder, PosOrderLine, PosPaymentLine]
+
     
     menu_groups = [
         {
-            "label": "POS Operations",
-            "icon": "ShoppingCart",
+            "label": "Master",
+            "icon": "Database",
+            "models": ["erp_pos_terminals"]
+        },
+        {
+            "label": "Retail",
+            "icon": "ShoppingBag",
             "models": ["erp_pos_sessions", "erp_pos_orders"]
         }
     ]
+

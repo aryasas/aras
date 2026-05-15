@@ -243,6 +243,12 @@ class MyModel(Aras.Model):
 4. **Never run long-running servers** as foreground in this env
 5. **Run from `api/`** dir — ensure `sys.path` includes `api/`
 
+### View vs Model Separation Rule
+- **Models** contain ONLY data/schema: columns, relationships, computed fields, model actions, `__features__`, `__scoped_by__`, `__unique_together__`.
+- **Views** contain ALL UI-related metadata: `title`, `icon`, `fields` overrides, `layout`.
+- **NEVER** put `__icon__`, `__title__`, or any display-only attribute on a model. Place them on the corresponding `Aras.View` subclass instead.
+- `Aras.View` supports: `title`, `icon`, `fields`, `layout`.
+
 ### Do NOT Re-read
 - `api/core/base/aras.py`, `api/core/aras.py`, `api/core/base/model.py` — use `docs/framework_ref.md`
 - `api/main.py` — see startup flow in `docs/aras.md`

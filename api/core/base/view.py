@@ -23,6 +23,7 @@ class View(Aras):
 
     model: Type['Aras.Model'] = None
     title: Optional[str] = None
+    icon: Optional[str] = None
     fields: Dict[str, Dict[str, Any]] = {}
     layout: Optional[list] = None
 
@@ -31,13 +32,15 @@ class View(Aras):
         return cls._view_map.get(model_class.__tablename__)
 
     @classmethod
-    def render_metadata(cls, db: Any = None, lang: Optional[str] = None) -> Dict[str, Any]: # Changed to accept db and lang
+    def render_metadata(cls, db: Any = None, lang: Optional[str] = None) -> Dict[str, Any]:
         """Generates metadata, applying View-level overrides to the generated defaults."""
-        metadata = UIGenerator.generate_metadata(cls.model, db=db, lang=lang) # Pass db and lang
-        
+        metadata = UIGenerator.generate_metadata(cls.model, db=db, lang=lang)
+
         # Override with custom view settings
         if cls.title:
             metadata["title"] = cls.title
+        if cls.icon:
+            metadata["icon"] = cls.icon
         
         # Apply field overrides
         if cls.fields:

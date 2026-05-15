@@ -39,7 +39,7 @@ export default function MainLayout() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <Header />
         <Breadcrumbs />
-        <TopbarAppMenu />
+        <TopbarAppMenu sidebarData={sidebarData} />
 
         {/* Content Area */}
         <div className="flex-1 overflow-auto p-8 bg-slate-50/50">

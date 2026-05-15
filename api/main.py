@@ -163,18 +163,6 @@ async def get_sidebar_data(_: Any = Depends(get_current_user)):
         if app_cls.app_name in ["admin"]:
             continue
             
-        models_list = []
-        if app_cls.app_name == "dev":
-            models_list.append({"name": "dev-home", "label": "Dev Home", "path": "/dev"})
-
-        models_list.extend([
-            {
-                "name": m.__tablename__,
-                "label": getattr(m, "__title__", m.__tablename__.replace("_", " ").title()),
-                "path": f"/{app_cls.app_name}/{m.__tablename__}"
-            } for m in app_cls.models if m.__tablename__ not in ["auth_users", "sys_settings"]
-        ])
-
         app_data = {
             "type": "app",
             "name": app_cls.app_name,
@@ -182,8 +170,6 @@ async def get_sidebar_data(_: Any = Depends(get_current_user)):
             "label": app_cls.app_label,
             "icon": app_cls.icon,
             "have_home": app_cls.have_home,
-            "models": models_list,
-            "menu_groups": getattr(app_cls, "menu_groups", []),
             "sub_apps": []
         }
         apps_by_name[app_cls.app_name] = app_data
@@ -202,7 +188,7 @@ async def get_sidebar_data(_: Any = Depends(get_current_user)):
 
 @app.get("/api/v1/app-menu/{app_name}")
 async def get_app_menu(app_name: str, _: Any = Depends(get_current_user)):
-    """Returns app metadata and model menu for the topbar."""
+    """Returns app metadata and structured hierarchical menu for the topbar."""
     from core.base.app import App
     
     # Find app class
@@ -215,14 +201,6 @@ async def get_app_menu(app_name: str, _: Any = Depends(get_current_user)):
     if not app_cls:
         return {"error": "App not found"}, 404
         
-    models_list = [
-        {
-            "name": m.__tablename__,
-            "label": getattr(m, "__title__", m.__tablename__.replace("_", " ").title()),
-            "path": f"/{app_cls.app_name}/{m.__tablename__}"
-        } for m in app_cls.models if m.__tablename__ not in ["auth_users", "sys_settings"]
-    ]
-
     # Find sub-apps
     sub_apps = []
     for _, cls in App._registry.items():
@@ -231,7 +209,8 @@ async def get_app_menu(app_name: str, _: Any = Depends(get_current_user)):
                 "name": cls.app_name,
                 "label": cls.app_label,
                 "icon": cls.icon,
-                "path": f"/{cls.app_name}" if cls.have_home else f"/{cls.app_name}/home"
+                "path": f"/{cls.app_name}" if cls.have_home else f"/{cls.app_name}/home",
+                "menu": cls.get_menu_structure()
             })
     
     return {
@@ -239,8 +218,7 @@ async def get_app_menu(app_name: str, _: Any = Depends(get_current_user)):
         "app_label": app_cls.app_label,
         "icon": app_cls.icon,
         "have_home": app_cls.have_home,
-        "models": models_list,
-        "menu_groups": getattr(app_cls, "menu_groups", []),
+        "menu": app_cls.get_menu_structure(),
         "sub_apps": sub_apps
     }
 

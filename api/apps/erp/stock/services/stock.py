@@ -1,49 +1,62 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case
-from ..models import StockMovement, StockMovementLine, Product
+from sqlalchemy import func
+from ..models import StockMovement, StockMovementLine, Location
 
-class StockService:
+class StockComputeService:
     """Service for stock quantities and valuation (WAC)."""
-    
+
     @staticmethod
-    def get_qty(db: Session, product_id: int, warehouse_id: int = None) -> float:
-        """Calculate current quantity on hand."""
-        # Qty In (where to_warehouse_id matches)
-        qty_in = db.query(func.sum(StockMovementLine.qty)).join(StockMovement).filter(
+    def compute_qty(db: Session, product_id: int, warehouse_id: int = None, location_id: int = None) -> float:
+        in_filters = [
             StockMovementLine.product_id == product_id,
             StockMovement.status == "Posted",
-            StockMovement.to_warehouse_id == warehouse_id if warehouse_id else StockMovement.to_warehouse_id != None
-        ).scalar() or 0.0
-        
-        # Qty Out (where from_warehouse_id matches)
-        qty_out = db.query(func.sum(StockMovementLine.qty)).join(StockMovement).filter(
+        ]
+        out_filters = [
             StockMovementLine.product_id == product_id,
             StockMovement.status == "Posted",
-            StockMovement.from_warehouse_id == warehouse_id if warehouse_id else StockMovement.from_warehouse_id != None
-        ).scalar() or 0.0
-        
+        ]
+
+        if warehouse_id:
+            in_filters.append(StockMovement.to_warehouse_id == warehouse_id)
+            out_filters.append(StockMovement.from_warehouse_id == warehouse_id)
+        else:
+            in_filters.append(StockMovement.to_warehouse_id != None)
+            out_filters.append(StockMovement.from_warehouse_id != None)
+
+        if location_id:
+            in_filters.append(StockMovementLine.to_location_id == location_id)
+            out_filters.append(StockMovementLine.from_location_id == location_id)
+
+        qty_in = db.query(func.sum(StockMovementLine.qty)).join(StockMovement).filter(*in_filters).scalar() or 0.0
+        qty_out = db.query(func.sum(StockMovementLine.qty)).join(StockMovement).filter(*out_filters).scalar() or 0.0
+
         return qty_in - qty_out
 
     @staticmethod
-    def get_wac(db: Session, product_id: int) -> float:
+    def compute_qty_by_location(db: Session, product_id: int, warehouse_id: int) -> dict:
+        locations = db.query(Location).filter(Location.warehouse_id == warehouse_id).all()
+        return {
+            loc.id: StockComputeService.compute_qty(db, product_id, warehouse_id=warehouse_id, location_id=loc.id)
+            for loc in locations
+        }
+
+    @staticmethod
+    def compute_avg_cost(db: Session, product_id: int) -> float:
         """
         Calculate Weighted Average Cost.
         Formula: (Total Value of Inward Movements) / (Total Qty of Inward Movements)
-        Note: Simplified version. A production system would use a running WAC snapshot.
         """
         result = db.query(
-            func.sum(StockMovementLine.qty * StockMovementLine.amount),
+            func.sum(StockMovementLine.qty * StockMovementLine.unit_cost),
             func.sum(StockMovementLine.qty)
         ).join(StockMovement).filter(
             StockMovementLine.product_id == product_id,
             StockMovement.status == "Posted",
-            StockMovement.to_warehouse_id != None # Only inward movements for cost base
+            StockMovement.move_type == "Incoming"
         ).first()
         
-        total_value, total_qty = result
+        total_value, total_qty = result or (0, 0)
         if total_qty and total_qty > 0:
             return total_value / total_qty
         
-        # Fallback to product base price if no movements
-        product = db.query(Product).get(product_id)
-        return getattr(product, "base_cost", 0.0)
+        return 0.0

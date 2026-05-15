@@ -23,7 +23,7 @@ The system is built on a strict inheritance model to ensure consistency and gene
     - `AppModel(Model)`: Metadata persistence for installed apps.
     - `ResourceModel(Model)`: Metadata persistence for tables.
     - `FieldModel(Model)`: Metadata persistence for fields.
-    - `ErpApp(App)`: Pluggable business modules.
+    - `ERP(App)`: Pluggable business modules.
 
 ## 3. Modular File Map (Target Phase 1)
 
@@ -121,7 +121,7 @@ class MyModel(Aras.Model):
 from core import Aras
 from .models import MyModel
 
-class MyApp(Aras.App):
+class MyModule(Aras.App):
     app_name = "myapp"
     app_label = "My App"
     icon = "Package"
@@ -283,9 +283,28 @@ Form-simplification matrix (codified here):
 | Pivot / M2M bridge         | no             | existence = membership          |
 | Logs / immutable history   | no             | immutable by design             |
 
-ERP module skeleton (Part B): Unified `erp` application registered under `api/apps/erp/` with sub-packages for `config`, `stock`, `accounting`, `crm`, `supplier`, and `pos`. Models are organized within these sub-packages and registered centrally in `ErpApp`. Table naming: strict `erp_<module>_<table>`.
+ERP module skeleton (Part B): Unified `erp` application registered under `api/apps/erp/` with sub-packages for `config`, `stock`, `accounting`, `crm`, `supplier`, and `pos`. Models are organized within these sub-packages and registered centrally in `ERP`. Table naming: strict `erp_<module>_<table>`.
 
 ## Framework Change: Unified Modular ERP Application (2026-05-15)
 - [Gemini CLI] Consolidated six separate ERP apps into a single `erp` app in `api/apps/erp/`.
 - [Gemini CLI] Implemented sub-package structure (`erp/config`, `erp/stock`, etc.) for better organization of the unified ERP suite.
 - [Gemini CLI] Centralized model registration in `api/apps/erp/app.py`.
+
+## Framework Change: ERP Financial Logic & Charge Framework (2026-05-15)
+- [Gemini CLI] **Automated Posting Service**: Introduced `InvoicePostingService` in `accounting/services/posting.py` to handle the conversion of invoices into GL Journal Entries.
+- [Gemini CLI] **Dynamic Recalculation**: Document models (`SalesOrder`, `SalesInvoice`, etc.) now utilize `Aras.on_create/update` hooks for automatic subtotal and charge recalculation.
+- [Gemini CLI] **Charge Metadata Integration**: `Charge` models in `config` are now first-class citizens used for dynamic tax and fee calculations across all document types.
+- [Gemini CLI] **POS Terminal Architecture**: Added `PosTerminal` as a configuration layer to override global stock/pricing settings for retail operations.
+
+---
+## Framework Change: Advanced Navigation & Hierarchical Menus (2026-05-15)
+- [Gemini CLI] **Dual-Axis Navigation**: Sidebar is now reserved for global Application links, while Topbar handles App-specific navigation.
+- [Gemini CLI] **Hierarchical Topbar**: Implemented support for nested grouping in the topbar via `menu_groups`.
+- [Gemini CLI] **Smart Filtering**: Child tables (inheriting from `LineItemBase` or using `__parent__`) are automatically hidden from menus to reduce clutter.
+- [Gemini CLI] **Tile-Based AppHome**: Enhanced the application landing page to show structured tiles based on the menu configuration.
+
+---
+## Framework Change: ERP Module Consolidation (2026-05-15)
+- [Gemini CLI] **Config Module Expansion**: `erp_config` now serves as the unified hub for all system-wide settings, including Finance (Payment Modes), Standards (UOMs), and System Tools (Printing/Reporting).
+- [Gemini CLI] **Module Purge**: The `erp_main` (System Tools) module has been deprecated and its resources migrated to `erp_config`.
+- [Gemini CLI] **Relational Refactoring**: Standardized cross-module references to ensure that core configuration tables (like Payment Modes) are accessed via the Config registry even from within operational modules like POS or Accounting.

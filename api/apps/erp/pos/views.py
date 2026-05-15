@@ -1,9 +1,15 @@
 from core import Aras
-from .models import PosSession, PosOrder, PosOrderLine
+from .models import PosSession, PosOrder, PosOrderLine, PosTerminal
+
+class PosTerminalView(Aras.View):
+    model = PosTerminal
+    title = "POS Terminals"
+    icon = "pi pi-desktop"
 
 class PosSessionView(Aras.View):
     model = PosSession
     title = "POS Sessions"
+    icon = "pi pi-clock"
     layout = [
         {
             "title": "General",

@@ -40,7 +40,12 @@ def main():
     # Check
     check_parser = subparsers.add_parser("check", help="Run framework health and integrity checks")
 
+    # Seed
+    seed_parser = subparsers.add_parser("seed", help="Seed initial data for apps")
+    seed_parser.add_argument("--demo", action="store_true", help="Seed with demo data")
+
     args = parser.parse_args()
+
 
     if args.command == "sync":
         print("Discovering apps...")
@@ -155,7 +160,21 @@ def main():
         else:
             print("\n[!] Health checks found issues that may need attention.")
 
+    elif args.command == "seed":
+        print("Seeding initial data...")
+        db = next(Aras.get_db())
+        # Add seeding logic here. For now, we'll try to find a seeder in erp
+        try:
+            from apps.erp.main.services.seeder import ERPSeeder
+            ERPSeeder.run(db, demo=args.demo)
+            print("Seeding completed successfully.")
+        except ImportError:
+            print("No seeder found for ERP.")
+        except Exception as e:
+            print(f"Seeding failed: {str(e)}")
+
     else:
+
         parser.print_help()
 
 if __name__ == "__main__":

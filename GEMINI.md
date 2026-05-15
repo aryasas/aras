@@ -139,3 +139,12 @@ Run from the `api/` directory.
 3. **Integrity Checks**: Regularly run `python manage.py check`.
 4. **Environment**: Ensure `sys.path` includes the `api/` directory.
 5. **NoForeground**: Never run long-running commands (servers) in the foreground in this environment.
+
+## 🧭 Navigation & Menu Management
+
+- **Sidebar**: Strictly for top-level Application links (Apps and Sub-apps). Models/Resources are NOT shown in the sidebar.
+- **Topbar**: Handles application-specific navigation (Models/Resources).
+- **Hierarchy**: Topbar MUST support parent-child grouping via `menu_groups` defined in the `Aras.App` class.
+- **Child Views**: Resources marked as child tables (using `__parent__` or inheriting from `LineItemBase`) are excluded from menus by default.
+- **Menu Overrides**: To show a child table in the menu, use `__show_in_menu__ = True` on the model class.
+- **Default Redirection**: If an app has no `have_home=True`, the frontend will display a tile-based menu of all available resources.

@@ -2,30 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router-dom'
 import * as LucideIcons from 'lucide-react'
 import api from '../lib/api'
-import type { SidebarItem } from '../layouts/types'
+import type { SidebarItem, AppMenuData, MenuItem } from '../layouts/types'
 
 interface OutletContext {
   sidebarData: SidebarItem[]
-}
-
-interface AppMenuModel {
-  name: string
-  label: string
-  path?: string
-}
-
-interface AppMenuData {
-  app_name: string
-  app_label: string
-  icon: string
-  have_home?: boolean
-  models: AppMenuModel[]
-  sub_apps?: {
-    name: string
-    label: string
-    icon: string
-    path: string
-  }[]
 }
 
 export default function AppHome() {
@@ -42,7 +22,7 @@ export default function AppHome() {
   useEffect(() => {
     let cancelled = false
 
-    if (!appName || sidebarApp?.have_home) {
+    if (!appName) {
       setRemoteMenu(null)
       return
     }
@@ -62,21 +42,7 @@ export default function AppHome() {
     return () => {
       cancelled = true
     }
-  }, [appName, sidebarApp?.have_home])
-
-  const appInfo: AppMenuData | null = remoteMenu || (sidebarApp ? {
-    app_name: sidebarApp.name,
-    app_label: sidebarApp.label,
-    icon: sidebarApp.icon,
-    have_home: sidebarApp.have_home,
-    models: sidebarApp.models || [],
-    sub_apps: sidebarApp.sub_apps?.map(s => ({
-       name: s.name,
-       label: s.label,
-       icon: s.icon,
-       path: s.have_home ? `/${s.name}` : (s.models?.[0]?.path || `/${s.name}/${s.models?.[0]?.name}` || `/${s.name}`)
-    })) || [],
-  } : null)
+  }, [appName])
 
   if (!appName || isLoading) {
     return (
@@ -86,7 +52,7 @@ export default function AppHome() {
     )
   }
 
-  if (!appInfo) {
+  if (!remoteMenu && !sidebarApp) {
     return (
       <div className="p-12 text-center text-slate-400 bg-white rounded-2xl border border-dashed border-slate-200">
         Application not found.
@@ -94,61 +60,81 @@ export default function AppHome() {
     )
   }
 
+  const appInfo = remoteMenu || {
+    app_label: sidebarApp?.label || appName,
+    icon: sidebarApp?.icon || 'Package',
+    menu: [],
+    sub_apps: []
+  }
+
   const IconComponent = (LucideIcons as any)[appInfo.icon] || LucideIcons.Package
 
+  const renderTile = (item: MenuItem, groupLabel?: string) => {
+    const ItemIcon = (LucideIcons as any)[item.icon || 'FileText'] || LucideIcons.FileText
+    return (
+      <Link
+        key={item.name}
+        to={item.path}
+        className="group flex min-h-28 items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-indigo-200 hover:shadow-md"
+      >
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500 transition-colors group-hover:bg-indigo-50 group-hover:text-indigo-600">
+          <ItemIcon size={24} />
+        </div>
+        <div className="min-w-0">
+          <h2 className="truncate text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{item.label || item.name}</h2>
+          <p className="mt-0.5 text-xs text-slate-500 font-medium uppercase tracking-wider">{groupLabel || 'Resource'}</p>
+        </div>
+      </Link>
+    )
+  }
+
   return (
-    <div className="space-y-8">
-      <div className="flex items-center gap-5">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
-          <IconComponent size={34} />
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <div className="flex items-center gap-6">
+        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 shadow-sm">
+          <IconComponent size={40} />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">{appInfo.app_label}</h1>
-          <p className="mt-1 text-sm text-slate-500">Choose a workspace to open.</p>
+          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">{appInfo.app_label}</h1>
+          <p className="mt-1.5 text-slate-500 font-medium">Select a module or resource to continue.</p>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         {/* Render Sub-Apps first if any */}
-        {appInfo.sub_apps?.map((sub) => {
+        {appInfo.sub_apps?.map((sub: any) => {
           const SubIcon = (LucideIcons as any)[sub.icon] || LucideIcons.Package
           return (
             <Link
               key={sub.name}
               to={sub.path}
-              className="group flex min-h-28 items-center gap-4 rounded-lg border border-indigo-100 bg-indigo-50/30 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md"
+              className="group flex min-h-28 items-center gap-4 rounded-xl border border-indigo-100 bg-indigo-50/40 p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-indigo-300 hover:shadow-md"
             >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white text-indigo-600 shadow-sm transition-colors group-hover:bg-indigo-600 group-hover:text-white">
-                <SubIcon size={22} />
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-indigo-600 shadow-sm transition-colors group-hover:bg-indigo-600 group-hover:text-white">
+                <SubIcon size={24} />
               </div>
               <div className="min-w-0">
                 <h2 className="truncate text-base font-bold text-slate-900">{sub.label}</h2>
-                <p className="mt-1 text-sm text-slate-600 italic">Module</p>
+                <p className="mt-0.5 text-xs text-indigo-600 font-bold uppercase tracking-wider">Module</p>
               </div>
             </Link>
           )
         })}
 
-        {appInfo.models.map((model) => {
-          const targetPath = model.path || `/${appName}/${model.name}`
-
-          return (
-            <Link
-              key={model.name}
-              to={targetPath}
-              className="group flex min-h-28 items-center gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md"
-            >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition-colors group-hover:bg-indigo-50 group-hover:text-indigo-600">
-                <IconComponent size={22} />
-              </div>
-              <div className="min-w-0">
-                <h2 className="truncate text-base font-semibold text-slate-900">{model.label}</h2>
-                <p className="mt-1 text-sm text-slate-500">Open records</p>
-              </div>
-            </Link>
-          )
+        {/* Render items from menu groups */}
+        {appInfo.menu?.map((element: any) => {
+           if (element.type === 'group') {
+              return element.items.map((item: MenuItem) => renderTile(item, element.label))
+           }
+           return renderTile(element)
         })}
       </div>
+
+      {(!appInfo.menu || appInfo.menu.length === 0) && (!appInfo.sub_apps || appInfo.sub_apps.length === 0) && (
+         <div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200">
+            No resources available for this application.
+         </div>
+      )}
     </div>
   )
 }

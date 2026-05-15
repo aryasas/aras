@@ -49,8 +49,8 @@ def _make_test_model():
 
 def test_sync_populates_registry(db_session):
     from core import Aras
-    from apps.dev.app import DevApp  # noqa — register models
-    from apps.erp.app import ErpApp  # noqa
+    from apps.dev.app import Dev  # noqa — register models
+    from apps.erp.app import ERP  # noqa
 
     Aras.Manager.Sync.sync_all(db_session)
 

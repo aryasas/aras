@@ -32,11 +32,9 @@ export function Sidebar({ isOpen, setOpen, sidebarData, currentPath, onLogout }:
     }
 
     if (type === 'app') {
-      const firstModel = item.models?.[0]
-      const appPath = item.have_home
-        ? `/${item.name}`
-        : firstModel?.path || (firstModel?.name ? `/${item.name}/${firstModel.name}` : `/${item.name}`)
-      const isActive = currentPath === appPath || currentPath.startsWith(`/${item.name}/`)
+      const appPath = `/${item.name}`
+      const isSubAppActive = item.sub_apps?.some(sub => currentPath === `/${sub.name}` || currentPath.startsWith(`/${sub.name}/`))
+      const isActive = currentPath === appPath || currentPath.startsWith(`/${item.name}/`) || isSubAppActive
       
       return (
         <div key={`container-${item.name}`} style={{ paddingLeft: isOpen ? `${depth * 12}px` : 0 }}>
@@ -47,11 +45,6 @@ export function Sidebar({ isOpen, setOpen, sidebarData, currentPath, onLogout }:
             active={isActive}
             isOpen={isOpen}
           />
-          {(item as any).sub_apps && (item as any).sub_apps.length > 0 && (
-            <div className="mt-1">
-              {(item as any).sub_apps.map((sub: SidebarApp) => renderItem(sub, depth + 1))}
-            </div>
-          )}
         </div>
       )
     }

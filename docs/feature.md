@@ -188,3 +188,47 @@ This document outlines the key features and architectural components of the Aras
 
 ## InlineChildTable — extract to own file, fix double-wrap, clean toolbar — revision (2026-05-15)
   - [Codex/GPT-5.5] extracted InlineChildTable component with inline add/edit/delete row UI
+
+## ERP Core Features (Integrated May 2026)
+- [Gemini CLI] **Dynamic Charges & Tax System**: Centralized `Charge` registry with support for Percent/Fixed calculations, inclusive/exclusive pricing, and automated GL account linkage.
+- [Gemini CLI] **Comprehensive Document Workflow**: Full implementation of Sales Orders, Purchase Orders, Delivery Notes, and Payment Allocations.
+- [Gemini CLI] **Automated Financial Posting**: Invoices now feature a "Post" action that automatically generates balanced Journal Entries based on heuristic account mapping.
+- [Gemini CLI] **Fiscal & POS Enhancements**: Added Fiscal Period management and machine-specific POS Terminal configurations (warehouse/pricelist overrides).
+- [Gemini CLI] **Sales Force Automation (CRM)**: Full implementation of Leads, Opportunities, and Pipelines with customizable stages and probability tracking.
+- [Gemini CLI] **Advanced Payment Controls**: Added `ModeOfPayment` and per-company COA account mapping for flexible payment handling (Cash, Bank, E-Wallet).
+- [Gemini CLI] **Live Financial Insights**: Integrated `@Aras.computed_field` for `Amount Paid` and `Amount Due` on all Invoices, providing real-time reconciliation status.
+- [Gemini CLI] **Framework CLI Enhancements**: Added a central `python manage.py seed` command with automated ERP seeding (COA, Currencies, UOMs, Warehouses).
+- [Gemini CLI] **Menu Reorganization**: Reorganized the ERP sidebar into logical groups (General Ledger, Sales, Purchase, Payments, Sales Force) with professional icons.
+
+
+
+## Simplified Application Registration (May 2026)
+- [Gemini CLI] **Class Naming Convention**: Removed the mandatory 'App' suffix from application classes (e.g., `AccountingApp` became `Accounting`).
+- [Gemini CLI] **Inheritance-Based Registration**: ERP modules now inherit directly from the `ERP` base class (`class Accounting(ERP)`), which automatically handles parent-child registration and hierarchy metadata.
+- [Gemini CLI] **Refactored ERP Base**: `ErpApp` renamed to `ERP` to serve as the primary inheritance root for all ERP-related modules.
+
+## Advanced Navigation & Menu System (2026-05-15)
+
+- [Gemini CLI] **Dual-Axis Navigation**: Separation of global application links (Sidebar) from application-specific resource links (Topbar).
+- [Gemini CLI] **Hierarchical Topbar**: Support for parent-child grouping of resources via `menu_groups` in the `App` class.
+- [Gemini CLI] **Smart Resource Filtering**: Child tables (e.g., Line Items) are automatically excluded from menus to reduce clutter, ensuring a focused user experience.
+- [Gemini CLI] **Dynamic AppHome Tiles**: Application landing pages now render interactive tiles based on the structured menu configuration.
+
+## UI Refinement: Exclusive App Sidebar (2026-05-15)
+
+- [Gemini CLI] **Top-Level Sidebar Constraint**: The main sidebar is now strictly reserved for root applications (e.g., ERP, Notes). Sub-applications (modules) are no longer rendered in the sidebar to prevent visual bloat.
+- [Gemini CLI] **Contextual Topbar Navigation**: Modules are now exclusively navigated via the Topbar or the AppHome workspace tiles. 
+- [Gemini CLI] **Active State Retention**: Navigating into a sub-application correctly retains the active highlight state of its parent application in the root sidebar.
+
+## UI Fix: Topbar Menu Modules and AppHome Rendering (2026-05-15)
+
+- [Gemini CLI] **Deduplicated Modules in AppHome**: Removed hardcoded `menu_groups` from the `ERP` root application. The framework now relies entirely on the dynamically constructed `sub_apps` array to list modules, preventing them from appearing twice on the dashboard.
+- [Gemini CLI] **API App Menu Enhancements**: The `/api/v1/app-menu/{app_name}` endpoint now recursively resolves the menu structure for all nested `sub_apps`, allowing the client to receive the full application hierarchy.
+- [Gemini CLI] **Mega-Menu Topbar**: The Topbar now dynamically identifies the "Root Application" context based on the current URL and the Sidebar structure. Instead of replacing the Topbar with a single module's menu, it persists all sibling modules (e.g., Accounting, Stock, CRM) as top-level dropdown groups, rendering their child menus (e.g., General Ledger, Sales) as nested sections.
+
+## UI Fix: Consolidated ERP Settings & Finance Configuration (2026-05-15)
+
+- [Gemini CLI] **Payment Modes Migration**: Moved `ModeOfPayment` and `CompanyPaymentAccount` from the Accounting module to the Config (Settings) module for centralized financial configuration.
+- [Gemini CLI] **System Tools Merge**: Merged the legacy `System Tools` (Print Templates, Reports, Notifications) into the `ERP Settings` module to reduce top-level module clutter.
+- [Gemini CLI] **Menu Reorganization**: Grouped newly moved models into logical sections: "Finance Configuration" (Payment Modes, Charges, Price Types) and "System Tools" (Print Templates, Reports, Notifications) within the Settings module.
+- [Gemini CLI] **Relational Integrity**: Updated all foreign key references in Accounting (Payment) and POS (PosPaymentLine) to point to the new `erp_config_payment_modes` registry.

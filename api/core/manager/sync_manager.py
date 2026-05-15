@@ -218,9 +218,10 @@ class SyncManager(Manager):
         from ..aras import Aras
         table_name = model_cls.__tablename__
         
-        # Determine Title and Layout from View or Model
+        # Determine Title, Icon and Layout from View or Model
         view = Aras.View.get_for_model(model_cls)
         title = getattr(view, "title", None) or getattr(model_cls, "__title__", None) or table_name.replace("_", " ").title()
+        icon = getattr(view, "icon", None)
         layout = getattr(view, "layout", None) or []
 
         resource_db = db.query(ResourceModel).filter(ResourceModel.name == table_name).first()

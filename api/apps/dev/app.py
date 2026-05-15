@@ -2,7 +2,7 @@ from core import Aras
 from .models import HandoffRun
 
 
-class DevApp(Aras.App):
+class Dev(Aras.App):
     """
     Advanced Developer Tools for framework maintenance and inspection.
     """
