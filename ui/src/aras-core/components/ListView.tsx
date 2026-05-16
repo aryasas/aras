@@ -531,11 +531,25 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                 ))
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={visibleFields.length + 1} className="px-6 py-12 text-center">
-                    <div className="max-w-xs mx-auto text-slate-400">
-                      <Search size={48} className="mx-auto mb-4 opacity-20" />
-                      <p className="text-sm font-medium">No records found matching your criteria.</p>
-                      <button onClick={() => {setSearch(''); setFilters([]);}} className="mt-2 text-xs text-indigo-600 font-bold hover:underline">Clear all filters</button>
+                  <td colSpan={visibleFields.length + 1} className="px-6 py-16 text-center">
+                    <div className="max-w-xs mx-auto flex flex-col items-center text-slate-400">
+                      {search || filters.length > 0 ? (
+                        <>
+                          <Search size={40} className="mb-3 opacity-20" />
+                          <p className="text-sm font-medium">No records match your search.</p>
+                          <button onClick={() => {setSearch(''); setFilters([]);}} className="mt-2 text-xs text-indigo-600 font-bold hover:underline">Clear filters</button>
+                        </>
+                      ) : (
+                        <>
+                          <Plus size={40} className="mb-3 opacity-20" />
+                          <p className="text-sm font-medium text-slate-500">No records yet.</p>
+                          {onAdd && (
+                            <button onClick={onAdd} className="mt-3 px-4 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                              Add New
+                            </button>
+                          )}
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -781,8 +795,29 @@ const roleColors: Record<string, string> = {
   other: 'bg-slate-50 text-slate-600 border-slate-100',
 }
 
+const statusColors: Record<string, string> = {
+  draft:       'bg-slate-100 text-slate-600',
+  posted:      'bg-green-100 text-green-700',
+  active:      'bg-green-100 text-green-700',
+  approved:    'bg-green-100 text-green-700',
+  cancelled:   'bg-red-100 text-red-600',
+  rejected:    'bg-red-100 text-red-600',
+  inactive:    'bg-red-100 text-red-600',
+  pending:     'bg-amber-100 text-amber-700',
+  in_progress: 'bg-amber-100 text-amber-700',
+}
+
 const renderCellValue = (value: any, type: string, fieldName?: string) => {
   if (value === null || value === undefined) return <span className="text-slate-300">-</span>
+  if (fieldName === 'status' || fieldName === 'workflow_status') {
+    const key = String(value).toLowerCase()
+    const cls = statusColors[key] || 'bg-slate-100 text-slate-500'
+    return (
+      <span className={`px-2 py-0.5 text-xs rounded-full font-medium capitalize ${cls}`}>
+        {String(value).replace(/_/g, ' ')}
+      </span>
+    )
+  }
   if (fieldName === 'role') {
     const role = String(value)
     const roleLabel = role.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())

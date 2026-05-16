@@ -39,8 +39,7 @@ class Lead(MasterDataBase):
     probability: Mapped[float] = mapped_column(Float, default=0)
     priority: Mapped[str] = mapped_column(String(10), default="Normal", info={"choices": ["Low", "Normal", "High", "Very High"]})
     description: Mapped[str] = mapped_column(Text, nullable=True)
-    party_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_party_parties.id"), nullable=True)
-    ...
+
     @Aras.model_action(name="convert", permission="edit", label="Convert to Party")
     def convert_to_party(self):
         from sqlalchemy.orm import object_session

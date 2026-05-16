@@ -451,7 +451,16 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     }
   };
 
-  if (loading) return <div className="p-12 text-center animate-pulse text-slate-400">Loading form...</div>;
+  if (loading) return (
+    <div className="p-8 space-y-5 animate-pulse">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="space-y-2">
+          <div className="h-3 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
+          <div className="h-9 w-full bg-slate-200 dark:bg-slate-700 rounded" />
+        </div>
+      ))}
+    </div>
+  );
   if (!metadata) return <div className="p-12 text-center text-red-500">Metadata not found.</div>;
   const metadataTitle = vocabulary.get(metadata.title);
 

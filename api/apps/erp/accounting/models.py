@@ -72,9 +72,8 @@ class InflowOrder(DocumentBase):
     charges: Mapped[list["InflowOrderCharge"]] = relationship("InflowOrderCharge", back_populates="parent", cascade="all, delete-orphan")
 
     def recalc(self):
-        self.subtotal = sum(line.qty * (line.unit_price - line.discount) for line in self.lines)
-        self.total_charge = sum(c.amount for c in self.charges)
-        self.total_amount = self.subtotal + self.total_charge
+        from .services.recalc import recalc_document
+        recalc_document(self)
 
     @Aras.on_update
     @Aras.on_create
@@ -125,9 +124,8 @@ class InflowInvoice(DocumentBase):
     charges: Mapped[list["InflowInvoiceCharge"]] = relationship("InflowInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
 
     def recalc(self):
-        self.subtotal = sum(line.qty * (line.unit_price - line.discount) for line in self.lines)
-        self.total_charge = sum(c.amount for c in self.charges)
-        self.total_amount = self.subtotal + self.total_tax + self.total_charge
+        from .services.recalc import recalc_document
+        recalc_document(self)
 
     @Aras.on_update
     @Aras.on_create
@@ -190,9 +188,8 @@ class OutflowOrder(DocumentBase):
     charges: Mapped[list["OutflowOrderCharge"]] = relationship("OutflowOrderCharge", back_populates="parent", cascade="all, delete-orphan")
 
     def recalc(self):
-        self.subtotal = sum(line.qty * (line.unit_price - line.discount) for line in self.lines)
-        self.total_charge = sum(c.amount for c in self.charges)
-        self.total_amount = self.subtotal + self.total_charge
+        from .services.recalc import recalc_document
+        recalc_document(self)
 
     @Aras.on_update
     @Aras.on_create
@@ -243,9 +240,8 @@ class OutflowInvoice(DocumentBase):
     charges: Mapped[list["OutflowInvoiceCharge"]] = relationship("OutflowInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
 
     def recalc(self):
-        self.subtotal = sum(line.qty * (line.unit_price - line.discount) for line in self.lines)
-        self.total_charge = sum(c.amount for c in self.charges)
-        self.total_amount = self.subtotal + self.total_tax + self.total_charge
+        from .services.recalc import recalc_document
+        recalc_document(self)
 
     @Aras.on_update
     @Aras.on_create

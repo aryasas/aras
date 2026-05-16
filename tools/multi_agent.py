@@ -11,8 +11,10 @@ Workflow:
      - NEEDS-FIX → Claude adds ## Revision Tasks → re-run this script
 
 Usage:
-  python tools/multi_agent.py                  # run both
-  python tools/multi_agent.py --backend-only
+  python tools/multi_agent.py                          # run both (flash default)
+  python tools/multi_agent.py --backend-only           # Gemini flash, backend only
+  python tools/multi_agent.py --backend-only --model flash   # explicit flash
+  python tools/multi_agent.py --backend-only --model pro     # use Pro instead
   python tools/multi_agent.py --frontend-only
   python tools/multi_agent.py --test "hello"
 """
@@ -85,9 +87,24 @@ def run_agent(label: str, cmd: list) -> tuple:
     return "".join(lines), proc.returncode
 
 
-def run_backend(handoff: str) -> str:
-    output, _ = run_agent("Gemini 2.5 Pro — Backend", [
-        "gemini", "-m", "gemini-2.5-pro", "-y", "-p", BACKEND_SYSTEM + handoff,
+GEMINI_ALIASES = {
+    "flash":      "gemini-2.5-flash",
+    "pro":        "gemini-2.5-pro",
+    "flash-lite": "gemini-2.5-flash-lite",  # blocked by user preference
+}
+GEMINI_DEFAULT = "gemini-2.5-flash"
+
+
+def _resolve_gemini_model(alias) -> str:
+    if not alias:
+        return GEMINI_DEFAULT
+    return GEMINI_ALIASES.get(alias.lower(), alias) or GEMINI_DEFAULT
+
+
+def run_backend(handoff: str, model: str = GEMINI_DEFAULT) -> str:
+    label = f"Gemini ({model}) — Backend"
+    output, _ = run_agent(label, [
+        "gemini", "-m", model, "-y", "-p", BACKEND_SYSTEM + handoff,
     ])
     return output
 
@@ -322,15 +339,16 @@ def _parse_claude_review(handoff: str) -> dict:
 def run_agents(args, handoff: str, is_revision: bool = False) -> tuple:
     br = fr = {k: "none" for k in ["files_written", "features_added", "fixes_applied", "framework_changes", "issues"]}
     backend_out = frontend_out = ""
+    model = _resolve_gemini_model(getattr(args, "model", None))
 
     if args.frontend_only:
         frontend_out = run_frontend(handoff)
         fr = parse_report(frontend_out)
     elif args.backend_only:
-        backend_out = run_backend(handoff)
+        backend_out = run_backend(handoff, model)
         br = parse_report(backend_out)
     else:
-        backend_out = run_backend(handoff)
+        backend_out = run_backend(handoff, model)
         br = parse_report(backend_out)
         frontend_out = run_frontend(handoff)
         fr = parse_report(frontend_out)
@@ -346,6 +364,8 @@ def main():
     parser = argparse.ArgumentParser(description="aras multi-agent — reads docs/handoff.md")
     parser.add_argument("--backend-only",  action="store_true")
     parser.add_argument("--frontend-only", action="store_true")
+    parser.add_argument("--model", metavar="ALIAS",
+                        help="Gemini model alias: flash (default), pro. Example: --model flash")
     parser.add_argument("--test", metavar="PROMPT", help="Smoke-test both CLIs")
     parser.add_argument("--submit-review", action="store_true",
                         help="Parse ## Claude Review from handoff.md and PATCH verdict to DB")
@@ -394,7 +414,7 @@ def main():
     print(f"  Feature  : {feature}")
     print(f"  Mode     : {mode}")
     print(f"  Revision : {'yes #' + str(rev_num + 1) if is_revision else 'no (initial run)'}")
-    print(f"  Backend  : Gemini 2.5 Pro   (gemini CLI)")
+    print(f"  Backend  : {_resolve_gemini_model(args.model)} (gemini CLI)")
     print(f"  Frontend : GPT-5.5           (codex CLI)")
     print(f"{'='*60}")
 

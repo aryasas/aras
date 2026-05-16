@@ -301,3 +301,9 @@ This document outlines the key features and architectural components of the Aras
 - [Claude Sonnet 4.6] Added tenant CLI to `api/manage.py` — `python manage.py tenant provision <id>`, `list`, `seed <id>`, `deprovision <id>`
 - [Claude Sonnet 4.6] Wired tenant router into `api/main.py`
 - [Claude Sonnet 4.6] Migrated DB engine from MySQL (`pymysql`, port 3306) to PostgreSQL (`psycopg2`, port 5432) — updated `api/core/lib/settings.py`, `api/requirements.txt`, `.env`; created `arasdev` PostgreSQL database; verified `sync` + `seed` pass clean
+
+## UI Polish — Empty States, Skeletons, Status Badges, Home Cards (2026-05-16)
+  - [Claude Sonnet 4.6] ListView: smart empty state — shows "Add New" button when no filters active, "Clear filters" when search/filter active
+  - [Claude Sonnet 4.6] ListView: status/workflow_status columns now render colored pill badges (draft/posted/active/cancelled/pending)
+  - [Claude Sonnet 4.6] DynamicForm: replaced "Loading form..." text with animated skeleton (4 label+input rows)
+  - [Claude Sonnet 4.6] Home.tsx: added greeting + quick-nav app cards grid above dashboard widgets
