@@ -161,10 +161,13 @@ class InvoicePostingService:
                 narrative=f"Auto-posted from Outflow Invoice {invoice.number}",
                 currency_id=invoice.currency_id,
             )
-            _create_stock_movement(db, invoice.number, org_id, "Incoming", [
-                {"product_id": l.product_id, "qty": l.qty, "uom_id": l.uom_id, "unit_cost": l.unit_price - l.discount}
-                for l in invoice.lines
-            ], currency_id=invoice.currency_id)
+            # If a GRN is linked, the stock movement has already been created there.
+            if not invoice.grn_id:
+                _create_stock_movement(db, invoice.number, org_id, "Incoming", [
+                    {"product_id": l.product_id, "qty": l.qty, "uom_id": l.uom_id, "unit_cost": l.unit_price - l.discount}
+                    for l in invoice.lines
+                ], currency_id=invoice.currency_id)
+            
             invoice.status = "Posted"
             db.commit()
             return True

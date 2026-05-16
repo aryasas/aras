@@ -45,6 +45,19 @@ def main():
     seed_parser.add_argument("--demo", action="store_true", help="Seed with demo data")
     seed_parser.add_argument("--company-id", type=int, default=1, help="ID of the company to seed data for")
 
+    # Tenant management
+    tenant_parser = subparsers.add_parser("tenant", help="Manage tenants")
+    tenant_sub = tenant_parser.add_subparsers(dest="tenant_command")
+    tp = tenant_sub.add_parser("provision", help="Provision a new tenant database")
+    tp.add_argument("tenant_id", help="Unique tenant identifier")
+    tp.add_argument("--db-name", default=None, help="Database name (default: aras_tenant_<tenant_id>)")
+    tp.add_argument("--seed", action="store_true", help="Seed basic data after provisioning")
+    tenant_sub.add_parser("list", help="List all registered tenants")
+    td = tenant_sub.add_parser("deprovision", help="Soft-delete a tenant database")
+    td.add_argument("tenant_id", help="Tenant ID to deprovision")
+    ts = tenant_sub.add_parser("seed", help="Seed basic data into a tenant database")
+    ts.add_argument("tenant_id", help="Tenant ID to seed")
+
     args = parser.parse_args()
 
 
@@ -201,8 +214,54 @@ def main():
         finally:
             db.close()
 
-    else:
+    elif args.command == "tenant":
+        from core.tenant.provisioner import provision_tenant, deprovision_tenant, seed_tenant
+        from core.tenant.registry import tenant_registry
 
+        if args.tenant_command == "list":
+            tenants = tenant_registry.list_all()
+            if not tenants:
+                print("No tenants registered.")
+            else:
+                for t in tenants:
+                    print(f"  {t['tenant_id']}  →  {t.get('meta', {}).get('db_name', 'unknown')}")
+
+        elif args.tenant_command == "provision":
+            db_name = args.db_name or f"aras_tenant_{args.tenant_id}"
+            print(f"Provisioning tenant '{args.tenant_id}' (db: {db_name})...")
+            try:
+                info = provision_tenant(args.tenant_id, db_name)
+                print(f"  Provisioned: {info}")
+                if args.seed:
+                    print(f"  Seeding tenant '{args.tenant_id}'...")
+                    result = seed_tenant(args.tenant_id)
+                    print(f"  Seeded: {result['seeded']}")
+            except Exception as e:
+                print(f"Error: {e}")
+                sys.exit(1)
+
+        elif args.tenant_command == "seed":
+            print(f"Seeding tenant '{args.tenant_id}'...")
+            try:
+                result = seed_tenant(args.tenant_id)
+                print(f"  Seeded: {result['seeded']}")
+            except Exception as e:
+                print(f"Error: {e}")
+                sys.exit(1)
+
+        elif args.tenant_command == "deprovision":
+            print(f"Deprovisioning tenant '{args.tenant_id}'...")
+            ok = deprovision_tenant(args.tenant_id)
+            if ok:
+                print(f"  Tenant '{args.tenant_id}' deprovisioned.")
+            else:
+                print(f"  Tenant '{args.tenant_id}' not found.")
+                sys.exit(1)
+        else:
+            tenant_parser.print_help()
+
+    else:
         parser.print_help()
+
 if __name__ == "__main__":
     main()

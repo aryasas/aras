@@ -370,3 +370,9 @@ ERP module skeleton (Part B): Unified `erp` application registered under `api/ap
 ---
 ## Framework Change: ARP Neutral Rename — Organization model, neutral DB schema, profile system, POT rename, party consolidation — revision (2026-05-16)
   - [Codex/GPT-5.5] App wrapped with VocabularyProvider; generic metadata-driven form/list/navigation layers now consume vocabulary labels
+
+
+---
+## Framework Change: Purchase Flow (GRN, AP matching) + Reporting (Trial Balance, P&L, AR/AP Aging) — revision (2026-05-16)
+  - [Gemini] Enhanced ReportService to support a `{today}` placeholder in SQL queries.
+  - [Codex/GPT-5.5] <!-- filled by agent -->

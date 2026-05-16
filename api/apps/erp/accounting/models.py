@@ -237,6 +237,7 @@ class OutflowInvoice(DocumentBase):
     total_tax: Mapped[float] = mapped_column(Float, default=0)
     total_charge: Mapped[float] = mapped_column(Float, default=0)
     total_amount: Mapped[float] = mapped_column(Float, default=0)
+    grn_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_grns.id"), nullable=True)
 
     lines: Mapped[list["OutflowInvoiceLine"]] = relationship("OutflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["OutflowInvoiceCharge"]] = relationship("OutflowInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
@@ -331,4 +332,74 @@ class PaymentAllocation(LineItemBase):
     amount: Mapped[float] = mapped_column(Float, default=0)
     
     parent: Mapped["Payment"] = relationship("Payment", back_populates="allocations")
+
+class GoodsReceiptNote(DocumentBase):
+    __tablename__ = "erp_accounting_grns"
+
+    supplier_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
+    purchase_order_ref: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    warehouse_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_locations.id"))
+    
+    status: Mapped[str] = mapped_column(
+        String(20),
+        default="Draft",
+        info={"choices": ["Draft", "Received", "Matched", "Cancelled"]},
+    )
+
+    lines: Mapped[list["GoodsReceiptLine"]] = relationship("GoodsReceiptLine", back_populates="parent", cascade="all, delete-orphan")
+
+    @Aras.model_action(name="receive", permission="edit", label="Receive Goods")
+    def receive(self):
+        from sqlalchemy.orm import object_session
+        from ...stock.models import StockMovement, StockMovementLine
+
+        db = object_session(self)
+        if self.status != "Draft":
+            return {"error": f"GRN is already {self.status}"}
+
+        # Create StockMovement
+        movement = StockMovement(
+            org_id=self.org_id,
+            number=f"SM-GRN-{self.number}",
+            move_type="Incoming",
+            status="Posted",
+            to_location_id=self.warehouse_id,
+            currency_id=self.currency_id,
+            doc_date=self.doc_date
+        )
+        db.add(movement)
+        db.flush()
+
+        for line in self.lines:
+            sm_line = StockMovementLine(
+                movement_id=movement.id,
+                product_id=line.product_id,
+                qty=line.quantity_received,
+                unit_cost=line.unit_cost,
+                to_location_id=self.warehouse_id,
+                org_id=self.org_id
+            )
+            db.add(sm_line)
+
+        self.status = "Received"
+        db.commit()
+        return True
+
+    @Aras.model_action(name="match_invoice", permission="edit", label="Match to Invoice")
+    def match_invoice(self, invoice_id: int):
+        from sqlalchemy.orm import object_session
+        
+        db = object_session(self)
+        invoice = db.get(OutflowInvoice, invoice_id)
+        if not invoice:
+            return {"error": f"Invoice with ID {invoice_id} not found."}
+        if invoice.supplier_id != self.supplier_id:
+            return {"error": "Invoice supplier does not match GRN supplier."}
+        
+        invoice.grn_id = self.id
+        self.status = "Matched"
+
+        db.commit()
+        return True
+
 

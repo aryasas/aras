@@ -145,6 +145,10 @@ app.include_router(Aras.api.registry.router, prefix="/api/v1")
 app.include_router(Aras.api.files.router, prefix="/api/v1")
 app.include_router(Aras.api.dashboard.router, prefix="/api/v1")
 
+# Tenant management
+from core.api.tenant import router as tenant_router
+app.include_router(tenant_router, prefix="/api/v1")
+
 # WebSocket — real-time push
 from core.api.websocket import router as ws_router
 app.include_router(ws_router, prefix="/api/v1")

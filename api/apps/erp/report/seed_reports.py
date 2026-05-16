@@ -7,7 +7,7 @@ REPORTS = [
         "name": "Sales Summary",
         "module": "accounting",
         "report_type": "query",
-        "linked_doctype": "SalesInvoice",
+        "linked_doctype": "InflowInvoice",
         "script": """SELECT
   si.number as invoice_no,
   cu.name as customer,
@@ -16,7 +16,7 @@ REPORTS = [
   si.total_charge as tax,
   si.total_amount as total,
   si.status
-FROM erp_accounting_sales_invoices si
+FROM erp_accounting_inflow_invoices si
 JOIN erp_party_parties cu ON cu.id = si.party_id
 WHERE si.org_id = :org_id
   AND (:date_from IS NULL OR si.doc_date >= :date_from)
@@ -45,7 +45,7 @@ ORDER BY si.doc_date DESC""",
         "name": "Purchase Summary",
         "module": "accounting",
         "report_type": "query",
-        "linked_doctype": "PurchaseInvoice",
+        "linked_doctype": "OutflowInvoice",
         "script": """SELECT
   pi.number as invoice_no,
   s.name as vendor,
@@ -54,8 +54,8 @@ ORDER BY si.doc_date DESC""",
   pi.total_charge as tax,
   pi.total_amount as total,
   pi.status
-FROM erp_accounting_purchase_invoices pi
-JOIN erp_supplier_suppliers s ON s.id = pi.supplier_id
+FROM erp_accounting_outflow_invoices pi
+JOIN erp_party_parties s ON s.id = pi.supplier_id
 WHERE pi.org_id = :org_id
   AND (:date_from IS NULL OR pi.doc_date >= :date_from)
   AND (:date_to IS NULL OR pi.doc_date <= :date_to)
@@ -79,94 +79,30 @@ ORDER BY pi.doc_date DESC""",
         ],
     },
     {
-        "code": "profit_and_loss",
-        "name": "Profit & Loss",
+        "code": "trial_balance",
+        "name": "Trial Balance",
         "module": "accounting",
-        "report_type": "script",
+        "report_type": "query",
         "script": """
-from core.lib.db import db
-from decimal import Decimal
-
-date_from = filters.get('date_from')
-date_to   = filters.get('date_to')
-
-def build_where(extra=""):
-    conds = ["jl.entry_id = je.id", "je.org_id = :org_id", "je.status = 'Posted'"]
-    if date_from:
-        conds.append("je.doc_date >= :date_from")
-    if date_to:
-        conds.append("je.doc_date <= :date_to")
-    if extra:
-        conds.append(extra)
-    return " AND ".join(conds)
-
-params = {"org_id": org_id, "date_from": date_from, "date_to": date_to}
-
-revenue_sql = f'''
-    SELECT a.code, a.name, SUM(jl.credit) - SUM(jl.debit) as amount
-    FROM erp_accounting_entry_lines jl
-    JOIN erp_accounting_entries je ON je.id = jl.entry_id
+    SELECT
+        a.code as account_code,
+        a.name as account_name,
+        SUM(jl.debit) as total_debit,
+        SUM(jl.credit) as total_credit
+    FROM erp_accounting_journal_lines jl
     JOIN erp_accounting_accounts a ON a.id = jl.account_id
-    WHERE {build_where("a.account_type IN ('income_operating','income_other')")}
-    GROUP BY a.id ORDER BY a.code
-'''
-cogs_sql = f'''
-    SELECT a.code, a.name, SUM(jl.debit) - SUM(jl.credit) as amount
-    FROM erp_accounting_entry_lines jl
     JOIN erp_accounting_entries je ON je.id = jl.entry_id
-    JOIN erp_accounting_accounts a ON a.id = jl.account_id
-    WHERE {build_where("a.account_type = 'expense_cogs'")}
-    GROUP BY a.id ORDER BY a.code
-'''
-opex_sql = f'''
-    SELECT a.code, a.name, SUM(jl.debit) - SUM(jl.credit) as amount
-    FROM erp_accounting_entry_lines jl
-    JOIN erp_accounting_entries je ON je.id = jl.entry_id
-    JOIN erp_accounting_accounts a ON a.id = jl.account_id
-    WHERE {build_where("a.account_type = 'expense_operating'")}
-    GROUP BY a.id ORDER BY a.code
-'''
-
-session = db()
-revenues = [(r[0], r[1], float(r[2] or 0)) for r in session.execute(db.text(revenue_sql), params)]
-cogs     = [(r[0], r[1], float(r[2] or 0)) for r in session.execute(db.text(cogs_sql), params)]
-opex     = [(r[0], r[1], float(r[2] or 0)) for r in session.execute(db.text(opex_sql), params)]
-
-total_revenue = sum(r[2] for r in revenues)
-total_cogs    = sum(r[2] for r in cogs)
-total_opex    = sum(r[2] for r in opex)
-gross_profit  = total_revenue - total_cogs
-net_profit    = gross_profit - total_opex
-
-rows = []
-rows.append(["REVENUE", "", ""])
-for code, name, amt in revenues:
-    rows.append([code, name, amt])
-rows.append(["", "Total Revenue", total_revenue])
-rows.append(["", "", ""])
-rows.append(["COGS", "", ""])
-for code, name, amt in cogs:
-    rows.append([code, name, amt])
-rows.append(["", "Total COGS", total_cogs])
-rows.append(["", "Gross Profit", gross_profit])
-rows.append(["", "", ""])
-rows.append(["OPERATING EXPENSES", "", ""])
-for code, name, amt in opex:
-    rows.append([code, name, amt])
-rows.append(["", "Total OpEx", total_opex])
-rows.append(["", "NET PROFIT", net_profit])
-
-result["columns"] = [
-    {"field": "code",   "label": "Code",   "type": "string"},
-    {"field": "name",   "label": "Account","type": "string"},
-    {"field": "amount", "label": "Amount", "type": "currency"},
-]
-result["data"] = rows
-""",
+    WHERE je.status = 'Posted' AND je.org_id = :org_id
+        AND (:date_from IS NULL OR je.doc_date >= :date_from)
+        AND (:date_to IS NULL OR je.doc_date <= :date_to)
+    GROUP BY a.code, a.name
+    ORDER BY a.code
+    """,
         "columns_json": [
-            {"field": "code",   "label": "Code",    "type": "string"},
-            {"field": "name",   "label": "Account", "type": "string"},
-            {"field": "amount", "label": "Amount",  "type": "currency"},
+            {"field": "account_code", "label": "Account Code", "type": "string"},
+            {"field": "account_name", "label": "Account Name", "type": "string"},
+            {"field": "total_debit", "label": "Debit", "type": "currency"},
+            {"field": "total_credit", "label": "Credit", "type": "currency"},
         ],
         "filters_json": [
             {"field": "date_from", "label": "Date From", "type": "date"},
@@ -174,76 +110,147 @@ result["data"] = rows
         ],
     },
     {
-        "code": "trial_balance",
-        "name": "Trial Balance",
+        "code": "profit_and_loss",
+        "name": "Profit & Loss",
         "module": "accounting",
-        "report_type": "script",
+        "report_type": "query",
         "script": """
-from core.lib.db import db
-from decimal import Decimal
-
-date_from = filters.get('date_from')
-date_to   = filters.get('date_to')
-
-params = {"org_id": org_id, "date_from": date_from, "date_to": date_to}
-
-sql = '''
-    SELECT
-        a.code,
-        a.name,
-        a.account_type,
-        COALESCE(SUM(jl.debit),  0) AS total_debit,
-        COALESCE(SUM(jl.credit), 0) AS total_credit,
-        COALESCE(SUM(jl.debit),  0) - COALESCE(SUM(jl.credit), 0) AS balance
-    FROM erp_accounting_accounts a
-    LEFT JOIN erp_accounting_entry_lines jl ON jl.account_id = a.id
-    LEFT JOIN erp_accounting_entries je ON je.id = jl.entry_id
-        AND je.org_id = :org_id
-        AND je.status = 'Posted'
-        AND (:date_from IS NULL OR je.doc_date >= :date_from)
-        AND (:date_to   IS NULL OR je.doc_date <= :date_to)
-    WHERE a.account_type != 'view' AND a.is_group = 0
-    GROUP BY a.id
-    ORDER BY a.code
-'''
-
-session = db()
-rows = []
-total_dr = Decimal(0)
-total_cr = Decimal(0)
-for r in session.execute(db.text(sql), params):
-    dr  = float(r[3])
-    cr  = float(r[4])
-    bal = float(r[5])
-    total_dr += Decimal(str(dr))
-    total_cr += Decimal(str(cr))
-    rows.append([r[0], r[1], r[2], dr, cr, bal])
-
-rows.append(["", "TOTAL", "", float(total_dr), float(total_cr),
-             float(total_dr) - float(total_cr)])
-
-result["columns"] = [
-    {"field": "code",    "label": "Code",         "type": "string"},
-    {"field": "name",    "label": "Account",      "type": "string"},
-    {"field": "type",    "label": "Type",         "type": "string"},
-    {"field": "debit",   "label": "Debit",        "type": "currency"},
-    {"field": "credit",  "label": "Credit",       "type": "currency"},
-    {"field": "balance", "label": "Balance",      "type": "currency"},
-]
-result["data"] = rows
-""",
+    WITH monthly_balances AS (
+        SELECT
+            a.account_type,
+            a.name AS account_name,
+            SUM(jl.credit) - SUM(jl.debit) AS balance
+        FROM erp_accounting_journal_lines jl
+        JOIN erp_accounting_accounts a ON jl.account_id = a.id
+        JOIN erp_accounting_entries je ON jl.entry_id = je.id
+        WHERE
+            je.status = 'Posted'
+            AND je.org_id = :org_id
+            AND a.account_type IN ('income_operating', 'income_other', 'expense_cogs', 'expense_operating', 'expense_other')
+            AND (:date_from IS NULL OR je.doc_date >= :date_from)
+            AND (:date_to IS NULL OR je.doc_date <= :date_to)
+        GROUP BY a.id
+    )
+    SELECT * FROM (
+        SELECT 'Revenue' as category, account_name, balance FROM monthly_balances WHERE account_type LIKE 'income%%'
+        UNION ALL
+        SELECT 'Cost of Goods Sold', account_name, -balance FROM monthly_balances WHERE account_type = 'expense_cogs'
+        UNION ALL
+        SELECT 'Operating Expenses', account_name, -balance FROM monthly_balances WHERE account_type = 'expense_operating'
+        UNION ALL
+        SELECT 'Other Expenses', account_name, -balance FROM monthly_balances WHERE account_type = 'expense_other'
+    ) t
+    ORDER BY
+        CASE category
+            WHEN 'Revenue' THEN 1
+            WHEN 'Cost of Goods Sold' THEN 2
+            WHEN 'Operating Expenses' THEN 3
+            ELSE 4
+        END
+    """,
         "columns_json": [
-            {"field": "code",    "label": "Code",    "type": "string"},
-            {"field": "name",    "label": "Account", "type": "string"},
-            {"field": "type",    "label": "Type",    "type": "string"},
-            {"field": "debit",   "label": "Debit",   "type": "currency"},
-            {"field": "credit",  "label": "Credit",  "type": "currency"},
-            {"field": "balance", "label": "Balance", "type": "currency"},
+            {"field": "category", "label": "Category", "type": "string"},
+            {"field": "account_name", "label": "Account", "type": "string"},
+            {"field": "balance", "label": "Amount", "type": "currency"},
         ],
         "filters_json": [
             {"field": "date_from", "label": "Date From", "type": "date"},
-            {"field": "date_to",   "label": "Date To",   "type": "date"},
+            {"field": "date_to", "label": "Date To", "type": "date"},
         ],
+    },
+    {
+        "code": "ar_aging",
+        "name": "AR Aging",
+        "module": "accounting",
+        "report_type": "query",
+        "script": """
+        SELECT
+            p.name as party_name,
+            i.number,
+            i.doc_date,
+            i.total_amount - COALESCE((
+                SELECT SUM(pa.amount) FROM erp_accounting_payment_allocations pa
+                JOIN erp_accounting_payments py ON py.id = pa.payment_id
+                WHERE pa.invoice_id = i.id AND pa.invoice_type = 'InflowInvoice' AND py.status = 'Posted'
+            ), 0) as outstanding,
+            DATEDIFF('{today}', i.doc_date) as days_outstanding,
+            CASE WHEN DATEDIFF('{today}', i.doc_date) <= 30
+                THEN i.total_amount - COALESCE((SELECT SUM(pa.amount) FROM erp_accounting_payment_allocations pa JOIN erp_accounting_payments py ON py.id = pa.payment_id WHERE pa.invoice_id = i.id AND pa.invoice_type = 'InflowInvoice' AND py.status = 'Posted'), 0)
+                ELSE 0 END as `0_30`,
+            CASE WHEN DATEDIFF('{today}', i.doc_date) BETWEEN 31 AND 60
+                THEN i.total_amount - COALESCE((SELECT SUM(pa.amount) FROM erp_accounting_payment_allocations pa JOIN erp_accounting_payments py ON py.id = pa.payment_id WHERE pa.invoice_id = i.id AND pa.invoice_type = 'InflowInvoice' AND py.status = 'Posted'), 0)
+                ELSE 0 END as `31_60`,
+            CASE WHEN DATEDIFF('{today}', i.doc_date) BETWEEN 61 AND 90
+                THEN i.total_amount - COALESCE((SELECT SUM(pa.amount) FROM erp_accounting_payment_allocations pa JOIN erp_accounting_payments py ON py.id = pa.payment_id WHERE pa.invoice_id = i.id AND pa.invoice_type = 'InflowInvoice' AND py.status = 'Posted'), 0)
+                ELSE 0 END as `61_90`,
+            CASE WHEN DATEDIFF('{today}', i.doc_date) > 90
+                THEN i.total_amount - COALESCE((SELECT SUM(pa.amount) FROM erp_accounting_payment_allocations pa JOIN erp_accounting_payments py ON py.id = pa.payment_id WHERE pa.invoice_id = i.id AND pa.invoice_type = 'InflowInvoice' AND py.status = 'Posted'), 0)
+                ELSE 0 END as `over_90`
+        FROM erp_accounting_inflow_invoices i
+        JOIN erp_party_parties p ON i.party_id = p.id
+        WHERE i.status IN ('Posted', 'Partial') AND i.org_id = :org_id
+        HAVING outstanding > 0.01
+        ORDER BY days_outstanding DESC
+        """,
+        "columns_json": [
+            {"field": "party_name", "label": "Customer", "type": "string"},
+            {"field": "number", "label": "Invoice #", "type": "string"},
+            {"field": "doc_date", "label": "Date", "type": "date"},
+            {"field": "outstanding", "label": "Outstanding", "type": "currency"},
+            {"field": "days_outstanding", "label": "Days", "type": "number"},
+            {"field": "0_30", "label": "0-30 Days", "type": "currency"},
+            {"field": "31_60", "label": "31-60 Days", "type": "currency"},
+            {"field": "61_90", "label": "61-90 Days", "type": "currency"},
+            {"field": "over_90", "label": "90+ Days", "type": "currency"}
+        ],
+        "filters_json": [],
+    },
+    {
+        "code": "ap_aging",
+        "name": "AP Aging",
+        "module": "accounting",
+        "report_type": "query",
+        "script": """
+        SELECT
+            p.name as party_name,
+            i.number,
+            i.doc_date,
+            i.total_amount - COALESCE((
+                SELECT SUM(pa.amount) FROM erp_accounting_payment_allocations pa
+                JOIN erp_accounting_payments py ON py.id = pa.payment_id
+                WHERE pa.invoice_id = i.id AND pa.invoice_type = 'OutflowInvoice' AND py.status = 'Posted'
+            ), 0) as outstanding,
+            DATEDIFF('{today}', i.doc_date) as days_outstanding,
+            CASE WHEN DATEDIFF('{today}', i.doc_date) <= 30
+                THEN i.total_amount - COALESCE((SELECT SUM(pa.amount) FROM erp_accounting_payment_allocations pa JOIN erp_accounting_payments py ON py.id = pa.payment_id WHERE pa.invoice_id = i.id AND pa.invoice_type = 'OutflowInvoice' AND py.status = 'Posted'), 0)
+                ELSE 0 END as `0_30`,
+            CASE WHEN DATEDIFF('{today}', i.doc_date) BETWEEN 31 AND 60
+                THEN i.total_amount - COALESCE((SELECT SUM(pa.amount) FROM erp_accounting_payment_allocations pa JOIN erp_accounting_payments py ON py.id = pa.payment_id WHERE pa.invoice_id = i.id AND pa.invoice_type = 'OutflowInvoice' AND py.status = 'Posted'), 0)
+                ELSE 0 END as `31_60`,
+            CASE WHEN DATEDIFF('{today}', i.doc_date) BETWEEN 61 AND 90
+                THEN i.total_amount - COALESCE((SELECT SUM(pa.amount) FROM erp_accounting_payment_allocations pa JOIN erp_accounting_payments py ON py.id = pa.payment_id WHERE pa.invoice_id = i.id AND pa.invoice_type = 'OutflowInvoice' AND py.status = 'Posted'), 0)
+                ELSE 0 END as `61_90`,
+            CASE WHEN DATEDIFF('{today}', i.doc_date) > 90
+                THEN i.total_amount - COALESCE((SELECT SUM(pa.amount) FROM erp_accounting_payment_allocations pa JOIN erp_accounting_payments py ON py.id = pa.payment_id WHERE pa.invoice_id = i.id AND pa.invoice_type = 'OutflowInvoice' AND py.status = 'Posted'), 0)
+                ELSE 0 END as `over_90`
+        FROM erp_accounting_outflow_invoices i
+        JOIN erp_party_parties p ON i.supplier_id = p.id
+        WHERE i.status IN ('Posted', 'Partial') AND i.org_id = :org_id
+        HAVING outstanding > 0.01
+        ORDER BY days_outstanding DESC
+        """,
+        "columns_json": [
+            {"field": "party_name", "label": "Supplier", "type": "string"},
+            {"field": "number", "label": "Invoice #", "type": "string"},
+            {"field": "doc_date", "label": "Date", "type": "date"},
+            {"field": "outstanding", "label": "Outstanding", "type": "currency"},
+            {"field": "days_outstanding", "label": "Days", "type": "number"},
+            {"field": "0_30", "label": "0-30 Days", "type": "currency"},
+            {"field": "31_60", "label": "31-60 Days", "type": "currency"},
+            {"field": "61_90", "label": "61-90 Days", "type": "currency"},
+            {"field": "over_90", "label": "90+ Days", "type": "currency"}
+        ],
+        "filters_json": [],
     },
     {
         "code": "stock_summary",
@@ -315,8 +322,8 @@ ORDER BY je.doc_date ASC, je.id ASC""",
   si.doc_date as date,
   si.total_amount,
   si.total_amount - COALESCE((SELECT SUM(pa.amount) FROM erp_accounting_payment_allocations pa JOIN erp_accounting_payments p ON p.id = pa.payment_id WHERE pa.invoice_id = si.id AND p.status = 'Posted'), 0) as balance
-FROM erp_accounting_sales_invoices si
-JOIN erp_party_parties c ON c.id = si.customer_id
+FROM erp_accounting_inflow_invoices si
+JOIN erp_party_parties c ON c.id = si.party_id
 WHERE si.org_id = :org_id AND si.status = 'Posted'
   AND (si.total_amount - COALESCE((SELECT SUM(pa.amount) FROM erp_accounting_payment_allocations pa JOIN erp_accounting_payments p ON p.id = pa.payment_id WHERE pa.invoice_id = si.id AND p.status = 'Posted'), 0)) > 0""",
         "columns_json": [
@@ -329,6 +336,7 @@ WHERE si.org_id = :org_id AND si.status = 'Posted'
         "filters_json": [],
     },
 ]
+
 
 
 def run_seed(db: Session, org_id: int):

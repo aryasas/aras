@@ -287,3 +287,17 @@ This document outlines the key features and architectural components of the Aras
 
 ## ARP Neutral Rename — Organization model, neutral DB schema, profile system, POT rename, party consolidation — revision (2026-05-16)
   - [Codex/GPT-5.5] profile-aware vocabulary provider, dynamic inflow/outflow/party/POT labels, organization profile/unit type controls, party role filters and badges, POT terminal placeholder logic
+
+
+## Purchase Flow (GRN, AP matching) + Reporting (Trial Balance, P&L, AR/AP Aging) — revision (2026-05-16)
+  - [Gemini] Added Goods Receipt Note (GRN) document model and flow for purchase-side receiving. Added four new financial reports: Trial Balance, P&L, AR Aging, and AP Aging.
+  - [Codex/GPT-5.5] <!-- filled by agent -->
+
+## GRN Fix + Aging Report Fix + Multi-Tenant Fase 2 + PostgreSQL Migration (2026-05-16)
+- [Claude Sonnet 4.6] Fixed `api/apps/erp/accounting/models.py` — repaired garbled `class GoodsReceiptNote` header (IndentationError from agent write corruption)
+- [Claude Sonnet 4.6] Fixed `api/apps/erp/report/seed_reports.py` — replaced `julianday` (SQLite-only) with `DATEDIFF` (MySQL/PostgreSQL compatible), replaced `amount_due` (Python property) with inline `COALESCE(SUM(payment_allocations))` subquery in AR/AP Aging SQL; column aliases changed to valid identifiers (`0_30`, `31_60`, `61_90`, `over_90`)
+- [Claude Sonnet 4.6] Added `api/core/api/tenant.py` — REST endpoints: `GET /tenants`, `POST /tenants/provision`, `POST /tenants/{id}/seed`, `DELETE /tenants/{id}` (superuser only)
+- [Claude Sonnet 4.6] Rewrote `api/core/tenant/provisioner.py` — MySQL-specific provisioner replaced with PostgreSQL-native version using `psycopg2`; `provision_tenant` creates DB + runs `metadata.create_all` + `auto_migrate`; `seed_tenant` seeds basic data + reports; `deprovision_tenant` uses `ALTER DATABASE RENAME TO` soft-delete
+- [Claude Sonnet 4.6] Added tenant CLI to `api/manage.py` — `python manage.py tenant provision <id>`, `list`, `seed <id>`, `deprovision <id>`
+- [Claude Sonnet 4.6] Wired tenant router into `api/main.py`
+- [Claude Sonnet 4.6] Migrated DB engine from MySQL (`pymysql`, port 3306) to PostgreSQL (`psycopg2`, port 5432) — updated `api/core/lib/settings.py`, `api/requirements.txt`, `.env`; created `arasdev` PostgreSQL database; verified `sync` + `seed` pass clean

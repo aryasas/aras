@@ -3,7 +3,8 @@ from ..app import ERP
 from .models import Account, JournalEntry, JournalEntryLine, InflowInvoice, InflowInvoiceLine, \
     OutflowInvoice, OutflowInvoiceLine, InflowOrder, InflowOrderLine, InflowOrderCharge, \
     OutflowOrder, OutflowOrderLine, OutflowOrderCharge, InflowInvoiceCharge, OutflowInvoiceCharge, \
-    Payment, PaymentAllocation, FiscalPeriod
+    Payment, PaymentAllocation, FiscalPeriod, GoodsReceiptNote
+from .models_grn import GoodsReceiptLine
 from . import views # Trigger view registration
 
 class Accounting(ERP):
@@ -18,7 +19,8 @@ class Accounting(ERP):
         InflowInvoice, InflowInvoiceLine, InflowInvoiceCharge,
         OutflowOrder, OutflowOrderLine, OutflowOrderCharge,
         OutflowInvoice, OutflowInvoiceLine, OutflowInvoiceCharge,
-        Payment, PaymentAllocation
+        Payment, PaymentAllocation,
+        GoodsReceiptNote, GoodsReceiptLine
     ]
 
     menu_groups = [
@@ -35,7 +37,7 @@ class Accounting(ERP):
         {
             "label": "Outflow",
             "icon": "ArrowDownLeft",
-            "models": ["erp_accounting_outflow_orders", "erp_accounting_outflow_invoices"]
+            "models": ["erp_accounting_outflow_orders", "erp_accounting_outflow_invoices", "erp_accounting_grns"]
         },
         {
             "label": "Payments",

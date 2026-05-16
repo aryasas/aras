@@ -7,7 +7,6 @@ python-jose[cryptography]
 passlib[bcrypt]
 bcrypt==3.2.2
 PyYAML
-mariadb
-pymysql
+psycopg2-binary
 python-dotenv
 python-json-logger

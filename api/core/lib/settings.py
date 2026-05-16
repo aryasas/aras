@@ -18,14 +18,13 @@ def _build_db_url(default_name: str) -> str:
     """Build DATABASE_URL from DB_* components, or use DATABASE_URL directly if set."""
     if os.getenv("DATABASE_URL"):
         return os.getenv("DATABASE_URL")  # type: ignore[return-value]
-    user = os.getenv("DB_USER", "root")
+    user = os.getenv("DB_USER", "postgres")
     password = os.getenv("DB_PASSWORD", "")
     host = os.getenv("DB_HOST", "localhost")
-    port = os.getenv("DB_PORT", "3306")
-    # DB_NAME from env takes priority; default_name is mode-specific fallback
+    port = os.getenv("DB_PORT", "5432")
     name = os.getenv("DB_NAME") or default_name
     pw = f":{password}" if password else ""
-    return f"mysql+pymysql://{user}{pw}@{host}:{port}/{name}"
+    return f"postgresql+psycopg2://{user}{pw}@{host}:{port}/{name}"
 
 
 class BaseSettings:
