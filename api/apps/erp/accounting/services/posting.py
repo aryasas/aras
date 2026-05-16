@@ -96,10 +96,17 @@ class InvoicePostingService:
                 narrative=f"Auto-posted from Inflow Invoice {invoice.number}",
                 currency_id=invoice.currency_id,
             )
-            _create_stock_movement(db, invoice.number, org_id, "Outgoing", [
-                {"product_id": l.product_id, "qty": l.qty, "uom_id": l.uom_id, "unit_cost": l.unit_price - l.discount}
-                for l in invoice.lines
-            ], currency_id=invoice.currency_id)
+            # For each inflow invoice line, we need to consume stock for COGS
+            stock_movement_lines_data = []
+            for l in invoice.lines:
+                cogs = InventoryValuationService.consume(db, l.product_id, org_id, l.qty)
+                stock_movement_lines_data.append({
+                    "product_id": l.product_id,
+                    "qty": l.qty,
+                    "uom_id": l.uom_id,
+                    "unit_cost": cogs / l.qty if l.qty else 0 # unit_cost for stock movement line
+                })
+            _create_stock_movement(db, invoice.number, org_id, "Outgoing", stock_movement_lines_data, currency_id=invoice.currency_id)
             invoice.status = "Posted"
             db.commit()
             return {"success": True, "message": "Inflow Invoice posted successfully.", "journal_entry_id": journal_entry.id}
@@ -181,4 +188,3 @@ class InvoicePostingService:
         except Exception as e:
             db.rollback()
             return {"success": False, "message": str(e), "journal_entry_id": None}
- str(e)}

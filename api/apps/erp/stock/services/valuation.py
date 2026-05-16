@@ -1,51 +1,49 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, asc, desc
+from typing import Optional
 
-from ..models_valuation import StockLayer
+from apps.erp.stock.models_valuation import StockLayer
 
 class InventoryValuationService:
     @staticmethod
     def get_unit_cost(db: Session, product_id: int, org_id: int) -> float:
         """FIFO: return cost of oldest unconsumed stock layer."""
-        oldest_layer = db.query(StockLayer).filter(
+        layer = db.query(StockLayer).filter(
             StockLayer.product_id == product_id,
             StockLayer.org_id == org_id,
             StockLayer.qty_remaining > 0
-        ).order_by(asc(StockLayer.created_at)).first() # Assuming 'created_at' for age
+        ).order_by(StockLayer.created_at).first() # FIFO
         
-        if oldest_layer:
-            return oldest_layer.unit_cost
-        return 0.0 # No stock available
+        if not layer:
+            return 0.0 # Or raise an error if product is expected to have stock
+        return layer.unit_cost
 
     @staticmethod
     def consume(db: Session, product_id: int, org_id: int, qty: float) -> float:
         """Consume qty units FIFO; return total cost consumed (for COGS)."""
         total_cost_consumed = 0.0
-        qty_to_consume = qty
+        remaining_qty_to_consume = qty
 
-        while qty_to_consume > 0:
-            oldest_layer = db.query(StockLayer).filter(
-                StockLayer.product_id == product_id,
-                StockLayer.org_id == org_id,
-                StockLayer.qty_remaining > 0
-            ).order_by(asc(StockLayer.created_at)).first()
+        layers = db.query(StockLayer).filter(
+            StockLayer.product_id == product_id,
+            StockLayer.org_id == org_id,
+            StockLayer.qty_remaining > 0
+        ).order_by(StockLayer.created_at).all() # FIFO
 
-            if not oldest_layer:
-                # Ran out of stock before consuming all qty_to_consume
-                # This could indicate a negative stock scenario if not handled upstream
-                break 
-
-            can_consume_from_layer = min(qty_to_consume, oldest_layer.qty_remaining)
-            total_cost_consumed += can_consume_from_layer * oldest_layer.unit_cost
-            qty_to_consume -= can_consume_from_layer
-            oldest_layer.qty_remaining -= can_consume_from_layer
-            db.add(oldest_layer)
+        for layer in layers:
+            if remaining_qty_to_consume <= 0:
+                break
+            
+            qty_from_layer = min(remaining_qty_to_consume, layer.qty_remaining)
+            total_cost_consumed += qty_from_layer * layer.unit_cost
+            layer.qty_remaining -= qty_from_layer
+            remaining_qty_to_consume -= qty_from_layer
+            db.add(layer)
         
-        db.flush() # Flush to ensure changes are reflected for subsequent operations if needed
+        db.flush() # Ensure changes are committed before returning
         return total_cost_consumed
 
     @staticmethod
-    def receive(db: Session, product_id: int, org_id: int, qty: float, unit_cost: float, source_ref: str = None):
+    def receive(db: Session, product_id: int, org_id: int, qty: float, unit_cost: float, source_ref: Optional[str] = None):
         """Add a new stock layer on goods receipt."""
         new_layer = StockLayer(
             product_id=product_id,
@@ -56,4 +54,4 @@ class InventoryValuationService:
             source_ref=source_ref
         )
         db.add(new_layer)
-        db.flush() # Flush to ensure the layer is added for immediate consumption if needed
+        db.flush() # Ensure the new layer is in the session
