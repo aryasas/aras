@@ -1,7 +1,7 @@
-import React from 'react';
-import { 
-  Search, Filter, Plus, Edit3, Trash2, 
-  Download, Upload, Settings, List, LayoutGrid, FileText
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  Search, Filter, Plus, Edit3, Trash2,
+  Download, Upload, Settings, List, LayoutGrid, FileText, ChevronDown, X
 } from 'lucide-react';
 
 export type ViewMode = 'list' | 'tree' | 'report';
@@ -28,6 +28,10 @@ interface ListToolbarProps {
   viewMode?: ViewMode;
   onViewModeChange?: (mode: ViewMode) => void;
   hasTreeSupport?: boolean;
+  onSaveFilter: () => void;
+  onApplySavedFilter: (filterId: string) => void;
+  onDeleteSavedFilter: (filterId: string) => void;
+  savedFilters: { id: string; name: string; is_default: boolean }[];
 }
 
 export const ListToolbar: React.FC<ListToolbarProps> = ({
@@ -51,14 +55,33 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
   onVisibleColumnsChange,
   viewMode = 'list',
   onViewModeChange,
-  hasTreeSupport = false
+  hasTreeSupport = false,
+  onSaveFilter,
+  onApplySavedFilter,
+  onDeleteSavedFilter,
+  savedFilters
 }) => {
+  const [isSavedFiltersOpen, setIsSavedFiltersOpen] = useState(false);
+  const savedFiltersRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (savedFiltersRef.current && !savedFiltersRef.current.contains(event.target as Node)) {
+        setIsSavedFiltersOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
     <div className="p-4 border-b border-slate-100 space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-1">
           <h2 className="text-xl font-bold text-slate-900 hidden md:block">{title}</h2>
-          
+
           {/* View Mode Switcher */}
           {onViewModeChange && (
             <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
@@ -90,21 +113,70 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
 
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder={`Search in ${title}...`}
               className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
             />
           </div>
-          <button 
+          <button
             onClick={onFilterToggle}
             className={`p-2 rounded-xl border transition-all flex items-center gap-2 text-sm font-medium ${isFilterOpen ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
           >
             <Filter size={18} />
             <span>Filters {filterCount > 0 && `(${filterCount})`}</span>
           </button>
+
+          {filterCount > 0 && (
+            <button
+              onClick={onSaveFilter}
+              className="p-2 rounded-xl border transition-all flex items-center gap-2 text-sm font-medium bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+            >
+              <Plus size={18} />
+              <span>Save Filter</span>
+            </button>
+          )}
+
+          {savedFilters && savedFilters.length > 0 && (
+            <div className="relative" ref={savedFiltersRef}>
+              <button
+                onClick={() => setIsSavedFiltersOpen(!isSavedFiltersOpen)}
+                className="p-2 rounded-xl border transition-all flex items-center gap-2 text-sm font-medium bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+              >
+                <span>Saved Filters</span>
+                <ChevronDown size={18} />
+              </button>
+              {isSavedFiltersOpen && (
+                <div
+                  className="absolute right-0 mt-3 w-64 bg-white border border-slate-200 shadow-xl rounded-2xl z-50 p-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">Saved Filters</h4>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {savedFilters.map(sf => (
+                      <div key={sf.id} className="flex items-center justify-between group">
+                        <button
+                          onClick={() => { onApplySavedFilter(sf.id); setIsSavedFiltersOpen(false); }}
+                          className="flex-1 text-left text-sm text-slate-700 hover:text-indigo-600 p-1 rounded-lg transition-colors"
+                        >
+                          {sf.name} {sf.is_default && <span className="text-[10px] text-slate-400">(default)</span>}
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onDeleteSavedFilter(sf.id); }}
+                          className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                          title="Delete saved filter"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -127,7 +199,7 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
             </>
           )}
 
-          <button 
+          <button
             onClick={onExport}
             disabled={isExporting}
             className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 disabled:opacity-50"
@@ -140,14 +212,14 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
             <Upload size={18} />
             <input type="file" accept=".csv" className="hidden" onChange={onImport} />
           </label>
-          
-          <button 
+
+          <button
             className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 relative"
             onClick={onColumnPickerToggle}
           >
             <Settings size={18} />
             {isColumnPickerOpen && (
-              <div 
+              <div
                 className="absolute right-0 mt-3 w-64 bg-white border border-slate-200 shadow-xl rounded-2xl z-50 p-4"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -155,9 +227,9 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {fields.map(f => (
                     <label key={f.name} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded-lg">
-                      <input 
-                        type="checkbox" 
-                        checked={visibleColumns.includes(f.name)} 
+                      <input
+                        type="checkbox"
+                        checked={visibleColumns.includes(f.name)}
                         onChange={(e) => {
                           const checked = e.target.checked;
                           onVisibleColumnsChange(
@@ -174,7 +246,7 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
             )}
           </button>
 
-          <button 
+          <button
             onClick={onAdd}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100"
           >
@@ -188,3 +260,4 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
 };
 
 export default ListToolbar;
+

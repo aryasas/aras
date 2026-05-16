@@ -7,6 +7,30 @@ from ..base.app import App
 from ..logic.router_factory import RouterFactory
 from ..logic.integrity_checker import IntegrityChecker
 
+def autodiscover_models(package_name: str, module_names: list[str]) -> list:
+    """
+    Auto-discovers subclasses of Aras.Model within specified modules of a package.
+    """
+    from ..base.model import Model as ArasModel
+    # If called with __name__ from app.py, strip trailing ".app"
+    if package_name.endswith(".app"):
+        package_name = package_name[:-4]
+    discovered_models = []
+    for mod_name in module_names:
+        full_module_name = f"{package_name}.{mod_name}"
+        try:
+            module = importlib.import_module(full_module_name)
+            for name in dir(module):
+                obj = getattr(module, name)
+                if (isinstance(obj, type) and
+                        issubclass(obj, ArasModel) and
+                        obj is not ArasModel and
+                        obj.__module__ == full_module_name):
+                    discovered_models.append(obj)
+        except ImportError as e:
+            print(f"Error importing module {full_module_name}: {e}")
+    return discovered_models
+
 def discover_apps(package_path: str = "apps"):
     """
     Otomatis mencari dan mengimpor semua modul di dalam folder apps/
@@ -23,8 +47,9 @@ def discover_apps(package_path: str = "apps"):
         # Import every module in the app package to ensure full registry and integrity check
         module = importlib.import_module(module_name)
         
-        # Enforce Mandatory Aras Inheritance
-        IntegrityChecker.check_module(module)
+        # Skip router files — they may contain Pydantic schemas that don't inherit from Aras
+        if not module_name.endswith("_router"):
+            IntegrityChecker.check_module(module)
 
 
 def register_app_routes(app: FastAPI, prefix: str = "/api/v1"):

@@ -15,7 +15,7 @@ class Party(MasterDataBase):
     phone: Mapped[str] = mapped_column(String(20), nullable=True)
     mobile: Mapped[str] = mapped_column(String(20), nullable=True)
     address: Mapped[str] = mapped_column(Text, nullable=True)
-    tax_id: Mapped[str] = mapped_column(String(50), nullable=True)
+    tax_id: Mapped[str] = mapped_column(String(20), nullable=True, info={"pattern": "^[0-9]{1,20}$"})
     pricelist_id: Mapped[int] = mapped_column(ForeignKey("erp_config_price_types.id"), nullable=True)
     
     contacts: Mapped[list["Contact"]] = relationship("Contact", back_populates="parent", cascade="all, delete-orphan")

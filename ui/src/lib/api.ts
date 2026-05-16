@@ -19,12 +19,7 @@ function isApiEnvelope(value: unknown): value is ApiEnvelope {
   )
 }
 
-function responseMessage(data: { message?: unknown; error?: unknown; detail?: unknown }) {
-  if (typeof data.message === 'string' && data.message) return data.message
-  if (typeof data.error === 'string' && data.error) return data.error
-  if (typeof data.detail === 'string' && data.detail) return data.detail
-  return 'Request failed'
-}
+
 
 const api = axios.create({
   baseURL: '/api/v1',
@@ -57,49 +52,59 @@ api.interceptors.response.use(
   (response) => {
     if (isApiEnvelope(response.data)) {
       if (!response.data.success) {
-        const message = responseMessage(response.data)
-        response.data = {
-          detail: message,
-          error: response.data.error,
-          message,
-        }
+        // Prefer `error` from envelope, then `message`, then fallback
+        const errorMessage = response.data.error || response.data.detail || response.data.message || 'Request failed';
 
-        const error = new Error(message) as Error & { response?: typeof response }
-        error.response = response
-        return Promise.reject(error)
+        // Ensure the error object passed to consumers has the right structure
+        const errorData = {
+          ...response.data, // Preserve original data
+          message: errorMessage,
+          detail: response.data.detail || errorMessage, // Ensure detail is also set for consistency
+          error: response.data.error || errorMessage, // Ensure error is also set
+        };
+
+        const error = new Error(errorMessage) as Error & { response?: typeof response };
+        error.response = { ...response, data: errorData }; // Attach enriched error data to response
+        return Promise.reject(error);
       }
-
-      response.data = response.data.data
+      response.data = response.data.data; // Extract actual data for successful responses
     }
-
-    return response
+    return response;
   },
   (error) => {
     if (error.response?.data) {
-      const d = error.response.data
+      const d = error.response.data;
+      let errorMessage = 'Request failed';
+
       if (isApiEnvelope(d)) {
-        const message = responseMessage(d)
-        error.message = message
-        error.response.data = {
-          detail: message,
-          error: d.error,
-          message,
-        }
+        errorMessage = d.error || d.detail || d.message || errorMessage;
       } else if (typeof d === 'object') {
-        // Backend custom handler uses {message:...}; FastAPI 422 uses {detail:...}
-        // Normalize so all frontend code can read .detail consistently
-        if (d.message && !d.detail) d.detail = d.message
-        if (d.detail && !d.message && typeof d.detail === 'string') d.message = d.detail
+        // For non-envelope responses (e.g., FastAPI validation errors)
+        errorMessage = d.error || d.detail || d.message || errorMessage;
+      } else if (typeof d === 'string') {
+        errorMessage = d;
       }
+
+      // Ensure error.message reflects the primary error message
+      error.message = errorMessage;
+
+      // Normalize error.response.data to contain 'error', 'detail', and 'message'
+      // This makes it consistent for consumers
+      error.response.data = {
+        ...d, // Preserve original data
+        error: d.error || errorMessage,
+        detail: d.detail || errorMessage,
+        message: d.message || errorMessage,
+      };
     }
     if (error.response?.status === 401) {
-      localStorage.removeItem('aras_token')
+      localStorage.removeItem('aras_token');
       if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
+        window.location.href = '/login';
       }
     }
-    return Promise.reject(error)
+    return Promise.reject(error);
   }
-)
+);
 
 export default api

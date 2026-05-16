@@ -109,10 +109,15 @@ def run_backend(handoff: str, model: str = GEMINI_DEFAULT) -> str:
     return output
 
 
-def run_frontend(handoff: str) -> str:
-    output, _ = run_agent("Codex GPT-5.5 — Frontend", [
-        "codex", "exec", "--dangerously-bypass-approvals-and-sandbox", FRONTEND_SYSTEM + handoff,
-    ])
+def run_frontend(handoff: str, agent: str = "codex", model: str = GEMINI_DEFAULT) -> str:
+    if agent == "gemini":
+        output, _ = run_agent(f"Gemini ({model}) — Frontend", [
+            "gemini", "-m", model, "-y", "-p", FRONTEND_SYSTEM + handoff,
+        ])
+    else:
+        output, _ = run_agent("Codex GPT-5.5 — Frontend", [
+            "codex", "exec", "--dangerously-bypass-approvals-and-sandbox", FRONTEND_SYSTEM + handoff,
+        ])
     return output
 
 
@@ -340,9 +345,10 @@ def run_agents(args, handoff: str, is_revision: bool = False) -> tuple:
     br = fr = {k: "none" for k in ["files_written", "features_added", "fixes_applied", "framework_changes", "issues"]}
     backend_out = frontend_out = ""
     model = _resolve_gemini_model(getattr(args, "model", None))
+    agent = getattr(args, "agent", "codex") or "codex"
 
     if args.frontend_only:
-        frontend_out = run_frontend(handoff)
+        frontend_out = run_frontend(handoff, agent=agent, model=model)
         fr = parse_report(frontend_out)
     elif args.backend_only:
         backend_out = run_backend(handoff, model)
@@ -350,7 +356,7 @@ def run_agents(args, handoff: str, is_revision: bool = False) -> tuple:
     else:
         backend_out = run_backend(handoff, model)
         br = parse_report(backend_out)
-        frontend_out = run_frontend(handoff)
+        frontend_out = run_frontend(handoff, agent=agent, model=model)
         fr = parse_report(frontend_out)
 
     _print_summary(br, fr)
@@ -366,6 +372,8 @@ def main():
     parser.add_argument("--frontend-only", action="store_true")
     parser.add_argument("--model", metavar="ALIAS",
                         help="Gemini model alias: flash (default), pro. Example: --model flash")
+    parser.add_argument("--agent", metavar="NAME", default="codex",
+                        help="Frontend agent: gemini | codex (default). Example: --agent gemini")
     parser.add_argument("--test", metavar="PROMPT", help="Smoke-test both CLIs")
     parser.add_argument("--submit-review", action="store_true",
                         help="Parse ## Claude Review from handoff.md and PATCH verdict to DB")
@@ -415,7 +423,9 @@ def main():
     print(f"  Mode     : {mode}")
     print(f"  Revision : {'yes #' + str(rev_num + 1) if is_revision else 'no (initial run)'}")
     print(f"  Backend  : {_resolve_gemini_model(args.model)} (gemini CLI)")
-    print(f"  Frontend : GPT-5.5           (codex CLI)")
+    fe_agent = getattr(args, "agent", "codex") or "codex"
+    fe_label = f"{_resolve_gemini_model(args.model)} (gemini CLI)" if fe_agent == "gemini" else "GPT-5.5 (codex CLI)"
+    print(f"  Frontend : {fe_label}")
     print(f"{'='*60}")
 
     backend_out, frontend_out, br, fr = run_agents(args, handoff, is_revision=is_revision)

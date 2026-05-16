@@ -1,20 +1,19 @@
 from ..app import ERP
-from .models import Organization, Currency, Uom, PriceType, Charge, ExchangeRate, Setting, ModeOfPayment, OrganizationPaymentAccount, PrintTemplate, Notification
-from .workflow_models import WorkflowTemplate, WorkflowState, WorkflowTransition, WorkflowAction
-from core.registry.series import Series
 from . import views  # Trigger view registration
+
+from core.logic.discovery import autodiscover_models
+from .models import * # Import all models for discovery
+from .workflow_models import * # Import all models from workflow_models for discovery
+from core.registry.series import Series # Import Series directly, autodiscovery will pick it up if it's an ArasModel
 
 class Config(ERP):
     app_name = "erp_config"
     app_label = "ERP Settings"
     icon = "Settings"
 
-    models = [
-        Organization, Currency, Uom, PriceType, Charge, ExchangeRate, Setting,
-        ModeOfPayment, OrganizationPaymentAccount, PrintTemplate, Notification,
-        WorkflowTemplate, WorkflowState, WorkflowTransition, WorkflowAction,
-        Series,
-    ]
+    models = autodiscover_models(__name__, [
+        "models", "workflow_models"
+    ]) + autodiscover_models("core.registry", ["series"])
 
     menu_groups = [
         {

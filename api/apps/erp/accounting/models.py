@@ -4,10 +4,12 @@ from sqlalchemy import String, ForeignKey, Float, Date, Integer, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core import Aras
 from ..base import MasterDataBase, DocumentBase, LineItemBase
+from .services.recalc_mixin import DocumentRecalcMixin
 
 class Account(MasterDataBase):
     __tablename__ = "erp_accounting_accounts"
     
+    code: Mapped[str] = mapped_column(String(20), info={"pattern": "^[a-zA-Z0-9]{1,20}$"})
     account_type: Mapped[str] = mapped_column(String(50), info={"choices": [
         "asset_current", "asset_fixed", "asset_other",
         "liability_current", "liability_long",
@@ -20,6 +22,12 @@ class Account(MasterDataBase):
     is_group: Mapped[bool] = mapped_column(Boolean, default=False)
     
     parent: Mapped[Optional["Account"]] = relationship("Account", remote_side="Account.id", backref="children")
+
+    @Aras.model_action(name="reconcile", permission="edit", label="Reconcile", icon="GitMerge")
+    def reconcile(self, db):
+        from .services.reconciliation import ReconciliationService
+        result = ReconciliationService.reconcile_account(db, self.id, self.org_id)
+        return {"message": f"Reconciled {result['matched']} entries. Unmatched GL: {result['unmatched_gl']}, Payments: {result['unmatched_payments']}"}
 
 class FiscalPeriod(MasterDataBase):
     __tablename__ = "erp_accounting_fiscal_periods"
@@ -60,7 +68,7 @@ class JournalEntryLine(LineItemBase):
     
     parent: Mapped["JournalEntry"] = relationship("JournalEntry", back_populates="lines")
 
-class InflowOrder(DocumentBase):
+class InflowOrder(DocumentBase, DocumentRecalcMixin):
     __tablename__ = "erp_accounting_inflow_orders"
     
     party_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
@@ -70,15 +78,6 @@ class InflowOrder(DocumentBase):
     
     lines: Mapped[list["InflowOrderLine"]] = relationship("InflowOrderLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["InflowOrderCharge"]] = relationship("InflowOrderCharge", back_populates="parent", cascade="all, delete-orphan")
-
-    def recalc(self):
-        from .services.recalc import recalc_document
-        recalc_document(self)
-
-    @Aras.on_update
-    @Aras.on_create
-    def on_save(self):
-        self.recalc()
 
     @Aras.model_action(name="create_invoice", permission="edit", label="Create Invoice")
     def create_invoice(self):
@@ -109,7 +108,7 @@ class InflowOrderCharge(LineItemBase):
     
     parent: Mapped["InflowOrder"] = relationship("InflowOrder", back_populates="charges")
 
-class InflowInvoice(DocumentBase):
+class InflowInvoice(DocumentBase, DocumentRecalcMixin):
     __tablename__ = "erp_accounting_inflow_invoices"
 
     party_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
@@ -122,15 +121,6 @@ class InflowInvoice(DocumentBase):
 
     lines: Mapped[list["InflowInvoiceLine"]] = relationship("InflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["InflowInvoiceCharge"]] = relationship("InflowInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
-
-    def recalc(self):
-        from .services.recalc import recalc_document
-        recalc_document(self)
-
-    @Aras.on_update
-    @Aras.on_create
-    def on_save(self):
-        self.recalc()
 
     @Aras.computed_field
     def amount_paid(self) -> float:
@@ -176,7 +166,7 @@ class InflowInvoiceCharge(LineItemBase):
     parent: Mapped["InflowInvoice"] = relationship("InflowInvoice", back_populates="charges")
 
 
-class OutflowOrder(DocumentBase):
+class OutflowOrder(DocumentBase, DocumentRecalcMixin):
     __tablename__ = "erp_accounting_outflow_orders"
     
     supplier_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
@@ -186,15 +176,6 @@ class OutflowOrder(DocumentBase):
     
     lines: Mapped[list["OutflowOrderLine"]] = relationship("OutflowOrderLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["OutflowOrderCharge"]] = relationship("OutflowOrderCharge", back_populates="parent", cascade="all, delete-orphan")
-
-    def recalc(self):
-        from .services.recalc import recalc_document
-        recalc_document(self)
-
-    @Aras.on_update
-    @Aras.on_create
-    def on_save(self):
-        self.recalc()
 
     @Aras.model_action(name="create_invoice", permission="edit", label="Create Invoice")
     def create_invoice(self):
@@ -225,7 +206,7 @@ class OutflowOrderCharge(LineItemBase):
     
     parent: Mapped["OutflowOrder"] = relationship("OutflowOrder", back_populates="charges")
 
-class OutflowInvoice(DocumentBase):
+class OutflowInvoice(DocumentBase, DocumentRecalcMixin):
     __tablename__ = "erp_accounting_outflow_invoices"
     
     supplier_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
@@ -238,15 +219,6 @@ class OutflowInvoice(DocumentBase):
 
     lines: Mapped[list["OutflowInvoiceLine"]] = relationship("OutflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["OutflowInvoiceCharge"]] = relationship("OutflowInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
-
-    def recalc(self):
-        from .services.recalc import recalc_document
-        recalc_document(self)
-
-    @Aras.on_update
-    @Aras.on_create
-    def on_save(self):
-        self.recalc()
 
     @Aras.computed_field
     def amount_paid(self) -> float:
@@ -348,6 +320,7 @@ class GoodsReceiptNote(DocumentBase):
     def receive(self):
         from sqlalchemy.orm import object_session
         from ...stock.models import StockMovement, StockMovementLine
+        from ...stock.services.valuation import InventoryValuationService # Import valuation service
 
         db = object_session(self)
         if self.status != "Draft":
@@ -376,6 +349,16 @@ class GoodsReceiptNote(DocumentBase):
                 org_id=self.org_id
             )
             db.add(sm_line)
+            
+            # Call InventoryValuationService.receive for each GRN line
+            InventoryValuationService.receive(
+                db, 
+                line.product_id, 
+                self.org_id, 
+                line.quantity_received, 
+                line.unit_cost,
+                source_ref=self.number # Use GRN number as source reference for the stock layer
+            )
 
         self.status = "Received"
         db.commit()

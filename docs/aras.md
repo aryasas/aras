@@ -376,3 +376,8 @@ ERP module skeleton (Part B): Unified `erp` application registered under `api/ap
 ## Framework Change: Purchase Flow (GRN, AP matching) + Reporting (Trial Balance, P&L, AR/AP Aging) — revision (2026-05-16)
   - [Gemini] Enhanced ReportService to support a `{today}` placeholder in SQL queries.
   - [Codex/GPT-5.5] <!-- filled by agent -->
+
+
+---
+## Framework Change: Go 1+2 — Auto-discovery, Saved Filters, Inventory Valuation, GL Reconciliation, Toast Queue, Dark Mode Charts, Service Return Type Consistency — revision (2026-05-16)
+  - [Gemini] `autodiscover_models` function added to `api/core/logic/discovery.py`; updated `Aras.App` `models` loading logic for several ERP sub-apps.

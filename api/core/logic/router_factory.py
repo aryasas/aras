@@ -54,7 +54,7 @@ def _inject_scope_payload(model_class: Type[Any], request: Request, payload: dic
                 if not col.nullable and col.default is None and col.server_default is None:
                     raise HTTPException(
                         status_code=400,
-                        detail=f"No active scope for '{field}'. Please select a context first."
+                        detail=_create_error_detail(f"No active scope for '{field}'. Please select a context first.")
                     )
     return payload
 
@@ -66,12 +66,21 @@ def _check_scope_ownership(model_class: Type[Any], request: Request, item: Any):
     for field in _scope_fields(model_class):
         val = scope.get(field)
         if val is not None and getattr(item, field, None) != val:
-            raise HTTPException(status_code=404, detail="Item not found")
+            raise HTTPException(status_code=404, detail=_create_error_detail("Item not found"))
 
 
 def _create_success_response(data: Any, message: str = "Operation successful.") -> dict:
     """Creates a standardized success response dictionary."""
     return {"success": True, "data": data, "message": message, "error": None}
+
+def _create_error_detail(message: str, error_detail: Optional[str] = None) -> dict:
+    """Creates a standardized error detail dictionary for HTTPException."""
+    return {
+        "success": False,
+        "data": None,
+        "message": message,
+        "error": error_detail or message
+    }
 
 
 class RouterFactory(Router):
@@ -228,7 +237,7 @@ class RouterFactory(Router):
                 try:
                     parsed_filters = json.loads(filters)
                 except:
-                    raise HTTPException(status_code=400, detail="Invalid filters format. Must be JSON.")
+                    raise HTTPException(status_code=400, detail=_create_error_detail("Invalid filters format. Must be JSON."))
 
             parsed_filters = _apply_scope_filters(model_class, request, list(parsed_filters or []))
 
@@ -256,7 +265,7 @@ class RouterFactory(Router):
             parsed_filters = None
             if filters:
                 try: parsed_filters = json.loads(filters)
-                except: raise HTTPException(status_code=400, detail="Invalid filters format")
+                except: raise HTTPException(status_code=400, detail=_create_error_detail("Invalid filters format"))
 
             # 1. Build Query
             stmt = model_class._q()
@@ -269,7 +278,7 @@ class RouterFactory(Router):
             # 2. Fetch All (Warning: Large datasets might need chunking, but for MVP we fetch all)
             items = db.scalars(stmt).all()
             if not items:
-                raise HTTPException(status_code=404, detail="No items to export")
+                raise HTTPException(status_code=404, detail=_create_error_detail("No items to export"))
 
             # 3. Create CSV in Memory
             output = io.StringIO()
@@ -293,12 +302,12 @@ class RouterFactory(Router):
         ):
             """Imports records from a CSV file via background task with optional mapping."""
             if not file.filename.endswith(".csv"):
-                raise HTTPException(status_code=400, detail="Only CSV files are supported")
+                raise HTTPException(status_code=400, detail=_create_error_detail("Only CSV files are supported"))
 
             parsed_mapping = None
             if mapping:
                 try: parsed_mapping = json.loads(mapping)
-                except: raise HTTPException(status_code=400, detail="Invalid mapping format")
+                except: raise HTTPException(status_code=400, detail=_create_error_detail("Invalid mapping format"))
 
             content = await file.read()
             stream = io.StringIO(content.decode("utf-8"))
@@ -349,7 +358,7 @@ class RouterFactory(Router):
             """Fetches a single record by ID."""
             item = model_class.get(db, item_id)
             if not item:
-                raise HTTPException(status_code=404, detail="Item not found")
+                raise HTTPException(status_code=404, detail=_create_error_detail("Item not found"))
             _check_scope_ownership(model_class, request, item)
             res = item.to_dict()
             model_class.resolve_labels(db, [res])
@@ -366,7 +375,7 @@ class RouterFactory(Router):
             """Updates an existing record with hooks support."""
             item = model_class.get(db, item_id)
             if not item:
-                raise HTTPException(status_code=404, detail="Item not found")
+                raise HTTPException(status_code=404, detail=_create_error_detail("Item not found"))
             _check_scope_ownership(model_class, request, item)
 
             payload = data.model_dump(exclude_unset=True)
@@ -386,7 +395,7 @@ class RouterFactory(Router):
             """Partially updates an existing record."""
             item = model_class.get(db, item_id)
             if not item:
-                raise HTTPException(status_code=404, detail="Item not found")
+                raise HTTPException(status_code=404, detail=_create_error_detail("Item not found"))
             _check_scope_ownership(model_class, request, item)
 
             payload = data.model_dump(exclude_unset=True)
@@ -404,7 +413,7 @@ class RouterFactory(Router):
             """Deletes or soft-deletes a record."""
             item = model_class.get(db, item_id)
             if not item:
-                raise HTTPException(status_code=404, detail="Item not found")
+                raise HTTPException(status_code=404, detail=_create_error_detail("Item not found"))
 
             item.delete_self(db, user_id=user.id)
             return _create_success_response({"id": item_id}, "Item deleted successfully.")
@@ -441,9 +450,9 @@ class RouterFactory(Router):
                 from sqlalchemy import select as sa_select
                 item = db.scalar(sa_select(model_class).where(model_class.id == item_id))
                 if not item:
-                    raise HTTPException(status_code=404, detail="Item not found")
+                    raise HTTPException(status_code=404, detail=_create_error_detail("Item not found"))
                 if item.deleted_at is None:
-                    raise HTTPException(status_code=400, detail="Record is not deleted")
+                    raise HTTPException(status_code=400, detail=_create_error_detail("Record is not deleted"))
                 item.deleted_at = None
                 item.updated_by = user.id
                 db.commit()
@@ -489,7 +498,7 @@ class RouterFactory(Router):
                         results.append({"action": "create", "id": item.id, "status": "ok"})
                     elif op.action == "update":
                         if not op.id:
-                            raise HTTPException(status_code=400, detail="update requires id")
+                            raise HTTPException(status_code=400, detail=_create_error_detail("update requires id"))
                         item = model_class.get(db, op.id)
                         if not item:
                             results.append({"action": "update", "id": op.id, "status": "not_found"})
@@ -498,7 +507,7 @@ class RouterFactory(Router):
                         results.append({"action": "update", "id": op.id, "status": "ok"})
                     elif op.action == "delete":
                         if not op.id:
-                            raise HTTPException(status_code=400, detail="delete requires id")
+                            raise HTTPException(status_code=400, detail=_create_error_detail("delete requires id"))
                         item = model_class.get(db, op.id)
                         if not item:
                             results.append({"action": "delete", "id": op.id, "status": "not_found"})
@@ -506,12 +515,12 @@ class RouterFactory(Router):
                         item.delete_self(db, user_id=user.id)
                         results.append({"action": "delete", "id": op.id, "status": "ok"})
                     else:
-                        raise HTTPException(status_code=400, detail=f"Unknown action: {op.action}")
+                        raise HTTPException(status_code=400, detail=_create_error_detail(f"Unknown action: {op.action}"))
             except HTTPException:
                 raise
             except Exception as e:
                 db.rollback()
-                raise HTTPException(status_code=500, detail=str(e))
+                raise HTTPException(status_code=500, detail=_create_error_detail("Internal Server Error", error_detail=str(e)))
             
             data = {"results": results, "count": len(results)}
             return _create_success_response(data, "Batch operation completed.")
@@ -535,7 +544,7 @@ class RouterFactory(Router):
                     ):
                         item = model_class.get(db, item_id)
                         if not item:
-                            raise HTTPException(status_code=404, detail="Item not found")
+                            raise HTTPException(status_code=404, detail=_create_error_detail("Item not found"))
                         
                         try:
                             # Pass input data to handler
@@ -546,7 +555,7 @@ class RouterFactory(Router):
                             return _create_success_response({"result": result}, message)
                         except Exception as e:
                             db.rollback()
-                            raise HTTPException(status_code=500, detail=str(e))
+                            raise HTTPException(status_code=500, detail=_create_error_detail("Internal Server Error", error_detail=str(e)))
                 else:
                     @router.post(f"/{{item_id}}/action/{name}", response_model=dict)
                     async def run_custom_action(
@@ -556,7 +565,7 @@ class RouterFactory(Router):
                     ):
                         item = model_class.get(db, item_id)
                         if not item:
-                            raise HTTPException(status_code=404, detail="Item not found")
+                            raise HTTPException(status_code=404, detail=_create_error_detail("Item not found"))
                         
                         try:
                             handler = getattr(item, action.handler.__name__)
@@ -566,7 +575,7 @@ class RouterFactory(Router):
                             return _create_success_response({"result": result}, message)
                         except Exception as e:
                             db.rollback()
-                            raise HTTPException(status_code=500, detail=str(e))
+                            raise HTTPException(status_code=500, detail=_create_error_detail("Internal Server Error", error_detail=str(e)))
             
             create_action_route(action_name, model_action)
 

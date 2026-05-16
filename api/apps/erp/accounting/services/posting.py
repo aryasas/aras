@@ -3,7 +3,7 @@ from ..models import InflowInvoice, OutflowInvoice
 from .journal import JournalService
 from ...stock.services.coa_resolver import CoaResolver
 from ...stock.services.uom import UomService
-
+from ...stock.services.valuation import InventoryValuationService # Import valuation service
 
 def _create_stock_movement(db: Session, invoice_number: str, org_id: int, move_type: str, lines_data: list[dict], currency_id: int = None) -> None:
     """Create a Posted StockMovement from invoice lines — only when perpetual inventory is enabled."""
@@ -36,7 +36,7 @@ def _create_stock_movement(db: Session, invoice_number: str, org_id: int, move_t
             product_id=ld["product_id"],
             qty=qty_base,
             uom_id=base_uom_id,
-            unit_cost=ld.get("unit_cost", 0),
+            unit_cost=ld.get("unit_cost", 0), # This unit_cost is for the StockMovementLine, not valuation
             from_location_id=loc.id if move_type == "Outgoing" else None,
             to_location_id=loc.id if move_type == "Incoming" else None,
         )
@@ -90,7 +90,7 @@ class InvoicePostingService:
                 lines[-1]["credit"] += charge_line.amount
 
         try:
-            JournalService.post_entry(
+            journal_entry = JournalService.post_entry( # Store journal_entry for consistent return
                 db, org_id, lines,
                 reference=invoice.number,
                 narrative=f"Auto-posted from Inflow Invoice {invoice.number}",
@@ -102,10 +102,10 @@ class InvoicePostingService:
             ], currency_id=invoice.currency_id)
             invoice.status = "Posted"
             db.commit()
-            return True
+            return {"success": True, "message": "Inflow Invoice posted successfully.", "journal_entry_id": journal_entry.id}
         except Exception as e:
             db.rollback()
-            return {"error": str(e)}
+            return {"success": False, "message": str(e), "journal_entry_id": None}
 
     @staticmethod
     def post_outflow_invoice(db: Session, invoice: OutflowInvoice):
@@ -124,10 +124,13 @@ class InvoicePostingService:
             cogs_account = CoaResolver.resolve_cogs_account(db, inv_line.product_id, org_id)
             if not cogs_account:
                 return {"error": f"Expense/COGS account not found for product {inv_line.product_id}"}
-            line_total = inv_line.qty * (inv_line.unit_price - inv_line.discount)
+            
+            # --- COGS calculation using FIFO valuation ---
+            cost_of_goods_sold = InventoryValuationService.consume(db, inv_line.product_id, org_id, inv_line.qty)
+            
             lines.append({
                 "account_id": cogs_account.id,
-                "debit": line_total,
+                "debit": cost_of_goods_sold,
                 "credit": 0,
                 "description": f"Outflow Expense from {invoice.number}"
             })
@@ -155,13 +158,17 @@ class InvoicePostingService:
         })
 
         try:
-            JournalService.post_entry(
+            journal_entry = JournalService.post_entry( # Store journal_entry for consistent return
                 db, org_id, lines,
                 reference=invoice.number,
                 narrative=f"Auto-posted from Outflow Invoice {invoice.number}",
                 currency_id=invoice.currency_id,
             )
             # If a GRN is linked, the stock movement has already been created there.
+            # If no GRN, and this is an incoming transaction, use valuation service to 'receive' stock.
+            # This logic needs to be carefully aligned with actual stock movements.
+            # The _create_stock_movement here is for tracking 'movements', not for creating valuation layers.
+            # Stock layers are created when GRNs are posted.
             if not invoice.grn_id:
                 _create_stock_movement(db, invoice.number, org_id, "Incoming", [
                     {"product_id": l.product_id, "qty": l.qty, "uom_id": l.uom_id, "unit_cost": l.unit_price - l.discount}
@@ -170,8 +177,8 @@ class InvoicePostingService:
             
             invoice.status = "Posted"
             db.commit()
-            return True
+            return {"success": True, "message": "Outflow Invoice posted successfully.", "journal_entry_id": journal_entry.id}
         except Exception as e:
             db.rollback()
-            return {"error": str(e)}
+            return {"success": False, "message": str(e), "journal_entry_id": None}
  str(e)}

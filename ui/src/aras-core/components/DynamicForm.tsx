@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import ListView from './ListView';
 import { InlineChildTable } from './InlineChildTable';
-import { SchemaRegistry } from '../services/SchemaRegistry';
+import { resolveFieldComponent } from '../SchemaRegistry';
 import { useAras } from '../hooks/useAras';
 import { useUIStore } from '../../store/uiStore';
 import { LogicEvaluator } from '../../lib/LogicEvaluator';
@@ -127,6 +127,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [loading, setLoading] = useState(true);
+  const [metadataLoading, setMetadataLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [workflowActions, setWorkflowActions] = useState<WorkflowAction[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -170,14 +171,27 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   }, [id]);
 
   useEffect(() => {
-    const init = async () => {
+    const fetchMetadata = async () => {
+      try {
+        setMetadataLoading(true);
+        const cleanResource = cleanResourcePath(resource);
+        const metaRes = await api.get(`/metadata/${cleanResource}`);
+        setMetadata(metaRes.data);
+        setMetadataLoading(false);
+      } catch (err: any) {
+        notify(err.response?.data?.detail || "Failed to load metadata", "error");
+        setMetadataLoading(false);
+      }
+    };
+    fetchMetadata();
+  }, [resource, notify]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!metadata) return; // Wait for metadata to be loaded
       try {
         setLoading(true);
         const cleanResource = cleanResourcePath(resource);
-        
-        const metaRes = await api.get(`/metadata/${cleanResource}`);
-        const meta = metaRes.data;
-        setMetadata(meta);
 
         const queryResource = searchParams.get('resource');
         if (queryResource && cleanResource.replace(/-/g, '_') === 'aras_fields') {
@@ -198,12 +212,12 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         }
 
         if (id != null && id !== 'new') {
-          const resourceApiPath = meta.api_path || cleanResource;
+          const resourceApiPath = metadata.api_path || cleanResource;
           const dataRes = await api.get(`/${resourceApiPath}/${id}`);
           setFormData(dataRes.data);
 
           // Load existing child rows for every child_table field
-          const childFields = meta.fields.filter((f: any) => f.type === 'child_table' && f.target_resource);
+          const childFields = metadata.fields.filter((f: any) => f.type === 'child_table' && f.target_resource);
           if (childFields.length > 0) {
             const childData: Record<string, any[]> = {};
             await Promise.all(childFields.map(async (f: any) => {
@@ -221,7 +235,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             setChildRows(childData);
           }
 
-          if (meta.workflow) {
+          if (metadata.workflow) {
             try {
               const actionRes = await api.get(`/workflow/${cleanResource}/${id}/actions`);
               setWorkflowActions(actionRes.data);
@@ -234,7 +248,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           const defaults: any = { ...initialData };
           if (activeCompanyId && !defaults['company_id']) defaults['company_id'] = activeCompanyId;
           if (activeCompanyId && !defaults['org_id']) defaults['org_id'] = activeCompanyId;
-          meta.fields.forEach((f: any) => {
+          metadata.fields.forEach((f: any) => {
              if (defaults[f.name] !== undefined) return;
              if (f.default_value) {
                 defaults[f.name] = f.default_value;
@@ -263,8 +277,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         setLoading(false);
       }
     };
-    init();
-  }, [resource, id, notify, initialData, refreshTrigger, searchParams, parentResourceTitle, activeCompanyId]);
+    fetchData();
+  }, [resource, id, notify, initialData, refreshTrigger, searchParams, parentResourceTitle, activeCompanyId, metadata]);
 
   const handleChange = (name: string, value: any) => {
     setFormData((prev: any) => ({ ...prev, [name]: value }));
@@ -474,16 +488,105 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     }
   };
 
-  if (loading) return (
-    <div className="p-8 space-y-5 animate-pulse">
-      {[...Array(4)].map((_, i) => (
-        <div key={i} className="space-y-2">
-          <div className="h-3 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
-          <div className="h-9 w-full bg-slate-200 dark:bg-slate-700 rounded" />
-        </div>
-      ))}
+  if (metadataLoading) return (
+    <div className="p-8 flex items-center justify-center text-slate-400 text-sm animate-pulse">
+      Loading metadata...
     </div>
   );
+  if (!metadata) return <div className="p-12 text-center text-red-500">Metadata not found.</div>;
+
+  if (loading) {
+    const visibleFields = metadata.fields.filter(f => !f.hidden && !f.form_hidden && f.type !== 'child_table');
+    const childTableFields = metadata.fields.filter(f => f.type === 'child_table');
+    const totalSkeletons = visibleFields.length + childTableFields.length; // Count of form fields and child tables
+
+    return (
+      <div className="p-8 space-y-6 animate-pulse">
+        {/* Skeleton for Header */}
+        <div className="flex items-center justify-between bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 bg-slate-200 rounded-xl" />
+            <div>
+              <div className="h-5 w-48 bg-slate-200 rounded-md mb-1" />
+              <div className="h-3 w-32 bg-slate-200 rounded-md" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-9 w-20 bg-slate-200 rounded-xl" />
+            <div className="h-9 w-24 bg-indigo-200 rounded-xl" />
+          </div>
+        </div>
+
+        {/* Skeleton for Main Form Content */}
+        <div className="space-y-6">
+          {metadata.layout && metadata.layout.length > 0 ? (
+            metadata.layout.map((section, idx) => {
+              const sectionFields = section.fields
+                .map(fieldName => metadata.fields.find(f => f.name === fieldName))
+                .filter((f): f is Field => !!f);
+              const normalFields = sectionFields.filter(f => !f.hidden && !f.form_hidden && f.type !== 'child_table');
+              const childFields = sectionFields.filter(f => f.type === 'child_table');
+
+              return (
+                <React.Fragment key={idx}>
+                  {normalFields.length > 0 && (
+                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                      <div className="px-8 py-4 bg-slate-50 border-b border-slate-100">
+                        <div className="h-4 w-32 bg-slate-200 rounded" />
+                      </div>
+                      <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {normalFields.map((f, i) => (
+                          <div key={i} className="space-y-2">
+                            <div className="h-3 w-24 bg-slate-200 rounded" />
+                            <div className="h-9 w-full bg-slate-200 rounded" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {childFields.map((f, i) => (
+                    <div key={i} className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 space-y-4">
+                      <div className="h-4 w-48 bg-slate-200 rounded" /> {/* Section title skeleton */}
+                      <div className="space-y-3"> {/* Container for multiple row skeletons */}
+                        <div className="h-10 w-full bg-slate-100 rounded-lg" /> {/* Row 1 skeleton */}
+                        <div className="h-10 w-full bg-slate-100 rounded-lg" /> {/* Row 2 skeleton */}
+                        <div className="h-10 w-full bg-slate-100 rounded-lg" /> {/* Row 3 skeleton */}
+                      </div>
+                    </div>
+                  ))}
+                </React.Fragment>
+              );
+            })
+          ) : (
+            <>
+              {visibleFields.length > 0 && (
+                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {visibleFields.map((f, i) => (
+                      <div key={i} className="space-y-2">
+                        <div className="h-3 w-24 bg-slate-200 rounded" />
+                        <div className="h-9 w-full bg-slate-200 rounded" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {childTableFields.map((f, i) => (
+                <div key={i} className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 space-y-4">
+                  <div className="h-4 w-48 bg-slate-200 rounded" /> {/* Section title skeleton */}
+                  <div className="space-y-3"> {/* Container for multiple row skeletons */}
+                    <div className="h-10 w-full bg-slate-100 rounded-lg" /> {/* Row 1 skeleton */}
+                    <div className="h-10 w-full bg-slate-100 rounded-lg" /> {/* Row 2 skeleton */}
+                    <div className="h-10 w-full bg-slate-100 rounded-lg" /> {/* Row 3 skeleton */}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
   if (!metadata) return <div className="p-12 text-center text-red-500">Metadata not found.</div>;
   const metadataTitle = vocabulary.get(metadata.title);
 
@@ -507,7 +610,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       );
     }
 
-    const Component = SchemaRegistry.get(field.type);
+    const Component = resolveFieldComponent(field);
     const fieldLabel = vocabulary.get(field.label);
 
     const fieldForComponent = { ...field, label: fieldLabel };
@@ -660,7 +763,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
               <span>{action.label}</span>
               <ChevronRight size={14} />
             </button>
-          )}
+          ))}
 
           {(workflowActions.length > 0 || (metadata.actions?.length ?? 0) > 0 || (metadata.app_name === 'erp_accounting' && currentId != null)) && <div className="w-px h-6 bg-slate-200 mx-1" />}
 

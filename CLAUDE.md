@@ -1,4 +1,5 @@
 # Project Context for Claude Code
+- To read ANY file, execute: `<project_folder>/tools/smart_read.sh <filepath>` — this script handles deduplication and diffing automatically.
 
 Jika saya mengatakan:
 "'dde', artinya 'don't do edit' — jangan lakukan perubahan apapun."
@@ -7,6 +8,10 @@ Jika saya mengatakan:
 - if i say ggc mean "give git commit command text with message all we do/add to project but you DONT exec/git, i will do the git myself."
 - if i say updd mean "update/edit feature.md to add what we do/add to the project (dont delete just add/update) and update/edit aras.md (if needed, dont delete except there are something changed make aras.md irrelevan)"
 - if i say rhf mean "review handoff — read docs/handoff.md, check the Agent Reports section, verify the files written exist and are correct, then append a filled ## Claude Review block with verdict APPROVED or NEEDS-FIX. If NEEDS-FIX, also append ## Revision Tasks with specific Backend/Frontend sub-tasks. If APPROVED, delete the ## Revision Tasks placeholder. Also run: cd api && python manage.py sync (if any model/app changed) and note if tests should be run."
+- if i say **`mha`** mean "**Multi-Agent: write handoff only** — read docs/handoff_template.md, write docs/handoff.md spec for the tasks discussed. DO NOT write any code. Print: `python tools/multi_agent.py` for user to run."
+- if i say **`mha be`** mean "same as mha but print: `python tools/multi_agent.py --backend-only`"
+- if i say **`mha fe`** mean "same as mha but print: `python tools/multi_agent.py --frontend-only`"
+- if i say **`mha test`** mean "print: `python tools/multi_agent.py --test 'hello'` — for smoke-testing both CLIs"
 - aras framework login credential: user: admin pass: admin
 
 Rubah file ini hanya MULAI DARI BARIS 106. JANGAN HAPUS BARIS SEBELUM BARIS 106.
@@ -119,13 +124,6 @@ When writing `docs/handoff.md` for `tools/multi_agent.py`:
 - **Keep specs SHORT** — task list + intent only. Agents have `docs/aras.md` in their context.
 - Format: `ACTION \`path/to/file\` — intent + key fields only` (Actions: `NEW FILE`, `UPDATE`, `DELETE`)
 - Use `docs/handoff_template.md` as the template.
-
-## Multi-Agent Shortcut Commands
-
-- if i say **`mha`** mean "**Multi-Agent: write handoff only** — read docs/handoff_template.md, write docs/handoff.md spec for the tasks discussed. DO NOT write any code. Print: `python tools/multi_agent.py` for user to run."
-- if i say **`mha be`** mean "same as mha but print: `python tools/multi_agent.py --backend-only`"
-- if i say **`mha fe`** mean "same as mha but print: `python tools/multi_agent.py --frontend-only`"
-- if i say **`mha test`** mean "print: `python tools/multi_agent.py --test 'hello'` — for smoke-testing both CLIs"
 
 ## Change Logging Rule (MANDATORY — no exceptions)
 

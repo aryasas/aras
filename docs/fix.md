@@ -93,3 +93,7 @@
 
 ## Purchase Flow (GRN, AP matching) + Reporting (Trial Balance, P&L, AR/AP Aging) — revision (2026-05-16)
   - [Codex/GPT-5.5] <!-- filled by agent -->
+
+
+## CMP Phase — DRY refactor + UX gaps + error normalization — revision (2026-05-16)
+  - [Gemini] Corrected import path in print_router.py.

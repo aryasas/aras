@@ -7,16 +7,18 @@ import {
   CheckSquare, Square, X,
   ChevronDown, ChevronUp
 } from 'lucide-react'
-import { FormattingService } from '../services/FormattingService'
+import { resolveFieldComponent, resolveFilterComponent } from '../SchemaRegistry'
 import { useAras } from '../hooks/useAras'
 import { useUIStore } from '../../store/uiStore'
 import { ImportMapping } from './ImportMapping'
 import Combobox from './Combobox'
+
 import ListToolbar from './ListToolbar'
 import type { ViewMode } from './ListToolbar'
 import TreeView from './TreeView'
 import GenericReport from './GenericReport'
 import { useVocabulary } from '../../context/VocabularyContext'
+import { FormattingService } from '../services/FormattingService'
 
 interface Field {
   name: string
@@ -42,8 +44,16 @@ interface FilterRule {
   value: any
 }
 
-const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: { 
-  resource: string, 
+interface SavedFilter {
+  id: string;
+  resource: string;
+  name: string;
+  filters_json: string;
+  is_default: boolean;
+}
+
+const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
+  resource: string,
   onRowClick?: (id: string | number) => void,
   onAdd?: () => void,
   fixedFilters?: Record<string, any>
@@ -54,8 +64,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const { notify, confirm } = useAras()
-  
+  const { notify, confirm, appName } = useAras()
+
   // Query State
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(20)
@@ -65,6 +75,9 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const [filters, setFilters] = useState<FilterRule[]>([])
   const [orderBy, setOrderBy] = useState('id')
   const [desc, setDesc] = useState(true)
+
+  // Saved Filters State
+  const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
 
   // UI State
   const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -94,18 +107,38 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
 
   // Fetch Metadata & Initial Data
   useEffect(() => {
-    const fetchMetadata = async () => {
+    const fetchMetadataAndSavedFilters = async () => {
       try {
         const cleanResource = cleanResourcePath(resource)
-        const res = await api.get(`/metadata/${cleanResource}`)
-        setMetadata(res.data)
-        setVisibleColumns(res.data.fields.filter((f: Field) => !f.hidden).map((f: Field) => f.name))
+        const [metadataRes, savedFiltersRes] = await Promise.all([
+          api.get(`/metadata/${cleanResource}`),
+          api.get(`/erp/saved-filters`, { params: { resource: cleanResource } })
+        ]);
+        setMetadata(metadataRes.data)
+        setSavedFilters(savedFiltersRes.data)
+
+        const localStorageKey = `${appName}.${cleanResource}.columnVisibility`;
+        const storedVisibleColumns = localStorage.getItem(localStorageKey);
+
+        if (storedVisibleColumns) {
+          setVisibleColumns(JSON.parse(storedVisibleColumns));
+        } else {
+          setVisibleColumns(metadataRes.data.fields.filter((f: Field) => !f.hidden).map((f: Field) => f.name));
+        }
       } catch (err: any) {
-        notify("Failed to load resource metadata", "error")
+        notify("Failed to load resource metadata or saved filters", "error")
       }
     }
-    fetchMetadata()
-  }, [resource, notify])
+    fetchMetadataAndSavedFilters()
+  }, [resource, notify, appName, fetchSavedFilters]) // Changed: Added fetchSavedFilters to dependency array
+  // Persist visibleColumns to localStorage
+  useEffect(() => {
+    if (metadata && visibleColumns.length > 0) { // Ensure metadata is loaded before saving
+      const cleanResource = cleanResourcePath(resource);
+      const localStorageKey = `${appName}.${cleanResource}.columnVisibility`;
+      localStorage.setItem(localStorageKey, JSON.stringify(visibleColumns));
+    }
+  }, [visibleColumns, metadata, resource, appName]);
 
   const fetchData = useCallback(async () => {
     if (!metadata) return
@@ -158,7 +191,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   }
 
   const handleSelectOne = (id: string | number) => {
-    setSelectedIds(prev => 
+    setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     )
   }
@@ -231,17 +264,19 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
       }
 
       const params = {
+        page,
+        per_page: perPage,
         search: search || undefined,
         filters: finalFilters.length > 0 ? JSON.stringify(finalFilters) : undefined,
         order_by: orderBy,
         desc
       }
       const cleanResource = cleanResourcePath(resource)
-      const res = await api.get(`/${cleanResource}/export`, { 
-        params, 
-        responseType: 'blob' 
+      const res = await api.get(`${dataPath}/`, {
+        params,
+        responseType: 'blob'
       })
-      
+
       const url = window.URL.createObjectURL(new Blob([res.data]))
       const link = document.createElement('a')
       link.href = url
@@ -271,7 +306,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
       // 2. Show Mapping Panel
       showPanel(
         `Import Mapping: ${metadata?.title}`,
-        <ImportMapping 
+        <ImportMapping
           csvHeaders={headers}
           resourceFields={metadata?.fields.filter(f => !f.read_only).map(f => ({ name: f.name, label: f.label })) || []}
           onCancel={closePanel}
@@ -326,6 +361,70 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     setFilters(newFilters)
   }
 
+  const fetchSavedFilters = useCallback(async () => {
+    try {
+      const cleanResource = cleanResourcePath(resource);
+      const res = await api.get(`/erp/saved-filters`, { params: { resource: cleanResource } });
+      setSavedFilters(res.data);
+    } catch (err: any) {
+      notify("Failed to load saved filters", "error");
+    }
+  }, [resource, notify]);
+
+  const handleSaveFilter = async () => {
+    if (filters.length === 0) {
+      notify("Cannot save an empty filter.", "info");
+      return;
+    }
+    const filterName = prompt("Enter a name for this filter:");
+    if (!filterName) return;
+
+    try {
+      await api.post(`/erp/saved-filters`, {
+        resource: cleanResourcePath(resource),
+        name: filterName,
+        filters_json: JSON.stringify(filters),
+        is_default: false, // Or allow user to choose
+      });
+      notify("Filter saved successfully!", "success");
+      fetchSavedFilters();
+    } catch (err: any) {
+      notify(err.response?.data?.detail || "Failed to save filter", "error");
+    }
+  };
+
+  const handleApplySavedFilter = async (filterId: string) => {
+    try {
+      const savedFilter = savedFilters.find(sf => sf.id === filterId);
+      if (savedFilter) {
+        setFilters(JSON.parse(savedFilter.filters_json));
+        setPage(1);
+        await fetchData(); // Changed: Added await here
+        notify(`Applied filter: ${savedFilter.name}`, "success");
+      }
+    } catch (err: any) {
+      notify("Failed to apply saved filter", "error");
+    }
+  };
+
+  const handleDeleteSavedFilter = async (filterId: string) => {
+    const ok = await confirm({
+      title: 'Delete Saved Filter',
+      message: 'Are you sure you want to delete this saved filter?',
+      type: 'danger',
+      confirmText: 'Delete'
+    });
+    if (!ok) return;
+
+    try {
+      await api.delete(`/erp/saved-filters/${filterId}`);
+      notify("Saved filter deleted.", "success");
+      fetchSavedFilters();
+    } catch (err: any) {
+      notify(err.response?.data?.detail || "Failed to delete saved filter", "error");
+    }
+  };
+
   if (error) return <div className="p-8 text-red-500 bg-red-50 rounded-xl border border-red-100">{error}</div>
   if (!metadata) return <div className="p-8 animate-pulse text-slate-400">Initializing {resource}...</div>
 
@@ -357,7 +456,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     <>
     <div className="flex flex-col h-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       {/* ── Toolbar ────────────────────────────────────────────────────────── */}
-      <ListToolbar 
+      <ListToolbar
         title={title}
         search={search}
         onSearchChange={setSearch}
@@ -379,6 +478,10 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         hasTreeSupport={hasTreeSupport}
+        onSaveFilter={handleSaveFilter}
+        onApplySavedFilter={handleApplySavedFilter}
+        onDeleteSavedFilter={handleDeleteSavedFilter}
+        savedFilters={savedFilters}
       />
 
         {/* ── Advanced Filter Builder ────────────────────────────────────── */}
@@ -392,8 +495,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
             </div>
             {filters.length === 0 ? (
               <p className="text-sm text-slate-400 italic">No filters applied. Add a rule to refine results.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            ) : (              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {filters.map((f, i) => (
                   <div key={i} className="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-200">
                     <div className="flex-1">
@@ -404,8 +506,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                         placeholder="Field..."
                       />
                     </div>
-                    <select 
-                      value={f.op} 
+                    <select
+                      value={f.op}
                       onChange={(e) => updateFilter(i, 'op', e.target.value)}
                       className="text-xs bg-indigo-50 text-indigo-700 rounded-lg p-2 outline-none font-bold h-[42px]"
                     >
@@ -417,36 +519,18 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                     </select>
                     <div className="flex-1">
                       {(() => {
-                        const field = fields.find(fd => fd.name === f.field)
-                        if (field?.type === 'lookup' && field.target_resource) {
-                          return (
-                            <Combobox 
-                              resource={field.target_resource}
-                              value={f.value}
-                              onChange={(val) => updateFilter(i, 'value', val)}
-                              placeholder="Value..."
-                            />
-                          )
-                        }
-                        if (field?.type === 'select' && field.options) {
-                          return (
-                            <Combobox 
-                              options={field.options}
-                              value={f.value}
-                              onChange={(val) => updateFilter(i, 'value', val)}
-                              placeholder="Value..."
-                            />
-                          )
-                        }
+                        const fieldDef = fields.find(fd => fd.name === f.field);
+                        if (!fieldDef) return null;
+                        const FilterComponent = resolveFilterComponent(fieldDef);
                         return (
-                          <input 
-                            type="text" 
+                          <FilterComponent
+                            field={fieldDef}
                             value={f.value}
-                            placeholder="Value..."
-                            onChange={(e) => updateFilter(i, 'value', e.target.value)}
-                            className="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs outline-none focus:ring-1 focus:ring-indigo-400"
+                            onChange={(val) => updateFilter(i, 'value', val)}
+                            formData={{}} // Not relevant for filter component
+                            disabled={false}
                           />
-                        )
+                        );
                       })()}
                     </div>
                     <button onClick={() => removeFilter(i)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
@@ -458,13 +542,13 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
               </div>
             )}
             <div className="flex justify-end pt-2">
-               <button 
+               <button
                  onClick={() => { setFilters([]); setPage(1); }}
                  className="text-xs font-bold text-slate-500 hover:text-slate-700 mr-4"
                >
                  Reset All
                </button>
-               <button 
+               <button
                  onClick={() => { setPage(1); fetchData(); }}
                  className="px-4 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700"
                >
@@ -504,8 +588,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                   </button>
                 </th>
                 {visibleFields.map(field => (
-                  <th 
-                    key={field.name} 
+                  <th
+                    key={field.name}
                     className="px-8 py-5 text-xs font-bold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-slate-50 transition-colors"
 
                     onClick={() => {
@@ -555,8 +639,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                 </tr>
               ) : (
                 data.map((item) => (
-                  <tr 
-                    key={item.id} 
+                  <tr
+                    key={item.id}
                     className={`hover:bg-indigo-50/30 transition-colors cursor-pointer group ${selectedIds.includes(item.id) ? 'bg-indigo-50/50' : ''}`}
                     onClick={() => onRowClick ? onRowClick(item.id) : null}
                   >
@@ -627,7 +711,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           <span className="text-xs font-medium text-slate-500">
             Showing <span className="text-slate-900 font-bold">{(page-1)*perPage + 1}</span> to <span className="text-slate-900 font-bold">{Math.min(page*perPage, total)}</span> of <span className="text-slate-900 font-bold">{total}</span>
           </span>
-          <select 
+          <select
             className="text-xs bg-white border border-slate-200 rounded-lg p-1 outline-none focus:ring-1 focus:ring-indigo-500"
             value={perPage}
             onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
@@ -641,7 +725,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         </div>
 
         <div className="flex items-center gap-1">
-          <button 
+          <button
             disabled={page === 1}
             onClick={() => setPage(p => p - 1)}
             className="p-2 text-slate-500 hover:bg-white border border-transparent hover:border-slate-200 rounded-xl disabled:opacity-30 disabled:hover:bg-transparent"
@@ -654,7 +738,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
               let p = page <= 3 ? i + 1 : page + i - 2
               if (p > totalPages) return null
               return (
-                <button 
+                <button
                   key={p}
                   onClick={() => setPage(p)}
                   className={`w-9 h-9 flex items-center justify-center text-xs font-bold rounded-xl transition-all ${page === p ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100' : 'text-slate-600 hover:bg-white hover:border-slate-200 border border-transparent'}`}
@@ -665,7 +749,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
             })}
           </div>
 
-          <button 
+          <button
             disabled={page === totalPages}
             onClick={() => setPage(p => p + 1)}
             className="p-2 text-slate-500 hover:bg-white border border-transparent hover:border-slate-200 rounded-xl disabled:opacity-30 disabled:hover:bg-transparent"
@@ -708,60 +792,18 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
             <div>
               <label className="text-xs font-bold text-slate-600 mb-1 block">New Value</label>
               {(() => {
-                const field = metadata?.fields.find(f => f.name === bulkEditField)
-                if (field?.type === 'lookup' && field.target_resource) {
-                  return (
-                    <Combobox
-                      resource={field.target_resource}
-                      value={bulkEditValue}
-                      onChange={setBulkEditValue}
-                      placeholder={`Select ${vocabulary.get(field.label)}...`}
-                    />
-                  )
-                }
-                if (field?.type === 'select' && field.options) {
-                  return (
-                    <Combobox
-                      options={field.options}
-                      value={bulkEditValue}
-                      onChange={setBulkEditValue}
-                      placeholder={`Select ${vocabulary.get(field.label)}...`}
-                    />
-                  )
-                }
-
-                if (field?.type === 'boolean') {
-                  return (
-                    <select
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                      value={bulkEditValue}
-                      onChange={e => setBulkEditValue(e.target.value === 'true')}
-                    >
-                      <option value="">— Select —</option>
-                      <option value="true">True / Active</option>
-                      <option value="false">False / Inactive</option>
-                    </select>
-                  )
-                }
-                if (field?.type === 'date' || field?.type === 'datetime') {
-                  return (
-                    <input
-                      type={field.type === 'date' ? 'date' : 'datetime-local'}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                      value={bulkEditValue}
-                      onChange={e => setBulkEditValue(e.target.value)}
-                    />
-                  )
-                }
+                const field = metadata?.fields.find(f => f.name === bulkEditField);
+                if (!field) return null;
+                const FieldComponent = resolveFieldComponent(field);
                 return (
-                  <input
-                    type={field?.type === 'number' ? 'number' : 'text'}
-                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  <FieldComponent
+                    field={field}
                     value={bulkEditValue}
-                    onChange={e => setBulkEditValue(e.target.value)}
-                    placeholder="Enter new value..."
+                    onChange={setBulkEditValue}
+                    formData={{}} // Not relevant for bulk edit
+                    disabled={false}
                   />
-                )
+                );
               })()}
             </div>
           </div>

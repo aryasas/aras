@@ -314,3 +314,11 @@ This document outlines the key features and architectural components of the Aras
   - [Gemini 2.5 Flash] PrintPreview component: modal with printable document layout + window.print()
   - [Gemini 2.5 Flash] ImportMapping: validation preview step — highlights invalid rows before posting
   - [Claude Sonnet 4.6] print_router.py: fixed broken AppManager import → direct model imports + Party/Org DB lookup
+
+
+## Go 1+2 — Auto-discovery, Saved Filters, Inventory Valuation, GL Reconciliation, Toast Queue, Dark Mode Charts, Service Return Type Consistency — revision (2026-05-16)
+  - [Gemini] Auto-discovery for ERP app models; Saved Filters functionality (model, router, registration); FIFO Inventory Valuation Service; GL Reconciliation Service with model action; Consistent return types for posting and stock compute services.
+
+
+## Go 1+2 — Auto-discovery, Saved Filters, Inventory Valuation, GL Reconciliation, Toast Queue, Dark Mode Charts, Service Return Type Consistency — revision (2026-05-16)
+  - [Codex/GPT-5.5] Saved Filters UI, Persistent Toast Notification Queue.

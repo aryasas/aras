@@ -1,10 +1,16 @@
 from core import Aras
+from .base.saved_filter import SavedFilter # Import SavedFilter
+from .base.saved_filter_router import router as saved_filter_router # Import the saved filter router
 
 class ERP(Aras.App):
     app_name = "erp"
     app_label = "ERP System"
     icon = "Briefcase"
     have_home = True
+
+    routers = [
+        saved_filter_router
+    ]
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -15,4 +21,4 @@ class ERP(Aras.App):
     
     # Models are now managed by sub-apps:
     # erp_accounting, erp_stock, erp_crm, erp_supplier, erp_pos, erp_config
-    models = []
+    models = [SavedFilter]

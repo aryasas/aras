@@ -29,6 +29,7 @@ const HealthIntegrityView = lazy(() => import('./views/HealthIntegrity'))
 const SmartDispatcher = lazy(() => import('./views/SmartDispatcher'))
 const HelpUserView = lazy(() => import('./views/HelpUser'))
 const HelpDevView = lazy(() => import('./views/HelpDev'))
+const NotFound = lazy(() => import('./views/NotFound'))
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = useAuthStore((state) => state.token)
@@ -148,11 +149,11 @@ function App() {
           <Route path=":segment1/*" element={<SmartDispatcher />} />
 
           {/* Catch all for authenticated area */}
-          <Route path="*" element={<div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200">View not implemented yet.</div>} />
+          <Route path="*" element={<NotFound />} />
         </Route>
 
         {/* Global Catch all */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
       </Suspense>
       </VocabularyProvider>

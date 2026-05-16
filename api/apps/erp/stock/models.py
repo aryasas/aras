@@ -17,7 +17,7 @@ class Product(MasterDataBase):
     __tablename__ = "erp_stock_products"
     __unique_together__ = [("org_id", "code")]
 
-    sku: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    sku: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, info={"pattern": "^[a-zA-Z0-9]{1,50}$"})
     price: Mapped[float] = mapped_column(Float, default=0.0)
     category_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_categories.id"), nullable=True)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)

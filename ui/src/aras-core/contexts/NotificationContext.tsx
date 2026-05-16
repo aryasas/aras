@@ -1,27 +1,56 @@
-import React, { createContext, useContext, useState, useCallback } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
 
 type NotificationType = 'success' | 'error' | 'info' | 'warning'
 
-interface Notification {
+export interface Notification { // Exported for NotificationHistory component
   id: string
   message: string
   type: NotificationType
+  timestamp: number // Add timestamp for sorting/filtering
 }
 
 interface NotificationContextType {
   notifications: Notification[]
+  history: Notification[] // Added history
   notify: (message: string, type?: NotificationType) => void
   removeNotification: (id: string) => void
+  clearHistory: () => void; // Added clearHistory
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
 
+const LOCAL_STORAGE_KEY = 'aras.notifications';
+const HISTORY_LIMIT = 50;
+
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const [history, setHistory] = useState<Notification[]>(() => {
+    try {
+      const storedHistory = localStorage.getItem(LOCAL_STORAGE_KEY);
+      return storedHistory ? JSON.parse(storedHistory) : [];
+    } catch (error) {
+      console.error("Failed to parse notifications from localStorage", error);
+      return [];
+    }
+  });
+
+  // Persist history to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(history.slice(-HISTORY_LIMIT))); // Keep only last 50
+    } catch (error) {
+      console.error("Failed to save notifications to localStorage", error);
+    }
+  }, [history]);
+
 
   const notify = useCallback((message: string, type: NotificationType = 'info') => {
     const id = Math.random().toString(36).substr(2, 9)
-    setNotifications((prev) => [...prev, { id, message, type }])
+    const newNotification: Notification = { id, message, type, timestamp: Date.now() };
+
+    setNotifications((prev) => [...prev, newNotification])
+    setHistory((prev) => [...prev, newNotification].slice(-HISTORY_LIMIT)); // Add to history, limit size
+
     setTimeout(() => removeNotification(id), 5000)
   }, [])
 
@@ -29,8 +58,12 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setNotifications((prev) => prev.filter((n) => n.id !== id))
   }, [])
 
+  const clearHistory = useCallback(() => {
+    setHistory([]);
+  }, []);
+
   return (
-    <NotificationContext.Provider value={{ notifications, notify, removeNotification }}>
+    <NotificationContext.Provider value={{ notifications, history, notify, removeNotification, clearHistory }}>
       {children}
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
         {notifications.map((n) => (
@@ -55,3 +88,10 @@ export const useNotify = () => {
   if (!context) throw new Error('useNotify must be used within a NotificationProvider')
   return context.notify
 }
+
+export const useNotificationHistory = () => {
+  const context = useContext(NotificationContext)
+  if (!context) throw new Error('useNotificationHistory must be used within a NotificationProvider')
+  return { history: context.history, clearHistory: context.clearHistory }
+}
+

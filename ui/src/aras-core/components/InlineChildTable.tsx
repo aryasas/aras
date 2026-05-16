@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
-import { SchemaRegistry } from '../services/SchemaRegistry';
+import { resolveFieldComponent } from '../SchemaRegistry';
 import ListToolbar from './ListToolbar';
 import Combobox from './Combobox';
 
@@ -120,7 +120,7 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
               return (
               <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/30 transition-colors group">
                 {visibleCols.map((f: any) => {
-                  const Component = SchemaRegistry.get(f.type);
+                  const Component = resolveFieldComponent(f);
                   const displayVal = row[`${f.name}_label`] ?? row[f.name];
                   return (
                     <td key={f.name} className="px-4 py-3 align-top min-w-[200px]">

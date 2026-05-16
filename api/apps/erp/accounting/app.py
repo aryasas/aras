@@ -1,12 +1,10 @@
 from ..app import ERP
-from ..app import ERP
-from .models import Account, JournalEntry, JournalEntryLine, InflowInvoice, InflowInvoiceLine, \
-    OutflowInvoice, OutflowInvoiceLine, InflowOrder, InflowOrderLine, InflowOrderCharge, \
-    OutflowOrder, OutflowOrderLine, OutflowOrderCharge, InflowInvoiceCharge, OutflowInvoiceCharge, \
-    Payment, PaymentAllocation, FiscalPeriod, GoodsReceiptNote
-from .models_grn import GoodsReceiptLine
 from . import views # Trigger view registration
 from .routers.print_router import router as print_router
+
+from core.logic.discovery import autodiscover_models
+from .models import * # Import all models for discovery
+from .models_grn import * # Import all models from models_grn for discovery
 
 class Accounting(ERP):
     app_name = "erp_accounting"
@@ -15,16 +13,9 @@ class Accounting(ERP):
 
     routers = [print_router]
 
-    models = [
-        Account, FiscalPeriod,
-        JournalEntry, JournalEntryLine, 
-        InflowOrder, InflowOrderLine, InflowOrderCharge,
-        InflowInvoice, InflowInvoiceLine, InflowInvoiceCharge,
-        OutflowOrder, OutflowOrderLine, OutflowOrderCharge,
-        OutflowInvoice, OutflowInvoiceLine, OutflowInvoiceCharge,
-        Payment, PaymentAllocation,
-        GoodsReceiptNote, GoodsReceiptLine
-    ]
+    models = autodiscover_models(__name__, [
+        "models", "models_grn"
+    ])
 
     menu_groups = [
         {

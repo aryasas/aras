@@ -54,11 +54,6 @@ export const ImportMapping: React.FC<ImportMappingProps> = ({
     setValidatedRows([]);
   }, [csvHeaders, resourceFields]);
 
-
-
-    setValidatedRows([]);
-  }, [csvHeaders, resourceFields]);
-
   const runValidation = () => {
     const newValidatedRows: ValidatedRow[] = [];
     let validCount = 0;

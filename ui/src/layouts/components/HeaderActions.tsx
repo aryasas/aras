@@ -1,6 +1,7 @@
-import { Bell, Moon, Sun } from 'lucide-react'
+import { Moon, Sun } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useUIStore } from '../../store/uiStore'
+import NotificationHistory from '../../aras-core/components/NotificationHistory'; // Import NotificationHistory
 
 export function HeaderActions() {
   const { darkMode, toggleDarkMode } = useUIStore()
@@ -14,10 +15,7 @@ export function HeaderActions() {
       >
         {darkMode ? <Sun size={20} /> : <Moon size={20} />}
       </button>
-      <button className="p-2 text-slate-500 hover:bg-slate-50 rounded-full relative transition-colors">
-        <Bell size={20} />
-        <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
-      </button>
+      <NotificationHistory /> {/* Replaced existing bell button with NotificationHistory */}
       <Link to="/profile" className="h-9 w-9 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-xl border-2 border-white shadow-md cursor-pointer hover:scale-105 transition-transform block"></Link>
     </div>
   )

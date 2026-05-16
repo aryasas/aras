@@ -6,7 +6,7 @@ class StockComputeService:
     """Service for stock quantities and valuation (WAC)."""
 
     @staticmethod
-    def compute_qty(db: Session, product_id: int, location_id: int = None, sub_location_id: int = None) -> float:
+    def compute_qty(db: Session, product_id: int, location_id: int = None, sub_location_id: int = None) -> dict:
         in_filters = [
             StockMovementLine.product_id == product_id,
             StockMovement.status == "Posted",
@@ -30,7 +30,7 @@ class StockComputeService:
         qty_in = db.query(func.sum(StockMovementLine.qty)).join(StockMovement).filter(*in_filters).scalar() or 0.0
         qty_out = db.query(func.sum(StockMovementLine.qty)).join(StockMovement).filter(*out_filters).scalar() or 0.0
 
-        return qty_in - qty_out
+        return {"value": qty_in - qty_out, "unit": "pcs"}
 
     @staticmethod
     def compute_qty_by_location(db: Session, product_id: int, parent_location_id: int) -> dict:
@@ -41,7 +41,7 @@ class StockComputeService:
         }
 
     @staticmethod
-    def compute_avg_cost(db: Session, product_id: int) -> float:
+    def compute_avg_cost(db: Session, product_id: int) -> dict:
         """
         Calculate Weighted Average Cost.
         Formula: (Total Value of Inward Movements) / (Total Qty of Inward Movements)
@@ -56,7 +56,9 @@ class StockComputeService:
         ).first()
         
         total_value, total_qty = result or (0, 0)
-        if total_qty and total_qty > 0:
-            return total_value / total_qty
         
-        return 0.0
+        avg_cost = 0.0
+        if total_qty and total_qty > 0:
+            avg_cost = total_value / total_qty
+        
+        return {"value": avg_cost, "unit": "currency"}
