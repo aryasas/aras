@@ -128,6 +128,7 @@ log/
 .aider.input.history
 .claudeignore
 run_test*
+aras-old/
 
 # Vite frontend build output
 ui/dist/
