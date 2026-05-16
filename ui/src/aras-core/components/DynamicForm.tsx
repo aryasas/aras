@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
@@ -74,6 +74,7 @@ interface Metadata {
   actions?: ModelAction[];
   layout?: LayoutSection[];
   is_auditable?: boolean;
+  app_name?: string;
 }
 
 const PROFILE_OPTIONS = [
@@ -128,6 +129,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const [formData, setFormData] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [metadataLoading, setMetadataLoading] = useState(true);
+  const [metadataError, setMetadataError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [workflowActions, setWorkflowActions] = useState<WorkflowAction[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -145,15 +147,16 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const showPanel = useUIStore((state) => state.showPanel);
   const closePanel = useUIStore((state) => state.closePanel);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const handleSubmitRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
         event.preventDefault();
-        handleSubmit();
+        handleSubmitRef.current?.();
       } else if (event.key === 'Escape') {
         if (onCancel) {
-          event.preventDefault(); // Prevent browser default (e.g., closing modals)
+          event.preventDefault();
           onCancel();
         }
       }
@@ -163,7 +166,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleSubmit, onCancel]); // Depend on handleSubmit and onCancel to ensure latest versions are used.
+  }, [onCancel]);
 
 
   useEffect(() => {
@@ -174,12 +177,15 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     const fetchMetadata = async () => {
       try {
         setMetadataLoading(true);
+        setMetadataError(null);
         const cleanResource = cleanResourcePath(resource);
         const metaRes = await api.get(`/metadata/${cleanResource}`);
         setMetadata(metaRes.data);
         setMetadataLoading(false);
       } catch (err: any) {
-        notify(err.response?.data?.detail || "Failed to load metadata", "error");
+        const message = err.response?.data?.detail || "Failed to load metadata";
+        setMetadataError(message);
+        notify(message, "error");
         setMetadataLoading(false);
       }
     };
@@ -488,17 +494,28 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     }
   };
 
+  handleSubmitRef.current = () => handleSubmit();
+
   if (metadataLoading) return (
     <div className="p-8 flex items-center justify-center text-slate-400 text-sm animate-pulse">
       Loading metadata...
     </div>
   );
-  if (!metadata) return <div className="p-12 text-center text-red-500">Metadata not found.</div>;
+  if (!metadata) return (
+    <div className="p-8">
+      <div className="bg-rose-50 border border-rose-100 rounded-3xl p-6 flex items-start gap-4 shadow-sm">
+        <AlertCircle className="text-rose-500 shrink-0 mt-0.5" size={24} />
+        <div>
+          <h3 className="text-sm font-bold text-rose-700">Metadata could not be loaded</h3>
+          <p className="mt-1 text-sm text-rose-600">{metadataError || 'Metadata not found.'}</p>
+        </div>
+      </div>
+    </div>
+  );
 
   if (loading) {
     const visibleFields = metadata.fields.filter(f => !f.hidden && !f.form_hidden && f.type !== 'child_table');
     const childTableFields = metadata.fields.filter(f => f.type === 'child_table');
-    const totalSkeletons = visibleFields.length + childTableFields.length; // Count of form fields and child tables
 
     return (
       <div className="p-8 space-y-6 animate-pulse">
@@ -535,7 +552,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                         <div className="h-4 w-32 bg-slate-200 rounded" />
                       </div>
                       <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {normalFields.map((f, i) => (
+                        {normalFields.map((_f, i) => (
                           <div key={i} className="space-y-2">
                             <div className="h-3 w-24 bg-slate-200 rounded" />
                             <div className="h-9 w-full bg-slate-200 rounded" />
@@ -544,7 +561,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                       </div>
                     </div>
                   )}
-                  {childFields.map((f, i) => (
+                  {childFields.map((_f, i) => (
                     <div key={i} className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 space-y-4">
                       <div className="h-4 w-48 bg-slate-200 rounded" /> {/* Section title skeleton */}
                       <div className="space-y-3"> {/* Container for multiple row skeletons */}
@@ -562,7 +579,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
               {visibleFields.length > 0 && (
                 <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {visibleFields.map((f, i) => (
+                    {visibleFields.map((_f, i) => (
                       <div key={i} className="space-y-2">
                         <div className="h-3 w-24 bg-slate-200 rounded" />
                         <div className="h-9 w-full bg-slate-200 rounded" />
@@ -571,7 +588,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                   </div>
                 </div>
               )}
-              {childTableFields.map((f, i) => (
+              {childTableFields.map((_f, i) => (
                 <div key={i} className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 space-y-4">
                   <div className="h-4 w-48 bg-slate-200 rounded" /> {/* Section title skeleton */}
                   <div className="space-y-3"> {/* Container for multiple row skeletons */}
@@ -587,7 +604,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       </div>
     );
   }
-  if (!metadata) return <div className="p-12 text-center text-red-500">Metadata not found.</div>;
+  if (!metadata) return null;
   const metadataTitle = vocabulary.get(metadata.title);
 
   const renderField = (field: Field) => {

@@ -322,3 +322,12 @@ This document outlines the key features and architectural components of the Aras
 
 ## Go 1+2 — Auto-discovery, Saved Filters, Inventory Valuation, GL Reconciliation, Toast Queue, Dark Mode Charts, Service Return Type Consistency — revision (2026-05-16)
   - [Codex/GPT-5.5] Saved Filters UI, Persistent Toast Notification Queue.
+
+## Fase 1 Bug Fix + Pyright Config (2026-05-16)
+- [Claude Sonnet 4.6] `api/core/api/tenant.py` — fixed `is_superuser` → `is_admin` on all 4 tenant management endpoints
+- [Claude Sonnet 4.6] `api/pyrightconfig.json` — new file; eliminates Pyright false-positive `reportMissingImports` on `core.*` absolute imports
+
+
+## ERP Form Layouts, UI Bugs, Report Center Filters, HandoffRun DB Tracking — revision (2026-05-16)
+  - [Gemini] Added UI layout definitions to multiple ERP View classes for Party, Contact, Product, ProductCategory, ProductUom, Employee, Department, Position, Asset, AssetCategory, Lead, Pipeline, Activity, PotOrder, PotTerminal, Account, FiscalPeriod, Currency, Uom, ModeOfPayment, ExchangeRate, and PrintTemplate. Enhanced report execution endpoint to pass filter definitions to frontend and correctly handle 'today' parameter in SQL queries.
+  - [Codex/GPT-5.5] report parameter input UI with params passed to generate call; Handoff Runs columns, verdict badges, refresh, and row detail side panel

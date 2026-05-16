@@ -8,6 +8,7 @@ interface ApiEnvelope<T = unknown> {
   data: T
   message?: string | null
   error?: string | null
+  detail?: string | null
 }
 
 function isApiEnvelope(value: unknown): value is ApiEnvelope {

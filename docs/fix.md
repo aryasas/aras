@@ -97,3 +97,21 @@
 
 ## CMP Phase — DRY refactor + UX gaps + error normalization — revision (2026-05-16)
   - [Gemini] Corrected import path in print_router.py.
+
+
+## ERP Form Layouts, UI Bugs, Report Center Filters, HandoffRun DB Tracking — revision (2026-05-16)
+  - [Codex/GPT-5.5] styled DynamicForm metadata error card; report loading skeleton while generating
+
+## TypeScript Build: 22 Errors Fixed (2026-05-17)
+- [Claude Sonnet 4.6] `ui/src/aras-core/hooks/useAras.ts` — added `appName` (first URL segment via `useLocation`) to returned object
+- [Claude Sonnet 4.6] `ui/src/lib/api.ts` — added `detail?: string | null` to `ApiEnvelope` interface
+- [Claude Sonnet 4.6] `ui/src/aras-core/components/DynamicForm.tsx` — added `app_name?` to `Metadata` interface; fixed `handleSubmit` used-before-declaration via `handleSubmitRef`; removed unused `totalSkeletons` and renamed unused `f` params to `_f` in skeleton map callbacks; added `useRef` import
+- [Claude Sonnet 4.6] `ui/src/aras-core/components/ListView.tsx` — fixed `dataPath` undefined in `handleExport` (replaced with `cleanResource`); removed `fetchSavedFilters` from metadata useEffect deps (declared later); updated `ImportMapping` call to new API (`csvData`, `onImport`, full `ResourceField` shape); replaced `executeImport` with `executeImportData` using `/import-bulk`
+- [Claude Sonnet 4.6] `ui/src/aras-core/components/InlineChildTable.tsx` — added missing `ListToolbar` props: `onSaveFilter`, `onApplySavedFilter`, `onDeleteSavedFilter`, `savedFilters`
+- [Claude Sonnet 4.6] `ui/src/aras-core/components/ImportMapping.tsx` — removed unused `useAras` import and `notify` destructure
+- [Claude Sonnet 4.6] `ui/src/aras-core/components/NotificationHistory.tsx` — removed unused `X` import
+- [Claude Sonnet 4.6] `docs/aras.md` + `docs/framework_ref.md` — updated `useAras()` hook documentation to reflect full return shape
+
+
+## none (2026-05-17)
+  - [Claude Sonnet 4.6] Fixed _get_clean_path stripping only parent prefix instead of full parent+app prefix for nested sub-apps (e.g. erp_hr_employees → /erp/hr/hr-employees instead of /erp/hr/employees), causing 404 on metadata endpoint for HR, Party, and other double-prefixed modules

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, X, Trash2 } from 'lucide-react';
+import { Bell, Trash2 } from 'lucide-react';
 import { useNotificationHistory } from '../contexts/NotificationContext';
 
 const NotificationHistory: React.FC = () => {

@@ -5,6 +5,13 @@ class PotTerminalView(Aras.View):
     model = PotTerminal
     title = "POT Terminals"
     icon = "pi pi-desktop"
+    layout = [
+        {
+            "key": "general",
+            "title": "General",
+            "fields": ["name", "location_id", "is_active", "receipt_header", "receipt_footer"],
+        },
+    ]
 
 class PotSessionView(Aras.View):
     model = PotSession
@@ -26,13 +33,15 @@ class PotOrderView(Aras.View):
     title = "POT Orders"
     layout = [
         {
-            "title": "General",
-            "fields": ["number", "doc_date", "status", "party_id", "pricelist_id"]
+            "key": "header",
+            "title": "Header",
+            "fields": ["number", "doc_date", "status", "party_id", "pricelist_id"],
         },
         {
+            "key": "items",
             "title": "Items",
-            "fields": ["lines"]
-        }
+            "fields": ["lines"],
+        },
     ]
 
 class PotOrderLineView(Aras.View):

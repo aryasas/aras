@@ -130,7 +130,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
       }
     }
     fetchMetadataAndSavedFilters()
-  }, [resource, notify, appName, fetchSavedFilters]) // Changed: Added fetchSavedFilters to dependency array
+  }, [resource, notify, appName])
   // Persist visibleColumns to localStorage
   useEffect(() => {
     if (metadata && visibleColumns.length > 0) { // Ensure metadata is loaded before saving
@@ -272,7 +272,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         desc
       }
       const cleanResource = cleanResourcePath(resource)
-      const res = await api.get(`${dataPath}/`, {
+      const res = await api.get(`${cleanResource}/`, {
         params,
         responseType: 'blob'
       })
@@ -296,23 +296,28 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // 1. Parse CSV Headers
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
-      const firstLine = text.split('\n')[0];
-      const headers = firstLine.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-      
-      // 2. Show Mapping Panel
+      const lines = text.split('\n').filter(l => l.trim());
+      const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+      const csvData = lines.slice(1).map(line => line.split(',').map(c => c.trim().replace(/^"|"$/g, '')));
+
       showPanel(
         `Import Mapping: ${metadata?.title}`,
         <ImportMapping
           csvHeaders={headers}
-          resourceFields={metadata?.fields.filter(f => !f.read_only).map(f => ({ name: f.name, label: f.label })) || []}
+          csvData={csvData}
+          resourceFields={metadata?.fields.filter(f => !f.read_only).map(f => ({
+            name: f.name,
+            label: f.label,
+            type: f.type || 'text',
+            required: !!(f as any).required,
+          })) || []}
           onCancel={closePanel}
-          onConfirm={async (mapping) => {
+          onImport={async (validatedData, _importAll) => {
             closePanel();
-            await executeImport(file, mapping);
+            await executeImportData(validatedData);
           }}
         />,
         'max-w-2xl'
@@ -324,22 +329,15 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     e.target.value = '';
   }
 
-  const executeImport = async (file: File, mapping: Record<string, string>) => {
-    const formData = new FormData()
-    formData.append('file', file)
-
+  const executeImportData = async (rows: any[]) => {
     try {
       setLoading(true)
       const cleanResource = cleanResourcePath(resource)
-      await api.post(`/${cleanResource}/import`, formData, {
-        params: { mapping: JSON.stringify(mapping) },
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
-      notify('Data import initiated in background', 'success')
+      await api.post(`/${cleanResource}/import-bulk`, { rows })
+      notify('Import successful', 'success')
       fetchData()
     } catch (err: any) {
-      const msg = err.response?.data?.detail || 'Import failed'
-      notify(msg, 'error')
+      notify(err.response?.data?.detail || 'Import failed', 'error')
     } finally {
       setLoading(false)
     }

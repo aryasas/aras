@@ -56,9 +56,12 @@ class App(Aras):
         segments.append(app_seg.replace("_", "-"))
         
         if model_name:
-            # Model segment (strip app prefix if present)
+            # Model segment (strip longest matching prefix first)
             model_seg = model_name
-            if cls.app_name and model_seg.startswith(f"{cls.app_name}_"):
+            full_prefix = f"{cls.parent_name}_{cls.app_name}_" if cls.parent_name and cls.app_name else None
+            if full_prefix and model_seg.startswith(full_prefix):
+                model_seg = model_seg[len(full_prefix):]
+            elif cls.app_name and model_seg.startswith(f"{cls.app_name}_"):
                 model_seg = model_seg[len(cls.app_name)+1:]
             elif cls.parent_name and model_seg.startswith(f"{cls.parent_name}_"):
                 model_seg = model_seg[len(cls.parent_name)+1:]

@@ -1,12 +1,23 @@
-
-# Aras Framework: Technical Report & Architecture Guide
-
-Jika saya mengatakan:
+## Agent Rule
+- To read ANY file, execute: `<project_folder>/tools/smart_read.sh <filepath>` — this script handles deduplication and diffing automatically.
+-
+- Jika saya mengatakan:
 "'dde', artinya 'don't do edit' — jangan lakukan perubahan apapun."
 "'rrc', artinya 're read CLAUDE.md' — before anything else, re-read CLAUDE.md rules 1-3"
 - if i say cmp mean "inspect/review my project. what can we add to project to make more robust, complete, nice gui. before we move to create an app? inpect code, function, and ui (easyness, posisiton, and aesthetic). and as you go, if you find something repeatable, refactor it."
 - if i say ggc mean "give git commit command text with message all we do/add to project but you DONT exec/git, i will do the git myself."
 - if i say updd mean "update/edit feature.md to add what we do/add to the project (dont delete just add/update) and update/edit aras.md (if needed, dont delete except there are something changed make aras.md irrelevan)"
+- if i say rhf mean "review handoff — read docs/handoff.md, check the Agent Reports section, verify the files written exist and are correct, then append a filled ## Claude Review block with verdict APPROVED or NEEDS-FIX. If NEEDS-FIX, also append ## Revision Tasks with specific Backend/Frontend sub-tasks. If APPROVED, delete the ## Revision Tasks placeholder. Also run: cd api && python manage.py sync (if any model/app changed) and note if tests should be run."
+- if i say **`mha`** mean "**Multi-Agent: write handoff only** — read docs/handoff_template.md, write docs/handoff.md spec for the tasks discussed. DO NOT write any code. Print: `python tools/multi_agent.py` for user to run."
+- if i say **`mha be`** mean "same as mha but print: `python tools/multi_agent.py --backend-only`"
+- if i say **`mha fe`** mean "same as mha but print: `python tools/multi_agent.py --frontend-only`"
+- if i say **`mha test`** mean "print: `python tools/multi_agent.py --test 'hello'` — for smoke-testing both CLIs"
+- aras framework login credential: user: admin pass: admin
+ 
+# Aras Framework: Technical Report & Architecture Guide
+
+> **AI Agents**: This is the primary framework reference. Read this before writing any code.
+> For detailed component/endpoint tables, also read `docs/framework_ref.md`.
 
 ## 1. System Overview
 Aras is a metadata-centric application framework designed for extreme developer productivity. It follows a **Code-First, GUI-Override** philosophy where the database acts as a registry for code-defined models.
@@ -50,14 +61,10 @@ The system is built on a strict inheritance model to ensure consistency and gene
     - **Purpose**: Short description.
     - **Context**: Related files/inheritance.
     - **Impact**: System-wide effect.
-- Jangan hapus tetapi update (hapus hanya yang sudah tidak relevan):
-  - Jika ada fix laporkan di fix.md
-  - Jika ada feature laporkan di feature.md
-  - Jika ada perubahan pada framework laporkan di aras.md
 
 ## 5. UI Standard Hooks & Contexts
 Aras provides a unified developer experience via React Contexts:
-- `useAras()`: Primary hook for `notify`, `confirm`, and `api` access.
+- `useAras()`: Primary hook — returns `{ notify, confirm, api, appName, formatDate, formatCurrency }`. `appName` is the first URL path segment (e.g. `erp`) derived from `useLocation()`.
 - `LogicEvaluator`: Safe, AST-like engine for complex conditional UI visibility.
 - `MultiSelectCombobox`: Standardized UI for Many-to-Many associations.
 - `CommandPalette`: Global `CMD+K` search interface with heuristic type detection.
@@ -381,3 +388,9 @@ ERP module skeleton (Part B): Unified `erp` application registered under `api/ap
 ---
 ## Framework Change: Go 1+2 — Auto-discovery, Saved Filters, Inventory Valuation, GL Reconciliation, Toast Queue, Dark Mode Charts, Service Return Type Consistency — revision (2026-05-16)
   - [Gemini] `autodiscover_models` function added to `api/core/logic/discovery.py`; updated `Aras.App` `models` loading logic for several ERP sub-apps.
+
+
+---
+## Framework Change: Fase 1 Bug Fix + Pyright Config (2026-05-16)
+- [Claude Sonnet 4.6] `api/core/api/tenant.py` — fixed `is_superuser` → `is_admin` on all 4 tenant endpoints (field doesn't exist on User model)
+- [Claude Sonnet 4.6] `api/pyrightconfig.json` (NEW) — `extraPaths: ["api"]` so Pyright resolves `core.*` absolute imports correctly; eliminates false-positive `reportMissingImports` on tenant routes

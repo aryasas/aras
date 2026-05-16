@@ -88,6 +88,10 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
         onExport={() => {}}
         isExporting={false}
         onImport={() => {}}
+        onSaveFilter={() => {}}
+        onApplySavedFilter={() => {}}
+        onDeleteSavedFilter={() => {}}
+        savedFilters={[]}
         onColumnPickerToggle={() => setIsColumnPickerOpen(!isColumnPickerOpen)}
         isColumnPickerOpen={isColumnPickerOpen}
         onAdd={addRow}

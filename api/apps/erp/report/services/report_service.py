@@ -2,6 +2,7 @@ from core import Aras
 from core.lib.query_builder import QueryBuilder
 from sqlalchemy.orm import Session, object_session
 from sqlalchemy import text
+from datetime import date
 
 class ReportService(Aras.Service):
     @classmethod
@@ -38,15 +39,18 @@ class ReportService(Aras.Service):
                 params[p] = None
 
         if report_instance.report_type == "query":
-            return cls._generate_query_report(report_instance, db, params)
+            result = cls._generate_query_report(report_instance, db, params)
         elif report_instance.report_type == "script":
-            return cls._generate_script_report(report_instance, db, params)
+            result = cls._generate_script_report(report_instance, db, params)
         else:
-            return {
+            result = {
                 "error": f"Report type {report_instance.report_type} not supported yet.",
                 "data": [],
                 "columns": []
             }
+        
+        result["filters_json"] = filter_defs
+        return result
 
     @classmethod
     def _generate_query_report(cls, report, db, filters):
@@ -56,9 +60,7 @@ class ReportService(Aras.Service):
                 params = {"org_id": report.org_id}
                 params.update(filters)
                 
-                from datetime import date
-                script = report.script.replace("{today}", f"'{date.today().isoformat()}'")
-
+                params.update({"today": date.today().isoformat()})
                 result = db.execute(text(script), params)
                 columns = [{"field": k, "label": k.replace("_", " ").title()} for k in result.keys()]
                 

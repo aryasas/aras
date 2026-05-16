@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Download, AlertCircle, Check, X } from 'lucide-react';
 import Combobox from './Combobox';
-import { useAras } from '../hooks/useAras'; // Assuming useAras for notify
 
 interface ResourceField {
   name: string;
@@ -36,7 +35,6 @@ export const ImportMapping: React.FC<ImportMappingProps> = ({
   const [validationStep, setValidationStep] = useState<'mapping' | 'preview'>('mapping');
   const [validatedRows, setValidatedRows] = useState<ValidatedRow[]>([]);
   const [showValidationErrors, setShowValidationErrors] = useState(false); // To toggle error display
-  const { notify } = useAras();
 
   // Extract required and numeric fields from resourceFields
   const requiredFields = useMemo(() => 

@@ -6,13 +6,32 @@ class AccountView(Aras.View):
     model = Account
     icon = "pi pi-list"
     fields = {
-        "is_group": {"label": "Is Group Account", "ui_type": "boolean"},
-        "account_type": {"label": "Type"}
+        "is_group": {"title": "Is Group Account", "ui_type": "boolean"},
+        "account_type": {"title": "Type"}
     }
+    layout = [
+        {
+            "key": "account",
+            "title": "Account",
+            "fields": ["name", "code", "account_type", "currency_id"],
+        },
+        {
+            "key": "opening",
+            "title": "Opening",
+            "fields": ["opening_balance", "is_active"],
+        },
+    ]
 
 class FiscalPeriodView(Aras.View):
     model = FiscalPeriod
     title = "Fiscal Periods"
+    layout = [
+        {
+            "key": "general",
+            "title": "General",
+            "fields": ["name", "start_date", "end_date", "status"],
+        },
+    ]
 
 class InflowOrderView(Aras.View):
     model = InflowOrder

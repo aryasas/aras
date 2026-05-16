@@ -28,11 +28,25 @@ class CurrencyView(Aras.View):
     model = Currency
     title = "Currencies"
     icon = "pi pi-money-bill"
+    layout = [
+        {
+            "key": "general",
+            "title": "General",
+            "fields": ["name", "code", "symbol"],
+        },
+    ]
 
 class UomView(Aras.View):
     model = Uom
     title = "Units of Measure"
     icon = "pi pi-tag"
+    layout = [
+        {
+            "key": "general",
+            "title": "General",
+            "fields": ["name", "abbreviation", "category"],
+        },
+    ]
 
 class PriceTypeView(Aras.View):
     model = PriceType
@@ -53,6 +67,13 @@ class ExchangeRateView(Aras.View):
     model = ExchangeRate
     title = "Exchange Rates"
     icon = "pi pi-chart-line"
+    layout = [
+        {
+            "key": "general",
+            "title": "General",
+            "fields": ["currency_id", "rate", "date"],
+        },
+    ]
 
 class SettingView(Aras.View):
     model = Setting
@@ -64,11 +85,25 @@ class ModeOfPaymentView(Aras.View):
     model = ModeOfPayment
     title = "Payment Modes"
     icon = "pi pi-credit-card"
+    layout = [
+        {
+            "key": "general",
+            "title": "General",
+            "fields": ["name", "type", "account_id"],
+        },
+    ]
 
 class PrintTemplateView(Aras.View):
     model = PrintTemplate
     title = "Print Templates"
     icon = "pi pi-print"
+    layout = [
+        {
+            "key": "general",
+            "title": "General",
+            "fields": ["name", "template_type", "content"],
+        },
+    ]
 
 class NotificationView(Aras.View):
     model = Notification

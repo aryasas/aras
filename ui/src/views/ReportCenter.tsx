@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import api from '../lib/api'
 import { FileText, Play, Search, Loader2, ChevronLeft } from 'lucide-react'
 import GenericReport from '../aras-core/components/GenericReport'
@@ -11,13 +11,28 @@ interface Report {
   module: string
   report_type: string
   linked_doctype?: string
+  filters_json?: ReportFilter[] | string | null
 }
 
 interface ReportResult {
   title: string
-  data: any[]
+  data: Record<string, unknown>[]
   columns: { field: string; label: string; type?: string }[]
 }
+
+type FilterValue = string | number
+
+interface ReportFilter {
+  field: string
+  label?: string
+  type?: string
+  default?: FilterValue | null
+  options?: Array<[FilterValue, string] | { label: string; value: FilterValue }>
+}
+
+const getErrorDetail = (err: unknown, fallback: string) => (
+  (err as { response?: { data?: { detail?: string } } }).response?.data?.detail || fallback
+)
 
 export default function ReportCenter() {
   const [reports, setReports] = useState<Report[]>([])
@@ -26,29 +41,75 @@ export default function ReportCenter() {
   const [activeModule, setActiveModule] = useState<string | null>(null)
   const [runningReport, setRunningReport] = useState<number | null>(null)
   const [reportResult, setReportResult] = useState<ReportResult | null>(null)
+  const [activeReport, setActiveReport] = useState<Report | null>(null)
+  const [reportFilters, setReportFilters] = useState<ReportFilter[]>([])
+  const [reportParams, setReportParams] = useState<Record<string, FilterValue>>({})
   const { notify } = useAras()
 
-  useEffect(() => {
-    fetchReports()
-  }, [])
-
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     try {
       setLoading(true)
       const res = await api.get('erp/report/reports')
       setReports(res.data.items)
-    } catch (err) {
+    } catch {
       notify("Failed to load reports", "error")
     } finally {
       setLoading(false)
     }
+  }, [notify])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      fetchReports()
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [fetchReports])
+
+  const parseFilters = (filters: Report['filters_json']): ReportFilter[] => {
+    if (!filters) return []
+    if (Array.isArray(filters)) return filters
+    if (typeof filters === 'string') {
+      try {
+        const parsed = JSON.parse(filters)
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
+      }
+    }
+    return []
   }
 
-  const runReport = async (report: Report) => {
+  const defaultParamsFor = (filters: ReportFilter[]) => (
+    filters.reduce<Record<string, FilterValue>>((acc, filter) => {
+      acc[filter.field] = filter.default ?? ''
+      return acc
+    }, {})
+  )
+
+  const loadReportForRun = async (report: Report) => {
+    try {
+      const detailRes = await api.get(`erp/report/reports/${report.id}`)
+      const reportDetail = { ...report, ...detailRes.data }
+      const filters = parseFilters(reportDetail.filters_json)
+
+      if (filters.length === 0) {
+        await runReport(reportDetail, {})
+        return
+      }
+
+      setActiveReport(reportDetail)
+      setReportFilters(filters)
+      setReportParams(defaultParamsFor(filters))
+    } catch (err) {
+      notify(getErrorDetail(err, "Failed to load report filters"), "error")
+    }
+  }
+
+  const runReport = async (report: Report, params = reportParams) => {
     try {
       setRunningReport(report.id)
-      const res = await api.post(`erp/report/reports/${report.id}/action/generate_report`)
-      
+      const res = await api.post(`erp/report/reports/${report.id}/action/generate_report`, { params })
+
       const reportData = res.data.result
       if (!reportData || reportData.error) {
         notify(reportData?.error || "Failed to generate report", "error")
@@ -56,8 +117,8 @@ export default function ReportCenter() {
       }
 
       setReportResult(reportData)
-    } catch (err: any) {
-      notify(err.response?.data?.detail || "Failed to generate report", "error")
+    } catch (err) {
+      notify(getErrorDetail(err, "Failed to generate report"), "error")
     } finally {
       setRunningReport(null)
     }
@@ -71,6 +132,43 @@ export default function ReportCenter() {
     const matchesModule = !activeModule || r.module === activeModule
     return matchesSearch && matchesModule
   })
+
+  const renderFilterInput = (filter: ReportFilter) => {
+    const value = reportParams[filter.field] ?? ''
+    const label = filter.label || filter.field.replace(/_/g, ' ')
+    const baseClass = "w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+
+    if (filter.type === 'select') {
+      return (
+        <label key={filter.field} className="space-y-1.5">
+          <span className="block text-xs font-black text-slate-400 uppercase tracking-wider">{label}</span>
+          <select
+            className={baseClass}
+            value={value}
+            onChange={(e) => setReportParams(prev => ({ ...prev, [filter.field]: e.target.value }))}
+          >
+            {(filter.options || []).map((option) => {
+              const optionValue = Array.isArray(option) ? option[0] : option.value
+              const optionLabel = Array.isArray(option) ? option[1] : option.label
+              return <option key={`${filter.field}-${optionValue}`} value={optionValue}>{optionLabel}</option>
+            })}
+          </select>
+        </label>
+      )
+    }
+
+    return (
+      <label key={filter.field} className="space-y-1.5">
+        <span className="block text-xs font-black text-slate-400 uppercase tracking-wider">{label}</span>
+        <input
+          type={filter.type === 'date' ? 'date' : 'text'}
+          className={baseClass}
+          value={value}
+          onChange={(e) => setReportParams(prev => ({ ...prev, [filter.field]: e.target.value }))}
+        />
+      </label>
+    )
+  }
 
   if (reportResult) {
     return (
@@ -177,24 +275,43 @@ export default function ReportCenter() {
                 </p>
               </div>
 
-              <div className="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between">
-                <button
-                  disabled={runningReport !== null}
-                  onClick={() => runReport(report)}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-indigo-100"
-                >
-                  {runningReport === report.id ? (
-                    <Loader2 className="animate-spin" size={16} />
-                  ) : (
-                    <Play size={16} fill="currentColor" />
-                  )}
-                  {runningReport === report.id ? 'Running...' : 'Run Report'}
-                </button>
-                
-                <span className="text-[10px] font-bold text-slate-400">
-                  ID: {report.code}
-                </span>
+              <div className="mt-6 pt-6 border-t border-slate-50">
+                {activeReport?.id === report.id && reportFilters.length > 0 && (
+                  <div className="mb-5 w-full space-y-4">
+                    <div className="grid gap-3">
+                      {reportFilters.map(renderFilterInput)}
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <button
+                    disabled={runningReport !== null}
+                    onClick={() => activeReport?.id === report.id ? runReport(report) : loadReportForRun(report)}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-indigo-100"
+                  >
+                    {runningReport === report.id ? (
+                      <Loader2 className="animate-spin" size={16} />
+                    ) : (
+                      <Play size={16} fill="currentColor" />
+                    )}
+                    {runningReport === report.id ? 'Generating...' : 'Generate'}
+                  </button>
+
+                  <span className="text-[10px] font-bold text-slate-400">
+                    ID: {report.code}
+                  </span>
+                </div>
               </div>
+              {runningReport === report.id && (
+                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl p-6 animate-pulse">
+                  <div className="h-6 w-32 bg-slate-200 rounded mb-4" />
+                  <div className="space-y-3">
+                    <div className="h-4 w-full bg-slate-100 rounded" />
+                    <div className="h-4 w-5/6 bg-slate-100 rounded" />
+                    <div className="h-10 w-full bg-slate-100 rounded-xl mt-6" />
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

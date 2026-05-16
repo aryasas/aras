@@ -16,15 +16,15 @@ class ProvisionRequest(BaseModel):
 
 @router.get("/tenants")
 def list_tenants(current_user=Depends(get_current_user)):
-    if not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Superuser only.")
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only.")
     return {"data": tenant_registry.list_all()}
 
 
 @router.post("/tenants/provision", status_code=201)
 def provision(body: ProvisionRequest, current_user=Depends(get_current_user)):
-    if not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Superuser only.")
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only.")
     db_name = body.db_name or f"aras_tenant_{body.tenant_id}"
     try:
         info = provision_tenant(body.tenant_id, db_name)
@@ -37,8 +37,8 @@ def provision(body: ProvisionRequest, current_user=Depends(get_current_user)):
 
 @router.post("/tenants/{tenant_id}/seed")
 def seed(tenant_id: str, current_user=Depends(get_current_user)):
-    if not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Superuser only.")
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only.")
     try:
         result = seed_tenant(tenant_id)
         return {"success": True, "data": result}
@@ -50,8 +50,8 @@ def seed(tenant_id: str, current_user=Depends(get_current_user)):
 
 @router.delete("/tenants/{tenant_id}")
 def deprovision(tenant_id: str, current_user=Depends(get_current_user)):
-    if not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Superuser only.")
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only.")
     ok = deprovision_tenant(tenant_id)
     if not ok:
         raise HTTPException(status_code=404, detail=f"Tenant '{tenant_id}' not found.")

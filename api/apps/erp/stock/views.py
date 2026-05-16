@@ -6,20 +6,53 @@ class ProductCategoryView(Aras.View):
     model = ProductCategory
     title = "Product Categories"
     icon = "pi pi-tags"
+    layout = [
+        {
+            "key": "general",
+            "title": "General",
+            "fields": ["name", "account_sale_id", "account_purchase_id", "account_cogs_id", "account_stock_id", "account_variance_id"],
+        },
+    ]
 
 class ProductView(Aras.View):
     model = Product
     title = "Products"
     icon = "pi pi-box"
     layout = [
-        {"title": "General", "fields": ["name", "code", "category_id", "uom_id", "is_active"]},
-        {"title": "Alternate Units", "fields": ["uoms"]},
-        {"title": "Prices", "fields": ["pricelists"]}
+        {
+            "key": "general",
+            "title": "General",
+            "fields": ["name", "sku", "category_id", "uom_id", "is_active"],
+        },
+        {
+            "key": "pricing",
+            "title": "Pricing",
+            "fields": ["price", "pricelist_id", "currency_id"],
+        },
+        {
+            "key": "accounting",
+            "title": "Accounting",
+            "fields": ["account_stock_id", "account_cogs_id", "account_variance_id"],
+        },
+        {
+            "key": "notes",
+            "title": "Notes",
+            "fields": ["description"],
+        },
+        {"key": "alternate_units", "title": "Alternate Units", "fields": ["uoms"]},
+        {"key": "prices", "title": "Prices", "fields": ["pricelists"]},
     ]
 
 class ProductUomView(Aras.View):
     model = ProductUom
     title = "Product Units"
+    layout = [
+        {
+            "key": "general",
+            "title": "General",
+            "fields": ["name", "ratio", "uom_id"],
+        },
+    ]
 
 class PriceListView(Aras.View):
     model = PriceList

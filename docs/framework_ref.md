@@ -182,10 +182,13 @@ ui/src/
 
 ### Primary Hook
 ```typescript
-const { notify, confirm, api } = useAras()
+const { notify, confirm, api, appName, formatDate, formatCurrency } = useAras()
 // notify('Message', 'success' | 'error' | 'warning')
-// confirm('Are you sure?', () => doDelete())
-// api.get('/api/v1/erp_orders')
+// confirm(options: ConfirmOptions) → Promise<boolean>
+// api — Axios instance (baseURL: /api/v1)
+// appName — first URL path segment (e.g. 'erp'), from useLocation()
+// formatDate(isoString) → locale date string
+// formatCurrency(amount) → USD currency string
 ```
 
 ### State Stores

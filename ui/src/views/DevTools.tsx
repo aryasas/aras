@@ -1,5 +1,5 @@
-import React, { Fragment, useState, useEffect } from 'react'
-import { Terminal, Database, RefreshCw, Cpu, Box, Layout, Table, Link as LinkIcon, Users, Settings, GitBranch, ChevronDown, ChevronUp, HelpCircle } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Terminal, Database, RefreshCw, Cpu, Box, Layout, Table, Link as LinkIcon, Users, Settings, GitBranch, HelpCircle, X } from 'lucide-react'
 import api from '../lib/api'
 import { MetadataService } from '../aras-core/services/MetadataService'
 import { useAras } from '../aras-core/hooks/useAras'
@@ -23,6 +23,8 @@ interface HandoffRun {
   feature: string
   mode: string
   status: string
+  author?: string
+  claude_verdict?: string
   run_date: string
   prompt_md: string
   output_md: string
@@ -43,7 +45,7 @@ export default function DevTools() {
   const [syncing, setSyncing] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'handoff'>('overview')
   const [handoffRuns, setHandoffRuns] = useState<HandoffRun[]>([])
-  const [expandedRun, setExpandedRun] = useState<number | null>(null)
+  const [selectedRun, setSelectedRun] = useState<HandoffRun | null>(null)
   const [loadingHandoff, setLoadingHandoff] = useState(false)
   const navigate = useNavigate()
   const { notify } = useAras()
@@ -408,27 +410,24 @@ export default function DevTools() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="text-left px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider w-8">#</th>
+                    <th className="text-left px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Run Date</th>
                     <th className="text-left px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Feature</th>
-                    <th className="text-left px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Date</th>
                     <th className="text-left px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Mode</th>
                     <th className="text-left px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Status</th>
-                    <th className="text-right px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Gemini</th>
-                    <th className="text-right px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">GPT</th>
-                    <th className="text-right px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Total</th>
-                    <th className="w-8"></th>
+                    <th className="text-left px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Author</th>
+                    <th className="text-left px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Claude Verdict</th>
+                    <th className="text-right px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Total Tokens</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {handoffRuns.map((run, idx) => (
-                    <Fragment key={run.id}>
+                  {handoffRuns.map((run) => (
                       <tr
-                        onClick={() => setExpandedRun(expandedRun === run.id ? null : run.id)}
+                        key={run.id}
+                        onClick={() => setSelectedRun(run)}
                         className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors"
                       >
-                        <td className="px-4 py-3 text-slate-400 font-mono text-xs">{idx + 1}</td>
-                        <td className="px-4 py-3 font-bold text-slate-900 max-w-xs truncate">{run.feature}</td>
                         <td className="px-4 py-3 text-slate-500 font-mono text-xs whitespace-nowrap">{String(run.run_date).slice(0, 16).replace('T', ' ')}</td>
+                        <td className="px-4 py-3 font-bold text-slate-900 max-w-xs truncate">{run.feature}</td>
                         <td className="px-4 py-3">
                           <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600">{run.mode}</span>
                         </td>
@@ -439,84 +438,74 @@ export default function DevTools() {
                                                        'bg-amber-100 text-amber-700'
                           }`}>{run.status}</span>
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-xs text-slate-600">
-                          {(run.gemini_prompt_tokens + run.gemini_completion_tokens).toLocaleString()}
-                        </td>
-                        <td className="px-4 py-3 text-right font-mono text-xs text-slate-600">
-                          {(run.gpt_prompt_tokens + run.gpt_completion_tokens).toLocaleString()}
+                        <td className="px-4 py-3 text-slate-600 text-xs font-bold">{run.author || '—'}</td>
+                        <td className="px-4 py-3">
+                          <VerdictBadge verdict={run.claude_verdict} />
                         </td>
                         <td className="px-4 py-3 text-right font-mono text-xs font-bold text-slate-900">
-                          {run.total_tokens.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-3 text-center text-slate-400">
-                          {expandedRun === run.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                          {(run.total_tokens || 0).toLocaleString()}
                         </td>
                       </tr>
-                      {expandedRun === run.id && (
-                        <tr className="bg-slate-50 border-b border-slate-200">
-                          <td colSpan={9} className="px-6 py-5">
-                            <div className="space-y-5">
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                {[
-                                  { label: 'Gemini Prompt', value: run.gemini_prompt_tokens },
-                                  { label: 'Gemini Output', value: run.gemini_completion_tokens },
-                                  { label: 'GPT Prompt', value: run.gpt_prompt_tokens },
-                                  { label: 'GPT Output', value: run.gpt_completion_tokens },
-                                ].map(({ label, value }) => (
-                                  <div key={label} className="bg-white border border-slate-200 rounded-xl p-3 text-center">
-                                    <div className="text-xs text-slate-400 font-medium mb-1">{label}</div>
-                                    <div className="font-black text-slate-700 font-mono">{value.toLocaleString()}</div>
-                                  </div>
-                                ))}
-                              </div>
-
-                              {(run.backend_files || run.frontend_files) && (
-                                <div>
-                                  <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Files Written</div>
-                                  <div className="flex flex-wrap gap-2">
-                                    {[...( run.backend_files ? run.backend_files.split('\n') : []),
-                                       ...(run.frontend_files ? run.frontend_files.split('\n') : [])]
-                                      .filter(Boolean)
-                                      .map(f => (
-                                        <span key={f} className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-600">{f}</span>
-                                      ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              {run.prompt_md && (
-                                <div>
-                                  <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Claude Prompt (Spec)</div>
-                                  <pre className="bg-slate-950 text-slate-200 rounded-xl p-4 text-xs overflow-x-auto whitespace-pre-wrap max-h-56 overflow-y-auto">{run.prompt_md}</pre>
-                                </div>
-                              )}
-
-                              {run.output_md && (
-                                <div>
-                                  <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Agent Output</div>
-                                  <pre className="bg-slate-950 text-slate-200 rounded-xl p-4 text-xs overflow-x-auto whitespace-pre-wrap max-h-56 overflow-y-auto">{run.output_md}</pre>
-                                </div>
-                              )}
-
-                              {run.issues && (
-                                <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                                  <div className="text-xs font-bold text-red-600 uppercase tracking-wider mb-1">Issues</div>
-                                  <pre className="text-xs text-red-700 whitespace-pre-wrap">{run.issues}</pre>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
+          {selectedRun && (
+            <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/30" onClick={() => setSelectedRun(null)}>
+              <div
+                className="h-full w-full max-w-3xl bg-white shadow-2xl border-l border-slate-200 overflow-y-auto"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-slate-100 px-6 py-4 flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900">{selectedRun.feature}</h3>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
+                      <span>{String(selectedRun.run_date).slice(0, 16).replace('T', ' ')}</span>
+                      <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{selectedRun.mode}</span>
+                      <VerdictBadge verdict={selectedRun.claude_verdict} />
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedRun(null)}
+                    className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  <div>
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Prompt</div>
+                    <pre className="bg-slate-950 text-slate-200 rounded-xl p-4 text-xs overflow-x-auto whitespace-pre-wrap max-h-[36rem] overflow-y-auto">{selectedRun.prompt_md || 'No prompt captured.'}</pre>
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Output</div>
+                    <pre className="bg-slate-950 text-slate-200 rounded-xl p-4 text-xs overflow-x-auto whitespace-pre-wrap max-h-[36rem] overflow-y-auto">{selectedRun.output_md || 'No output captured.'}</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
+  )
+}
+
+function VerdictBadge({ verdict }: { verdict?: string | null }) {
+  const normalized = verdict || ''
+  const classes = normalized === 'APPROVED'
+    ? 'bg-emerald-100 text-emerald-700'
+    : normalized === 'NEEDS-FIX'
+      ? 'bg-red-100 text-red-700'
+      : 'bg-slate-100 text-slate-500'
+
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${classes}`}>
+      {normalized || '—'}
+    </span>
   )
 }
 

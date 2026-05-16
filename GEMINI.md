@@ -1,11 +1,8 @@
-- if i say cmp mean "inspect/review my project. what can we add to project to make more robust, complete, nice gui. before we move to create an app? inpect code, function, and ui (easyness, posisiton, and aesthetic)."
-- if i say ggc mean "give git commit command text with message all we do/add to project but you DONT exec/git, i will do the git myself."
-- if i say updd mean "update/edit feature.md to add what we do/add to the project (dont delete just add/update) and update/edit aras.md (if needed, dont delete except there are something changed make aras.md irrelevan)"
-- aras framework login credential: user: admin pass: admin
-
 # Aras Framework — Project Context & Guidelines (Current)
+Read these two files in full:
+- `docs/aras.md` — framework architecture, patterns, conventions, change log
+- `docs/framework_ref.md` — detailed component/endpoint reference tables
 
-read docs/aras.md
 Aras is a modular, metadata-driven framework built with FastAPI and SQLAlchemy. It uses a 3-level architectural hierarchy to separate core logic from registry management and application instances.
 
 ## 🏗️ Architecture Overview

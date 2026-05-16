@@ -5,6 +5,13 @@ class PipelineView(Aras.View):
     model = Pipeline
     title = "Pipelines"
     icon = "pi pi-sitemap"
+    layout = [
+        {
+            "key": "general",
+            "title": "General",
+            "fields": ["name", "stages"],
+        },
+    ]
 
 class LeadView(Aras.View):
     model = Lead
@@ -21,5 +28,12 @@ class LeadView(Aras.View):
 class ActivityView(Aras.View):
     model = Activity
     title = "Sales Activities"
+    layout = [
+        {
+            "key": "general",
+            "title": "General",
+            "fields": ["name", "type", "lead_id", "scheduled_date", "notes"],
+        },
+    ]
 
 
