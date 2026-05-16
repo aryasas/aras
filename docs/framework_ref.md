@@ -14,15 +14,16 @@
 | Class | Purpose |
 |---|---|
 | `Aras.Model` | SQLAlchemy model base (CRUD, audit, M2M, workflow, layout) |
-| `Aras.App` | App manifest base |
-| `Aras.Manager` | Orchestration base (Audit, Sync, Workflow, Task, Health) |
-| `Aras.View` | UI metadata config base |
+| `Aras.SoftModel` | `Model` subclass with soft-delete built-in |
+| `Aras.App` | App manifest base. Supports `parent_name`, `have_home`, `menu_groups` |
+| `Aras.Manager` | Orchestration — `Manager.Sync`, `Manager.Audit`, `Manager.Workflow` |
+| `Aras.View` | UI metadata config base. Title auto-derived if not set. |
 | `Aras.Schema` | Pydantic validation base |
 | `Aras.Service` | Stateless logic base |
-| `Aras.Router` | API routing base |
+| `Aras.Router` | API routing factory (`RouterFactory.create_router`) |
 | `Aras.Auth` | Security/authorization base |
 | `Aras.Validation` | Pydantic DTO base |
-| `Aras.Field` | SQLAlchemy column wrapper |
+| `Aras.Field` / `Aras.Column` | SQLAlchemy column wrapper with UI metadata (`choices`, `form_hidden`, etc.) |
 
 **Level 2.5 — Tiered Core** (prevents circular imports):
 | Tier | Path | Rule |
@@ -32,31 +33,36 @@
 | Tier 2 `api` | `api/core/api/` | depends on any lower tier |
 
 **Level 3 — Registry** (`api/core/registry/`):
-| Model | Table | Purpose |
+| Class | Table | Purpose |
 |---|---|---|
-| `AppModel` | `aras_apps` | installed app records |
-| `ResourceModel` | `aras_resources` | table/model metadata |
-| `FieldModel` | `aras_fields` | field-level UI overrides |
-| `LinkModel` | `aras_links` | relationship metadata |
-| `TranslationModel` | `aras_translations` | i18n label records |
-| `WidgetModel` | `aras_widgets` | dashboard widget definitions |
-| `DashboardLayoutModel` | `aras_dashboard_layouts` | user dashboard configs |
-| `ActivityLog` | `aras_activity_logs` | audit trail |
-| `Role` / `Permission` / `UserRole` | `aras_roles/permissions/user_roles` | RBAC |
-| `ArasSetting` | `aras_settings` | global key-value settings |
+| `Aras.AppModel` | `aras_apps` | installed app records |
+| `Aras.ResourceModel` | `aras_resources` | table/model metadata |
+| `Aras.FieldModel` | `aras_fields` | field-level UI overrides |
+| `Aras.LinkModel` | `aras_links` | relationship metadata |
+| `Aras.TranslationModel` | `aras_translations` | i18n label records |
+| `Aras.WidgetModel` | `aras_widgets` | dashboard widget definitions |
+| `Aras.DashboardLayoutModel` | `aras_dashboard_layouts` | per-user dashboard configs |
+| `Aras.ActivityLog` | `aras_activity_logs` | audit trail |
+| `Aras.Role` / `Aras.Permission` / `Aras.UserRole` | `aras_roles/permissions/user_roles` | RBAC |
+| `Aras.User` | `aras_users` | authentication |
+| `Aras.ArasSetting` | `aras_settings` | global key-value settings |
+| `Aras.HandlerRegistry` | — | workflow transition handler registry |
 
 ---
 
 ## Unified Namespace
 ```python
 from core import Aras
-# Aras.Model, Aras.App, Aras.Manager, Aras.View, Aras.Schema
-# Aras.AppModel, Aras.ResourceModel, Aras.FieldModel, etc.
-# Aras.User, Aras.ArasSetting
-# Aras.lib, Aras.logic, Aras.api, Aras.helper
-# Aras.Manager.Sync, Aras.Manager.Audit, Aras.Manager.Workflow
-# Aras.Base (DeclarativeBase), Aras.engine, Aras.get_db
-# Aras.Router = RouterFactory.create_router
+# Level 2: Aras.Model, Aras.SoftModel, Aras.App, Aras.View, Aras.Schema
+#          Aras.Service, Aras.Router, Aras.Auth, Aras.Validation
+#          Aras.Field / Aras.Column
+# Level 3: Aras.AppModel, Aras.ResourceModel, Aras.FieldModel, Aras.LinkModel
+#          Aras.User, Aras.ArasSetting, Aras.ActivityLog, Aras.HandlerRegistry
+#          Aras.Role, Aras.Permission, Aras.UserRole, Aras.WidgetModel
+# Managers: Aras.Manager.Sync, Aras.Manager.Audit, Aras.Manager.Workflow
+# DB:       Aras.Base, Aras.engine, Aras.get_db, Aras.db
+# Util:     Aras.discover_apps, Aras.tenant, Aras.helper, Aras.lib, Aras.logic, Aras.api
+# Routing:  Aras.Router = RouterFactory.create_router
 ```
 
 ---
@@ -75,9 +81,11 @@ from core import Aras
 | `__searchable_fields__` | list | fields searched by global search |
 | `__soft_delete__` | bool | enable soft delete |
 | `__serialize_relations__` | dict | `{key: (rel_attr, rel_field)}` for `to_dict()` |
-| `__title__` | str | human label for sidebar/UI |
 
-**Auto-provided base columns** (never declare): `id`, `is_active`, `created_at`, `updated_at`, `created_by`, `updated_by`
+> **`__title__` is removed** — do NOT set it on models. Use a `View` subclass with `title = "..."` instead. Auto-derived from class name when no View exists.
+
+**Auto-provided base columns** (never declare): `id`, `created_at`, `updated_at`, `created_by`, `updated_by`
+**`is_active`** is NOT auto-provided — add `__features__ = ["activatable"]` to opt in.
 
 ---
 
@@ -122,7 +130,10 @@ All routes prefixed `/api/v1/`.
 | `/api/v1/sidebar` | GET | Dynamic sidebar data |
 | `/api/v1/files/...` | * | File upload/download |
 | `/api/v1/workflow/...` | * | Workflow transitions |
-| `/api/v1/auth/login` | POST | JWT login |
+| `/api/v1/auth/token` | POST | JWT login (form-encoded: `username`, `password`) |
+| `/api/v1/tenants` | GET/POST | List / provision tenants (admin only) |
+| `/api/v1/tenants/{id}/seed` | POST | Seed a provisioned tenant (admin only) |
+| `/api/v1/tenants/{id}` | DELETE | Deprovision tenant (admin only) |
 
 ---
 
@@ -194,6 +205,147 @@ const { notify, confirm, api, appName, formatDate, formatCurrency } = useAras()
 ### State Stores
 - `authStore`: `token`, `user`, `setToken`, `logout`
 - `uiStore`: `showAlert`, `showConfirm`, `showError`
+
+---
+
+## manage.py Commands (run from `api/`)
+
+| Command | Purpose |
+|---|---|
+| `python manage.py sync` | Discover apps, create/migrate tables, sync metadata — **run after every model/app change** |
+| `python manage.py seed --company-id 1` | Seed CoA, reports, initial data. Add `--demo` for demo data. |
+| `python manage.py discover` | List all discovered apps and labels |
+| `python manage.py check` | Run health + integrity checks |
+| `python manage.py install <file.yaml>` | Install app from YAML/JSON/ZIP bundle |
+| `python manage.py uninstall <name>` | Remove app from filesystem + DB |
+| `python manage.py activate <name>` | Activate app in registry |
+| `python manage.py deactivate <name>` | Deactivate app in registry |
+| `python manage.py tenant provision <id>` | Provision a new tenant PostgreSQL DB |
+| `python manage.py tenant seed <id>` | Seed basic data into a tenant DB |
+| `python manage.py tenant list` | List all registered tenants |
+| `python manage.py tenant deprovision <id>` | Soft-delete a tenant DB |
+
+---
+
+## App Patterns
+
+### Minimal App
+```python
+# models.py
+from sqlalchemy import String
+from sqlalchemy.orm import Mapped, mapped_column
+from core import Aras
+
+class MyModel(Aras.Model):
+    __tablename__ = "myapp_items"
+    __searchable_fields__ = ["name"]
+    __features__ = ["audit"]
+    name: Mapped[str] = mapped_column(String(200))
+```
+
+```python
+# app.py
+from core import Aras
+from .models import MyModel
+from . import views as _views  # noqa
+
+class MyApp(Aras.App):
+    app_name = "myapp"
+    app_label = "My App"
+    icon = "Package"
+    models = [MyModel]
+```
+
+```python
+# views.py — only when overriding title or adding layout
+from core import Aras
+from .models import MyModel
+
+class MyModelView(Aras.View):
+    model = MyModel
+    title = "My Items"
+```
+
+### File Structure
+
+Flat app:
+```
+api/apps/myapp/
+├── __init__.py
+├── app.py        — Aras.App subclass, lists models
+├── models.py     — Aras.Model subclasses
+└── views.py      — only if overriding title/layout
+```
+
+App with modules (ERP pattern):
+```
+api/apps/myapp/
+├── __init__.py
+├── app.py                — parent App (have_home=True)
+├── base/                 — optional Level-3a abstract bases
+│   ├── document.py
+│   └── master_data.py
+├── accounting/           — sub-module
+│   ├── __init__.py
+│   ├── app.py            — subclass, parent_name="myapp"
+│   ├── models.py
+│   ├── views.py
+│   └── services/         — stateless logic (Aras.Service)
+└── stock/
+    ├── __init__.py
+    ├── app.py
+    ├── models.py
+    └── services/
+```
+
+Rules: `services/` = stateless only. `routers/` = custom endpoints; register via `App.routers = [router]`. Never put business logic in `models.py` or `views.py`.
+
+### Multi-file Models
+```python
+from core.logic.discovery import autodiscover_models
+
+class MyApp(Aras.App):
+    app_name = "myapp"
+    models = autodiscover_models(__name__, ["models", "models_extra"])
+```
+
+### menu_groups (topbar navigation)
+```python
+class MyApp(Aras.App):
+    app_name = "myapp"
+    have_home = True
+    menu_groups = [
+        {"label": "Master", "icon": "Database", "models": ["myapp_items"]},
+        {"label": "Operations", "icon": "Truck", "models": ["myapp_orders"]},
+    ]
+```
+
+---
+
+## ERP Sub-Apps (`api/apps/erp/`)
+
+`ERP` base class owns `SavedFilter` + `saved_filter_router`. Sub-apps inherit `ERP` — auto-sets `parent_name = "erp"`, `app_type = "module"`.
+
+| Dir | `app_name` | Key models |
+|---|---|---|
+| `accounting` | `erp_accounting` | Account, SalesInvoice, JournalEntry, GRN |
+| `stock` | `erp_stock` | Product, StockMovement, Warehouse |
+| `config` | `erp_config` | Currency, Uom, Charge, ModeOfPayment, PrintTemplate |
+| `crm` | `erp_crm` | Lead, Pipeline, Stage, Activity |
+| `hr` | `hr` | Department, Position, Employee |
+| `party` | `party` | Party, Contact |
+| `asset` | `asset` | AssetCategory, Asset |
+| `pot` | `pot` | PotTerminal, PotSession, PotOrder, PotOrderLine |
+| `report` | `erp_report` | Report |
+
+ERP abstract bases (`api/apps/erp/base/`):
+
+| Base | Features | Use for |
+|---|---|---|
+| `DocumentBase` | audit, workflow, scoped (company_id) | Invoices, Orders, Movements |
+| `LineItemBase` | audit | Invoice/Order/Journal lines |
+| `MasterDataBase` | audit, activatable, scoped (company_id) | Product, Customer, Account |
+| `ConfigBase` | audit, activatable | Currency, Uom, Charge (global) |
 
 ---
 

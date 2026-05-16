@@ -38,6 +38,7 @@ ARAS_FILE     = PROJECT_ROOT / "docs" / "aras.md"
 DATE = datetime.now().strftime("%Y-%m-%d")
 
 BACKEND_SYSTEM = (
+    "ARAS_AGENT_ROLE=backend-worker. Read docs/agents.md (Gemini Worker Rules section) for your full constraints. "
     "You are a backend developer for the Aras framework (FastAPI + SQLAlchemy 2.0). "
     "Read docs/aras.md first for framework patterns. "
     "ONLY implement tasks listed under '## Backend Tasks' or '## Revision Tasks > Backend' in the spec below. "
@@ -54,6 +55,7 @@ BACKEND_SYSTEM = (
 )
 
 FRONTEND_SYSTEM = (
+    "ARAS_AGENT_ROLE=frontend-worker. Read docs/agents.md (Codex Worker Rules section) for your full constraints. "
     "You are a frontend developer for the Aras framework (React 19 + TypeScript + TailwindCSS 4). "
     "Read docs/aras.md first for framework patterns and component conventions. "
     "ONLY implement tasks listed under '## Frontend Tasks' or '## Revision Tasks > Frontend' in the spec below. "

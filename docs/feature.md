@@ -1,333 +1,198 @@
+# Files Rule
+
+This file is used only to report if there are feature added
+
 # Aras Framework Features
-
-This document outlines the key features and architectural components of the Aras framework, including the recent **Aras Pro** enhancements.
-
-## Core Architecture
-
--   **Metadata-driven Design:** Built on FastAPI and SQLAlchemy, enabling dynamic behavior and low-code extensibility through metadata.
--   **Hierarchical Structure:** A strict 3-level hierarchy ensures modularity and clear separation of concerns.
--   **Tiered Core Logic:** Prevents circular dependencies by organizing the core into Tiers (0: Utilities, 1: Logic, 2: API).
-
-## Application Lifecycle Management
-
--   **`manage.py` CLI:** A central command-line interface for managing applications.
-    -   `sync`: Synchronizes code-defined metadata to the DB registry and migrates the schema.
-    -   `install <file>`, `uninstall <name>`, `activate`, `deactivate`, `discover`, `check`.
-
-## Key Features & Capabilities
-
-### Data & API Layer
-
--   **Generic CRUD Operations:** Automated generation of FastAPI endpoints via `RouterFactory`.
--   **Enhanced Querying:** Pagination, advanced filtering, and global search.
--   **Global Search & Command Center (Aras Pro):**
-    -   **`CommandPalette`:** Integrated `CMD+K` interface for instant access to records, apps, and actions.
-    -   **Robust Multi-Resource Search:** The `/search` API uses heuristic type detection and supports `__searchable_fields__` for fine-grained control.
-    -   **Intelligent Labeling:** Automatically resolves display labels (username, number, title) for search results.
--   **Computed Properties (Aras Pro):** 
-    -   **`@Aras.computed_field` Decorator:** Allows defining dynamic, read-only fields on models that are automatically serialized in API responses.
-    -   **Serialization Flexibility:** Computed fields are seamlessly integrated into `to_dict()` and UI metadata.
--   **Advanced Relationship Management (Aras Pro):**
-    -   **Many-to-Many (M2M) Support:** Automated M2M handling via `__m2m__` attribute, supporting bridge table synchronization and association management.
-    -   **MultiSelect UI:** Dedicated `MultiSelectCombobox` for managing M2M relationships in the UI.
--   **Advanced Import Mapping (Aras Pro):**
-    -   **Field Mapping UI:** Users can now map CSV columns to specific resource fields during the import process.
-    -   **Background Processing:** Imports are handled via Celery for zero-latency user experience.
--   **Permissions & RBAC:** Integrated Role-Based Access Control.
--   **Auto-Migration:** Automatic database schema updates based on models.
-
-### UI & Presentation Layer (Aras Pro Upgrades)
-
--   **Dynamic Analytics & Dashboard (Aras Pro):**
-    -   **Pluggable Dashboard Widgets:** Support for Stat, List, and Chart widgets.
-    -   **Interactive Data Visualization:** Built-in SVG-based charting engine supporting Bar and Pie charts with zero external dependencies.
-    -   **Real-time Aggregation:** Widgets automatically fetch and group data from resources.
--   **Pro Layout Engine:**
-    -   **Sections & Tabs:** Models can define `__layout__` to group fields into logical sections in the UI.
-    -   **Dynamic Rendering:** `DynamicForm` automatically renders these layouts, reducing scroll fatigue.
--   **Advanced Conditional UI Visibility (Aras Pro):**
-    -   **Safe `LogicEvaluator`:** A secure, recursive-descent logic engine for evaluating field dependencies (e.g., `total_amount > 5000 && status != 'Draft'`).
-    -   **No-Eval Security:** Avoids unsafe JS execution, ensuring system stability.
--   **Pluggable UI Registry:**
-    -   **`SchemaRegistry`:** A global registry for field components. Developers can easily register custom widgets (e.g., Color Pickers, Maps) without modifying core components.
--   **Real-time Validation:** Automated mapping of backend Pydantic errors (422) to UI field-level feedback.
-
-### System & Extensibility
-
--   **Custom Model Actions Framework:**
-    -   **`@Aras.model_action` Decorator:** Declarative business logic methods exposed as API endpoints.
-    -   **UI Integration:** Actions appear as "Quick Action" (Zap icon) buttons in form headers.
--   **Centralized Background Task Processor:** Celery-powered task queue via `TaskManager`.
--   **Workflow Engine:** State-machine engine for document lifecycles.
--   **Advanced Logging and Monitoring:** Structured JSON logging and global exception handling.
 
 ---
 
-## Framework Security Hardening
+## 1. Core Architecture
+- Metadata-driven design (FastAPI + SQLAlchemy)
+- 3-level hierarchical structure
+- Tiered core logic (Tier 0: Utilities, Tier 1: Logic, Tier 2: API)
+- Hierarchical app architecture — `parent_name` on `Aras.App`, persisted in DB registry
+- Inheritance-based registration — ERP sub-apps inherit from base `ERP` class
 
-### Configuration & Secrets
+---
 
--   **Centralized Settings (`api/core/lib/settings.py`):** Single source of truth for all environment config. Reads from `.env` via `python-dotenv`. `settings.validate()` is called at startup before any framework imports.
--   **Fail-Loud in Production:** `RuntimeError` if `SECRET_KEY` or `ARAS_ADMIN_PASSWORD` is missing in production mode. In development mode, an ephemeral key is generated with a warning.
--   **No Hardcoded Secrets:** All JWT keys, DB URLs, admin passwords, and CORS origins are env-driven. The `.env` file is the only place to configure these.
+## 2. Application Lifecycle (`manage.py`)
+- `sync` — auto-migrates schema before syncing metadata
+- `install`, `uninstall`, `activate`, `deactivate`, `discover`, `check`
+- `seed` — ERP seeding (COA, Currencies, UOMs, Warehouses)
+- `tenant provision|list|seed|deprovision`
 
-### API Security
+---
 
--   **CORS Fixed:** `allow_origins=["*"]` + `allow_credentials=True` violated the CORS spec and was rejected by browsers. Now uses `settings.CORS_ORIGINS` (defaults to `http://localhost:5173`).
--   **All Admin/Dev Endpoints Authenticated:** Every `/api/v1/admin/*` and `/api/v1/dev/*` endpoint requires `require_admin` dependency (403 for non-admins, 401 for unauthenticated).
--   **Sidebar Authenticated:** `GET /api/v1/sidebar` requires `get_current_user`.
--   **File Download Protected:** `GET /api/v1/files/download/{filename}` requires auth + path traversal protection via `os.path.basename()`.
--   **Full RBAC on Query Endpoints:** `POST /{resource}/query` and `GET /search` both enforce `RBAC.has_permission()` for non-admin users. Global search uses a single bulk `get_readable_resources()` call to avoid N+1 queries.
--   **`require_admin` Single Source of Truth:** Defined once in `api/core/auth/service.py`; imported everywhere.
+## 3. Data & API Layer
 
-### Pydantic v2 Compliance
+### CRUD & Querying
+- Generic CRUD via `RouterFactory`
+- Pagination, filtering, global search
+- Soft delete — `__soft_delete__` adds `/deleted` + `POST /{id}/restore` automatically
+- Batch API — `POST /batch` up to 100 mixed ops, atomic
 
--   All `class Config: from_attributes = True` replaced with `model_config = ConfigDict(from_attributes=True)`.
--   All `@validator` decorators replaced with `@field_validator` + `@classmethod`.
--   All `.dict()` calls replaced with `.model_dump()` across `router_factory.py`, `installer.py`, and `dashboard.py`.
+### Search
+- `CommandPalette` (`CMD+K`)
+- Multi-resource `/search` with `__searchable_fields__`
+- Auto-resolved display labels per resource
 
-### Test Infrastructure
+### Fields & Validation
+- `@Aras.computed_field` — read-only dynamic fields, auto-serialized
+- Declarative validation — `min_length`, `max_length`, `min_value`, `max_value`, `pattern` on `Aras.Field`
+- `info["choices"]` — narrows Pydantic type to `Literal[*choices]`, renders select in UI
 
--   **`api/conftest.py`:** Session-scoped fixtures: `client` (TestClient), `admin_token`, `admin_headers`. Uses SQLite in-memory DB for isolation.
--   **`tests/test_auth_security.py`:** Verifies all secured endpoints return 401 without auth and 200 with admin token. Covers admin, dev, sidebar, and query endpoints.
+### Relationships
+- M2M via `__m2m__` with bridge table sync
+- Child tables rendered as embedded `ListView` with FK filtering and "Save first" guard
 
-### Performance Fixes
+### Scoping & Multi-Tenancy
+- `__scoped_by__` — auto-injects FK columns, filters all routes by scope from JWT claim
+- `POST /api/v1/auth/switch-scope` — re-issues JWT with new scope
+- `X-Company-ID` header for company-aware RBAC
+- Multi-tenant provisioner — per-tenant PostgreSQL DB, `metadata.create_all`, `auto_migrate`, soft-delete via `ALTER DATABASE RENAME TO`
+- Tenant REST API — `GET/POST/DELETE /tenants/*` (superuser only)
 
--   **N+1 RBAC Eliminated:** `global_search` now calls `RBAC.get_readable_resources()` once (single JOIN query) before the resource loop.
--   **Search Field Caching:** `_get_search_fields()` caches results on `model_class._search_fields_cache` — column iteration happens only once per model per process lifetime.
--   **Settings Seed Bulk Query:** Startup settings seed uses a single `IN` query instead of 8 individual SELECTs.
--   **Dead DB Connection Fixed:** `get_framework_info` no longer opens an unused DB connection.
+### Real-Time
+- WebSocket `/api/v1/ws?channel=` with JWT auth + `broadcast_sync()` helper
+
+---
+
+## 4. Model Internals
+- `__unique_together__` — composite `UniqueConstraint` in `__init_subclass__`
+- `__features__ = ["activatable"]` — opt-in `is_active` column (removed from baseline)
+- Three-layer inheritance validation — single Level-3a abstract ancestor, MRO merge of `__features__`, `__scoped_by__`, `__unique_together__`, `__layout__`
+- `@Aras.on_transition` — transition registry; `WorkflowManager` fires callbacks on status change
+- `@Aras.model_action` — exposes methods as API endpoints + "Quick Action" buttons in UI
+- Saved filters — per-user filter persistence (model + router + registration)
+- Auto-discovery — ERP models discovered without explicit registration
+
+---
+
+## 5. UI & Presentation
+
+### Forms
+- `__layout__` — named sections and tabs in `DynamicForm`
+- Form customization — settings button in header to override `default_value` and `series` per field
+- Series generation — auto-generates sequential IDs (e.g., `INV-2026-0001`) on create
+- `LogicEvaluator` — safe recursive-descent engine for conditional field visibility
+- Client-side pre-validation before submit
+- Backend 422 errors mapped to field-level feedback
+- `Ctrl+S` save, `Esc` cancel
+- Animated skeleton during form load
+
+### Lists
+- Inline row editing — double-click to edit, Enter/Esc
+- Bulk edit modal — applies one field value to all selected rows via `/batch`
+- Smart empty state — "Add New" vs "Clear filters" depending on active filters
+- Status badges — colored pills for `status`/`workflow_status` columns
+- `ListToolbar` — shared across standalone lists and inline child tables
+
+### Dashboard & Navigation
+- Pluggable widgets: Stat, List, Chart (SVG-based, no external deps)
+- Dashboard drag-to-rearrange with `POST /dashboard/layout` persistence
+- StatWidget/ListWidget rows navigate to resource on click
+- Dual-axis navigation — Sidebar for root apps, Topbar for app-specific resources
+- Mega-menu Topbar — sibling modules as top-level dropdown groups
+- Sidebar reserved for root apps only; active parent highlighted when in sub-app
+- Dynamic AppHome tiles from `menu_groups` / `sub_apps`
+
+### URL & Routing
+- Hierarchical hyphenated URLs (e.g., `/erp/accounting/accounts`)
+- Prefix stripping — `erp_accounting_` removed from UI labels
+- `SmartDispatcher` — resolves URL segments to App Home or Resource view
+- API paths mirror frontend hierarchy
+
+### Other
+- Dark mode (Zustand persist, `html.dark`, dark-aware charts)
+- Audit log timeline with expandable field diffs, action filter, pagination
+- Print/PDF preview modal (`window.print()`)
+- Home cards — greeting + app cards above dashboard
+- React Error Boundary with "Try Again"
+- `SchemaRegistry` — register custom field widgets without touching core
+
+---
+
+## 6. ERP Module
+
+### Structure
+- 7 sub-apps: `accounting`, `stock`, `crm`, `pos`, `supplier`, `config`, `report`
+- Level-3a abstract bases: `DocumentBase`, `LineItemBase`, `MasterDataBase`, `ConfigBase`
+- `NamingSeries` → renamed to `Series`
+
+### Documents & Finance
+- Sales Orders, Purchase Orders, Delivery Notes, GRN, Payment Allocations
+- Auto-posting — "Post" action generates balanced Journal Entries via heuristic account mapping
+- Auto-recalculation of subtotals, taxes, totals on `SalesInvoice`
+- `amount_paid` / `amount_due` as `@Aras.computed_field` on invoices
+- Charge registry — Percent/Fixed, inclusive/exclusive, GL account linkage
+- `ModeOfPayment` with per-company COA mapping
+- Fiscal Period management; POS Terminal configs (warehouse/pricelist overrides)
+- FIFO inventory valuation
+- GL reconciliation (service + model action)
+
+### CRM
+- Leads, Opportunities, Pipelines with customizable stages and probability
+
+### Reporting
+- `erp_report` sub-app centralizes all reports
+- `ReportService` executes query-type reports via `QueryBuilder`
+- Financial reports: Trial Balance, P&L, AR Aging, AP Aging
+- Action buttons use action `label` dynamically (no hardcoded "Run")
+- Report Center filters with `today` parameter resolution in SQL
+
+### Import
+- CSV column mapping UI
+- Validation preview step before posting
+- Background via Celery
+
+---
+
+## 7. System & Extensibility
+- `RateLimiterMiddleware` — 200 req/60s general, 10/60s on auth endpoints
+- Celery task queue via `TaskManager`
+- Workflow engine (DB-driven state machine)
+- Structured JSON logging + global exception handling
+- `TranslationService` — metadata i18n (app names, titles, labels); `lang` param on API
+- Toast notification queue
+
+---
+
+## 8. Security & Performance
+
+### Security
+- `settings.validate()` at startup — `RuntimeError` if secrets missing in production
+- CORS via `settings.CORS_ORIGINS`
+- `require_admin` dependency (single source of truth) on all `/admin/*` and `/dev/*` endpoints
+- File download: auth + `os.path.basename()` path traversal protection
+- Pydantic v2 — `model_config`, `@field_validator`, `.model_dump()` throughout
+
+### Performance
+- N+1 RBAC eliminated — single `get_readable_resources()` JOIN in global search
+- `_get_search_fields()` cached on `model_class._search_fields_cache`
+- Settings seed uses single `IN` query
+- `MetadataService` in-memory cache with `clearCache()` / `invalidate()`
 
 ### Frontend Reliability
+- `cleanResourcePath()` — centralizes path normalization
+- API interceptor normalizes `{message}` and `{detail}` to `.detail`
+- `api/pyrightconfig.json` — suppresses false-positive `reportMissingImports` on `core.*`
 
--   **`ui/src/lib/resourceUtils.ts`:** `cleanResourcePath()` utility replaces 12+ inline path-normalization occurrences across `DynamicForm`, `ListView`, and `MetadataService`.
--   **React Error Boundary (`ErrorBoundary.tsx`):** Wraps the entire app; prevents blank screen on component errors. "Try Again" button resets state.
--   **MetadataService Caching:** In-memory `Map` cache with `clearCache()` and `invalidate()` methods. Prevents redundant `/metadata/` requests on re-navigation.
--   **API Error Shape Normalization (`api.ts`):** Response interceptor unifies `{message}` (backend custom handler) and `{detail}` (FastAPI 422) into a single `.detail` field.
--   **ERP Bootstrap Decoupled:** `erp_orders` widget removed from framework seed. App name reads from `settings.APP_NAME` env var.
+### Tests
+- `conftest.py` — `client`, `admin_token`, `admin_headers` with SQLite in-memory DB
+- `test_auth_security.py` — verifies 401 without auth, 200 with admin token on all secured endpoints
 
+---
 
-## Change Logging Rule + Manual Log Command (2026-05-14)
-  - [Claude Code] mhl command for manual change logging; --log-manual and --submit-review CLI flags; author+notes columns on dev_handoff_runs
+## 9. Infrastructure
+- PostgreSQL (`psycopg2`, port 5432)
+- Multi-tenant: per-tenant DB provisioning, `auto_migrate`, soft-delete via DB rename
 
-## Framework Robustness & UI Completeness (2026-05-14)
-- [Claude Sonnet 4.6] `api/core/lib/rate_limiter.py` — new RateLimiterMiddleware (sliding window, 200 req/60s default, 10/60s on auth endpoints)
-- [Claude Sonnet 4.6] `api/core/logic/router_factory.py` — soft delete routing: `/deleted` list + `POST /{id}/restore` auto-generated for `__soft_delete__` models
-- [Claude Sonnet 4.6] `api/core/base/field.py` + `router_factory.py` — declarative field validation rules: `min_length`, `max_length`, `min_value`, `max_value`, `pattern` wired into auto-generated Pydantic schemas
-- [Claude Sonnet 4.6] `api/core/logic/router_factory.py` — batch API: `POST /batch` accepts up to 100 mixed create/update/delete ops atomically
-- [Claude Sonnet 4.6] `api/core/api/websocket.py` — new WebSocket endpoint `/api/v1/ws?channel=` with JWT auth; `broadcast_sync()` helper for sync callers
-- [Claude Sonnet 4.6] `ui/src/views/AuditLogs.tsx` — full audit log timeline with expandable diff viewer (before/after per field), action filter, pagination; replaces 21-line stub
-- [Claude Sonnet 4.6] `ui/src/aras-core/components/DynamicForm.tsx` — client-side pre-validation (required, min/max length, min/max value, pattern) before submit; Field interface extended
-- [Claude Sonnet 4.6] `ui/src/store/uiStore.ts` + `HeaderActions.tsx` + `index.css` — dark mode toggle with zustand/persist; `html.dark` class toggle; Tailwind v4 `@variant dark` configured
-- [Claude Sonnet 4.6] `ui/src/aras-core/components/ListView.tsx` — bulk edit modal: select field + value, applies via `/batch` to all selected rows
-- [Claude Sonnet 4.6] `ui/src/aras-core/components/ListView.tsx` — inline row editing: double-click text/number cell to edit in-place; Enter saves, Esc cancels
-- [Claude Sonnet 4.6] `ui/src/aras-core/components/CommandPalette.tsx` — `?` key opens keyboard shortcut map modal; shortcut list accessible from palette footer
+---
 
+## Change Log (Condensed)
 
-## Dashboard Drag-to-Rearrange + Audit Log Timeline View — revision (2026-05-14)
-  - [Gemini] Added `POST /api/v1/dashboard/layout` endpoint for persisting user dashboard widget order.
-  - [Codex/GPT-5.5] Native HTML5 drag-and-drop dashboard widget reordering with persisted widget_order POST to /dashboard/layout
-
-
-## Dashboard drag-to-rearrange + Audit Log Timeline (2026-05-14)
-  - [Claude Code] HTML5 drag-and-drop widget reorder,POST /dashboard/layout endpoint,GET/POST/PATCH /dev/dev_handoff_runs endpoints
-
-
-## App Navigation Restructure — have_home + Topbar App Menu — revision (2026-05-14)
-  - [Gemini] Implemented `have_home` attribute in `App` base class and app manifests; added `GET /api/v1/app-menu/{app_name}` endpoint.
-  - [Codex/GPT-5.5] Flat app sidebar navigation, topbar app model tabs, generic app home landing page, and /:appName route
-
-## Hierarchical Application Architecture (2026-05-15)
-
--   **Parent-Child App Relationships:** The `Aras.App` base class now supports a `parent_name` attribute, allowing applications to be organized into a hierarchy.
--   **Modular ERP Structure:** The ERP system has been refactored from a monolithic app into a set of specialized sub-apps (`accounting`, `stock`, `crm`, `pos`, `supplier`, `config`) nested under a primary `erp` parent.
--   **Recursive Sidebar Navigation:** The UI sidebar automatically detects and renders the application hierarchy, nesting sub-apps within their parents with visual indentation.
--   **Drill-Down App Home:** The `AppHome` view serves as a dashboard and module selector, displaying sub-apps as interactive tiles alongside primary models.
--   **Hierarchical Sync Engine:** `SyncManager` and `AppModel` now track and persist the application hierarchy in the database registry.
-
-## Framework Robustness & GUI Enhancements (2026-05-15)
-
--   **Default ERP Dashboard Widgets:** Automated seeding of essential ERP analytics widgets (Total Products, Recent Movements, Financial Overview) during the sync process.
--   **Advanced Section-Based Layouts:** Core ERP models (SalesInvoice, JournalEntry, Product) now utilize the `__layout__` engine to organize fields into logical, titled sections in the UI.
--   **Automatic Invoice Logic:** Implementation of complex business logic for automatic recalculation of subtotals, taxes, and totals in the new `SalesInvoice` model, migrated from legacy codebase.
--   **Metadata Integrity Verification:** Enhanced health checks to ensure registry consistency across hierarchical application boundaries.
-
-
-
-## Framework Refinements (2026-05-15)
-- [Claude Opus 4.7] `api/core/base/model.py` — A1 `__unique_together__` composite UniqueConstraint applied in `__init_subclass__`; A4 removed baseline `is_active` (now opt-in `activatable` trait); A5 three-layer inheritance validation (single Level-3a abstract ancestor) + MRO merge of `__features__`/`__scoped_by__`/`__unique_together__`/`__layout__`
-- [Claude Opus 4.7] `api/core/logic/trait_injector.py` — new `_inject_activatable` (opt-in `is_active` column) and `_inject_scoped` (auto FK columns from `__scoped_by__`, marked `form_hidden`)
-- [Claude Opus 4.7] `api/core/logic/scope.py` (NEW) — `ScopeContext` request-scoped object + `scope_from_user` resolver
-- [Claude Opus 4.7] `api/core/auth/service.py` — `get_current_user` now stashes `request.state.scope` from the JWT `scope` claim
-- [Claude Opus 4.7] `api/core/auth/routes.py` — token endpoint includes `scope` claim; new `POST /api/v1/auth/switch-scope` re-issues JWT with updated scope
-- [Claude Opus 4.7] `api/core/auth/models.py` — `User.current_company_id` nullable column added
-- [Claude Opus 4.7] `api/core/logic/router_factory.py` — A2 narrows Pydantic type to `Literal[*choices]` when `info["choices"]` set; A3 list/get/create/update/patch routes filter by + auto-inject scope; dropped `is_active` special-case
-- [Claude Opus 4.7] `api/core/logic/ui_generator.py` — A2 emits `select`/options for `info["choices"]`; honors `info["form_hidden"]`; exposes `scoped_by` at model level
-- [Claude Opus 4.7] `api/core/registry/resource_model.py` — `scoped_by` JSON column added; `api/core/manager/sync_manager.py` persists it
-- [Claude Opus 4.7] `api/core/logic/transition_registry.py` (NEW) — `TransitionRegistry` + decorator; `api/core/manager/workflow_manager.py` fires callbacks after status transition; `Aras.on_transition` exposed via `api/core/base/aras.py`
-- [Claude Opus 4.7] `api/manage.py` — `sync` now runs `auto_migrate` before `sync_all` so new columns are present when registry queries run
-- [Claude Opus 4.7] `api/core/registry/role.py`, `api/core/registry/permission.py` — opted into `__features__ = ["activatable"]` to keep `Role.is_active` / `Permission.is_active` after baseline removal
-- [Claude Opus 4.7] `api/apps/_erp_base/{document,line_item,master_data,config}.py` (NEW) — Level-3a abstract bases for ERP modules (DocumentBase, LineItemBase, MasterDataBase, ConfigBase)
-- [Claude Opus 4.7] `api/apps/{erp_config,erp_stock,erp_accounting,erp_crm,erp_supplier,erp_pos}/` (NEW) — six ERP app skeletons (manifest only, models empty)
-- [Claude Opus 4.7] `api/apps/erp/` (DELETED) — legacy single-app ERP replaced by six properly-scoped modules
-
-## UI Metadata & Relationship Fixes (2026-05-15)
-- [Gemini] **Hybrid Metadata Child Table Fix**: Fixed issue where child tables defined in the database registry (LinkModel) were not appearing in the 'children' metadata, preventing them from being rendered in the parent form.
-- [Gemini] **DynamicForm Child Table Rendering**: Updated `DynamicForm.tsx` to prevent redundant rendering of child table fields as text inputs in the main grid, ensuring they are only rendered as functional ListViews at the bottom of the form.
-
-## Enhanced Child Table UI (2026-05-15)
-- [Gemini] **Inline Child Table ListViews**: `DynamicForm` now renders `child_table` type fields as fully interactive `ListView` components directly within the form sections.
-- [Gemini] **Smart Filter Correction**: Fixed parent-child filtering logic to use the internal resource name (table name) instead of the URL path for foreign key mapping (`parent_table_id`).
-- [Gemini] **New Record Guard**: Child tables now display a friendly "Save first" message when creating a new record, preventing orphans and UI errors.
-
-## UI Standardization for Child Tables (2026-05-15)
-- [Gemini] **Generic Template Alignment**: Child tables now use the exact generic `ListView` template, ensuring full parity in capabilities (Search, Filters, Column Visibility, Bulk Actions, Export/Import).
-- [Gemini] **Embedded Toolbar**: The native `ListView` toolbar is now used for child tables, providing a consistent UX across the entire platform.
-- [Gemini] **Optimized Layout**: Removed redundant custom headers and styling overrides that previously deviated from the framework's standard UI patterns.
-
-
-## InlineChildTable — extract to own file, fix double-wrap, clean toolbar — revision (2026-05-15)
-  - [Codex/GPT-5.5] extracted InlineChildTable component with inline add/edit/delete row UI
-
-## ERP Core Features (Integrated May 2026)
-- [Gemini CLI] **Dynamic Charges & Tax System**: Centralized `Charge` registry with support for Percent/Fixed calculations, inclusive/exclusive pricing, and automated GL account linkage.
-- [Gemini CLI] **Comprehensive Document Workflow**: Full implementation of Sales Orders, Purchase Orders, Delivery Notes, and Payment Allocations.
-- [Gemini CLI] **Automated Financial Posting**: Invoices now feature a "Post" action that automatically generates balanced Journal Entries based on heuristic account mapping.
-- [Gemini CLI] **Fiscal & POS Enhancements**: Added Fiscal Period management and machine-specific POS Terminal configurations (warehouse/pricelist overrides).
-- [Gemini CLI] **Sales Force Automation (CRM)**: Full implementation of Leads, Opportunities, and Pipelines with customizable stages and probability tracking.
-- [Gemini CLI] **Advanced Payment Controls**: Added `ModeOfPayment` and per-company COA account mapping for flexible payment handling (Cash, Bank, E-Wallet).
-- [Gemini CLI] **Live Financial Insights**: Integrated `@Aras.computed_field` for `Amount Paid` and `Amount Due` on all Invoices, providing real-time reconciliation status.
-- [Gemini CLI] **Framework CLI Enhancements**: Added a central `python manage.py seed` command with automated ERP seeding (COA, Currencies, UOMs, Warehouses).
-- [Gemini CLI] **Menu Reorganization**: Reorganized the ERP sidebar into logical groups (General Ledger, Sales, Purchase, Payments, Sales Force) with professional icons.
-
-## Framework Refinements & Seeding (2026-05-15)
-- [Gemini CLI] **Inheritance & Scoping Fix**: Improved `Model.__init_subclass__` to allow explicitly disabling inherited features or scoping by setting `__scoped_by__ = None` (used for `Company` and `Setting`).
-- [Gemini CLI] **Dynamic Attribute Injection**: Fixed `TraitInjector` to automatically set injected scoping columns as class attributes, ensuring they are accessible to the SQLAlchemy ORM and query builder.
-- [Gemini CLI] **Automated ERP Seeding**: Implemented a comprehensive Chart of Accounts (COA) for international standards and automated the seeding of reporting templates for the ERP system via `python manage.py seed`.
-- [Gemini CLI] **Multi-Tenant Bootstrap**: Created `api/create_company.py` to facilitate initial system setup and ensured consistent company-id scoping during data seeding.
-
-
-
-## Simplified Application Registration (May 2026)
-- [Gemini CLI] **Class Naming Convention**: Removed the mandatory 'App' suffix from application classes (e.g., `AccountingApp` became `Accounting`).
-- [Gemini CLI] **Inheritance-Based Registration**: ERP modules now inherit directly from the `ERP` base class (`class Accounting(ERP)`), which automatically handles parent-child registration and hierarchy metadata.
-- [Gemini CLI] **Refactored ERP Base**: `ErpApp` renamed to `ERP` to serve as the primary inheritance root for all ERP-related modules.
-
-## Advanced Navigation & Menu System (2026-05-15)
-
-- [Gemini CLI] **Dual-Axis Navigation**: Separation of global application links (Sidebar) from application-specific resource links (Topbar).
-- [Gemini CLI] **Hierarchical Topbar**: Support for parent-child grouping of resources via `menu_groups` in the `App` class.
-- [Gemini CLI] **Smart Resource Filtering**: Child tables (e.g., Line Items) are automatically excluded from menus to reduce clutter, ensuring a focused user experience.
-- [Gemini CLI] **Dynamic AppHome Tiles**: Application landing pages now render interactive tiles based on the structured menu configuration.
-
-## UI Refinement: Exclusive App Sidebar (2026-05-15)
-
-- [Gemini CLI] **Top-Level Sidebar Constraint**: The main sidebar is now strictly reserved for root applications (e.g., ERP, Notes). Sub-applications (modules) are no longer rendered in the sidebar to prevent visual bloat.
-- [Gemini CLI] **Contextual Topbar Navigation**: Modules are now exclusively navigated via the Topbar or the AppHome workspace tiles. 
-- [Gemini CLI] **Active State Retention**: Navigating into a sub-application correctly retains the active highlight state of its parent application in the root sidebar.
-
-## UI Fix: Topbar Menu Modules and AppHome Rendering (2026-05-15)
-
-- [Gemini CLI] **Deduplicated Modules in AppHome**: Removed hardcoded `menu_groups` from the `ERP` root application. The framework now relies entirely on the dynamically constructed `sub_apps` array to list modules, preventing them from appearing twice on the dashboard.
-- [Gemini CLI] **API App Menu Enhancements**: The `/api/v1/app-menu/{app_name}` endpoint now recursively resolves the menu structure for all nested `sub_apps`, allowing the client to receive the full application hierarchy.
-- [Gemini CLI] **Mega-Menu Topbar**: The Topbar now dynamically identifies the "Root Application" context based on the current URL and the Sidebar structure. Instead of replacing the Topbar with a single module's menu, it persists all sibling modules (e.g., Accounting, Stock, CRM) as top-level dropdown groups, rendering their child menus (e.g., General Ledger, Sales) as nested sections.
-
-## Hierarchical & Clean URL Structure (2026-05-15)
-
--   **Nice URLs (Hierarchical & Hyphenated):** The framework now generates and supports hierarchical, hyphenated paths for both applications and resources (e.g., `http://localhost:5173/erp/accounting/accounts`).
--   **Clean Labels (Prefix Stripping):** Application and model prefixes (like `erp_` or `erp_accounting_`) are automatically stripped from UI labels and titles, resulting in a cleaner, professional interface (e.g., "Accounts" instead of "Erp Accounting Accounts").
--   **Unified Smart Dispatcher:** The frontend router utilizes a `SmartDispatcher` to dynamically resolve URL segments into either Application Home views or Resource List/Form views based on the system registry.
--   **Consistent API Parity:** Backend API endpoints have been synchronized to follow the same hierarchical structure as the frontend, ensuring consistency and ease of debugging.
--   **Hyphenated Path Support:** All underscores in URL paths are automatically converted to hyphens for improved SEO and readability.
-
-## UI Refactoring & Enhanced Customization (2026-05-15)
-
-- [Gemini CLI] **Generic List Toolbar Component**: Extracted the toolbar logic from `ListView` into a standalone `ListToolbar` component. This ensures a consistent UI across standalone list views and inline child tables, providing standard features like Search, Column Visibility, Bulk Actions, and Export/Import everywhere.
-- [Gemini CLI] **NamingSeries to Series Renaming**: Renamed the core registry `NamingSeries` to `Series` for a cleaner, more intuitive API and UI experience.
-- [Gemini CLI] **Dynamic Form Customization**:
-    - **Customize Button**: Added a "Customize" (Settings icon) button to the `DynamicForm` header for instant access to field-level overrides.
-    - **Field Metadata Overrides**: Users can now customize `default_value` and `series` patterns for any field directly from the GUI.
-    - **Automatic Series Generation**: The framework now automatically generates sequential IDs or formatted strings (e.g., INV-2026-0001) for fields configured with a series pattern upon record creation.
-    - **Metadata-Driven Defaults**: `DynamicForm` initialization now respects `default_value` overrides from the database registry.
-
-
-## Replace scope system with Company-aware RBAC (Expanded RBAC) — revision (2026-05-15)
-  - [Codex/GPT-5.5] X-Company-ID API header, company auth state, post-login company loading, company picker, top-bar company switcher, company route guard
-
-
-## Reporting Module & Terminologies (May 2026)
-
-- [Gemini CLI] **Dedicated Report Module**: A new specialized `erp_report` sub-app has been created to centralize all reporting logic, separating it from general configuration.
-- [Gemini CLI] **Standardized "Generate Report" Action**: All reporting triggers have been renamed from "Run" to "Generate Report" across the backend (model actions, services) and the UI (action dialogs) for a more professional and consistent terminology.
-- [Gemini CLI] **Dynamic Report Generation**: `ReportService` now supports executing "query" type reports using the `QueryBuilder`, allowing for complex data extraction through the metadata registry.
-- [Gemini CLI] **Enhanced Action UI**: Generic action buttons in the UI now dynamically use the action's label (e.g., "Generate Report") instead of a hardcoded "Run" text, improving user clarity for all custom model actions.
-
-## Demo Invoice Seed + Posting Bug Fixes (2026-05-16)
-- [Claude Sonnet 4.6] Added `api/seed_invoices.py` — idempotent seed for 3 sales invoices + 3 purchase invoices with `--post` flag that auto-posts and prints journal/stock movement verification table
-- [Claude Sonnet 4.6] Fixed `apps/erp/seed_demo.py`: removed `company_id` filter from `_price_type`, fixed inner `_make` signature (removed `db` arg), renamed PosTerminal lookup key, added missing UoMs (Pcs→Pieces, Carton, Gram, Milliliter), fixed `_seed_opening_stock` to pass `currency_id`, fixed `_make` call at bundle product line
-- [Claude Sonnet 4.6] Fixed `apps/erp/accounting/services/posting.py`: pass `invoice.currency_id` to `JournalService.post_entry` and `_create_stock_movement`, added fallback currency resolution in `_create_stock_movement`
-
-## Random Invoice Seed + Journal Entry Lines Fix (2026-05-16)
-- [Claude Sonnet 4.6] Added `api/seed_random_invoices.py` — generates N random sales/purchase invoices from real DB data (customers, suppliers, products, pricelists), with `--count` and `--post` flags
-- [Claude Sonnet 4.6] Fixed `ui/src/aras-core/components/DynamicForm.tsx` — on edit load, fetch existing child rows from each `child_table` field's resource endpoint using FK filter; journal entry lines (and all other child tables) now display correctly in edit forms
-- [Claude Sonnet 4.6] Fixed `apps/erp/accounting/models.py` — `SalesInvoice.amount_paid` and `PurchaseInvoice.amount_paid` computed fields crashed with "no attribute allocations"; rewrote to query `PaymentAllocation` via session using `invoice_type` + `invoice_id` filter
-
-
-## Workflow Engine (DB-driven) + FK Label Fix + Child Table Fix + Series Sub-module + Field Customization Fix + App Manager Sub-module Fix — revision (2026-05-16)
-  - [Codex/GPT-5.5] AppManager groups sub-modules under parent apps; inline child lookup cells use combobox options
-
-
-## Fase 0 Closeout + Fase 1 Foundation (Multi-Tenant Core) — revision (2026-05-16)
-  - [Codex/GPT-5.5] Dev-only tenant context provider, TenantSwitcher on DevTools, X-Tenant-ID injection when VITE_DEV_MULTI_TENANT=true
-
-
-## Fase 0 Closeout + Fase 1 Foundation (Multi-Tenant Core) — revision (2026-05-16)
-  - [Gemini] Foundational multi-tenant system including tenant registry, dynamic connection router, and DB provisioner. Added an offline JWT-based instance license verification system.
-
-
-## ARP Neutral Rename — Organization model, neutral DB schema, profile system, POT rename, party consolidation — revision (2026-05-16)
-  - [Codex/GPT-5.5] profile-aware vocabulary provider, dynamic inflow/outflow/party/POT labels, organization profile/unit type controls, party role filters and badges, POT terminal placeholder logic
-
-
-## Purchase Flow (GRN, AP matching) + Reporting (Trial Balance, P&L, AR/AP Aging) — revision (2026-05-16)
-  - [Gemini] Added Goods Receipt Note (GRN) document model and flow for purchase-side receiving. Added four new financial reports: Trial Balance, P&L, AR Aging, and AP Aging.
-  - [Codex/GPT-5.5] <!-- filled by agent -->
-
-## GRN Fix + Aging Report Fix + Multi-Tenant Fase 2 + PostgreSQL Migration (2026-05-16)
-- [Claude Sonnet 4.6] Fixed `api/apps/erp/accounting/models.py` — repaired garbled `class GoodsReceiptNote` header (IndentationError from agent write corruption)
-- [Claude Sonnet 4.6] Fixed `api/apps/erp/report/seed_reports.py` — replaced `julianday` (SQLite-only) with `DATEDIFF` (MySQL/PostgreSQL compatible), replaced `amount_due` (Python property) with inline `COALESCE(SUM(payment_allocations))` subquery in AR/AP Aging SQL; column aliases changed to valid identifiers (`0_30`, `31_60`, `61_90`, `over_90`)
-- [Claude Sonnet 4.6] Added `api/core/api/tenant.py` — REST endpoints: `GET /tenants`, `POST /tenants/provision`, `POST /tenants/{id}/seed`, `DELETE /tenants/{id}` (superuser only)
-- [Claude Sonnet 4.6] Rewrote `api/core/tenant/provisioner.py` — MySQL-specific provisioner replaced with PostgreSQL-native version using `psycopg2`; `provision_tenant` creates DB + runs `metadata.create_all` + `auto_migrate`; `seed_tenant` seeds basic data + reports; `deprovision_tenant` uses `ALTER DATABASE RENAME TO` soft-delete
-- [Claude Sonnet 4.6] Added tenant CLI to `api/manage.py` — `python manage.py tenant provision <id>`, `list`, `seed <id>`, `deprovision <id>`
-- [Claude Sonnet 4.6] Wired tenant router into `api/main.py`
-- [Claude Sonnet 4.6] Migrated DB engine from MySQL (`pymysql`, port 3306) to PostgreSQL (`psycopg2`, port 5432) — updated `api/core/lib/settings.py`, `api/requirements.txt`, `.env`; created `arasdev` PostgreSQL database; verified `sync` + `seed` pass clean
-
-## UI Polish — Empty States, Skeletons, Status Badges, Home Cards (2026-05-16)
-  - [Claude Sonnet 4.6] ListView: smart empty state — shows "Add New" button when no filters active, "Clear filters" when search/filter active
-  - [Claude Sonnet 4.6] ListView: status/workflow_status columns now render colored pill badges (draft/posted/active/cancelled/pending)
-  - [Claude Sonnet 4.6] DynamicForm: replaced "Loading form..." text with animated skeleton (4 label+input rows)
-  - [Claude Sonnet 4.6] Home.tsx: added greeting + quick-nav app cards grid above dashboard widgets
-
-## Phase 2 UX — Keyboard Shortcuts, Dashboard Drill-down, Print/PDF, Import Validation (2026-05-16)
-  - [Gemini 2.5 Flash] DynamicForm: Ctrl+S saves, Escape cancels (keyboard shortcuts via keydown listener)
-  - [Gemini 2.5 Flash] DashboardView: StatWidget and ListWidget rows now navigate to resource on click
-  - [Gemini 2.5 Flash] PrintPreview component: modal with printable document layout + window.print()
-  - [Gemini 2.5 Flash] ImportMapping: validation preview step — highlights invalid rows before posting
-  - [Claude Sonnet 4.6] print_router.py: fixed broken AppManager import → direct model imports + Party/Org DB lookup
-
-
-## Go 1+2 — Auto-discovery, Saved Filters, Inventory Valuation, GL Reconciliation, Toast Queue, Dark Mode Charts, Service Return Type Consistency — revision (2026-05-16)
-  - [Gemini] Auto-discovery for ERP app models; Saved Filters functionality (model, router, registration); FIFO Inventory Valuation Service; GL Reconciliation Service with model action; Consistent return types for posting and stock compute services.
-
-
-## Go 1+2 — Auto-discovery, Saved Filters, Inventory Valuation, GL Reconciliation, Toast Queue, Dark Mode Charts, Service Return Type Consistency — revision (2026-05-16)
-  - [Codex/GPT-5.5] Saved Filters UI, Persistent Toast Notification Queue.
-
-## Fase 1 Bug Fix + Pyright Config (2026-05-16)
-- [Claude Sonnet 4.6] `api/core/api/tenant.py` — fixed `is_superuser` → `is_admin` on all 4 tenant management endpoints
-- [Claude Sonnet 4.6] `api/pyrightconfig.json` — new file; eliminates Pyright false-positive `reportMissingImports` on `core.*` absolute imports
-
-
-## ERP Form Layouts, UI Bugs, Report Center Filters, HandoffRun DB Tracking — revision (2026-05-16)
-  - [Gemini] Added UI layout definitions to multiple ERP View classes for Party, Contact, Product, ProductCategory, ProductUom, Employee, Department, Position, Asset, AssetCategory, Lead, Pipeline, Activity, PotOrder, PotTerminal, Account, FiscalPeriod, Currency, Uom, ModeOfPayment, ExchangeRate, and PrintTemplate. Enhanced report execution endpoint to pass filter definitions to frontend and correctly handle 'today' parameter in SQL queries.
-  - [Codex/GPT-5.5] report parameter input UI with params passed to generate call; Handoff Runs columns, verdict badges, refresh, and row detail side panel
+| Date | Key Changes |
+|------|-------------|
+| 2026-05-14 | Rate limiting, soft delete, batch API, WebSocket, audit log UI, dark mode, bulk edit, inline row editing, keyboard shortcut map, dashboard drag-to-rearrange, topbar app menu, `mhl` manual log command |
+| 2026-05-15 | Hierarchical app architecture, ERP module split (7 sub-apps), scope system, transition registry, `__unique_together__`, child table UI standardization, ERP core features (charges, CRM, posting, payments), dual-axis navigation, mega-menu topbar, hierarchical URLs, Series rename, form customization UI, company-aware RBAC |
+| 2026-05-16 | Reporting module, GRN + AP matching, financial reports, PostgreSQL migration, multi-tenant provisioner + REST API, demo/random invoice seeds, UI polish (empty states, skeletons, status badges, home cards), keyboard shortcuts, print/PDF, import validation, auto-discovery, saved filters, FIFO valuation, GL reconciliation, toast queue, dark mode charts |

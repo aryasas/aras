@@ -124,6 +124,86 @@ python tools/multi_agent.py --test "hello"
 
 ---
 
+## Gemini Worker Rules
+
+Gemini is the **backend worker**. It only runs via `python tools/multi_agent.py` and only sees Backend Tasks from `docs/handoff.md`.
+
+**Scope:**
+- Implement Backend Tasks only. Ignore Frontend Tasks entirely.
+- Write only the files listed in the handoff. No extra files, no refactors outside scope.
+- Targeted writes — do not rewrite entire existing files unless the handoff explicitly says so.
+
+**Constraints:**
+- No git commands.
+- No installing packages. If a package is missing, note it in `issues`.
+- Do not read `docs/framework_ref.md` — derive from existing code or `docs/aras.md`.
+
+**Required output — always end with:**
+```
+### AGENT REPORT
+- files_written: <comma-separated paths, or "none">
+- features_added: <description, or "none">
+- fixes_applied: <description, or "none">
+- framework_changes: <description, or "none">
+- issues: <description, or "none">
+```
+
+If the AGENT REPORT block is missing, `multi_agent.py` defaults all fields to `"none"` and no docs are updated.
+
+---
+
+## Codex Worker Rules
+
+Codex is the **frontend worker**. It only runs via `python tools/multi_agent.py` and only sees Frontend Tasks from `docs/handoff.md`.
+
+**Scope:**
+- Implement Frontend Tasks only. Ignore Backend Tasks entirely.
+- Write only the files listed in the handoff. No extra files, no refactors outside scope.
+- Targeted writes — do not rewrite entire existing files unless the handoff explicitly says so.
+
+**Constraints:**
+- No git commands.
+- No installing packages. If a package is missing, note it in `issues`.
+- Stack: React 19 + TypeScript + TailwindCSS 4. Follow conventions in `docs/aras.md`.
+
+**Required output — always end with:**
+```
+### AGENT REPORT
+- files_written: <comma-separated paths, or "none">
+- features_added: <description, or "none">
+- fixes_applied: <description, or "none">
+- framework_changes: <description, or "none">
+- issues: <description, or "none">
+```
+
+---
+
+## Claude Orchestrator Rules
+
+These apply whenever Claude is writing a handoff or reviewing agent output.
+
+**Writing the handoff:**
+- Write `docs/handoff.md` from `docs/handoff_template.md` — never freeform.
+- Backend Tasks → Gemini only. Frontend Tasks → Codex only. Do not mix.
+- Be specific: file path + intent + key fields. Vague specs produce vague code.
+- No git commands in the handoff. Agents write files; Claude reviews after.
+
+**After agent run (review phase):**
+- Read Agent Reports from `docs/handoff.md` first — not the raw files.
+- Verify every file listed in `files_written` actually exists and is correct.
+- Targeted review only — do not rewrite entire agent-generated files.
+- If `framework_changes != none`: confirm `docs/aras.md` was updated correctly.
+- If any model/app changed: run `python manage.py sync` from `api/`.
+- Run `pytest -q` and `npm run build` to confirm nothing is broken.
+
+**What Claude must NOT do:**
+- Run the workers directly (Gemini/Codex run via `multi_agent.py`, not Claude).
+- Merge or pull agent output via git — agents write to disk, Claude reads from disk.
+- Re-read files it has already read in the same review session.
+- Read `docs/framework_ref.md` — grep or ask instead.
+
+---
+
 ## Why This Architecture
 
 ```

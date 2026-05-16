@@ -50,21 +50,21 @@ You have to input your plan here. No delete. Add plan, mark done which done.
     
     SISTEM (Backend)
   
-    ┌─────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┬────────┬────────┐
-    │  #  │                                                                                          Item                                                                                           │ Impact │ Effort │
-    ├─────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────┼────────┤
-    │ 1   │ Batch API endpoint — /batch for bulk create/update/delete. RouterFactory generates single-record only.                                                                                  │ High   │ Medium │
-    ├─────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────┼────────┤
-    │ 2   │ Field-level validation rules in metadata — Declarative min, max, regex, custom on Field(). Router validates before hitting DB. Currently only DB constraints catch errors.              │ High   │ Medium │
-    ├─────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────┼────────┤
-    │ 3   │ Pre/post model hooks (signal system) — @Aras.on_create, @Aras.on_update signals on model. Audit manager uses SQLAlchemy events internally but there's no user-facing hook API.          │ High   │ Medium │
-    ├─────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────┼────────┤
-    │ 4   │ Soft delete routing integration — __soft_delete__ flag exists on model but RouterFactory doesn't generate DELETE → restore or filter out soft-deleted records automatically in queries. │ Medium │ Low    │
-    ├─────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────┼────────┤
-    │ 5   │ WebSocket endpoint — Real-time push for audit logs, workflow state changes, dashboard refresh. Currently all React Query polling.                                                       │ Medium │ High   │
-    ├─────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────┼────────┤
-    │ 6   │ Rate limiting + request throttling — No middleware for protecting endpoints from abuse. Critical for multi-tenant or public deployments.                                                │ High   │ Low    │
-    └─────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴────────┴────────┘
+    ┌─────┬──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┬──────────┬────────┐
+    │  #  │                                                       Item                                                            │  Status  │ Effort │
+    ├─────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────┼────────┤
+    │ 1   │ Batch API endpoint — /batch for bulk create/update/delete. RouterFactory generates.                                 │ ✅ DONE  │ -      │
+    ├─────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────┼────────┤
+    │ 2   │ Field-level validation rules in metadata — min, max, regex on Field(). Metadata exists but router does NOT validate.  │ 🟡 HALF  │ Low    │
+    ├─────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────┼────────┤
+    │ 3   │ Pre/post model hooks (signal system) — @Aras.on_create, @Aras.on_update, @Aras.on_delete decorators on model.      │ ✅ DONE  │ -      │
+    ├─────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────┼────────┤
+    │ 4   │ Soft delete routing integration — /deleted endpoint lists soft-deleted records. Filter auto-applied in queries.      │ ✅ DONE  │ -      │
+    ├─────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────┼────────┤
+    │ 5   │ WebSocket endpoint — /ws exists but does NOT push audit logs, workflow state, or dashboard changes (stub only).      │ 🟡 HALF  │ Medium │
+    ├─────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────┼────────┤
+    │ 6   │ Rate limiting + request throttling — RateLimiterMiddleware exists, sliding-window per IP.                           │ ✅ DONE  │ -      │
+    └─────┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴──────────┴────────┘
   
     ---
     UI (Frontend)
@@ -92,8 +92,16 @@ You have to input your plan here. No delete. Add plan, mark done which done.
     ---
     Priority Pick (highest ROI)
     
-    Sistem: Rate limiting (low effort, high security), soft delete routing (flag already exists), field validation rules (declarative, clean).
+    **Sistem (Backend) — To Complete:**
+    - Field validation enforcement in router (metadata → validation before DB)
+    - WebSocket integration (audit logs, workflow state, dashboard real-time push)
   
-    UI: Audit log timeline (21-line stub → real feature), client-side form validation, dark mode toggle (Tailwind already supports it).
-  
-    Want to start on any of these?
+    **UI (Frontend) — All items pending:**
+    - Audit log timeline (21-line stub → real feature) [High ROI, Low effort]
+    - Client-side form validation (pre-submit using field metadata) [High ROI, Low effort]
+    - Dark mode toggle [Medium ROI, Low effort]
+    - Bulk edit modal [High ROI, Medium effort]
+    - Inline row editing [High ROI, Medium effort]
+    - Column resizing & freeze [Medium ROI, Medium effort]
+    - Keyboard shortcut map [Medium ROI, Low effort]
+    - Dashboard drag-to-rearrange [Medium ROI, High effort]
