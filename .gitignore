@@ -90,7 +90,7 @@ docs/_build/
 .pybuilder/
 target/
 /site
-docs/
+
 
 # ── Node ──────────────────────────────────────────
 node_modules/
