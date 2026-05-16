@@ -6,14 +6,21 @@ from ...stock.services.price import PriceService
 from ...accounting.models import ModeOfPayment
 
 
-class PosService:
+from ..models import PotSession, PotOrder, PotOrderLine, PotPaymentLine, PotTerminal
+from ...stock.models import Product
+from ...stock.services.stock import StockComputeService
+from ...stock.services.price import PriceService
+from ...accounting.models import ModeOfPayment
+
+
+class PotService:
     @staticmethod
-    def get_pos_products(db: Session, session_id: int):
-        session = db.query(PosSession).get(session_id)
+    def get_pot_products(db: Session, session_id: int):
+        session = db.query(PotSession).get(session_id)
         if not session:
             return {"error": "Session not found"}
 
-        terminal = db.query(PosTerminal).get(session.terminal_id)
+        terminal = db.query(PotTerminal).get(session.terminal_id)
         pricelist_id = terminal.selling_pricelist_id if terminal else None
         location_id = terminal.location_id if terminal else None
 
@@ -34,13 +41,13 @@ class PosService:
 
     @staticmethod
     def process_order(db: Session, session_id: int, order_data: dict):
-        session = db.query(PosSession).get(session_id)
+        session = db.query(PotSession).get(session_id)
         if not session or session.status != "Open":
             return {"error": "Active session not found"}
 
-        order = PosOrder(
+        order = PotOrder(
             session_id=session_id,
-            customer_id=order_data.get("customer_id"),
+            party_id=order_data.get("party_id"),
             total_amount=order_data.get("total_amount", 0),
             paid_amount=order_data.get("paid_amount", 0),
             change_amount=order_data.get("change_amount", 0),
@@ -50,7 +57,7 @@ class PosService:
         db.flush()
 
         for line in order_data.get("lines", []):
-            order_line = PosOrderLine(
+            order_line = PotOrderLine(
                 order_id=order.id,
                 product_id=line["product_id"],
                 qty=line["qty"],
@@ -60,7 +67,7 @@ class PosService:
             db.add(order_line)
 
         for payment in order_data.get("payments", []):
-            pay_line = PosPaymentLine(
+            pay_line = PotPaymentLine(
                 order_id=order.id,
                 mode_id=payment["mode_id"],
                 amount=payment["amount"]
@@ -72,19 +79,19 @@ class PosService:
 
     @staticmethod
     def open_session(db: Session, terminal_id: int, opening_balance: float = 0) -> dict:
-        """Open or reuse an existing POS session for the terminal."""
-        existing = db.query(PosSession).filter(
-            PosSession.terminal_id == terminal_id,
-            PosSession.status == "Open"
+        """Open or reuse an existing POT session for the terminal."""
+        existing = db.query(PotSession).filter(
+            PotSession.terminal_id == terminal_id,
+            PotSession.status == "Open"
         ).first()
         if existing:
             return {"id": existing.id, "number": existing.number, "reused": True}
 
-        terminal = db.query(PosTerminal).get(terminal_id)
+        terminal = db.query(PotTerminal).get(terminal_id)
         if not terminal:
             return {"error": "Terminal not found"}
 
-        session = PosSession(
+        session = PotSession(
             terminal_id=terminal_id,
             opening_balance=opening_balance,
             status="Open"
@@ -95,8 +102,8 @@ class PosService:
 
     @staticmethod
     def close_session(db: Session, session_id: int, cash_counted: float) -> dict:
-        """Close a POS session with cash reconciliation."""
-        session = db.query(PosSession).get(session_id)
+        """Close a POT session with cash reconciliation."""
+        session = db.query(PotSession).get(session_id)
         if not session:
             return {"error": "Session not found"}
         if session.status != "Open":
@@ -135,7 +142,7 @@ class PosService:
     @staticmethod
     def get_shift_report(db: Session, session_id: int) -> dict:
         """Aggregate shift statistics for reporting."""
-        session = db.query(PosSession).get(session_id)
+        session = db.query(PotSession).get(session_id)
         if not session:
             return {"error": "Session not found"}
 

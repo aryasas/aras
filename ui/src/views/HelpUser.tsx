@@ -51,7 +51,7 @@ const sections: Section[] = [
     title: 'Settings & Configuration',
     topics: [
       { q: 'Where do I change my password?', a: 'Click your user avatar in the top-right, select Profile, and use the Change Password section.' },
-      { q: 'How do I configure the system?', a: 'Go to Settings in the left sidebar. Admins can manage company info, chart of accounts, currencies, and system-wide settings.' },
+      { q: 'How do I configure the system?', a: 'Go to Settings in the left sidebar. Admins can manage organization info, chart of accounts, currencies, and system-wide settings.' },
       { q: 'How do I manage users?', a: 'Settings → RBAC Manager to create roles and assign permissions. Add users in the Users section under Developer Tools → Registry.' },
     ]
   },
@@ -60,10 +60,10 @@ const sections: Section[] = [
     color: 'rose',
     title: 'ERP Modules',
     topics: [
-      { q: 'What modules are available?', a: 'Accounting, Sales, Purchasing, Stock, CRM, Point of Sale, and Config (company, chart of accounts, currencies, warehouses).' },
-      { q: 'How do I post a transaction?', a: 'Open the record (e.g. Sales Invoice), complete all required fields, then click the "Post" action button. This creates the journal entry.' },
+      { q: 'What modules are available?', a: 'Accounting, inflow/outflow transactions, Stock, CRM, Point of Transaction, and Config (organization, chart of accounts, currencies, warehouses).' },
+      { q: 'How do I post a transaction?', a: 'Open the record (e.g. Inflow Invoice), complete all required fields, then click the "Post" action button. This creates the journal entry.' },
       { q: 'What is Draft vs Posted?', a: 'Draft records can be edited freely. Once Posted, a record is locked and creates accounting entries. Use the workflow status badge to see current state.' },
-      { q: 'How do I manage inventory?', a: 'Stock module → Stock Movements for manual adjustments. Delivery Notes and Purchase Receipts automatically update stock when posted.' },
+      { q: 'How do I manage inventory?', a: 'Stock module -> Stock Movements for manual adjustments. Delivery Notes and Outflow Receipts automatically update stock when posted.' },
     ]
   },
 ]

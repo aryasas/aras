@@ -1,5 +1,5 @@
 from ..app import ERP
-from .models import Company, Currency, Uom, PriceType, Charge, ExchangeRate, Setting, ModeOfPayment, CompanyPaymentAccount, PrintTemplate, Notification
+from .models import Organization, Currency, Uom, PriceType, Charge, ExchangeRate, Setting, ModeOfPayment, OrganizationPaymentAccount, PrintTemplate, Notification
 from .workflow_models import WorkflowTemplate, WorkflowState, WorkflowTransition, WorkflowAction
 from core.registry.series import Series
 from . import views  # Trigger view registration
@@ -10,8 +10,8 @@ class Config(ERP):
     icon = "Settings"
 
     models = [
-        Company, Currency, Uom, PriceType, Charge, ExchangeRate, Setting,
-        ModeOfPayment, CompanyPaymentAccount, PrintTemplate, Notification,
+        Organization, Currency, Uom, PriceType, Charge, ExchangeRate, Setting,
+        ModeOfPayment, OrganizationPaymentAccount, PrintTemplate, Notification,
         WorkflowTemplate, WorkflowState, WorkflowTransition, WorkflowAction,
         Series,
     ]
@@ -20,7 +20,7 @@ class Config(ERP):
         {
             "label": "System",
             "icon": "Cpu",
-            "models": ["erp_config_companies", "erp_config_currencies", "erp_config_exchange_rates", "erp_config_settings"]
+            "models": ["erp_config_organizations", "erp_config_currencies", "erp_config_exchange_rates", "erp_config_settings"]
         },
         {
             "label": "Finance Configuration",

@@ -3,12 +3,14 @@ import { Link, useOutletContext, useParams } from 'react-router-dom'
 import * as LucideIcons from 'lucide-react'
 import api from '../lib/api'
 import type { SidebarItem, AppMenuData, MenuItem } from '../layouts/types'
+import { useVocabulary } from '../context/VocabularyContext'
 
 interface OutletContext {
   sidebarData: SidebarItem[]
 }
 
 export default function AppHome() {
+  const vocabulary = useVocabulary()
   const params = useParams()
   const { sidebarData } = useOutletContext<OutletContext>()
   const [remoteMenu, setRemoteMenu] = useState<AppMenuData | null>(null)
@@ -90,8 +92,8 @@ export default function AppHome() {
           <ItemIcon size={24} />
         </div>
         <div className="min-w-0">
-          <h2 className="truncate text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{item.label || item.name}</h2>
-          <p className="mt-0.5 text-xs text-slate-500 font-medium uppercase tracking-wider">{groupLabel || 'Resource'}</p>
+          <h2 className="truncate text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{vocabulary.get(item.label || item.name)}</h2>
+          <p className="mt-0.5 text-xs text-slate-500 font-medium uppercase tracking-wider">{groupLabel ? vocabulary.get(groupLabel) : 'Resource'}</p>
         </div>
       </Link>
     )
@@ -104,14 +106,14 @@ export default function AppHome() {
           <IconComponent size={40} />
         </div>
         <div>
-          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">{appInfo.app_label}</h1>
+          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">{vocabulary.get(appInfo.app_label)}</h1>
           <p className="mt-1.5 text-slate-500 font-medium">Select a module or resource to continue.</p>
         </div>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         {/* Render Sub-Apps first if any */}
-        {appInfo.sub_apps?.map((sub: any) => {
+        {appInfo.sub_apps?.filter((sub: any) => !/supplier/i.test(sub.name) && !/supplier/i.test(sub.label)).map((sub: any) => {
           const SubIcon = (LucideIcons as any)[sub.icon] || LucideIcons.Package
           return (
             <Link
@@ -123,7 +125,7 @@ export default function AppHome() {
                 <SubIcon size={24} />
               </div>
               <div className="min-w-0">
-                <h2 className="truncate text-base font-bold text-slate-900">{sub.label}</h2>
+                <h2 className="truncate text-base font-bold text-slate-900">{vocabulary.get(sub.label)}</h2>
                 <p className="mt-0.5 text-xs text-indigo-600 font-bold uppercase tracking-wider">Module</p>
               </div>
             </Link>
@@ -131,9 +133,14 @@ export default function AppHome() {
         })}
 
         {/* Render items from menu groups */}
-        {appInfo.menu?.map((element: any) => {
+        {appInfo.menu?.filter((element: any) => {
+           if (element.type === 'group') return !/supplier/i.test(element.label)
+           return !/supplier/i.test(element.name) && !/supplier/i.test(element.label || '')
+        }).map((element: any) => {
            if (element.type === 'group') {
-              return element.items.map((item: MenuItem) => renderTile(item, element.label))
+              return element.items
+                .filter((item: MenuItem) => !/supplier/i.test(item.name) && !/supplier/i.test(item.label || ''))
+                .map((item: MenuItem) => renderTile(item, element.label))
            }
            return renderTile(element)
         })}

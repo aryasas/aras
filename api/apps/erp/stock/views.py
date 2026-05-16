@@ -72,7 +72,7 @@ class DeliveryNoteView(Aras.View):
     title = "Delivery Notes"
     icon = "pi pi-truck"
     layout = [
-        {"title": "Header", "fields": ["number", "customer_id", "doc_date", "status"]},
+        {"title": "Header", "fields": ["number", "party_id", "doc_date", "status"]},
         {"title": "Source", "fields": ["location_id"]},
         {"title": "Items", "fields": ["lines"]},
         {"title": "Notes", "fields": ["notes"]}

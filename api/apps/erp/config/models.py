@@ -4,12 +4,15 @@ from sqlalchemy import String, ForeignKey, Float, Date, Text, JSON, Boolean, Int
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..base import ConfigBase, MasterDataBase, LineItemBase
 
-class Company(ConfigBase):
-    __tablename__ = "erp_config_companies"
+class Organization(ConfigBase):
+    __tablename__ = "erp_config_organizations"
+
+    profile: Mapped[str] = mapped_column(String(50), default="general")
+    unit_type: Mapped[str] = mapped_column(String(50), default="organization")
 
     # Multi-company / group structure
     is_group: Mapped[bool] = mapped_column(Boolean, default=False)
-    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_companies.id"), nullable=True)
+    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_organizations.id"), nullable=True)
 
     # Identity & Details
     legal_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
@@ -65,7 +68,7 @@ class Company(ConfigBase):
     decimal_precision: Mapped[int] = mapped_column(Integer, default=2)
 
     # Relationships
-    parent: Mapped[Optional["Company"]] = relationship("Company", remote_side="Company.id", backref="children")
+    parent: Mapped[Optional["Organization"]] = relationship("Organization", remote_side="Organization.id", backref="children")
 
 class Currency(ConfigBase):
     __tablename__ = "erp_config_currencies"
@@ -117,10 +120,10 @@ class ModeOfPayment(MasterDataBase):
     
     payment_type: Mapped[str] = mapped_column(String(20), default="Cash", info={"choices": ["Cash", "Bank", "E-Wallet", "Other"]})
     
-    accounts: Mapped[list["CompanyPaymentAccount"]] = relationship("CompanyPaymentAccount", back_populates="parent", cascade="all, delete-orphan")
+    accounts: Mapped[list["OrganizationPaymentAccount"]] = relationship("OrganizationPaymentAccount", back_populates="parent", cascade="all, delete-orphan")
 
 
-class CompanyPaymentAccount(LineItemBase):
+class OrganizationPaymentAccount(LineItemBase):
     __tablename__ = "erp_config_payment_accounts"
     __parent__ = "erp_config_payment_modes"
     
@@ -151,4 +154,19 @@ class Notification(MasterDataBase):
     body: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     is_read: Mapped[bool] = mapped_column(default=False)
+
+
+class OrganizationVocabulary(ConfigBase):
+    __tablename__ = "erp_config_org_vocabulary"
+    org_id: Mapped[int] = mapped_column(ForeignKey("erp_config_organizations.id"))
+    key: Mapped[str] = mapped_column(String(50))
+    label: Mapped[str] = mapped_column(String(100))
+
+class OrganizationPostingRule(ConfigBase):
+    __tablename__ = "erp_config_org_posting_rules"
+    org_id: Mapped[int] = mapped_column(ForeignKey("erp_config_organizations.id"))
+    trx_type: Mapped[str] = mapped_column(String(50))
+    debit_account_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    credit_account_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 

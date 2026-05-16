@@ -14,7 +14,7 @@ class ReportService(Aras.Service):
             return {"error": "Database session not found for report instance."}
 
         # 1. Start with default params
-        params = {"company_id": report_instance.company_id}
+        params = {"org_id": report_instance.org_id}
         
         # 2. Extract default values from filter definitions (if any)
         # In Aras, filters_json is often a list of definitions: [{"field": "x", "default": "y"}]
@@ -53,7 +53,7 @@ class ReportService(Aras.Service):
         # 1. If raw SQL script is provided, execute it
         if report.script and report.script.strip().upper().startswith("SELECT"):
             try:
-                params = {"company_id": report.company_id}
+                params = {"org_id": report.org_id}
                 params.update(filters)
                 
                 result = db.execute(text(report.script), params)
@@ -130,7 +130,7 @@ class ReportService(Aras.Service):
         # throughout the script's execution.
         ctx = {
             "db": db_wrapper, 
-            "company_id": report.company_id,
+            "org_id": report.org_id,
             "filters": filters,
             "result": result_dict
         }

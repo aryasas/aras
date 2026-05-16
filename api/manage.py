@@ -167,17 +167,17 @@ def main():
         from apps.erp.accounting.seed_coa import seed_coa
         from apps.erp.report.seed_reports import run_seed as seed_reports
         from apps.erp.seed_demo import run_seed as seed_demo_data
-        from apps.erp.config.models import Company # For fetching company
+        from apps.erp.config.models import Organization
 
         print("Discovering apps...")
         Aras.logic.discovery.discover_apps(package_path="apps")
 
-        print(f"Seeding initial data for company ID: {args.company_id}...")
-        db = SessionLocal() # Explicitly manage session
+        print(f"Seeding initial data for org ID: {args.company_id}...")
+        db = SessionLocal()
         try:
-            company = Company.find(db, id=args.company_id)
+            company = Organization.find(db, id=args.company_id)
             if not company:
-                print(f"Error: Company with ID {args.company_id} not found.")
+                print(f"Error: Organization with ID {args.company_id} not found.")
                 sys.exit(1)
             
             # Run core ERP seeding

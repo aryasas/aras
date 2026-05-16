@@ -5,7 +5,8 @@ import { cleanResourcePath } from '../../lib/resourceUtils';
 import { useAuthStore } from '../../store/authStore';
 import {
   Save, ArrowLeft, RefreshCw, ChevronRight,
-  History as HistoryIcon, Zap, Settings, AlertCircle
+  History as HistoryIcon, Zap, Settings, AlertCircle,
+  Building2, Store, School, Users, HandHeart, Library, HeartPulse, Landmark, BriefcaseBusiness
 } from 'lucide-react';
 import ListView from './ListView';
 import { InlineChildTable } from './InlineChildTable';
@@ -13,6 +14,7 @@ import { SchemaRegistry } from '../services/SchemaRegistry';
 import { useAras } from '../hooks/useAras';
 import { useUIStore } from '../../store/uiStore';
 import { LogicEvaluator } from '../../lib/LogicEvaluator';
+import { useVocabulary } from '../../context/VocabularyContext';
 
 interface Field {
   name: string;
@@ -72,6 +74,35 @@ interface Metadata {
   is_auditable?: boolean;
 }
 
+const PROFILE_OPTIONS = [
+  { value: 'general', label: 'General', icon: BriefcaseBusiness },
+  { value: 'retail', label: 'Retail', icon: Store },
+  { value: 'school', label: 'School', icon: School },
+  { value: 'coop', label: 'Cooperative', icon: Users },
+  { value: 'npo', label: 'Nonprofit', icon: HandHeart },
+  { value: 'library', label: 'Library', icon: Library },
+  { value: 'hospital', label: 'Hospital', icon: HeartPulse },
+  { value: 'government', label: 'Government', icon: Landmark },
+]
+
+const UNIT_TYPE_OPTIONS = [
+  { value: 'organization', label: 'Organization' },
+  { value: 'company', label: 'Company' },
+  { value: 'branch', label: 'Branch' },
+  { value: 'unit', label: 'Unit' },
+  { value: 'division', label: 'Division' },
+  { value: 'department', label: 'Department' },
+  { value: 'school', label: 'School' },
+  { value: 'clinic', label: 'Clinic' },
+  { value: 'store', label: 'Store' },
+]
+
+const TERMINAL_PLACEHOLDERS: Record<string, string> = {
+  retail: 'Kasir 1',
+  school: 'Loket SPP',
+  coop: 'Teller',
+}
+
 interface DynamicFormProps {
   resource: string;
   id?: number | string;
@@ -90,6 +121,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   parentResourceTitle
 }) => {
   const { activeCompanyId, companies } = useAuthStore();
+  const vocabulary = useVocabulary();
   const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [loading, setLoading] = useState(true);
@@ -178,6 +210,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           const today = new Date().toISOString().split('T')[0];
           const defaults: any = { ...initialData };
           if (activeCompanyId && !defaults['company_id']) defaults['company_id'] = activeCompanyId;
+          if (activeCompanyId && !defaults['org_id']) defaults['org_id'] = activeCompanyId;
           meta.fields.forEach((f: any) => {
              if (defaults[f.name] !== undefined) return;
              if (f.default_value) {
@@ -208,7 +241,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       }
     };
     init();
-  }, [resource, id, notify, initialData, refreshTrigger, searchParams, parentResourceTitle]);
+  }, [resource, id, notify, initialData, refreshTrigger, searchParams, parentResourceTitle, activeCompanyId]);
 
   const handleChange = (name: string, value: any) => {
     setFormData((prev: any) => ({ ...prev, [name]: value }));
@@ -232,7 +265,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const handleShowHistory = () => {
     const cleanResource = cleanResourcePath(resource);
     showPanel(
-      `${metadata?.title} Audit Trail`,
+      `${metadata ? vocabulary.get(metadata.title) : ''} Audit Trail`,
       <div className="h-[calc(100vh-150px)]">
         <ListView 
           resource="aras_activity_logs" 
@@ -256,7 +289,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       }
 
       showPanel(
-        `Customize: ${metadata.title}`,
+        `Customize: ${vocabulary.get(metadata.title)}`,
         <div className="h-[calc(100vh-150px)]">
           <ListView 
             resource="aras_fields" 
@@ -338,7 +371,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       const val = formData[field.name];
       const empty = val === null || val === undefined || val === '';
       if (field.required && empty) {
-        errs[field.name] = `${field.label} is required`;
+        errs[field.name] = `${vocabulary.get(field.label)} is required`;
         continue;
       }
       if (empty) continue;
@@ -420,6 +453,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
 
   if (loading) return <div className="p-12 text-center animate-pulse text-slate-400">Loading form...</div>;
   if (!metadata) return <div className="p-12 text-center text-red-500">Metadata not found.</div>;
+  const metadataTitle = vocabulary.get(metadata.title);
 
   const renderField = (field: Field) => {
     if (!isFieldVisible(field)) return null;
@@ -442,30 +476,70 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     }
 
     const Component = SchemaRegistry.get(field.type);
+    const fieldLabel = vocabulary.get(field.label);
 
-    // company_id: render as a select scoped to user's assigned companies
-    const isCompanyField = field.name === 'company_id' && companies.length > 0;
+    const fieldForComponent = { ...field, label: fieldLabel };
+    const isOrganizationField = (field.name === 'company_id' || field.name === 'org_id') && companies.length > 0;
+    const isProfileField = field.name === 'profile';
+    const isUnitTypeField = field.name === 'unit_type';
+    const isTerminalLabelField = field.name === 'terminal_label';
+    const selectedProfile = PROFILE_OPTIONS.find(option => option.value === formData[field.name]);
+    const ProfileIcon = selectedProfile?.icon || Building2;
 
     return (
       <div key={field.name} className={`flex flex-col gap-1.5 ${field.type === 'textarea' ? 'md:col-span-2' : ''}`}>
         <label className="text-sm font-bold text-slate-700 flex items-center gap-1">
-          {field.label}
+          {fieldLabel}
           {field.required && <span className="text-rose-500">*</span>}
         </label>
 
-        {isCompanyField ? (
+        {isOrganizationField ? (
           <select
             value={formData[field.name] ?? ''}
             onChange={(e) => handleChange(field.name, e.target.value ? Number(e.target.value) : null)}
             disabled={companies.length === 1}
             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none disabled:opacity-60"
           >
-            {companies.length > 1 && <option value="">Select company...</option>}
+            {companies.length > 1 && <option value="">Select organization...</option>}
             {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
+        ) : isProfileField ? (
+          <div className="relative">
+            <ProfileIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+            <select
+              value={formData[field.name] || 'general'}
+              onChange={(e) => handleChange(field.name, e.target.value)}
+              disabled={field.read_only}
+              className="w-full appearance-none px-3 py-2 pl-9 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none disabled:opacity-60"
+            >
+              {PROFILE_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
+        ) : isUnitTypeField ? (
+          <select
+            value={formData[field.name] || 'organization'}
+            onChange={(e) => handleChange(field.name, e.target.value)}
+            disabled={field.read_only}
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none disabled:opacity-60"
+          >
+            {UNIT_TYPE_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        ) : isTerminalLabelField ? (
+          <input
+            type="text"
+            value={formData[field.name] || ''}
+            onChange={(e) => handleChange(field.name, e.target.value)}
+            disabled={field.read_only}
+            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-300"
+            placeholder={`${TERMINAL_PLACEHOLDERS[vocabulary.profile] || vocabulary.pot}...`}
+          />
         ) : (
           <Component
-            field={field}
+            field={fieldForComponent}
             value={formData[field.name]}
             onChange={(val) => handleChange(field.name, val)}
             formData={formData}
@@ -495,7 +569,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-bold text-slate-900">
-                {currentId != null ? `Edit ${metadata.title}` : `New ${metadata.title}`}
+                {currentId != null ? `Edit ${metadataTitle}` : `New ${metadataTitle}`}
               </h2>
               {formData.status && (
                 <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-md border border-indigo-100 uppercase tracking-widest">
@@ -617,7 +691,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                 {normalFields.length > 0 && (
                   <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                     <div className="px-8 py-4 bg-slate-50 border-b border-slate-100">
-                      <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">{section.title}</h3>
+                      <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">{vocabulary.get(section.title)}</h3>
                     </div>
                     <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                       {normalFields.map(renderField)}

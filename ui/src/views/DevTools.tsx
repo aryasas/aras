@@ -4,6 +4,7 @@ import api from '../lib/api'
 import { MetadataService } from '../aras-core/services/MetadataService'
 import { useAras } from '../aras-core/hooks/useAras'
 import { Link, useNavigate } from 'react-router-dom'
+import TenantSwitcher from './TenantSwitcher'
 
 interface DbStat {
   table: string
@@ -140,6 +141,8 @@ export default function DevTools() {
 
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <TenantSwitcher />
+
           {/* Framework Info */}
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
             <div className="flex items-center gap-3 mb-6">

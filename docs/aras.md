@@ -355,3 +355,18 @@ ERP module skeleton (Part B): Unified `erp` application registered under `api/ap
 - [Claude Sonnet 4.6] `__title__` removed from all model files: `AppModel`, `ResourceModel`, `FieldModel`, `LinkModel`, `ActivityLog`, `ArasSetting`, `User`, `HandoffRun`, `Note`
 - [Claude Sonnet 4.6] `UserView` added to `core/registry/views.py` with explicit `title = "System Users"` — overrides auto-derived `"User"`
 - [Claude Sonnet 4.6] Rule: models NEVER set `__title__`; explicit View subclass for custom title; no View needed for default auto-derived title
+
+
+---
+## Framework Change: Fase 0 Closeout + Fase 1 Foundation (Multi-Tenant Core) — revision (2026-05-16)
+  - [Codex/GPT-5.5] Axios response interceptor now unwraps data and normalizes failed envelope responses
+
+
+---
+## Framework Change: Fase 0 Closeout + Fase 1 Foundation (Multi-Tenant Core) — revision (2026-05-16)
+  - [Gemini] Standardized all successful API responses to a consistent `{success, data, message, error}` format. Added a global exception handler to normalize all error responses and prevent stack trace leaks. Exposed the new tenant subsystem via the `Aras` facade.
+
+
+---
+## Framework Change: ARP Neutral Rename — Organization model, neutral DB schema, profile system, POT rename, party consolidation — revision (2026-05-16)
+  - [Codex/GPT-5.5] App wrapped with VocabularyProvider; generic metadata-driven form/list/navigation layers now consume vocabulary labels

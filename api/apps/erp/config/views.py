@@ -1,12 +1,12 @@
 from core import Aras
-from .models import Company, Currency, Uom, PriceType, Charge, ExchangeRate, Setting, ModeOfPayment, PrintTemplate, Notification
+from .models import Organization, Currency, Uom, PriceType, Charge, ExchangeRate, Setting, ModeOfPayment, PrintTemplate, Notification
 
-class CompanyView(Aras.View):
-    model = Company
-    title = "Companies"
+class OrganizationView(Aras.View):
+    model = Organization
+    title = "Organizations"
     icon = "pi pi-building"
     layout = [
-        {"title": "Identity", "fields": ["code", "name", "legal_name", "trade_name", "tax_id", "is_group", "parent_id"]},
+        {"title": "Identity", "fields": ["code", "name", "legal_name", "trade_name", "tax_id", "is_group", "parent_id", "profile", "unit_type"]},
         {"title": "Contact & Branding", "fields": ["phone", "email", "website", "address", "logo_path"]},
         {"title": "Configuration", "fields": ["base_currency_id", "fiscal_year_start_month", "default_coa_template", "default_charge_id", "default_charge_enable"]},
         {"title": "Accounting & Stock Behavior", "fields": ["enable_perpetual_inventory", "enable_provisional_non_stock", "avg_cost_by_location", "allow_zero_stock"]},
@@ -74,4 +74,3 @@ class NotificationView(Aras.View):
     model = Notification
     title = "Notifications"
     icon = "pi pi-bell"
-

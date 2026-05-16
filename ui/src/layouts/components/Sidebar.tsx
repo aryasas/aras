@@ -3,6 +3,7 @@ import * as LucideIcons from 'lucide-react'
 import { SidebarNavItem } from './SidebarNavItem'
 import { SidebarBrand } from './SidebarBrand'
 import type { SidebarApp } from '../types'
+import { useVocabulary } from '../../context/VocabularyContext'
 
 interface SidebarProps {
   isOpen: boolean
@@ -13,6 +14,17 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen, setOpen, sidebarData, currentPath, onLogout }: SidebarProps) {
+  const vocabulary = useVocabulary()
+  const normalizedSidebarData = sidebarData
+    .filter((item) => !/supplier/i.test(item.name) && !/supplier/i.test(item.label))
+    .map((item) => ({
+      ...item,
+      label: vocabulary.get(item.label),
+      sub_apps: item.sub_apps
+        ?.filter((sub) => !/supplier/i.test(sub.name) && !/supplier/i.test(sub.label))
+        .map((sub) => ({ ...sub, label: vocabulary.get(sub.label) })),
+    }))
+
   const renderItem = (item: SidebarApp, depth = 0) => {
     const type = item.type || 'app'
     const IconComponent = (LucideIcons as any)[item.icon] || LucideIcons.Package
@@ -59,9 +71,9 @@ export function Sidebar({ isOpen, setOpen, sidebarData, currentPath, onLogout }:
       <SidebarBrand isOpen={isOpen} />
 
       <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">
-        {sidebarData.map((item, index) => {
+        {normalizedSidebarData.map((item, index) => {
           const type = item.type || 'app'
-          const prevItem = index > 0 ? sidebarData[index - 1] : null
+          const prevItem = index > 0 ? normalizedSidebarData[index - 1] : null
           const shouldRenderHeader = type === 'app' && (!prevItem || prevItem.type === 'link')
           
           return (

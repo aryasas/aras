@@ -17,8 +17,8 @@ REPORTS = [
   si.total_amount as total,
   si.status
 FROM erp_accounting_sales_invoices si
-JOIN erp_crm_customers cu ON cu.id = si.customer_id
-WHERE si.company_id = :company_id
+JOIN erp_party_parties cu ON cu.id = si.party_id
+WHERE si.org_id = :org_id
   AND (:date_from IS NULL OR si.doc_date >= :date_from)
   AND (:date_to IS NULL OR si.doc_date <= :date_to)
   AND (:status IS NULL OR si.status = :status)
@@ -56,7 +56,7 @@ ORDER BY si.doc_date DESC""",
   pi.status
 FROM erp_accounting_purchase_invoices pi
 JOIN erp_supplier_suppliers s ON s.id = pi.supplier_id
-WHERE pi.company_id = :company_id
+WHERE pi.org_id = :org_id
   AND (:date_from IS NULL OR pi.doc_date >= :date_from)
   AND (:date_to IS NULL OR pi.doc_date <= :date_to)
   AND (:status IS NULL OR pi.status = :status)
@@ -91,7 +91,7 @@ date_from = filters.get('date_from')
 date_to   = filters.get('date_to')
 
 def build_where(extra=""):
-    conds = ["jl.entry_id = je.id", "je.company_id = :company_id", "je.status = 'Posted'"]
+    conds = ["jl.entry_id = je.id", "je.org_id = :org_id", "je.status = 'Posted'"]
     if date_from:
         conds.append("je.doc_date >= :date_from")
     if date_to:
@@ -100,7 +100,7 @@ def build_where(extra=""):
         conds.append(extra)
     return " AND ".join(conds)
 
-params = {"company_id": company_id, "date_from": date_from, "date_to": date_to}
+params = {"org_id": org_id, "date_from": date_from, "date_to": date_to}
 
 revenue_sql = f'''
     SELECT a.code, a.name, SUM(jl.credit) - SUM(jl.debit) as amount
@@ -185,7 +185,7 @@ from decimal import Decimal
 date_from = filters.get('date_from')
 date_to   = filters.get('date_to')
 
-params = {"company_id": company_id, "date_from": date_from, "date_to": date_to}
+params = {"org_id": org_id, "date_from": date_from, "date_to": date_to}
 
 sql = '''
     SELECT
@@ -198,7 +198,7 @@ sql = '''
     FROM erp_accounting_accounts a
     LEFT JOIN erp_accounting_entry_lines jl ON jl.account_id = a.id
     LEFT JOIN erp_accounting_entries je ON je.id = jl.entry_id
-        AND je.company_id = :company_id
+        AND je.org_id = :org_id
         AND je.status = 'Posted'
         AND (:date_from IS NULL OR je.doc_date >= :date_from)
         AND (:date_to   IS NULL OR je.doc_date <= :date_to)
@@ -260,7 +260,7 @@ FROM erp_stock_products p
 JOIN erp_config_uoms u ON u.id = p.uom_id
 LEFT JOIN erp_stock_movement_lines sml ON sml.product_id = p.id
 LEFT JOIN erp_stock_movements sm ON sm.id = sml.movement_id AND sm.status = 'Posted'
-WHERE p.company_id = :company_id
+WHERE p.org_id = :org_id
 GROUP BY p.id
 HAVING balance != 0""",
         "columns_json": [
@@ -286,7 +286,7 @@ HAVING balance != 0""",
 FROM erp_accounting_entry_lines jl
 JOIN erp_accounting_entries je ON je.id = jl.entry_id
 JOIN erp_accounting_accounts a ON a.id = jl.account_id
-WHERE je.company_id = :company_id
+WHERE je.org_id = :org_id
   AND je.status = 'Posted'
   AND (:date_from IS NULL OR je.doc_date >= :date_from)
   AND (:date_to IS NULL OR je.doc_date <= :date_to)
@@ -316,8 +316,8 @@ ORDER BY je.doc_date ASC, je.id ASC""",
   si.total_amount,
   si.total_amount - COALESCE((SELECT SUM(pa.amount) FROM erp_accounting_payment_allocations pa JOIN erp_accounting_payments p ON p.id = pa.payment_id WHERE pa.invoice_id = si.id AND p.status = 'Posted'), 0) as balance
 FROM erp_accounting_sales_invoices si
-JOIN erp_crm_customers c ON c.id = si.customer_id
-WHERE si.company_id = :company_id AND si.status = 'Posted'
+JOIN erp_party_parties c ON c.id = si.customer_id
+WHERE si.org_id = :org_id AND si.status = 'Posted'
   AND (si.total_amount - COALESCE((SELECT SUM(pa.amount) FROM erp_accounting_payment_allocations pa JOIN erp_accounting_payments p ON p.id = pa.payment_id WHERE pa.invoice_id = si.id AND p.status = 'Posted'), 0)) > 0""",
         "columns_json": [
             {"field": "customer",     "label": "Customer",   "type": "string"},
@@ -331,12 +331,12 @@ WHERE si.company_id = :company_id AND si.status = 'Posted'
 ]
 
 
-def run_seed(db: Session, company_id: int):
+def run_seed(db: Session, org_id: int):
     Report = Aras.Model._registry["Report"] 
     for r in REPORTS:
-        existing = Report.find(db, code=r["code"], company_id=company_id)
+        existing = Report.find(db, code=r["code"], org_id=org_id)
         if not existing:
-            Report.create(db, {**r, "company_id": company_id})
+            Report.create(db, {**r, "org_id": org_id})
         else:
             existing.update_self(db, {
                 "name": r["name"],
@@ -345,4 +345,4 @@ def run_seed(db: Session, company_id: int):
                 "columns_json": r["columns_json"],
                 "filters_json": r["filters_json"],
             })
-    print(f"[seed] report data seeded for company {company_id}.")
+    print(f"[seed] report data seeded for company {org_id}.")

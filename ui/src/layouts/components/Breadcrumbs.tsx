@@ -1,7 +1,9 @@
 import { Link, useLocation } from 'react-router-dom'
 import { ChevronRight, Home } from 'lucide-react'
+import { useVocabulary } from '../../context/VocabularyContext'
 
 export function Breadcrumbs() {
+  const vocabulary = useVocabulary()
   const location = useLocation()
   const pathnames = location.pathname.split('/').filter((x) => x)
 
@@ -24,12 +26,12 @@ export function Breadcrumbs() {
           const isLast = index === pathnames.length - 1
 
           // Capitalize and format name
-          const displayName = name
+          const displayName = vocabulary.get(name
             .replace(/-/g, ' ')
             .replace(/_/g, ' ')
             .split(' ')
             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ')
+            .join(' '))
 
           return (
             <div key={name} className="flex items-center space-x-2">

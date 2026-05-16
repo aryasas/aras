@@ -4,6 +4,7 @@ import { ChevronDown } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import api from '../../lib/api'
 import type { AppMenuData, MenuItem, SidebarApp, MenuElement } from '../types'
+import { useVocabulary } from '../../context/VocabularyContext'
 
 const hiddenTopbarRoutes = new Set(['dashboard', 'settings'])
 
@@ -12,6 +13,7 @@ interface TopbarProps {
 }
 
 export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
+  const vocabulary = useVocabulary()
   const location = useLocation()
   const [menuData, setMenuData] = useState<AppMenuData | null>(null)
   const [failedApp, setFailedApp] = useState<string | null>(null)
@@ -94,7 +96,7 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
           }`}
         >
           <Icon size={18} className={isActive ? 'text-indigo-600' : 'text-slate-400'} />
-          {item.label || item.name}
+          {vocabulary.get(item.label || item.name)}
         </Link>
       )
     }
@@ -110,7 +112,7 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
             : 'text-slate-500 hover:text-slate-900'
         }`}
       >
-        {item.label || item.name}
+        {vocabulary.get(item.label || item.name)}
         {isActive && (
           <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-indigo-600" />
         )}
@@ -135,7 +137,7 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
             hasActiveChild ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-900'
           }`}
         >
-          {label}
+          {vocabulary.get(label)}
           <ChevronDown size={14} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
           {hasActiveChild && (
             <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-indigo-600" />
@@ -152,7 +154,7 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
                 return (
                   <div key={`nested-group-${idx}`} className={idx > 0 ? "mt-3" : ""}>
                     <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                      {element.label}
+                      {vocabulary.get(element.label)}
                     </div>
                     <div className="space-y-0.5">
                       {element.items.map(item => renderMenuItem(item, true))}
@@ -183,24 +185,30 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
         })}
         
         {/* Render Root App's own direct menu if any */}
-        {menuData.menu?.map((element) => {
+        {menuData.menu?.filter((element) => {
+          if (element.type === 'group') return !/supplier/i.test(element.label)
+          return !/supplier/i.test((element as MenuItem).name) && !/supplier/i.test((element as MenuItem).label || '')
+        }).map((element) => {
           if (element.type === 'group') {
-            return renderTopLevelGroup(element.label, element.items)
+            return renderTopLevelGroup(element.label, element.items.filter((item) => !/supplier/i.test(item.name) && !/supplier/i.test(item.label || '')))
           }
           return renderMenuItem(element as MenuItem)
         })}
 
         {/* Render Modules (Sub Apps) as Top Level Groups */}
-        {menuData.sub_apps?.map(sub => {
+        {menuData.sub_apps?.filter(sub => !/supplier/i.test(sub.name) && !/supplier/i.test(sub.label)).map(sub => {
           // If a sub_app has a menu, we render it as a group
           if (sub.menu && sub.menu.length > 0) {
-            return renderTopLevelGroup(sub.label, sub.menu)
+            return renderTopLevelGroup(sub.label, sub.menu.filter((element) => {
+              if (element.type === 'group') return !/supplier/i.test(element.label)
+              return !/supplier/i.test((element as MenuItem).name) && !/supplier/i.test((element as MenuItem).label || '')
+            }))
           }
           // Otherwise, just a link to the sub_app home
           return renderMenuItem({
              type: 'app_link',
              name: sub.name,
-             label: sub.label,
+             label: vocabulary.get(sub.label),
              path: sub.path,
              icon: sub.icon
           })

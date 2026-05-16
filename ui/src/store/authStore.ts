@@ -10,6 +10,8 @@ interface User {
 export interface Company {
   id: number
   name: string
+  profile?: string
+  unit_type?: string
 }
 
 interface AuthState {

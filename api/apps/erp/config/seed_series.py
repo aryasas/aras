@@ -16,7 +16,7 @@ SERIES = [
     {"key": "erp_accounting_entries",        "prefix": "JE-",  "format": "{prefix}{year}-{next_value:04d}", "config": {"reset_yearly": True}},
     {"key": "erp_stock_delivery_orders",     "prefix": "DO-",  "format": "{prefix}{year}-{next_value:04d}", "config": {"reset_yearly": True}},
     {"key": "erp_stock_receipts",            "prefix": "GR-",  "format": "{prefix}{year}-{next_value:04d}", "config": {"reset_yearly": True}},
-    {"key": "erp_crm_customers",             "prefix": "CUS-", "format": "{prefix}{next_value:05d}",        "config": {}},
+    {"key": "erp_party_parties",             "prefix": "PARTY-", "format": "{prefix}{next_value:05d}",        "config": {}},
 ]
 
 

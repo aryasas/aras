@@ -60,16 +60,16 @@ class JournalEntryLine(LineItemBase):
     
     parent: Mapped["JournalEntry"] = relationship("JournalEntry", back_populates="lines")
 
-class SalesOrder(DocumentBase):
-    __tablename__ = "erp_accounting_sales_orders"
+class InflowOrder(DocumentBase):
+    __tablename__ = "erp_accounting_inflow_orders"
     
-    customer_id: Mapped[int] = mapped_column(ForeignKey("erp_crm_customers.id"))
+    party_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
     subtotal: Mapped[float] = mapped_column(Float, default=0)
     total_charge: Mapped[float] = mapped_column(Float, default=0)
     total_amount: Mapped[float] = mapped_column(Float, default=0)
     
-    lines: Mapped[list["SalesOrderLine"]] = relationship("SalesOrderLine", back_populates="parent", cascade="all, delete-orphan")
-    charges: Mapped[list["SalesOrderCharge"]] = relationship("SalesOrderCharge", back_populates="parent", cascade="all, delete-orphan")
+    lines: Mapped[list["InflowOrderLine"]] = relationship("InflowOrderLine", back_populates="parent", cascade="all, delete-orphan")
+    charges: Mapped[list["InflowOrderCharge"]] = relationship("InflowOrderCharge", back_populates="parent", cascade="all, delete-orphan")
 
     def recalc(self):
         self.subtotal = sum(line.qty * (line.unit_price - line.discount) for line in self.lines)
@@ -86,34 +86,34 @@ class SalesOrder(DocumentBase):
         from .services.conversion import DocumentConversionService
         from sqlalchemy.orm import object_session
         db = object_session(self)
-        return DocumentConversionService.create_invoice_from_sales_order(db, self)
+        return DocumentConversionService.create_invoice_from_inflow_order(db, self)
 
-class SalesOrderLine(LineItemBase):
-    __tablename__ = "erp_accounting_sales_order_lines"
+class InflowOrderLine(LineItemBase):
+    __tablename__ = "erp_accounting_inflow_order_lines"
 
-    __parent__ = "erp_accounting_sales_orders"
-    order_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_sales_orders.id"))
+    __parent__ = "erp_accounting_inflow_orders"
+    order_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_inflow_orders.id"))
     product_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))
     qty: Mapped[float] = mapped_column(Float, default=1.0)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
     unit_price: Mapped[float] = mapped_column(Float, default=0)
     discount: Mapped[float] = mapped_column(Float, default=0)
     
-    parent: Mapped["SalesOrder"] = relationship("SalesOrder", back_populates="lines")
+    parent: Mapped["InflowOrder"] = relationship("InflowOrder", back_populates="lines")
 
-class SalesOrderCharge(LineItemBase):
-    __tablename__ = "erp_accounting_sales_order_charges"
-    __parent__ = "erp_accounting_sales_orders"
-    order_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_sales_orders.id"))
+class InflowOrderCharge(LineItemBase):
+    __tablename__ = "erp_accounting_inflow_order_charges"
+    __parent__ = "erp_accounting_inflow_orders"
+    order_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_inflow_orders.id"))
     charge_id: Mapped[int] = mapped_column(ForeignKey("erp_config_charges.id"))
     amount: Mapped[float] = mapped_column(Float, default=0)
     
-    parent: Mapped["SalesOrder"] = relationship("SalesOrder", back_populates="charges")
+    parent: Mapped["InflowOrder"] = relationship("InflowOrder", back_populates="charges")
 
-class SalesInvoice(DocumentBase):
-    __tablename__ = "erp_accounting_sales_invoices"
+class InflowInvoice(DocumentBase):
+    __tablename__ = "erp_accounting_inflow_invoices"
 
-    customer_id: Mapped[int] = mapped_column(ForeignKey("erp_crm_customers.id"))
+    party_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
     currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"), nullable=True)
     pricelist_id: Mapped[int] = mapped_column(ForeignKey("erp_config_price_types.id"), nullable=True)
     subtotal: Mapped[float] = mapped_column(Float, default=0)
@@ -121,8 +121,8 @@ class SalesInvoice(DocumentBase):
     total_charge: Mapped[float] = mapped_column(Float, default=0)
     total_amount: Mapped[float] = mapped_column(Float, default=0)
 
-    lines: Mapped[list["SalesInvoiceLine"]] = relationship("SalesInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
-    charges: Mapped[list["SalesInvoiceCharge"]] = relationship("SalesInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
+    lines: Mapped[list["InflowInvoiceLine"]] = relationship("InflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
+    charges: Mapped[list["InflowInvoiceCharge"]] = relationship("InflowInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
 
     def recalc(self):
         self.subtotal = sum(line.qty * (line.unit_price - line.discount) for line in self.lines)
@@ -140,7 +140,7 @@ class SalesInvoice(DocumentBase):
         db = object_session(self)
         if db is None:
             return 0.0
-        rows = db.query(PaymentAllocation).filter_by(invoice_type="SalesInvoice", invoice_id=self.id).all()
+        rows = db.query(PaymentAllocation).filter_by(invoice_type="InflowInvoice", invoice_id=self.id).all()
         return sum(r.amount for r in rows)
 
     @Aras.computed_field
@@ -152,42 +152,42 @@ class SalesInvoice(DocumentBase):
         from .services.posting import InvoicePostingService
         from sqlalchemy.orm import object_session
         db = object_session(self)
-        return InvoicePostingService.post_sales_invoice(db, self)
+        return InvoicePostingService.post_inflow_invoice(db, self)
 
-class SalesInvoiceLine(LineItemBase):
-    __tablename__ = "erp_accounting_sales_invoice_lines"
+class InflowInvoiceLine(LineItemBase):
+    __tablename__ = "erp_accounting_inflow_invoice_lines"
 
-    __parent__ = "erp_accounting_sales_invoices"
+    __parent__ = "erp_accounting_inflow_invoices"
 
-    invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_sales_invoices.id"))
+    invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_inflow_invoices.id"))
     product_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))
     qty: Mapped[float] = mapped_column(Float, default=1.0)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
     unit_price: Mapped[float] = mapped_column(Float, default=0)
     discount: Mapped[float] = mapped_column(Float, default=0)
 
-    parent: Mapped["SalesInvoice"] = relationship("SalesInvoice", back_populates="lines")
+    parent: Mapped["InflowInvoice"] = relationship("InflowInvoice", back_populates="lines")
 
-class SalesInvoiceCharge(LineItemBase):
-    __tablename__ = "erp_accounting_sales_invoice_charges"
-    __parent__ = "erp_accounting_sales_invoices"
-    invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_sales_invoices.id"))
+class InflowInvoiceCharge(LineItemBase):
+    __tablename__ = "erp_accounting_inflow_invoice_charges"
+    __parent__ = "erp_accounting_inflow_invoices"
+    invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_inflow_invoices.id"))
     charge_id: Mapped[int] = mapped_column(ForeignKey("erp_config_charges.id"))
     amount: Mapped[float] = mapped_column(Float, default=0)
 
-    parent: Mapped["SalesInvoice"] = relationship("SalesInvoice", back_populates="charges")
+    parent: Mapped["InflowInvoice"] = relationship("InflowInvoice", back_populates="charges")
 
 
-class PurchaseOrder(DocumentBase):
-    __tablename__ = "erp_accounting_purchase_orders"
+class OutflowOrder(DocumentBase):
+    __tablename__ = "erp_accounting_outflow_orders"
     
-    supplier_id: Mapped[int] = mapped_column(ForeignKey("erp_supplier_suppliers.id"))
+    supplier_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
     subtotal: Mapped[float] = mapped_column(Float, default=0)
     total_charge: Mapped[float] = mapped_column(Float, default=0)
     total_amount: Mapped[float] = mapped_column(Float, default=0)
     
-    lines: Mapped[list["PurchaseOrderLine"]] = relationship("PurchaseOrderLine", back_populates="parent", cascade="all, delete-orphan")
-    charges: Mapped[list["PurchaseOrderCharge"]] = relationship("PurchaseOrderCharge", back_populates="parent", cascade="all, delete-orphan")
+    lines: Mapped[list["OutflowOrderLine"]] = relationship("OutflowOrderLine", back_populates="parent", cascade="all, delete-orphan")
+    charges: Mapped[list["OutflowOrderCharge"]] = relationship("OutflowOrderCharge", back_populates="parent", cascade="all, delete-orphan")
 
     def recalc(self):
         self.subtotal = sum(line.qty * (line.unit_price - line.discount) for line in self.lines)
@@ -204,42 +204,42 @@ class PurchaseOrder(DocumentBase):
         from .services.conversion import DocumentConversionService
         from sqlalchemy.orm import object_session
         db = object_session(self)
-        return DocumentConversionService.create_invoice_from_purchase_order(db, self)
+        return DocumentConversionService.create_invoice_from_outflow_order(db, self)
 
-class PurchaseOrderLine(LineItemBase):
-    __tablename__ = "erp_accounting_purchase_order_lines"
+class OutflowOrderLine(LineItemBase):
+    __tablename__ = "erp_accounting_outflow_order_lines"
 
-    __parent__ = "erp_accounting_purchase_orders"
-    order_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_purchase_orders.id"))
+    __parent__ = "erp_accounting_outflow_orders"
+    order_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_outflow_orders.id"))
     product_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))
     qty: Mapped[float] = mapped_column(Float, default=1.0)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
     unit_price: Mapped[float] = mapped_column(Float, default=0)
     discount: Mapped[float] = mapped_column(Float, default=0)
     
-    parent: Mapped["PurchaseOrder"] = relationship("PurchaseOrder", back_populates="lines")
+    parent: Mapped["OutflowOrder"] = relationship("OutflowOrder", back_populates="lines")
 
-class PurchaseOrderCharge(LineItemBase):
-    __tablename__ = "erp_accounting_purchase_order_charges"
-    __parent__ = "erp_accounting_purchase_orders"
-    order_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_purchase_orders.id"))
+class OutflowOrderCharge(LineItemBase):
+    __tablename__ = "erp_accounting_outflow_order_charges"
+    __parent__ = "erp_accounting_outflow_orders"
+    order_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_outflow_orders.id"))
     charge_id: Mapped[int] = mapped_column(ForeignKey("erp_config_charges.id"))
     amount: Mapped[float] = mapped_column(Float, default=0)
     
-    parent: Mapped["PurchaseOrder"] = relationship("PurchaseOrder", back_populates="charges")
+    parent: Mapped["OutflowOrder"] = relationship("OutflowOrder", back_populates="charges")
 
-class PurchaseInvoice(DocumentBase):
-    __tablename__ = "erp_accounting_purchase_invoices"
+class OutflowInvoice(DocumentBase):
+    __tablename__ = "erp_accounting_outflow_invoices"
     
-    supplier_id: Mapped[int] = mapped_column(ForeignKey("erp_supplier_suppliers.id"))
+    supplier_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
     currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"), nullable=True)
     subtotal: Mapped[float] = mapped_column(Float, default=0)
     total_tax: Mapped[float] = mapped_column(Float, default=0)
     total_charge: Mapped[float] = mapped_column(Float, default=0)
     total_amount: Mapped[float] = mapped_column(Float, default=0)
 
-    lines: Mapped[list["PurchaseInvoiceLine"]] = relationship("PurchaseInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
-    charges: Mapped[list["PurchaseInvoiceCharge"]] = relationship("PurchaseInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
+    lines: Mapped[list["OutflowInvoiceLine"]] = relationship("OutflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
+    charges: Mapped[list["OutflowInvoiceCharge"]] = relationship("OutflowInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
 
     def recalc(self):
         self.subtotal = sum(line.qty * (line.unit_price - line.discount) for line in self.lines)
@@ -257,7 +257,7 @@ class PurchaseInvoice(DocumentBase):
         db = object_session(self)
         if db is None:
             return 0.0
-        rows = db.query(PaymentAllocation).filter_by(invoice_type="PurchaseInvoice", invoice_id=self.id).all()
+        rows = db.query(PaymentAllocation).filter_by(invoice_type="OutflowInvoice", invoice_id=self.id).all()
         return sum(r.amount for r in rows)
 
     @Aras.computed_field
@@ -269,30 +269,30 @@ class PurchaseInvoice(DocumentBase):
         from .services.posting import InvoicePostingService
         from sqlalchemy.orm import object_session
         db = object_session(self)
-        return InvoicePostingService.post_purchase_invoice(db, self)
+        return InvoicePostingService.post_outflow_invoice(db, self)
 
-class PurchaseInvoiceLine(LineItemBase):
-    __tablename__ = "erp_accounting_purchase_invoice_lines"
+class OutflowInvoiceLine(LineItemBase):
+    __tablename__ = "erp_accounting_outflow_invoice_lines"
 
-    __parent__ = "erp_accounting_purchase_invoices"
+    __parent__ = "erp_accounting_outflow_invoices"
     
-    invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_purchase_invoices.id"))
+    invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_outflow_invoices.id"))
     product_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))
     qty: Mapped[float] = mapped_column(Float, default=1.0)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
     unit_price: Mapped[float] = mapped_column(Float, default=0)
     discount: Mapped[float] = mapped_column(Float, default=0)
     
-    parent: Mapped["PurchaseInvoice"] = relationship("PurchaseInvoice", back_populates="lines")
+    parent: Mapped["OutflowInvoice"] = relationship("OutflowInvoice", back_populates="lines")
 
-class PurchaseInvoiceCharge(LineItemBase):
-    __tablename__ = "erp_accounting_purchase_invoice_charges"
-    __parent__ = "erp_accounting_purchase_invoices"
-    invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_purchase_invoices.id"))
+class OutflowInvoiceCharge(LineItemBase):
+    __tablename__ = "erp_accounting_outflow_invoice_charges"
+    __parent__ = "erp_accounting_outflow_invoices"
+    invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_outflow_invoices.id"))
     charge_id: Mapped[int] = mapped_column(ForeignKey("erp_config_charges.id"))
     amount: Mapped[float] = mapped_column(Float, default=0)
     
-    parent: Mapped["PurchaseInvoice"] = relationship("PurchaseInvoice", back_populates="charges")
+    parent: Mapped["OutflowInvoice"] = relationship("OutflowInvoice", back_populates="charges")
 
 class Payment(DocumentBase):
     __tablename__ = "erp_accounting_payments"
@@ -326,7 +326,7 @@ class PaymentAllocation(LineItemBase):
     __tablename__ = "erp_accounting_payment_allocations"
     __parent__ = "erp_accounting_payments"
     payment_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_payments.id"))
-    invoice_type: Mapped[str] = mapped_column(String(20)) # SalesInvoice or PurchaseInvoice
+    invoice_type: Mapped[str] = mapped_column(String(20)) # InflowInvoice or OutflowInvoice
     invoice_id: Mapped[int] = mapped_column(Integer)
     amount: Mapped[float] = mapped_column(Float, default=0)
     

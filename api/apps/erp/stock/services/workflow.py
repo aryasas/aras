@@ -12,7 +12,7 @@ class StockWorkflowService:
             
         # 1. Create Stock Movement
         movement = StockMovement(
-            company_id=delivery.company_id,
+            org_id=delivery.org_id,
             move_type="Outgoing",
             from_location_id=delivery.location_id,
             status="Posted",
@@ -63,7 +63,7 @@ class StockWorkflowService:
             try:
                 JournalService.post_entry(
                     db,
-                    delivery.company_id,
+                    delivery.org_id,
                     journal_lines,
                     reference=delivery.number,
                     narrative=f"Stock Valuation for {delivery.number}"
@@ -82,8 +82,8 @@ class StockWorkflowService:
             return {"error": "Delivery Note must be posted before invoicing."}
             
         invoice = SalesInvoice(
-            company_id=delivery.company_id,
-            customer_id=delivery.customer_id,
+            org_id=delivery.org_id,
+            party_id=delivery.party_id,
             status="Draft",
             notes=f"Generated from Delivery Note {delivery.number}"
         )

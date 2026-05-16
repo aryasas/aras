@@ -22,10 +22,10 @@ def seed_basic_data():
         usd, _ = Currency.get_or_create(db, {"name": "US Dollar", "symbol": "$"}, code="USD")
         db.commit()
 
-        # 2. Seed Company
-        print("Seeding Company...")
-        Company = Aras.Model._registry["Company"]
-        hq, created = Company.get_or_create(
+        # 2. Seed Organization
+        print("Seeding Organization...")
+        Organization = Aras.Model._registry["Organization"]
+        hq, created = Organization.get_or_create(
             db,
             {
                 "name": "Headquarters",
@@ -86,8 +86,8 @@ def seed_basic_data():
         # 6. Seed Locations
         print("Seeding Locations...")
         Location = Aras.Model._registry["Location"]
-        Location.get_or_create(db, {"name": "Main Warehouse", "location_type": "Internal"}, company_id=hq.id, code="WH-MAIN")
-        Location.get_or_create(db, {"name": "Transit Location", "location_type": "Transit"}, company_id=hq.id, code="LOC-TRANSIT")
+        Location.get_or_create(db, {"name": "Main Warehouse", "location_type": "Internal"}, org_id=hq.id, code="WH-MAIN")
+        Location.get_or_create(db, {"name": "Transit Location", "location_type": "Transit"}, org_id=hq.id, code="LOC-TRANSIT")
         db.commit()
 
         # 7. Seed Product Categories
@@ -100,17 +100,17 @@ def seed_basic_data():
                 "account_stock_id": hq.acc_inventory_default_id,
                 "account_cogs_id": hq.acc_cogs_default_id,
             }, 
-            company_id=hq.id, code="CAT-GEN"
+            org_id=hq.id, code="CAT-GEN"
         )
         db.commit()
 
         # 8. Seed Payment Modes
         print("Seeding Payment Modes...")
         ModeOfPayment = Aras.Model._registry["ModeOfPayment"]
-        CompanyPaymentAccount = Aras.Model._registry["CompanyPaymentAccount"]
+        CompanyPaymentAccount = Aras.Model._registry["OrganizationPaymentAccount"]
         
-        cash_mode, _ = ModeOfPayment.get_or_create(db, {"name": "Cash", "payment_type": "Cash"}, company_id=hq.id, code="PAY-CASH")
-        bank_mode, _ = ModeOfPayment.get_or_create(db, {"name": "Bank Transfer", "payment_type": "Bank"}, company_id=hq.id, code="PAY-BANK")
+        cash_mode, _ = ModeOfPayment.get_or_create(db, {"name": "Cash", "payment_type": "Cash"}, org_id=hq.id, code="PAY-CASH")
+        bank_mode, _ = ModeOfPayment.get_or_create(db, {"name": "Bank Transfer", "payment_type": "Bank"}, org_id=hq.id, code="PAY-BANK")
         
         # Add accounts to payment modes if not already there
         if not cash_mode.accounts and hq.acc_cash_default_id:

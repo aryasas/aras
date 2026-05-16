@@ -6,7 +6,7 @@ customer/supplier groups, price types, fiscal year, doc series).
 Covers: customers, suppliers, products (stockable + service + bundle),
 UoM conversions, price lists, opening stock movements.
 
-Entry point: run_seed(company_id) → dict of created objects.
+Entry point: run_seed(org_id) → dict of created objects.
 """
 from decimal import Decimal
 from datetime import date
@@ -27,14 +27,14 @@ def _category(db: Session, name: str):
     return ProductCategory.find(db, name=name)
 
 
-def _price_type(db: Session, company_id: int, name: str):
+def _price_type(db: Session, org_id: int, name: str):
     PriceType = Aras.Model._registry["PriceType"]
     return PriceType.find(db, name=name)
 
 
-def _location(db: Session, company_id: int, name: str):
+def _location(db: Session, org_id: int, name: str):
     Location = Aras.Model._registry["Location"]
-    return Location.find(db, company_id=company_id, name=name)
+    return Location.find(db, org_id=org_id, name=name)
 
 
 def _currency(db: Session, code: str):
@@ -52,20 +52,21 @@ _CUSTOMERS = [
     ("C005", "Koperasi Karyawan",   "Government",  "0812-0005-0005", "koperasi@example.com"),
 ]
 
-def _seed_customers(db: Session, company_id: int):
-    Customer = Aras.Model._registry["Customer"] # Get Customer model from registry
+def _seed_customers(db: Session, org_id: int):
+    Party = Aras.Model._registry["Party"]
     idr = _currency(db, "IDR")
     out = {}
-    for code, name, group_name, phone, email in _CUSTOMERS: # group_name is unused but kept for iteration
-        obj, _ = Customer.get_or_create(
+    for code, name, group_name, phone, email in _CUSTOMERS:
+        obj, _ = Party.get_or_create(
             db,
             {
                 "name": name,
+                "role": "customer",
                 "currency_id": idr.id if idr else None,
                 "phone": phone,
                 "email": email,
             },
-            company_id=company_id, code=code,
+            org_id=org_id, code=code,
         )
         out[code] = obj
     return out
@@ -80,27 +81,28 @@ _SUPPLIERS = [
     ("S004", "Jasa Ekspedisi Cepat", "Service Provider", "0811-0004-0004", None),
 ]
 
-def _seed_suppliers(db: Session, company_id: int):
-    Supplier = Aras.Model._registry["Supplier"] # Get Supplier model from registry
+def _seed_suppliers(db: Session, org_id: int):
+    Party = Aras.Model._registry["Party"]
     idr = _currency(db, "IDR")
     out = {}
-    for code, name, group_name, phone, email in _SUPPLIERS: # group_name is unused but kept for iteration
-        obj, _ = Supplier.get_or_create(
+    for code, name, group_name, phone, email in _SUPPLIERS:
+        obj, _ = Party.get_or_create(
             db,
             {
                 "name": name,
+                "role": "supplier",
                 "currency_id": idr.id if idr else None,
                 "phone": phone,
                 "email": email,
             },
-            company_id=company_id, code=code,
+            org_id=org_id, code=code,
         )
         out[code] = obj
     return out
 
 
 # ── Products ──────────────────────────────────────────────────────────────────
-def _seed_products(db: Session, company_id: int):
+def _seed_products(db: Session, org_id: int):
     Product = Aras.Model._registry["Product"]
     ProductUom = Aras.Model._registry["ProductUom"]
     PriceList = Aras.Model._registry["PriceList"]
@@ -127,8 +129,8 @@ def _seed_products(db: Session, company_id: int):
     cat_svc   = _category(db, "Services")
     cat_raw   = _category(db, "Raw Materials")
 
-    pt_sell = _price_type(db, company_id, "Standard Selling")
-    pt_buy  = _price_type(db, company_id, "Standard Buying")
+    pt_sell = _price_type(db, org_id, "Standard Selling")
+    pt_buy  = _price_type(db, org_id, "Standard Buying")
 
     out = {}
 
@@ -136,13 +138,13 @@ def _seed_products(db: Session, company_id: int):
         prod, _ = Product.get_or_create(
             db,
             {
-                "name": name, "company_id": company_id,
+                "name": name, "org_id": org_id,
                 "category_id": cat.id if cat else None,
                 "uom_id": uom.id,
                 "for_sales": for_sales, "for_purchase": for_purchase,
                 "is_stock_item": is_stock, "is_active": True,
             },
-            code=code, company_id=company_id,
+            code=code, org_id=org_id,
         )
         suom = sell_uom or uom
         if pt_sell and sell_price is not None:
@@ -261,8 +263,8 @@ def _seed_products(db: Session, company_id: int):
     # Create the PromoBundle header for the bundle definition
     promo_bundle, _ = PromoBundle.get_or_create(
         db,
-        {"name": "Coffee Starter Pack", "company_id": company_id},
-        code="P-BSP-001", company_id=company_id,
+        {"name": "Coffee Starter Pack", "org_id": org_id},
+        code="P-BSP-001", org_id=org_id,
     )
 
     # Create PromoBundleItems for the components
@@ -286,7 +288,7 @@ def _seed_products(db: Session, company_id: int):
 
 
 # ── Opening Stock ─────────────────────────────────────────────────────────────
-def _seed_opening_stock(db: Session, company_id: int, products):
+def _seed_opening_stock(db: Session, org_id: int, products):
     """Create a single opening-stock movement (status=Draft, not posted).
     This gives the demo something to look at without triggering valuation logic.
     """
@@ -297,26 +299,26 @@ def _seed_opening_stock(db: Session, company_id: int, products):
     wh_loc, _ = Location.get_or_create(
         db,
         {"name": "Main Warehouse", "is_group": True, "location_type": "Internal"},
-        company_id=company_id, code="WH"
+        org_id=org_id, code="WH"
     )
     
     loc, _ = Location.get_or_create(
         db,
         {"name": "Stock Shelf", "parent_id": wh_loc.id, "location_type": "Internal"},
-        company_id=company_id, code="SHELF-1"
+        org_id=org_id, code="SHELF-1"
     )
 
     pcs = _uom(db, "Pieces")
     kg  = _uom(db, "Kilogram")
 
     # Only seed if no opening movement exists yet
-    existing = StockMovement.find(db, company_id=company_id, move_type="Opening")
+    existing = StockMovement.find(db, org_id=org_id, move_type="Opening")
     if existing:
         return existing
 
     idr = _currency(db, "IDR")
     mv = StockMovement.create(db, {
-        "company_id":      company_id,
+        "org_id":      org_id,
         "number":          "OPEN/DEMO/001",
         "move_type":       "Opening",
         "currency_id":     idr.id if idr else None,
@@ -352,12 +354,12 @@ def _seed_opening_stock(db: Session, company_id: int, products):
 
 
 # ── POS Terminal ──────────────────────────────────────────────────────────────
-def _seed_pos_terminal(db: Session, company_id: int):
-    PosTerminal = Aras.Model._registry["PosTerminal"]
+def _seed_pos_terminal(db: Session, org_id: int):
+    PosTerminal = Aras.Model._registry["PotTerminal"]
     ModeOfPayment = Aras.Model._registry["ModeOfPayment"]
     Location = Aras.Model._registry["Location"]
 
-    loc = Location.find(db, company_id=company_id, code="SHELF-1")
+    loc = Location.find(db, org_id=org_id, code="SHELF-1")
     cash_mop = ModeOfPayment.find(db, name="Cash")
 
     terminal, _ = PosTerminal.get_or_create(
@@ -372,7 +374,7 @@ def _seed_pos_terminal(db: Session, company_id: int):
 
 
 # ── CRM Demo Leads ────────────────────────────────────────────────────────────
-def _seed_demo_leads(db: Session, company_id: int, customers):
+def _seed_demo_leads(db: Session, org_id: int, customers):
     Pipeline = Aras.Model._registry["Pipeline"]
     Stage = Aras.Model._registry["Stage"]
     Lead = Aras.Model._registry["Lead"]
@@ -395,25 +397,31 @@ def _seed_demo_leads(db: Session, company_id: int, customers):
         lead, _ = Lead.get_or_create(
             db,
             {
-                "customer_id": customer.id if customer else None,
+                "party_id": customer.id if customer else None,
                 "stage_id":    stage.id if stage else None,
-                "company_id":  company_id,
+                "org_id":  org_id,
             },
-            name=name, company_id=company_id,
+            name=name, org_id=org_id,
         )
         leads.append(lead)
     return leads
 
 
 # ── Public entry point ────────────────────────────────────────────────────────
-def run_seed(db: Session, company_id: int):
+def run_seed(db: Session, org_id: int):
     """Seed all demo/sample data. Returns summary dict."""
-    customers = _seed_customers(db, company_id)
-    suppliers = _seed_suppliers(db, company_id)
-    products  = _seed_products(db, company_id)
-    opening   = _seed_opening_stock(db, company_id, products)
-    terminal  = _seed_pos_terminal(db, company_id)
-    leads     = _seed_demo_leads(db, company_id, customers)
+    # Ensure demo product categories exist
+    ProductCategory = Aras.Model._registry["ProductCategory"]
+    for cat_name in ["Food & Beverage", "Electronics", "Services", "Raw Materials"]:
+        ProductCategory.get_or_create(db, {"name": cat_name}, org_id=org_id, code=cat_name[:6].upper().replace(" ", "-").replace("&", ""))
+    db.flush()
+
+    customers = _seed_customers(db, org_id)
+    suppliers = _seed_suppliers(db, org_id)
+    products  = _seed_products(db, org_id)
+    opening   = _seed_opening_stock(db, org_id, products)
+    terminal  = _seed_pos_terminal(db, org_id)
+    leads     = _seed_demo_leads(db, org_id, customers)
     return {
         "customers": customers,
         "suppliers": suppliers,

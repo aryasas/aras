@@ -69,6 +69,11 @@ def _check_scope_ownership(model_class: Type[Any], request: Request, item: Any):
             raise HTTPException(status_code=404, detail="Item not found")
 
 
+def _create_success_response(data: Any, message: str = "Operation successful.") -> dict:
+    """Creates a standardized success response dictionary."""
+    return {"success": True, "data": data, "message": message, "error": None}
+
+
 class RouterFactory(Router):
     """
     Generic factory for generating standardized CRUD routes for any Aras Model.
@@ -183,11 +188,13 @@ class RouterFactory(Router):
             from ..aras import Aras
             view = Aras.View.get_for_model(model_class)
             if view:
-                return view.render_metadata(db=db, lang=lang)
-            
+                data = view.render_metadata(db=db, lang=lang)
+                return _create_success_response(data, "Metadata retrieved successfully.")
+
             # Fallback to standard auto-generation
             from ..logic.ui_generator import UIGenerator
-            return UIGenerator.generate_metadata(model_class, db=db, lang=lang)
+            data = UIGenerator.generate_metadata(model_class, db=db, lang=lang)
+            return _create_success_response(data, "Metadata retrieved successfully.")
 
         @router.get("/")
         async def list_items_slashed(
@@ -225,7 +232,7 @@ class RouterFactory(Router):
 
             parsed_filters = _apply_scope_filters(model_class, request, list(parsed_filters or []))
 
-            return model_class.paginate(
+            paginated_data = model_class.paginate(
                 db,
                 page=page,
                 per_page=per_page,
@@ -234,6 +241,7 @@ class RouterFactory(Router):
                 order_by=order_by,
                 desc=desc
             )
+            return _create_success_response(paginated_data, "Items listed successfully.")
 
         @router.get("/export")
         async def export_items(
@@ -307,8 +315,9 @@ class RouterFactory(Router):
                 user_id=user.id,
                 mapping=parsed_mapping
             )
+            data = {"message": "CSV import initiated in background", "task_id": task_id}
+            return _create_success_response(data, data["message"])
 
-            return {"message": "CSV import initiated in background", "task_id": task_id}
         @router.post("/", status_code=status.HTTP_201_CREATED)
         async def create_item_slashed(
             request: Request,
@@ -328,7 +337,7 @@ class RouterFactory(Router):
             """Creates a new record with hooks support."""
             payload = _inject_scope_payload(model_class, request, data.model_dump())
             new_item = model_class.create(db, payload, user_id=user.id)
-            return new_item.to_dict()
+            return _create_success_response(new_item.to_dict(), "Item created successfully.")
 
         @router.get("/{item_id}")
         async def get_item(
@@ -344,7 +353,7 @@ class RouterFactory(Router):
             _check_scope_ownership(model_class, request, item)
             res = item.to_dict()
             model_class.resolve_labels(db, [res])
-            return res
+            return _create_success_response(res, "Item retrieved successfully.")
 
         @router.put("/{item_id}")
         async def update_item(
@@ -364,7 +373,7 @@ class RouterFactory(Router):
             item.update_self(db, payload, user_id=user.id)
             res = item.to_dict()
             model_class.resolve_labels(db, [res])
-            return res
+            return _create_success_response(res, "Item updated successfully.")
 
         @router.patch("/{item_id}")
         async def patch_item(
@@ -384,7 +393,7 @@ class RouterFactory(Router):
             item.update_self(db, payload, user_id=user.id)
             res = item.to_dict()
             model_class.resolve_labels(db, [res])
-            return res
+            return _create_success_response(res, "Item patched successfully.")
 
         @router.delete("/{item_id}")
         async def delete_item(
@@ -398,7 +407,7 @@ class RouterFactory(Router):
                 raise HTTPException(status_code=404, detail="Item not found")
 
             item.delete_self(db, user_id=user.id)
-            return {"message": "Deleted successfully", "id": item_id}
+            return _create_success_response({"id": item_id}, "Item deleted successfully.")
 
         if getattr(model_class, "__soft_delete__", False):
             @router.get("/deleted", tags=[_api_tag])
@@ -414,12 +423,13 @@ class RouterFactory(Router):
                 total = db.scalar(sa_select(func.count()).select_from(stmt.subquery()))
                 offset = (page - 1) * per_page
                 items = db.scalars(stmt.offset(offset).limit(per_page)).all()
-                return {
+                data = {
                     "items": [i.to_dict() for i in items],
                     "total": total,
                     "page": page,
                     "pages": (total + per_page - 1) // per_page
                 }
+                return _create_success_response(data, "Deleted items listed successfully.")
 
             @router.post("/{item_id}/restore")
             async def restore_item(
@@ -438,7 +448,7 @@ class RouterFactory(Router):
                 item.updated_by = user.id
                 db.commit()
                 db.refresh(item)
-                return item.to_dict()
+                return _create_success_response(item.to_dict(), "Item restored successfully.")
 
         @router.post("/bulk-delete")
         async def bulk_delete(
@@ -456,7 +466,8 @@ class RouterFactory(Router):
                         deleted_count += 1
                     except Exception as e:
                         print(f"[Bulk Delete] Failed to delete item {item_id}: {e}")
-            return {"message": f"Successfully deleted {deleted_count} items", "deleted_count": deleted_count}
+            message = f"Successfully deleted {deleted_count} of {len(ids)} items."
+            return _create_success_response({"deleted_count": deleted_count, "requested_count": len(ids)}, message)
 
         class _BatchOp(BaseModel):
             action: str  # "create" | "update" | "delete"
@@ -501,7 +512,9 @@ class RouterFactory(Router):
             except Exception as e:
                 db.rollback()
                 raise HTTPException(status_code=500, detail=str(e))
-            return {"results": results, "count": len(results)}
+            
+            data = {"results": results, "count": len(results)}
+            return _create_success_response(data, "Batch operation completed.")
         
         # ── 3. Custom Model Actions ───────────────────────────────────────────
         for action_name, model_action in model_class._actions.items():
@@ -529,7 +542,8 @@ class RouterFactory(Router):
                             handler = getattr(item, action.handler.__name__)
                             result = handler(input_data)
                             db.commit()
-                            return {"message": f"Action '{name}' completed", "result": result}
+                            message = f"Action '{name}' completed successfully."
+                            return _create_success_response({"result": result}, message)
                         except Exception as e:
                             db.rollback()
                             raise HTTPException(status_code=500, detail=str(e))
@@ -548,7 +562,8 @@ class RouterFactory(Router):
                             handler = getattr(item, action.handler.__name__)
                             result = handler()
                             db.commit()
-                            return {"message": f"Action '{name}' completed", "result": result}
+                            message = f"Action '{name}' completed successfully."
+                            return _create_success_response({"result": result}, message)
                         except Exception as e:
                             db.rollback()
                             raise HTTPException(status_code=500, detail=str(e))

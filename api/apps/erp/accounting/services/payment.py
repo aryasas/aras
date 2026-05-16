@@ -1,6 +1,6 @@
 from typing import Optional
 from sqlalchemy.orm import Session
-from ..models import Payment, PaymentAllocation, SalesInvoice, PurchaseInvoice, Account, ModeOfPayment, CompanyPaymentAccount
+from ..models import Payment, PaymentAllocation, InflowInvoice, OutflowInvoice, Account, ModeOfPayment, OrganizationPaymentAccount
 from .journal import JournalService
 
 
@@ -8,16 +8,16 @@ class PaymentService:
 
     @staticmethod
     def _resolve_cash_account(db: Session, payment: Payment) -> Optional[Account]:
-        """Maps payment mode → GL account via CompanyPaymentAccount."""
+        """Maps payment mode → GL account via OrganizationPaymentAccount."""
         if payment.mode_of_payment_id:
-            mapping = db.query(CompanyPaymentAccount).filter(
-                CompanyPaymentAccount.mode_id == payment.mode_of_payment_id
+            mapping = db.query(OrganizationPaymentAccount).filter(
+                OrganizationPaymentAccount.mode_id == payment.mode_of_payment_id
             ).first()
             if mapping:
                 return db.query(Account).get(mapping.account_id)
         # Fallback: any asset account
         return db.query(Account).filter(
-            Account.company_id == payment.company_id,
+            Account.org_id == payment.org_id,
             Account.account_type == "Asset",
             Account.is_group == False
         ).first()
@@ -34,7 +34,7 @@ class PaymentService:
 
         if payment.payment_type == "Incoming":
             ar_account = db.query(Account).filter(
-                Account.company_id == payment.company_id,
+                Account.org_id == payment.org_id,
                 Account.account_type == "Asset",
                 Account.is_group == False
             ).first()
@@ -48,7 +48,7 @@ class PaymentService:
             ]
         else:
             ap_account = db.query(Account).filter(
-                Account.company_id == payment.company_id,
+                Account.org_id == payment.org_id,
                 Account.account_type == "Liability",
                 Account.is_group == False
             ).first()
@@ -63,7 +63,7 @@ class PaymentService:
 
         try:
             JournalService.post_entry(
-                db, payment.company_id, lines,
+                db, payment.org_id, lines,
                 reference=payment.number,
                 narrative=f"Auto-posted from Payment {payment.number}"
             )
@@ -75,20 +75,20 @@ class PaymentService:
             return {"error": str(e)}
 
     @staticmethod
-    def get_unpaid_invoices(db: Session, party_type: str, party_id: int, company_id: int) -> list:
+    def get_unpaid_invoices(db: Session, party_type: str, party_id: int, org_id: int) -> list:
         """Returns open/partial invoices for a party ordered by date (FIFO)."""
         if party_type == "Customer":
-            invoices = db.query(SalesInvoice).filter(
-                SalesInvoice.company_id == company_id,
-                SalesInvoice.customer_id == party_id,
-                SalesInvoice.status.in_(["Posted", "Partial"])
-            ).order_by(SalesInvoice.doc_date).all()
+            invoices = db.query(InflowInvoice).filter(
+                InflowInvoice.org_id == org_id,
+                InflowInvoice.customer_id == party_id,
+                InflowInvoice.status.in_(["Posted", "Partial"])
+            ).order_by(InflowInvoice.doc_date).all()
         elif party_type == "Supplier":
-            invoices = db.query(PurchaseInvoice).filter(
-                PurchaseInvoice.company_id == company_id,
-                PurchaseInvoice.supplier_id == party_id,
-                PurchaseInvoice.status.in_(["Posted", "Partial"])
-            ).order_by(PurchaseInvoice.doc_date).all()
+            invoices = db.query(OutflowInvoice).filter(
+                OutflowInvoice.org_id == org_id,
+                OutflowInvoice.party_id == party_id,
+                OutflowInvoice.status.in_(["Posted", "Partial"])
+            ).order_by(OutflowInvoice.doc_date).all()
         else:
             invoices = []
         return invoices
@@ -100,9 +100,9 @@ class PaymentService:
             return {"error": "Payment must be Posted before allocation."}
 
         invoices = PaymentService.get_unpaid_invoices(
-            db, payment.party_type, payment.party_id, payment.company_id
+            db, payment.party_type, payment.party_id, payment.org_id
         )
-        invoice_type = "SalesInvoice" if payment.party_type == "Customer" else "PurchaseInvoice"
+        invoice_type = "InflowInvoice" if payment.party_type == "Customer" else "OutflowInvoice"
 
         remaining = payment.amount
         allocated_count = 0
@@ -139,10 +139,10 @@ class PaymentService:
         if payment.status != "Posted":
             return {"error": "Payment must be Posted before allocation."}
 
-        if invoice_type == "SalesInvoice":
-            inv = db.query(SalesInvoice).get(invoice_id)
+        if invoice_type == "InflowInvoice":
+            inv = db.query(InflowInvoice).get(invoice_id)
         else:
-            inv = db.query(PurchaseInvoice).get(invoice_id)
+            inv = db.query(OutflowInvoice).get(invoice_id)
 
         if not inv:
             return {"error": "Invoice not found."}
@@ -175,10 +175,10 @@ class PaymentService:
         if not alloc:
             return {"error": "Allocation not found."}
 
-        if alloc.invoice_type == "SalesInvoice":
-            inv = db.query(SalesInvoice).get(alloc.invoice_id)
+        if alloc.invoice_type == "InflowInvoice":
+            inv = db.query(InflowInvoice).get(alloc.invoice_id)
         else:
-            inv = db.query(PurchaseInvoice).get(alloc.invoice_id)
+            inv = db.query(OutflowInvoice).get(alloc.invoice_id)
 
         db.delete(alloc)
         db.flush()
@@ -192,3 +192,4 @@ class PaymentService:
 
         db.commit()
         return {"ok": True}
+

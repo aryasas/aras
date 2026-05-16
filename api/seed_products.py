@@ -15,7 +15,7 @@ def seed_products():
     db = SessionLocal()
     try:
         # Lookup required records
-        Company = Aras.Model._registry["Company"]
+        Company = Aras.Model._registry["Organization"]
         Uom = Aras.Model._registry["Uom"]
         ProductCategory = Aras.Model._registry["ProductCategory"]
         PriceType = Aras.Model._registry["PriceType"]
@@ -54,14 +54,14 @@ def seed_products():
                     "uom_id": uom_unit.id,
                     "is_active": True,
                 },
-                company_id=hq.id, code=code
+                org_id=hq.id, code=code
             )
             
             if created:
                 # Add PriceList entry
                 print(f"  Adding price for {name}...")
                 PriceList.create(db, {
-                    "company_id": hq.id,
+                    "org_id": hq.id,
                     "code": f"PR-{code}",
                     "name": f"Standard Price - {name}",
                     "price_type_id": pt_sales.id,
@@ -80,12 +80,12 @@ def seed_products():
                         "product_id": p.id,
                         "uom_id": uom_box.id,
                         "factor": 5.0,
-                        "company_id": hq.id
+                        "org_id": hq.id
                     })
                     
                     # Also add a price for the box (slightly discounted)
                     PriceList.create(db, {
-                        "company_id": hq.id,
+                        "org_id": hq.id,
                         "code": f"PR-{code}-BOX",
                         "name": f"Box Price - {name}",
                         "price_type_id": pt_sales.id,

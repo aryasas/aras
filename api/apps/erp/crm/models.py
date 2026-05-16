@@ -8,32 +8,6 @@ from ..base import MasterDataBase, LineItemBase
 
 
 
-class Customer(MasterDataBase):
-    __tablename__ = "erp_crm_customers"
-    __unique_together__ = [("company_id", "code")]
-    
-    email: Mapped[str] = mapped_column(String(100), nullable=True)
-    phone: Mapped[str] = mapped_column(String(20), nullable=True)
-    mobile: Mapped[str] = mapped_column(String(20), nullable=True)
-    address: Mapped[str] = mapped_column(Text, nullable=True)
-    tax_id: Mapped[str] = mapped_column(String(50), nullable=True)
-    pricelist_id: Mapped[int] = mapped_column(ForeignKey("erp_config_price_types.id"), nullable=True)
-    
-    contacts: Mapped[list["Contact"]] = relationship("Contact", back_populates="parent", cascade="all, delete-orphan")
-
-class Contact(LineItemBase):
-    __tablename__ = "erp_crm_contacts"
-    __parent__ = "erp_crm_customers"
-    
-    customer_id: Mapped[int] = mapped_column(ForeignKey("erp_crm_customers.id"))
-    name: Mapped[str] = mapped_column(String(200))
-    title: Mapped[str] = mapped_column(String(100), nullable=True)
-    email: Mapped[str] = mapped_column(String(100), nullable=True)
-    phone: Mapped[str] = mapped_column(String(20), nullable=True)
-    is_primary: Mapped[bool] = mapped_column(Boolean, default=False)
-    
-    parent: Mapped["Customer"] = relationship("Customer", back_populates="contacts")
-
 class Pipeline(MasterDataBase):
     __tablename__ = "erp_crm_pipelines"
     
@@ -54,7 +28,7 @@ class Lead(MasterDataBase):
     __tablename__ = "erp_crm_leads"
     
     lead_type: Mapped[str] = mapped_column(String(20), default="Lead", info={"choices": ["Lead", "Opportunity"]})
-    customer_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_crm_customers.id"), nullable=True)
+    party_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_party_parties.id"), nullable=True)
     contact_name: Mapped[str] = mapped_column(String(200), nullable=True)
     contact_email: Mapped[str] = mapped_column(String(100), nullable=True)
     contact_phone: Mapped[str] = mapped_column(String(20), nullable=True)
@@ -65,35 +39,35 @@ class Lead(MasterDataBase):
     probability: Mapped[float] = mapped_column(Float, default=0)
     priority: Mapped[str] = mapped_column(String(10), default="Normal", info={"choices": ["Low", "Normal", "High", "Very High"]})
     description: Mapped[str] = mapped_column(Text, nullable=True)
-    status: Mapped[str] = mapped_column(String(20), default="Open", info={"choices": ["Open", "Won", "Lost"]})
-
-    @Aras.model_action(name="convert", permission="edit", label="Convert to Customer")
-    def convert_to_customer(self):
+    party_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_party_parties.id"), nullable=True)
+    ...
+    @Aras.model_action(name="convert", permission="edit", label="Convert to Party")
+    def convert_to_party(self):
         from sqlalchemy.orm import object_session
-        from .models import Customer
+        from ..party.models import Party
         db = object_session(self)
-        
-        # Check if already a customer
-        if self.customer_id:
-            return {"error": "Lead is already linked to a customer."}
-            
-        # Create Customer
-        customer = Customer(
-            company_id=self.company_id,
+
+        # Check if already a party
+        if self.party_id:
+            return {"error": "Lead is already linked to a party."}
+
+        # Create Party
+        party = Party(
+            org_id=self.org_id,
             name=self.name,
             email=self.contact_email,
             phone=self.contact_phone,
             status="Active"
         )
-        db.add(customer)
+        db.add(party)
         db.flush()
-        
-        self.customer_id = customer.id
+
+        self.party_id = party.id
         self.status = "Won"
         self.lead_type = "Opportunity"
         db.commit()
-        
-        return {"id": customer.id, "message": f"Customer {customer.name} created successfully."}
+
+        return {"id": party.id, "message": f"Party {party.name} created successfully."}
 
 class Activity(LineItemBase):
     __tablename__ = "erp_crm_activities"

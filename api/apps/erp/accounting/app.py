@@ -1,7 +1,8 @@
 from ..app import ERP
-from .models import Account, JournalEntry, JournalEntryLine, SalesInvoice, SalesInvoiceLine, \
-    PurchaseInvoice, PurchaseInvoiceLine, SalesOrder, SalesOrderLine, SalesOrderCharge, \
-    PurchaseOrder, PurchaseOrderLine, PurchaseOrderCharge, SalesInvoiceCharge, PurchaseInvoiceCharge, \
+from ..app import ERP
+from .models import Account, JournalEntry, JournalEntryLine, InflowInvoice, InflowInvoiceLine, \
+    OutflowInvoice, OutflowInvoiceLine, InflowOrder, InflowOrderLine, InflowOrderCharge, \
+    OutflowOrder, OutflowOrderLine, OutflowOrderCharge, InflowInvoiceCharge, OutflowInvoiceCharge, \
     Payment, PaymentAllocation, FiscalPeriod
 from . import views # Trigger view registration
 
@@ -13,10 +14,10 @@ class Accounting(ERP):
     models = [
         Account, FiscalPeriod,
         JournalEntry, JournalEntryLine, 
-        SalesOrder, SalesOrderLine, SalesOrderCharge,
-        SalesInvoice, SalesInvoiceLine, SalesInvoiceCharge,
-        PurchaseOrder, PurchaseOrderLine, PurchaseOrderCharge,
-        PurchaseInvoice, PurchaseInvoiceLine, PurchaseInvoiceCharge,
+        InflowOrder, InflowOrderLine, InflowOrderCharge,
+        InflowInvoice, InflowInvoiceLine, InflowInvoiceCharge,
+        OutflowOrder, OutflowOrderLine, OutflowOrderCharge,
+        OutflowInvoice, OutflowInvoiceLine, OutflowInvoiceCharge,
         Payment, PaymentAllocation
     ]
 
@@ -27,14 +28,14 @@ class Accounting(ERP):
             "models": ["erp_accounting_accounts", "erp_accounting_entries", "erp_accounting_fiscal_periods"]
         },
         {
-            "label": "Sales",
+            "label": "Inflow",
             "icon": "ArrowUpRight",
-            "models": ["erp_accounting_sales_orders", "erp_accounting_sales_invoices"]
+            "models": ["erp_accounting_inflow_orders", "erp_accounting_inflow_invoices"]
         },
         {
-            "label": "Purchase",
+            "label": "Outflow",
             "icon": "ArrowDownLeft",
-            "models": ["erp_accounting_purchase_orders", "erp_accounting_purchase_invoices"]
+            "models": ["erp_accounting_outflow_orders", "erp_accounting_outflow_invoices"]
         },
         {
             "label": "Payments",

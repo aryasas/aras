@@ -6,6 +6,7 @@ import { FormattingService } from './aras-core/services/FormattingService'
 import { NotificationProvider } from './aras-core/contexts/NotificationContext'
 import { ConfirmProvider } from './aras-core/contexts/ConfirmContext'
 import { ErrorBoundary } from './aras-core/components/ErrorBoundary'
+import { TenantProvider } from './context/TenantContext'
 
 // Initialize Global Services
 FormattingService.init().then(() => {
@@ -14,7 +15,9 @@ FormattingService.init().then(() => {
       <ErrorBoundary>
         <NotificationProvider>
           <ConfirmProvider>
-            <App />
+            <TenantProvider>
+              <App />
+            </TenantProvider>
           </ConfirmProvider>
         </NotificationProvider>
       </ErrorBoundary>

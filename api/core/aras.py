@@ -47,6 +47,7 @@ from .logic import builtin_handlers as _builtin_handlers  # noqa: F401
 from . import lib
 from . import logic
 from . import api
+from . import tenant
 from .lib import helpers as helper
 
 class Aras(BaseAras):
@@ -59,6 +60,7 @@ class Aras(BaseAras):
     lib = lib
     logic = logic
     api = api
+    tenant = tenant
     helper = helper
 
     # Core Abstractions (Level 2)

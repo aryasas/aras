@@ -275,3 +275,15 @@ This document outlines the key features and architectural components of the Aras
 
 ## Workflow Engine (DB-driven) + FK Label Fix + Child Table Fix + Series Sub-module + Field Customization Fix + App Manager Sub-module Fix — revision (2026-05-16)
   - [Codex/GPT-5.5] AppManager groups sub-modules under parent apps; inline child lookup cells use combobox options
+
+
+## Fase 0 Closeout + Fase 1 Foundation (Multi-Tenant Core) — revision (2026-05-16)
+  - [Codex/GPT-5.5] Dev-only tenant context provider, TenantSwitcher on DevTools, X-Tenant-ID injection when VITE_DEV_MULTI_TENANT=true
+
+
+## Fase 0 Closeout + Fase 1 Foundation (Multi-Tenant Core) — revision (2026-05-16)
+  - [Gemini] Foundational multi-tenant system including tenant registry, dynamic connection router, and DB provisioner. Added an offline JWT-based instance license verification system.
+
+
+## ARP Neutral Rename — Organization model, neutral DB schema, profile system, POT rename, party consolidation — revision (2026-05-16)
+  - [Codex/GPT-5.5] profile-aware vocabulary provider, dynamic inflow/outflow/party/POT labels, organization profile/unit type controls, party role filters and badges, POT terminal placeholder logic

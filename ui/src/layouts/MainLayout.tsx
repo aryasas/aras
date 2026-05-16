@@ -46,7 +46,7 @@ export default function MainLayout() {
           <Header />
           {companies.length > 1 && (
             <div className="absolute right-36 top-3 z-50">
-              <label className="sr-only" htmlFor="company-selector">Company</label>
+              <label className="sr-only" htmlFor="company-selector">Organization</label>
               <div className="relative">
                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
                 <select

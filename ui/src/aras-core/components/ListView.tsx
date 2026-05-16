@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import api from '../../lib/api'
 import { cleanResourcePath } from '../../lib/resourceUtils'
 import {
@@ -15,6 +16,7 @@ import ListToolbar from './ListToolbar'
 import type { ViewMode } from './ListToolbar'
 import TreeView from './TreeView'
 import GenericReport from './GenericReport'
+import { useVocabulary } from '../../context/VocabularyContext'
 
 interface Field {
   name: string
@@ -46,6 +48,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   onAdd?: () => void,
   fixedFilters?: Record<string, any>
 }) => {
+  const vocabulary = useVocabulary()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [metadata, setMetadata] = useState<Metadata | null>(null)
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -80,6 +84,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
 
   const showPanel = useUIStore(state => state.showPanel)
   const closePanel = useUIStore(state => state.closePanel)
+  const roleFilter = searchParams.get('role') || 'all'
+  const isPartyResource = useMemo(() => /(^|\/)(parties|party)$/.test(cleanResourcePath(resource)), [resource])
 
   const hasTreeSupport = useMemo(() => {
     if (!metadata) return false;
@@ -113,6 +119,9 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           finalFilters.push({ field, op: '=', value })
         })
       }
+      if (isPartyResource && roleFilter !== 'all') {
+        finalFilters.push({ field: 'role', op: '=', value: roleFilter })
+      }
 
       const params = {
         page,
@@ -133,7 +142,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     } finally {
       setLoading(false)
     }
-  }, [resource, metadata, page, perPage, search, filters, fixedFilters, orderBy, desc])
+  }, [resource, metadata, page, perPage, search, filters, fixedFilters, orderBy, desc, isPartyResource, roleFilter])
 
   useEffect(() => {
     fetchData()
@@ -216,6 +225,9 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         Object.entries(fixedFilters).forEach(([field, value]) => {
           finalFilters.push({ field, op: '=', value })
         })
+      }
+      if (isPartyResource && roleFilter !== 'all') {
+        finalFilters.push({ field: 'role', op: '=', value: roleFilter })
       }
 
       const params = {
@@ -319,13 +331,34 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
 
   const fields = metadata.fields
   const visibleFields = fields.filter(f => visibleColumns.includes(f.name))
+  const toolbarFields = fields.map(field => ({ ...field, label: vocabulary.get(field.label) }))
+  const title = vocabulary.get(metadata.title)
+  const roleTabs = [
+    { value: 'all', label: 'All' },
+    { value: 'customer', label: 'Customer' },
+    { value: 'supplier', label: 'Supplier' },
+    { value: 'member', label: 'Member' },
+    { value: 'student', label: 'Student' },
+    { value: 'patient', label: 'Patient' },
+    { value: 'donor', label: 'Donor' },
+    { value: 'citizen', label: 'Citizen' },
+    { value: 'other', label: 'Other' },
+  ]
+
+  const setRoleFilter = (role: string) => {
+    const next = new URLSearchParams(searchParams)
+    if (role === 'all') next.delete('role')
+    else next.set('role', role)
+    setSearchParams(next, { replace: true })
+    setPage(1)
+  }
 
   return (
     <>
     <div className="flex flex-col h-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       {/* ── Toolbar ────────────────────────────────────────────────────────── */}
       <ListToolbar 
-        title={metadata.title}
+        title={title}
         search={search}
         onSearchChange={setSearch}
         isFilterOpen={isFilterOpen}
@@ -340,7 +373,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         onColumnPickerToggle={() => setIsColumnPickerOpen(!isColumnPickerOpen)}
         isColumnPickerOpen={isColumnPickerOpen}
         onAdd={() => onAdd ? onAdd() : null}
-        fields={fields}
+        fields={toolbarFields}
         visibleColumns={visibleColumns}
         onVisibleColumnsChange={setVisibleColumns}
         viewMode={viewMode}
@@ -365,7 +398,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                   <div key={i} className="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-200">
                     <div className="flex-1">
                       <Combobox
-                        options={fields.map(field => ({ label: field.label, value: field.name }))}
+                        options={fields.map(field => ({ label: vocabulary.get(field.label), value: field.name }))}
                         value={f.field}
                         onChange={(val) => updateFilter(i, 'field', val)}
                         placeholder="Field..."
@@ -443,6 +476,24 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
 
       {/* ── Content View ─────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-auto">
+        {isPartyResource && (
+          <div className="flex flex-wrap gap-2 border-b border-slate-100 bg-white px-6 py-3">
+            {roleTabs.map(tab => (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => setRoleFilter(tab.value)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
+                  roleFilter === tab.value
+                    ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100'
+                    : 'bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
         {viewMode === 'list' && (
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead className="sticky top-0 z-10">
@@ -463,7 +514,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                     }}
                   >
                     <div className="flex items-center gap-2">
-                      {field.label}
+                      {vocabulary.get(field.label)}
                       {orderBy === field.name && (desc ? <ChevronDown size={14} /> : <ChevronUp size={14} />)}
                     </div>
                   </th>
@@ -528,7 +579,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                           />
                         ) : (
                           <span title={canInline ? 'Double-click to edit' : undefined} className={canInline ? 'cursor-text' : ''}>
-                            {renderCellValue(item[`${field.name}_label`] ?? item[field.name], field.type)}
+                            {renderCellValue(item[`${field.name}_label`] ?? item[field.name], field.type, field.name)}
                           </span>
                         )}
                       </td>
@@ -547,9 +598,9 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
 
         {viewMode === 'report' && metadata && (
           <GenericReport
-            title={`${metadata.title} Report`}
+            title={`${title} Report`}
             data={data}
-            columns={visibleFields.map(f => ({ field: f.name, label: f.label, type: f.type }))}
+            columns={visibleFields.map(f => ({ field: f.name, label: vocabulary.get(f.label), type: f.type }))}
             onBack={() => setViewMode('list')}
           />
         )}
@@ -636,7 +687,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
               >
                 <option value="">— Select field —</option>
                 {(metadata?.fields ?? []).filter(f => !f.read_only && !f.hidden && !['id','created_at','updated_at','created_by','updated_by'].includes(f.name)).map(f => (
-                  <option key={f.name} value={f.name}>{f.label}</option>
+                  <option key={f.name} value={f.name}>{vocabulary.get(f.label)}</option>
                 ))}
               </select>
             </div>
@@ -650,7 +701,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                       resource={field.target_resource}
                       value={bulkEditValue}
                       onChange={setBulkEditValue}
-                      placeholder={`Select ${field.label}...`}
+                      placeholder={`Select ${vocabulary.get(field.label)}...`}
                     />
                   )
                 }
@@ -660,7 +711,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                       options={field.options}
                       value={bulkEditValue}
                       onChange={setBulkEditValue}
-                      placeholder={`Select ${field.label}...`}
+                      placeholder={`Select ${vocabulary.get(field.label)}...`}
                     />
                   )
                 }
@@ -719,8 +770,28 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   )
 }
 
-const renderCellValue = (value: any, type: string) => {
+const roleColors: Record<string, string> = {
+  customer: 'bg-sky-50 text-sky-700 border-sky-100',
+  supplier: 'bg-amber-50 text-amber-700 border-amber-100',
+  member: 'bg-violet-50 text-violet-700 border-violet-100',
+  student: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+  patient: 'bg-rose-50 text-rose-700 border-rose-100',
+  donor: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100',
+  citizen: 'bg-cyan-50 text-cyan-700 border-cyan-100',
+  other: 'bg-slate-50 text-slate-600 border-slate-100',
+}
+
+const renderCellValue = (value: any, type: string, fieldName?: string) => {
   if (value === null || value === undefined) return <span className="text-slate-300">-</span>
+  if (fieldName === 'role') {
+    const role = String(value)
+    const roleLabel = role.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+    return (
+      <span className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${roleColors[role] || roleColors.other}`}>
+        {roleLabel}
+      </span>
+    )
+  }
   
   switch (type) {
     case 'currency':

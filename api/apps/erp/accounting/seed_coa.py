@@ -214,9 +214,9 @@ _COA: list[tuple] = [
 ]
 
 
-def seed_coa(db: Session, company_id: int) -> dict:
+def seed_coa(db: Session, org_id: int) -> dict:
     """
-    Upsert all CoA rows for company_id.
+    Upsert all CoA rows for org_id.
     Returns dict of slug → Account for key accounts used by seed helpers.
     """
     # Get Account model from registry
@@ -236,10 +236,10 @@ def seed_coa(db: Session, company_id: int) -> dict:
                 "account_type": acct_type,
                 "is_group": is_group,
                 "parent_id": parent_id,
-                "company_id": company_id,
+                "org_id": org_id,
             },
             code=code,
-            company_id=company_id,
+            org_id=org_id,
         )
         # keep name/type/is_group current (idempotent update)
         changed = False

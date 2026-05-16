@@ -20,9 +20,9 @@ def check_permissions(resource: Optional[str] = None, action: str = "READ", allo
         user: Any = Depends(get_optional_user if allow_public else get_current_user),
         db: Session = Depends(get_db),
     ):
-        company_id = int(request.headers.get("X-Company-ID", 0) or 0)
-        request.state.company_id = company_id
-        
+        org_id = int(request.headers.get("X-Company-ID", 0) or 0)
+        request.state.company_id = org_id  # kept for backwards compat
+
         if not user:
             if allow_public and action == "READ":
                 return None
@@ -37,7 +37,7 @@ def check_permissions(resource: Optional[str] = None, action: str = "READ", allo
         if not resource:
             return user
 
-        if not RBAC.has_permission(db, user, resource, action, company_id=company_id):
+        if not RBAC.has_permission(db, user, resource, action, company_id=org_id):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Not enough permissions to {action} {resource}"
@@ -105,17 +105,17 @@ class RBAC(Auth):
     @staticmethod
     def get_user_companies(db: Session, user: User) -> list[dict]:
         try:
-            from apps.erp.config.models import Company
+            from apps.erp.config.models import Organization
             from ..registry.user_role import UserRole
         except Exception:
             return []
 
         if user.is_admin:
-            rows = db.query(Company.id, Company.name).all()
+            rows = db.query(Organization.id, Organization.name).all()
         else:
             rows = (
-                db.query(Company.id, Company.name)
-                .join(UserRole, UserRole.company_id == Company.id)
+                db.query(Organization.id, Organization.name)
+                .join(UserRole, UserRole.company_id == Organization.id)
                 .filter(UserRole.user_id == user.id, UserRole.company_id.isnot(None))
                 .distinct()
                 .all()

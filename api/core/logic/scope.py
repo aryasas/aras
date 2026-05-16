@@ -27,12 +27,12 @@ class ScopeContext:
 
 def scope_from_user(user: Any) -> ScopeContext:
     """
-    Build a default scope from user attributes. Looks for `current_company_id`
+    Build a default scope from user attributes. Looks for `current_org_id`
     on the user; subclasses / future extensions can layer on more keys.
     """
     values: Dict[str, Any] = {}
     if user is not None:
-        cid = getattr(user, "current_company_id", None)
+        cid = getattr(user, "current_org_id", None) or getattr(user, "current_company_id", None)
         if cid is not None:
-            values["company_id"] = cid
+            values["org_id"] = cid
     return ScopeContext(values)

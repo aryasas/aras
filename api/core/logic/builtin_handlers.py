@@ -15,17 +15,18 @@ def post_stock_movement(db, item, params: dict):
     location_field = params.get("location_field", "location_id")
     location_id = getattr(item, location_field, None)
 
+    org_id = getattr(item, "org_id", None)
     currency_id = getattr(item, "currency_id", None)
-    if not currency_id:
-        from apps.erp.config.models import Company
-        company = db.get(Company, item.company_id)
-        currency_id = getattr(company, "base_currency_id", None) if company else None
+    if not currency_id and org_id:
+        from apps.erp.config.models import Organization
+        org = db.get(Organization, org_id)
+        currency_id = getattr(org, "base_currency_id", None) if org else None
 
     from core.manager.naming_manager import NamingManager
     mv_number = NamingManager.get_next(db, StockMovement.__tablename__)
 
     movement = StockMovement(
-        company_id=item.company_id,
+        org_id=org_id,
         currency_id=currency_id,
         number=mv_number,
         move_type=move_type,
@@ -63,16 +64,17 @@ def post_journal_entry(db, item, params: dict):
     from apps.erp.accounting.services.journal import JournalService
     from apps.erp.stock.services.stock import StockComputeService
     from apps.erp.stock.models import Product, ProductCategory
-    from apps.erp.config.models import Company
+    from apps.erp.config.models import Organization
 
     mode = params.get("mode", "simple")
-    company = db.get(Company, item.company_id)
+    org_id = getattr(item, "org_id", None)
+    org = db.get(Organization, org_id) if org_id else None
     lines = []
 
     if mode == "simple":
         amount = getattr(item, "total_amount", getattr(item, "amount", 0)) or 0
-        debit_id = params.get("account_debit_id") or (company.acc_receivable_default_id if company else None)
-        credit_id = params.get("account_credit_id") or (company.acc_income_default_id if company else None)
+        debit_id = params.get("account_debit_id") or (org.acc_receivable_default_id if org else None)
+        credit_id = params.get("account_credit_id") or (org.acc_income_default_id if org else None)
         if debit_id and credit_id:
             lines = [
                 {"account_id": debit_id, "debit": amount, "credit": 0, "description": f"Dr {item.__class__.__name__} {getattr(item, 'number', '')}"},
@@ -94,11 +96,11 @@ def post_journal_entry(db, item, params: dict):
                     cogs_id = getattr(cat, "account_cogs_id", None)
                     inv_id = getattr(cat, "account_stock_id", None)
 
-            if company:
-                cogs_id = cogs_id or company.acc_cogs_default_id
-                inv_id = inv_id or company.acc_inventory_default_id
-                ar_id = company.acc_receivable_default_id
-                rev_id = company.acc_income_default_id
+            if org:
+                cogs_id = cogs_id or org.acc_cogs_default_id
+                inv_id = inv_id or org.acc_inventory_default_id
+                ar_id = org.acc_receivable_default_id
+                rev_id = org.acc_income_default_id
 
             if cogs_id and inv_id and cost_amt:
                 lines += [
@@ -113,7 +115,7 @@ def post_journal_entry(db, item, params: dict):
 
     if lines:
         JournalService.post_entry(
-            db, item.company_id, lines,
+            db, org_id, lines,
             reference=getattr(item, "number", str(item.id)),
             narrative=f"Auto journal for {item.__class__.__name__} {getattr(item, 'number', '')}",
         )
@@ -121,12 +123,12 @@ def post_journal_entry(db, item, params: dict):
 
 @HandlerRegistry.register("create_invoice_from_delivery", "Auto-create Sales Invoice from Delivery Note")
 def create_invoice_from_delivery(db, item, params: dict):
-    from apps.erp.accounting.models import SalesInvoice, SalesInvoiceLine
+    from apps.erp.accounting.models import InflowInvoice, InflowInvoiceLine
     from apps.erp.stock.services.price import PriceService
 
-    invoice = SalesInvoice(
-        company_id=item.company_id,
-        customer_id=item.customer_id,
+    invoice = InflowInvoice(
+        org_id=getattr(item, "org_id", None),
+        party_id=getattr(item, "party_id", None) or getattr(item, "customer_id", None),
         status="Draft",
         notes=f"Generated from {getattr(item, 'number', item.id)}",
     )
@@ -135,7 +137,7 @@ def create_invoice_from_delivery(db, item, params: dict):
 
     for line in getattr(item, "lines", []):
         price = PriceService.get_price(db, line.product_id, uom_id=getattr(line, "uom_id", None), qty=line.qty)
-        db.add(SalesInvoiceLine(
+        db.add(InflowInvoiceLine(
             invoice_id=invoice.id,
             product_id=line.product_id,
             qty=line.qty,

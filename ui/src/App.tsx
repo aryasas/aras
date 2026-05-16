@@ -7,6 +7,7 @@ import { CommandPalette } from './aras-core/components/CommandPalette'
 import GlobalDialog from './aras-core/components/GlobalDialog'
 import SidePanel from './aras-core/components/SidePanel'
 import { FormattingService } from './aras-core/services/FormattingService'
+import { VocabularyProvider } from './context/VocabularyContext'
 
 const Login = lazy(() => import('./views/Login'))
 const CompanyPicker = lazy(() => import('./views/CompanyPicker'))
@@ -98,10 +99,11 @@ function App() {
 
   return (
     <Router>
+      <VocabularyProvider>
       <CommandPalette />
       <GlobalDialog />
       <SidePanel />
-      <Suspense fallback={<div className="flex h-screen items-center justify-center text-slate-400 text-sm">Loading…</div>}>
+      <Suspense fallback={<div className="flex h-screen items-center justify-center text-slate-400 text-sm">Loading...</div>}>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route
@@ -153,6 +155,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Suspense>
+      </VocabularyProvider>
     </Router>
   )
 }

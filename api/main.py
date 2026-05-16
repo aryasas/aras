@@ -64,17 +64,46 @@ app = FastAPI(
 )
 
 # Exception Handlers
+from fastapi.exceptions import RequestValidationError
+from fastapi import status
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    logger.warning("HTTP Exception: %s", exc.detail, extra={"status_code": exc.status_code, "path": request.url.path})
+    logger.warning(
+        "HTTP Exception: %s",
+        exc.detail,
+        extra={"status_code": exc.status_code, "path": request.url.path},
+    )
     return JSONResponse(
         status_code=exc.status_code,
         content={
-            "status": "error",
+            "success": False,
+            "data": None,
             "message": exc.detail,
-            "code": exc.status_code
+            "error": exc.detail,
         },
     )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    error_messages = [f"{err['msg']} ({'.'.join(map(str, err['loc']))})" for err in exc.errors()]
+    log_message = "Request validation failed: " + "; ".join(error_messages)
+    logger.warning(log_message, extra={"path": request.url.path, "errors": exc.errors()})
+
+    # Combine error messages for the response
+    error_detail = ". ".join(error_messages)
+    
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "success": False,
+            "data": None,
+            "message": "Input validation failed.",
+            "error": error_detail,
+        },
+    )
+
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
@@ -82,10 +111,10 @@ async def generic_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=500,
         content={
-            "status": "error",
+            "success": False,
+            "data": None,
             "message": "An unexpected internal server error occurred.",
-            "detail": str(exc) if settings.DEBUG else "Please contact administrator",
-            "code": 500
+            "error": str(exc) if settings.DEBUG else "An internal error occurred.",
         },
     )
 

@@ -1,8 +1,8 @@
 """
-Generate random Sales and Purchase invoices from real DB data.
+Generate random Inflow and Outflow invoices from real DB data.
 
 Usage:
-    python seed_random_invoices.py [--company-id 1] [--count 5] [--post]
+    python seed_random_invoices.py [--org-id 1] [--count 5] [--post]
 """
 import sys
 import os
@@ -61,28 +61,27 @@ def make_number(prefix: str, d: date, seq: int) -> str:
     return f"{prefix}/RAND/{d.strftime('%Y%m%d')}/{seq:03d}"
 
 
-def seed(company_id: int, count: int, do_post: bool):
+def seed(org_id: int, count: int, do_post: bool):
     db = SessionLocal()
     try:
-        Customer = Aras.Model._registry["Customer"]
-        Supplier = Aras.Model._registry["Supplier"]
+        Party = Aras.Model._registry["Party"]
         Product = Aras.Model._registry["Product"]
         PriceType = Aras.Model._registry["PriceType"]
         Currency = Aras.Model._registry["Currency"]
-        SalesInvoice = Aras.Model._registry["SalesInvoice"]
-        SalesInvoiceLine = Aras.Model._registry["SalesInvoiceLine"]
-        PurchaseInvoice = Aras.Model._registry["PurchaseInvoice"]
-        PurchaseInvoiceLine = Aras.Model._registry["PurchaseInvoiceLine"]
+        InflowInvoice = Aras.Model._registry["InflowInvoice"]
+        InflowInvoiceLine = Aras.Model._registry["InflowInvoiceLine"]
+        OutflowInvoice = Aras.Model._registry["OutflowInvoice"]
+        OutflowInvoiceLine = Aras.Model._registry["OutflowInvoiceLine"]
 
-        customers = db.query(Customer).filter(Customer.company_id == company_id).all()
-        suppliers = db.query(Supplier).filter(Supplier.company_id == company_id).all()
-        products = db.query(Product).filter(Product.company_id == company_id, Product.is_active == True).all()
+        customers = db.query(Party).filter(Party.org_id == org_id, Party.role == "customer").all()
+        suppliers = db.query(Party).filter(Party.org_id == org_id, Party.role == "supplier").all()
+        products = db.query(Product).filter(Product.org_id == org_id, Product.is_active == True).all()
 
         if not customers:
-            print("No customers found. Seed customers first.")
+            print("No customers found. Seed parties first.")
             return
         if not suppliers:
-            print("No suppliers found. Seed suppliers first.")
+            print("No suppliers found. Seed parties first.")
             return
         if not products:
             print("No products found. Seed products first.")
@@ -98,102 +97,95 @@ def seed(company_id: int, count: int, do_post: bool):
         default_currency = db.query(Currency).first()
         currency_id = default_currency.id if default_currency else None
 
-        sales_products = [p for p in products] or products
-        purchase_products = [p for p in products] or products
+        created_inflow = []
+        created_outflow = []
 
-        created_sales = []
-        created_purchase = []
-
-        # Sales invoices
         for i in range(1, count + 1):
             d = random_2025_date()
             number = make_number("SINV", d, i)
 
-            existing = db.query(SalesInvoice).filter(
-                SalesInvoice.number == number,
-                SalesInvoice.company_id == company_id,
+            existing = db.query(InflowInvoice).filter(
+                InflowInvoice.number == number,
+                InflowInvoice.org_id == org_id,
             ).first()
             if existing:
                 print(f"  SKIP (exists): {number}")
                 continue
 
-            customer = random.choice(customers)
-            inv = SalesInvoice(
-                company_id=company_id,
+            party = random.choice(customers)
+            inv = InflowInvoice(
+                org_id=org_id,
                 number=number,
                 doc_date=d,
-                customer_id=customer.id,
+                party_id=party.id,
                 currency_id=currency_id,
                 status="Draft",
             )
             db.add(inv)
             db.flush()
 
-            line_products = random.sample(sales_products, min(random.randint(2, 4), len(sales_products)))
+            line_products = random.sample(products, min(random.randint(2, 4), len(products)))
             for prod in line_products:
                 price = get_sales_price(db, prod.id, sales_price_type_ids)
-                line = SalesInvoiceLine(
+                db.add(InflowInvoiceLine(
                     invoice_id=inv.id,
                     product_id=prod.id,
                     qty=float(random.randint(1, 10)),
                     unit_price=price,
                     discount=0.0,
                     uom_id=prod.uom_id,
-                )
-                db.add(line)
+                ))
 
             db.flush()
             inv.recalc()
             db.flush()
-            created_sales.append(inv)
+            created_inflow.append(inv)
 
-        # Purchase invoices
         for i in range(1, count + 1):
             d = random_2025_date()
             number = make_number("PINV", d, i)
 
-            existing = db.query(PurchaseInvoice).filter(
-                PurchaseInvoice.number == number,
-                PurchaseInvoice.company_id == company_id,
+            existing = db.query(OutflowInvoice).filter(
+                OutflowInvoice.number == number,
+                OutflowInvoice.org_id == org_id,
             ).first()
             if existing:
                 print(f"  SKIP (exists): {number}")
                 continue
 
-            supplier = random.choice(suppliers)
-            inv = PurchaseInvoice(
-                company_id=company_id,
+            party = random.choice(suppliers)
+            inv = OutflowInvoice(
+                org_id=org_id,
                 number=number,
                 doc_date=d,
-                supplier_id=supplier.id,
+                party_id=party.id,
                 currency_id=currency_id,
                 status="Draft",
             )
             db.add(inv)
             db.flush()
 
-            line_products = random.sample(purchase_products, min(random.randint(2, 4), len(purchase_products)))
+            line_products = random.sample(products, min(random.randint(2, 4), len(products)))
             for prod in line_products:
                 price = get_purchase_price(db, prod.id, purchase_price_type_ids)
-                line = PurchaseInvoiceLine(
+                db.add(OutflowInvoiceLine(
                     invoice_id=inv.id,
                     product_id=prod.id,
                     qty=float(random.randint(1, 10)),
                     unit_price=price,
                     discount=0.0,
                     uom_id=prod.uom_id,
-                )
-                db.add(line)
+                ))
 
             db.flush()
             inv.recalc()
             db.flush()
-            created_purchase.append(inv)
+            created_outflow.append(inv)
 
         db.commit()
 
         if do_post:
-            for inv in created_sales + created_purchase:
+            for inv in created_inflow + created_outflow:
                 try:
                     db.refresh(inv)
                     inv.post()
@@ -202,16 +194,15 @@ def seed(company_id: int, count: int, do_post: bool):
                     db.rollback()
                     print(f"  POST FAILED {inv.number}: {e}")
 
-        # Summary
         print(f"\n{'─'*56}")
         print(f"{'Type':<12} {'Number':<32} {'Total':>10}")
         print(f"{'─'*56}")
-        for inv in created_sales:
-            print(f"{'Sales':<12} {inv.number:<32} {inv.total_amount:>10,.0f}")
-        for inv in created_purchase:
-            print(f"{'Purchase':<12} {inv.number:<32} {inv.total_amount:>10,.0f}")
+        for inv in created_inflow:
+            print(f"{'Inflow':<12} {inv.number:<32} {inv.total_amount:>10,.0f}")
+        for inv in created_outflow:
+            print(f"{'Outflow':<12} {inv.number:<32} {inv.total_amount:>10,.0f}")
         print(f"{'─'*56}")
-        print(f"Created: {len(created_sales)} sales, {len(created_purchase)} purchase invoices.")
+        print(f"Created: {len(created_inflow)} inflow, {len(created_outflow)} outflow invoices.")
         if do_post:
             print("All invoices posted.")
 
@@ -221,9 +212,9 @@ def seed(company_id: int, count: int, do_post: bool):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Seed random invoices")
-    parser.add_argument("--company-id", type=int, default=1)
+    parser.add_argument("--org-id", type=int, default=1)
     parser.add_argument("--count", type=int, default=5)
     parser.add_argument("--post", action="store_true")
     args = parser.parse_args()
 
-    seed(args.company_id, args.count, args.post)
+    seed(args.org_id, args.count, args.post)

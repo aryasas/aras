@@ -21,8 +21,8 @@ export default function CompanyPicker() {
           <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100 mb-5">
             <Building2 className="text-white" size={26} />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Select Company</h1>
-          <p className="text-slate-500 mt-2">Choose the company workspace for this session.</p>
+          <h1 className="text-2xl font-bold text-slate-900">Select Organization</h1>
+          <p className="text-slate-500 mt-2">Choose the organization workspace for this session.</p>
         </div>
 
         <div className="p-4 space-y-2">

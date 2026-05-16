@@ -65,9 +65,9 @@ async def get_current_user(
     raw = {k: int(v) for k, v in request.headers.items() if k.lower().startswith("x-scope-") and v.isdigit()}
     cid = int(request.headers.get("X-Company-ID", 0) or 0)
     if cid:
-        raw["company_id"] = cid
+        raw["org_id"] = cid
     request.state.scope = ScopeContext(raw)
-    request.state.company_id = cid  # backwards compat
+    request.state.company_id = cid  # kept for backwards compat with auth middleware
     return user
 
 
