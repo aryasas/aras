@@ -7,27 +7,32 @@ from .role import Role
 from .permission import Permission
 from .user_role import UserRole
 from .activity_log import ActivityLog
+from ..auth.models import User
 from .series import Series
 from .sys_settings import ArasSetting
 from .translation_model import TranslationModel
 from .widget_model import WidgetModel
 from .dashboard_layout_model import DashboardLayoutModel
 
+class UserView(View):
+    model = User
+    title = "System Users"
+
 class AppView(View):
     model = AppModel
-    title = "Application Registry"
+    title = "Applications"
 
 class ResourceView(View):
     model = ResourceModel
-    title = "Resource Registry"
+    title = "Resources"
 
 class FieldView(View):
     model = FieldModel
-    title = "Field Registry"
+    title = "Fields"
 
 class LinkView(View):
     model = LinkModel
-    title = "Link Registry"
+    title = "Links"
 
 class RoleView(View):
     model = Role
@@ -43,7 +48,7 @@ class UserRoleView(View):
 
 class ActivityLogView(View):
     model = ActivityLog
-    title = "Activity Audit Trail"
+    title = "Audit Trail"
 
 class SeriesView(View):
     model = Series

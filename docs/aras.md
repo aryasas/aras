@@ -113,7 +113,6 @@ from core import Aras
 
 class MyModel(Aras.Model):
     __tablename__ = "myapp_items"       # REQUIRED: {app}_{table}
-    __title__ = "My Items"
     __searchable_fields__ = ["name"]
     __display_fields__ = ("name",)
     __features__ = ["audit"]            # optional
@@ -127,12 +126,23 @@ class MyModel(Aras.Model):
 # api/apps/myapp/app.py
 from core import Aras
 from .models import MyModel
+from . import views as _views  # noqa: triggers View registration
 
 class MyModule(Aras.App):
     app_name = "myapp"
     app_label = "My App"
     icon = "Package"
     models = [MyModel]
+```
+
+```python
+# api/apps/myapp/views.py  — only needed to override auto-derived title or add layout
+from core import Aras
+from .models import MyModel
+
+class MyModelView(Aras.View):
+    model = MyModel
+    title = "My Items"   # omit if auto-derived class name is acceptable
 ```
 
 Auto-generated endpoints for `myapp` / `myapp_items`:
@@ -274,7 +284,7 @@ Level 3b  Concrete model        (SalesInvoice, StockProduct, ...) — exactly on
 Rules:
 1. A concrete model picks ONE Level-3a base (`DocumentBase` OR `LineItemBase`, never both).
 2. Level-3a bases set `__abstract__ = True` and have no `__tablename__`.
-3. `__features__`, `__scoped_by__`, `__unique_together__` on the concrete class are MERGED with values from the MRO (deduped, child wins on conflict). UI metadata (labels, layouts, titles) MUST live in `View` classes.
+3. `__features__`, `__scoped_by__`, `__unique_together__` on the concrete class are MERGED with values from the MRO (deduped, child wins on conflict). UI metadata (labels, layouts, titles) MUST live in `View` classes — never on models.
 
 Shared ERP bases live in `api/apps/erp/base/`:
 
@@ -335,3 +345,13 @@ ERP module skeleton (Part B): Unified `erp` application registered under `api/ap
 - [Gemini CLI] **GUI-Based Form Customization**: Added a "Customize" button to `DynamicForm` that allows editing `default_value` and `series` overrides for any field via `FieldModel` registry.
 - [Gemini CLI] **Automatic Sequential ID Generation**: Implemented a series generation hook in `Model.save` that automatically populates fields with `series` metadata on record creation using `NamingManager`.
 - [Gemini CLI] **Metadata Default Injection**: Updated `DynamicForm` initialization to prioritize `default_value` and `series` metadata from the `FieldModel` registry.
+
+---
+## Framework Change: View Auto-Generation & __title__ Rule Enforcement (2026-05-16)
+- [Claude Sonnet 4.6] `View.__init_subclass__` now auto-derives `title` from model class name when not explicitly set — strips "Model"/"View" suffix, inserts spaces on CamelCase boundaries (`HandoffRun` → `"Handoff Run"`)
+- [Claude Sonnet 4.6] `View._auto_register(model_cls)` classmethod added — ensures every model has a View entry on demand (creates minimal auto-View if none exists); used by `App.get_menu_structure()` and `RouterFactory`
+- [Claude Sonnet 4.6] `App.get_menu_structure()` now resolves all menu labels via `View._auto_register()` instead of reading `Model.__title__` — View title wins, auto-derived title as fallback
+- [Claude Sonnet 4.6] `RouterFactory` OpenAPI tags now use `View._auto_register(model).title` — removed last `__title__` dependency from non-View code
+- [Claude Sonnet 4.6] `__title__` removed from all model files: `AppModel`, `ResourceModel`, `FieldModel`, `LinkModel`, `ActivityLog`, `ArasSetting`, `User`, `HandoffRun`, `Note`
+- [Claude Sonnet 4.6] `UserView` added to `core/registry/views.py` with explicit `title = "System Users"` — overrides auto-derived `"User"`
+- [Claude Sonnet 4.6] Rule: models NEVER set `__title__`; explicit View subclass for custom title; no View needed for default auto-derived title

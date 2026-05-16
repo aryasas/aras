@@ -154,6 +154,7 @@ async def get_sidebar_data(_: Any = Depends(get_current_user)):
         {"type": "link", "name": "dashboard", "label": "Dashboard", "icon": "LayoutDashboard", "path": "/dashboard", "have_home": False},
         {"type": "link", "name": "reports", "label": "Report Center", "icon": "FileBarChart", "path": "/reports", "have_home": False},
         {"type": "link", "name": "settings", "label": "Settings", "icon": "Settings", "path": "/settings", "have_home": False},
+        {"type": "link", "name": "help", "label": "Help", "icon": "HelpCircle", "path": "/help", "have_home": False},
     ]
 
     # 2. Dynamic Apps Organization

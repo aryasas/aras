@@ -190,6 +190,7 @@ class SyncManager(Manager):
             app_db = AppModel(
                 name=manifest["name"],
                 parent_name=manifest.get("parent_name"),
+                app_type=manifest.get("app_type", "app"),
                 label=manifest["label"],
                 description=manifest["description"],
                 icon=manifest["icon"],
@@ -201,6 +202,7 @@ class SyncManager(Manager):
             db.flush() # Get ID
         else:
             app_db.parent_name = manifest.get("parent_name")
+            app_db.app_type = manifest.get("app_type", "app")
             app_db.label = manifest["label"]
             app_db.description = manifest["description"]
             app_db.icon = manifest["icon"]

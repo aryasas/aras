@@ -13,6 +13,8 @@ class AppModel(Model):
 
     name: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     parent_name: Mapped[str] = mapped_column(String(50), nullable=True, index=True)
+    # app_type: "framework" = core registry owned by Aras, "app" = top-level business app, "module" = sub-app of a parent
+    app_type: Mapped[str] = mapped_column(String(20), default="app")
     label: Mapped[str] = mapped_column(String(100))
     description: Mapped[str] = mapped_column(String(255), nullable=True)
     icon: Mapped[str] = mapped_column(String(50), default="Package")

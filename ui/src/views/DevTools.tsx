@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Terminal, Database, RefreshCw, Cpu, Box, Layout, Table, Link as LinkIcon, Users, Settings, GitBranch, ChevronDown, ChevronUp } from 'lucide-react'
+import React, { Fragment, useState, useEffect } from 'react'
+import { Terminal, Database, RefreshCw, Cpu, Box, Layout, Table, Link as LinkIcon, Users, Settings, GitBranch, ChevronDown, ChevronUp, HelpCircle } from 'lucide-react'
 import api from '../lib/api'
 import { MetadataService } from '../aras-core/services/MetadataService'
 import { useAras } from '../aras-core/hooks/useAras'
@@ -76,7 +76,7 @@ export default function DevTools() {
   const fetchHandoffRuns = async () => {
     setLoadingHandoff(true)
     try {
-      const res = await api.get('/dev/dev_handoff_runs?limit=50&sort=created_at&order=desc')
+      const res = await api.get('/dev/dev_handoff_runs?limit=50&sort=id&order=desc')
       setHandoffRuns(res.data.items || res.data || [])
     } catch {
       notify('Failed to load handoff runs', 'error')
@@ -210,7 +210,7 @@ export default function DevTools() {
           </div>
 
           {/* Registry Shortcuts */}
-          <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="lg:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-6">
             <RegistryCard
               title="App Registry"
               count={info?.apps_discovered.length || 0}
@@ -260,6 +260,13 @@ export default function DevTools() {
               to="/dev/table/registry/sys_settings"
               color="slate"
             />
+            <RegistryCard
+              title="Handoff Runs"
+              count={stats.find(s => s.table === 'dev_handoff_runs')?.rows as number || 0}
+              icon={<GitBranch size={24} />}
+              to="/dev/table/registry/dev_handoff_runs"
+              color="purple"
+            />
           </div>
 
           {/* Advanced Tools */}
@@ -268,7 +275,7 @@ export default function DevTools() {
                <h2 className="text-2xl font-black mb-2">Advanced Inspection</h2>
                <p className="text-slate-400 mb-8 font-medium">Deep dive into framework internals and runtime state.</p>
 
-               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
                   <button
                     onClick={() => navigate('/dev/routes')}
                     className="p-4 bg-slate-800 hover:bg-slate-700 rounded-2xl border border-slate-700 transition-all flex flex-col items-center gap-2 group"
@@ -347,6 +354,19 @@ export default function DevTools() {
                       <div className="text-[10px] text-indigo-200">Force Update</div>
                     </div>
                   </button>
+
+                  <button
+                    onClick={() => navigate('/dev/help')}
+                    className="p-4 bg-slate-800 hover:bg-slate-700 rounded-2xl border border-slate-700 transition-all flex flex-col items-center gap-2 group"
+                  >
+                    <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg group-hover:scale-110 transition-transform">
+                      <HelpCircle size={20} />
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-sm">Dev Help</div>
+                      <div className="text-[10px] text-slate-500">Reference</div>
+                    </div>
+                  </button>
                </div>
              </div>
 
@@ -391,22 +411,21 @@ export default function DevTools() {
                     <th className="text-left px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Mode</th>
                     <th className="text-left px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Status</th>
                     <th className="text-right px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Gemini</th>
-                    <th className="text-right px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">GPT-5.5</th>
+                    <th className="text-right px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">GPT</th>
                     <th className="text-right px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Total</th>
                     <th className="w-8"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {handoffRuns.map((run, idx) => (
-                    <>
+                    <Fragment key={run.id}>
                       <tr
-                        key={run.id}
                         onClick={() => setExpandedRun(expandedRun === run.id ? null : run.id)}
                         className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors"
                       >
                         <td className="px-4 py-3 text-slate-400 font-mono text-xs">{idx + 1}</td>
                         <td className="px-4 py-3 font-bold text-slate-900 max-w-xs truncate">{run.feature}</td>
-                        <td className="px-4 py-3 text-slate-500 font-mono text-xs whitespace-nowrap">{run.run_date.slice(0, 16).replace('T', ' ')}</td>
+                        <td className="px-4 py-3 text-slate-500 font-mono text-xs whitespace-nowrap">{String(run.run_date).slice(0, 16).replace('T', ' ')}</td>
                         <td className="px-4 py-3">
                           <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600">{run.mode}</span>
                         </td>
@@ -431,15 +450,15 @@ export default function DevTools() {
                         </td>
                       </tr>
                       {expandedRun === run.id && (
-                        <tr key={`${run.id}-detail`} className="bg-slate-50 border-b border-slate-200">
+                        <tr className="bg-slate-50 border-b border-slate-200">
                           <td colSpan={9} className="px-6 py-5">
                             <div className="space-y-5">
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                 {[
                                   { label: 'Gemini Prompt', value: run.gemini_prompt_tokens },
                                   { label: 'Gemini Output', value: run.gemini_completion_tokens },
-                                  { label: 'GPT-5.5 Prompt', value: run.gpt_prompt_tokens },
-                                  { label: 'GPT-5.5 Output', value: run.gpt_completion_tokens },
+                                  { label: 'GPT Prompt', value: run.gpt_prompt_tokens },
+                                  { label: 'GPT Output', value: run.gpt_completion_tokens },
                                 ].map(({ label, value }) => (
                                   <div key={label} className="bg-white border border-slate-200 rounded-xl p-3 text-center">
                                     <div className="text-xs text-slate-400 font-medium mb-1">{label}</div>
@@ -486,7 +505,7 @@ export default function DevTools() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -513,6 +532,7 @@ function RegistryCard({ title, count, icon, to, color }: { title: string, count:
     purple: 'bg-purple-50 text-purple-600',
     blue: 'bg-blue-50 text-blue-600',
     slate: 'bg-slate-50 text-slate-600',
+    emerald: 'bg-emerald-50 text-emerald-600',
   }
 
   return (

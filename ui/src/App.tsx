@@ -26,6 +26,8 @@ const GlobalSettingsView = lazy(() => import('./views/GlobalSettings'))
 const InspectRoutesView = lazy(() => import('./views/InspectRoutes'))
 const HealthIntegrityView = lazy(() => import('./views/HealthIntegrity'))
 const SmartDispatcher = lazy(() => import('./views/SmartDispatcher'))
+const HelpUserView = lazy(() => import('./views/HelpUser'))
+const HelpDevView = lazy(() => import('./views/HelpDev'))
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = useAuthStore((state) => state.token)
@@ -133,6 +135,8 @@ function App() {
           <Route path="dev" element={<DevToolsView />} />
           <Route path="dev/health" element={<HealthIntegrityView />} />
           <Route path="dev/routes" element={<InspectRoutesView />} />
+          <Route path="dev/help" element={<HelpDevView />} />
+          <Route path="help" element={<HelpUserView />} />
           <Route path="dev/table/:app/:model" element={<DynamicView />} />
           <Route path="dev/table/:app/:model/:id" element={<DynamicView />} />
           <Route path="apps" element={<AppManagerView />} />
