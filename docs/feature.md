@@ -307,3 +307,10 @@ This document outlines the key features and architectural components of the Aras
   - [Claude Sonnet 4.6] ListView: status/workflow_status columns now render colored pill badges (draft/posted/active/cancelled/pending)
   - [Claude Sonnet 4.6] DynamicForm: replaced "Loading form..." text with animated skeleton (4 label+input rows)
   - [Claude Sonnet 4.6] Home.tsx: added greeting + quick-nav app cards grid above dashboard widgets
+
+## Phase 2 UX — Keyboard Shortcuts, Dashboard Drill-down, Print/PDF, Import Validation (2026-05-16)
+  - [Gemini 2.5 Flash] DynamicForm: Ctrl+S saves, Escape cancels (keyboard shortcuts via keydown listener)
+  - [Gemini 2.5 Flash] DashboardView: StatWidget and ListWidget rows now navigate to resource on click
+  - [Gemini 2.5 Flash] PrintPreview component: modal with printable document layout + window.print()
+  - [Gemini 2.5 Flash] ImportMapping: validation preview step — highlights invalid rows before posting
+  - [Claude Sonnet 4.6] print_router.py: fixed broken AppManager import → direct model imports + Party/Org DB lookup

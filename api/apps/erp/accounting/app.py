@@ -6,11 +6,14 @@ from .models import Account, JournalEntry, JournalEntryLine, InflowInvoice, Infl
     Payment, PaymentAllocation, FiscalPeriod, GoodsReceiptNote
 from .models_grn import GoodsReceiptLine
 from . import views # Trigger view registration
+from .routers.print_router import router as print_router
 
 class Accounting(ERP):
     app_name = "erp_accounting"
     app_label = "Accounting"
     icon = "Calculator"
+
+    routers = [print_router]
 
     models = [
         Account, FiscalPeriod,

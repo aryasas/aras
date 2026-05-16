@@ -54,6 +54,14 @@ def register_app_routes(app: FastAPI, prefix: str = "/api/v1"):
             router = RouterFactory.create_router(model, prefix=model_path)
             app.include_router(router, prefix=app_prefix)
             print(f"Registered route: {app_prefix}{model_path}")
+        
+        # Include custom routers defined directly in the App class
+        if hasattr(app_cls, 'routers') and isinstance(app_cls.routers, list):
+            for custom_router in app_cls.routers:
+                # Custom routers are expected to have their own prefix defined internally
+                # or we can apply the app_prefix to them. Let's apply the app_prefix for consistency.
+                app.include_router(custom_router, prefix=app_prefix)
+                print(f"Registered custom router for app {app_cls.app_name} at prefix: {app_prefix}")
 
 def load_class(class_path: str):
     """

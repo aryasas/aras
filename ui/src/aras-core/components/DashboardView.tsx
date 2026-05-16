@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import * as LucideIcons from 'lucide-react'
 import api from '../../lib/api'
 import { useAras } from '../hooks/useAras'
@@ -185,6 +186,7 @@ const StatWidget: React.FC<{ widget: Widget }> = ({ widget }) => {
   const [value, setValue] = useState<string | number>('...')
   const config = widget.config_json || {}
   const Icon = (LucideIcons as any)[config.icon || 'Activity']
+  const navigate = useNavigate();
 
   useEffect(() => {
     api.get(`/${widget.resource_name}`).then((res: any) => {
@@ -193,7 +195,11 @@ const StatWidget: React.FC<{ widget: Widget }> = ({ widget }) => {
   }, [widget.resource_name])
 
   return (
-    <div className="bg-white p-7 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group h-full">
+    <div 
+      className="bg-white p-7 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group h-full cursor-pointer"
+      title="Click to view all records"
+      onClick={() => navigate(`/${widget.resource_name.replace(/_/g, '-')}`)}
+    >
       <div className="flex items-start justify-between mb-4">
         <div className={`p-3 rounded-2xl transition-colors ${
           config.color === 'indigo' ? 'bg-indigo-50 text-indigo-600' :
@@ -211,6 +217,7 @@ const StatWidget: React.FC<{ widget: Widget }> = ({ widget }) => {
 const ListWidget: React.FC<{ widget: Widget }> = ({ widget }) => {
   const [items, setItems] = useState<any[]>([])
   const config = widget.config_json || {}
+  const navigate = useNavigate();
 
   useEffect(() => {
     api.get(`/${widget.resource_name}?per_page=${config.limit || 5}`).then((res: any) => {
@@ -229,7 +236,11 @@ const ListWidget: React.FC<{ widget: Widget }> = ({ widget }) => {
         ) : (
           <div className="divide-y divide-slate-50">
             {items.map((item, idx) => (
-              <div key={idx} className="p-4 hover:bg-slate-50 transition-colors flex items-center gap-4">
+              <div 
+                key={idx} 
+                className="p-4 hover:bg-slate-50 transition-colors flex items-center gap-4 cursor-pointer"
+                onClick={() => navigate(`/${widget.resource_name.replace(/_/g, '-')}/${item.id}`)}
+              >
                 <div className="w-2 h-2 rounded-full bg-indigo-400" />
                 <div className="flex-1 text-sm text-slate-600 truncate font-medium">
                   {item.description || item.name || item.id}

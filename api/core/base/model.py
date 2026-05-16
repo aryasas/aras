@@ -267,6 +267,14 @@ class Model(Aras, Base):
         return db.get(cls, item_id)
 
     @classmethod
+    def get_model(cls, key: str) -> Type['Model']:
+        """Look up a registered model by class name or __tablename__. Raises KeyError if not found."""
+        model = cls._registry.get(key)
+        if model is None:
+            raise KeyError(f"No model registered for key: {key!r}")
+        return model
+
+    @classmethod
     def paginate(cls: Type[T], db: Session, page: int = 1, per_page: int = 20, 
                  active_only=False, filters: List[dict] = None, search: str = None, 
                  order_by: str = None, desc: bool = True, **kwargs):

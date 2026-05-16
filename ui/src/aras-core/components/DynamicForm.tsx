@@ -6,7 +6,8 @@ import { useAuthStore } from '../../store/authStore';
 import {
   Save, ArrowLeft, RefreshCw, ChevronRight,
   History as HistoryIcon, Zap, Settings, AlertCircle,
-  Building2, Store, School, Users, HandHeart, Library, HeartPulse, Landmark, BriefcaseBusiness
+  Building2, Store, School, Users, HandHeart, Library, HeartPulse, Landmark, BriefcaseBusiness,
+  Printer
 } from 'lucide-react';
 import ListView from './ListView';
 import { InlineChildTable } from './InlineChildTable';
@@ -15,6 +16,7 @@ import { useAras } from '../hooks/useAras';
 import { useUIStore } from '../../store/uiStore';
 import { LogicEvaluator } from '../../lib/LogicEvaluator';
 import { useVocabulary } from '../../context/VocabularyContext';
+import { PrintPreview } from './PrintPreview';
 
 interface Field {
   name: string;
@@ -141,6 +143,27 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const { notify, confirm } = useAras();
   const showPanel = useUIStore((state) => state.showPanel);
   const closePanel = useUIStore((state) => state.closePanel);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault();
+        handleSubmit();
+      } else if (event.key === 'Escape') {
+        if (onCancel) {
+          event.preventDefault(); // Prevent browser default (e.g., closing modals)
+          onCancel();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleSubmit, onCancel]); // Depend on handleSubmit and onCancel to ensure latest versions are used.
+
 
   useEffect(() => {
     setCurrentId(id != null && id !== 'new' ? id : undefined);
@@ -637,9 +660,20 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
               <span>{action.label}</span>
               <ChevronRight size={14} />
             </button>
-          ))}
+          )}
 
-          {(workflowActions.length > 0 || (metadata.actions?.length ?? 0) > 0) && <div className="w-px h-6 bg-slate-200 mx-1" />}
+          {(workflowActions.length > 0 || (metadata.actions?.length ?? 0) > 0 || (metadata.app_name === 'erp_accounting' && currentId != null)) && <div className="w-px h-6 bg-slate-200 mx-1" />}
+
+          {/* Print Button */}
+          {metadata.app_name === 'erp_accounting' && currentId != null && (
+            <button
+              onClick={() => setShowPrintPreview(true)}
+              className="p-2 hover:bg-slate-50 rounded-xl text-slate-500 transition-colors mr-2"
+              title="Print Document"
+            >
+              <Printer size={20} />
+            </button>
+          )}
 
           <button 
             type="button" 
@@ -795,6 +829,14 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           </div>
         </div>
       </div>
+    )}
+
+    {showPrintPreview && currentId && (
+      <PrintPreview
+        resource={resource}
+        id={currentId}
+        onClose={() => setShowPrintPreview(false)}
+      />
     )}
     </>
   );
