@@ -8,9 +8,10 @@ class ERP(Aras.App):
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        # Automatically set parent_name if inheriting from ERP
+        # Automatically set parent_name and app_type for all ERP sub-apps
         if cls.app_name != "erp":
             cls.parent_name = "erp"
+            cls.app_type = "module"
     
     # Models are now managed by sub-apps:
     # erp_accounting, erp_stock, erp_crm, erp_supplier, erp_pos, erp_config

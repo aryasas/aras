@@ -80,9 +80,11 @@ class RouterFactory(Router):
         """
         Generates a FastAPI APIRouter for the given Aras.Model.
         """
+        from ..base.view import View as _View
+        _api_tag = _View._auto_register(model_class).title or model_class.__tablename__
         router = APIRouter(
             prefix=prefix or f"/{model_class.__tablename__}",
-            tags=[getattr(model_class, "__title__", model_class.__tablename__)]
+            tags=[_api_tag]
         )
 
         # ── 1. Dynamic Pydantic Schema Generation ─────────────────────────────
@@ -399,7 +401,7 @@ class RouterFactory(Router):
             return {"message": "Deleted successfully", "id": item_id}
 
         if getattr(model_class, "__soft_delete__", False):
-            @router.get("/deleted", tags=[getattr(model_class, "__title__", model_class.__tablename__)])
+            @router.get("/deleted", tags=[_api_tag])
             async def list_deleted(
                 page: int = Query(1, ge=1),
                 per_page: int = Query(20, ge=1, le=999999),

@@ -3,6 +3,7 @@ Purpose: Level 2 Base View class for UI configuration.
 Context: Decouples UI metadata from SQLAlchemy models.
 Impact: Allows developers to customize forms/lists without changing DB models.
 """
+import re
 from typing import Dict, Any, Type, Optional
 from .aras import Aras
 from ..logic.ui_generator import UIGenerator
@@ -18,8 +19,24 @@ class View(Aras):
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         if not cls.__dict__.get("__abstract__"):
-            if hasattr(cls, 'model'):
+            if hasattr(cls, 'model') and cls.model is not None:
                 View._view_map[cls.model.__tablename__] = cls
+                # Auto-derive title from model class name if not explicitly set on this subclass
+                if not cls.__dict__.get("title"):
+                    name = cls.model.__name__
+                    for suffix in ("Model", "View"):
+                        if name.endswith(suffix):
+                            name = name[:-len(suffix)]
+                            break
+                    cls.title = re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', name)
+
+    @classmethod
+    def _auto_register(cls, model_class: Type) -> Type['View']:
+        """Ensure a model has a View entry, creating a minimal auto-View if needed."""
+        tablename = model_class.__tablename__
+        if tablename not in cls._view_map:
+            type(f"{model_class.__name__}View", (cls,), {"model": model_class})
+        return cls._view_map[tablename]
 
     model: Type['Aras.Model'] = None
     title: Optional[str] = None

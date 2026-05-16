@@ -23,6 +23,7 @@ class App(Aras):
 
     app_name: str = ""
     parent_name: str = "" # Reference to a parent app name
+    app_type: str = "app"  # "framework" | "app" | "module"
     app_label: str = ""
     description: str = ""
     version: str = "1.0.0"
@@ -66,6 +67,13 @@ class App(Aras):
         return "/" + "/".join(segments)
 
     @classmethod
+    def _view_label(cls, model_name: str, model_cls) -> str:
+        """Resolve menu label via View registry, falling back to clean label."""
+        from ..base.view import View
+        view_cls = View._auto_register(model_cls)
+        return view_cls.title or cls._get_clean_label(model_name)
+
+    @classmethod
     def get_menu_structure(cls) -> List[Dict[str, Any]]:
         """
         Generates a hierarchical menu structure for the app.
@@ -100,7 +108,7 @@ class App(Aras):
                         group_items.append({
                             "type": "model",
                             "name": model_name,
-                            "label": getattr(m, "__title__", cls._get_clean_label(model_name)),
+                            "label": cls._view_label(model_name, m),
                             "path": cls._get_clean_path(model_name),
                             "icon": getattr(m, "__icon__", "FileText")
                         })
@@ -136,7 +144,7 @@ class App(Aras):
                 standalone_items.append({
                     "type": "model",
                     "name": model_name,
-                    "label": getattr(m, "__title__", cls._get_clean_label(model_name)),
+                    "label": cls._view_label(model_name, m),
                     "path": cls._get_clean_path(model_name),
                     "icon": getattr(m, "__icon__", "FileText")
                 })
@@ -160,6 +168,7 @@ class App(Aras):
         return {
             "name": cls.app_name,
             "parent_name": cls.parent_name,
+            "app_type": cls.app_type,
             "label": cls.app_label,
             "description": cls.description,
             "version": cls.version,

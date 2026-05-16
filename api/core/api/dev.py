@@ -33,11 +33,15 @@ async def create_handoff_run(
 @router.get("/dev_handoff_runs", response_model=dict)
 async def list_handoff_runs(
     limit: int = 50,
+    sort: str = "id",
+    order: str = "desc",
     db: Session = Depends(get_db),
     _: Any = Depends(require_admin),
 ):
     from apps.dev.models import HandoffRun
-    runs = db.query(HandoffRun).order_by(HandoffRun.id.desc()).limit(limit).all()
+    col = getattr(HandoffRun, sort, HandoffRun.id)
+    direction = col.desc() if order == "desc" else col.asc()
+    runs = db.query(HandoffRun).order_by(direction).limit(limit).all()
     return {"items": [r.to_dict() for r in runs], "total": len(runs)}
 
 
@@ -121,7 +125,8 @@ async def get_db_stats(
     tables = [
         "aras_apps", "aras_resources", "aras_fields",
         "aras_links", "aras_activity_logs", "auth_users",
-        "auth_roles", "auth_permissions", "sys_settings"
+        "auth_roles", "auth_permissions", "sys_settings",
+        "dev_handoff_runs"
     ]
 
     stats = []

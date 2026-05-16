@@ -5,7 +5,6 @@ from core import Aras
 class Note(Aras.Model):
     __tablename__ = "notes_note"
     __features__ = ["audit"]
-    __title__ = "Notes"
     __searchable_fields__ = ["title", "body"]
     __display_fields__ = ("title",)
 

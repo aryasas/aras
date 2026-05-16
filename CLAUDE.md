@@ -246,8 +246,25 @@ class MyModel(Aras.Model):
 ### View vs Model Separation Rule
 - **Models** contain ONLY data/schema: columns, relationships, computed fields, model actions, `__features__`, `__scoped_by__`, `__unique_together__`.
 - **Views** contain ALL UI-related metadata: `title`, `icon`, `fields` overrides, `layout`.
-- **NEVER** put `__icon__`, `__title__`, or any display-only attribute on a model. Place them on the corresponding `Aras.View` subclass instead.
+- **NEVER** put `__icon__`, `__title__`, or any display-only attribute on a model.
 - `Aras.View` supports: `title`, `icon`, `fields`, `layout`.
+
+### View Auto-Generation (no boilerplate required)
+- If no `View` exists for a model, the framework auto-creates one at runtime via `View._auto_register()`.
+- `title` is auto-derived from the model class name: strips "Model"/"View" suffix, inserts spaces on CamelCase boundaries (`HandoffRun` → `"Handoff Run"`).
+- Only write a View when you need to **override** the auto-derived title or customize fields/layout:
+  ```python
+  # api/apps/myapp/views.py
+  from core import Aras
+  from .models import MyModel
+
+  class MyModelView(Aras.View):
+      model = MyModel
+      title = "Custom Label"   # only needed if auto-derived title is wrong
+      layout = [...]           # only needed for custom form layout
+  ```
+- Import views in `app.py` to trigger registration: `from . import views as _views  # noqa`
+- Registry views live in `api/core/registry/views.py` — explicit titles there override auto-derivation for framework models (e.g. `ActivityLog` → `"Audit Trail"` instead of `"Activity Log"`).
 
 ### Do NOT Re-read
 - `api/core/base/aras.py`, `api/core/aras.py`, `api/core/base/model.py` — use `docs/framework_ref.md`

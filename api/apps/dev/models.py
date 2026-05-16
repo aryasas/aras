@@ -1,11 +1,11 @@
-from sqlalchemy import String, Text, Integer
+from sqlalchemy import String, Text, Integer, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
+from datetime import datetime
 from core import Aras
 
 
 class HandoffRun(Aras.Model):
     __tablename__ = "dev_handoff_runs"
-    __title__ = "Handoff Runs"
     __searchable_fields__ = ["feature", "mode", "status"]
     __display_fields__ = ("feature",)
     __layout__ = [
@@ -46,7 +46,7 @@ class HandoffRun(Aras.Model):
     feature: Mapped[str] = mapped_column(String(300))
     mode: Mapped[str] = mapped_column(String(50))           # full | backend-only | frontend-only
     status: Mapped[str] = mapped_column(String(50))         # success | error | partial
-    run_date: Mapped[str] = mapped_column(String(50))       # ISO datetime string
+    run_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     prompt_md: Mapped[str] = mapped_column(Text, nullable=True)     # full handoff.md spec Claude wrote
 

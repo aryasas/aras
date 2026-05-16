@@ -8,7 +8,6 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class User(Model):
     __tablename__ = "auth_users"
-    __title__ = "System Users"
     __admin_only__ = True
 
     username: Mapped[str] = Field(String(64), unique=True, index=True, label="Username")
