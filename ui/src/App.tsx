@@ -10,7 +10,7 @@ import { FormattingService } from './aras-core/services/FormattingService'
 import { VocabularyProvider } from './context/VocabularyContext'
 
 const Login = lazy(() => import('./views/Login'))
-const CompanyPicker = lazy(() => import('./views/CompanyPicker'))
+const OrganizationPicker = lazy(() => import('./views/OrganizationPicker'))
 const ForgotPassword = lazy(() => import('./views/ForgotPassword'))
 const ResetPassword = lazy(() => import('./views/ResetPassword'))
 const MainLayout = lazy(() => import('./layouts/MainLayout'))
@@ -26,6 +26,7 @@ const RBACManagerView = lazy(() => import('./views/RBACManager'))
 const GlobalSettingsView = lazy(() => import('./views/GlobalSettings'))
 const InspectRoutesView = lazy(() => import('./views/InspectRoutes'))
 const HealthIntegrityView = lazy(() => import('./views/HealthIntegrity'))
+const ArchivedView = lazy(() => import('./views/ArchivedView'))
 const SmartDispatcher = lazy(() => import('./views/SmartDispatcher'))
 const HelpUserView = lazy(() => import('./views/HelpUser'))
 const HelpDevView = lazy(() => import('./views/HelpDev'))
@@ -37,12 +38,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>
 }
 
-const CompanyGuard = ({ children }: { children: React.ReactNode }) => {
-  const companies = useAuthStore((state) => state.companies)
-  const activeCompanyId = useAuthStore((state) => state.activeCompanyId)
+const OrganizationGuard = ({ children }: { children: React.ReactNode }) => {
+  const organizations = useAuthStore((state) => state.organizations)
+  const activeOrgId = useAuthStore((state) => state.activeOrgId)
 
-  if (companies.length > 0 && activeCompanyId === null) {
-    return <Navigate to="/company" replace />
+  if (organizations.length > 0 && activeOrgId === null) {
+    return <Navigate to="/organization" replace />
   }
 
   return <>{children}</>
@@ -52,7 +53,7 @@ function App() {
   const { showAlert, showConfirm, showError } = useUIStore();
   const token = useAuthStore((state) => state.token);
   const setUser = useAuthStore((state) => state.setUser);
-  const setCompanies = useAuthStore((state) => state.setCompanies);
+  const setOrganizations = useAuthStore((state) => state.setOrganizations);
 
   useEffect(() => {
     if (token) {
@@ -67,14 +68,14 @@ function App() {
       try {
         const response = await api.get('/auth/me')
         setUser(response.data)
-        setCompanies(response.data.companies || [])
+        setOrganizations(response.data.organizations || [])
       } catch (error) {
         console.error('Failed to fetch current user', error)
       }
     }
 
     fetchCurrentUser()
-  }, [token, setUser, setCompanies]);
+  }, [token, setUser, setOrganizations]);
 
   useEffect(() => {
     // Override window.alert
@@ -108,10 +109,10 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route
-          path="/company"
+          path="/organization"
           element={
             <ProtectedRoute>
-              <CompanyPicker />
+              <OrganizationPicker />
             </ProtectedRoute>
           }
         />
@@ -123,9 +124,9 @@ function App() {
           path="/" 
           element={
             <ProtectedRoute>
-              <CompanyGuard>
+              <OrganizationGuard>
                 <MainLayout />
-              </CompanyGuard>
+              </OrganizationGuard>
             </ProtectedRoute>
           }
         >
@@ -145,6 +146,7 @@ function App() {
           <Route path="apps" element={<AppManagerView />} />
           <Route path="profile" element={<ProfileView />} />
           <Route path="reports" element={<ReportCenterView />} />
+          <Route path="archive/*" element={<ArchivedView />} />
           
           <Route path=":segment1/*" element={<SmartDispatcher />} />
 

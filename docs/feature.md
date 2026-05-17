@@ -196,3 +196,20 @@ This file is used only to report if there are feature added
 | 2026-05-14 | Rate limiting, soft delete, batch API, WebSocket, audit log UI, dark mode, bulk edit, inline row editing, keyboard shortcut map, dashboard drag-to-rearrange, topbar app menu, `mhl` manual log command |
 | 2026-05-15 | Hierarchical app architecture, ERP module split (7 sub-apps), scope system, transition registry, `__unique_together__`, child table UI standardization, ERP core features (charges, CRM, posting, payments), dual-axis navigation, mega-menu topbar, hierarchical URLs, Series rename, form customization UI, company-aware RBAC |
 | 2026-05-16 | Reporting module, GRN + AP matching, financial reports, PostgreSQL migration, multi-tenant provisioner + REST API, demo/random invoice seeds, UI polish (empty states, skeletons, status badges, home cards), keyboard shortcuts, print/PDF, import validation, auto-discovery, saved filters, FIFO valuation, GL reconciliation, toast queue, dark mode charts |
+
+
+## Plan.md Full Build Queue — Backend 0, C1–C3, Backend 3–4, U4, U13, U14, Backend 6, H1–H2, R4, R6, H4, Backend 5+7–14, P1–P5, R1, R5, Backend 9–10, U1, U5, U2–U3, U6, U11 (2026-05-17)
+  - [Gemini] Custom exception classes (ArasException and subclasses), standardized API response functions (ok, err), FastAPI exception handlers for custom exceptions.
+  - [Codex/GPT-5.5] dashboard widget registry, batch child create flow, m2m form support, inline child lookup cache/editing, archive view and restore flow, shared UI/helper primitives
+
+## Stock Module Item Rename + Full Port Spec (2026-05-17)
+- [Claude Sonnet 4.6] Wrote docs/handoff.md spec: Product→Item rename across all stock models/views/services, ItemBundle M2M model, ItemLocation model, @Aras.on_transition posting service, WAC+FIFO fix, workflow fix, company→org rename (backend header + frontend localStorage/authStore)
+
+## Stock Module — Full Integration Test Pass (2026-05-17)
+- [Claude Sonnet 4.6] Verified end-to-end stock receipt posting: SM-002 (receipt, 2 lines) → Post action → `on_transition` fires → WAC computed → FIFO layers created → GL skipped gracefully (no COA for test org)
+- [Claude Sonnet 4.6] Verified child row persistence: ItemBundle (M2M components) and ItemLocation saved via `_save_children()` framework fix
+- [Claude Sonnet 4.6] Verified `TransitionRegistry` wiring: `StockMovement.post` now calls `TransitionRegistry.get()` to fire all registered `@Aras.on_transition` callbacks
+
+
+## Unknown (2026-05-17)
+  - [Codex/GPT-5.5] child table removed row tracking and DELETE persistence on save

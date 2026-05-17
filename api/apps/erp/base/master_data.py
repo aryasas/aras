@@ -8,5 +8,4 @@ class MasterDataBase(Aras.Model):
     __scoped_by__ = [("org_id", "erp_config_organizations")]
 
     org_id: Mapped[int] = mapped_column(Integer, ForeignKey("erp_config_organizations.id"), nullable=False, index=True)
-    code: Mapped[str] = mapped_column(String(50))
     name: Mapped[str] = mapped_column(String(200))

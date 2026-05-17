@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router-dom'
-import * as LucideIcons from 'lucide-react'
 import api from '../lib/api'
 import type { SidebarItem, AppMenuData, MenuItem } from '../layouts/types'
 import { useVocabulary } from '../context/VocabularyContext'
+import { resolveIcon } from '../lib/iconUtils'
+import { filterMenuElements, filterMenuItems, isVisibleMenuItem } from '../lib/menuUtils'
+import { LoadingState } from '../components/LoadingState'
+import { EmptyState } from '../components/EmptyState'
 
 interface OutletContext {
   sidebarData: SidebarItem[]
@@ -57,17 +60,13 @@ export default function AppHome() {
 
   if (!appPath || isLoading) {
     return (
-      <div className="p-12 text-center text-slate-400 bg-white rounded-2xl border border-dashed border-slate-200">
-        Loading application...
-      </div>
+      <LoadingState label="Loading application..." className="bg-white rounded-2xl border border-dashed border-slate-200" />
     )
   }
 
   if (!remoteMenu && !sidebarApp) {
     return (
-      <div className="p-12 text-center text-slate-400 bg-white rounded-2xl border border-dashed border-slate-200">
-        Application not found.
-      </div>
+      <EmptyState title="Application not found" />
     )
   }
 
@@ -78,10 +77,10 @@ export default function AppHome() {
     sub_apps: []
   }
 
-  const IconComponent = (LucideIcons as any)[appInfo.icon] || LucideIcons.Package
+  const IconComponent = resolveIcon(appInfo.icon)
 
   const renderTile = (item: MenuItem, groupLabel?: string) => {
-    const ItemIcon = (LucideIcons as any)[item.icon || 'FileText'] || LucideIcons.FileText
+    const ItemIcon = resolveIcon(item.icon || 'FileText')
     return (
       <Link
         key={item.name}
@@ -113,8 +112,8 @@ export default function AppHome() {
 
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         {/* Render Sub-Apps first if any */}
-        {appInfo.sub_apps?.filter((sub: any) => !/supplier/i.test(sub.name) && !/supplier/i.test(sub.label)).map((sub: any) => {
-          const SubIcon = (LucideIcons as any)[sub.icon] || LucideIcons.Package
+        {appInfo.sub_apps?.filter(isVisibleMenuItem).map((sub: any) => {
+          const SubIcon = resolveIcon(sub.icon)
           return (
             <Link
               key={sub.name}
@@ -133,23 +132,16 @@ export default function AppHome() {
         })}
 
         {/* Render items from menu groups */}
-        {appInfo.menu?.filter((element: any) => {
-           if (element.type === 'group') return !/supplier/i.test(element.label)
-           return !/supplier/i.test(element.name) && !/supplier/i.test(element.label || '')
-        }).map((element: any) => {
+        {filterMenuElements(appInfo.menu || []).map((element: any) => {
            if (element.type === 'group') {
-              return element.items
-                .filter((item: MenuItem) => !/supplier/i.test(item.name) && !/supplier/i.test(item.label || ''))
-                .map((item: MenuItem) => renderTile(item, element.label))
+              return filterMenuItems(element.items).map((item: MenuItem) => renderTile(item, element.label))
            }
            return renderTile(element)
         })}
       </div>
 
       {(!appInfo.menu || appInfo.menu.length === 0) && (!appInfo.sub_apps || appInfo.sub_apps.length === 0) && (
-         <div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200">
-            No resources available for this application.
-         </div>
+         <EmptyState title="No resources available" description="This application has no visible resources." />
       )}
     </div>
   )

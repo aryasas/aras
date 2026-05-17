@@ -32,7 +32,7 @@ def scope_from_user(user: Any) -> ScopeContext:
     """
     values: Dict[str, Any] = {}
     if user is not None:
-        cid = getattr(user, "current_org_id", None) or getattr(user, "current_company_id", None)
+        cid = getattr(user, "current_org_id", None)
         if cid is not None:
             values["org_id"] = cid
     return ScopeContext(values)

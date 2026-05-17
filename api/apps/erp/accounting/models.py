@@ -3,6 +3,8 @@ from typing import Optional
 from sqlalchemy import String, ForeignKey, Float, Date, Integer, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core import Aras
+from core.response import ok, err
+from core.exceptions import ValidationException
 from ..base import MasterDataBase, DocumentBase, LineItemBase
 from .services.recalc_mixin import DocumentRecalcMixin
 
@@ -27,7 +29,7 @@ class Account(MasterDataBase):
     def reconcile(self, db):
         from .services.reconciliation import ReconciliationService
         result = ReconciliationService.reconcile_account(db, self.id, self.org_id)
-        return {"message": f"Reconciled {result['matched']} entries. Unmatched GL: {result['unmatched_gl']}, Payments: {result['unmatched_payments']}"}
+        return ok(result, message=f"Reconciled {result['matched']} entries. Unmatched GL: {result['unmatched_gl']}, Payments: {result['unmatched_payments']}")
 
 class FiscalPeriod(MasterDataBase):
     __tablename__ = "erp_accounting_fiscal_periods"
@@ -51,12 +53,12 @@ class JournalEntry(DocumentBase):
         total_debit = sum(line.debit for line in self.lines)
         total_credit = sum(line.credit for line in self.lines)
         if total_debit != total_credit:
-            return {"error": f"Entry is not balanced. Debit: {total_debit}, Credit: {total_credit}"}
+            raise ValidationException(f"Entry is not balanced. Debit: {total_debit}, Credit: {total_credit}")
         if total_debit == 0:
-            return {"error": "Entry has no value."}
+            raise ValidationException("Entry has no value.")
         self.status = "Posted"
-        db.commit()
-        return True
+        # db.commit() # Removed
+        return ok({"status": self.status}, message="Journal Entry posted successfully.")
 
 class JournalEntryLine(LineItemBase):
     __tablename__ = "erp_accounting_entry_lines"
@@ -70,8 +72,9 @@ class JournalEntryLine(LineItemBase):
 
 class InflowOrder(DocumentBase, DocumentRecalcMixin):
     __tablename__ = "erp_accounting_inflow_orders"
-    
+
     party_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
+    currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"))
     subtotal: Mapped[float] = mapped_column(Float, default=0)
     total_charge: Mapped[float] = mapped_column(Float, default=0)
     total_amount: Mapped[float] = mapped_column(Float, default=0)
@@ -84,14 +87,15 @@ class InflowOrder(DocumentBase, DocumentRecalcMixin):
         from .services.conversion import DocumentConversionService
         from sqlalchemy.orm import object_session
         db = object_session(self)
-        return DocumentConversionService.create_invoice_from_inflow_order(db, self)
+        invoice = DocumentConversionService.create_invoice_from_inflow_order(db, self)
+        return ok(invoice.to_dict(), message="Invoice created successfully.")
 
 class InflowOrderLine(LineItemBase):
     __tablename__ = "erp_accounting_inflow_order_lines"
 
     __parent__ = "erp_accounting_inflow_orders"
     order_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_inflow_orders.id"))
-    product_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
     qty: Mapped[float] = mapped_column(Float, default=1.0)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
     unit_price: Mapped[float] = mapped_column(Float, default=0)
@@ -140,7 +144,10 @@ class InflowInvoice(DocumentBase, DocumentRecalcMixin):
         from .services.posting import InvoicePostingService
         from sqlalchemy.orm import object_session
         db = object_session(self)
-        return InvoicePostingService.post_inflow_invoice(db, self)
+        success = InvoicePostingService.post_inflow_invoice(db, self)
+        if success:
+            return ok({"status": self.status}, message="Inflow Invoice posted successfully.")
+        raise ValidationException("Failed to post inflow invoice.") # Or handle specific error from service
 
 class InflowInvoiceLine(LineItemBase):
     __tablename__ = "erp_accounting_inflow_invoice_lines"
@@ -148,7 +155,7 @@ class InflowInvoiceLine(LineItemBase):
     __parent__ = "erp_accounting_inflow_invoices"
 
     invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_inflow_invoices.id"))
-    product_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
     qty: Mapped[float] = mapped_column(Float, default=1.0)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
     unit_price: Mapped[float] = mapped_column(Float, default=0)
@@ -168,8 +175,9 @@ class InflowInvoiceCharge(LineItemBase):
 
 class OutflowOrder(DocumentBase, DocumentRecalcMixin):
     __tablename__ = "erp_accounting_outflow_orders"
-    
+
     supplier_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
+    currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"))
     subtotal: Mapped[float] = mapped_column(Float, default=0)
     total_charge: Mapped[float] = mapped_column(Float, default=0)
     total_amount: Mapped[float] = mapped_column(Float, default=0)
@@ -182,14 +190,15 @@ class OutflowOrder(DocumentBase, DocumentRecalcMixin):
         from .services.conversion import DocumentConversionService
         from sqlalchemy.orm import object_session
         db = object_session(self)
-        return DocumentConversionService.create_invoice_from_outflow_order(db, self)
+        invoice = DocumentConversionService.create_invoice_from_outflow_order(db, self)
+        return ok(invoice.to_dict(), message="Invoice created successfully.")
 
 class OutflowOrderLine(LineItemBase):
     __tablename__ = "erp_accounting_outflow_order_lines"
 
     __parent__ = "erp_accounting_outflow_orders"
     order_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_outflow_orders.id"))
-    product_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
     qty: Mapped[float] = mapped_column(Float, default=1.0)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
     unit_price: Mapped[float] = mapped_column(Float, default=0)
@@ -238,7 +247,10 @@ class OutflowInvoice(DocumentBase, DocumentRecalcMixin):
         from .services.posting import InvoicePostingService
         from sqlalchemy.orm import object_session
         db = object_session(self)
-        return InvoicePostingService.post_outflow_invoice(db, self)
+        success = InvoicePostingService.post_outflow_invoice(db, self)
+        if success:
+            return ok({"status": self.status}, message="Outflow Invoice posted successfully.")
+        raise ValidationException("Failed to post outflow invoice.")
 
 class OutflowInvoiceLine(LineItemBase):
     __tablename__ = "erp_accounting_outflow_invoice_lines"
@@ -246,7 +258,7 @@ class OutflowInvoiceLine(LineItemBase):
     __parent__ = "erp_accounting_outflow_invoices"
     
     invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_outflow_invoices.id"))
-    product_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
     qty: Mapped[float] = mapped_column(Float, default=1.0)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
     unit_price: Mapped[float] = mapped_column(Float, default=0)
@@ -266,6 +278,7 @@ class OutflowInvoiceCharge(LineItemBase):
 class Payment(DocumentBase):
     __tablename__ = "erp_accounting_payments"
 
+    currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"))
     payment_type: Mapped[str] = mapped_column(String(20), info={"choices": ["Incoming", "Outgoing"]})
     party_type: Mapped[str] = mapped_column(String(20), info={"choices": ["Customer", "Supplier", "Other"]})
     party_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True) # Abstract party ID
@@ -281,14 +294,18 @@ class Payment(DocumentBase):
         from .services.payment import PaymentService
         from sqlalchemy.orm import object_session
         db = object_session(self)
-        return PaymentService.post_payment(db, self)
+        success = PaymentService.post_payment(db, self)
+        if success:
+            return ok({"status": self.status}, message="Payment posted successfully.")
+        raise ValidationException("Failed to post payment.")
 
     @Aras.model_action(name="auto_allocate", permission="edit", label="Auto Allocate")
     def auto_allocate(self):
         from .services.payment import PaymentService
         from sqlalchemy.orm import object_session
         db = object_session(self)
-        return PaymentService.auto_allocate(db, self)
+        result = PaymentService.auto_allocate(db, self)
+        return ok(result, message="Payment auto-allocated successfully.")
 
 
 class PaymentAllocation(LineItemBase):
@@ -324,16 +341,15 @@ class GoodsReceiptNote(DocumentBase):
 
         db = object_session(self)
         if self.status != "Draft":
-            return {"error": f"GRN is already {self.status}"}
+            raise ValidationException(f"GRN is already {self.status}")
 
         # Create StockMovement
         movement = StockMovement(
             org_id=self.org_id,
             number=f"SM-GRN-{self.number}",
-            move_type="Incoming",
+            move_type="receipt",
             status="Posted",
             to_location_id=self.warehouse_id,
-            currency_id=self.currency_id,
             doc_date=self.doc_date
         )
         db.add(movement)
@@ -342,27 +358,25 @@ class GoodsReceiptNote(DocumentBase):
         for line in self.lines:
             sm_line = StockMovementLine(
                 movement_id=movement.id,
-                product_id=line.product_id,
+                item_id=line.item_id,
                 qty=line.quantity_received,
                 unit_cost=line.unit_cost,
                 to_location_id=self.warehouse_id,
                 org_id=self.org_id
             )
             db.add(sm_line)
-            
-            # Call InventoryValuationService.receive for each GRN line
             InventoryValuationService.receive(
-                db, 
-                line.product_id, 
-                self.org_id, 
-                line.quantity_received, 
+                db,
+                line.item_id,
+                self.org_id,
+                line.quantity_received,
                 line.unit_cost,
-                source_ref=self.number # Use GRN number as source reference for the stock layer
+                source_ref=self.number
             )
 
         self.status = "Received"
-        db.commit()
-        return True
+        # db.commit() # Removed
+        return ok({"status": self.status}, message="Goods Receipt Note received successfully.")
 
     @Aras.model_action(name="match_invoice", permission="edit", label="Match to Invoice")
     def match_invoice(self, invoice_id: int):
@@ -371,14 +385,14 @@ class GoodsReceiptNote(DocumentBase):
         db = object_session(self)
         invoice = db.get(OutflowInvoice, invoice_id)
         if not invoice:
-            return {"error": f"Invoice with ID {invoice_id} not found."}
+            raise ValidationException(f"Invoice with ID {invoice_id} not found.")
         if invoice.supplier_id != self.supplier_id:
-            return {"error": "Invoice supplier does not match GRN supplier."}
+            raise ValidationException("Invoice supplier does not match GRN supplier.")
         
         invoice.grn_id = self.id
         self.status = "Matched"
 
-        db.commit()
-        return True
+        # db.commit() # Removed
+        return ok({"status": self.status}, message="GRN matched to invoice successfully.")
 
 

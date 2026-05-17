@@ -122,6 +122,86 @@ Full sub-app and base tables: → `framework_ref.md` L325–349
 
 ---
 
+## Field & View Load Pipeline
+
+How a model field goes from Python definition to rendered UI input.
+
+### Startup (once per server boot)
+```
+models.py       SQLAlchemy column defined (type, FK, info={...})
+    ↓
+sync_manager    UIGenerator.generate_metadata(model_cls)  — no DB session
+                → reads model_cls.__table__.columns
+                → detects FK → ui_type="lookup", target_resource resolved via App._registry
+                → detects choices → ui_type="select"
+                → detects _file/_image suffix → ui_type="file"/"image"
+                → produces field_meta_map {name: {type, label, hidden, ...}}
+    ↓
+sync_manager    For each column: upsert FieldModel row into aras_fields (registry DB)
+                • New column   → INSERT with code-derived defaults
+                • Existing row → UPDATE only if is_override=False (GUI-set values are preserved)
+    ↓
+auto_migrate    ALTER TABLE ... ADD COLUMN for any column missing from live DB
+                Priority: model → DB (never drops unless explicitly configured)
+```
+
+### Per-Request (metadata endpoint)
+```
+GET /api/v1/{app}/{resource}/metadata
+    ↓
+UIGenerator.generate_metadata(model_cls, db=session)
+    ↓
+    1. Load ResourceModel row → db_resource (title, layout JSON)
+    2. Load all FieldModel rows for resource → db_fields {name: FieldModel}
+    3. Walk model_cls.__table__.columns (source of truth for field list)
+       For each column:
+         • FK?          → ui_type="lookup", target_resource = resolved app path
+         • choices?     → ui_type="select"
+         • suffix?      → ui_type="file"/"image"
+         • db_field exists and is_override=True → use DB label/type/hidden (GUI override wins)
+         • else         → use code-derived value
+    4. Append computed_fields (@Aras.computed_field decorated)
+    5. Append child_table entries from Model._child_map
+    6. Attach layout from db_resource.layout (JSON) — [] if none set
+    ↓
+Response: { resource, title, fields: [...], layout: [...], actions: [...], children: [...] }
+```
+
+### Frontend Rendering
+```
+DynamicForm mounts
+    ↓
+useEffect → MetadataService.get(resource) → GET .../metadata
+    ↓
+fields[]  → renderField() per field
+            • type="lookup"      → Combobox with /search endpoint
+            • type="select"      → <select> from options[]
+            • type="child_table" → InlineChildTable component
+            • type="boolean"     → Toggle
+            • type="date"        → DatePicker
+            • default            → <input type="text|number">
+    ↓
+layout[]  → if populated, fields grouped into sections or tabs
+            • LayoutSection  { title, fields[] }        → card with header
+            • LayoutGroup    { type:"tabs", tabs[] }    → tab bar, one panel visible
+            • Empty layout   → all fields in single unsectioned card
+```
+
+### Override Priority (field metadata)
+```
+GUI edit (is_override=True)  >  View class definition  >  model column info={}  >  auto-detected defaults
+```
+
+### How to control field display
+- **Hide from form only**: `info={"form_hidden": True}` — field still in API, hidden in UI form
+- **Hide everywhere**: `info={"hidden": True}` — or set `is_hidden=True` via GUI
+- **Custom label**: `info={"label": "My Label"}` — or set in GUI (becomes `is_override=True`)
+- **Force UI type**: `info={"ui_type": "textarea"}` — overrides auto-detection
+- **Read-only**: `info={"read_only": True}`
+- **Layout/tabs**: set `ResourceModel.layout` via GUI or `python manage.py sync` with a View that sets `__layout__`
+
+---
+
 ## UI Hooks & Components
 
 Primary hook: `useAras()` → `{ notify, confirm, api, appName, formatDate, formatCurrency }`
@@ -217,3 +297,23 @@ To read ANY file: `<project_root>/tools/smart_read.sh <filepath>` — handles de
 
 ### Credentials
 Login: `admin` / `admin`
+
+---
+
+## Hard Rules — Database
+
+**Never use SQLite.** The only database is the single configured production DB (Postgres/MySQL via `DATABASE_URL`). SQLite `.db` files are never created, committed, or used — not for tests, not for development. Any `*.db` file in the repo should be deleted immediately.
+
+
+---
+## Framework Change: Plan.md Full Build Queue — Backend 0, C1–C3, Backend 3–4, U4, U13, U14, Backend 6, H1–H2, R4, R6, H4, Backend 5+7–14, P1–P5, R1, R5, Backend 9–10, U1, U5, U2–U3, U6, U11 (2026-05-17)
+  - [Gemini] Introduced custom exception handling and standardized API response patterns.
+  - [Gemini] Implemented M2M field population in `Model.paginate` and moved transaction commits to `RouterFactory` for atomicity.
+  - [Gemini] Implemented child hydration in `RouterFactory` for `GET /{id}` endpoints.
+  - [Gemini] Included `@Aras.computed_field` decorated fields in `ui_generator.py` metadata output.
+  - [Gemini] Added `/aggregate` endpoint to `RouterFactory`.
+  - [Gemini] Wrapped `@Aras.model_action` handlers in ERP with `response.ok(data=...)` and handled exceptions.
+  - [Gemini] Replaced bare `except: pass` with `except Exception as e: logging.warning(...)` in `model.py`.
+  - [Gemini] Audited and fixed layout sections in `pot/views.py` for missing/duplicate keys.
+  - [Gemini] Defined `DOC_LAYOUT_HEADER` and `DOC_LAYOUT_NOTES` constants in `api/apps/erp/base/document.py` and used them in `accounting/views.py` and `stock/views.py`.
+  - [Gemini] Renamed "Totals" tab to "Financials" in `accounting/views.py`.

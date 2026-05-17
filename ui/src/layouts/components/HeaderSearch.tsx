@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Search, FileText, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../lib/api'
+import { useAras } from '../../aras-core/hooks/useAras'
 
 export function HeaderSearch() {
   const [query, setQuery] = useState('')
@@ -10,6 +11,7 @@ export function HeaderSearch() {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const searchRef = useRef<HTMLDivElement>(null)
+  const { notify } = useAras()
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -34,15 +36,15 @@ export function HeaderSearch() {
         const res = await api.get('/query/search', { params: { q: query } })
         setResults(res.data)
         setIsOpen(true)
-      } catch (err) {
-        console.error("Global search failed", err)
+      } catch (err: any) {
+        notify(err.message || 'Global search failed', 'error')
       } finally {
         setLoading(false)
       }
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [query])
+  }, [query, notify])
 
   const handleSelect = (result: any) => {
     setIsOpen(false)

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ChevronDown } from 'lucide-react'
-import * as LucideIcons from 'lucide-react'
 import api from '../../lib/api'
 import type { AppMenuData, MenuItem, SidebarApp, MenuElement } from '../types'
 import { useVocabulary } from '../../context/VocabularyContext'
+import { resolveIcon } from '../../lib/iconUtils'
+import { filterMenuElements, filterMenuItems, isVisibleMenuItem } from '../../lib/menuUtils'
 
 const hiddenTopbarRoutes = new Set(['dashboard', 'settings'])
 
@@ -83,7 +84,7 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
       : location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
 
     if (isDropdownItem) {
-      const Icon = (LucideIcons as any)[item.icon || 'FileText'] || LucideIcons.FileText
+      const Icon = resolveIcon(item.icon || 'FileText')
       return (
         <Link
           key={item.name}
@@ -185,24 +186,18 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
         })}
         
         {/* Render Root App's own direct menu if any */}
-        {menuData.menu?.filter((element) => {
-          if (element.type === 'group') return !/supplier/i.test(element.label)
-          return !/supplier/i.test((element as MenuItem).name) && !/supplier/i.test((element as MenuItem).label || '')
-        }).map((element) => {
+        {filterMenuElements(menuData.menu || []).map((element) => {
           if (element.type === 'group') {
-            return renderTopLevelGroup(element.label, element.items.filter((item) => !/supplier/i.test(item.name) && !/supplier/i.test(item.label || '')))
+            return renderTopLevelGroup(element.label, filterMenuItems(element.items))
           }
           return renderMenuItem(element as MenuItem)
         })}
 
         {/* Render Modules (Sub Apps) as Top Level Groups */}
-        {menuData.sub_apps?.filter(sub => !/supplier/i.test(sub.name) && !/supplier/i.test(sub.label)).map(sub => {
+        {menuData.sub_apps?.filter(isVisibleMenuItem).map(sub => {
           // If a sub_app has a menu, we render it as a group
           if (sub.menu && sub.menu.length > 0) {
-            return renderTopLevelGroup(sub.label, sub.menu.filter((element) => {
-              if (element.type === 'group') return !/supplier/i.test(element.label)
-              return !/supplier/i.test((element as MenuItem).name) && !/supplier/i.test((element as MenuItem).label || '')
-            }))
+            return renderTopLevelGroup(sub.label, filterMenuElements(sub.menu))
           }
           // Otherwise, just a link to the sub_app home
           return renderMenuItem({

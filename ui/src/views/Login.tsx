@@ -12,8 +12,8 @@ const Login = () => {
   
   const setToken = useAuthStore((state) => state.setToken)
   const setUser = useAuthStore((state) => state.setUser)
-  const setCompanies = useAuthStore((state) => state.setCompanies)
-  const setActiveCompany = useAuthStore((state) => state.setActiveCompany)
+  const setOrganizations = useAuthStore((state) => state.setOrganizations)
+  const setActiveOrg = useAuthStore((state) => state.setActiveOrg)
   const navigate = useNavigate()
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -30,20 +30,12 @@ const Login = () => {
       setToken(response.data.access_token)
 
       const me = await api.get('/auth/me')
-      const companies = me.data.companies || []
+      const organizations = me.data.organizations || []
+      const defaultOrgId = me.data.default_org_id || (organizations.length > 0 ? organizations[0].id : null)
       setUser(me.data)
-      setCompanies(companies)
-
-      if (companies.length === 1) {
-        setActiveCompany(companies[0].id)
-        navigate('/')
-      } else if (companies.length > 1) {
-        setActiveCompany(null)
-        navigate('/company')
-      } else {
-        setActiveCompany(null)
-        navigate('/')
-      }
+      setOrganizations(organizations)
+      setActiveOrg(defaultOrgId)
+      navigate('/')
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Login failed. Please check your credentials.')
     } finally {

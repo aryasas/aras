@@ -9,7 +9,7 @@ class GoodsReceiptLine(LineItemBase):
     __parent__ = "erp_accounting_grns"
 
     grn_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_grns.id"))
-    product_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
     quantity_received: Mapped[float] = mapped_column(Numeric, default=0)
     unit_cost: Mapped[float] = mapped_column(Numeric, default=0)
 

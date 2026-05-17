@@ -111,13 +111,13 @@ class RBAC(Auth):
             return []
 
         if user.is_admin:
-            rows = db.query(Organization.id, Organization.name).all()
+            rows = db.query(Organization.id, Organization.name, Organization.is_default).all()
         else:
             rows = (
-                db.query(Organization.id, Organization.name)
+                db.query(Organization.id, Organization.name, Organization.is_default)
                 .join(UserRole, UserRole.company_id == Organization.id)
                 .filter(UserRole.user_id == user.id, UserRole.company_id.isnot(None))
                 .distinct()
                 .all()
             )
-        return [{"id": r.id, "name": r.name} for r in rows]
+        return [{"id": r.id, "name": r.name, "is_default": r.is_default} for r in rows]

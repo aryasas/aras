@@ -7,11 +7,13 @@ from ..base import ConfigBase, MasterDataBase, LineItemBase
 class Organization(ConfigBase):
     __tablename__ = "erp_config_organizations"
 
+    code: Mapped[str] = mapped_column(String(50), unique=True)
     profile: Mapped[str] = mapped_column(String(50), default="general")
     unit_type: Mapped[str] = mapped_column(String(50), default="organization")
 
     # Multi-company / group structure
     is_group: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
     parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_organizations.id"), nullable=True)
 
     # Identity & Details
@@ -36,6 +38,7 @@ class Organization(ConfigBase):
     enable_provisional_non_stock: Mapped[bool] = mapped_column(Boolean, default=False)
     avg_cost_by_location: Mapped[bool] = mapped_column(Boolean, default=False)
     allow_zero_stock: Mapped[bool] = mapped_column(Boolean, default=False)
+    stock_valuation_method: Mapped[str] = mapped_column(String(10), default="FIFO", info={"choices": ["FIFO", "AVERAGE"]})
 
     # Default Accounts
     acc_bank_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
@@ -72,6 +75,7 @@ class Organization(ConfigBase):
 
 class Currency(ConfigBase):
     __tablename__ = "erp_config_currencies"
+    code: Mapped[str] = mapped_column(String(10), unique=True)
     symbol: Mapped[str] = mapped_column(String(10))
 
 class Uom(ConfigBase):
@@ -91,7 +95,7 @@ class Charge(ConfigBase):
     amount: Mapped[float] = mapped_column(default=0)
     is_inclusive: Mapped[bool] = mapped_column(default=False)
     is_compound: Mapped[bool] = mapped_column(default=False)
-    sequence: Mapped[int] = mapped_column(default=10)
+    sequence: Mapped[int] = mapped_column(default=10, info={"hidden": True})
     
     account_collected_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
     account_paid_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)

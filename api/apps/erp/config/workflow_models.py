@@ -34,7 +34,7 @@ class WorkflowState(Aras.Model):
     label: Mapped[str] = mapped_column(String(100))
     is_initial: Mapped[bool] = mapped_column(Boolean, default=False)
     is_final: Mapped[bool] = mapped_column(Boolean, default=False)
-    sequence: Mapped[int] = mapped_column(Integer, default=10)
+    sequence: Mapped[int] = mapped_column(Integer, default=10, info={"hidden": True})
 
     template: Mapped["WorkflowTemplate"] = relationship("WorkflowTemplate", back_populates="states")
 
@@ -50,7 +50,7 @@ class WorkflowTransition(Aras.Model):
     label: Mapped[str] = mapped_column(String(100))
     icon: Mapped[str] = mapped_column(String(50), default="ArrowRight")
     permission: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    sequence: Mapped[int] = mapped_column(Integer, default=10)
+    sequence: Mapped[int] = mapped_column(Integer, default=10, info={"hidden": True})
 
     template: Mapped["WorkflowTemplate"] = relationship("WorkflowTemplate", back_populates="transitions")
     from_state: Mapped["WorkflowState"] = relationship("WorkflowState", foreign_keys=[from_state_id])
@@ -67,6 +67,6 @@ class WorkflowAction(Aras.Model):
     transition_id: Mapped[int] = mapped_column(ForeignKey("erp_config_workflow_transitions.id"), index=True)
     handler_name: Mapped[str] = mapped_column(String(100))
     params: Mapped[dict] = mapped_column(JSON, default=dict)
-    sequence: Mapped[int] = mapped_column(Integer, default=10)
+    sequence: Mapped[int] = mapped_column(Integer, default=10, info={"hidden": True})
 
     transition: Mapped["WorkflowTransition"] = relationship("WorkflowTransition", back_populates="actions")

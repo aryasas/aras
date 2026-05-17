@@ -66,6 +66,12 @@ app = FastAPI(
 # Exception Handlers
 from fastapi.exceptions import RequestValidationError
 from fastapi import status
+from core.exceptions import ArasException
+from core.response import err as aras_err
+
+@app.exception_handler(ArasException)
+async def aras_exception_handler(request: Request, exc: ArasException):
+    return JSONResponse(status_code=exc.status, content=aras_err(exc.message, exc.detail))
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):

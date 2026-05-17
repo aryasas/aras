@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { cleanResourcePath } from './resourceUtils'
 
 const DEV_MULTI_TENANT = import.meta.env.VITE_DEV_MULTI_TENANT === 'true'
 const TENANT_STORAGE_KEY = 'aras_tenant_id'
@@ -7,8 +8,17 @@ interface ApiEnvelope<T = unknown> {
   success: boolean
   data: T
   message?: string | null
-  error?: string | null
+  error?: string | { message?: string; detail?: unknown } | null
   detail?: string | null
+}
+
+function getEnvelopeErrorMessage(value: ApiEnvelope | Record<string, any>): string {
+  const error = value.error
+  if (typeof error === 'string') return error
+  if (error && typeof error === 'object' && typeof error.message === 'string') return error.message
+  if (typeof value.detail === 'string') return value.detail
+  if (typeof value.message === 'string') return value.message
+  return 'Request failed'
 }
 
 function isApiEnvelope(value: unknown): value is ApiEnvelope {
@@ -28,14 +38,20 @@ const api = axios.create({
 
 // Attach JWT to every request
 api.interceptors.request.use((config) => {
+  if (config.url && !/^https?:\/\//i.test(config.url)) {
+    const [path, query] = config.url.split('?')
+    const leadingSlash = path.startsWith('/') ? '/' : ''
+    config.url = `${leadingSlash}${cleanResourcePath(path)}${query ? `?${query}` : ''}`
+  }
+
   const token = localStorage.getItem('aras_token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
 
-  const companyId = localStorage.getItem('aras_company_id')
-  if (companyId) {
-    config.headers['X-Company-ID'] = companyId
+  const orgId = localStorage.getItem('org_id')
+  if (orgId) {
+    config.headers['X-Org-ID'] = orgId
   }
 
   if (DEV_MULTI_TENANT) {
@@ -54,7 +70,7 @@ api.interceptors.response.use(
     if (isApiEnvelope(response.data)) {
       if (!response.data.success) {
         // Prefer `error` from envelope, then `message`, then fallback
-        const errorMessage = response.data.error || response.data.detail || response.data.message || 'Request failed';
+        const errorMessage = getEnvelopeErrorMessage(response.data);
 
         // Ensure the error object passed to consumers has the right structure
         const errorData = {
@@ -78,10 +94,10 @@ api.interceptors.response.use(
       let errorMessage = 'Request failed';
 
       if (isApiEnvelope(d)) {
-        errorMessage = d.error || d.detail || d.message || errorMessage;
+        errorMessage = getEnvelopeErrorMessage(d);
       } else if (typeof d === 'object') {
         // For non-envelope responses (e.g., FastAPI validation errors)
-        errorMessage = d.error || d.detail || d.message || errorMessage;
+        errorMessage = getEnvelopeErrorMessage(d);
       } else if (typeof d === 'string') {
         errorMessage = d;
       }

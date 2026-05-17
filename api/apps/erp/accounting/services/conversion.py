@@ -10,7 +10,7 @@ class DocumentConversionService:
             
         invoice = InflowInvoice(
             org_id=order.org_id,
-            customer_id=order.customer_id,
+            party_id=order.party_id,
             currency_id=order.currency_id,
             notes=f"Generated from Inflow Order {order.number}",
             subtotal=order.subtotal,

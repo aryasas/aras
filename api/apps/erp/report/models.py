@@ -3,6 +3,8 @@ from sqlalchemy import String, Text, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 from ..base import MasterDataBase
 from core import Aras
+from core.response import ok, err
+from core.exceptions import ValidationException
 
 class Report(MasterDataBase):
     __tablename__ = "erp_report_reports"
@@ -20,4 +22,5 @@ class Report(MasterDataBase):
         Action to execute the report logic.
         """
         from .services.report_service import ReportService
-        return ReportService.generate(self)
+        report_data = ReportService.generate(self)
+        return ok(report_data, message="Report generated successfully.")

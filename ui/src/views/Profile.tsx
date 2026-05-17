@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import api from '../lib/api'
 import { User, Mail, Shield, Lock, Save, AlertCircle, CheckCircle } from 'lucide-react'
+import { useAras } from '../aras-core/hooks/useAras'
 
 const Profile = () => {
   const [userInfo, setUserInfo] = useState<any>(null)
@@ -13,20 +14,21 @@ const Profile = () => {
   const [passLoading, setPassLoading] = useState(false)
   const [passError, setPassError] = useState('')
   const [passSuccess, setPassSuccess] = useState('')
+  const { notify } = useAras()
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const res = await api.get('/auth/me')
         setUserInfo(res.data)
-      } catch (err) {
-        console.error("Failed to fetch user info", err)
+      } catch (err: any) {
+        notify(err.message || 'Failed to fetch user info', 'error')
       } finally {
         setLoading(false)
       }
     }
     fetchUser()
-  }, [])
+  }, [notify])
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,6 +37,7 @@ const Profile = () => {
 
     if (newPassword !== confirmPassword) {
       setPassError('New passwords do not match')
+      notify('New passwords do not match', 'error')
       return
     }
 
@@ -49,7 +52,9 @@ const Profile = () => {
       setNewPassword('')
       setConfirmPassword('')
     } catch (err: any) {
-      setPassError(err.response?.data?.message || 'Failed to update password')
+      const message = err.response?.data?.message || 'Failed to update password'
+      setPassError(message)
+      notify(message, 'error')
     } finally {
       setPassLoading(false)
     }

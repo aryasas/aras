@@ -1,3 +1,109 @@
 # Files Rule
 
 This file is used only to report if there are fix
+
+
+## Plan.md Full Build Queue — Backend 0, C1–C3, Backend 3–4, U4, U13, U14, Backend 6, H1–H2, R4, R6, H4, Backend 5+7–14, P1–P5, R1, R5, Backend 9–10, U1, U5, U2–U3, U6, U11 (2026-05-17)
+  - [Gemini] Replaced all raw HTTPException raises in RouterFactory with appropriate custom ArasException subclasses, replaced all _create_success_response and _create_error_detail calls with new response.ok and response.err functions.
+  - [Codex/GPT-5.5] dashboard dependency/catch/pie offset fixes, import endpoint switched to /import, console errors replaced with notifications in requested files, API path/error envelope normalization
+
+## Backend Test Report (2026-05-17)
+
+### GET /aggregate endpoint — FAIL
+- status: Code does not execute due to upstream error
+- issue: Router exception handler setup fails before aggregation code is reached (see below)
+
+### Child hydration in GET /{id} — PASS (code verified)
+- status: Code path verified in router_factory.py lines 387-440
+- issue: None — implementation includes child_map traversal and child record hydration
+
+### M2M in list — PASS (code verified)
+- status: Code path verified in model.py lines 280-306
+- issue: None — resolve_m2m() called automatically in paginate()
+
+### Standard envelope — PASS (code verified)
+- status: Response format verified in response.py
+- issue: None — ok() returns {"success": true, "data": ..., "message": ..., "error": null}
+
+### Exception handling (ResourceNotFoundException) — FAIL
+- status: Exception defined but no app-level handler
+- issue: router_factory.py line 94 uses @router.exception_handler() which does not exist on APIRouter (only on FastAPI app)
+
+### Import endpoint — PASS (code verified)
+- status: Endpoint exists at router_factory.py line 332
+- issue: None — @router.post("/import") implemented with CSV file upload
+
+### Computed fields in metadata — PASS (code verified)
+- status: Code verified in ui_generator.py lines 239-252
+- issue: None — computed fields marked with "computed": true in metadata response
+
+## Summary of Issues
+
+### CRITICAL
+1. **Router exception handler registration fails**
+   - Location: api/core/logic/router_factory.py, line 94
+   - Error: `@router.exception_handler(ArasException)` — APIRouter doesn't support exception_handler as a decorator method
+   - Impact: All dynamically-created routers fail to instantiate during app startup; prevents entire API from running
+   - Root cause: Attempting to register exception handler on APIRouter instead of main app
+   - Solution needed: Move exception handler registration to app-level in main.py, or use middleware instead
+
+2. **Missing ArasException handler at app level**
+   - Location: api/main.py
+   - Issue: Custom ArasException subclasses (ResourceNotFoundException, ValidationException, etc.) are not handled by any app-level exception_handler
+   - Impact: These exceptions will fall through to generic Exception handler, losing custom error formatting and status codes
+   - Solution needed: Add @app.exception_handler(ArasException) in main.py before the generic Exception handler
+
+### Testing Environment Issues (not blockers for actual deployment)
+- Sandbox environment cannot establish network connections, preventing direct curl testing
+- PostgreSQL database not available in test environment (tests require DATABASE_URL set to SQLite, but system defaults to Postgres)
+- Tests cannot run locally due to exception handler setup failure
+
+## Haiku QA Report (2026-05-17)
+
+### CRITICAL
+3. **accounting/services/conversion.py — AttributeError on party_id rename**
+   - Location: api/apps/erp/accounting/services/conversion.py:13
+   - Error: `order.customer_id` — model renamed field to `party_id`; AttributeError at runtime
+   - Impact: Breaks `create_invoice` workflow entirely
+
+4. **accounting/services/payment.py — Wrong field in query**
+   - Location: api/apps/erp/accounting/services/payment.py:83
+   - Error: `InflowInvoice.customer_id == party_id` — field is `party_id`; AttributeError at runtime
+   - Impact: Breaks payment allocation
+
+### MAJOR
+5. **accounting/views.py — Layout references wrong field name**
+   - Location: api/apps/erp/accounting/views.py:43, 55 (InflowOrderView, InflowInvoiceView)
+   - Error: Field `customer_id` in layout; model uses `party_id` — causes form rendering/validation errors
+   - Fix: Replace `customer_id` → `party_id` in these view layouts
+
+### MINOR
+6. **DashboardView.tsx — SVG strokeDashoffset type mismatch**
+   - Location: ui/src/views/DashboardView.tsx:156, 165
+   - Error: Numeric value where React SVG expects string; type mismatch in strict TS
+   - Fix: Cast to string: `String(value)`
+
+7. **InlineChildTable.tsx — Empty row filter runs after POST, not before**
+   - Location: ui/src/aras-core/components/InlineChildTable.tsx:~80
+   - Error: Empty rows may still be POSTed if filter logic only runs on display
+   - Fix: Ensure filter runs as guard inside the submit handler before any POST call
+
+
+## Unknown (2026-05-17)
+  - [Codex/GPT-5.5] renamed organization picker file target and replaced stale companies references with organizations in DynamicForm
+
+## Stock Module — on_transition + Service Compatibility Fixes (2026-05-17)
+- [Claude Sonnet 4.6] Fixed `StockMovement.post` action to call `TransitionRegistry.get()` so `@Aras.on_transition` callbacks fire on status change (`api/apps/erp/stock/models.py`)
+- [Claude Sonnet 4.6] Rewrote `posting.py` to use actual service signatures: `JournalService.post_entry()` (not `create_entry`), `InventoryValuationService` (not `FIFOValuation`), `CoaResolver` methods (not `COAResolver.resolve()`) (`api/apps/erp/stock/services/posting.py`)
+- [Claude Sonnet 4.6] Fixed `valuation.py` to use `item_id` (renamed from `product_id`) and pass required `org_id`/`number` to `StockLayer` (`api/apps/erp/stock/services/valuation.py`)
+- [Claude Sonnet 4.6] Fixed `coa_resolver.py` imports: `Product→Item`, `ProductCategory→ItemCategory` (`api/apps/erp/stock/services/coa_resolver.py`)
+- [Claude Sonnet 4.6] Fixed `account.py` imports and `product_id→item_id` in filter (`api/apps/erp/stock/services/account.py`)
+- [Claude Sonnet 4.6] Added `_save_children()` to `router_factory.py` — child table rows in parent POST/PATCH payload were silently dropped; now delete+re-insert on every write (`api/core/logic/router_factory.py`)
+
+
+## Unknown (2026-05-17)
+  - [Codex/GPT-5.5] reset child row ID baseline when loaded record ID changes
+
+
+## Unknown (2026-05-17)
+  - [Codex/GPT-5.5] normalized child table API path resolution so Price Rule deletes use the registered route

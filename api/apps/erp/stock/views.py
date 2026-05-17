@@ -1,56 +1,70 @@
 from core import Aras
-from .models import ProductCategory, Product, Location, StockMovement, PriceList, PromoBundle, \
-    ProductUom, PromoBundleItem, StockMovementLine, DeliveryNote
+from ..base.document import DOC_LAYOUT_HEADER, DOC_LAYOUT_NOTES
+from .models import ItemCategory, Item, Location, StockMovement, PriceList, PromoBundle, \
+    ItemUom, ItemBundle, ItemLocation, PromoBundleItem, StockMovementLine, DeliveryNote
 
-class ProductCategoryView(Aras.View):
-    model = ProductCategory
-    title = "Product Categories"
+class ItemCategoryView(Aras.View):
+    model = ItemCategory
+    title = "Item Categories"
     icon = "pi pi-tags"
     layout = [
         {
             "key": "general",
             "title": "General",
-            "fields": ["name", "account_sale_id", "account_purchase_id", "account_cogs_id", "account_stock_id", "account_variance_id"],
+            "fields": ["name", "account_cogs_id", "account_stock_id", "account_variance_id", "account_revenue_id", "account_purchase_id"],
         },
     ]
 
-class ProductView(Aras.View):
-    model = Product
-    title = "Products"
+class ItemView(Aras.View):
+    model = Item
+    title = "Items"
     icon = "pi pi-box"
     layout = [
         {
             "key": "general",
             "title": "General",
-            "fields": ["name", "sku", "category_id", "uom_id", "is_active"],
-        },
-        {
-            "key": "pricing",
-            "title": "Pricing",
-            "fields": ["price", "pricelist_id", "currency_id"],
-        },
-        {
-            "key": "accounting",
-            "title": "Accounting",
-            "fields": ["account_stock_id", "account_cogs_id", "account_variance_id"],
-        },
-        {
-            "key": "notes",
-            "title": "Notes",
-            "fields": ["description"],
+            "fields": ["name", "code", "sku", "category_id", "uom_id", "uom_purchase_id", "uom_sales_id", "is_active", "is_stock_item", "for_sales", "for_purchase"],
         },
         {"key": "alternate_units", "title": "Alternate Units", "fields": ["uoms"]},
         {"key": "prices", "title": "Prices", "fields": ["pricelists"]},
+        {"key": "accounts", "title": "Accounts", "fields": ["accounts"]},
     ]
 
-class ProductUomView(Aras.View):
-    model = ProductUom
-    title = "Product Units"
+class ItemUomView(Aras.View):
+    model = ItemUom
+    title = "Item Units"
     layout = [
         {
             "key": "general",
             "title": "General",
-            "fields": ["name", "ratio", "uom_id"],
+            "fields": [
+                {"field": "code", "info": {"form_hidden": True}},
+                {"field": "name", "info": {"form_hidden": True}},
+                "uom_id",
+                "factor"
+            ],
+        },
+    ]
+
+class ItemBundleView(Aras.View):
+    model = ItemBundle
+    title = "Item Bundle Components"
+    layout = [
+        {
+            "key": "general",
+            "title": "General",
+            "fields": ["bundle_item_id", "component_item_id", "qty", "uom_id", {"field": "notes", "rows": 3}],
+        },
+    ]
+
+class ItemLocationView(Aras.View):
+    model = ItemLocation
+    title = "Item Locations"
+    layout = [
+        {
+            "key": "general",
+            "title": "General",
+            "fields": ["item_id", "location_id", "min_qty", "max_qty"],
         },
     ]
 
@@ -82,7 +96,7 @@ class LocationView(Aras.View):
     title = "Locations"
     icon = "pi pi-map-marker"
     layout = [
-        {"title": "General", "fields": ["name", "code", "location_type", "is_group", "parent_id"]}
+        {"title": "General", "fields": ["name", "location_type", "is_group", "parent_id"]}
     ]
 
 class StockMovementView(Aras.View):
@@ -93,7 +107,7 @@ class StockMovementView(Aras.View):
         {"title": "Header", "fields": ["number", "doc_date", "status"]},
         {"title": "Route", "fields": ["from_location_id", "to_location_id"]},
         {"title": "Items", "fields": ["lines"]},
-        {"title": "Notes", "fields": ["notes"]}
+        DOC_LAYOUT_NOTES
     ]
 
 class StockMovementLineView(Aras.View):
@@ -108,6 +122,6 @@ class DeliveryNoteView(Aras.View):
         {"title": "Header", "fields": ["number", "party_id", "doc_date", "status"]},
         {"title": "Source", "fields": ["location_id"]},
         {"title": "Items", "fields": ["lines"]},
-        {"title": "Notes", "fields": ["notes"]}
+        DOC_LAYOUT_NOTES
     ]
 

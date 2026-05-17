@@ -1,6 +1,6 @@
 from typing import Optional
 from sqlalchemy.orm import Session
-from ..models import Product, ProductCategory
+from ..models import Item, ItemCategory
 from ...accounting.models import Account
 from ...config.models import Organization
 
@@ -9,10 +9,10 @@ class CoaResolver:
     """Resolves which GL accounts to use for stock/accounting integration."""
 
     @staticmethod
-    def _get_category(db: Session, product_id: int) -> Optional[ProductCategory]:
-        product = db.query(Product).get(product_id)
+    def _get_category(db: Session, product_id: int) -> Optional[ItemCategory]:
+        product = db.query(Item).get(product_id)
         if product and product.category_id:
-            return db.query(ProductCategory).get(product.category_id)
+            return db.query(ItemCategory).get(product.category_id)
         return None
 
     @staticmethod

@@ -19,10 +19,12 @@ class PotSessionView(Aras.View):
     icon = "pi pi-clock"
     layout = [
         {
+            "key": "general",
             "title": "General",
             "fields": ["number", "doc_date", "status", "opening_balance", "closing_balance"]
         },
         {
+            "key": "orders",
             "title": "Orders",
             "fields": ["orders"]
         }

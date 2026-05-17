@@ -63,11 +63,11 @@ async def get_current_user(
 
     from ..logic.scope import ScopeContext
     raw = {k: int(v) for k, v in request.headers.items() if k.lower().startswith("x-scope-") and v.isdigit()}
-    cid = int(request.headers.get("X-Company-ID", 0) or 0)
-    if cid:
-        raw["org_id"] = cid
+    oid = int(request.headers.get("X-Org-ID", 0) or 0)
+    if oid:
+        raw["org_id"] = oid
     request.state.scope = ScopeContext(raw)
-    request.state.company_id = cid  # kept for backwards compat with auth middleware
+    request.state.org_id = oid  # kept for backwards compat with auth middleware
     return user
 
 

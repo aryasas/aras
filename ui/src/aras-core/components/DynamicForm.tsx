@@ -10,13 +10,15 @@ import {
   Printer
 } from 'lucide-react';
 import ListView from './ListView';
-import { InlineChildTable } from './InlineChildTable';
+import { filterEmptyChildRows, InlineChildTable, invalidateInlineLookupCache } from './InlineChildTable';
+import MultiSelectCombobox from './MultiSelectCombobox';
 import { resolveFieldComponent } from '../SchemaRegistry';
 import { useAras } from '../hooks/useAras';
 import { useUIStore } from '../../store/uiStore';
 import { LogicEvaluator } from '../../lib/LogicEvaluator';
 import { useVocabulary } from '../../context/VocabularyContext';
 import { PrintPreview } from './PrintPreview';
+import { createDefaultRecord } from '../../lib/schemaUtils';
 
 interface Field {
   name: string;
@@ -28,6 +30,7 @@ interface Field {
   form_hidden?: boolean;
   depends_on?: string; // Conditional visibility logic
   target_resource?: string;
+  target_api_path?: string | null;
   fk_column?: string | null;
   options?: { label: string; value: any }[];
   min_length?: number;
@@ -35,6 +38,8 @@ interface Field {
   min_value?: number;
   max_value?: number;
   pattern?: string;
+  min?: number;
+  max?: number;
 }
 
 interface WorkflowAction {
@@ -62,6 +67,12 @@ interface ModelAction {
 interface LayoutSection {
   title: string;
   fields: string[];
+  type?: 'section' | 'tab';  // default 'section' if omitted
+}
+
+interface LayoutGroup {
+  type: 'tabs';
+  tabs: LayoutSection[];
 }
 
 interface Metadata {
@@ -72,8 +83,9 @@ interface Metadata {
   children?: Array<{ resource: string; fk_column?: string | null }>;
   workflow?: any;
   actions?: ModelAction[];
-  layout?: LayoutSection[];
+  layout?: (LayoutSection | LayoutGroup)[];
   is_auditable?: boolean;
+  is_document?: boolean;
   app_name?: string;
 }
 
@@ -123,7 +135,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   initialData,
   parentResourceTitle
 }) => {
-  const { activeCompanyId, companies } = useAuthStore();
+  const { activeOrgId, organizations } = useAuthStore();
   const vocabulary = useVocabulary();
   const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [formData, setFormData] = useState<any>({});
@@ -147,7 +159,10 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const showPanel = useUIStore((state) => state.showPanel);
   const closePanel = useUIStore((state) => state.closePanel);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [activeTab, setActiveTab] = useState<Record<number, number>>({});
   const handleSubmitRef = useRef<(() => void) | null>(null);
+  const initialM2mRef = useRef<Record<string, any[]>>({});
+  const initialChildRowIdsRef = useRef<Record<string, Set<any>>>({});
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -171,6 +186,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
 
   useEffect(() => {
     setCurrentId(id != null && id !== 'new' ? id : undefined);
+    initialM2mRef.current = {};
+    initialChildRowIdsRef.current = {};
   }, [id]);
 
   useEffect(() => {
@@ -221,6 +238,12 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           const resourceApiPath = metadata.api_path || cleanResource;
           const dataRes = await api.get(`/${resourceApiPath}/${id}`);
           setFormData(dataRes.data);
+          initialM2mRef.current = metadata.fields
+            .filter((f: any) => f.type === 'm2m')
+            .reduce((acc: Record<string, any[]>, f: any) => {
+              acc[f.name] = Array.isArray(dataRes.data?.[f.name]) ? dataRes.data[f.name] : [];
+              return acc;
+            }, {});
 
           // Load existing child rows for every child_table field
           const childFields = metadata.fields.filter((f: any) => f.type === 'child_table' && f.target_resource);
@@ -228,7 +251,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             const childData: Record<string, any[]> = {};
             await Promise.all(childFields.map(async (f: any) => {
               try {
-                const childRes = f.target_api_path || cleanResourcePath(f.target_resource);
+                const childRes = resolveChildApiPath(f);
                 const fkKey = f.fk_column || `${resourceApiPath.split('/').pop()}_id`;
                 const filters = JSON.stringify([{ field: fkKey, op: '=', value: id }]);
                 const res = await api.get(`/${childRes}`, { params: { filters, per_page: 500 } });
@@ -239,6 +262,9 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
               }
             }));
             setChildRows(childData);
+            initialChildRowIdsRef.current = Object.fromEntries(
+              Object.entries(childData).map(([k, rows]) => [k, new Set((rows as any[]).map(r => r.id).filter(Boolean))])
+            );
           }
 
           if (metadata.workflow) {
@@ -250,31 +276,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             }
           }
         } else {
-          const today = new Date().toISOString().split('T')[0];
-          const defaults: any = { ...initialData };
-          if (activeCompanyId && !defaults['company_id']) defaults['company_id'] = activeCompanyId;
-          if (activeCompanyId && !defaults['org_id']) defaults['org_id'] = activeCompanyId;
-          metadata.fields.forEach((f: any) => {
-             if (defaults[f.name] !== undefined) return;
-             if (f.default_value) {
-                defaults[f.name] = f.default_value;
-                if (f.type === 'number' || f.type === 'currency') defaults[f.name] = Number(f.default_value);
-                if (f.type === 'boolean') defaults[f.name] = f.default_value === 'true';
-                return;
-             }
-             if (f.series) {
-                // If it's a naming series field, we might want to handle it specially
-                // But for now just use it as default if it's not empty
-                defaults[f.name] = f.series;
-             }
-
-             if (f.type === 'boolean') defaults[f.name] = false;
-             else if (f.type === 'number' || f.type === 'currency') defaults[f.name] = 0;
-             else if (f.type === 'date') defaults[f.name] = today;
-             else if (f.type === 'datetime') defaults[f.name] = new Date().toISOString().split('.')[0];
-             else if (f.type === 'lookup') defaults[f.name] = null;
-             else defaults[f.name] = '';
-          });
+          const defaults: any = { ...createDefaultRecord(metadata.fields), ...initialData };
+          if (activeOrgId && !defaults['org_id']) defaults['org_id'] = activeOrgId;
           setFormData(defaults);
         }
       } catch (err: any) {
@@ -284,7 +287,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       }
     };
     fetchData();
-  }, [resource, id, notify, initialData, refreshTrigger, searchParams, parentResourceTitle, activeCompanyId, metadata]);
+  }, [resource, id, notify, initialData, refreshTrigger, searchParams, parentResourceTitle, activeOrgId, metadata]);
 
   const handleChange = (name: string, value: any) => {
     setFormData((prev: any) => ({ ...prev, [name]: value }));
@@ -375,6 +378,29 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     }
   };
 
+  const resolveChildApiPath = (field: Field): string => {
+    if (field.target_api_path) return cleanResourcePath(field.target_api_path);
+
+    const targetResource = cleanResourcePath(field.target_resource || field.name);
+    if (targetResource.includes('/')) return targetResource;
+
+    const parentApiPath = metadata?.api_path || cleanResourcePath(resource);
+    const parentPathParts = parentApiPath.split('/').filter(Boolean);
+    const parentAppPath = parentPathParts.slice(0, -1);
+    if (parentAppPath.length === 0 || !targetResource.includes('_')) return targetResource;
+
+    const appPrefix = parentAppPath.join('_').replace(/-/g, '_');
+    const parentPrefix = parentAppPath[0]?.replace(/-/g, '_');
+    let childSegment = targetResource;
+    if (childSegment.startsWith(`${appPrefix}_`)) {
+      childSegment = childSegment.slice(appPrefix.length + 1);
+    } else if (parentPrefix && childSegment.startsWith(`${parentPrefix}_`)) {
+      childSegment = childSegment.slice(parentPrefix.length + 1);
+    }
+
+    return `${parentAppPath.join('/')}/${childSegment.replace(/_/g, '-')}`;
+  };
+
   const handleModelAction = async (action: ModelAction) => {
     if (action.has_input_schema && action.input_fields?.length) {
       const initial: Record<string, any> = {};
@@ -423,10 +449,10 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         errs[field.name] = `Minimum ${field.min_length} characters`;
       else if (field.max_length !== undefined && str.length > field.max_length)
         errs[field.name] = `Maximum ${field.max_length} characters`;
-      else if (field.min_value !== undefined && Number(val) < field.min_value)
-        errs[field.name] = `Minimum value is ${field.min_value}`;
-      else if (field.max_value !== undefined && Number(val) > field.max_value)
-        errs[field.name] = `Maximum value is ${field.max_value}`;
+      else if ((field.min_value ?? field.min) !== undefined && Number(val) < Number(field.min_value ?? field.min))
+        errs[field.name] = `Minimum value is ${field.min_value ?? field.min}`;
+      else if ((field.max_value ?? field.max) !== undefined && Number(val) > Number(field.max_value ?? field.max))
+        errs[field.name] = `Maximum value is ${field.max_value ?? field.max}`;
       else if (field.pattern && !new RegExp(field.pattern).test(str))
         errs[field.name] = `Invalid format`;
     }
@@ -444,29 +470,81 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     try {
       setSaving(true);
       const cleanResource = metadata?.api_path || cleanResourcePath(resource);
+      const m2mFields = metadata?.fields.filter(f => f.type === 'm2m') ?? [];
       const payload = { ...formData };
+      m2mFields.forEach(field => delete payload[field.name]);
       let res;
       if (currentId != null) {
         res = await api.patch(`/${cleanResource}/${currentId}`, payload);
       } else {
-        res = await api.post(`/${cleanResource}`, payload);
+        const childFields = metadata?.fields.filter(f => f.type === 'child_table') ?? [];
+        const children = Object.entries(childRows).flatMap(([fieldName, rows]) => {
+          const childField = childFields.find(f => f.name === fieldName);
+          if (!childField?.target_resource) return [];
+          const editableFields = rows.length > 0 ? Object.keys(rows[0]).map(name => ({ name })) : [];
+          const filteredRows = filterEmptyChildRows(rows, editableFields);
+          if (filteredRows.length !== rows.length) notify(`${rows.length - filteredRows.length} empty child row(s) discarded`, 'warning');
+          const childRes = resolveChildApiPath(childField);
+          return filteredRows.map(row => {
+            const { __aras_empty_row, ...data } = row;
+            return { resource: childRes, data };
+          });
+        });
+        res = children.length > 0
+          ? await api.post(`/${cleanResource}/batch`, { parent: payload, children })
+          : await api.post(`/${cleanResource}`, payload);
         if (res.data?.id != null) setCurrentId(res.data.id);
-      }
-      const savedId = res.data?.id ?? currentId;
-      // POST pending child rows
-      for (const [fieldName, rows] of Object.entries(childRows)) {
-        const childField = metadata?.fields.find(f => f.name === fieldName);
-        if (!childField?.target_resource || rows.length === 0) continue;
-        const fkKey = childField.fk_column || `${cleanResource.split('/').pop()}_id`;
-        const childRes = (childField as any).target_api_path || cleanResourcePath(childField.target_resource);
-        for (const row of rows) {
-          if (row.id) {
-            await api.patch(`/${childRes}/${row.id}`, { ...row, [fkKey]: savedId });
-          } else {
-            await api.post(`/${childRes}`, { ...row, [fkKey]: savedId });
-          }
+        const childErrors = res.data?.child_errors || res.data?.errors;
+        if (childErrors) {
+          setErrors(prev => ({ ...prev, children: Array.isArray(childErrors) ? childErrors.join(', ') : String(childErrors) }));
+          notify('Some child rows failed to save', 'error');
         }
       }
+      const savedId = res.data?.id ?? currentId;
+      for (const field of m2mFields) {
+        const before = initialM2mRef.current[field.name] ?? [];
+        const after = Array.isArray(formData[field.name]) ? formData[field.name] : [];
+        const add = after.filter((id: any) => !before.includes(id));
+        const remove = before.filter((id: any) => !after.includes(id));
+        if (savedId != null && (add.length > 0 || remove.length > 0)) {
+          await api.post(`/${cleanResource}/${savedId}/m2m/${field.name}`, { add, remove });
+          initialM2mRef.current[field.name] = after;
+        }
+      }
+      // Sync child rows: delete removed, patch existing, post new
+      for (const [fieldName, rows] of Object.entries(childRows)) {
+        if (currentId == null) continue;
+        const childField = metadata?.fields.find(f => f.name === fieldName);
+        if (!childField?.target_resource) continue;
+        const editableFields = Object.keys(rows[0] ?? {}).map(name => ({ name }));
+        const filteredRows = filterEmptyChildRows(rows, editableFields);
+        if (filteredRows.length !== rows.length) notify(`${rows.length - filteredRows.length} empty child row(s) discarded`, 'warning');
+        const fkKey = childField.fk_column || `${cleanResource.split('/').pop()}_id`;
+        const childRes = resolveChildApiPath(childField);
+        // Delete rows that existed at load but are no longer present
+        const initialIds = initialChildRowIdsRef.current[fieldName] ?? new Set();
+        const currentIds = new Set(filteredRows.map((r: any) => r.id).filter(Boolean));
+        for (const removedId of initialIds) {
+          if (!currentIds.has(removedId)) {
+            try {
+              await api.delete(`/${childRes}/${removedId}`);
+            } catch (e: any) {
+              if (e.response?.status !== 404) throw e;
+            }
+          }
+        }
+        for (const row of filteredRows) {
+          const { __aras_empty_row, ...rowData } = row;
+          if (row.id) {
+            await api.patch(`/${childRes}/${row.id}`, { ...rowData, [fkKey]: savedId });
+          } else {
+            await api.post(`/${childRes}`, { ...rowData, [fkKey]: savedId });
+          }
+        }
+        // Update baseline so a subsequent save doesn't re-delete already-removed rows
+        initialChildRowIdsRef.current[fieldName] = currentIds;
+      }
+      invalidateInlineLookupCache();
       notify('Record saved successfully', 'success');
       if (onSave) onSave(res.data);
     } catch (err: any) {
@@ -538,7 +616,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         <div className="space-y-6">
           {metadata.layout && metadata.layout.length > 0 ? (
             metadata.layout.map((section, idx) => {
-              const sectionFields = section.fields
+              const fieldNames = 'tabs' in section ? section.tabs.flatMap(t => t.fields) : section.fields;
+              const sectionFields = fieldNames
                 .map(fieldName => metadata.fields.find(f => f.name === fieldName))
                 .filter((f): f is Field => !!f);
               const normalFields = sectionFields.filter(f => !f.hidden && !f.form_hidden && f.type !== 'child_table');
@@ -614,7 +693,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     if (field.type === 'child_table') {
       const parentApiPath = metadata?.api_path || cleanResourcePath(resource);
       const fkKey = field.fk_column || `${parentApiPath.split('/').pop()}_id`;
-      const childApiPath = (field as any).target_api_path || cleanResourcePath(field.target_resource!);
+      const childApiPath = resolveChildApiPath(field);
       return (
         <InlineChildTable
           key={`${field.name}-${refreshTrigger}`}
@@ -631,7 +710,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     const fieldLabel = vocabulary.get(field.label);
 
     const fieldForComponent = { ...field, label: fieldLabel };
-    const isOrganizationField = (field.name === 'company_id' || field.name === 'org_id') && companies.length > 0;
+    const isDocNumberField = field.name === 'number' && metadata?.is_document;
+    const isOrganizationField = (field.name === 'org_id') && organizations.length > 0;
     const isProfileField = field.name === 'profile';
     const isUnitTypeField = field.name === 'unit_type';
     const isTerminalLabelField = field.name === 'terminal_label';
@@ -645,15 +725,27 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           {field.required && <span className="text-rose-500">*</span>}
         </label>
 
-        {isOrganizationField ? (
+        {isDocNumberField ? (
+          <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-500 select-none">
+            {formData[field.name] ? String(formData[field.name]) : '[Auto-generated]'}
+          </div>
+        ) : field.type === 'm2m' && field.target_resource ? (
+          <MultiSelectCombobox
+            resource={field.target_resource}
+            value={Array.isArray(formData[field.name]) ? formData[field.name] : []}
+            onChange={(val) => handleChange(field.name, val)}
+            placeholder={`Select ${fieldLabel}...`}
+            disabled={field.read_only}
+          />
+        ) : isOrganizationField ? (
           <select
             value={formData[field.name] ?? ''}
             onChange={(e) => handleChange(field.name, e.target.value ? Number(e.target.value) : null)}
-            disabled={companies.length === 1}
+            disabled={organizations.length === 1}
             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none disabled:opacity-60"
           >
-            {companies.length > 1 && <option value="">Select organization...</option>}
-            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {organizations.length > 1 && <option value="">Select organization...</option>}
+            {organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}
           </select>
         ) : isProfileField ? (
           <div className="relative">
@@ -841,11 +933,46 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         )}
 
         {metadata.layout && metadata.layout.length > 0 ? (
-          metadata.layout.map((section, idx) => {
+          metadata.layout.map((entry, idx) => {
+            if ('tabs' in entry) {
+              // Tab group
+              const currentTab = activeTab[idx] ?? 0;
+              const tab = entry.tabs[currentTab];
+              const tabFields = (tab?.fields ?? [])
+                .map(name => metadata.fields.find(f => f.name === name))
+                .filter((f): f is Field => !!f);
+              const normalFields = tabFields.filter(f => f.type !== 'child_table');
+              const childTableFields = tabFields.filter(f => f.type === 'child_table');
+
+              return (
+                <div key={idx} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="flex border-b border-slate-200 bg-slate-50">
+                    {entry.tabs.map((t, ti) => (
+                      <button
+                        key={ti}
+                        type="button"
+                        onClick={() => setActiveTab(prev => ({ ...prev, [idx]: ti }))}
+                        className={`px-6 py-3 text-sm font-semibold transition-colors ${currentTab === ti ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'text-slate-500 hover:text-slate-700'}`}
+                      >
+                        {vocabulary.get(t.title)}
+                      </button>
+                    ))}
+                  </div>
+                  {normalFields.length > 0 && (
+                    <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {normalFields.map(renderField)}
+                    </div>
+                  )}
+                  {childTableFields.map(renderField)}
+                </div>
+              );
+            }
+
+            // Regular section
+            const section = entry as LayoutSection;
             const sectionFields = section.fields
               .map(fieldName => metadata.fields.find(f => f.name === fieldName))
               .filter((f): f is Field => !!f);
-              
             const normalFields = sectionFields.filter(f => f.type !== 'child_table');
             const childTableFields = sectionFields.filter(f => f.type === 'child_table');
 
@@ -865,8 +992,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
               </React.Fragment>
             );
           })
-        ) : (
-          <>
+        ) : (          <>
             {metadata.fields.filter(f => f.type !== 'child_table').length > 0 && (
               <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -877,6 +1003,19 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             {metadata.fields.filter(f => f.type === 'child_table').map(renderField)}
           </>
         )}
+        {/* Render child_table fields not covered by the layout */}
+        {metadata.layout && metadata.layout.length > 0 && (() => {
+          const layoutFieldNames = new Set(
+            metadata.layout.flatMap((entry: any) =>
+              'tabs' in entry
+                ? entry.tabs.flatMap((t: any) => t.fields ?? [])
+                : entry.fields ?? []
+            )
+          );
+          return metadata.fields
+            .filter(f => f.type === 'child_table' && !layoutFieldNames.has(f.name))
+            .map(renderField);
+        })()}
       </div>
 
       {/* ── Child Tables Section (Fallback for children not in fields list) ── */}

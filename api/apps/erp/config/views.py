@@ -60,7 +60,7 @@ class ChargeView(Aras.View):
     layout = [
         {"title": "Configuration", "fields": ["name", "charge_type", "calc_method", "rate", "amount"]},
         {"title": "Accounting", "fields": ["account_collected_id", "account_paid_id"]},
-        {"title": "Behavior", "fields": ["is_inclusive", "is_compound", "sequence"]}
+        {"title": "Behavior", "fields": ["is_inclusive", "is_compound"]}
     ]
 
 class ExchangeRateView(Aras.View):

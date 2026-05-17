@@ -2,7 +2,7 @@ import json
 import csv
 import io
 from fastapi import APIRouter, Depends, HTTPException, Request, status, Query, UploadFile, File
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
 from typing import List, Type, Any, Optional
@@ -13,6 +13,8 @@ from ..auth.service import get_current_user
 from ..logic.permissions import check_permissions
 from ..logic.scope import ScopeContext
 from ..base.router import Router
+from ..exceptions import ArasException, ValidationException, ResourceNotFoundException, PermissionDeniedException, ConflictException
+from ..response import ok, err
 
 
 def _scope_fields(model_class: Type[Any]) -> list[str]:
@@ -52,9 +54,8 @@ def _inject_scope_payload(model_class: Type[Any], request: Request, payload: dic
             if field in col_names:
                 col = model_class.__table__.c[field]
                 if not col.nullable and col.default is None and col.server_default is None:
-                    raise HTTPException(
-                        status_code=400,
-                        detail=_create_error_detail(f"No active scope for '{field}'. Please select a context first.")
+                    raise ValidationException(
+                        f"No active scope for '{field}'. Please select a context first."
                     )
     return payload
 
@@ -66,21 +67,92 @@ def _check_scope_ownership(model_class: Type[Any], request: Request, item: Any):
     for field in _scope_fields(model_class):
         val = scope.get(field)
         if val is not None and getattr(item, field, None) != val:
-            raise HTTPException(status_code=404, detail=_create_error_detail("Item not found"))
+            raise ResourceNotFoundException("Item not found")
 
 
-def _create_success_response(data: Any, message: str = "Operation successful.") -> dict:
-    """Creates a standardized success response dictionary."""
-    return {"success": True, "data": data, "message": message, "error": None}
+def _save_children(db: Any, parent_item: Any, payload: dict, user_id: int = None):
+    """
+    Saves child table rows sent alongside a parent record.
+    Implements sync semantics:
+    - Existing children with matching IDs are updated.
+    - Children present in payload but not in DB (no ID or new ID) are created.
+    - Existing children not present in payload are deleted.
 
-def _create_error_detail(message: str, error_detail: Optional[str] = None) -> dict:
-    """Creates a standardized error detail dictionary for HTTPException."""
-    return {
-        "success": False,
-        "data": None,
-        "message": message,
-        "error": error_detail or message
-    }
+    This function is critical for handling child table data provided when a parent
+    record is created, updated, or patched. It ensures data consistency for child
+    collections by synchronizing the database state with the incoming payload.
+    """
+    from ..base.model import Model as ArasModel
+
+    # Retrieve child table definitions from the parent model's _child_map
+    child_defs = ArasModel._child_map.get(parent_item.__tablename__, [])
+
+    for child_def in child_defs:
+        child_resource_name = child_def["resource"]
+        fk_column = child_def["fk_column"] # Foreign key column linking child to parent
+
+        # Skip if this child resource is not part of the incoming payload or if FK column is missing
+        if child_resource_name not in payload or not fk_column:
+            continue
+
+        # Get the list of child row data from the payload
+        incoming_child_rows_data = payload[child_resource_name]
+        if not isinstance(incoming_child_rows_data, list):
+            # If the incoming data is not a list, it's malformed or not meant for sync
+            continue
+
+        try:
+            # Dynamically get the child model class from the registry
+            child_model = ArasModel.get_model(child_resource_name)
+        except KeyError:
+            # Log a warning if the child model isn't registered, then skip
+            print(f"Warning: Child model {child_resource_name} not found in registry. Skipping child sync.")
+            continue
+
+        # Fetch all existing children linked to this parent from the database
+        existing_children_db = db.query(child_model).filter(
+            getattr(child_model, fk_column) == parent_item.id
+        ).all()
+        
+        # Map existing children by their 'id' for efficient lookup
+        # Convert IDs to strings for robust comparison with incoming payload IDs (which might be strings)
+        existing_children_map = {str(row.id): row for row in existing_children_db if row.id is not None}
+        
+        # Keep track of IDs of children from the database that are still present in the incoming payload
+        # This helps identify which existing children need to be deleted (orphans)
+        incoming_payload_ids = set()
+
+        # Iterate through the incoming child row data from the payload
+        for row_data in incoming_child_rows_data:
+            if not isinstance(row_data, dict):
+                # Skip malformed entries
+                continue
+            
+            child_id = row_data.get("id") # Get the ID of the child from the payload data
+
+            # Prepare the child data, removing None values where appropriate and setting the FK
+            row_data_cleaned = {k: v for k, v in row_data.items() if v is not None or k == fk_column}
+            row_data_cleaned[fk_column] = parent_item.id # Link child to its parent
+
+            if child_id is not None and str(child_id) in existing_children_map:
+                # Case 1: Child exists in DB and is present in incoming payload -> UPDATE
+                existing_child_instance = existing_children_map[str(child_id)]
+                existing_child_instance.update_self(db, row_data_cleaned, user_id=user_id)
+                incoming_payload_ids.add(str(child_id)) # Mark as processed
+            else:
+                # Case 2: Child is new (no ID or ID not found in existing DB records) -> CREATE
+                child_model.create(db, row_data_cleaned, user_id=user_id)
+        
+        # Case 3: Identify and DELETE children that were in DB but are no longer in the incoming payload
+        for existing_id_str, existing_child_instance in existing_children_map.items():
+            if existing_id_str not in incoming_payload_ids:
+                # This child was removed from the UI, so delete it from the DB
+                db.delete(existing_child_instance)
+        
+        # Flush the session to ensure all deletions, updates, and creations are
+        # registered with the database before the main transaction is committed.
+        db.flush()
+
 
 
 class RouterFactory(Router):
@@ -101,6 +173,7 @@ class RouterFactory(Router):
             tags=[_api_tag]
         )
 
+
         # ── 1. Dynamic Pydantic Schema Generation ─────────────────────────────
         from ..aras import Aras
         
@@ -112,6 +185,8 @@ class RouterFactory(Router):
             fields = {}
             # System fields that are never part of the request body
             system_skip = {'id', 'created_at', 'updated_at', 'deleted_at', 'created_by', 'updated_by'}
+            # Scope fields are server-injected; accept them as optional so the frontend need not send them
+            scope_field_names = set(_scope_fields(model_class))
 
             from pydantic import Field as PydanticField
             import re as _re
@@ -137,11 +212,13 @@ class RouterFactory(Router):
 
                 # Determine if the field is required
                 is_form_hidden = info.get("form_hidden", False)
+                is_scope_field = column.name in scope_field_names
                 has_default = (
                     column.nullable or
                     column.default is not None or
                     column.server_default is not None or
-                    is_form_hidden
+                    is_form_hidden or
+                    is_scope_field
                 )
 
                 pydantic_kwargs = {}
@@ -158,6 +235,13 @@ class RouterFactory(Router):
 
                 default_val = PydanticField(None if has_default else ..., **pydantic_kwargs) if pydantic_kwargs else (None if has_default else ...)
                 fields[column.name] = (Optional[python_type] if has_default else python_type, default_val)
+
+            # Add child table fields as optional list[dict] so Pydantic accepts them
+            from ..base.model import Model as _ArasModel
+            for child_def in _ArasModel._child_map.get(model_class.__tablename__, []):
+                resource = child_def.get("resource")
+                if resource and resource not in fields:
+                    fields[resource] = (Any, None)
 
             from ..base.validation import Validation
             from pydantic import ConfigDict
@@ -198,12 +282,12 @@ class RouterFactory(Router):
             view = Aras.View.get_for_model(model_class)
             if view:
                 data = view.render_metadata(db=db, lang=lang)
-                return _create_success_response(data, "Metadata retrieved successfully.")
+                return ok(data, "Metadata retrieved successfully.")
 
             # Fallback to standard auto-generation
             from ..logic.ui_generator import UIGenerator
             data = UIGenerator.generate_metadata(model_class, db=db, lang=lang)
-            return _create_success_response(data, "Metadata retrieved successfully.")
+            return ok(data, "Metadata retrieved successfully.")
 
         @router.get("/")
         async def list_items_slashed(
@@ -237,7 +321,7 @@ class RouterFactory(Router):
                 try:
                     parsed_filters = json.loads(filters)
                 except:
-                    raise HTTPException(status_code=400, detail=_create_error_detail("Invalid filters format. Must be JSON."))
+                    raise ValidationException("Invalid filters format. Must be JSON.")
 
             parsed_filters = _apply_scope_filters(model_class, request, list(parsed_filters or []))
 
@@ -250,7 +334,45 @@ class RouterFactory(Router):
                 order_by=order_by,
                 desc=desc
             )
-            return _create_success_response(paginated_data, "Items listed successfully.")
+            return ok(paginated_data, "Items listed successfully.")
+
+        @router.get("/aggregate")
+        async def aggregate_items(
+            request: Request, # Added request to allow scope filters
+            field: str = Query(..., description="Field to aggregate"),
+            agg_func: str = Query(..., alias="func", description="Aggregation function: sum, count, avg"),
+            filters: Optional[str] = None,
+            db: Session = Depends(get_db),
+            _: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=allow_public))
+        ):
+            """Performs aggregation on a specified field."""
+            parsed_filters = None
+            if filters:
+                try:
+                    parsed_filters = json.loads(filters)
+                except:
+                    raise ValidationException("Invalid filters format. Must be JSON.")
+            
+            parsed_filters = _apply_scope_filters(model_class, request, list(parsed_filters or []))
+
+            target_column = getattr(model_class, field, None)
+            if not target_column:
+                raise ValidationException(f"Field '{field}' not found in model.")
+
+            stmt = select(model_class)
+            stmt = model_class.apply_filters(stmt, parsed_filters)
+
+            aggregate_value = None
+            if agg_func == "count":
+                aggregate_value = db.scalar(select(func.count()).select_from(stmt.subquery()))
+            elif agg_func == "sum":
+                aggregate_value = db.scalar(select(func.sum(target_column)).select_from(stmt.subquery()))
+            elif agg_func == "avg":
+                aggregate_value = db.scalar(select(func.avg(target_column)).select_from(stmt.subquery()))
+            else:
+                raise ValidationException(f"Invalid aggregation function: {agg_func}. Supported: sum, count, avg.")
+            
+            return ok({"value": aggregate_value}, f"{agg_func.capitalize()} of {field} retrieved successfully.")
 
         @router.get("/export")
         async def export_items(
@@ -265,7 +387,7 @@ class RouterFactory(Router):
             parsed_filters = None
             if filters:
                 try: parsed_filters = json.loads(filters)
-                except: raise HTTPException(status_code=400, detail=_create_error_detail("Invalid filters format"))
+                except: raise ValidationException("Invalid filters format.")
 
             # 1. Build Query
             stmt = model_class._q()
@@ -278,7 +400,7 @@ class RouterFactory(Router):
             # 2. Fetch All (Warning: Large datasets might need chunking, but for MVP we fetch all)
             items = db.scalars(stmt).all()
             if not items:
-                raise HTTPException(status_code=404, detail=_create_error_detail("No items to export"))
+                raise ResourceNotFoundException("No items to export")
 
             # 3. Create CSV in Memory
             output = io.StringIO()
@@ -302,12 +424,12 @@ class RouterFactory(Router):
         ):
             """Imports records from a CSV file via background task with optional mapping."""
             if not file.filename.endswith(".csv"):
-                raise HTTPException(status_code=400, detail=_create_error_detail("Only CSV files are supported"))
+                raise ValidationException("Only CSV files are supported")
 
             parsed_mapping = None
             if mapping:
                 try: parsed_mapping = json.loads(mapping)
-                except: raise HTTPException(status_code=400, detail=_create_error_detail("Invalid mapping format"))
+                except: raise ValidationException("Invalid mapping format")
 
             content = await file.read()
             stream = io.StringIO(content.decode("utf-8"))
@@ -325,7 +447,7 @@ class RouterFactory(Router):
                 mapping=parsed_mapping
             )
             data = {"message": "CSV import initiated in background", "task_id": task_id}
-            return _create_success_response(data, data["message"])
+            return ok(data, data["message"])
 
         @router.post("/", status_code=status.HTTP_201_CREATED)
         async def create_item_slashed(
@@ -346,7 +468,9 @@ class RouterFactory(Router):
             """Creates a new record with hooks support."""
             payload = _inject_scope_payload(model_class, request, data.model_dump())
             new_item = model_class.create(db, payload, user_id=user.id)
-            return _create_success_response(new_item.to_dict(), "Item created successfully.")
+            _save_children(db, new_item, payload, user_id=user.id)
+            db.commit()
+            return ok(new_item.to_dict(), "Item created successfully.")
 
         @router.get("/{item_id}")
         async def get_item(
@@ -358,11 +482,32 @@ class RouterFactory(Router):
             """Fetches a single record by ID."""
             item = model_class.get(db, item_id)
             if not item:
-                raise HTTPException(status_code=404, detail=_create_error_detail("Item not found"))
+                raise ResourceNotFoundException("Item not found")
             _check_scope_ownership(model_class, request, item)
             res = item.to_dict()
             model_class.resolve_labels(db, [res])
-            return _create_success_response(res, "Item retrieved successfully.")
+
+            # Child Hydration
+            from ..base.model import Model as ArasModel # Import Model to access _child_map and get_model
+            child_defs = ArasModel._child_map.get(model_class.__tablename__, [])
+            for child_def in child_defs:
+                child_resource_name = child_def["resource"]
+                fk_column = child_def["fk_column"]
+
+                if fk_column and child_resource_name:
+                    try:
+                        child_model_class = ArasModel.get_model(child_resource_name)
+                        child_records = db.scalars(
+                            select(child_model_class).where(getattr(child_model_class, fk_column) == item_id)
+                        ).all()
+                        res[child_resource_name] = [rec.to_dict() for rec in child_records]
+                        child_model_class.resolve_labels(db, res[child_resource_name])
+                    except KeyError:
+                        print(f"Warning: Child model {child_resource_name} not found in registry.")
+                    except Exception as e:
+                        print(f"Error fetching child records for {child_resource_name}: {e}")
+
+            return ok(res, "Item retrieved successfully.")
 
         @router.put("/{item_id}")
         async def update_item(
@@ -375,14 +520,16 @@ class RouterFactory(Router):
             """Updates an existing record with hooks support."""
             item = model_class.get(db, item_id)
             if not item:
-                raise HTTPException(status_code=404, detail=_create_error_detail("Item not found"))
+                raise ResourceNotFoundException("Item not found")
             _check_scope_ownership(model_class, request, item)
 
             payload = data.model_dump(exclude_unset=True)
             item.update_self(db, payload, user_id=user.id)
+            _save_children(db, item, payload, user_id=user.id)
+            db.commit()
             res = item.to_dict()
             model_class.resolve_labels(db, [res])
-            return _create_success_response(res, "Item updated successfully.")
+            return ok(res, "Item updated successfully.")
 
         @router.patch("/{item_id}")
         async def patch_item(
@@ -395,14 +542,16 @@ class RouterFactory(Router):
             """Partially updates an existing record."""
             item = model_class.get(db, item_id)
             if not item:
-                raise HTTPException(status_code=404, detail=_create_error_detail("Item not found"))
+                raise ResourceNotFoundException("Item not found")
             _check_scope_ownership(model_class, request, item)
 
             payload = data.model_dump(exclude_unset=True)
             item.update_self(db, payload, user_id=user.id)
+            _save_children(db, item, payload, user_id=user.id)
+            db.commit()
             res = item.to_dict()
             model_class.resolve_labels(db, [res])
-            return _create_success_response(res, "Item patched successfully.")
+            return ok(res, "Item patched successfully.")
 
         @router.delete("/{item_id}")
         async def delete_item(
@@ -413,10 +562,11 @@ class RouterFactory(Router):
             """Deletes or soft-deletes a record."""
             item = model_class.get(db, item_id)
             if not item:
-                raise HTTPException(status_code=404, detail=_create_error_detail("Item not found"))
+                raise ResourceNotFoundException("Item not found")
 
             item.delete_self(db, user_id=user.id)
-            return _create_success_response({"id": item_id}, "Item deleted successfully.")
+            db.commit()
+            return ok({"id": item_id}, "Item deleted successfully.")
 
         if getattr(model_class, "__soft_delete__", False):
             @router.get("/deleted", tags=[_api_tag])
@@ -438,7 +588,7 @@ class RouterFactory(Router):
                     "page": page,
                     "pages": (total + per_page - 1) // per_page
                 }
-                return _create_success_response(data, "Deleted items listed successfully.")
+                return ok(data, "Deleted items listed successfully.")
 
             @router.post("/{item_id}/restore")
             async def restore_item(
@@ -450,14 +600,14 @@ class RouterFactory(Router):
                 from sqlalchemy import select as sa_select
                 item = db.scalar(sa_select(model_class).where(model_class.id == item_id))
                 if not item:
-                    raise HTTPException(status_code=404, detail=_create_error_detail("Item not found"))
+                    raise ResourceNotFoundException("Item not found")
                 if item.deleted_at is None:
-                    raise HTTPException(status_code=400, detail=_create_error_detail("Record is not deleted"))
+                    raise ValidationException("Record is not deleted")
                 item.deleted_at = None
                 item.updated_by = user.id
                 db.commit()
                 db.refresh(item)
-                return _create_success_response(item.to_dict(), "Item restored successfully.")
+                return ok(item.to_dict(), "Item restored successfully.")
 
         @router.post("/bulk-delete")
         async def bulk_delete(
@@ -476,7 +626,7 @@ class RouterFactory(Router):
                     except Exception as e:
                         print(f"[Bulk Delete] Failed to delete item {item_id}: {e}")
             message = f"Successfully deleted {deleted_count} of {len(ids)} items."
-            return _create_success_response({"deleted_count": deleted_count, "requested_count": len(ids)}, message)
+            return ok({"deleted_count": deleted_count, "requested_count": len(ids)}, message)
 
         class _BatchOp(BaseModel):
             action: str  # "create" | "update" | "delete"
@@ -485,11 +635,64 @@ class RouterFactory(Router):
 
         @router.post("/batch")
         async def batch_operations(
-            operations: List[_BatchOp],
+            request: Request,
             db: Session = Depends(get_db),
             user: Any = Depends(check_permissions(model_class.__tablename__, "UPDATE"))
         ):
-            """Executes mixed create/update/delete operations atomically."""
+            """Executes mixed create/update/delete operations, or saves parent+children atomically."""
+            body = await request.json()
+
+            # {parent, children} shape — save parent then its children
+            if isinstance(body, dict) and "parent" in body:
+                try:
+                    parent_payload = _inject_scope_payload(model_class, request, body["parent"])
+                    children = body.get("children") or []
+                    if current_id := parent_payload.get("id"):
+                        parent_item = model_class.get(db, current_id)
+                        if not parent_item:
+                            raise ResourceNotFoundException("Item not found")
+                        parent_item.update_self(db, parent_payload, user_id=user.id)
+                    else:
+                        parent_item = model_class.create(db, parent_payload, user_id=user.id)
+                    db.flush()
+                    # Save each child group
+                    from ..base.model import Model as ArasModel
+                    child_errors = []
+                    for child_entry in children:
+                        child_resource = child_entry.get("resource", "").replace("/", "_").lstrip("_")
+                        child_data = child_entry.get("data", {})
+                        child_def = next(
+                            (c for c in ArasModel._child_map.get(model_class.__tablename__, [])
+                             if c["resource"] == child_resource or c["resource"].endswith(child_resource.split("_")[-1])),
+                            None
+                        )
+                        if not child_def:
+                            child_errors.append(f"Unknown child resource: {child_resource}")
+                            continue
+                        fk_column = child_def["fk_column"]
+                        child_model = ArasModel.get_model(child_def["resource"])
+                        child_data[fk_column] = parent_item.id
+                        child_data = _inject_scope_payload(child_model, request, child_data)
+                        try:
+                            child_model.create(db, child_data, user_id=user.id)
+                        except Exception as ce:
+                            child_errors.append(str(ce))
+                    db.commit()
+                    result = parent_item.to_dict()
+                    if child_errors:
+                        result["child_errors"] = child_errors
+                    return ok(result, "Saved successfully.")
+                except HTTPException:
+                    raise
+                except Exception as e:
+                    db.rollback()
+                    raise ArasException("Internal Server Error", detail=str(e))
+
+            # Standard list of batch ops
+            try:
+                operations = [_BatchOp(**op) for op in (body if isinstance(body, list) else [])]
+            except Exception:
+                raise ValidationException("Body must be a list of batch operations or {parent, children}.")
             results = []
             try:
                 for op in operations:
@@ -498,7 +701,7 @@ class RouterFactory(Router):
                         results.append({"action": "create", "id": item.id, "status": "ok"})
                     elif op.action == "update":
                         if not op.id:
-                            raise HTTPException(status_code=400, detail=_create_error_detail("update requires id"))
+                            raise ValidationException("Update requires ID.")
                         item = model_class.get(db, op.id)
                         if not item:
                             results.append({"action": "update", "id": op.id, "status": "not_found"})
@@ -507,7 +710,7 @@ class RouterFactory(Router):
                         results.append({"action": "update", "id": op.id, "status": "ok"})
                     elif op.action == "delete":
                         if not op.id:
-                            raise HTTPException(status_code=400, detail=_create_error_detail("delete requires id"))
+                            raise ValidationException("Delete requires ID.")
                         item = model_class.get(db, op.id)
                         if not item:
                             results.append({"action": "delete", "id": op.id, "status": "not_found"})
@@ -515,15 +718,15 @@ class RouterFactory(Router):
                         item.delete_self(db, user_id=user.id)
                         results.append({"action": "delete", "id": op.id, "status": "ok"})
                     else:
-                        raise HTTPException(status_code=400, detail=_create_error_detail(f"Unknown action: {op.action}"))
+                        raise ValidationException(f"Unknown action: {op.action}")
             except HTTPException:
                 raise
             except Exception as e:
                 db.rollback()
-                raise HTTPException(status_code=500, detail=_create_error_detail("Internal Server Error", error_detail=str(e)))
+                raise ArasException("Internal Server Error", detail=str(e))
             
             data = {"results": results, "count": len(results)}
-            return _create_success_response(data, "Batch operation completed.")
+            return ok(data, "Batch operation completed.")
         
         # ── 3. Custom Model Actions ───────────────────────────────────────────
         for action_name, model_action in model_class._actions.items():
@@ -544,7 +747,7 @@ class RouterFactory(Router):
                     ):
                         item = model_class.get(db, item_id)
                         if not item:
-                            raise HTTPException(status_code=404, detail=_create_error_detail("Item not found"))
+                            raise ResourceNotFoundException("Item not found")
                         
                         try:
                             # Pass input data to handler
@@ -552,10 +755,10 @@ class RouterFactory(Router):
                             result = handler(input_data)
                             db.commit()
                             message = f"Action '{name}' completed successfully."
-                            return _create_success_response({"result": result}, message)
+                            return ok({"result": result}, message)
                         except Exception as e:
                             db.rollback()
-                            raise HTTPException(status_code=500, detail=_create_error_detail("Internal Server Error", error_detail=str(e)))
+                            raise ArasException("Internal Server Error", detail=str(e))
                 else:
                     @router.post(f"/{{item_id}}/action/{name}", response_model=dict)
                     async def run_custom_action(
@@ -565,17 +768,17 @@ class RouterFactory(Router):
                     ):
                         item = model_class.get(db, item_id)
                         if not item:
-                            raise HTTPException(status_code=404, detail=_create_error_detail("Item not found"))
+                            raise ResourceNotFoundException("Item not found")
                         
                         try:
                             handler = getattr(item, action.handler.__name__)
                             result = handler()
                             db.commit()
                             message = f"Action '{name}' completed successfully."
-                            return _create_success_response({"result": result}, message)
+                            return ok({"result": result}, message)
                         except Exception as e:
                             db.rollback()
-                            raise HTTPException(status_code=500, detail=_create_error_detail("Internal Server Error", error_detail=str(e)))
+                            raise ArasException("Internal Server Error", detail=str(e))
             
             create_action_route(action_name, model_action)
 

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
-import * as LucideIcons from 'lucide-react'
+import { resolveIcon } from '../../lib/iconUtils'
 import type { SidebarItem } from '../types'
 
 interface SidebarAppMenuProps {
@@ -12,7 +12,7 @@ interface SidebarAppMenuProps {
 
 export function SidebarAppMenu({ app, isOpen, currentPath }: SidebarAppMenuProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const IconComponent = (LucideIcons as any)[app.icon] || LucideIcons.Package
+  const IconComponent = resolveIcon(app.icon)
   
   const models = app.models || []
   const isActive = models.some((m: any) => currentPath === (m.name ? `/${app.name}/${m.name}` : `/${app.name}`))

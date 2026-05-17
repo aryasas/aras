@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
@@ -57,13 +57,17 @@ async def read_users_me(
 ):
     from ..logic.permissions import RBAC
     companies = RBAC.get_user_companies(db, current_user)
+    default_org = next((c for c in companies if c.get("is_default")), None)
+    default_org_id = default_org["id"] if default_org else (companies[0]["id"] if companies else None)
     return {
         "id": current_user.id,
         "username": current_user.username,
         "email": current_user.email,
         "is_admin": current_user.is_admin,
-        "companies": companies,
+        "organizations": companies,
+        "default_org_id": default_org_id,
     }
+
 
 @router.post("/change-password")
 async def change_password(

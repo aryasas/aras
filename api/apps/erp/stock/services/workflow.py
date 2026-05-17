@@ -1,109 +1,72 @@
 from sqlalchemy.orm import Session
-from ..models import DeliveryNote, StockMovement, StockMovementLine, Product, ProductCategory
-from ...accounting.models import SalesInvoice, SalesInvoiceLine, Account
+from ..models import DeliveryNote, StockMovement, StockMovementLine, Item, ItemCategory
+from ...accounting.models import SalesInvoice, SalesInvoiceLine
 from ...accounting.services.journal import JournalService
-from .stock import StockComputeService
+from core.logic.workflow import WorkflowManager
+from core import Aras
 
 class StockWorkflowService:
     @staticmethod
-    def post_delivery_note(db: Session, delivery: DeliveryNote):
-        if delivery.status != "Draft":
-            return {"error": f"Delivery Note is already {delivery.status}"}
-            
-        # 1. Create Stock Movement
+    def post_delivery_note(db, delivery_note_id, user):
+        delivery_note = db.get(DeliveryNote, delivery_note_id)
+        if not delivery_note:
+            raise ValueError(f"DeliveryNote with ID {delivery_note_id} not found.")
+        if delivery_note.status != "Confirmed":
+            raise ValueError(f"DeliveryNote must be 'Confirmed' to be posted. Current status: {delivery_note.status}")
+
         movement = StockMovement(
-            org_id=delivery.org_id,
-            move_type="Outgoing",
-            from_location_id=delivery.location_id,
-            status="Posted",
-            notes=f"Auto-generated from {delivery.number}"
+            org_id=delivery_note.org_id,
+            move_type="delivery",
+            origin_model="erp_stock_delivery_notes",
+            origin_id=delivery_note.id,
+            status="Draft",
+            doc_date=delivery_note.doc_date,
+            notes=f"Auto-generated from Delivery Note {delivery_note.number}"
         )
         db.add(movement)
-        db.flush()
-        
-        journal_lines = []
-        total_valuation = 0.0
-        
-        for line in delivery.lines:
-            product = db.query(Product).get(line.product_id)
-            wac = StockComputeService.compute_avg_cost(db, line.product_id)
-            amount = line.qty * wac
-            total_valuation += amount
-            
-            mv_line = StockMovementLine(
+        db.flush() # Flush to get movement.id
+
+        for line in delivery_note.lines:
+            sm_line = StockMovementLine(
                 movement_id=movement.id,
-                product_id=line.product_id,
+                item_id=line.item_id,
                 qty=line.qty,
                 uom_id=line.uom_id,
-                unit_cost=wac
+                from_location_id=line.location_id, # Assuming DeliveryNoteLine has location_id
+                unit_price=line.unit_price # Assuming DeliveryNoteLine has unit_price
             )
-            db.add(mv_line)
-            
-            # 2. Prepare Accounting Integration
-            if product and product.category_id:
-                category = db.query(ProductCategory).get(product.category_id)
-                if category and category.account_cogs_id and category.account_stock_id:
-                    # Debit COGS
-                    journal_lines.append({
-                        'account_id': category.account_cogs_id,
-                        'debit': amount,
-                        'credit': 0,
-                        'description': f"COGS: {product.name} ({delivery.number})"
-                    })
-                    # Credit Inventory
-                    journal_lines.append({
-                        'account_id': category.account_stock_id,
-                        'debit': 0,
-                        'credit': amount,
-                        'description': f"Inventory: {product.name} ({delivery.number})"
-                    })
-
-        # 3. Post Journal Entry
-        if journal_lines and total_valuation > 0:
-            try:
-                JournalService.post_entry(
-                    db,
-                    delivery.org_id,
-                    journal_lines,
-                    reference=delivery.number,
-                    narrative=f"Stock Valuation for {delivery.number}"
-                )
-            except Exception as e:
-                db.rollback()
-                return {"error": f"Accounting post failed: {str(e)}"}
-            
-        delivery.status = "Posted"
-        db.commit()
-        return True
+            db.add(sm_line)
+        
+        # Trigger the workflow transition which will call post_stock_movement
+        WorkflowManager.trigger_action(movement, "Post", db, user)
+        return movement
 
     @staticmethod
-    def create_invoice_from_delivery(db: Session, delivery: DeliveryNote):
-        if delivery.status != "Posted":
-            return {"error": "Delivery Note must be posted before invoicing."}
-            
+    def create_invoice_from_delivery(db, delivery_note_id, user):
+        delivery_note = db.get(DeliveryNote, delivery_note_id)
+        if not delivery_note:
+            raise ValueError(f"DeliveryNote with ID {delivery_note_id} not found.")
+
         invoice = SalesInvoice(
-            org_id=delivery.org_id,
-            party_id=delivery.party_id,
+            org_id=delivery_note.org_id,
+            party_id=delivery_note.party_id,
+            doc_date=delivery_note.doc_date,
             status="Draft",
-            notes=f"Generated from Delivery Note {delivery.number}"
+            origin_model="erp_stock_delivery_notes",
+            origin_id=delivery_note.id,
+            notes=f"Auto-generated from Delivery Note {delivery_note.number}"
         )
         db.add(invoice)
-        db.flush()
-        
-        for line in delivery.lines:
-            from ..services.price import PriceService
-            unit_price = PriceService.get_price(db, line.product_id, uom_id=line.uom_id, qty=line.qty)
+        db.flush() # Flush to get invoice.id
 
+        for line in delivery_note.lines:
             inv_line = SalesInvoiceLine(
                 invoice_id=invoice.id,
-                product_id=line.product_id,
+                item_id=line.item_id, # Use item_id
                 qty=line.qty,
                 uom_id=line.uom_id,
-                unit_price=unit_price,
-                discount=0,
-                description=f"Ref: {delivery.number}"
+                unit_price=line.unit_price,
             )
             db.add(inv_line)
-            
-        db.commit()
-        return {"id": invoice.id, "number": invoice.number}
+        
+        return invoice

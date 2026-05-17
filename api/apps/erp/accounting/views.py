@@ -1,4 +1,6 @@
 from core import Aras
+from core.response import ok, err
+from ..base.document import DOC_LAYOUT_HEADER, DOC_LAYOUT_NOTES
 from .models import Account, JournalEntry, InflowInvoice, OutflowInvoice, InflowOrder, \
     OutflowOrder, Payment, FiscalPeriod
 
@@ -38,11 +40,11 @@ class InflowOrderView(Aras.View):
     title = "Inflow Orders"
     icon = "pi pi-shopping-cart"
     layout = [
-        {"title": "Header", "fields": ["number", "customer_id", "doc_date", "status"]},
+        {"title": "Header", "fields": ["number", "party_id", "doc_date", "status", "currency_id"]},
         {"title": "Items", "fields": ["lines"]},
         {"title": "Taxes & Charges", "fields": ["charges"]},
-        {"title": "Totals", "fields": ["subtotal", "total_charge", "total_amount"]},
-        {"title": "Notes", "fields": ["notes"]}
+        {"key": "financials", "title": "Financials", "fields": ["subtotal", "total_charge", "total_amount"]},
+        DOC_LAYOUT_NOTES
     ]
 
 class InflowInvoiceView(Aras.View):
@@ -50,11 +52,11 @@ class InflowInvoiceView(Aras.View):
     title = "Inflow Invoices"
     icon = "pi pi-file"
     layout = [
-        {"title": "Header", "fields": ["number", "customer_id", "doc_date", "status", "currency_id"]},
+        {"title": "Header", "fields": ["number", "party_id", "doc_date", "status", "currency_id"]},
         {"title": "Items", "fields": ["lines"]},
         {"title": "Taxes & Charges", "fields": ["charges"]},
         {"title": "Financials", "fields": ["subtotal", "total_charge", "total_amount"]},
-        {"title": "Notes", "fields": ["notes"]}
+        DOC_LAYOUT_NOTES # Replaced Notes section
     ]
 
 class OutflowOrderView(Aras.View):
@@ -62,11 +64,11 @@ class OutflowOrderView(Aras.View):
     title = "Outflow Orders"
     icon = "pi pi-shopping-bag"
     layout = [
-        {"title": "Header", "fields": ["number", "party_id", "doc_date", "status"]},
+        {"title": "Header", "fields": ["number", "party_id", "doc_date", "status", "currency_id"]},
         {"title": "Items", "fields": ["lines"]},
         {"title": "Taxes & Charges", "fields": ["charges"]},
-        {"title": "Totals", "fields": ["subtotal", "total_charge", "total_amount"]},
-        {"title": "Notes", "fields": ["notes"]}
+        {"key": "financials", "title": "Financials", "fields": ["subtotal", "total_charge", "total_amount"]},
+        DOC_LAYOUT_NOTES
     ]
 
 class OutflowInvoiceView(Aras.View):
@@ -74,20 +76,20 @@ class OutflowInvoiceView(Aras.View):
     title = "Outflow Invoices"
     icon = "pi pi-file-pdf"
     layout = [
-        {"title": "Header", "fields": ["number", "party_id", "doc_date", "status"]},
+        {"title": "Header", "fields": ["number", "party_id", "doc_date", "status", "currency_id"]},
         {"title": "Items", "fields": ["lines"]},
         {"title": "Taxes & Charges", "fields": ["charges"]},
         {"title": "Financials", "fields": ["subtotal", "total_charge", "total_amount"]},
-        {"title": "Notes", "fields": ["notes"]}
+        DOC_LAYOUT_NOTES
     ]
 
 class PaymentView(Aras.View):
     model = Payment
     icon = "pi pi-wallet"
     layout = [
-        {"title": "Header", "fields": ["number", "payment_type", "party_type", "party_id", "doc_date", "status"]},
+        {"title": "Header", "fields": ["number", "currency_id", "payment_type", "party_type", "party_id", "doc_date", "status"]},
         {"title": "Payment Details", "fields": ["account_id", "mode_of_payment_id", "amount", "reference"]},
         {"title": "Allocations", "fields": ["allocations"]},
-        {"title": "Notes", "fields": ["notes"]}
+        DOC_LAYOUT_NOTES # Replaced Notes section
     ]
 

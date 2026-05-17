@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../../lib/api'
 import { cleanResourcePath } from '../../lib/resourceUtils'
 import {
@@ -59,6 +59,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   fixedFilters?: Record<string, any>
 }) => {
   const vocabulary = useVocabulary()
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [metadata, setMetadata] = useState<Metadata | null>(null)
   const [data, setData] = useState<any[]>([])
@@ -123,7 +124,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         if (storedVisibleColumns) {
           setVisibleColumns(JSON.parse(storedVisibleColumns));
         } else {
-          setVisibleColumns(metadataRes.data.fields.filter((f: Field) => !f.hidden).map((f: Field) => f.name));
+          const scopedCols = new Set((metadataRes.data.scoped_by ?? []).map((pair: string[]) => pair[0]));
+          setVisibleColumns(metadataRes.data.fields.filter((f: Field) => !f.hidden && !scopedCols.has(f.name)).map((f: Field) => f.name));
         }
       } catch (err: any) {
         notify("Failed to load resource metadata or saved filters", "error")
@@ -333,7 +335,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     try {
       setLoading(true)
       const cleanResource = cleanResourcePath(resource)
-      await api.post(`/${cleanResource}/import-bulk`, { rows })
+      await api.post(`/${cleanResource}/import`, { rows })
       notify('Import successful', 'success')
       fetchData()
     } catch (err: any) {
@@ -470,6 +472,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         onColumnPickerToggle={() => setIsColumnPickerOpen(!isColumnPickerOpen)}
         isColumnPickerOpen={isColumnPickerOpen}
         onAdd={() => onAdd ? onAdd() : null}
+        onArchive={() => navigate(`/archive/${cleanResourcePath(resource)}`)}
         fields={toolbarFields}
         visibleColumns={visibleColumns}
         onVisibleColumnsChange={setVisibleColumns}

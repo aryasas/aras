@@ -10,13 +10,13 @@ class PromoService:
     def get_bundle_discounts(db: Session, items: list[dict], pricelist_id: int = None) -> dict[int, float]:
         """
         Check cart items for active promo bundles and return adjusted prices.
-        items format: [{'product_id': int, 'qty': float}]
+        items format: [{'item_id': int, 'qty': float}]
         """
         if not items:
             return {}
 
         today = date.today()
-        qty_map = {int(i["product_id"]): float(i["qty"]) for i in items}
+        qty_map = {int(i["item_id"]): float(i["qty"]) for i in items}
         product_ids = set(qty_map.keys())
 
         # Find active bundles
@@ -40,14 +40,14 @@ class PromoService:
                 
             match = True
             for bi in bundle_items:
-                if bi.product_id not in product_ids or qty_map[bi.product_id] < bi.qty:
+                if bi.item_id not in product_ids or qty_map[bi.item_id] < bi.qty:
                     match = False
                     break
             
             if match:
                 # Apply bundle pricing
                 for bi in bundle_items:
-                    pid = bi.product_id
+                    pid = bi.item_id
                     if pid in promo_prices:
                         continue # Already covered by another bundle
                         

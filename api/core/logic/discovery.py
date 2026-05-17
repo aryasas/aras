@@ -69,7 +69,10 @@ def register_app_routes(app: FastAPI, prefix: str = "/api/v1"):
                 
             # Clean Model Path (e.g., /accounts)
             model_seg = model.__tablename__
-            if app_cls.app_name and model_seg.startswith(f"{app_cls.app_name}_"):
+            full_prefix = f"{app_cls.parent_name}_{app_cls.app_name}_" if app_cls.parent_name and app_cls.app_name else None
+            if full_prefix and model_seg.startswith(full_prefix):
+                model_seg = model_seg[len(full_prefix):]
+            elif app_cls.app_name and model_seg.startswith(f"{app_cls.app_name}_"):
                 model_seg = model_seg[len(app_cls.app_name)+1:]
             elif app_cls.parent_name and model_seg.startswith(f"{app_cls.parent_name}_"):
                 model_seg = model_seg[len(app_cls.parent_name)+1:]

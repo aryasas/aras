@@ -37,6 +37,8 @@ class UIGenerator(Service):
         child_map = getattr(model_class, "_child_map", {})
         # children: list of {resource, fk_column}
         children = [dict(c) for c in child_map.get(resource_name, [])]
+        # Scope columns are implicit — hide them from list/form UI
+        scoped_by_cols = {pair[0] for pair in (getattr(model_class, "__scoped_by__", None) or [])}
         for column in table.columns:
             if column.name in system_fields:
                 continue
@@ -104,9 +106,9 @@ class UIGenerator(Service):
             is_required = db_field.is_required if db_field and db_field.is_required is not None else \
                           (not column.nullable and column.default is None and column.server_default is None)
 
-            # form_hidden honored from column.info — excludes from auto-form but
-            # leaves the field visible in API/detail responses.
-            form_hidden = bool(column.info.get("form_hidden", False))
+            # form_hidden: scope columns are auto-filled from request context, no need to show in form.
+            # column.info can also explicitly declare form_hidden.
+            form_hidden = column.name in scoped_by_cols or bool(column.info.get("form_hidden", False))
 
             field_info = {
                 "name": column.name,
@@ -173,9 +175,11 @@ class UIGenerator(Service):
                 LinkModel.source_resource_id == db_resource.id,
                 LinkModel.link_type == "child"
             ).all()
+            db_linked_children = set()
             for link in child_links:
                 target_res = db.query(ResourceModel).filter(ResourceModel.id == link.target_resource_id).first()
                 if target_res:
+                    db_linked_children.add(target_res.name)
                     code_entry = next(
                         (c for c in child_map.get(resource_name, []) if c.get("resource") == target_res.name),
                         None,
@@ -200,6 +204,28 @@ class UIGenerator(Service):
                         "searchable": False,
                         "depends_on": None,
                         "config": link.config
+                    })
+
+            # Also add code-defined children not yet in DB links
+            for child_entry in child_map.get(resource_name, []):
+                child_table = child_entry.get("resource")
+                if child_table and child_table not in db_linked_children:
+                    if not any(c.get("resource") == child_table for c in children):
+                        children.append(child_entry)
+                    fields.append({
+                        "name": child_table,
+                        "label": child_table.replace("_", " ").title(),
+                        "type": "child_table",
+                        "required": False,
+                        "target_resource": child_table,
+                        "target_api_path": resolve_api_path(child_table),
+                        "fk_column": child_entry.get("fk_column"),
+                        "options": None,
+                        "hidden": False,
+                        "read_only": False,
+                        "searchable": False,
+                        "depends_on": None,
+                        "config": None
                     })
         else:
             # Fallback to code definition if DB not synced yet
@@ -246,10 +272,10 @@ class UIGenerator(Service):
                 "target_resource": None,
                 "options": None,
                 "hidden": False,
-                "read_only": True,
+                "read_only": True, # Already true
                 "searchable": False,
                 "depends_on": None,
-                "is_computed": True
+                "computed": True # Changed from is_computed
             })
 
         # Find the app for this model to use its clean label logic
@@ -276,6 +302,7 @@ class UIGenerator(Service):
             "workflow": getattr(model_class, "__workflow__", None),
             "layout": db_resource.layout if db_resource and db_resource.layout else [],
             "is_auditable": "audit" in getattr(model_class, "__features__", []),
+            "is_document": "series" in getattr(model_class, "__features__", []),
             "scoped_by": [list(p) for p in (getattr(model_class, "__scoped_by__", None) or [])],
         }
 

@@ -13,14 +13,15 @@ logger = logging.getLogger(__name__)
 class MigrationReport(Service):
     created_tables:  list[str] = field(default_factory=list)
     added_columns:   list[str] = field(default_factory=list)
+    dropped_columns: list[str] = field(default_factory=list)
     added_indexes:   list[str] = field(default_factory=list)
     widened_columns: list[str] = field(default_factory=list)
     errors:          list[str] = field(default_factory=list)
 
     def has_changes(self) -> bool:
         return any([
-            self.created_tables, self.added_columns, self.added_indexes,
-            self.widened_columns, self.errors
+            self.created_tables, self.added_columns, self.dropped_columns,
+            self.added_indexes, self.widened_columns, self.errors
         ])
 
     def log_summary(self):
@@ -31,6 +32,8 @@ class MigrationReport(Service):
             print(f"[auto_migrate] created tables: {self.created_tables}")
         if self.added_columns:
             print(f"[auto_migrate] added columns: {self.added_columns}")
+        if self.dropped_columns:
+            print(f"[auto_migrate] dropped columns: {self.dropped_columns}")
         if self.added_indexes:
             print(f"[auto_migrate] added indexes: {self.added_indexes}")
         if self.widened_columns:
@@ -39,7 +42,7 @@ class MigrationReport(Service):
             print(f"[auto_migrate] errors: {self.errors}")
 
 def _quote(name: str) -> str:
-    return f"`{name}`"
+    return f'"{name}"'
 
 def _column_type_sql(col, dialect) -> str:
     return col.type.compile(dialect=dialect)
@@ -55,7 +58,7 @@ def _safe_default_sql(col) -> Optional[str]:
     if col.default is not None and getattr(col.default, "is_scalar", False):
         v = col.default.arg
         if isinstance(v, bool):
-            return "1" if v else "0"
+            return "TRUE" if v else "FALSE"
         if isinstance(v, (int, float)):
             return str(v)
         if isinstance(v, str):
@@ -105,6 +108,17 @@ def run(engine, metadata) -> MigrationReport:
                 except Exception as e:
                     report.errors.append(f"add {tname}.{cname}: {e}")
 
+            # Drop extra columns (exist in DB but not in model)
+            _SYSTEM_COLS = {"id", "created_at", "updated_at", "deleted_at", "created_by", "updated_by"}
+            for cname in sorted(set(live_cols) - set(model_cols) - _SYSTEM_COLS):
+                try:
+                    sql = f'ALTER TABLE "{tname}" DROP COLUMN "{cname}"'
+                    with engine.begin() as conn:
+                        conn.execute(text(sql))
+                    report.dropped_columns.append(f"{tname}.{cname}")
+                except Exception as e:
+                    report.errors.append(f"drop {tname}.{cname}: {e}")
+
             # Widen/Modify columns (basic check)
             for cname in sorted(set(model_cols) & set(live_cols)):
                 mcol = model_cols[cname]
@@ -121,6 +135,7 @@ def run(engine, metadata) -> MigrationReport:
                               .replace("INTEGER", "INT")
                               .replace("NUMERIC", "DECIMAL")
                               .replace("LONGTEXT", "JSON")
+                              .replace("DOUBLE PRECISION", "FLOAT")
                               .replace(" ", ""))
                         return s
                         
@@ -137,7 +152,10 @@ def run(engine, metadata) -> MigrationReport:
                         if dialect.name == "sqlite":
                             continue
 
-                        sql = f"ALTER TABLE {_quote(tname)} MODIFY {_quote(cname)} {target_type}{default_sql}{nullable_sql}"
+                        if dialect.name == "postgresql":
+                            sql = f"ALTER TABLE {_quote(tname)} ALTER COLUMN {_quote(cname)} TYPE {target_type}"
+                        else:
+                            sql = f"ALTER TABLE {_quote(tname)} MODIFY {_quote(cname)} {target_type}{default_sql}{nullable_sql}"
                         with engine.begin() as conn:
                             conn.execute(text(sql))
                         report.widened_columns.append(f"{tname}.{cname} ({live_type} -> {target_type})")

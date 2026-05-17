@@ -9,6 +9,7 @@ from sqlalchemy import Column, Integer, Boolean, DateTime, func, String, select,
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session
 from decimal import Decimal
 from enum import Enum
+import logging
 
 from .aras import Aras
 
@@ -217,7 +218,8 @@ class Model(Aras, Base):
                     stmt = stmt.where(col.between(val[0], val[1]))
                 elif op == "in" and isinstance(val, list):
                     stmt = stmt.where(col.in_(val))
-            except Exception:
+            except Exception as e:
+                logging.warning("serialization skipped: %s", e)
                 continue
         return stmt
 
@@ -293,6 +295,7 @@ class Model(Aras, Base):
 
         results = [item.to_dict() for item in items]
         cls.resolve_labels(db, results)
+        cls.resolve_m2m(db, results)
 
         return {
             "items": results,
@@ -474,8 +477,7 @@ class Model(Aras, Base):
         db.flush() # Ensure ID is available for M2M
         if data:
             self.save_m2m(db, data)
-
-        db.commit()
+        
         db.refresh(self)
         self.after_save(is_new=is_new)
         self._fire_hooks("on_create" if is_new else "on_update")
@@ -550,10 +552,8 @@ class Model(Aras, Base):
             self.deleted_at = datetime.now(timezone.utc)
             if user_id:
                 self.updated_by = user_id
-            db.commit()
         else:
             db.delete(self)
-            db.commit()
 
     # ── Serialization ─────────────────────────────────────────────────────────
 

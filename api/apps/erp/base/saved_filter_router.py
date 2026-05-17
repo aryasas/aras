@@ -36,7 +36,7 @@ def list_saved_filters(resource: str, request: Request, db: Session = Depends(ge
     """
     filters = db.query(SavedFilter).filter(
         SavedFilter.resource == resource,
-        SavedFilter.org_id == request.state.company_id
+        SavedFilter.org_id == request.state.org_id
     ).all()
     return filters
 
@@ -54,7 +54,7 @@ def create_saved_filter(
     if filter_data.is_default:
         existing_default = db.query(SavedFilter).filter(
             SavedFilter.resource == filter_data.resource,
-            SavedFilter.org_id == request.state.company_id,
+            SavedFilter.org_id == request.state.org_id,
             SavedFilter.is_default == True
         ).first()
         if existing_default:
@@ -66,7 +66,7 @@ def create_saved_filter(
         name=filter_data.name,
         filters_json=filter_data.filters_json,
         is_default=filter_data.is_default,
-        org_id=request.state.company_id # Assign current user's organization ID
+        org_id=request.state.org_id
     )
     db.add(new_filter)
     db.commit()
@@ -85,7 +85,7 @@ def delete_saved_filter(
     """
     filter_to_delete = db.query(SavedFilter).filter(
         SavedFilter.id == filter_id,
-        SavedFilter.org_id == request.state.company_id # Ensure user can only delete their own org's filters
+        SavedFilter.org_id == request.state.org_id
     ).first()
 
     if not filter_to_delete:

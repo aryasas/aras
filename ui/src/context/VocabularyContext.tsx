@@ -73,41 +73,41 @@ export const translateVocabularyText = (text: string, vocabulary: VocabularyLabe
 }
 
 export function VocabularyProvider({ children }: { children: React.ReactNode }) {
-  const activeCompanyId = useAuthStore((state) => state.activeCompanyId)
-  const companies = useAuthStore((state) => state.companies)
-  const activeCompany = companies.find((company) => company.id === activeCompanyId)
-  const profile = activeCompany?.profile || 'general'
+  const { activeOrgId, organizations } = useAuthStore()
+  const activeOrganization = organizations.find((organization) => organization.id === activeOrgId)
+  const profile = activeOrganization?.profile || 'general'
   const [overrides, setOverrides] = useState<Partial<VocabularyLabels>>({})
 
   useEffect(() => {
     let cancelled = false
 
-    if (!activeCompanyId) {
+    if (!activeOrgId) {
       setOverrides({})
       return
     }
 
-    const cached = vocabularyCache.get(activeCompanyId)
+    const cached = vocabularyCache.get(activeOrgId)
     if (cached) {
       setOverrides(cached)
       return
     }
 
-    api.get(`/erp/config/organizations/${activeCompanyId}/vocabulary`)
+    api.get(`/erp/config/organizations/${activeOrgId}/vocabulary`)
       .then((res) => {
         const normalized = normalizeVocabulary(res.data)
-        vocabularyCache.set(activeCompanyId, normalized)
+        vocabularyCache.set(activeOrgId, normalized)
         if (!cancelled) setOverrides(normalized)
       })
-      .catch(() => {
-        vocabularyCache.set(activeCompanyId, {})
+      .catch((error) => {
+        console.error('Failed to load vocabulary for organization', activeOrgId, error)
+        vocabularyCache.set(activeOrgId, {})
         if (!cancelled) setOverrides({})
       })
 
     return () => {
       cancelled = true
     }
-  }, [activeCompanyId])
+  }, [activeOrgId])
 
   const value = useMemo<VocabularyContextValue>(() => {
     const defaults = PROFILE_DEFAULTS[profile] || PROFILE_DEFAULTS.general

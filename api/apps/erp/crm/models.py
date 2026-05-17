@@ -3,6 +3,8 @@ from datetime import date
 from sqlalchemy import String, ForeignKey, Boolean, Text, Float, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core import Aras
+from core.response import ok, err
+from core.exceptions import ValidationException
 from ..base import MasterDataBase, LineItemBase
 
 
@@ -48,7 +50,7 @@ class Lead(MasterDataBase):
 
         # Check if already a party
         if self.party_id:
-            return {"error": "Lead is already linked to a party."}
+            raise ValidationException("Lead is already linked to a party.")
 
         # Create Party
         party = Party(
@@ -64,9 +66,9 @@ class Lead(MasterDataBase):
         self.party_id = party.id
         self.status = "Won"
         self.lead_type = "Opportunity"
-        db.commit()
+        # db.commit() # Removed
 
-        return {"id": party.id, "message": f"Party {party.name} created successfully."}
+        return ok({"id": party.id}, message=f"Party {party.name} created successfully.")
 
 class Activity(LineItemBase):
     __tablename__ = "erp_crm_activities"

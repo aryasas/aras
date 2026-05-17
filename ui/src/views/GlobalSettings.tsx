@@ -3,6 +3,7 @@ import { Globe, Save, RefreshCw, Coins, Languages, Calendar, Cpu, ShieldAlert, D
 import api from '../lib/api'
 import { useUIStore } from '../store/uiStore'
 import Combobox from '../aras-core/components/Combobox'
+import { useAras } from '../aras-core/hooks/useAras'
 
 interface Setting {
   id: number;
@@ -16,6 +17,7 @@ function GlobalSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { showAlert, showError } = useUIStore();
+  const { notify } = useAras();
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -27,9 +29,9 @@ function GlobalSettings() {
         settingsMap[s.key] = s;
       });
       setSettings(settingsMap);
-    } catch (err) {
+    } catch (err: any) {
       showError('Error', 'Failed to load system settings.');
-      console.error(err);
+      notify(err.message || 'Failed to load system settings.', 'error');
     } finally {
       setLoading(false);
     }
@@ -66,9 +68,9 @@ function GlobalSettings() {
 
       await Promise.all(promises);
       showAlert('Success', 'Global settings updated successfully.');
-    } catch (err) {
+    } catch (err: any) {
       showError('Error', 'Failed to save settings.');
-      console.error(err);
+      notify(err.message || 'Failed to save settings.', 'error');
     } finally {
       setSaving(false);
     }

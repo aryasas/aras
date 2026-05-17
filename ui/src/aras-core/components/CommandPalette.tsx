@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import * as LucideIcons from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../lib/api'
+import { useAras } from '../hooks/useAras'
 
 const SHORTCUTS = [
   { keys: ['⌘', 'K'], description: 'Open command palette / search' },
@@ -49,6 +50,7 @@ export const CommandPalette: React.FC = () => {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const navigate = useNavigate()
   const inputRef = useRef<HTMLInputElement>(null)
+  const { notify } = useAras()
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -79,12 +81,12 @@ export const CommandPalette: React.FC = () => {
         const res = await api.get(`/search?q=${query}`)
         setResults(res.data)
         setSelectedIndex(0)
-      } catch (err) {
-        console.error('Search failed', err)
+      } catch (err: any) {
+        notify(err.message || 'Search failed', 'error')
       }
     }, 300)
     return () => clearTimeout(timer)
-  }, [query])
+  }, [query, notify])
 
   const handleSelect = (result: any) => {
     navigate(`/${result.resource}/${result.id}`)

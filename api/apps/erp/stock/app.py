@@ -3,22 +3,20 @@ from . import views # Trigger view registration
 
 from core.logic.discovery import autodiscover_models
 from .models import * # Import all models for discovery
-from .models_valuation import * # Import all models from models_valuation for discovery
+from .services import posting as _posting  # noqa: F401 — registers on_transition callbacks
 
 class Stock(ERP):
     app_name = "erp_stock"
     app_label = "Stock"
     icon = "Package"
 
-    models = autodiscover_models(__name__, [
-        "models", "models_valuation"
-    ])
+    models = autodiscover_models(__name__, ["models"])
 
     menu_groups = [
         {
             "label": "Master Data",
             "icon": "Database",
-            "models": ["erp_stock_products", "erp_stock_categories", "erp_stock_locations"]
+            "models": ["erp_stock_items", "erp_stock_categories", "erp_stock_locations"]
         },
         {
             "label": "Operations",

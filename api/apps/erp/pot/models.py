@@ -2,6 +2,8 @@ from typing import Optional
 from sqlalchemy import String, ForeignKey, Float, Boolean, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core import Aras
+from core.response import ok, err
+from core.exceptions import ValidationException
 from ..base import DocumentBase, LineItemBase
 
 
@@ -31,14 +33,16 @@ class PotSession(DocumentBase):
         from .services.pot import PotService
         from sqlalchemy.orm import object_session
         db = object_session(self)
-        return PotService.get_pot_products(db, self.id)
+        products = PotService.get_pot_products(db, self.id)
+        return ok(products, message="POT Products retrieved successfully.")
 
     @Aras.model_action(name="submit_order", permission="edit", label="Submit POT Order")
     def submit_order(self, data: dict):
         from .services.pot import PotService
         from sqlalchemy.orm import object_session
         db = object_session(self)
-        return PotService.process_order(db, self.id, data)
+        order_result = PotService.process_order(db, self.id, data)
+        return ok(order_result, message="POT Order submitted successfully.")
 
     @Aras.model_action(name="close_session", permission="edit", label="Close Session")
     def close_session(self, data: dict):
@@ -46,14 +50,16 @@ class PotSession(DocumentBase):
         from sqlalchemy.orm import object_session
         db = object_session(self)
         cash_counted = data.get("cash_counted", 0)
-        return PotService.close_session(db, self.id, cash_counted)
+        session_result = PotService.close_session(db, self.id, cash_counted)
+        return ok(session_result, message="POT Session closed successfully.")
 
     @Aras.model_action(name="shift_report", permission="read", label="Shift Report")
     def shift_report(self):
         from .services.pot import PotService
         from sqlalchemy.orm import object_session
         db = object_session(self)
-        return PotService.get_shift_report(db, self.id)
+        report_data = PotService.get_shift_report(db, self.id)
+        return ok(report_data, message="Shift Report retrieved successfully.")
 
 
 class PotOrder(DocumentBase):
@@ -77,7 +83,7 @@ class PotOrderLine(LineItemBase):
     __parent__ = "erp_pot_orders"
 
     order_id: Mapped[int] = mapped_column(ForeignKey("erp_pot_orders.id"))
-    product_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
     qty: Mapped[float] = mapped_column(Float, default=1.0)
     uom_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
     price: Mapped[float] = mapped_column(Float, default=0)

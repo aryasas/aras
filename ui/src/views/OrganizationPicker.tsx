@@ -2,15 +2,15 @@ import { Building2, CheckCircle2, LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 
-export default function CompanyPicker() {
-  const companies = useAuthStore((state) => state.companies)
-  const activeCompanyId = useAuthStore((state) => state.activeCompanyId)
-  const setActiveCompany = useAuthStore((state) => state.setActiveCompany)
+export default function OrganizationPicker() {
+  const organizations = useAuthStore((state) => state.organizations)
+  const activeOrgId = useAuthStore((state) => state.activeOrgId)
+  const setActiveOrg = useAuthStore((state) => state.setActiveOrg)
   const logout = useAuthStore((state) => state.logout)
   const navigate = useNavigate()
 
-  const handleSelectCompany = (companyId: number) => {
-    setActiveCompany(companyId)
+  const handleSelectOrganization = (orgId: number) => {
+    setActiveOrg(orgId)
     navigate('/')
   }
 
@@ -26,21 +26,21 @@ export default function CompanyPicker() {
         </div>
 
         <div className="p-4 space-y-2">
-          {companies.map((company) => {
-            const isActive = company.id === activeCompanyId
+          {organizations.map((organization) => {
+            const isActive = organization.id === activeOrgId
 
             return (
               <button
-                key={company.id}
+                key={organization.id}
                 type="button"
-                onClick={() => handleSelectCompany(company.id)}
+                onClick={() => handleSelectOrganization(organization.id)}
                 className="w-full flex items-center justify-between gap-4 px-4 py-4 rounded-2xl border border-slate-200 bg-white text-left hover:border-indigo-200 hover:bg-indigo-50/50 transition-colors"
               >
                 <span className="flex items-center gap-3 min-w-0">
                   <span className="h-10 w-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
                     <Building2 size={18} />
                   </span>
-                  <span className="font-semibold text-slate-900 truncate">{company.name}</span>
+                  <span className="font-semibold text-slate-900 truncate">{organization.name}</span>
                 </span>
                 {isActive && <CheckCircle2 className="text-indigo-600 shrink-0" size={20} />}
               </button>

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import * as LucideIcons from 'lucide-react'
+import { resolveIcon } from '../lib/iconUtils'
 import { ArrowRight } from 'lucide-react'
-import { DashboardView } from '../aras-core/components/DashboardView'
+import { DashboardView } from './DashboardView'
 import { useAuthStore } from '../store/authStore'
 import api from '../lib/api'
 
@@ -40,7 +40,7 @@ export default function HomeView() {
           <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Your Apps</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {userApps.map((app) => {
-              const IconComponent = (LucideIcons as any)[app.icon] || LucideIcons.Package
+              const IconComponent = resolveIcon(app.icon)
               return (
                 <button
                   key={app.name}

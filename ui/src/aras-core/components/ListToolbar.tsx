@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Search, Filter, Plus, Edit3, Trash2,
   Download, Upload, Settings, List, LayoutGrid, FileText, ChevronDown, X
+  , Archive
 } from 'lucide-react';
 
 export type ViewMode = 'list' | 'tree' | 'report';
@@ -22,6 +23,7 @@ interface ListToolbarProps {
   onColumnPickerToggle: () => void;
   isColumnPickerOpen: boolean;
   onAdd: () => void;
+  onArchive?: () => void;
   fields: any[];
   visibleColumns: string[];
   onVisibleColumnsChange: (columns: string[]) => void;
@@ -50,6 +52,7 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
   onColumnPickerToggle,
   isColumnPickerOpen,
   onAdd,
+  onArchive,
   fields,
   visibleColumns,
   onVisibleColumnsChange,
@@ -213,6 +216,16 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
             <input type="file" accept=".csv" className="hidden" onChange={onImport} />
           </label>
 
+          {onArchive && (
+            <button
+              onClick={onArchive}
+              className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50"
+              title="Archived records"
+            >
+              <Archive size={18} />
+            </button>
+          )}
+
           <button
             className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 relative"
             onClick={onColumnPickerToggle}
@@ -260,4 +273,3 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
 };
 
 export default ListToolbar;
-

@@ -7,7 +7,8 @@ from ..base import MasterDataBase, LineItemBase
 class Party(MasterDataBase):
     __tablename__ = "erp_party_parties"
     __unique_together__ = [("org_id", "code")]
-    
+
+    code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     role: Mapped[str] = mapped_column(String(50), default="customer")
     role_label: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 

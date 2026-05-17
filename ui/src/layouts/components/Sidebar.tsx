@@ -1,9 +1,10 @@
 import { LogOut, Menu } from 'lucide-react'
-import * as LucideIcons from 'lucide-react'
 import { SidebarNavItem } from './SidebarNavItem'
 import { SidebarBrand } from './SidebarBrand'
 import type { SidebarApp } from '../types'
 import { useVocabulary } from '../../context/VocabularyContext'
+import { resolveIcon } from '../../lib/iconUtils'
+import { isVisibleMenuItem } from '../../lib/menuUtils'
 
 interface SidebarProps {
   isOpen: boolean
@@ -16,18 +17,18 @@ interface SidebarProps {
 export function Sidebar({ isOpen, setOpen, sidebarData, currentPath, onLogout }: SidebarProps) {
   const vocabulary = useVocabulary()
   const normalizedSidebarData = sidebarData
-    .filter((item) => !/supplier/i.test(item.name) && !/supplier/i.test(item.label))
+    .filter(isVisibleMenuItem)
     .map((item) => ({
       ...item,
       label: vocabulary.get(item.label),
       sub_apps: item.sub_apps
-        ?.filter((sub) => !/supplier/i.test(sub.name) && !/supplier/i.test(sub.label))
+        ?.filter(isVisibleMenuItem)
         .map((sub) => ({ ...sub, label: vocabulary.get(sub.label) })),
     }))
 
   const renderItem = (item: SidebarApp, depth = 0) => {
     const type = item.type || 'app'
-    const IconComponent = (LucideIcons as any)[item.icon] || LucideIcons.Package
+    const IconComponent = resolveIcon(item.icon)
     const isSubApp = depth > 0
 
     if (type === 'link') {

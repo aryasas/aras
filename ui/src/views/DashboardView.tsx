@@ -1,17 +1,32 @@
-import React, { useState, useEffect } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import * as LucideIcons from 'lucide-react'
-import api from '../../lib/api'
-import { useAras } from '../hooks/useAras'
+import api from '../lib/api'
+import { useAras } from '../aras-core/hooks/useAras'
+import { resolveIcon } from '../lib/iconUtils'
+import { LoadingState } from '../components/LoadingState'
+import { EmptyState } from '../components/EmptyState'
 
 interface Widget {
   id: number
   name: string
   title: string
-  widget_type: 'stat' | 'chart' | 'list'
+  widget_type: 'stat' | 'chart' | 'list' | string
   resource_name: string
   config_json: any
   size: string
+}
+
+type WidgetComponent = React.FC<{ widget: Widget }>
+
+const registry = new Map<string, WidgetComponent>()
+
+export const WidgetRegistry = {
+  register(type: string, Component: WidgetComponent) {
+    registry.set(type, Component)
+  },
+  get(type: string) {
+    return registry.get(type)
+  }
 }
 
 export const DashboardView: React.FC = () => {
@@ -21,24 +36,24 @@ export const DashboardView: React.FC = () => {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const { notify } = useAras()
 
-  useEffect(() => {
-    loadWidgets()
-  }, [])
-
-  const loadWidgets = async () => {
+  const loadWidgets = useCallback(async () => {
     try {
       const res = await api.get('/dashboard/widgets')
       setWidgets(res.data.layout_config?.widgets || [])
-    } catch (err) {
-      notify('Failed to load dashboard widgets', 'error')
+    } catch (err: any) {
+      notify(err.message || 'Failed to load dashboard widgets', 'error')
     } finally {
       setLoading(false)
     }
-  }
+  }, [notify])
+
+  useEffect(() => {
+    loadWidgets()
+  }, [loadWidgets])
 
   const saveLayout = (newOrder: number[]) => {
-    api.post('/dashboard/layout', { widget_order: newOrder }).catch(() => {
-      notify('Failed to save dashboard layout', 'error')
+    api.post('/dashboard/layout', { widget_order: newOrder }).catch((e) => {
+      notify(e.message || 'Failed to save dashboard layout', 'error')
     })
   }
 
@@ -57,70 +72,73 @@ export const DashboardView: React.FC = () => {
     setDragOverIndex(null)
   }
 
-  if (loading) {
-    return <div className="p-12 text-center text-slate-400 animate-pulse">Loading dashboard...</div>
-  }
+  if (loading) return <LoadingState label="Loading dashboard..." className="p-12" />
+  if (widgets.length === 0) return <EmptyState title="No dashboard widgets" description="Dashboard widgets will appear here when configured." />
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-      {widgets.map((widget, index) => (
-        <div
-          key={widget.id}
-          draggable={true}
-          onDragStart={() => setDragIndex(index)}
-          onDragOver={(event) => {
-            event.preventDefault()
-            setDragOverIndex(index)
-          }}
-          onDragLeave={() => {
-            if (dragOverIndex === index) setDragOverIndex(null)
-          }}
-          onDrop={() => handleDrop(index)}
-          onDragEnd={() => {
-            setDragIndex(null)
-            setDragOverIndex(null)
-          }}
-          className={`${widget.size || 'col-span-1'} cursor-grab transition-transform ${
-            dragIndex === index ? 'opacity-50 scale-95' : ''
-          } ${dragOverIndex === index && dragIndex !== index ? 'ring-2 ring-indigo-400' : ''}`}
-        >
-          {widget.widget_type === 'stat' && <StatWidget widget={widget} />}
-          {widget.widget_type === 'list' && <ListWidget widget={widget} />}
-          {widget.widget_type === 'chart' && <ChartWidget widget={widget} />}
-        </div>
-      ))}
+      {widgets.map((widget, index) => {
+        const Component = WidgetRegistry.get(widget.widget_type)
+        if (!Component) return null
+
+        return (
+          <div
+            key={widget.id}
+            draggable={true}
+            onDragStart={() => setDragIndex(index)}
+            onDragOver={(event) => {
+              event.preventDefault()
+              setDragOverIndex(index)
+            }}
+            onDragLeave={() => {
+              if (dragOverIndex === index) setDragOverIndex(null)
+            }}
+            onDrop={() => handleDrop(index)}
+            onDragEnd={() => {
+              setDragIndex(null)
+              setDragOverIndex(null)
+            }}
+            className={`${widget.size || 'col-span-1'} cursor-grab transition-transform ${
+              dragIndex === index ? 'opacity-50 scale-95' : ''
+            } ${dragOverIndex === index && dragIndex !== index ? 'ring-2 ring-indigo-400' : ''}`}
+          >
+            <Component widget={widget} />
+          </div>
+        )
+      })}
     </div>
   )
 }
 
-const ChartWidget: React.FC<{ widget: Widget }> = ({ widget }) => {
+const ChartWidget: WidgetComponent = ({ widget }) => {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const config = widget.config_json || {}
+  const { notify } = useAras()
 
   useEffect(() => {
-    // For now, we fetch the resource and group by a field (e.g., status or category)
-    // In a real app, this would be an aggregation API call
     api.get(`/${widget.resource_name}`).then((res: any) => {
       const items = res.data.items || res.data || []
       const groupBy = config.group_by || 'status'
-      
-      // Basic aggregation
       const counts: Record<string, number> = {}
+
       items.forEach((item: any) => {
         const key = item[groupBy] || 'Other'
         counts[key] = (counts[key] || 0) + 1
       })
 
-      const chartData = Object.entries(counts).map(([name, value]) => ({ name, value }))
-      setData(chartData)
+      setData(Object.entries(counts).map(([name, value]) => ({ name, value })))
+      setLoading(false)
+    }).catch((e) => {
+      notify(e.message, 'error')
       setLoading(false)
     })
-  }, [widget.resource_name, config.group_by])
+  }, [widget.resource_name, config.group_by, notify])
 
   if (loading) return <div className="bg-white p-6 rounded-3xl border border-slate-200 h-64 animate-pulse" />
 
   const maxValue = Math.max(...data.map(d => d.value), 1)
+  const total = data.reduce((sum, curr) => sum + curr.value, 0) || 1
   const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
   return (
@@ -131,41 +149,37 @@ const ChartWidget: React.FC<{ widget: Widget }> = ({ widget }) => {
       <div className="p-6 flex-1 flex items-end gap-2 min-h-[200px]">
         {config.chart_type === 'pie' ? (
           <div className="w-full flex justify-center">
-             {/* Simple SVG Pie Chart placeholder */}
-             <svg viewBox="0 0 32 32" className="w-32 h-32 -rotate-90">
-               {data.map((d, i) => {
-                 const total = data.reduce((sum, curr) => sum + curr.value, 0)
-                 const percentage = (d.value / total) * 100
-                 const previousTotal = data.slice(0, i).reduce((sum, curr) => sum + curr.value, 0)
-                 const strokeDasharray = `${percentage} 100`
-                 const strokeDashoffset = `-${(previousTotal / total) * 100}`
-                 return (
-                   <circle
-                     key={i}
-                     cx="16" cy="16" r="16"
-                     fill="transparent"
-                     stroke={colors[i % colors.length]}
-                     strokeWidth="32"
-                     strokeDasharray={strokeDasharray}
-                     strokeDashoffset={strokeDashoffset}
-                   />
-                 )
-               })}
-             </svg>
-             <div className="ml-6 flex flex-col justify-center gap-2">
-                {data.map((d, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colors[i % colors.length] }} />
-                    {d.name}: {d.value}
-                  </div>
-                ))}
-             </div>
+            <svg viewBox="0 0 32 32" className="w-32 h-32 -rotate-90">
+              {data.map((d, i) => {
+                const percentage = (d.value / total) * 100
+                const previousTotal = data.slice(0, i).reduce((sum, curr) => sum + curr.value, 0)
+                const strokeDashoffset = -((previousTotal / total) * 100)
+                return (
+                  <circle
+                    key={i}
+                    cx="16" cy="16" r="16"
+                    fill="transparent"
+                    stroke={colors[i % colors.length]}
+                    strokeWidth="32"
+                    strokeDasharray={`${percentage} 100`}
+                    strokeDashoffset={String(strokeDashoffset)}
+                  />
+                )
+              })}
+            </svg>
+            <div className="ml-6 flex flex-col justify-center gap-2">
+              {data.map((d, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colors[i % colors.length] }} />
+                  {d.name}: {d.value}
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
-          /* Sleek SVG Bar Chart */
           data.map((d, i) => (
             <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-              <div 
+              <div
                 className="w-full bg-indigo-500 rounded-t-lg transition-all hover:bg-indigo-600 relative"
                 style={{ height: `${(d.value / maxValue) * 150}px`, backgroundColor: colors[i % colors.length] }}
               >
@@ -182,20 +196,21 @@ const ChartWidget: React.FC<{ widget: Widget }> = ({ widget }) => {
   )
 }
 
-const StatWidget: React.FC<{ widget: Widget }> = ({ widget }) => {
+const StatWidget: WidgetComponent = ({ widget }) => {
   const [value, setValue] = useState<string | number>('...')
   const config = widget.config_json || {}
-  const Icon = (LucideIcons as any)[config.icon || 'Activity']
-  const navigate = useNavigate();
+  const Icon = resolveIcon(config.icon || 'Activity')
+  const navigate = useNavigate()
+  const { notify } = useAras()
 
   useEffect(() => {
     api.get(`/${widget.resource_name}`).then((res: any) => {
       setValue(res.data.total || res.data.length || 0)
-    })
-  }, [widget.resource_name])
+    }).catch((e) => notify(e.message, 'error'))
+  }, [widget.resource_name, notify])
 
   return (
-    <div 
+    <div
       className="bg-white p-7 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group h-full cursor-pointer"
       title="Click to view all records"
       onClick={() => navigate(`/${widget.resource_name.replace(/_/g, '-')}`)}
@@ -214,16 +229,17 @@ const StatWidget: React.FC<{ widget: Widget }> = ({ widget }) => {
   )
 }
 
-const ListWidget: React.FC<{ widget: Widget }> = ({ widget }) => {
+const ListWidget: WidgetComponent = ({ widget }) => {
   const [items, setItems] = useState<any[]>([])
   const config = widget.config_json || {}
-  const navigate = useNavigate();
+  const navigate = useNavigate()
+  const { notify } = useAras()
 
   useEffect(() => {
     api.get(`/${widget.resource_name}?per_page=${config.limit || 5}`).then((res: any) => {
       setItems(Array.isArray(res.data.items) ? res.data.items : Array.isArray(res.data) ? res.data : [])
-    })
-  }, [widget.resource_name])
+    }).catch((e) => notify(e.message, 'error'))
+  }, [widget.resource_name, config.limit, notify])
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden h-full flex flex-col">
@@ -232,12 +248,12 @@ const ListWidget: React.FC<{ widget: Widget }> = ({ widget }) => {
       </div>
       <div className="flex-1 overflow-y-auto">
         {items.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 text-sm">No recent activity</div>
+          <EmptyState title="No recent activity" />
         ) : (
           <div className="divide-y divide-slate-50">
             {items.map((item, idx) => (
-              <div 
-                key={idx} 
+              <div
+                key={idx}
                 className="p-4 hover:bg-slate-50 transition-colors flex items-center gap-4 cursor-pointer"
                 onClick={() => navigate(`/${widget.resource_name.replace(/_/g, '-')}/${item.id}`)}
               >
@@ -256,3 +272,7 @@ const ListWidget: React.FC<{ widget: Widget }> = ({ widget }) => {
     </div>
   )
 }
+
+WidgetRegistry.register('stat', StatWidget)
+WidgetRegistry.register('chart', ChartWidget)
+WidgetRegistry.register('list', ListWidget)
