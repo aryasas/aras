@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "date": "2026-05-16",
+    "feature": "ERP Form Layouts, UI Bugs, Report Center Filters, HandoffRun DB Tracking",
+    "revision_count": 1,
+    "backend": {
+      "files_written": "api/apps/erp/party/views.py, api/apps/erp/stock/views.py, api/apps/erp/hr/views.py, api/apps/erp/asset/views.py, api/apps/erp/crm/views.py, api/apps/erp/pot/views.py, api/apps/erp/accounting/views.py, api/apps/erp/config/views.py, api/apps/erp/report/services/report_service.py",
+      "features_added": "Added UI layout definitions to multiple ERP View classes for Party, Contact, Product, ProductCategory, ProductUom, Employee, Department, Position, Asset, AssetCategory, Lead, Pipeline, Activity, PotOrder, PotTerminal, Account, FiscalPeriod, Currency, Uom, ModeOfPayment, ExchangeRate, and PrintTemplate. Enhanced report execution endpoint to pass filter definitions to frontend and correctly handle 'today' parameter in SQL queries.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/DynamicForm.tsx, ui/src/views/ReportCenter.tsx, ui/src/views/DevTools.tsx",
+      "features_added": "report parameter input UI with params passed to generate call; Handoff Runs columns, verdict badges, refresh, and row detail side panel",
+      "fixes_applied": "styled DynamicForm metadata error card; report loading skeleton while generating",
+      "framework_changes": "none",
+      "issues": "npm run build still fails on existing TypeScript errors outside the requested scope; ReportCenter targeted ESLint passes"
+    },
+    "verdict": "APPROVED"
+  }
+]

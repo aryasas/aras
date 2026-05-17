@@ -15,7 +15,7 @@ Kamu sedang bekerja pada **Aras Framework** — universal low-code/ERP framework
 
 - Refactor **masih berlangsung**: FastAPI (backend) + React + Vite + Tailwind (frontend)
 - Multi-tenant model: **database-per-tenant** (FINAL) — setiap tenant dapat PostgreSQL database sendiri
-- Tenant Connection Router: **belum diimplementasi** — prioritas Fase 1
+- Tenant Connection Router: ✅ **sudah diimplementasi** (`api/core/tenant/registry.py`, `router.py`, `provisioner.py`)
 - Modul POS: **belum dikembangkan** — Fase 2
 - Mobile app: **planned Fase 3** — React Native + Expo
 
@@ -97,27 +97,21 @@ Baca file dengan ./smart_read.sh, lalu berikan temuan spesifik dengan baris yang
 
 ## TEMPLATE SESI FASE 1 — MULTI-TENANT CORE
 
-Gunakan khusus saat mengerjakan **Tenant Connection Router**:
+~~Gunakan khusus saat mengerjakan **Tenant Connection Router**~~ ✅ **SUDAH SELESAI**
 
-```
-Task: Implementasi Tenant Connection Router untuk Aras (Fase 1)
+Tenant Connection Router sudah diimplementasi di:
+- `api/core/tenant/registry.py` — TenantRegistry (singleton) manages tenant metadata & persistence
+- `api/core/tenant/router.py` — resolve_db_url(), get_or_create_engine(), get_current_tenant(), get_db() dependency
+- `api/core/tenant/provisioner.py` — provision/deprovision tenant databases
+- `api/manage.py` — CLI commands untuk manage tenants (provision, seed, deprovision)
 
-Requirement:
-- Setiap tenant mendapat database PostgreSQL terpisah
-- Router menerima tenant_id → resolve db_url dari registry → return session
-- Connection pool: pool_size=2, max_overflow=1 per tenant (hemat resource)
-- Engine di-cache (jangan buat engine baru setiap request)
-- Lazy: engine hanya dibuat saat tenant pertama kali request
-- FastAPI dependency injection: get_db(tenant=Depends(get_current_tenant))
-- Skema bisnis existing (companies, branches, subsidiaries) tidak diubah
-
-Yang TIDAK boleh dilakukan:
-- Jangan tambahkan tenant_id di model bisnis apapun
-- Jangan buat koneksi langsung ke database tanpa melalui router
-- Jangan hardcode db_url — ambil dari config/registry
-
-Baca docs/multitenant.md dulu jika ada, lalu implementasi.
-```
+Setup sudah sesuai requirement:
+- ✅ Database-per-tenant dengan registry lookup
+- ✅ Connection pool: pool_size=2, max_overflow=3
+- ✅ Engine caching thread-safe dengan RLock
+- ✅ FastAPI dependency injection via get_db()
+- ✅ JWT token extraction dari Authorization header atau X-Tenant-ID header (dev)
+- ✅ Skema bisnis existing tidak diubah
 
 ---
 

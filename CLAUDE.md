@@ -22,6 +22,10 @@ Enforces direct, honest, efficient behavior. Overrides all default "helpful elab
 
 ## Agent Rules
 
+**Auto-switch mode** — Claude automatically selects the right agent based on task complexity:
+- `.claude/agents/simple-coder.md` (Haiku) — single-file changes: rename variable, fix typo, small function, format code
+- `.claude/agents/complex-coder.md` (Sonnet) — multi-file work: refactor, new feature, debugging, architecture, API integration
+
 **Orchestrator mode** — active when any of these are true:
 - User asks to write or update `docs/handoff.md`
 - User says "run agents", "run multi_agent", or "delegate to Gemini/Codex"
@@ -41,15 +45,17 @@ Rules that always apply regardless of mode:
 
 ## Token Efficiency
 - Grep first, read only lines needed.
-- Files 300+ lines: use offset/limit.
+- Files 300+ lines: use offset/limit. (Hook warns if skipped.)
 - Never read `aras-old/` or `docs/framework_ref.md`.
-- Run `/compact` in long sessions.
+- Run `/compact` in long sessions. (Auto-compact enabled at 150k context.)
+- Memory: read auto-memory only when user references it or task is relevant—never upfront.
 
 ## Project Standards
 - Framework flow: `docs/aras.md` (architecture, patterns, change log).
-- Component/endpoint tables: `docs/framework_ref.md`.
+- Component/endpoint tables: `docs/framework_ref.md` (indexed, line-numbered—grep/lookup, don't re-read).
 - Read docs only when needed, not upfront.
 - Read any file via: `<project_folder>/tools/smart_read.sh <filepath>`
+- **Comments:** Only explain non-obvious WHY (workarounds, hidden constraints, subtle invariants). Never explain WHAT—code clarity via meaningful names is preferred. Add comments during active work for new code and existing code in same read—no dedicated comment session.
 - English for all code comments. Code: short, simple, clean, DRY.
 
 ## After `rhf` Review
