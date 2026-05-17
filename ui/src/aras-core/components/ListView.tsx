@@ -5,7 +5,7 @@ import { cleanResourcePath } from '../../lib/resourceUtils'
 import {
   Search, Plus, ChevronLeft, ChevronRight,
   CheckSquare, Square, X,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, Trash2
 } from 'lucide-react'
 import { resolveFieldComponent, resolveFilterComponent } from '../SchemaRegistry'
 import { useAras } from '../hooks/useAras'
@@ -34,6 +34,7 @@ interface Field {
 
 interface Metadata {
   resource: string
+  api_path?: string | null
   title: string
   fields: Field[]
 }
@@ -100,6 +101,10 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const closePanel = useUIStore(state => state.closePanel)
   const roleFilter = searchParams.get('role') || 'all'
   const isPartyResource = useMemo(() => /(^|\/)(parties|party)$/.test(cleanResourcePath(resource)), [resource])
+  const resourceApiPath = useMemo(
+    () => cleanResourcePath(metadata?.api_path || resource),
+    [metadata?.api_path, resource]
+  )
 
   const hasTreeSupport = useMemo(() => {
     if (!metadata) return false;
@@ -121,11 +126,18 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         const localStorageKey = `${appName}.${cleanResource}.columnVisibility`;
         const storedVisibleColumns = localStorage.getItem(localStorageKey);
 
+        const scopedCols = new Set((metadataRes.data.scoped_by ?? []).map((pair: string[]) => pair[0]));
+        const defaultCols = metadataRes.data.fields
+          .filter((f: Field) => !f.hidden && !scopedCols.has(f.name) && f.type !== 'child_table')
+          .map((f: Field) => f.name);
+
         if (storedVisibleColumns) {
-          setVisibleColumns(JSON.parse(storedVisibleColumns));
+          const stored: string[] = JSON.parse(storedVisibleColumns);
+          const fieldNames = new Set(metadataRes.data.fields.map((f: Field) => f.name));
+          const valid = stored.filter(col => fieldNames.has(col));
+          setVisibleColumns(valid.length > 0 ? valid : defaultCols);
         } else {
-          const scopedCols = new Set((metadataRes.data.scoped_by ?? []).map((pair: string[]) => pair[0]));
-          setVisibleColumns(metadataRes.data.fields.filter((f: Field) => !f.hidden && !scopedCols.has(f.name)).map((f: Field) => f.name));
+          setVisibleColumns(defaultCols);
         }
       } catch (err: any) {
         notify("Failed to load resource metadata or saved filters", "error")
@@ -166,8 +178,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         order_by: orderBy,
         desc
       }
-      const dataPath = cleanResourcePath(resource)
-      const res = await api.get(`${dataPath}/`, { params })
+      const res = await api.get(`${resourceApiPath}/`, { params })
       setData(res.data.items)
       setTotal(res.data.total)
       setTotalPages(res.data.pages)
@@ -177,7 +188,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     } finally {
       setLoading(false)
     }
-  }, [resource, metadata, page, perPage, search, filters, fixedFilters, orderBy, desc, isPartyResource, roleFilter])
+  }, [resourceApiPath, metadata, page, perPage, search, filters, fixedFilters, orderBy, desc, isPartyResource, roleFilter])
 
   useEffect(() => {
     fetchData()
@@ -208,13 +219,39 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     
     if (ok) {
       try {
-        await api.post(`/${cleanResourcePath(resource)}/bulk-delete`, selectedIds)
+        const res = await api.post(`/${resourceApiPath}/bulk-delete`, selectedIds)
+        const deletedCount = res.data?.deleted_count ?? selectedIds.length
+        const requestedCount = res.data?.requested_count ?? selectedIds.length
         setSelectedIds([])
-        notify(`Successfully deleted ${selectedIds.length} items`, 'success')
-        fetchData()
+        if (deletedCount === requestedCount) {
+          notify(`Successfully deleted ${deletedCount} items`, 'success')
+        } else {
+          notify(`Deleted ${deletedCount} of ${requestedCount} items`, 'info')
+        }
+        await fetchData()
       } catch (err: any) {
-        notify(err.response?.data?.message || "Failed to delete items", 'error')
+        notify(err.response?.data?.message || err.response?.data?.detail || "Failed to delete items", 'error')
       }
+    }
+  }
+
+  const handleDeleteOne = async (item: any) => {
+    const ok = await confirm({
+      title: 'Delete',
+      message: 'Are you sure you want to delete this item? This action cannot be undone.',
+      type: 'danger',
+      confirmText: 'Delete'
+    })
+
+    if (!ok) return
+
+    try {
+      await api.delete(`/${resourceApiPath}/${item.id}`)
+      notify('Item deleted successfully', 'success')
+      setSelectedIds(prev => prev.filter(id => id !== item.id))
+      await fetchData()
+    } catch (err: any) {
+      notify(err.response?.data?.message || err.response?.data?.detail || 'Failed to delete item', 'error')
     }
   }
 
@@ -429,7 +466,10 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   if (!metadata) return <div className="p-8 animate-pulse text-slate-400">Initializing {resource}...</div>
 
   const fields = metadata.fields
-  const visibleFields = fields.filter(f => visibleColumns.includes(f.name))
+  const nonHiddenFields = fields.filter(f => !f.hidden && f.type !== 'child_table')
+  const visibleFields = visibleColumns.length > 0
+    ? fields.filter(f => visibleColumns.includes(f.name))
+    : nonHiddenFields
   const toolbarFields = fields.map(field => ({ ...field, label: vocabulary.get(field.label) }))
   const title = vocabulary.get(metadata.title)
   const roleTabs = [
@@ -604,6 +644,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                     </div>
                   </th>
                 ))}
+                <th className="px-6 py-5 w-12"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -612,11 +653,12 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                   <tr key={i} className="animate-pulse">
                     <td className="px-6 py-4"><div className="w-5 h-5 bg-slate-100 rounded"></div></td>
                     {visibleFields.map(f => <td key={f.name} className="px-6 py-4"><div className="h-4 bg-slate-50 rounded w-3/4"></div></td>)}
+                    <td className="px-6 py-4"><div className="w-8 h-8 bg-slate-50 rounded"></div></td>
                   </tr>
                 ))
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={visibleFields.length + 1} className="px-6 py-16 text-center">
+                  <td colSpan={visibleFields.length + 2} className="px-6 py-16 text-center">
                     <div className="max-w-xs mx-auto flex flex-col items-center text-slate-400">
                       {search || filters.length > 0 ? (
                         <>
@@ -684,6 +726,20 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                       </td>
                     )
                   })}
+                    <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteOne(item)
+                        }}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 opacity-0 transition-colors hover:bg-rose-50 hover:text-rose-600 group-hover:opacity-100 focus:opacity-100"
+                        title="Delete"
+                        aria-label="Delete row"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
                 </tr>
               ))
             )}

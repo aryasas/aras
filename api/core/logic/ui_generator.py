@@ -122,10 +122,13 @@ class UIGenerator(Service):
                 "searchable": is_searchable,
                 "form_hidden": form_hidden,
                 "depends_on": column.info.get("depends_on"),
+                "default_from": column.info.get("default_from"),
                 "default_value": db_field.default_value if db_field else None,
                 "series": db_field.series if db_field else None,
                 "link_column": db_field.link_column if db_field and db_field.link_column else column.info.get("link_column"),
-                "display_column": db_field.display_column if db_field and db_field.display_column else column.info.get("display_column")
+                "display_column": db_field.display_column if db_field and db_field.display_column else column.info.get("display_column"),
+                "fk_filter": column.info.get("fk_filter"),
+                "fk_filter_fallback": column.info.get("fk_filter_fallback")
             }
             fields.append(field_info)
 
@@ -136,7 +139,10 @@ class UIGenerator(Service):
                 for m in a.models:
                     if getattr(m, "__tablename__", None) == tablename:
                         seg = tablename
-                        if a.app_name and seg.startswith(f"{a.app_name}_"):
+                        full_prefix = f"{a.parent_name}_{a.app_name}_" if a.parent_name and a.app_name else None
+                        if full_prefix and seg.startswith(full_prefix):
+                            seg = seg[len(full_prefix):]
+                        elif a.app_name and seg.startswith(f"{a.app_name}_"):
                             seg = seg[len(a.app_name)+1:]
                         elif a.parent_name and seg.startswith(f"{a.parent_name}_"):
                             seg = seg[len(a.parent_name)+1:]

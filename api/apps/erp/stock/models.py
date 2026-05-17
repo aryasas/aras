@@ -1,3 +1,4 @@
+
 from datetime import date
 from typing import Optional
 from sqlalchemy import String, ForeignKey, Float, Date, Boolean, Numeric, Integer
@@ -8,8 +9,11 @@ from core.response import ok, err
 from core.exceptions import ValidationException
 from ..base import MasterDataBase, DocumentBase, LineItemBase
 
+
+
 class ItemCategory(MasterDataBase):
     __tablename__ = "erp_stock_categories"
+    __soft_delete__ = True
 
     account_stock_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
     account_cogs_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
@@ -21,6 +25,7 @@ class ItemCategory(MasterDataBase):
 class Item(MasterDataBase):
     __tablename__ = "erp_stock_items"
     __unique_together__ = [("org_id", "code")]
+    __soft_delete__ = True
 
     code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     sku: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, info={"pattern": "^[a-zA-Z0-9]{1,50}$"})
@@ -44,6 +49,22 @@ class Item(MasterDataBase):
         db = object_session(self)
         if not db: return 0
         return StockComputeService.compute_qty(db, self.id)
+
+    @Aras.computed_field
+    def default_sale_price(self) -> float:
+        from .services.price import PriceService
+        from sqlalchemy.orm import object_session
+        db = object_session(self)
+        if not db: return 0.0
+        return PriceService.get_price(db, self.id)
+
+    @Aras.computed_field
+    def default_purchase_price(self) -> float:
+        from .services.price import PriceService
+        from sqlalchemy.orm import object_session
+        db = object_session(self)
+        if not db: return 0.0
+        return PriceService.get_price(db, self.id)
 
 
 class ItemAccount(LineItemBase):
@@ -75,7 +96,7 @@ class ItemUom(LineItemBase):
         from sqlalchemy.orm import object_session
         db = object_session(self)
         if not db: return ""
-        from api.apps.erp.config.models import Uom as ConfigUom
+        from ..config.models import Uom as ConfigUom
         config_uom = db.query(ConfigUom).filter(ConfigUom.id == self.uom_id).first()
         return config_uom.name if config_uom else ""
 
@@ -166,6 +187,7 @@ class DeliveryNoteLine(LineItemBase):
 
 class StockMovement(DocumentBase):
     __tablename__ = "erp_stock_movements"
+    __soft_delete__ = True
 
     move_type: Mapped[str] = mapped_column(String(30), info={"choices": ["receipt", "delivery", "internal", "return", "scrap"]})
     from_location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
@@ -194,6 +216,7 @@ class StockMovement(DocumentBase):
 
 class StockMovementLine(LineItemBase):
     __tablename__ = "erp_stock_movement_lines"
+    __soft_delete__ = True
     __parent__ = "erp_stock_movements"
     movement_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_movements.id"))
     item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
@@ -214,8 +237,10 @@ class ItemBundle(LineItemBase):
     __parent__ = "erp_stock_items"
     bundle_item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))     # bundle being defined
     component_item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))  # ingredient
-    uom_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_item_uoms.id"), nullable=True, info={"display_column": "uom_name_display"})
+    uom_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True, info={"display_column": "name", "depends_on": "component_item_id", "default_from": "uom_id"})
     notes: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+
 
 
 class ItemLocation(Aras.Model):

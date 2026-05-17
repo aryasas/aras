@@ -3,6 +3,7 @@ from typing import Optional
 from sqlalchemy import String, ForeignKey, Float, Date, Text, JSON, Boolean, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..base import ConfigBase, MasterDataBase, LineItemBase
+from core import Aras
 
 class Organization(ConfigBase):
     __tablename__ = "erp_config_organizations"
@@ -40,38 +41,80 @@ class Organization(ConfigBase):
     allow_zero_stock: Mapped[bool] = mapped_column(Boolean, default=False)
     stock_valuation_method: Mapped[str] = mapped_column(String(10), default="FIFO", info={"choices": ["FIFO", "AVERAGE"]})
 
-    # Default Accounts
-    acc_bank_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
-    acc_cash_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
-    acc_receivable_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
-    acc_payable_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
-    acc_income_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
-    acc_cogs_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
-    acc_inventory_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
-    acc_payroll_payable_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
-    acc_payment_discount_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
-    acc_write_off_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
-    acc_unrealized_gain_loss_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
-    acc_round_off_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
-    
+    # fk_filter_fallback: use coa_source_org_id when set, otherwise own id
+    _ACC_FK = {"fk_filter": {"org_id": "id"}, "fk_filter_fallback": {"org_id": "coa_source_org_id"}}
+    acc_bank_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
+    acc_cash_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
+    acc_receivable_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
+    acc_payable_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
+    acc_income_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
+    acc_cogs_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
+    acc_inventory_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
+    acc_payroll_payable_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
+    acc_payment_discount_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
+    acc_write_off_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
+    acc_unrealized_gain_loss_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
+    acc_round_off_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
+
     # Stock / Inventory Accounts
-    acc_stock_received_not_billed_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
-    acc_stock_provisional_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
-    acc_stock_adjustment_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
-    acc_expenses_in_valuation_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
-    acc_stock_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    acc_stock_received_not_billed_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
+    acc_stock_provisional_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
+    acc_stock_adjustment_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
+    acc_expenses_in_valuation_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
+    acc_stock_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
 
     # Tax accounts
-    acc_tax_output_ppn_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
-    acc_tax_input_ppn_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    acc_tax_output_ppn_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
+    acc_tax_input_ppn_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
     
     # Formatting Defaults
     date_format: Mapped[str] = mapped_column(String(20), default="DD/MM/YYYY")
     number_format: Mapped[str] = mapped_column(String(20), default="#,###.##")
     decimal_precision: Mapped[int] = mapped_column(Integer, default=2)
 
+    # If set, account comboboxes use this org's COA instead of own (branch sharing parent ledger)
+    coa_source_org_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_organizations.id"), nullable=True)
+
     # Relationships
-    parent: Mapped[Optional["Organization"]] = relationship("Organization", remote_side="Organization.id", backref="children")
+    parent: Mapped[Optional["Organization"]] = relationship("Organization", foreign_keys=[parent_id], remote_side="Organization.id", backref="children")
+    coa_source_org: Mapped[Optional["Organization"]] = relationship("Organization", foreign_keys=[coa_source_org_id])
+
+    @Aras.model_action(name="mirror_coa", permission="edit", label="Mirror COA from Source", icon="Copy")
+    def mirror_coa(self, db):
+        from ..accounting.models import Account
+        source_org_id = self.coa_source_org_id or (self.parent_id if self.parent_id else None)
+        if not source_org_id:
+            from core.exceptions import ValidationException
+            raise ValidationException("No COA source — set coa_source_org_id or parent_id first.")
+        source_accounts = db.query(Account).filter_by(org_id=source_org_id).order_by(Account.id).all()
+        if not source_accounts:
+            from core.exceptions import ValidationException
+            raise ValidationException(f"Source org {source_org_id} has no accounts to mirror.")
+        existing_codes = {a.code for a in db.query(Account.code).filter_by(org_id=self.id).all()}
+        # Map source id → new id for parent_id resolution
+        id_map: dict[int, int] = {}
+        for src in source_accounts:
+            if src.code in existing_codes:
+                continue
+            new_acc = Account(
+                org_id=self.id,
+                code=src.code,
+                name=src.name,
+                account_type=src.account_type,
+                is_group=src.is_group,
+                parent_id=None,  # resolved below after flush
+            )
+            db.add(new_acc)
+            db.flush()
+            id_map[src.id] = new_acc.id
+        # Wire parent_id using id_map
+        for src in source_accounts:
+            if src.parent_id and src.parent_id in id_map and src.id in id_map:
+                child = db.get(Account, id_map[src.id])
+                if child:
+                    child.parent_id = id_map[src.parent_id]
+        db.flush()
+        return {"mirrored": len(id_map), "skipped": len(existing_codes)}
 
 class Currency(ConfigBase):
     __tablename__ = "erp_config_currencies"

@@ -60,3 +60,32 @@ Rules that always apply regardless of mode:
 
 ## After `rhf` Review
 Run: `python tools/multi_agent.py --submit-review`
+
+## Reporting (standalone use)
+After completing any direct coding task (not via multi_agent.py), append one entry to `docs/reports.json`:
+
+```json
+{
+  "id": <next integer>,
+  "date": "<YYYY-MM-DD>",
+  "feature": "<short description of what was built or fixed>",
+  "revision_count": 0,
+  "backend": {
+    "files_written": "<comma-separated paths, or none>",
+    "features_added": "<description, or none>",
+    "fixes_applied": "<description, or none>",
+    "framework_changes": "<description, or none>",
+    "issues": "<description, or none>"
+  },
+  "frontend": {
+    "files_written": "<comma-separated paths, or none>",
+    "features_added": "<description, or none>",
+    "fixes_applied": "<description, or none>",
+    "framework_changes": "<description, or none>",
+    "issues": "<description, or none>"
+  },
+  "verdict": "APPROVED"
+}
+```
+
+Use `null` for `backend` or `frontend` if that side was not touched. `id` = last entry id + 1.

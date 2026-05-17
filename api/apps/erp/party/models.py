@@ -7,9 +7,10 @@ from ..base import MasterDataBase, LineItemBase
 class Party(MasterDataBase):
     __tablename__ = "erp_party_parties"
     __unique_together__ = [("org_id", "code")]
+    __soft_delete__ = True
 
     code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    role: Mapped[str] = mapped_column(String(50), default="customer")
+    role: Mapped[str] = mapped_column(String(50), default="customer", info={"choices": ["customer", "supplier", "employee", "agent", "partner"]})
     role_label: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
     email: Mapped[str] = mapped_column(String(100), nullable=True)

@@ -323,7 +323,7 @@ class Model(Aras, Base):
         for col in cls.__table__.columns:
             display_col = col.info.get("display_column")
             if not display_col: continue
-            
+
             # Detect target table from ForeignKey
             target_table = None
             if col.foreign_keys:
@@ -435,7 +435,11 @@ class Model(Aras, Base):
         if data:
             for col in self.__table__.columns:
                 if col.name not in skip and col.name in data:
-                    setattr(self, col.name, data[col.name])
+                    val = data[col.name]
+                    # skip None for non-nullable columns that already have a value
+                    if val is None and not col.nullable and getattr(self, col.name) is not None:
+                        continue
+                    setattr(self, col.name, val)
 
         if user_id:
             if is_new:
@@ -470,6 +474,33 @@ class Model(Aras, Base):
             except Exception as e:
                 print(f"[Model] Series generation failed: {e}")
 
+        # ── Code/name fallback for child rows: inherit from parent item name ──
+        parent_table = getattr(self.__class__, "__parent__", None)
+        if is_new and parent_table:
+            parent_fk_col = next(
+                (c for c in self.__table__.columns if c.foreign_keys and
+                 next(iter(c.foreign_keys)).column.table.name == parent_table),
+                None
+            )
+            if parent_fk_col is not None:
+                parent_id = getattr(self, parent_fk_col.name, None)
+                if parent_id:
+                    parent_cls = Model._registry.get(parent_table)
+                    if parent_cls:
+                        parent_obj = db.get(parent_cls, parent_id)
+                        parent_name = getattr(parent_obj, "name", None) if parent_obj else None
+                        if parent_name:
+                            if not getattr(self, "name", None):
+                                setattr(self, "name", parent_name)
+                            if not getattr(self, "code", None):
+                                setattr(self, "code", parent_name)
+
+        # ── Code fallback: if code is empty, use name ──
+        if not getattr(self, "code", None):
+            name_val = getattr(self, "name", None)
+            if name_val:
+                setattr(self, "code", name_val)
+
         self.before_save(is_new=is_new)
         if is_new:
             db.add(self)
@@ -481,6 +512,7 @@ class Model(Aras, Base):
         db.refresh(self)
         self.after_save(is_new=is_new)
         self._fire_hooks("on_create" if is_new else "on_update")
+        db.flush()
         return self
 
     def save_m2m(self, db: Session, data: dict):

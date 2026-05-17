@@ -82,8 +82,36 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
     onChange(rows.filter((_, i) => i !== idx));
   };
 
-  const updateRow = (idx: number, col: string, val: any) => {
-    const updated = rows.map((row, i) => i === idx ? { ...row, [col]: val, __aras_empty_row: false } : row);
+  const updateRow = async (idx: number, col: string, val: any) => {
+    let patch: Record<string, any> = { [col]: val, __aras_empty_row: false };
+
+    // Auto-fill fields that depend_on this column
+    const triggerField = editableCols.find((f: any) => f.name === col);
+    const dependents = editableCols.filter((f: any) => f.depends_on === col && f.default_from);
+    if (dependents.length && triggerField?.target_resource && val) {
+      try {
+        const clean = cleanResourcePath(triggerField.target_resource);
+        const res = await api.get(`/${clean}/${val}`);
+        const item = res.data?.item ?? res.data;
+        if (item) {
+          for (const dep of dependents) {
+            if (item[dep.default_from] != null) patch[dep.name] = item[dep.default_from];
+          }
+        }
+      } catch { /* silent */ }
+    } else {
+      for (const dep of dependents) patch[dep.name] = null;
+    }
+
+    const mergedRow = { ...rows[idx], ...patch };
+    const amountFields = ['qty', 'unit_price', 'discount'];
+    if (amountFields.some(f => f in patch)) {
+      const qty = parseFloat(mergedRow.qty) || 0;
+      const unitPrice = parseFloat(mergedRow.unit_price) || 0;
+      const discount = parseFloat(mergedRow.discount) || 0;
+      patch.amount = qty * (unitPrice - discount);
+    }
+    const updated = rows.map((row, i) => i === idx ? { ...row, ...patch } : row);
     onChange(updated);
   };
 

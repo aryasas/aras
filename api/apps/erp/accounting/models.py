@@ -1,7 +1,7 @@
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Optional
 from sqlalchemy import String, ForeignKey, Float, Date, Integer, Boolean
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, object_session
 from core import Aras
 from core.response import ok, err
 from core.exceptions import ValidationException
@@ -41,6 +41,7 @@ class FiscalPeriod(MasterDataBase):
 class JournalEntry(DocumentBase):
 
     __tablename__ = "erp_accounting_entries"
+    __soft_delete__ = True
 
     currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"))
 
@@ -78,6 +79,7 @@ class InflowOrder(DocumentBase, DocumentRecalcMixin):
     subtotal: Mapped[float] = mapped_column(Float, default=0)
     total_charge: Mapped[float] = mapped_column(Float, default=0)
     total_amount: Mapped[float] = mapped_column(Float, default=0)
+    location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
     
     lines: Mapped[list["InflowOrderLine"]] = relationship("InflowOrderLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["InflowOrderCharge"]] = relationship("InflowOrderCharge", back_populates="parent", cascade="all, delete-orphan")
@@ -114,6 +116,7 @@ class InflowOrderCharge(LineItemBase):
 
 class InflowInvoice(DocumentBase, DocumentRecalcMixin):
     __tablename__ = "erp_accounting_inflow_invoices"
+    __soft_delete__ = True
 
     party_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
     currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"), nullable=True)
@@ -122,6 +125,7 @@ class InflowInvoice(DocumentBase, DocumentRecalcMixin):
     total_tax: Mapped[float] = mapped_column(Float, default=0)
     total_charge: Mapped[float] = mapped_column(Float, default=0)
     total_amount: Mapped[float] = mapped_column(Float, default=0)
+    location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
 
     lines: Mapped[list["InflowInvoiceLine"]] = relationship("InflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["InflowInvoiceCharge"]] = relationship("InflowInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
@@ -148,6 +152,35 @@ class InflowInvoice(DocumentBase, DocumentRecalcMixin):
         if success:
             return ok({"status": self.status}, message="Inflow Invoice posted successfully.")
         raise ValidationException("Failed to post inflow invoice.") # Or handle specific error from service
+    @Aras.on_delete
+    def on_delete_cascade(self):
+        db = object_session(self)
+        if db is None:
+            return
+
+        # Soft-delete JournalEntry records
+        journal_entries = db.query(JournalEntry).filter_by(source_type="InflowInvoice", source_id=self.id).all()
+        for entry in journal_entries:
+            entry.deleted_at = datetime.now(timezone.utc)
+
+        # Soft-delete StockMovement records and their lines
+        from ...stock.models import StockMovement
+        stock_movements = db.query(StockMovement).filter_by(source_type="InflowInvoice", source_id=self.id).all()
+        for movement in stock_movements:
+            movement.deleted_at = datetime.now(timezone.utc)
+            for line in movement.lines: # Assuming StockMovement has a 'lines' relationship
+                line.deleted_at = datetime.now(timezone.utc)
+
+        # Soft-delete PaymentAllocation records
+        payment_allocations = db.query(PaymentAllocation).filter_by(invoice_type="InflowInvoice", invoice_id=self.id).all()
+        for allocation in payment_allocations:
+            allocation.deleted_at = datetime.now(timezone.utc)
+    @Aras.computed_field
+    def payment_allocations(self) -> list["PaymentAllocation"]:
+        db = object_session(self)
+        if db is None:
+            return []
+        return db.query(PaymentAllocation).filter_by(invoice_type="InflowInvoice", invoice_id=self.id).all()
 
 class InflowInvoiceLine(LineItemBase):
     __tablename__ = "erp_accounting_inflow_invoice_lines"
@@ -181,6 +214,7 @@ class OutflowOrder(DocumentBase, DocumentRecalcMixin):
     subtotal: Mapped[float] = mapped_column(Float, default=0)
     total_charge: Mapped[float] = mapped_column(Float, default=0)
     total_amount: Mapped[float] = mapped_column(Float, default=0)
+    location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
     
     lines: Mapped[list["OutflowOrderLine"]] = relationship("OutflowOrderLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["OutflowOrderCharge"]] = relationship("OutflowOrderCharge", back_populates="parent", cascade="all, delete-orphan")
@@ -217,6 +251,7 @@ class OutflowOrderCharge(LineItemBase):
 
 class OutflowInvoice(DocumentBase, DocumentRecalcMixin):
     __tablename__ = "erp_accounting_outflow_invoices"
+    __soft_delete__ = True
     
     supplier_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
     currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"), nullable=True)
@@ -224,6 +259,7 @@ class OutflowInvoice(DocumentBase, DocumentRecalcMixin):
     total_tax: Mapped[float] = mapped_column(Float, default=0)
     total_charge: Mapped[float] = mapped_column(Float, default=0)
     total_amount: Mapped[float] = mapped_column(Float, default=0)
+    location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
     grn_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_grns.id"), nullable=True)
 
     lines: Mapped[list["OutflowInvoiceLine"]] = relationship("OutflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
@@ -251,6 +287,35 @@ class OutflowInvoice(DocumentBase, DocumentRecalcMixin):
         if success:
             return ok({"status": self.status}, message="Outflow Invoice posted successfully.")
         raise ValidationException("Failed to post outflow invoice.")
+    @Aras.on_delete
+    def on_delete_cascade(self):
+        db = object_session(self)
+        if db is None:
+            return
+
+        # Soft-delete JournalEntry records
+        journal_entries = db.query(JournalEntry).filter_by(source_type="OutflowInvoice", source_id=self.id).all()
+        for entry in journal_entries:
+            entry.deleted_at = datetime.now(timezone.utc)
+
+        # Soft-delete StockMovement records and their lines
+        from ...stock.models import StockMovement
+        stock_movements = db.query(StockMovement).filter_by(source_type="OutflowInvoice", source_id=self.id).all()
+        for movement in stock_movements:
+            movement.deleted_at = datetime.now(timezone.utc)
+            for line in movement.lines: # Assuming StockMovement has a 'lines' relationship
+                line.deleted_at = datetime.now(timezone.utc)
+
+        # Soft-delete PaymentAllocation records
+        payment_allocations = db.query(PaymentAllocation).filter_by(invoice_type="OutflowInvoice", invoice_id=self.id).all()
+        for allocation in payment_allocations:
+            allocation.deleted_at = datetime.now(timezone.utc)
+    @Aras.computed_field
+    def payment_allocations(self) -> list["PaymentAllocation"]:
+        db = object_session(self)
+        if db is None:
+            return []
+        return db.query(PaymentAllocation).filter_by(invoice_type="OutflowInvoice", invoice_id=self.id).all()
 
 class OutflowInvoiceLine(LineItemBase):
     __tablename__ = "erp_accounting_outflow_invoice_lines"

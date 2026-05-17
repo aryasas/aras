@@ -19,5 +19,119 @@
       "issues": "npm run build still fails on existing TypeScript errors outside the requested scope; ReportCenter targeted ESLint passes"
     },
     "verdict": "APPROVED"
+  },
+  {
+    "id": 2,
+    "date": "2026-05-17",
+    "feature": "Fix delete (single item and bulk) - still failing after previous attempts",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/logic/router_factory.py",
+      "features_added": "none",
+      "fixes_applied": "Added missing db.commit() to the bulk-delete endpoint in api/core/logic/router_factory.py.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 3,
+    "date": "2026-05-17",
+    "feature": "Fix delete, payment-invoice link, vocabulary label reactivity",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/stock/models.py, api/apps/erp/party/models.py, api/apps/erp/accounting/services/payment.py",
+      "features_added": "none",
+      "fixes_applied": "Added __soft_delete__ = True to Party, Item, ItemCategory to prevent FK constraint failures on delete; removed duplicate deleted_at column from StockMovementLine; fixed payment allocation methods (auto_allocate, allocate, deallocate) \u2014 replaced non-existent inv.allocations ORM attr with direct db.query(PaymentAllocation).filter_by() calls.",
+      "framework_changes": "none",
+      "issues": "Delete still failing \u2014 dispatched to multi_agent for deeper investigation."
+    },
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "none",
+      "fixes_applied": "Sync unit_type alongside profile to authStore on org save; fix vocabulary cache invalidation to use savedOrgId instead of activeOrgId.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 5,
+    "date": "2026-05-17",
+    "feature": "fk_filter: scope account comboboxes to the current org in Organization form",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/config/models.py, api/core/logic/ui_generator.py",
+      "features_added": "fk_filter emitted in field metadata; all acc_* columns on Organization carry info={fk_filter: {org_id: id}}",
+      "fixes_applied": "Account comboboxes on HQ2 (or any org) now only show accounts belonging to that org",
+      "framework_changes": "ui_generator.py now emits fk_filter from column.info into field metadata",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/Combobox.tsx, ui/src/aras-core/SchemaRegistry.tsx",
+      "features_added": "Combobox accepts extraFilters prop; lookup fields in SchemaRegistry resolve fk_filter keys against formData and pass as encoded filters param",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 4,
+    "date": "2026-05-17",
+    "feature": "Fix delete \u2014 per-row delete button and bulk-delete path resolution",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListView.tsx",
+      "features_added": "Per-row delete button (Trash2, group-hover) in all list views",
+      "fixes_applied": "Bulk-delete and single delete now use metadata api_path for correct endpoint resolution; list refreshes after deletion; selections cleared after bulk delete",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 5,
+    "date": "2026-05-17",
+    "feature": "Organization COA inheritance \u2014 coa_source_org_id field with fk_filter_fallback support",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/config/models.py, api/core/logic/ui_generator.py",
+      "features_added": "Organization.coa_source_org_id FK; _ACC_FK now carries fk_filter_fallback so account comboboxes resolve to parent COA when set; ui_generator passes fk_filter_fallback through to schema",
+      "fixes_applied": "Fixed parent relationship to use explicit foreign_keys=[parent_id] to avoid ambiguity with new coa_source_org_id FK",
+      "framework_changes": "ui_generator.py now emits fk_filter_fallback field alongside fk_filter",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/aras-core/SchemaRegistry.tsx",
+      "features_added": "lookup resolver applies fk_filter_fallback: overrides fk_filter entry when fallback source key has a value in formData",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 6,
+    "date": "2026-05-17",
+    "feature": "Section-level inline action buttons in DynamicForm layout + mirror_coa placed in Organization Configuration section",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "none",
+      "features_added": "none",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "LayoutSection.actions[] \u2014 action names listed here render as labeled inline buttons in the section header. Generic: any model action can be placed in any section via layout JSON.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
   }
 ]

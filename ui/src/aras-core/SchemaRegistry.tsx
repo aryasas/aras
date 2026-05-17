@@ -113,15 +113,33 @@ const components: Record<string, React.FC<FieldProps>> = {
   'textarea': TextAreaInput,
   'file': (props) => <FileField {...props} label={props.field.label} />,
   'image': (props) => <FileField {...props} label={props.field.label} />,
-  'lookup': (props) => (
-    <Combobox 
-      resource={props.field.target_resource || ''} 
-      value={props.value} 
-      onChange={props.onChange} 
-      placeholder={`Select ${props.field.label}...`}
-      disabled={props.disabled}
-    />
-  ),
+  'lookup': (props) => {
+    const fkFilter = props.field.fk_filter as Record<string, string> | undefined;
+    const fkFilterFallback = props.field.fk_filter_fallback as Record<string, string> | undefined;
+    const resolvedFilter: Record<string, string> = fkFilter ? { ...fkFilter } : {};
+    if (fkFilterFallback) {
+      for (const [filterKey, srcKey] of Object.entries(fkFilterFallback)) {
+        if (props.formData?.[srcKey] != null) resolvedFilter[filterKey] = srcKey;
+      }
+    }
+    const extraFilters = Object.keys(resolvedFilter).length
+      ? Object.fromEntries(
+          Object.entries(resolvedFilter)
+            .filter(([, srcKey]) => props.formData?.[srcKey] != null)
+            .map(([filterKey, srcKey]) => [filterKey, props.formData[srcKey]])
+        )
+      : undefined;
+    return (
+      <Combobox
+        resource={props.field.target_resource || ''}
+        value={props.value}
+        onChange={props.onChange}
+        placeholder={`Select ${props.field.label}...`}
+        disabled={props.disabled}
+        extraFilters={Object.keys(extraFilters ?? {}).length ? extraFilters : undefined}
+      />
+    );
+  },
   'bridge': (props) => (
     <MultiSelectCombobox 
       resource={props.field.target_resource || ''} 

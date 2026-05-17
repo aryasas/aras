@@ -29,7 +29,7 @@ export const PROFILE_DEFAULTS: Record<string, VocabularyLabels> = {
 }
 
 const VOCABULARY_KEYS = new Set<VocabularyKey>(['trx_in', 'trx_out', 'party', 'pot'])
-const vocabularyCache = new Map<number, Partial<VocabularyLabels>>()
+export const vocabularyCache = new Map<number, Partial<VocabularyLabels>>()
 
 const VocabularyContext = createContext<VocabularyContextValue | null>(null)
 
@@ -107,7 +107,7 @@ export function VocabularyProvider({ children }: { children: React.ReactNode }) 
     return () => {
       cancelled = true
     }
-  }, [activeOrgId])
+  }, [activeOrgId, profile])
 
   const value = useMemo<VocabularyContextValue>(() => {
     const defaults = PROFILE_DEFAULTS[profile] || PROFILE_DEFAULTS.general

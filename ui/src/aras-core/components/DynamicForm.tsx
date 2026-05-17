@@ -16,7 +16,7 @@ import { resolveFieldComponent } from '../SchemaRegistry';
 import { useAras } from '../hooks/useAras';
 import { useUIStore } from '../../store/uiStore';
 import { LogicEvaluator } from '../../lib/LogicEvaluator';
-import { useVocabulary } from '../../context/VocabularyContext';
+import { useVocabulary, vocabularyCache } from '../../context/VocabularyContext';
 import { PrintPreview } from './PrintPreview';
 import { createDefaultRecord } from '../../lib/schemaUtils';
 
@@ -68,6 +68,7 @@ interface LayoutSection {
   title: string;
   fields: string[];
   type?: 'section' | 'tab';  // default 'section' if omitted
+  actions?: string[];  // action names to render as inline buttons in the section header
 }
 
 interface LayoutGroup {
@@ -135,7 +136,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   initialData,
   parentResourceTitle
 }) => {
-  const { activeOrgId, organizations } = useAuthStore();
+  const { activeOrgId, organizations, setOrganizations } = useAuthStore();
   const vocabulary = useVocabulary();
   const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [formData, setFormData] = useState<any>({});
@@ -300,6 +301,20 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     }
   };
 
+  const handleLinesChange = (fieldName: string, rows: any[]) => {
+    setChildRows(prev => ({ ...prev, [fieldName]: rows }));
+    if (fieldName === 'lines' && 'subtotal' in formData) {
+      const subtotal = rows.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+      const charges = childRows['charges'] ?? [];
+      const totalCharge = charges.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+      setFormData((prev: any) => ({
+        ...prev,
+        subtotal,
+        total_amount: subtotal + totalCharge + (parseFloat(prev.total_tax) || 0),
+      }));
+    }
+  };
+
   const isFieldVisible = (field: Field) => {
     if (field.hidden) return false;
     if (field.form_hidden) return false;
@@ -439,7 +454,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       if (!isFieldVisible(field)) continue;
       const val = formData[field.name];
       const empty = val === null || val === undefined || val === '';
-      if (field.required && empty) {
+      if (field.required && !field.read_only && empty) {
         errs[field.name] = `${vocabulary.get(field.label)} is required`;
         continue;
       }
@@ -545,6 +560,20 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         initialChildRowIdsRef.current[fieldName] = currentIds;
       }
       invalidateInlineLookupCache();
+      const isOrganizationResource = cleanResourcePath(resource).includes('organizations') || cleanResource.includes('config/organizations');
+      if (isOrganizationResource) {
+        const savedOrgId = Number(res.data?.id ?? savedId ?? formData.id);
+        setOrganizations(organizations.map((organization) => (
+          organization.id === savedOrgId
+            ? {
+                ...organization,
+                profile: formData.profile ?? organization.profile,
+                unit_type: formData.unit_type ?? organization.unit_type,
+              }
+            : organization
+        )));
+        vocabularyCache.delete(savedOrgId);
+      }
       notify('Record saved successfully', 'success');
       if (onSave) onSave(res.data);
     } catch (err: any) {
@@ -701,7 +730,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           fkColumn={fkKey}
           parentId={currentId}
           rows={childRows[field.name] ?? []}
-          onChange={(rows) => setChildRows(prev => ({ ...prev, [field.name]: rows }))}
+          onChange={(rows) => handleLinesChange(field.name, rows)}
         />
       );
     }
@@ -980,8 +1009,28 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
               <React.Fragment key={idx}>
                 {normalFields.length > 0 && (
                   <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="px-8 py-4 bg-slate-50 border-b border-slate-100">
+                    <div className="px-8 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
                       <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">{vocabulary.get(section.title)}</h3>
+                      {currentId != null && section.actions && section.actions.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          {section.actions.map(actionName => {
+                            const act = metadata.actions?.find(a => a.name === actionName);
+                            if (!act) return null;
+                            return (
+                              <button
+                                key={act.name}
+                                onClick={() => handleModelAction(act)}
+                                disabled={saving}
+                                className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                                title={act.label}
+                              >
+                                <Zap size={12} />
+                                {act.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                     <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                       {normalFields.map(renderField)}

@@ -213,3 +213,7 @@ This file is used only to report if there are feature added
 
 ## Unknown (2026-05-17)
   - [Codex/GPT-5.5] child table removed row tracking and DELETE persistence on save
+
+
+## Unknown (2026-05-17)
+  - [Codex/GPT-5.5] per-row delete button in ListView; organization save updates authStore profile and clears vocabulary cache

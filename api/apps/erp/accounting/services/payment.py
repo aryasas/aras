@@ -110,7 +110,8 @@ class PaymentService:
         for inv in invoices:
             if remaining <= 0:
                 break
-            amount_due = inv.total_amount - sum(a.amount for a in inv.allocations)
+            existing = db.query(PaymentAllocation).filter_by(invoice_type=invoice_type, invoice_id=inv.id).all()
+            amount_due = inv.total_amount - sum(a.amount for a in existing)
             if amount_due <= 0:
                 continue
             alloc_amount = min(remaining, amount_due)
@@ -123,8 +124,7 @@ class PaymentService:
             db.add(alloc)
             remaining -= alloc_amount
             allocated_count += 1
-            # Update invoice status
-            new_paid = sum(a.amount for a in inv.allocations) + alloc_amount
+            new_paid = sum(a.amount for a in existing) + alloc_amount
             if new_paid >= inv.total_amount - 0.01:
                 inv.status = "Paid"
             else:
@@ -147,7 +147,8 @@ class PaymentService:
         if not inv:
             return {"error": "Invoice not found."}
 
-        amount_due = inv.total_amount - sum(a.amount for a in inv.allocations)
+        existing = db.query(PaymentAllocation).filter_by(invoice_type=invoice_type, invoice_id=invoice_id).all()
+        amount_due = inv.total_amount - sum(a.amount for a in existing)
         if amount > amount_due + 0.01:
             return {"error": f"Amount exceeds invoice balance of {amount_due:.2f}"}
 
@@ -159,7 +160,7 @@ class PaymentService:
         )
         db.add(alloc)
 
-        new_paid = sum(a.amount for a in inv.allocations) + amount
+        new_paid = sum(a.amount for a in existing) + amount
         if new_paid >= inv.total_amount - 0.01:
             inv.status = "Paid"
         else:
@@ -184,7 +185,8 @@ class PaymentService:
         db.flush()
 
         if inv:
-            remaining_paid = sum(a.amount for a in inv.allocations)
+            remaining = db.query(PaymentAllocation).filter_by(invoice_type=alloc.invoice_type, invoice_id=inv.id).all()
+            remaining_paid = sum(a.amount for a in remaining)
             if remaining_paid <= 0:
                 inv.status = "Posted"
             elif remaining_paid < inv.total_amount - 0.01:

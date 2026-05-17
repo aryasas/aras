@@ -4,7 +4,7 @@ Context: Inherits from Aras (Level 1) and Pydantic BaseModel.
 Impact: Ensures all data validation logic is rooted in the Aras framework.
 """
 from typing import Dict, Type, List, Optional, Any
-from pydantic import BaseModel, Field as PydanticField, field_validator, ConfigDict
+from pydantic import BaseModel, Field as PydanticField, field_validator, model_validator, ConfigDict
 from .aras import Aras
 
 
@@ -18,6 +18,13 @@ class Validation(Aras, BaseModel):
     _registry: Dict[str, Type['Validation']] = {}
 
     model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode='before')
+    @classmethod
+    def _empty_str_to_none(cls, values: Any) -> Any:
+        if isinstance(values, dict):
+            return {k: (None if v == '' else v) for k, v in values.items()}
+        return values
 
 
 class ColumnDefinition(Validation):

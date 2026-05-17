@@ -17,7 +17,9 @@ class DocumentRecalcMixin:
         db = object_session(self)
         
         # 1. Calculate Subtotal from lines: qty * (unit_price - discount)
-        self.subtotal = sum(line.qty * (line.unit_price - line.discount) for line in self.lines)
+        for line in self.lines:
+            line.amount = line.qty * (line.unit_price - line.discount)
+        self.subtotal = sum(line.amount for line in self.lines)
         
         # 2. Update Charges and calculate total_charge
         total_charge = 0

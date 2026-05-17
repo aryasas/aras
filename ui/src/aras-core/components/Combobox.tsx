@@ -18,16 +18,18 @@ interface ComboboxProps {
   placeholder?: string;
   displayField?: string;
   disabled?: boolean;
+  extraFilters?: Record<string, any>;
 }
 
-const Combobox: React.FC<ComboboxProps> = ({ 
+const Combobox: React.FC<ComboboxProps> = ({
   resource,
   options,
-  value, 
-  onChange, 
-  placeholder = "Select...", 
+  value,
+  onChange,
+  placeholder = "Select...",
   displayField = "name",
-  disabled = false
+  disabled = false,
+  extraFilters
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -124,9 +126,13 @@ const Combobox: React.FC<ComboboxProps> = ({
       try {
         setLoading(true);
         const cleanRes = cleanResourcePath(resource);
+        const extraFilterList = extraFilters
+          ? Object.entries(extraFilters).map(([field, value]) => ({ field, op: '=', value }))
+          : [];
         const params = {
           search: search || undefined,
-          per_page: 20
+          per_page: 20,
+          ...(extraFilterList.length ? { filters: JSON.stringify(extraFilterList) } : {}),
         };
         const res = await api.get(`/${cleanRes}/`, { params });
         setItems(res.data.items);
@@ -138,7 +144,7 @@ const Combobox: React.FC<ComboboxProps> = ({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [search, resource, isOpen, disabled]);
+  }, [search, resource, isOpen, disabled, extraFilters]);
 
   // Filter static options
   useEffect(() => {

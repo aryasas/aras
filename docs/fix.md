@@ -107,3 +107,11 @@ This file is used only to report if there are fix
 
 ## Unknown (2026-05-17)
   - [Codex/GPT-5.5] normalized child table API path resolution so Price Rule deletes use the registered route
+
+
+## Unknown (2026-05-17)
+  - [Codex/GPT-5.5] bulk delete verified as raw JSON array; vocabulary cache exported and refetch triggered on profile change
+
+
+## Fix delete (single item and bulk) — still failing after previous attempts (2026-05-17)
+  - [Codex/GPT-5.5] Fixed ListView delete and bulk-delete to use metadata-resolved API paths, refresh after deletion, clear deleted selections, and report backend bulk-delete counts correctly.

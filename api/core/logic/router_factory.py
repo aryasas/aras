@@ -626,6 +626,7 @@ class RouterFactory(Router):
                     except Exception as e:
                         print(f"[Bulk Delete] Failed to delete item {item_id}: {e}")
             message = f"Successfully deleted {deleted_count} of {len(ids)} items."
+            db.commit()
             return ok({"deleted_count": deleted_count, "requested_count": len(ids)}, message)
 
         class _BatchOp(BaseModel):
@@ -752,7 +753,7 @@ class RouterFactory(Router):
                         try:
                             # Pass input data to handler
                             handler = getattr(item, action.handler.__name__)
-                            result = handler(input_data)
+                            result = handler(db, input_data)
                             db.commit()
                             message = f"Action '{name}' completed successfully."
                             return ok({"result": result}, message)
@@ -772,7 +773,7 @@ class RouterFactory(Router):
                         
                         try:
                             handler = getattr(item, action.handler.__name__)
-                            result = handler()
+                            result = handler(db)
                             db.commit()
                             message = f"Action '{name}' completed successfully."
                             return ok({"result": result}, message)
