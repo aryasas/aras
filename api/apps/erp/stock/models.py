@@ -157,20 +157,16 @@ class DeliveryNote(DocumentBase):
     lines: Mapped[list["DeliveryNoteLine"]] = relationship("DeliveryNoteLine", back_populates="parent", cascade="all, delete-orphan")
 
     @Aras.model_action(name="post", permission="edit", label="Post Delivery")
-    def post(self):
+    def post(self, db):
         from .services.workflow import StockWorkflowService
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
         success = StockWorkflowService.post_delivery_note(db, self)
         if success:
             return ok({"status": self.status}, message="Delivery Note posted successfully.")
         raise ValidationException("Failed to post delivery note.")
 
     @Aras.model_action(name="create_invoice", permission="edit", label="Create Invoice")
-    def create_invoice(self):
+    def create_invoice(self, db):
         from .services.workflow import StockWorkflowService
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
         invoice = StockWorkflowService.create_invoice_from_delivery(db, self)
         return ok(invoice.to_dict(), message="Invoice created from Delivery Note successfully.")
 
@@ -199,10 +195,8 @@ class StockMovement(DocumentBase):
     lines: Mapped[list["StockMovementLine"]] = relationship("StockMovementLine", back_populates="parent", cascade="all, delete-orphan")
 
     @Aras.model_action(name="post", permission="edit", label="Confirm Movement")
-    def post(self):
-        from sqlalchemy.orm import object_session
+    def post(self, db):
         from core.logic.transition_registry import TransitionRegistry
-        db = object_session(self)
         if self.status != "Draft":
             raise ValidationException("Movement already posted.")
         prev_status = self.status

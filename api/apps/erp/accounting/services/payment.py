@@ -86,7 +86,7 @@ class PaymentService:
         elif party_type == "Supplier":
             invoices = db.query(OutflowInvoice).filter(
                 OutflowInvoice.org_id == org_id,
-                OutflowInvoice.party_id == party_id,
+                OutflowInvoice.supplier_id == party_id,
                 OutflowInvoice.status.in_(["Posted", "Partial"])
             ).order_by(OutflowInvoice.doc_date).all()
         else:

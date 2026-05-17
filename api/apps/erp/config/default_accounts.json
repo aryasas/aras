@@ -1,0 +1,21 @@
+{
+  "acc_bank_default_id": "1102",
+  "acc_cash_default_id": "1101",
+  "acc_receivable_default_id": "1201",
+  "acc_payable_default_id": "2101",
+  "acc_income_default_id": "4101",
+  "acc_cogs_default_id": "5101",
+  "acc_inventory_default_id": "1301",
+  "acc_payroll_payable_id": "2201",
+  "acc_payment_discount_id": "4901",
+  "acc_write_off_id": "4902",
+  "acc_unrealized_gain_loss_id": "4903",
+  "acc_round_off_id": "4904",
+  "acc_stock_received_not_billed_id": "2102",
+  "acc_stock_provisional_id": "1302",
+  "acc_stock_adjustment_id": "5102",
+  "acc_expenses_in_valuation_id": "5103",
+  "acc_stock_default_id": "1303",
+  "acc_tax_output_ppn_id": "2301",
+  "acc_tax_input_ppn_id": "1401"
+}

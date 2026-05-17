@@ -41,6 +41,17 @@ class Organization(ConfigBase):
     allow_zero_stock: Mapped[bool] = mapped_column(Boolean, default=False)
     stock_valuation_method: Mapped[str] = mapped_column(String(10), default="FIFO", info={"choices": ["FIFO", "AVERAGE"]})
 
+    # All default-account field names — used by inherit/fill actions
+    _ACC_FIELDS = [
+        "acc_bank_default_id", "acc_cash_default_id", "acc_receivable_default_id",
+        "acc_payable_default_id", "acc_income_default_id", "acc_cogs_default_id",
+        "acc_inventory_default_id", "acc_payroll_payable_id", "acc_payment_discount_id",
+        "acc_write_off_id", "acc_unrealized_gain_loss_id", "acc_round_off_id",
+        "acc_stock_received_not_billed_id", "acc_stock_provisional_id",
+        "acc_stock_adjustment_id", "acc_expenses_in_valuation_id", "acc_stock_default_id",
+        "acc_tax_output_ppn_id", "acc_tax_input_ppn_id",
+    ]
+
     # fk_filter_fallback: use coa_source_org_id when set, otherwise own id
     _ACC_FK = {"fk_filter": {"org_id": "id"}, "fk_filter_fallback": {"org_id": "coa_source_org_id"}}
     acc_bank_default_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True, info=_ACC_FK)
@@ -115,6 +126,46 @@ class Organization(ConfigBase):
                     child.parent_id = id_map[src.parent_id]
         db.flush()
         return {"mirrored": len(id_map), "skipped": len(existing_codes)}
+
+    @Aras.model_action(name="inherit_accounts", permission="edit", label="Inherit from Parent", icon="ArrowDownToLine")
+    def inherit_accounts(self, db):
+        from core.exceptions import ValidationException
+        if not self.parent_id:
+            raise ValidationException("No parent — set parent_id first.")
+        parent = db.get(Organization, self.parent_id)
+        if not parent:
+            raise ValidationException("Parent organization not found.")
+        filled = 0
+        for field in Organization._ACC_FIELDS:
+            parent_val = getattr(parent, field, None)
+            if parent_val is not None:
+                setattr(self, field, parent_val)
+                filled += 1
+        db.flush()
+        return {"filled": filled}
+
+    @Aras.model_action(name="fill_default_accounts", permission="edit", label="Fill from Defaults", icon="Wand2")
+    def fill_default_accounts(self, db):
+        import json, os
+        from ..accounting.models import Account
+        from core.exceptions import ValidationException
+        config_path = os.path.join(os.path.dirname(__file__), "default_accounts.json")
+        if not os.path.exists(config_path):
+            raise ValidationException("default_accounts.json not found in config directory.")
+        with open(config_path) as f:
+            mapping: dict[str, str] = json.load(f)  # {field_name: account_code}
+        filled = skipped = 0
+        for field, code in mapping.items():
+            if field not in Organization._ACC_FIELDS:
+                continue
+            acc = db.query(Account).filter_by(org_id=self.id, code=code).first()
+            if acc:
+                setattr(self, field, acc.id)
+                filled += 1
+            else:
+                skipped += 1
+        db.flush()
+        return {"filled": filled, "skipped": skipped}
 
 class Currency(ConfigBase):
     __tablename__ = "erp_config_currencies"

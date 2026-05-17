@@ -6,7 +6,6 @@ from core import Aras
 from core.response import ok, err
 from core.exceptions import ValidationException
 from ..base import MasterDataBase, DocumentBase, LineItemBase
-from .services.recalc_mixin import DocumentRecalcMixin
 
 class Account(MasterDataBase):
     __tablename__ = "erp_accounting_accounts"
@@ -48,9 +47,7 @@ class JournalEntry(DocumentBase):
     lines: Mapped[list["JournalEntryLine"]] = relationship("JournalEntryLine", back_populates="parent", cascade="all, delete-orphan")
 
     @Aras.model_action(name="post", permission="edit", label="Post Entry")
-    def post(self):
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
+    def post(self, db):
         total_debit = sum(line.debit for line in self.lines)
         total_credit = sum(line.credit for line in self.lines)
         if total_debit != total_credit:
@@ -58,7 +55,6 @@ class JournalEntry(DocumentBase):
         if total_debit == 0:
             raise ValidationException("Entry has no value.")
         self.status = "Posted"
-        # db.commit() # Removed
         return ok({"status": self.status}, message="Journal Entry posted successfully.")
 
 class JournalEntryLine(LineItemBase):
@@ -71,87 +67,91 @@ class JournalEntryLine(LineItemBase):
     
     parent: Mapped["JournalEntry"] = relationship("JournalEntry", back_populates="lines")
 
-class InflowOrder(DocumentBase, DocumentRecalcMixin):
-    __tablename__ = "erp_accounting_inflow_orders"
-
-    party_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
-    currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"))
-    subtotal: Mapped[float] = mapped_column(Float, default=0)
-    total_charge: Mapped[float] = mapped_column(Float, default=0)
-    total_amount: Mapped[float] = mapped_column(Float, default=0)
-    location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
-    
-    lines: Mapped[list["InflowOrderLine"]] = relationship("InflowOrderLine", back_populates="parent", cascade="all, delete-orphan")
-    charges: Mapped[list["InflowOrderCharge"]] = relationship("InflowOrderCharge", back_populates="parent", cascade="all, delete-orphan")
-
-    @Aras.model_action(name="create_invoice", permission="edit", label="Create Invoice")
-    def create_invoice(self):
-        from .services.conversion import DocumentConversionService
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
-        invoice = DocumentConversionService.create_invoice_from_inflow_order(db, self)
-        return ok(invoice.to_dict(), message="Invoice created successfully.")
-
-class InflowOrderLine(LineItemBase):
-    __tablename__ = "erp_accounting_inflow_order_lines"
-
-    __parent__ = "erp_accounting_inflow_orders"
-    order_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_inflow_orders.id"))
-    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
-    qty: Mapped[float] = mapped_column(Float, default=1.0)
-    uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
-    unit_price: Mapped[float] = mapped_column(Float, default=0)
-    discount: Mapped[float] = mapped_column(Float, default=0)
-    
-    parent: Mapped["InflowOrder"] = relationship("InflowOrder", back_populates="lines")
-
-class InflowOrderCharge(LineItemBase):
-    __tablename__ = "erp_accounting_inflow_order_charges"
-    __parent__ = "erp_accounting_inflow_orders"
-    order_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_inflow_orders.id"))
-    charge_id: Mapped[int] = mapped_column(ForeignKey("erp_config_charges.id"))
-    amount: Mapped[float] = mapped_column(Float, default=0)
-    
-    parent: Mapped["InflowOrder"] = relationship("InflowOrder", back_populates="charges")
-
-class InflowInvoice(DocumentBase, DocumentRecalcMixin):
+class InflowInvoice(DocumentBase):
     __tablename__ = "erp_accounting_inflow_invoices"
     __soft_delete__ = True
 
     party_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
     currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"), nullable=True)
-    pricelist_id: Mapped[int] = mapped_column(ForeignKey("erp_config_price_types.id"), nullable=True)
-    subtotal: Mapped[float] = mapped_column(Float, default=0)
-    total_tax: Mapped[float] = mapped_column(Float, default=0)
-    total_charge: Mapped[float] = mapped_column(Float, default=0)
-    total_amount: Mapped[float] = mapped_column(Float, default=0)
+    pricelist_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_price_types.id"), nullable=True)
+    doc_type: Mapped[str] = mapped_column(String(20), default="Invoice", info={"choices": ["Order", "Invoice"]})
     location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
 
     lines: Mapped[list["InflowInvoiceLine"]] = relationship("InflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["InflowInvoiceCharge"]] = relationship("InflowInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
 
+    @property
+    @Aras.computed_field
+    def subtotal(self) -> float:
+        return sum(line.qty * (line.unit_price - line.discount) for line in self.lines)
+
+    @property
+    @Aras.computed_field
+    def total_charge(self) -> float:
+        return sum(c.amount for c in self.charges)
+
+    @property
+    @Aras.computed_field
+    def total_amount(self) -> float:
+        return self.subtotal + self.total_charge
+
+    @Aras.model_action(name="create_invoice", permission="edit", label="Create Invoice")
+    def create_invoice(self, db):
+        if self.doc_type == "Invoice":
+            raise ValidationException("Already an Invoice.")
+        if self.status != "Confirmed":
+            raise ValidationException("Order must be Confirmed before creating an Invoice.")
+        invoice = InflowInvoice(
+            org_id=self.org_id,
+            party_id=self.party_id,
+            currency_id=self.currency_id,
+            pricelist_id=self.pricelist_id,
+            location_id=self.location_id,
+            doc_type="Invoice",
+            notes=f"Generated from Order {self.number}",
+            status="Draft"
+        )
+        db.add(invoice)
+        db.flush()
+        for line in self.lines:
+            db.add(InflowInvoiceLine(
+                invoice_id=invoice.id,
+                item_id=line.item_id,
+                qty=line.qty,
+                uom_id=line.uom_id,
+                unit_price=line.unit_price,
+                discount=line.discount,
+            ))
+        for charge in self.charges:
+            db.add(InflowInvoiceCharge(
+                invoice_id=invoice.id,
+                charge_id=charge.charge_id,
+                amount=charge.amount,
+            ))
+        self.status = "Posted"
+        return ok(invoice.to_dict(), message="Invoice created successfully.")
+
+    @property
     @Aras.computed_field
     def amount_paid(self) -> float:
-        from sqlalchemy.orm import object_session
         db = object_session(self)
         if db is None:
             return 0.0
         rows = db.query(PaymentAllocation).filter_by(invoice_type="InflowInvoice", invoice_id=self.id).all()
         return sum(r.amount for r in rows)
 
+    @property
     @Aras.computed_field
     def amount_due(self) -> float:
-        return self.total_amount - self.amount_paid()
+        return self.total_amount - self.amount_paid
 
     @Aras.model_action(name="post", permission="edit", label="Post Invoice")
-    def post(self):
+    def post(self, db):
         from .services.posting import InvoicePostingService
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
-        success = InvoicePostingService.post_inflow_invoice(db, self)
-        if success:
+        result = InvoicePostingService.post_inflow_invoice(db, self)
+        if result.get("success"):
             return ok({"status": self.status}, message="Inflow Invoice posted successfully.")
-        raise ValidationException("Failed to post inflow invoice.") # Or handle specific error from service
+        raise ValidationException(result.get("error") or result.get("message") or "Failed to post inflow invoice.")
     @Aras.on_delete
     def on_delete_cascade(self):
         db = object_session(self)
@@ -188,10 +188,10 @@ class InflowInvoiceLine(LineItemBase):
     __parent__ = "erp_accounting_inflow_invoices"
 
     invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_inflow_invoices.id"))
-    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"), info={"display_column": "name"})
     qty: Mapped[float] = mapped_column(Float, default=1.0)
-    uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
-    unit_price: Mapped[float] = mapped_column(Float, default=0)
+    uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True, info={"display_column": "name", "depends_on": "item_id", "default_from": "uom_sales_id"})
+    unit_price: Mapped[float] = mapped_column(Float, default=0, info={"depends_on": "item_id", "default_from": "default_sale_price"})
     discount: Mapped[float] = mapped_column(Float, default=0)
 
     parent: Mapped["InflowInvoice"] = relationship("InflowInvoice", back_populates="lines")
@@ -206,87 +206,92 @@ class InflowInvoiceCharge(LineItemBase):
     parent: Mapped["InflowInvoice"] = relationship("InflowInvoice", back_populates="charges")
 
 
-class OutflowOrder(DocumentBase, DocumentRecalcMixin):
-    __tablename__ = "erp_accounting_outflow_orders"
-
-    supplier_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
-    currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"))
-    subtotal: Mapped[float] = mapped_column(Float, default=0)
-    total_charge: Mapped[float] = mapped_column(Float, default=0)
-    total_amount: Mapped[float] = mapped_column(Float, default=0)
-    location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
-    
-    lines: Mapped[list["OutflowOrderLine"]] = relationship("OutflowOrderLine", back_populates="parent", cascade="all, delete-orphan")
-    charges: Mapped[list["OutflowOrderCharge"]] = relationship("OutflowOrderCharge", back_populates="parent", cascade="all, delete-orphan")
-
-    @Aras.model_action(name="create_invoice", permission="edit", label="Create Invoice")
-    def create_invoice(self):
-        from .services.conversion import DocumentConversionService
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
-        invoice = DocumentConversionService.create_invoice_from_outflow_order(db, self)
-        return ok(invoice.to_dict(), message="Invoice created successfully.")
-
-class OutflowOrderLine(LineItemBase):
-    __tablename__ = "erp_accounting_outflow_order_lines"
-
-    __parent__ = "erp_accounting_outflow_orders"
-    order_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_outflow_orders.id"))
-    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
-    qty: Mapped[float] = mapped_column(Float, default=1.0)
-    uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
-    unit_price: Mapped[float] = mapped_column(Float, default=0)
-    discount: Mapped[float] = mapped_column(Float, default=0)
-    
-    parent: Mapped["OutflowOrder"] = relationship("OutflowOrder", back_populates="lines")
-
-class OutflowOrderCharge(LineItemBase):
-    __tablename__ = "erp_accounting_outflow_order_charges"
-    __parent__ = "erp_accounting_outflow_orders"
-    order_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_outflow_orders.id"))
-    charge_id: Mapped[int] = mapped_column(ForeignKey("erp_config_charges.id"))
-    amount: Mapped[float] = mapped_column(Float, default=0)
-    
-    parent: Mapped["OutflowOrder"] = relationship("OutflowOrder", back_populates="charges")
-
-class OutflowInvoice(DocumentBase, DocumentRecalcMixin):
+class OutflowInvoice(DocumentBase):
     __tablename__ = "erp_accounting_outflow_invoices"
     __soft_delete__ = True
-    
+
     supplier_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
     currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"), nullable=True)
-    subtotal: Mapped[float] = mapped_column(Float, default=0)
-    total_tax: Mapped[float] = mapped_column(Float, default=0)
-    total_charge: Mapped[float] = mapped_column(Float, default=0)
-    total_amount: Mapped[float] = mapped_column(Float, default=0)
+    pricelist_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_price_types.id"), nullable=True)
+    doc_type: Mapped[str] = mapped_column(String(20), default="Invoice", info={"choices": ["Order", "Invoice"]})
     location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
     grn_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_grns.id"), nullable=True)
 
     lines: Mapped[list["OutflowInvoiceLine"]] = relationship("OutflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["OutflowInvoiceCharge"]] = relationship("OutflowInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
 
+    @property
+    @Aras.computed_field
+    def subtotal(self) -> float:
+        return sum(line.qty * (line.unit_price - line.discount) for line in self.lines)
+
+    @property
+    @Aras.computed_field
+    def total_charge(self) -> float:
+        return sum(c.amount for c in self.charges)
+
+    @property
+    @Aras.computed_field
+    def total_amount(self) -> float:
+        return self.subtotal + self.total_charge
+
+    @Aras.model_action(name="create_invoice", permission="edit", label="Create Invoice")
+    def create_invoice(self, db):
+        if self.doc_type == "Invoice":
+            raise ValidationException("Already an Invoice.")
+        if self.status != "Confirmed":
+            raise ValidationException("Order must be Confirmed before creating an Invoice.")
+        invoice = OutflowInvoice(
+            org_id=self.org_id,
+            supplier_id=self.supplier_id,
+            currency_id=self.currency_id,
+            pricelist_id=self.pricelist_id,
+            location_id=self.location_id,
+            doc_type="Invoice",
+            notes=f"Generated from Order {self.number}",
+            status="Draft"
+        )
+        db.add(invoice)
+        db.flush()
+        for line in self.lines:
+            db.add(OutflowInvoiceLine(
+                invoice_id=invoice.id,
+                item_id=line.item_id,
+                qty=line.qty,
+                uom_id=line.uom_id,
+                unit_price=line.unit_price,
+                discount=line.discount,
+            ))
+        for charge in self.charges:
+            db.add(OutflowInvoiceCharge(
+                invoice_id=invoice.id,
+                charge_id=charge.charge_id,
+                amount=charge.amount,
+            ))
+        self.status = "Posted"
+        return ok(invoice.to_dict(), message="Invoice created successfully.")
+
+    @property
     @Aras.computed_field
     def amount_paid(self) -> float:
-        from sqlalchemy.orm import object_session
         db = object_session(self)
         if db is None:
             return 0.0
         rows = db.query(PaymentAllocation).filter_by(invoice_type="OutflowInvoice", invoice_id=self.id).all()
         return sum(r.amount for r in rows)
 
+    @property
     @Aras.computed_field
     def amount_due(self) -> float:
-        return self.total_amount - self.amount_paid()
+        return self.total_amount - self.amount_paid
 
     @Aras.model_action(name="post", permission="edit", label="Post Invoice")
-    def post(self):
+    def post(self, db):
         from .services.posting import InvoicePostingService
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
-        success = InvoicePostingService.post_outflow_invoice(db, self)
-        if success:
+        result = InvoicePostingService.post_outflow_invoice(db, self)
+        if result.get("success"):
             return ok({"status": self.status}, message="Outflow Invoice posted successfully.")
-        raise ValidationException("Failed to post outflow invoice.")
+        raise ValidationException(result.get("error") or result.get("message") or "Failed to post outflow invoice.")
     @Aras.on_delete
     def on_delete_cascade(self):
         db = object_session(self)
@@ -321,12 +326,12 @@ class OutflowInvoiceLine(LineItemBase):
     __tablename__ = "erp_accounting_outflow_invoice_lines"
 
     __parent__ = "erp_accounting_outflow_invoices"
-    
+
     invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_outflow_invoices.id"))
-    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"), info={"display_column": "name"})
     qty: Mapped[float] = mapped_column(Float, default=1.0)
-    uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
-    unit_price: Mapped[float] = mapped_column(Float, default=0)
+    uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True, info={"display_column": "name", "depends_on": "item_id", "default_from": "uom_purchase_id"})
+    unit_price: Mapped[float] = mapped_column(Float, default=0, info={"depends_on": "item_id", "default_from": "default_purchase_price"})
     discount: Mapped[float] = mapped_column(Float, default=0)
     
     parent: Mapped["OutflowInvoice"] = relationship("OutflowInvoice", back_populates="lines")
@@ -355,20 +360,16 @@ class Payment(DocumentBase):
     allocations: Mapped[list["PaymentAllocation"]] = relationship("PaymentAllocation", back_populates="parent", cascade="all, delete-orphan")
 
     @Aras.model_action(name="post", permission="edit", label="Post Payment")
-    def post(self):
+    def post(self, db):
         from .services.payment import PaymentService
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
         success = PaymentService.post_payment(db, self)
         if success:
             return ok({"status": self.status}, message="Payment posted successfully.")
         raise ValidationException("Failed to post payment.")
 
     @Aras.model_action(name="auto_allocate", permission="edit", label="Auto Allocate")
-    def auto_allocate(self):
+    def auto_allocate(self, db):
         from .services.payment import PaymentService
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
         result = PaymentService.auto_allocate(db, self)
         return ok(result, message="Payment auto-allocated successfully.")
 
@@ -399,12 +400,9 @@ class GoodsReceiptNote(DocumentBase):
     lines: Mapped[list["GoodsReceiptLine"]] = relationship("GoodsReceiptLine", back_populates="parent", cascade="all, delete-orphan")
 
     @Aras.model_action(name="receive", permission="edit", label="Receive Goods")
-    def receive(self):
-        from sqlalchemy.orm import object_session
+    def receive(self, db):
         from ...stock.models import StockMovement, StockMovementLine
-        from ...stock.services.valuation import InventoryValuationService # Import valuation service
-
-        db = object_session(self)
+        from ...stock.services.valuation import InventoryValuationService
         if self.status != "Draft":
             raise ValidationException(f"GRN is already {self.status}")
 
@@ -444,10 +442,7 @@ class GoodsReceiptNote(DocumentBase):
         return ok({"status": self.status}, message="Goods Receipt Note received successfully.")
 
     @Aras.model_action(name="match_invoice", permission="edit", label="Match to Invoice")
-    def match_invoice(self, invoice_id: int):
-        from sqlalchemy.orm import object_session
-        
-        db = object_session(self)
+    def match_invoice(self, db, invoice_id: int):
         invoice = db.get(OutflowInvoice, invoice_id)
         if not invoice:
             raise ValidationException(f"Invoice with ID {invoice_id} not found.")

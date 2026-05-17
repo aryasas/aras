@@ -10,7 +10,7 @@ class OrganizationView(Aras.View):
         {"title": "Contact & Branding", "fields": ["phone", "email", "website", "address", "logo_path"]},
         {"title": "Configuration", "fields": ["base_currency_id", "fiscal_year_start_month", "default_coa_template", "default_charge_id", "default_charge_enable"]},
         {"title": "Accounting & Stock Behavior", "fields": ["enable_perpetual_inventory", "enable_provisional_non_stock", "avg_cost_by_location", "allow_zero_stock"]},
-        {"title": "Default Accounts", "fields": [
+        {"title": "Default Accounts", "actions": ["inherit_accounts", "fill_default_accounts"], "fields": [
             "acc_bank_default_id", "acc_cash_default_id", "acc_receivable_default_id", "acc_payable_default_id",
             "acc_income_default_id", "acc_cogs_default_id", "acc_inventory_default_id",
             "acc_payroll_payable_id", "acc_payment_discount_id", "acc_write_off_id",

@@ -757,8 +757,12 @@ class RouterFactory(Router):
                             db.commit()
                             message = f"Action '{name}' completed successfully."
                             return ok({"result": result}, message)
+                        except ArasException:
+                            db.rollback()
+                            raise
                         except Exception as e:
                             db.rollback()
+                            # Consider logging the full error e for debugging
                             raise ArasException("Internal Server Error", detail=str(e))
                 else:
                     @router.post(f"/{{item_id}}/action/{name}", response_model=dict)
@@ -777,8 +781,12 @@ class RouterFactory(Router):
                             db.commit()
                             message = f"Action '{name}' completed successfully."
                             return ok({"result": result}, message)
+                        except ArasException:
+                            db.rollback()
+                            raise
                         except Exception as e:
                             db.rollback()
+                            # Consider logging the full error e for debugging
                             raise ArasException("Internal Server Error", detail=str(e))
             
             create_action_route(action_name, model_action)

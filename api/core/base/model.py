@@ -119,10 +119,17 @@ class Model(Aras, Base):
             cls._actions = get_model_actions(cls)
 
             # 4. Discover computed properties
-            cls._computed = [
-                name for name in dir(cls)
-                if callable(getattr(cls, name)) and getattr(getattr(cls, name), "_aras_computed", False)
-            ]
+            computed = []
+            for c in cls.__mro__:
+                for name, descriptor in vars(c).items():
+                    if name in computed:
+                        continue
+                    if isinstance(descriptor, property):
+                        if getattr(descriptor.fget, "_aras_computed", False):
+                            computed.append(name)
+                    elif callable(descriptor) and getattr(descriptor, "_aras_computed", False):
+                        computed.append(name)
+            cls._computed = computed
 
         # 5. Inject Generic Features (Traits)
         from ..logic.trait_injector import TraitInjector
@@ -633,7 +640,8 @@ class Model(Aras, Base):
         for name in self._computed:
             if incl and name not in incl: continue
             if name in excl: continue
-            val = getattr(self, name)()
+            attr = getattr(self, name)
+            val = attr() if callable(attr) else attr
             if isinstance(val, (datetime, date)): result[name] = val.isoformat()
             elif isinstance(val, Decimal): result[name] = float(val)
             else: result[name] = val

@@ -26,12 +26,12 @@ class Accounting(ERP):
         {
             "label": "Inflow",
             "icon": "ArrowUpRight",
-            "models": ["erp_accounting_inflow_orders", "erp_accounting_inflow_invoices"]
+            "models": ["erp_accounting_inflow_invoices"]
         },
         {
             "label": "Outflow",
             "icon": "ArrowDownLeft",
-            "models": ["erp_accounting_outflow_orders", "erp_accounting_outflow_invoices", "erp_accounting_grns"]
+            "models": ["erp_accounting_outflow_invoices", "erp_accounting_grns"]
         },
         {
             "label": "Payments",
