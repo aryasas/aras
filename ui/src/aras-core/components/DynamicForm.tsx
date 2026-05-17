@@ -729,6 +729,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           childResource={childApiPath}
           fkColumn={fkKey}
           parentId={currentId}
+          parentData={formData}
           rows={childRows[field.name] ?? []}
           onChange={(rows) => handleLinesChange(field.name, rows)}
         />
@@ -1084,6 +1085,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                   childResource={child.resource}
                   fkColumn={fkKey}
                   parentId={currentId}
+                  parentData={formData}
                   rows={childRows[child.resource] ?? []}
                   onChange={(rows) => setChildRows(prev => ({ ...prev, [child.resource]: rows }))}
                 />

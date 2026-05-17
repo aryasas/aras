@@ -10,6 +10,7 @@ interface InlineChildTableProps {
   childResource: string;
   fkColumn: string;
   parentId?: number | string;
+  parentData?: any;
   rows: any[];
   onChange: (rows: any[]) => void;
 }
@@ -36,6 +37,8 @@ export function filterEmptyChildRows(rows: any[], fields: any[]) {
 export const InlineChildTable: React.FC<InlineChildTableProps> = ({
   childResource,
   fkColumn,
+  parentId,
+  parentData,
   rows,
   onChange
 }) => {
@@ -50,8 +53,9 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
   useEffect(() => {
     const clean = cleanResourcePath(childResource);
     api.get(`/metadata/${clean}`).then(r => {
-      setChildMeta(r.data);
-      setVisibleColumns(r.data.fields.filter((f: any) => !f.hidden && !f.form_hidden && f.name !== fkColumn && f.type !== 'child_table').map((f: any) => f.name));
+      const fields = applyChildFieldOverrides(r.data.fields, childResource);
+      setChildMeta({ ...r.data, fields });
+      setVisibleColumns(fields.filter((f: any) => !f.hidden && !f.form_hidden && f.name !== fkColumn && f.type !== 'child_table').map((f: any) => f.name));
     }).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [childResource, fkColumn]);
@@ -85,6 +89,10 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
   const updateRow = async (idx: number, col: string, val: any) => {
     let patch: Record<string, any> = { [col]: val, __aras_empty_row: false };
 
+    if (isPaymentAllocationResource(childResource) && col === 'invoice_id') {
+      patch.invoice_type = parentData?.payment_type === 'Outgoing' ? 'OutflowInvoice' : 'InflowInvoice';
+    }
+
     // Auto-fill fields that depend_on this column
     const triggerField = editableCols.find((f: any) => f.name === col);
     const dependents = editableCols.filter((f: any) => f.depends_on === col && f.default_from);
@@ -115,8 +123,19 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
     onChange(updated);
   };
 
-  const deleteSelected = () => {
+  const runRemoveAction = async (row: any) => {
+    const removeAction = childMeta?.actions?.find((action: any) => action.name === 'deallocate');
+    if (!row.id || !removeAction) return false;
+    const clean = cleanResourcePath(childResource);
+    await api.post(`/${clean}/${row.id}/action/${removeAction.name}`, {});
+    return true;
+  };
+
+  const deleteSelected = async () => {
     if (selectedRows.length === 0) return;
+    for (const idx of selectedRows) {
+      await runRemoveAction(rows[idx]);
+    }
     onChange(rows.filter((_, i) => !selectedRows.includes(i)));
     setSelectedRows([]);
   };
@@ -126,7 +145,7 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
   };
 
   const startEdit = (idx: number, field: any) => {
-    if (field.read_only || !['text', 'string', 'number', 'currency', 'select', 'date'].includes(field.type)) return;
+    if (field.read_only || field.type === 'async_select' || !['text', 'string', 'number', 'currency', 'select', 'date'].includes(field.type)) return;
     setEditingCell({ rowIndex: idx, fieldName: field.name });
     setEditingValue(rows[idx]?.[field.name] ?? '');
   };
@@ -253,6 +272,20 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
                               className="w-full rounded-xl border border-indigo-200 bg-white px-3 py-2 text-sm outline-none ring-2 ring-indigo-100"
                             />
                           )
+                        ) : f.type === 'async_select' && f.choices_url ? (
+                          f.read_only ? (
+                            <span className="block px-4 py-2.5 text-sm text-slate-700">
+                              {displayVal ?? ''}
+                            </span>
+                          ) : (
+                            <InlineAsyncSelect
+                              field={f}
+                              parentId={parentId}
+                              value={row[f.name]}
+                              fallbackLabel={row.invoice_number ?? displayVal}
+                              onChange={(val) => updateRow(idx, f.name, val)}
+                            />
+                          )
                         ) : f.type === 'lookup' && f.target_resource ? (
                           f.read_only ? (
                             <span className="block px-4 py-2.5 text-sm text-slate-700">
@@ -281,9 +314,12 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
                 <td className="px-4 py-3 align-middle text-center opacity-50 group-hover:opacity-100 transition-opacity">
                   <button
                     type="button"
-                    onClick={() => deleteRow(idx)}
+                    onClick={async () => {
+                      await runRemoveAction(row);
+                      deleteRow(idx);
+                    }}
                     className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
-                    title="Remove row"
+                    title={childMeta.actions?.find((action: any) => action.name === 'deallocate')?.label ?? 'Remove row'}
                   >
                     <Trash2 size={16} />
                   </button>
@@ -297,6 +333,33 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
     </div>
   );
 };
+
+function isPaymentAllocationResource(resource: string) {
+  return cleanResourcePath(resource).includes('payment-allocations');
+}
+
+function applyChildFieldOverrides(fields: any[], childResource: string) {
+  if (!isPaymentAllocationResource(childResource)) return fields;
+  return fields.map((field: any) => {
+    if (field.name === 'invoice_type') return { ...field, read_only: true };
+    if (field.name === 'invoice_id') {
+      return {
+        ...field,
+        type: 'async_select',
+        choices_url: '/api/erp/accounting/payments/{parent_id}/open_invoices',
+        display_field: 'number',
+      };
+    }
+    return field;
+  });
+}
+
+function resolveChoicesUrl(url: string, parentId?: number | string) {
+  const withParent = url.replace('{parent_id}', parentId == null ? '' : String(parentId));
+  return cleanResourcePath(withParent)
+    .replace(/^api\/v1\//, '')
+    .replace(/^api\//, '');
+}
 
 function getLookupLabel(item: any) {
   return item?.name ?? item?.code ?? item?.label ?? item?.id ?? '';
@@ -338,6 +401,50 @@ const InlineLookupCombobox: React.FC<{
       value={value}
       onChange={onChange}
       placeholder={`Select ${field.label}...`}
+    />
+  );
+};
+
+const InlineAsyncSelect: React.FC<{
+  field: any;
+  parentId?: number | string;
+  value: any;
+  fallbackLabel?: any;
+  onChange: (value: any) => void;
+}> = ({ field, parentId, value, fallbackLabel, onChange }) => {
+  const [options, setOptions] = useState<Array<{ label: string; value: any }>>([]);
+
+  useEffect(() => {
+    if (!field.choices_url || parentId == null) {
+      setOptions([]);
+      return;
+    }
+
+    const url = resolveChoicesUrl(field.choices_url, parentId);
+    api.get(`/${url}`)
+      .then(res => {
+        const items = res.data?.items ?? res.data ?? [];
+        const displayField = field.display_field ?? 'name';
+        setOptions(items.map((item: any) => ({
+          label: String(item[displayField] ?? item.name ?? item.id),
+          value: item.id,
+        })));
+      })
+      .catch(() => setOptions([]));
+  }, [field.choices_url, field.display_field, parentId]);
+
+  const selectedIsMissing = value != null && !options.some(option => String(option.value) === String(value));
+  const mergedOptions = selectedIsMissing
+    ? [{ label: String(fallbackLabel || value), value }, ...options]
+    : options;
+
+  return (
+    <Combobox
+      options={mergedOptions}
+      value={value}
+      onChange={onChange}
+      placeholder={`Select ${field.label}...`}
+      disabled={parentId == null}
     />
   );
 };

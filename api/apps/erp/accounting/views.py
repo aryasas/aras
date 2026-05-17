@@ -43,6 +43,7 @@ class InflowInvoiceView(Aras.View):
         {"title": "Items", "fields": ["lines"]},
         {"title": "Taxes & Charges", "fields": ["charges"]},
         {"title": "Financials", "fields": ["subtotal", "total_charge", "total_amount"]},
+        {"title": "Payments", "fields": ["amount_paid", "amount_due", "payment_allocations"]},
         DOC_LAYOUT_NOTES
     ]
 
@@ -55,15 +56,20 @@ class OutflowInvoiceView(Aras.View):
         {"title": "Items", "fields": ["lines"]},
         {"title": "Taxes & Charges", "fields": ["charges"]},
         {"title": "Financials", "fields": ["subtotal", "total_charge", "total_amount"]},
+        {"title": "Payments", "fields": ["amount_paid", "amount_due", "payment_allocations"]},
         DOC_LAYOUT_NOTES
     ]
 
 class PaymentView(Aras.View):
     model = Payment
     icon = "pi pi-wallet"
+    fields = {
+        "allocations.invoice_type": {"read_only": True},
+        "allocations.invoice_id": {"ui_type": "async_select", "choices_url": "/api/erp/accounting/payments/{parent_id}/open_invoices", "display_field": "number"},
+    }
     layout = [
         {"title": "Header", "fields": ["number", "currency_id", "payment_type", "party_type", "party_id", "doc_date", "status"]},
-        {"title": "Payment Details", "fields": ["account_id", "mode_of_payment_id", "amount", "reference"]},
+        {"title": "Payment Details", "fields": ["account_id", "mode_of_payment_id", "amount", "amount_allocated", "amount_unallocated", "reference"]},
         {"title": "Allocations", "fields": ["allocations"]},
         DOC_LAYOUT_NOTES # Replaced Notes section
     ]

@@ -115,3 +115,11 @@ This file is used only to report if there are fix
 
 ## Fix delete (single item and bulk) — still failing after previous attempts (2026-05-17)
   - [Codex/GPT-5.5] Fixed ListView delete and bulk-delete to use metadata-resolved API paths, refresh after deletion, clear deleted selections, and report backend bulk-delete counts correctly.
+
+
+## Payment ↔ Invoice connection — manual allocation UI and deallocate action — revision (2026-05-18)
+  - [Codex/GPT-5.5] Payment allocation rows now infer read-only invoice_type from parent payment_type
+
+## Payment ↔ Invoice — rhf fixes (2026-05-18)
+  - [Claude Sonnet 4.6] Reverted models.py import from `.base` to `..base` (agent broke parent package path)
+  - [Claude Sonnet 4.6] Fixed app.py open_invoices route: replaced nonexistent `supplier_id` with `party_id`, added guard for null party_id, moved PaymentService import to lazy (top-level import caused ImportError via unrelated missing models)

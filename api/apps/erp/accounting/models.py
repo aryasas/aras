@@ -359,6 +359,16 @@ class Payment(DocumentBase):
 
     allocations: Mapped[list["PaymentAllocation"]] = relationship("PaymentAllocation", back_populates="parent", cascade="all, delete-orphan")
 
+    @property
+    @Aras.computed_field
+    def amount_allocated(self) -> float:
+        return sum(a.amount for a in self.allocations)
+
+    @property
+    @Aras.computed_field
+    def amount_unallocated(self) -> float:
+        return self.amount - self.amount_allocated
+
     @Aras.model_action(name="post", permission="edit", label="Post Payment")
     def post(self, db):
         from .services.payment import PaymentService
@@ -383,6 +393,26 @@ class PaymentAllocation(LineItemBase):
     amount: Mapped[float] = mapped_column(Float, default=0)
     
     parent: Mapped["Payment"] = relationship("Payment", back_populates="allocations")
+
+    @property
+    @Aras.computed_field
+    def invoice_number(self) -> str:
+        db = object_session(self)
+        if db is None:
+            return ""
+        if self.invoice_type == "InflowInvoice":
+            invoice = db.query(InflowInvoice).filter_by(id=self.invoice_id).first()
+        elif self.invoice_type == "OutflowInvoice":
+            invoice = db.query(OutflowInvoice).filter_by(id=self.invoice_id).first()
+        else:
+            invoice = None
+        return invoice.number if invoice else ""
+
+    @Aras.model_action(name="deallocate", permission="edit", label="Remove")
+    def deallocate(self, db):
+        from .services.payment import PaymentService
+        PaymentService.deallocate(db, self.id)
+        return ok({"ok": True}, message="Allocation removed.")
 
 class GoodsReceiptNote(DocumentBase):
     __tablename__ = "erp_accounting_grns"

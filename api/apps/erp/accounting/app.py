@@ -6,12 +6,45 @@ from core.logic.discovery import autodiscover_models
 from .models import * # Import all models for discovery
 from .models_grn import * # Import all models from models_grn for discovery
 
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from core.lib.database import get_db
+
+accounting_api_router = APIRouter()
+
+@accounting_api_router.get("/payments/{payment_id}/open_invoices")
+def get_open_invoices_for_payment(payment_id: int, db: Session = Depends(get_db)):
+    from .models import Payment
+    from .services.payment import PaymentService
+
+    payment = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    if payment.payment_type not in ("Incoming", "Outgoing"):
+        return []
+    if payment.party_id is None:
+        return []
+
+    invoices = PaymentService.get_unpaid_invoices(db, payment.party_type, payment.party_id, payment.org_id)
+    
+    result = []
+    for inv in invoices:
+        result.append({
+            "id": inv.id,
+            "number": inv.number,
+            "total_amount": inv.total_amount,
+            "amount_due": inv.amount_due,
+            "doc_date": inv.doc_date.isoformat() if inv.doc_date else None,
+        })
+    return result
+
 class Accounting(ERP):
     app_name = "erp_accounting"
     app_label = "Accounting"
     icon = "Calculator"
 
-    routers = [print_router]
+    routers = [print_router, accounting_api_router]
 
     models = autodiscover_models(__name__, [
         "models", "models_grn"

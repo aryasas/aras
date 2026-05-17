@@ -217,3 +217,8 @@ This file is used only to report if there are feature added
 
 ## Unknown (2026-05-17)
   - [Codex/GPT-5.5] per-row delete button in ListView; organization save updates authStore profile and clears vocabulary cache
+
+
+## Payment ↔ Invoice connection — manual allocation UI and deallocate action — revision (2026-05-18)
+  - [Gemini] Added payment-invoice connection functionality including computed fields, model actions, view configurations, and a new API endpoint for open invoices.
+  - [Codex/GPT-5.5] Added child-table async invoice selection for payment allocations and deallocate-backed remove action
