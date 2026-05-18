@@ -39,6 +39,8 @@ export default function DynamicView() {
         id={id} 
         onSave={() => navigate(basePath)}
         onCancel={() => navigate(basePath)}
+        onDelete={() => navigate(basePath)}
+        onNavigate={(newId) => navigate(`${basePath}/${newId}`)}
       />
     )
   }

@@ -327,3 +327,16 @@ Login: `admin` / `admin`
 ---
 ## Framework Change: Hierarchical org scope expansion & is_shared master data (2026-05-18)
   - [Gemini 2.5 Flash] Enhanced RouterFactory and Model.apply_filters for list-based scopes
+
+---
+## Framework Change: Customize panel resource lookup fix + closePanel on navigation (2026-05-19)
+  - [Claude Sonnet 4.6] `handleCustomize` in DynamicForm.tsx was querying `/aras_resources?name=<url-path>` — the `name=` param is ignored by the list endpoint (only `filters` JSON array is supported). Fixed to use `filters=[{field:'name', op:'=', value:tableName}]`. Also changed resource key source from `cleanResourcePath(resource)` (URL path) to `metadata.resource` (tablename). Added `key={resourceRecord.id}` to ListView to force remount on resource change. Added `closePanel()` on `location.pathname` change in MainLayout via `useUIStore`.
+
+---
+## Framework Change: ERP series seeds yaml + seed_series idempotent db param (2026-05-19)
+  - [Claude Sonnet 4.6] `api/apps/erp/seeds/series.yaml` — declarative series definitions with correct `__tablename__` keys and `{prefix}{year}-{next_value:04d}` format. `seed_series.py` now loads from yaml; `run(db=None)` accepts optional session for reuse. Provisioner calls `seed_series(db=db)` during tenant setup. `api/apps/erp/seeds/demo.yaml` added as standard structure for installable demo data.
+
+
+---
+## Framework Change: Stock Breakdown & Table Rename (2026-05-19)
+  - [Gemini 2.5 Flash] Renamed aras_naming_series to doc_series.

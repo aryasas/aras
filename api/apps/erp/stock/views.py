@@ -25,6 +25,7 @@ class ItemView(Aras.View):
             "title": "General",
             "fields": ["name", "code", "sku", "category_id", "uom_id", "uom_purchase_id", "uom_sales_id", "is_active", "is_stock_item", "for_sales", "for_purchase"],
         },
+        {"key": "stock", "title": "Stock", "fields": ["qty_on_hand", "stock_by_location"]},
         {"key": "alternate_units", "title": "Alternate Units", "fields": ["uoms"]},
         {"key": "prices", "title": "Prices", "fields": ["pricelists"]},
         {"key": "accounts", "title": "Accounts", "fields": ["accounts"]},

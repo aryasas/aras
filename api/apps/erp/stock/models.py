@@ -51,6 +51,14 @@ class Item(MasterDataBase):
         return StockComputeService.compute_qty(db, self.id)
 
     @Aras.computed_field
+    def stock_by_location(self) -> list:
+        from .services.stock import StockComputeService
+        from sqlalchemy.orm import object_session
+        db = object_session(self)
+        if not db: return []
+        return StockComputeService.compute_qty_by_location(db, self.id)
+
+    @Aras.computed_field
     def default_sale_price(self) -> float:
         from .services.price import PriceService
         from sqlalchemy.orm import object_session
@@ -67,7 +75,7 @@ class Item(MasterDataBase):
         return PriceService.get_price(db, self.id)
 
 
-class ItemAccount(LineItemBase):
+class ItemAccount(ErpBase):
     __tablename__ = "erp_stock_item_accounts"
     __parent__ = "erp_stock_items"
     __scoped_by__ = [("org_id", "erp_config_organizations")]
@@ -233,6 +241,4 @@ class ItemLocation(ErpBase):
     __parent__ = "erp_stock_items"
     item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
     location_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_locations.id"))
-    min_qty: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 4), nullable=True)
-    max_qty: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 4), nullable=True)
 

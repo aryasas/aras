@@ -4,10 +4,10 @@ import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
 import { useAuthStore } from '../../store/authStore';
 import {
-  Save, ArrowLeft, RefreshCw, ChevronRight,
+  Save, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight,
   History as HistoryIcon, Zap, Settings, AlertCircle,
   Building2, Store, School, Users, HandHeart, Library, HeartPulse, Landmark, BriefcaseBusiness,
-  Printer
+  Printer, Trash2
 } from 'lucide-react';
 import ListView from './ListView';
 import { filterEmptyChildRows, InlineChildTable, invalidateInlineLookupCache } from './InlineChildTable';
@@ -124,7 +124,9 @@ interface DynamicFormProps {
   id?: number | string;
   onSave?: (data: any) => void;
   onCancel?: () => void;
-  initialData?: any;
+  onDelete?: () => void;
+  onNavigate?: (id: number) => void;
+  initialData?: Record<string, any>;
   parentResourceTitle?: string;
 }
 
@@ -133,6 +135,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   id,
   onSave,
   onCancel,
+  onDelete,
+  onNavigate,
   initialData,
   parentResourceTitle
 }) => {
@@ -150,6 +154,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [childRows, setChildRows] = useState<Record<string, any[]>>({});
   const [resourceSubtitle, setResourceSubtitle] = useState<string | null>(parentResourceTitle ?? null);
+  const [prevId, setPrevId] = useState<number | null>(null);
+  const [nextId, setNextId] = useState<number | null>(null);
   const [searchParams] = useSearchParams();
   // currentId tracks the actual persisted record ID — updated after POST so child tables appear immediately
   const [currentId, setCurrentId] = useState<number | string | undefined>(() =>
@@ -290,6 +296,37 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     fetchData();
   }, [resource, id, notify, initialData, refreshTrigger, searchParams, parentResourceTitle, activeOrgId, metadata]);
 
+  useEffect(() => {
+    if (!currentId || !metadata) {
+      setPrevId(null);
+      setNextId(null);
+      return;
+    }
+
+    const base = metadata.api_path || cleanResourcePath(resource);
+    const numericId = Number(currentId);
+    api.get(`/${base}`, {
+      params: {
+        per_page: 1,
+        order_by: 'id',
+        desc: true,
+        filters: JSON.stringify([{ field: 'id', op: '<', value: numericId }])
+      }
+    })
+      .then(r => setPrevId(r.data?.data?.items?.[0]?.id ?? null))
+      .catch(() => setPrevId(null));
+    api.get(`/${base}`, {
+      params: {
+        per_page: 1,
+        order_by: 'id',
+        desc: false,
+        filters: JSON.stringify([{ field: 'id', op: '>', value: numericId }])
+      }
+    })
+      .then(r => setNextId(r.data?.data?.items?.[0]?.id ?? null))
+      .catch(() => setNextId(null));
+  }, [currentId, metadata, resource]);
+
   const handleChange = (name: string, value: any) => {
     setFormData((prev: any) => ({ ...prev, [name]: value }));
     if (errors[name]) {
@@ -339,10 +376,14 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
 
   const handleCustomize = async () => {
     if (!metadata) return;
-    const cleanResource = cleanResourcePath(resource);
-    
+    // metadata.resource is the tablename (e.g. erp_accounting_outflow_invoices);
+    // the URL-based resource prop is an API path and won't match ResourceModel.name.
+    const tableName = metadata.resource;
+
     try {
-      const res = await api.get('/aras_resources', { params: { name: cleanResource } });
+      const res = await api.get('/aras_resources', {
+        params: { filters: JSON.stringify([{ field: 'name', op: '=', value: tableName }]) }
+      });
       const resourceRecord = res.data.items[0];
       if (!resourceRecord) {
         notify("Resource record not found in registry", "error");
@@ -352,9 +393,27 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       showPanel(
         `Customize: ${vocabulary.get(metadata.title)}`,
         <div className="h-[calc(100vh-150px)]">
-          <ListView 
-            resource="aras_fields" 
+          <ListView
+            key={resourceRecord.id}
+            resource="aras_fields"
             fixedFilters={{ resource_id: resourceRecord.id }}
+            onAdd={() => {
+              showPanel(
+                `New Field — ${vocabulary.get(metadata.title)}`,
+                <DynamicForm
+                  resource="aras_fields"
+                  id="new"
+                  initialData={{ resource_id: resourceRecord.id }}
+                  onSave={() => {
+                    notify("Field added. Refresh to see changes.", "success");
+                    setRefreshTrigger(prev => prev + 1);
+                    closePanel();
+                  }}
+                  onCancel={closePanel}
+                />,
+                'max-w-4xl'
+              );
+            }}
             onRowClick={(fieldId) => {
                showPanel(`Edit Field Customization`, 
                  <DynamicForm 
@@ -390,6 +449,26 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       notify(err.response?.data?.detail || "Workflow action failed", "error");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!currentId) return;
+    const confirmed = await confirm({
+      title: 'Delete record',
+      message: 'Delete this record? This cannot be undone.',
+      confirmText: 'Delete',
+      type: 'danger'
+    });
+    if (!confirmed) return;
+    try {
+      const cleanResource = metadata?.api_path || cleanResourcePath(resource);
+      await api.delete(`/${cleanResource}/${currentId}`);
+      notify('Record deleted.', 'success');
+      if (onDelete) onDelete();
+      else if (onCancel) onCancel();
+    } catch (err: any) {
+      notify(err.response?.data?.detail || 'Delete failed', 'error');
     }
   };
 
@@ -736,6 +815,37 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       );
     }
 
+    if (field.name === 'stock_by_location') {
+      const rows: { location_name: string; qty: number }[] =
+        Array.isArray(formData[field.name]) ? formData[field.name] : [];
+      return (
+        <div key={field.name} className="flex flex-col gap-1.5 md:col-span-2">
+          <label className="text-sm font-bold text-slate-700">Stock by Location</label>
+          {rows.length === 0
+            ? <p className="text-sm text-slate-400 italic">No stock recorded</p>
+            : (
+              <table className="w-full text-sm border border-slate-200 rounded-xl overflow-hidden">
+                <thead className="bg-slate-50 text-slate-600 text-xs uppercase">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-semibold">Location</th>
+                    <th className="px-3 py-2 text-right font-semibold">Qty on Hand</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r, i) => (
+                    <tr key={i} className="border-t border-slate-100 hover:bg-slate-50">
+                      <td className="px-3 py-2">{r.location_name}</td>
+                      <td className="px-3 py-2 text-right font-mono text-slate-800">{r.qty}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )
+          }
+        </div>
+      );
+    }
+
     const Component = resolveFieldComponent(field);
     const fieldLabel = vocabulary.get(field.label);
 
@@ -877,6 +987,36 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           >
             <Settings size={20} />
           </button>
+
+          {currentId != null && (
+            <button
+              onClick={handleDelete}
+              title="Delete record"
+              className="p-2 hover:bg-rose-50 rounded-xl text-rose-400 hover:text-rose-600 transition-colors"
+            >
+              <Trash2 size={20} />
+            </button>
+          )}
+          {currentId != null && (
+            <>
+              <button
+                onClick={() => prevId && onNavigate?.(prevId)}
+                disabled={!prevId}
+                title="Previous record"
+                className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 disabled:opacity-30 transition-colors"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                onClick={() => nextId && onNavigate?.(nextId)}
+                disabled={!nextId}
+                title="Next record"
+                className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 disabled:opacity-30 transition-colors"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </>
+          )}
 
           {/* Model Actions */}
           {currentId != null && metadata.actions?.map(action => (

@@ -9,6 +9,7 @@ import { Breadcrumbs } from './components/Breadcrumbs'
 import { TopbarAppMenu } from './components/TopbarAppMenu'
 import { Building2 } from 'lucide-react'
 import { useAras } from '../aras-core/hooks/useAras'
+import { useUIStore } from '../store/uiStore'
 
 export default function MainLayout() {
   const [isSidebarOpen, setSidebarOpen] = useState(true)
@@ -17,6 +18,11 @@ export default function MainLayout() {
   const location = useLocation()
   const activeOrganization = organizations.find((organization) => organization.id === activeOrgId)
   const { notify } = useAras()
+  const { closePanel } = useUIStore()
+
+  useEffect(() => {
+    closePanel()
+  }, [location.pathname])
 
   useEffect(() => {
     if (activeOrgId === null && organizations.length > 0) {

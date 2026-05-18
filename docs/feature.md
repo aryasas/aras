@@ -247,3 +247,11 @@ This file is used only to report if there are feature added
 ## Field Cleanup + Standalone Child View support (2026-05-18)
   - [Gemini 2.5 Flash] Introduced `View.standalone` flag to allow child models to appear in app menus.
   - [Gemini 2.5 Flash] Simplified `ItemUom` model and view, added `__scoped_by__` for org-level isolation of child records.
+
+
+## Stock Breakdown & Table Rename (2026-05-19)
+  - [Gemini 2.5 Flash] Added per-location stock calculation, API endpoint, and Item model computed field.
+
+
+## Unknown (2026-05-19)
+  - [Codex/GPT-5.5] Add Field panel creation, form delete action, previous/next record navigation, stock by location rendering

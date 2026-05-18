@@ -135,3 +135,11 @@ This file is used only to report if there are fix
 
 ## ERP user access control (org-scoped RBAC) + fix module registration + rename UserRole.company_id → org_id — revision (2026-05-18)
   - [Gemini] Standardized ERP module registration (app_name, app_type), removed UserRole.company_id and integrated ERP org list in auth routes.
+
+
+## Stock Breakdown & Table Rename (2026-05-19)
+  - [Gemini 2.5 Flash] Fixed compute_qty to handle outflows correctly.
+
+
+## Unknown (2026-05-19)
+  - [Codex/GPT-5.5] DynamicView now handles delete and record navigation callbacks

@@ -403,5 +403,35 @@
     },
     "frontend": null,
     "verdict": "APPROVED"
+  },
+  {
+    "id": 21,
+    "date": "2026-05-19",
+    "feature": "Stock Breakdown by Location & doc_series table rename",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/registry/series.py, api/core/manager/health_manager.py, api/core/migrations/rename_naming_series.py, api/apps/erp/stock/services/stock.py, api/apps/erp/stock/app.py, api/apps/erp/stock/models.py, api/apps/erp/stock/views.py",
+      "features_added": "Added per-location stock calculation service and API endpoint. Added 'stock_by_location' computed field to Item model. Updated ItemView layout with a dedicated Stock section.",
+      "fixes_applied": "Rewrote StockComputeService.compute_qty to correctly handle inflows and outflows (receipts vs deliveries), ensuring accurate net stock-on-hand.",
+      "framework_changes": "Renamed 'aras_naming_series' table to 'doc_series' for improved naming consistency across the registry. Created standalone migration script for the rename.",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 23,
+    "date": "2026-05-19",
+    "feature": "Fix number generation, clean ItemAccount/ItemLocation columns, fix stock.py types",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/base/model.py, api/apps/erp/stock/services/stock.py, api/apps/erp/stock/models.py, api/apps/erp/accounting/models.py",
+      "features_added": "none",
+      "fixes_applied": "model.py: db.add(self) now runs before before_save() so object_session(self) works for new records \u2014 fixes document number never being generated. stock.py: Optional[int] type fix, None guard on running_avg_cost. ItemAccount switched from LineItemBase to ErpBase removes unneeded qty/amount/sequence. ItemLocation min_qty/max_qty removed. accounting/models.py: unused err import removed.",
+      "framework_changes": "none",
+      "issues": "Run python manage.py sync to update registry after model changes"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
   }
 ]

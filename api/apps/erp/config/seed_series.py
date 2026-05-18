@@ -1,29 +1,27 @@
 """
-Seed initial naming series for all ERP document types.
-Series data lives in DB (aras_naming_series) — editable via ERP Settings UI.
+Seed naming series for all ERP document types from seeds/series.yaml.
 Run: cd api && python apps/erp/config/seed_series.py
 """
 import sys
+import yaml
+from pathlib import Path
+
 sys.path.insert(0, ".")
 
-from core.lib.database import SessionLocal
 from core.registry.series import Series
 
-SERIES = [
-    {"key": "erp_accounting_sales_invoices", "prefix": "INV-", "format": "{prefix}{year}-{next_value:04d}", "config": {"reset_yearly": True}},
-    {"key": "erp_accounting_sales_orders",   "prefix": "SO-",  "format": "{prefix}{year}-{next_value:04d}", "config": {"reset_yearly": True}},
-    {"key": "erp_stock_movements",           "prefix": "MV-",  "format": "{prefix}{year}-{next_value:04d}", "config": {"reset_yearly": True}},
-    {"key": "erp_accounting_entries",        "prefix": "JE-",  "format": "{prefix}{year}-{next_value:04d}", "config": {"reset_yearly": True}},
-    {"key": "erp_stock_delivery_orders",     "prefix": "DO-",  "format": "{prefix}{year}-{next_value:04d}", "config": {"reset_yearly": True}},
-    {"key": "erp_stock_receipts",            "prefix": "GR-",  "format": "{prefix}{year}-{next_value:04d}", "config": {"reset_yearly": True}},
-    {"key": "erp_party_parties",             "prefix": "PARTY-", "format": "{prefix}{next_value:05d}",        "config": {}},
-]
+SEED_FILE = Path(__file__).parent.parent / "seeds" / "series.yaml"
 
 
-def run():
-    db = SessionLocal()
+def run(db=None):
+    """Seed series. Pass db to reuse an existing session, or omit to open one."""
+    data = yaml.safe_load(SEED_FILE.read_text())
+    own_session = db is None
+    if own_session:
+        from core.lib.database import SessionLocal
+        db = SessionLocal()
     try:
-        for s in SERIES:
+        for s in data["series"]:
             existing = db.query(Series).filter_by(key=s["key"]).first()
             if existing:
                 print(f"[SKIP] {s['key']}")
@@ -33,12 +31,16 @@ def run():
                 prefix=s["prefix"],
                 format=s["format"],
                 next_value=1,
-                config=s["config"],
+                config=s.get("config", {}),
             ))
             print(f"[OK]   {s['key']} → {s['prefix']}")
-        db.commit()
+        if own_session:
+            db.commit()
+        else:
+            db.flush()
     finally:
-        db.close()
+        if own_session:
+            db.close()
     print("Done.")
 
 

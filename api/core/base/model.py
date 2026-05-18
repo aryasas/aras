@@ -529,9 +529,9 @@ class Model(Aras, Base):
             if name_val:
                 setattr(self, "code", name_val)
 
-        self.before_save(is_new=is_new)
         if is_new:
-            db.add(self)
+            db.add(self)  # must precede before_save so object_session(self) works inside it
+        self.before_save(is_new=is_new)
 
         db.flush() # Ensure ID is available for M2M
         if data:

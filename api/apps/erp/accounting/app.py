@@ -1,5 +1,6 @@
 from ..app import ERP
 from . import views # Trigger view registration
+from . import handlers as _handlers  # noqa: F401 — registers workflow handlers
 from .routers.print_router import router as print_router
 
 from core.logic.discovery import autodiscover_models

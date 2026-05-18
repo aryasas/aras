@@ -12,8 +12,8 @@ from apps.erp.config.workflow_models import (
 
 TEMPLATES = [
     {
-        "name": "Sales Invoice Workflow",
-        "document_type": "erp_accounting_sales_invoices",
+        "name": "Inflow Invoice Workflow",
+        "document_type": "erp_accounting_inflow_invoices",
         "states": [
             {"name": "Draft",     "label": "Draft",     "is_initial": True,  "is_final": False, "sequence": 10},
             {"name": "Posted",    "label": "Posted",    "is_initial": False, "is_final": True,  "sequence": 20},
@@ -24,10 +24,32 @@ TEMPLATES = [
                 "name": "post", "label": "Post", "icon": "Send",
                 "from": "Draft", "to": "Posted", "sequence": 10, "permission": "edit",
                 "actions": [
-                    {"handler_name": "post_stock_movement", "sequence": 10,
-                     "params": {"move_type": "Outgoing", "location_field": "location_id"}},
-                    {"handler_name": "post_journal_entry", "sequence": 20,
-                     "params": {"mode": "cogs", "use_product_category_accounts": True}},
+                    {"handler_name": "post_stock_movement", "sequence": 10, "params": {}},
+                    {"handler_name": "post_journal_entry",  "sequence": 20, "params": {}},
+                ],
+            },
+            {
+                "name": "cancel", "label": "Cancel", "icon": "XCircle",
+                "from": "Draft", "to": "Cancelled", "sequence": 20, "permission": "edit",
+                "actions": [],
+            },
+        ],
+    },
+    {
+        "name": "Outflow Invoice Workflow",
+        "document_type": "erp_accounting_outflow_invoices",
+        "states": [
+            {"name": "Draft",     "label": "Draft",     "is_initial": True,  "is_final": False, "sequence": 10},
+            {"name": "Posted",    "label": "Posted",    "is_initial": False, "is_final": True,  "sequence": 20},
+            {"name": "Cancelled", "label": "Cancelled", "is_initial": False, "is_final": True,  "sequence": 30},
+        ],
+        "transitions": [
+            {
+                "name": "post", "label": "Post", "icon": "Send",
+                "from": "Draft", "to": "Posted", "sequence": 10, "permission": "edit",
+                "actions": [
+                    {"handler_name": "post_stock_movement", "sequence": 10, "params": {}},
+                    {"handler_name": "post_journal_entry",  "sequence": 20, "params": {}},
                 ],
             },
             {

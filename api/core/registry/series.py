@@ -9,7 +9,7 @@ from ..base.model import Model
 
 class Series(Model):
     """Stores sequential counters and formats for document numbering."""
-    __tablename__ = "aras_naming_series"
+    __tablename__ = "doc_series"
     __features__ = []
 
     key: Mapped[str] = mapped_column(String(100), unique=True, index=True) # e.g. "erp_stock_movements"

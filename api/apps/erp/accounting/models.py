@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy import String, ForeignKey, Float, Date, Integer, Boolean, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship, object_session
 from core import Aras
-from core.response import ok, err
+from core.response import ok
 from core.exceptions import ValidationException
 from ..base import MasterDataBase, DocumentBase, LineItemBase
 
@@ -126,8 +126,7 @@ class InflowInvoice(DocumentBase):
             notes=f"Generated from Order {self.number}",
             status="Draft"
         )
-        db.add(invoice)
-        db.flush()
+        invoice.save(db)
         for line in self.lines:
             db.add(InflowInvoiceLine(
                 invoice_id=invoice.id,
@@ -162,11 +161,16 @@ class InflowInvoice(DocumentBase):
 
     @Aras.model_action(name="post", permission="edit", label="Post Invoice")
     def post(self, db):
-        from .services.posting import InvoicePostingService
-        result = InvoicePostingService.post_inflow_invoice(db, self)
-        if result.get("success"):
-            return ok({"status": self.status}, message="Inflow Invoice posted successfully.")
-        raise ValidationException(result.get("error") or result.get("message") or "Failed to post inflow invoice.")
+        if self.status != "Draft":
+            raise ValidationException(f"Invoice is already {self.status}.")
+        from core.logic.handler_registry import HandlerRegistry
+        for handler_name in ("post_stock_movement", "post_journal_entry"):
+            fn = HandlerRegistry.resolve(handler_name)
+            if fn is None:
+                raise ValidationException(f"Workflow handler '{handler_name}' not registered.")
+            fn(db=db, item=self, params={})
+        self.status = "Posted"
+        return ok({"status": self.status}, message="Inflow Invoice posted successfully.")
     @Aras.on_delete
     def on_delete_cascade(self):
         db = object_session(self)
@@ -180,7 +184,7 @@ class InflowInvoice(DocumentBase):
 
         # Soft-delete StockMovement records and their lines
         from ...stock.models import StockMovement
-        stock_movements = db.query(StockMovement).filter_by(source_type="InflowInvoice", source_id=self.id).all()
+        stock_movements = db.query(StockMovement).filter_by(origin_model="InflowInvoice", origin_id=self.id).all()
         for movement in stock_movements:
             movement.deleted_at = datetime.now(timezone.utc)
             for line in movement.lines: # Assuming StockMovement has a 'lines' relationship
@@ -272,8 +276,7 @@ class OutflowInvoice(DocumentBase):
             notes=f"Generated from Order {self.number}",
             status="Draft"
         )
-        db.add(invoice)
-        db.flush()
+        invoice.save(db)
         for line in self.lines:
             db.add(OutflowInvoiceLine(
                 invoice_id=invoice.id,
@@ -308,11 +311,16 @@ class OutflowInvoice(DocumentBase):
 
     @Aras.model_action(name="post", permission="edit", label="Post Invoice")
     def post(self, db):
-        from .services.posting import InvoicePostingService
-        result = InvoicePostingService.post_outflow_invoice(db, self)
-        if result.get("success"):
-            return ok({"status": self.status}, message="Outflow Invoice posted successfully.")
-        raise ValidationException(result.get("error") or result.get("message") or "Failed to post outflow invoice.")
+        if self.status != "Draft":
+            raise ValidationException(f"Invoice is already {self.status}.")
+        from core.logic.handler_registry import HandlerRegistry
+        for handler_name in ("post_stock_movement", "post_journal_entry"):
+            fn = HandlerRegistry.resolve(handler_name)
+            if fn is None:
+                raise ValidationException(f"Workflow handler '{handler_name}' not registered.")
+            fn(db=db, item=self, params={})
+        self.status = "Posted"
+        return ok({"status": self.status}, message="Outflow Invoice posted successfully.")
     @Aras.on_delete
     def on_delete_cascade(self):
         db = object_session(self)
@@ -326,7 +334,7 @@ class OutflowInvoice(DocumentBase):
 
         # Soft-delete StockMovement records and their lines
         from ...stock.models import StockMovement
-        stock_movements = db.query(StockMovement).filter_by(source_type="OutflowInvoice", source_id=self.id).all()
+        stock_movements = db.query(StockMovement).filter_by(origin_model="OutflowInvoice", origin_id=self.id).all()
         for movement in stock_movements:
             movement.deleted_at = datetime.now(timezone.utc)
             for line in movement.lines: # Assuming StockMovement has a 'lines' relationship
