@@ -3,6 +3,7 @@ Purpose: Level 2 Base View class for UI configuration.
 Context: Decouples UI metadata from SQLAlchemy models.
 Impact: Allows developers to customize forms/lists without changing DB models.
 """
+import copy
 import re
 from typing import Dict, Any, Type, Optional
 from .aras import Aras
@@ -41,6 +42,7 @@ class View(Aras):
     model: Type['Aras.Model'] = None
     title: Optional[str] = None
     icon: Optional[str] = None
+    standalone: bool = False  # child models with standalone=True appear in app menu
     fields: Dict[str, Dict[str, Any]] = {}
     layout: Optional[list] = None
 
@@ -66,6 +68,21 @@ class View(Aras):
                     field_meta.update(cls.fields[field_meta["name"]])
         
         if cls.layout:
-            metadata["layout"] = cls.layout
-            
+            layout = copy.deepcopy(cls.layout)
+            # Inject scope fields (e.g. org_id) into the first section if missing from all sections
+            scoped_by = getattr(cls.model, "__scoped_by__", None) or []
+            scope_field_names = [pair[0] for pair in scoped_by]
+            if scope_field_names:
+                def _section_fields(s):
+                    direct = s.get("fields", [])
+                    from_tabs = [f for tab in s.get("tabs", []) for f in tab.get("fields", [])]
+                    return direct + from_tabs
+                def _field_name(f):
+                    return f if isinstance(f, str) else f.get("field", "")
+                all_layout_fields = {_field_name(f) for s in layout for f in _section_fields(s)}
+                missing = [sf for sf in scope_field_names if sf not in all_layout_fields]
+                if missing and layout and "fields" in layout[0]:
+                    layout[0]["fields"] = missing + list(layout[0]["fields"])
+            metadata["layout"] = layout
+
         return metadata

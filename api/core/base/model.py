@@ -70,13 +70,19 @@ class Model(Aras, Base):
         if not cls.__dict__.get("__abstract__"):
             # Three-layer inheritance validation: a concrete model may inherit at
             # most one Level-3a abstract base (DocumentBase OR LineItemBase, etc.).
-            abstract_bases = [
+            # We filter to only 'leaf' abstract bases to allow multi-level abstract 
+            # inheritance (e.g. MasterDataBase -> ErpBase -> Model).
+            all_abstract_bases = [
                 b for b in cls.__mro__[1:]
                 if isinstance(b, type) and issubclass(b, Model) and b is not Model
                 and b.__dict__.get("__abstract__") is True
             ]
-            if len(abstract_bases) > 1:
-                names = ", ".join(b.__name__ for b in abstract_bases)
+            leaf_abstract_bases = [
+                b for b in all_abstract_bases
+                if not any(issubclass(other, b) for other in all_abstract_bases if other is not b)
+            ]
+            if len(leaf_abstract_bases) > 1:
+                names = ", ".join(b.__name__ for b in leaf_abstract_bases)
                 raise TypeError(
                     f"{cls.__name__} inherits from multiple Level-3a abstract bases ({names}). "
                     f"Pick exactly one (DocumentBase | LineItemBase | MasterDataBase | ConfigBase)."

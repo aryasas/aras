@@ -32,14 +32,13 @@ class ItemView(Aras.View):
 
 class ItemUomView(Aras.View):
     model = ItemUom
-    title = "Item Units"
+    title = "Item UOMs"
+    standalone = True
     layout = [
         {
             "key": "general",
             "title": "General",
             "fields": [
-                {"field": "code", "info": {"form_hidden": True}},
-                {"field": "name", "info": {"form_hidden": True}},
                 "uom_id",
                 "factor"
             ],

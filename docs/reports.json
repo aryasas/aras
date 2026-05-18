@@ -358,5 +358,50 @@
       "issues": "none"
     },
     "verdict": "APPROVED"
+  },
+  {
+    "id": 18,
+    "date": "2026-05-18",
+    "feature": "show org_id field in all forms",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/logic/ui_generator.py",
+      "features_added": "org_id (organisation) field now visible in all forms \u2014 removed auto form_hidden for scoped_by columns",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 19,
+    "date": "2026-05-18",
+    "feature": "Field Cleanup + Standalone Child View support",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/stock/models.py, api/core/base/view.py, api/core/base/app.py, api/apps/erp/stock/views.py",
+      "features_added": "Added 'standalone' flag to View class to allow child models to appear in app menus; Updated ItemUom to be standalone and simplified its schema; Added __scoped_by__ to ItemAccount and ItemUom for proper data isolation.",
+      "fixes_applied": "Removed redundant fields (code, name, sequence, description, qty, amount) from ItemUom by inheriting directly from Aras.Model instead of LineItemBase.",
+      "framework_changes": "View.standalone flag introduced; App.get_menu_structure updated to respect View.standalone for child models.",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 20,
+    "date": "2026-05-19",
+    "feature": "ErpBase isolation layer + LineItemBase misuse cleanup",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/base/erp_base.py, api/apps/erp/base/__init__.py, api/apps/erp/base/line_item.py, api/apps/erp/base/master_data.py, api/apps/erp/base/document.py, api/apps/erp/base/config.py, api/apps/erp/party/models.py, api/apps/erp/crm/models.py, api/apps/erp/pot/models.py, api/apps/erp/stock/models.py, api/core/base/model.py",
+      "features_added": "Introduced ErpBase as the root abstract class for all ERP models, providing default 'audit' feature and ensuring app-level isolation from core. Fixed core model validation to support multi-level abstract inheritance.",
+      "fixes_applied": "Migrated Contact, Activity, and PotTerminal from LineItemBase to ErpBase, removing unnecessary columns (sequence, qty, amount, etc.) that were polluting their schema. Updated ItemUom and ItemLocation to inherit from ErpBase instead of Aras.Model.",
+      "framework_changes": "Refined Model.__init_subclass__ validation to only count 'leaf' abstract bases in the MRO, allowing complex abstract inheritance hierarchies.",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
   }
 ]

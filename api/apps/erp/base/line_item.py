@@ -1,9 +1,9 @@
 from typing import Optional
 from sqlalchemy import String, Integer, Float
 from sqlalchemy.orm import Mapped, mapped_column
-from core import Aras
+from .erp_base import ErpBase
 
-class LineItemBase(Aras.Model):
+class LineItemBase(ErpBase):
     __abstract__ = True
     __features__ = ["audit"]
     sequence: Mapped[int] = mapped_column(Integer, default=0, info={"hidden": True})

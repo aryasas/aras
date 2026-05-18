@@ -54,6 +54,10 @@ async def get_resource_metadata(
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail=f"Resource '{resource_name}' not found in registry")
 
+    from ..base.view import View
+    view_cls = View.get_for_model(model_class)
+    if view_cls:
+        return view_cls.render_metadata(db=db, lang=lang)
     return UIGenerator.generate_metadata(model_class, db=db, lang=lang)
 
 @router.get("/models")

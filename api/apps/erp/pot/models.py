@@ -4,10 +4,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core import Aras
 from core.response import ok, err
 from core.exceptions import ValidationException
-from ..base import DocumentBase, LineItemBase
+from ..base import DocumentBase, LineItemBase, ErpBase
 
 
-class PotTerminal(LineItemBase):
+class PotTerminal(ErpBase):
     __tablename__ = "erp_pot_terminals"
 
     name: Mapped[str] = mapped_column(String(100))

@@ -243,3 +243,7 @@ This file is used only to report if there are feature added
 
 ## Hierarchical org scope expansion — parent/child data sharing + is_shared flag on master data — revision (2026-05-18)
   - [Codex/GPT-5.5] Added is_group support to Organization type and Consolidated badge beside the org switcher for group organizations
+
+## Field Cleanup + Standalone Child View support (2026-05-18)
+  - [Gemini 2.5 Flash] Introduced `View.standalone` flag to allow child models to appear in app menus.
+  - [Gemini 2.5 Flash] Simplified `ItemUom` model and view, added `__scoped_by__` for org-level isolation of child records.

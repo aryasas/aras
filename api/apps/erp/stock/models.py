@@ -7,7 +7,7 @@ from decimal import Decimal
 from core import Aras
 from core.response import ok, err
 from core.exceptions import ValidationException
-from ..base import MasterDataBase, DocumentBase, LineItemBase
+from ..base import MasterDataBase, DocumentBase, LineItemBase, ErpBase
 
 
 
@@ -70,6 +70,7 @@ class Item(MasterDataBase):
 class ItemAccount(LineItemBase):
     __tablename__ = "erp_stock_item_accounts"
     __parent__ = "erp_stock_items"
+    __scoped_by__ = [("org_id", "erp_config_organizations")]
     item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
     org_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_organizations.id"), nullable=True)
     account_income_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
@@ -79,26 +80,16 @@ class ItemAccount(LineItemBase):
     parent: Mapped["Item"] = relationship("Item", back_populates="accounts")
 
 
-class ItemUom(LineItemBase):
+class ItemUom(ErpBase):
     __tablename__ = "erp_stock_item_uoms"
     __parent__ = "erp_stock_items"
-    code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, info={"form_hidden": True})
-    name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True, info={"form_hidden": True})
-    org_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_organizations.id"), nullable=True)
+    __scoped_by__ = [("org_id", "erp_config_organizations")]
     item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
+    org_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_organizations.id"), nullable=True)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), info={"display_column": "name"})
-    factor: Mapped[float] = mapped_column(Float, default=1.0) # How many base units in 1 of this UOM
+    factor: Mapped[float] = mapped_column(Float, default=1.0)
 
     parent: Mapped["Item"] = relationship("Item", back_populates="uoms")
-
-    @Aras.computed_field
-    def uom_name_display(self) -> str:
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
-        if not db: return ""
-        from ..config.models import Uom as ConfigUom
-        config_uom = db.query(ConfigUom).filter(ConfigUom.id == self.uom_id).first()
-        return config_uom.name if config_uom else ""
 
 
 class PriceList(MasterDataBase):
@@ -237,7 +228,7 @@ class ItemBundle(LineItemBase):
 
 
 
-class ItemLocation(Aras.Model):
+class ItemLocation(ErpBase):
     __tablename__ = "erp_stock_item_locations"
     __parent__ = "erp_stock_items"
     item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))

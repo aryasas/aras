@@ -2,9 +2,9 @@ from typing import Optional
 from datetime import date
 from sqlalchemy import String, Date, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, object_session
-from core import Aras
+from .erp_base import ErpBase
 
-class DocumentBase(Aras.Model):
+class DocumentBase(ErpBase):
     __abstract__ = True
     __features__ = ["audit", "workflow", "series"]
     __scoped_by__ = [("org_id", "erp_config_organizations")]

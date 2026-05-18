@@ -93,7 +93,9 @@ class App(Aras):
                 continue
             
             is_child = hasattr(m, "__parent__") and getattr(m, "__parent__") is not None
-            show_override = getattr(m, "__show_in_menu__", False)
+            from ..base.view import View as _View
+            _view_cls = _View._view_map.get(m.__tablename__)
+            show_override = (getattr(_view_cls, "standalone", False) if _view_cls else False) or getattr(m, "__show_in_menu__", False)
             
             if not is_child or show_override:
                 visible_models.append(m.__tablename__)

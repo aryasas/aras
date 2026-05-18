@@ -2,7 +2,7 @@ from typing import Optional
 from sqlalchemy import String, ForeignKey, Boolean, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core import Aras
-from ..base import MasterDataBase, LineItemBase
+from ..base import MasterDataBase, ErpBase
 
 class Party(MasterDataBase):
     __tablename__ = "erp_party_parties"
@@ -22,7 +22,7 @@ class Party(MasterDataBase):
     
     contacts: Mapped[list["Contact"]] = relationship("Contact", back_populates="parent", cascade="all, delete-orphan")
 
-class Contact(LineItemBase):
+class Contact(ErpBase):
     __tablename__ = "erp_party_contacts"
     __parent__ = "erp_party_parties"
     

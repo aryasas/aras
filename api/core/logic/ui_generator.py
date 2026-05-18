@@ -37,8 +37,6 @@ class UIGenerator(Service):
         child_map = getattr(model_class, "_child_map", {})
         # children: list of {resource, fk_column}
         children = [dict(c) for c in child_map.get(resource_name, [])]
-        # Scope columns are implicit — hide them from list/form UI
-        scoped_by_cols = {pair[0] for pair in (getattr(model_class, "__scoped_by__", None) or [])}
         for column in table.columns:
             if column.name in system_fields:
                 continue
@@ -106,9 +104,7 @@ class UIGenerator(Service):
             is_required = db_field.is_required if db_field and db_field.is_required is not None else \
                           (not column.nullable and column.default is None and column.server_default is None)
 
-            # form_hidden: scope columns are auto-filled from request context, no need to show in form.
-            # column.info can also explicitly declare form_hidden.
-            form_hidden = column.name in scoped_by_cols or bool(column.info.get("form_hidden", False))
+            form_hidden = bool(column.info.get("form_hidden", False))
 
             field_info = {
                 "name": column.name,

@@ -1,8 +1,8 @@
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
-from core import Aras
+from .erp_base import ErpBase
 
-class ConfigBase(Aras.Model):
+class ConfigBase(ErpBase):
     __abstract__ = True
     __features__ = ["audit"]
     name: Mapped[str] = mapped_column(String(200))

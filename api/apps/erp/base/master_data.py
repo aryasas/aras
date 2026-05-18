@@ -1,8 +1,8 @@
 from sqlalchemy import String, Integer, ForeignKey, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
-from core import Aras
+from .erp_base import ErpBase
 
-class MasterDataBase(Aras.Model):
+class MasterDataBase(ErpBase):
     __abstract__ = True
     __soft_delete__ = True
     __features__ = ["audit"]
