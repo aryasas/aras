@@ -4,6 +4,7 @@ from . import views # Trigger view registration
 
 class ReportApp(ERP):
     app_name = "erp_report"
+    app_type = "module"
     app_label = "Reports"
     icon = "FileBarChart"
 

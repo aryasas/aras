@@ -3,6 +3,7 @@ from .models import Lead, Pipeline, Stage, Activity
 
 class CRM(ERP):
     app_name = "erp_crm"
+    app_type = "module"
     app_label = "CRM"
     icon = "Users"
     

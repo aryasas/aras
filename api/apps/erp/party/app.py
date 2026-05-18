@@ -1,9 +1,9 @@
-from core import Aras
 from ..app import ERP
 from . import models
 
-class PartyApp(Aras.App):
-    app_name = "party"
-    parent_name = "erp"
+class Party(ERP):
+    app_name = "erp_party"
+    app_type = "module"
     app_label = "Parties"
+    icon = "Contact"
     models = [models.Party, models.Contact]

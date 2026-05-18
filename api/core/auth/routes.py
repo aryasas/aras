@@ -55,8 +55,12 @@ async def read_users_me(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    from ..logic.permissions import RBAC
-    companies = RBAC.get_user_companies(db, current_user)
+    # Plugin integration point: ERP provides org list when installed
+    try:
+        from apps.erp.config.erp_rbac import get_user_org_list
+        companies = get_user_org_list(db, current_user)
+    except ImportError:
+        companies = []
     default_org = next((c for c in companies if c.get("is_default")), None)
     default_org_id = default_org["id"] if default_org else (companies[0]["id"] if companies else None)
     return {

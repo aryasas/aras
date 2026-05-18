@@ -50,7 +50,7 @@ api.interceptors.request.use((config) => {
   }
 
   const orgId = localStorage.getItem('org_id')
-  if (orgId) {
+  if (orgId && orgId !== '-1') {
     config.headers['X-Org-ID'] = orgId
   }
 

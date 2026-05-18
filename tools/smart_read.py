@@ -19,7 +19,7 @@ import argparse
 from pathlib import Path
 
 # Store cache globally so it works regardless of cwd
-CACHE_DIR = Path.home() / "../.ai_cache"
+CACHE_DIR = Path.home() / ".ai_cache"
 STATS_FILE = CACHE_DIR / "stats.json"
 
 def init_env():

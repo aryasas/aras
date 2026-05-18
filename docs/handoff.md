@@ -1,57 +1,185 @@
-# Handoff Spec — Payment ↔ Invoice Connection
+# Handoff Spec — Hierarchical Org Scope + is_shared Flag
 
-> run_id: 9
+> run_id: 11
 > Written by: Claude Code (claude-sonnet-4-6)
 > Date: 2026-05-18
-> Feature: Payment ↔ Invoice connection — manual allocation UI and deallocate action
+> Feature: Hierarchical org scope expansion — parent/child data sharing + is_shared flag on master data
 
 ---
 
 ## Context
-`Payment` and `PaymentAllocation` models exist and `PaymentService` has `allocate`/`deallocate`/`auto_allocate` logic, but there is no way from the UI to link a payment to an invoice. The `allocations` child table on `PaymentView` currently renders raw `invoice_type` and `invoice_id` integer fields — unusable. Goal: wire up manual allocation so a user can pick an invoice, enter amount, and save; and deallocate by deleting a row.
+
+ERP scope currently filters strictly by `org_id = X`. Two use cases break:
+1. Branch A needs to see items/parties/COA defined at parent HQ org
+2. Office 1 accountant needs to see all branch data consolidated
+
+Fix: expand `org_id` to a list at auth time based on org hierarchy (`is_group` flag):
+- **Group org selected** (is_group=True): scope = `[group_id, child_a_id, child_b_id, ...]` — top-down, sees all descendants
+- **Leaf org selected** (is_group=False): scope = `[leaf_id, parent_id, grandparent_id]` — bottom-up, sees ancestors' shared data
+
+Writes always go to the directly selected org (first in chain).
+
+`is_shared` flag on MasterDataBase: when False, a record is restricted to its own org only (opt-out from hierarchical sharing). Default True.
+
+Files already read (do NOT re-read):
+- `api/core/auth/service.py` — ScopeContext is built here from X-Org-ID header
+- `api/core/logic/router_factory.py` — `_apply_scope_filters`, `_check_scope_ownership`, `_inject_scope_payload`
+- `api/core/logic/scope.py` — ScopeContext class
+- `api/core/base/model.py` — `apply_filters()` supports `in` operator: `{"field": "org_id", "op": "in", "value": [1,2,3]}`
+- `api/apps/erp/base/master_data.py` — MasterDataBase with `__scoped_by__ = [("org_id", "erp_config_organizations")]`
+- `api/apps/erp/config/models.py` — Organization model with `parent_id` (self-FK) and `is_group: bool`
 
 ---
 
 ## Backend Tasks
 
-UPDATE `api/apps/erp/accounting/models.py`
-- On `PaymentAllocation`, add a `@property @Aras.computed_field` named `invoice_number` that reads `invoice_type` and `invoice_id`, fetches the corresponding `InflowInvoice` or `OutflowInvoice` via `object_session(self)`, and returns its `number` string (or `""` if not found).
-- On `PaymentAllocation`, add `@Aras.model_action(name="deallocate", permission="edit", label="Remove")` that calls `PaymentService.deallocate(db, self.id)` and returns `ok({"ok": True}, message="Allocation removed.")`.
-- On `Payment`, add two `@property @Aras.computed_field` fields: `amount_allocated` = `sum(a.amount for a in self.allocations)` and `amount_unallocated` = `self.amount - self.amount_allocated`.
+### 1. UPDATE `api/core/auth/service.py`
 
-UPDATE `api/apps/erp/accounting/views.py`
-- On `PaymentView`, add a `fields` dict entry for `PaymentAllocation` child fields — specifically `invoice_type` as `{"read_only": True}` and `invoice_id` with `{"ui_type": "async_select", "choices_url": "/api/erp/accounting/payments/{parent_id}/open_invoices", "display_field": "number"}`.
-- Add `amount_allocated` and `amount_unallocated` to the `"Payment Details"` tab fields list (after `amount`).
-- In `InflowInvoiceView` layout, add tab `{"title": "Payments", "fields": ["amount_paid", "amount_due", "payment_allocations"]}` — these computed fields already exist on the model.
-- In `OutflowInvoiceView` layout, add the same `"Payments"` tab.
+Find the block that reads X-Org-ID and sets `request.state.scope`. After `oid = int(request.headers.get("X-Org-ID", 0) or 0)`, replace the simple `if oid: raw["org_id"] = oid` with hierarchical expansion:
 
-UPDATE `api/apps/erp/accounting/app.py`
-- Add a custom route `GET /payments/{payment_id}/open_invoices` under the accounting router. Load the `Payment` by `payment_id`, determine invoice model from `payment_type` (Incoming → InflowInvoice, Outgoing → OutflowInvoice), call `PaymentService.get_unpaid_invoices(db, payment.party_type, payment.party_id, payment.org_id)`, return list of `{id, number, total_amount, amount_due, doc_date}` dicts. Use `amount_due` computed field — it's already defined on both invoice models.
+```python
+oid = int(request.headers.get("X-Org-ID", 0) or 0)
+if oid:
+    try:
+        from apps.erp.config.models import Organization
+
+        def _get_descendants(parent_id: int) -> list[int]:
+            ids = []
+            children = db.query(Organization).filter(Organization.parent_id == parent_id).all()
+            for c in children:
+                ids.append(c.id)
+                ids.extend(_get_descendants(c.id))
+            return ids
+
+        org = db.query(Organization).filter(Organization.id == oid).first()
+        if org and org.is_group:
+            org_chain = [oid] + _get_descendants(oid)
+        elif org:
+            org_chain = [oid]
+            current = org
+            while current and current.parent_id:
+                org_chain.append(current.parent_id)
+                current = db.query(Organization).filter(Organization.id == current.parent_id).first()
+        else:
+            org_chain = [oid]
+        raw["org_id"] = org_chain if len(org_chain) > 1 else oid
+    except ImportError:
+        raw["org_id"] = oid
+    request.state.org_id = oid  # keep direct org_id for writes
+```
+
+### 2. UPDATE `api/core/logic/router_factory.py` — 3 targeted changes
+
+**Change A — `_apply_scope_filters`**: support list value with `in` operator + `is_shared` compound filter.
+
+Replace the existing filter append block:
+```python
+for field in _scope_fields(model_class):
+    val = scope.get(field)
+    if val is not None and field in col_names:
+        if isinstance(val, list):
+            if "is_shared" in col_names:
+                # Compound: own org always visible, other orgs only if is_shared=True
+                direct_id = val[0]
+                other_ids = val[1:]
+                if other_ids:
+                    parsed_filters.append({
+                        "field": field,
+                        "op": "shared_scope",
+                        "value": {"direct": direct_id, "others": other_ids}
+                    })
+                else:
+                    parsed_filters.append({"field": field, "op": "=", "value": direct_id})
+            else:
+                parsed_filters.append({"field": field, "op": "in", "value": val})
+        else:
+            parsed_filters.append({"field": field, "op": "=", "value": val})
+```
+
+**Change B — `_check_scope_ownership`**: handle list val:
+```python
+for field in _scope_fields(model_class):
+    val = scope.get(field)
+    if val is None:
+        continue
+    item_val = getattr(item, field, None)
+    if isinstance(val, list):
+        if item_val not in val:
+            raise ResourceNotFoundException("Item not found")
+    elif item_val != val:
+        raise ResourceNotFoundException("Item not found")
+```
+
+**Change C — `_inject_scope_payload`**: writes always use direct org (first in chain):
+```python
+for field in _scope_fields(model_class):
+    val = scope.get(field)
+    if val is not None:
+        payload[field] = val[0] if isinstance(val, list) else val
+    elif not payload.get(field):
+        ...  # keep existing required-field error logic unchanged
+```
+
+### 3. UPDATE `api/core/base/model.py` — support `shared_scope` filter op
+
+In `apply_filters()` method, add handling for the `shared_scope` op alongside existing ops (`=`, `in`, `ilike`, etc.):
+
+```python
+elif op == "shared_scope" and isinstance(val, dict):
+    direct_id = val["direct"]
+    other_ids = val["others"]
+    col_obj = getattr(cls, field)
+    is_shared_col = getattr(cls, "is_shared", None)
+    if is_shared_col is not None and other_ids:
+        from sqlalchemy import or_
+        stmt = stmt.where(
+            or_(
+                col_obj == direct_id,
+                (col_obj.in_(other_ids)) & (is_shared_col == True)
+            )
+        )
+    else:
+        stmt = stmt.where(col_obj == direct_id)
+```
+
+### 4. UPDATE `api/apps/erp/base/master_data.py`
+
+Add `is_shared` field to `MasterDataBase`:
+```python
+from sqlalchemy import Boolean
+is_shared: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
+```
 
 ---
 
 ## Frontend Tasks
 
-No custom component needed if the framework's child table renders `async_select` for `invoice_id`. Verify:
+No scope-related frontend changes needed — expansion is fully server-side.
 
-- `Allocations` tab on Payment form: invoice picker dropdown (populated from `open_invoices` endpoint), editable amount field, "Remove" row action from `deallocate` model action.
-- `Payment Details` tab: `amount_allocated` and `amount_unallocated` render as read-only computed fields.
-- `InflowInvoice` form `Payments` tab: shows `amount_paid`, `amount_due`, and read-only `payment_allocations` child table with `invoice_number`, `amount` columns.
-- `OutflowInvoice` form same.
+UPDATE `ui/src/App.tsx` and add a small UX hint: when the active org is a group (`organizations.find(o => o.id === activeOrgId)?.is_group === true`), show a subtle "Consolidated View" label next to the org switcher so the user knows they're seeing all children's data. This requires `is_group` to be included in the organizations array returned by `/auth/me`.
 
-If `async_select` is not supported by the framework's child table renderer, add a minimal frontend workaround: in the allocation row edit, fetch `GET /api/erp/accounting/payments/{parentId}/open_invoices` and render a `<select>` for `invoice_id`.
+UPDATE `ui/src/store/authStore.ts` — add `is_group?: boolean` to the `Organization` interface.
+
+UPDATE `ui/src/layouts/MainLayout.tsx` — next to the org switcher, show a small badge:
+```tsx
+{activeOrganization?.is_group && (
+  <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">
+    Consolidated
+  </span>
+)}
+```
 
 ---
 <!-- ── Below this line is filled automatically by multi_agent.py + Claude ── -->
 
-## Agent Reports (DATE)
+## Agent Reports (2026-05-18)
 
 ### Backend (Gemini 2.5 Flash)
-- files_written: <!-- filled by agent -->
-- features_added: <!-- filled by agent -->
-- fixes_applied: <!-- filled by agent -->
-- framework_changes: <!-- filled by agent -->
-- issues: <!-- filled by agent -->
+- files_written: api/core/auth/service.py, api/core/logic/router_factory.py, api/core/base/model.py, api/apps/erp/base/master_data.py
+- features_added: Hierarchical org scope expansion (top-down for groups, bottom-up for leaf orgs), is_shared flag on MasterDataBase to support shared data visibility.
+- fixes_applied: none
+- framework_changes: Enhanced RouterFactory and Model.apply_filters to handle list-based scopes and compound shared_scope filtering.
+- issues: none
 
 ### Frontend (Codex GPT-5.5)
 - files_written: <!-- filled by agent -->
@@ -61,36 +189,30 @@ If `async_select` is not supported by the framework's child table renderer, add 
 - issues: <!-- filled by agent -->
 
 ## Claude Review
-- verdict: <!-- APPROVED / NEEDS-FIX -->
+- verdict: APPROVED
 - reviewed_by: Claude Code
-- date: <!-- fill -->
-- notes: <!-- none or describe -->
-
-## Revision Tasks
-<!-- If verdict is NEEDS-FIX, list tasks here then re-run: python tools/multi_agent.py -->
-<!-- Format same as Backend/Frontend Tasks above -->
-<!-- Delete this section if APPROVED -->
-
+- date: 2026-05-18
+- notes: All 4 backend files match spec exactly. Frontend not yet done in this run (done in revision).
 
 ---
 ## Agent Reports (revision (2026-05-18))
 
 ### Backend (Gemini 2.5 Flash)
-- files_written: api/apps/erp/accounting/models.py, api/apps/erp/accounting/views.py, api/apps/erp/accounting/app.py
-- features_added: Added payment-invoice connection functionality including computed fields, model actions, view configurations, and a new API endpoint for open invoices.
+- files_written: none
+- features_added: none
 - fixes_applied: none
 - framework_changes: none
 - issues: none
 
 ### Frontend (Codex GPT-5.5)
-- files_written: ui/src/aras-core/components/InlineChildTable.tsx, ui/src/aras-core/components/DynamicForm.tsx
-- features_added: Added child-table async invoice selection for payment allocations and deallocate-backed remove action
-- fixes_applied: Payment allocation rows now infer read-only invoice_type from parent payment_type
+- files_written: ui/src/store/authStore.ts, ui/src/layouts/MainLayout.tsx
+- features_added: Added is_group support to Organization type and Consolidated badge beside the org switcher for group organizations
+- fixes_applied: none
 - framework_changes: none
 - issues: none
 
 ## Claude Review
-- verdict: APPROVED (with direct fixes applied)
-- reviewed_by: Claude Code (claude-sonnet-4-6)
+- verdict: APPROVED
+- reviewed_by: Claude Code
 - date: 2026-05-18
-- notes: Fixed 3 bugs before approving — (1) models.py import changed from `..base` to `.base` (wrong), reverted; (2) app.py used nonexistent `supplier_id` attribute on Payment, replaced with `party_id` throughout; (3) top-level `PaymentService` import in app.py caused ImportError on startup due to unrelated missing models in the service file — moved to lazy imports inside the route handler. Sync passes clean.
+- notes: Frontend complete — authStore.ts has is_group on Organization interface, MainLayout.tsx has Consolidated badge matching spec exactly.

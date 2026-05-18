@@ -225,6 +225,21 @@ class Model(Aras, Base):
                     stmt = stmt.where(col.between(val[0], val[1]))
                 elif op == "in" and isinstance(val, list):
                     stmt = stmt.where(col.in_(val))
+                elif op == "shared_scope" and isinstance(val, dict):
+                    direct_id = val["direct"]
+                    other_ids = val["others"]
+                    col_obj = getattr(cls, field)
+                    is_shared_col = getattr(cls, "is_shared", None)
+                    if is_shared_col is not None and other_ids:
+                        from sqlalchemy import or_
+                        stmt = stmt.where(
+                            or_(
+                                col_obj == direct_id,
+                                (col_obj.in_(other_ids)) & (is_shared_col == True)
+                            )
+                        )
+                    else:
+                        stmt = stmt.where(col_obj == direct_id)
             except Exception as e:
                 logging.warning("serialization skipped: %s", e)
                 continue

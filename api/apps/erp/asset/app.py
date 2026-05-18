@@ -1,9 +1,9 @@
-from core import Aras
 from ..app import ERP
 from . import models
 
-class AssetApp(Aras.App):
-    app_name = "asset"
-    parent_name = "erp"
+class Asset(ERP):
+    app_name = "erp_asset"
+    app_type = "module"
     app_label = "Fixed Assets"
+    icon = "Package"
     models = [models.AssetCategory, models.Asset]

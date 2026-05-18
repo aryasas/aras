@@ -1,0 +1,14 @@
+You are a backend tester. Test the soft-delete trash and restore endpoints for the Aras ERP API.
+
+Base URL: {BASE_URL}/api/v1
+Credentials: username=admin, password=admin
+Org header: X-Org-ID: 1
+
+Steps:
+1. POST /auth/token with form data username=admin&password=admin. Extract access_token.
+2. GET /erp/stock/items/deleted — list all soft-deleted stock items. Print count and each item's id, name, org_id.
+3. If deleted items exist, pick the first one and POST /erp/stock/items/{id}/restore — restore it. Print the response message.
+4. GET /erp/stock/items — confirm the restored item now appears in the live list. Print pass/fail.
+5. DELETE /erp/stock/items/{id} — soft-delete it again to restore test state. Confirm with GET /erp/stock/items/deleted.
+
+Use Python's built-in urllib (no httpx, no requests). Print a clear PASS/FAIL summary at the end.

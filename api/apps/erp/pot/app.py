@@ -4,7 +4,8 @@ from .models import PotSession, PotOrder, PotOrderLine, PotTerminal, PotPaymentL
 from . import views # Trigger view registration
 
 class POT(ERP):
-    app_name = "pot"
+    app_name = "erp_pot"
+    app_type = "module"
     app_label = "Point of Transaction"
     icon = "CreditCard"
     

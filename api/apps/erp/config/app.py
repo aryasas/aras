@@ -1,5 +1,7 @@
 from ..app import ERP
 from . import views  # Trigger view registration
+from .erp_rbac import ErpUserAccess
+from .erp_rbac_router import erp_rbac_router
 
 from core.logic.discovery import autodiscover_models
 from .models import * # Import all models for discovery
@@ -8,14 +10,16 @@ from core.registry.series import Series # Import Series directly, autodiscovery 
 
 class Config(ERP):
     app_name = "erp_config"
-    app_label = "ERP Settings"
-    icon = "Settings"
+    app_type = "module"
+
+    routers = [erp_rbac_router]
 
     models = autodiscover_models(__name__, [
         "models", "workflow_models"
-    ]) + autodiscover_models("core.registry", ["series"])
+    ]) + autodiscover_models("core.registry", ["series"]) + [ErpUserAccess]
 
     menu_groups = [
+        {"label": "Access Control", "icon": "ShieldCheck", "models": []},
         {
             "label": "System",
             "icon": "Cpu",

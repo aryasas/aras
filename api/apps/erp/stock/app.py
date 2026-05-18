@@ -7,6 +7,7 @@ from .services import posting as _posting  # noqa: F401 — registers on_transit
 
 class Stock(ERP):
     app_name = "erp_stock"
+    app_type = "module"
     app_label = "Stock"
     icon = "Package"
 

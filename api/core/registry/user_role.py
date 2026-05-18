@@ -16,7 +16,5 @@ class UserRole(Model):
 
     user_id: Mapped[int] = mapped_column(ForeignKey("auth_users.id"))
     role_id: Mapped[int] = mapped_column(ForeignKey("auth_roles.id"))
-    # Soft FK to erp_config_organizations — no hard constraint to avoid cross-schema
-    # ordering issues in SQLite tests; enforced at application layer.
-    company_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+
 

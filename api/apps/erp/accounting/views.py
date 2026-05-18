@@ -1,7 +1,7 @@
 from core import Aras
 from core.response import ok, err
 from ..base.document import DOC_LAYOUT_HEADER, DOC_LAYOUT_NOTES
-from .models import Account, JournalEntry, InflowInvoice, OutflowInvoice, Payment, FiscalPeriod
+from .models import Account, JournalEntry, JournalEntryLine, InflowInvoice, OutflowInvoice, Payment, FiscalPeriod
 
 class AccountView(Aras.View):
     model = Account
@@ -34,6 +34,24 @@ class FiscalPeriodView(Aras.View):
         },
     ]
 
+class JournalEntryView(Aras.View):
+    model = JournalEntry
+    icon = "pi pi-book"
+    layout = [
+        {"title": "Header", "fields": ["number", "doc_date", "status", "currency_id", "source_type", "source_id"]},
+        {"title": "Lines", "fields": ["lines"]},
+        DOC_LAYOUT_NOTES
+    ]
+
+class JournalEntryLineView(Aras.View):
+    model = JournalEntryLine
+    fields = {
+        "account_id": {"label": "Account"},
+        "debit": {"label": "Debit"},
+        "credit": {"label": "Credit"},
+        "description": {"label": "Description"},
+    }
+
 class InflowInvoiceView(Aras.View):
     model = InflowInvoice
     title = "Inflow Invoices"
@@ -42,8 +60,11 @@ class InflowInvoiceView(Aras.View):
         {"title": "Header", "fields": ["number", "party_id", "doc_date", "doc_type", "pricelist_id", "status", "currency_id"]},
         {"title": "Items", "fields": ["lines"]},
         {"title": "Taxes & Charges", "fields": ["charges"]},
-        {"title": "Financials", "fields": ["subtotal", "total_charge", "total_amount"]},
-        {"title": "Payments", "fields": ["amount_paid", "amount_due", "payment_allocations"]},
+        {"title": "Financials", "tabs": [
+            {"title": "Totals", "fields": ["subtotal", "total_charge", "total_amount"]},
+            {"title": "Payments", "fields": ["amount_paid", "amount_due", "payment_allocations"]},
+            {"title": "Journal Entries", "fields": ["journal_entries"]},
+        ]},
         DOC_LAYOUT_NOTES
     ]
 
@@ -52,11 +73,14 @@ class OutflowInvoiceView(Aras.View):
     title = "Outflow Invoices"
     icon = "pi pi-file-pdf"
     layout = [
-        {"title": "Header", "fields": ["number", "supplier_id", "doc_date", "doc_type", "pricelist_id", "status", "currency_id"]},
+        {"title": "Header", "fields": ["number", "party_id", "doc_date", "doc_type", "pricelist_id", "status", "currency_id"]},
         {"title": "Items", "fields": ["lines"]},
         {"title": "Taxes & Charges", "fields": ["charges"]},
-        {"title": "Financials", "fields": ["subtotal", "total_charge", "total_amount"]},
-        {"title": "Payments", "fields": ["amount_paid", "amount_due", "payment_allocations"]},
+        {"title": "Financials", "tabs": [
+            {"title": "Totals", "fields": ["subtotal", "total_charge", "total_amount"]},
+            {"title": "Payments", "fields": ["amount_paid", "amount_due", "payment_allocations"]},
+            {"title": "Journal Entries", "fields": ["journal_entries"]},
+        ]},
         DOC_LAYOUT_NOTES
     ]
 

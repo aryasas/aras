@@ -43,7 +43,7 @@ def main():
     # Seed
     seed_parser = subparsers.add_parser("seed", help="Seed initial data for apps")
     seed_parser.add_argument("--demo", action="store_true", help="Seed with demo data")
-    seed_parser.add_argument("--company-id", type=int, default=1, help="ID of the company to seed data for")
+    seed_parser.add_argument("--org-id", type=int, default=1, help="ID of the company to seed data for")
 
     # Tenant management
     tenant_parser = subparsers.add_parser("tenant", help="Manage tenants")
@@ -177,6 +177,7 @@ def main():
     elif args.command == "seed":
         # Imports here, specifically for the seed command
         from core.lib.database import SessionLocal
+        from apps.erp.config.seed_rbac import run_seed as seed_rbac
         from apps.erp.accounting.seed_coa import seed_coa
         from apps.erp.report.seed_reports import run_seed as seed_reports
         from apps.erp.seed_demo import run_seed as seed_demo_data
@@ -185,16 +186,17 @@ def main():
         print("Discovering apps...")
         Aras.logic.discovery.discover_apps(package_path="apps")
 
-        print(f"Seeding initial data for org ID: {args.company_id}...")
+        print(f"Seeding initial data for org ID: {args.org_id}...")
         db = SessionLocal()
         try:
-            company = Organization.find(db, id=args.company_id)
+            company = Organization.find(db, id=args.org_id)
             if not company:
-                print(f"Error: Organization with ID {args.company_id} not found.")
+                print(f"Error: Organization with ID {args.org_id} not found.")
                 sys.exit(1)
             
             # Run core ERP seeding
             print("  - Seeding Chart of Accounts...")
+            seed_rbac(db)
             seed_coa(db, company.id)
             print("  - Seeding Reports...")
             seed_reports(db, company.id)

@@ -1,9 +1,9 @@
-from core import Aras
 from ..app import ERP
 from . import models
 
-class HRApp(Aras.App):
-    app_name = "hr"
-    parent_name = "erp"
+class HR(ERP):
+    app_name = "erp_hr"
+    app_type = "module"
     app_label = "Human Resources"
+    icon = "Users"
     models = [models.Department, models.Position, models.Employee]

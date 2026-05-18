@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone
 from typing import Optional
-from sqlalchemy import String, ForeignKey, Float, Date, Integer, Boolean
+from sqlalchemy import String, ForeignKey, Float, Date, Integer, Boolean, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship, object_session
 from core import Aras
 from core.response import ok, err
@@ -24,6 +24,11 @@ class Account(MasterDataBase):
     
     parent: Mapped[Optional["Account"]] = relationship("Account", remote_side="Account.id", backref="children")
 
+    @property
+    @Aras.computed_field
+    def display_name(self) -> str:
+        return f"{self.code} - {self.name}" if self.code else self.name
+
     @Aras.model_action(name="reconcile", permission="edit", label="Reconcile", icon="GitMerge")
     def reconcile(self, db):
         from .services.reconciliation import ReconciliationService
@@ -43,6 +48,8 @@ class JournalEntry(DocumentBase):
     __soft_delete__ = True
 
     currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"))
+    source_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    source_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     lines: Mapped[list["JournalEntryLine"]] = relationship("JournalEntryLine", back_populates="parent", cascade="all, delete-orphan")
 
@@ -59,13 +66,15 @@ class JournalEntry(DocumentBase):
 
 class JournalEntryLine(LineItemBase):
     __tablename__ = "erp_accounting_entry_lines"
+    __soft_delete__ = True
     __parent__ = "erp_accounting_entries"
     entry_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_entries.id"))
-    account_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_accounts.id"))
+    account_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_accounts.id"), info={"ui_type": "lookup", "target_resource": "erp/accounting/accounts", "display_column": "display_name"})
     debit: Mapped[float] = mapped_column(Float, default=0)
     credit: Mapped[float] = mapped_column(Float, default=0)
     
     parent: Mapped["JournalEntry"] = relationship("JournalEntry", back_populates="lines")
+    account: Mapped["Account"] = relationship("Account")
 
 class InflowInvoice(DocumentBase):
     __tablename__ = "erp_accounting_inflow_invoices"
@@ -79,6 +88,12 @@ class InflowInvoice(DocumentBase):
 
     lines: Mapped[list["InflowInvoiceLine"]] = relationship("InflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["InflowInvoiceCharge"]] = relationship("InflowInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
+
+    @property
+    def journal_entries(self) -> list["JournalEntry"]:
+        db = object_session(self)
+        if db is None: return []
+        return db.query(JournalEntry).filter_by(source_type="InflowInvoice", source_id=self.id).all()
 
     @property
     @Aras.computed_field
@@ -184,7 +199,7 @@ class InflowInvoice(DocumentBase):
 
 class InflowInvoiceLine(LineItemBase):
     __tablename__ = "erp_accounting_inflow_invoice_lines"
-
+    __soft_delete__ = True
     __parent__ = "erp_accounting_inflow_invoices"
 
     invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_inflow_invoices.id"))
@@ -210,7 +225,7 @@ class OutflowInvoice(DocumentBase):
     __tablename__ = "erp_accounting_outflow_invoices"
     __soft_delete__ = True
 
-    supplier_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
+    party_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
     currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"), nullable=True)
     pricelist_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_price_types.id"), nullable=True)
     doc_type: Mapped[str] = mapped_column(String(20), default="Invoice", info={"choices": ["Order", "Invoice"]})
@@ -219,6 +234,12 @@ class OutflowInvoice(DocumentBase):
 
     lines: Mapped[list["OutflowInvoiceLine"]] = relationship("OutflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["OutflowInvoiceCharge"]] = relationship("OutflowInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
+
+    @property
+    def journal_entries(self) -> list["JournalEntry"]:
+        db = object_session(self)
+        if db is None: return []
+        return db.query(JournalEntry).filter_by(source_type="OutflowInvoice", source_id=self.id).all()
 
     @property
     @Aras.computed_field
@@ -243,7 +264,7 @@ class OutflowInvoice(DocumentBase):
             raise ValidationException("Order must be Confirmed before creating an Invoice.")
         invoice = OutflowInvoice(
             org_id=self.org_id,
-            supplier_id=self.supplier_id,
+            party_id=self.party_id,
             currency_id=self.currency_id,
             pricelist_id=self.pricelist_id,
             location_id=self.location_id,
@@ -324,7 +345,7 @@ class OutflowInvoice(DocumentBase):
 
 class OutflowInvoiceLine(LineItemBase):
     __tablename__ = "erp_accounting_outflow_invoice_lines"
-
+    __soft_delete__ = True
     __parent__ = "erp_accounting_outflow_invoices"
 
     invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_outflow_invoices.id"))
@@ -417,7 +438,7 @@ class PaymentAllocation(LineItemBase):
 class GoodsReceiptNote(DocumentBase):
     __tablename__ = "erp_accounting_grns"
 
-    supplier_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
+    party_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
     purchase_order_ref: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     warehouse_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_locations.id"))
     
@@ -464,7 +485,7 @@ class GoodsReceiptNote(DocumentBase):
                 self.org_id,
                 line.quantity_received,
                 line.unit_cost,
-                source_ref=self.number
+                sm_line.id
             )
 
         self.status = "Received"
@@ -476,7 +497,7 @@ class GoodsReceiptNote(DocumentBase):
         invoice = db.get(OutflowInvoice, invoice_id)
         if not invoice:
             raise ValidationException(f"Invoice with ID {invoice_id} not found.")
-        if invoice.supplier_id != self.supplier_id:
+        if invoice.party_id != self.party_id:
             raise ValidationException("Invoice supplier does not match GRN supplier.")
         
         invoice.grn_id = self.id
@@ -485,4 +506,13 @@ class GoodsReceiptNote(DocumentBase):
         # db.commit() # Removed
         return ok({"status": self.status}, message="GRN matched to invoice successfully.")
 
+class GoodsReceiptLine(LineItemBase):
+    __tablename__ = "erp_accounting_grn_lines"
+    __parent__ = "erp_accounting_grns"
 
+    grn_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_grns.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
+    quantity_received: Mapped[float] = mapped_column(Numeric, default=0)
+    unit_cost: Mapped[float] = mapped_column(Numeric, default=0)
+
+    parent: Mapped["GoodsReceiptNote"] = relationship("GoodsReceiptNote", back_populates="lines")

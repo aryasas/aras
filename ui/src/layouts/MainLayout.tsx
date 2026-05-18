@@ -52,18 +52,26 @@ export default function MainLayout() {
           {organizations.length > 1 && (
             <div className="absolute right-36 top-3 z-50">
               <label className="sr-only" htmlFor="organization-selector">Organization</label>
-              <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
-                <select
-                  id="organization-selector"
-                  value={activeOrgId ?? ''}
-                  onChange={(event) => setActiveOrg(Number(event.target.value))}
-                  className="h-10 min-w-48 max-w-64 appearance-none rounded-xl border border-slate-200 bg-white pl-9 pr-8 text-sm font-semibold text-slate-700 shadow-sm outline-none transition-colors hover:border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                >
-                  {organizations.map((organization) => (
-                    <option key={organization.id} value={organization.id}>{organization.name}</option>
-                  ))}
-                </select>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+                  <select
+                    id="organization-selector"
+                    value={activeOrgId ?? ''}
+                    onChange={(event) => setActiveOrg(Number(event.target.value))}
+                    className="h-10 min-w-48 max-w-64 appearance-none rounded-xl border border-slate-200 bg-white pl-9 pr-8 text-sm font-semibold text-slate-700 shadow-sm outline-none transition-colors hover:border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  >
+                    <option value="-1">All</option>
+                    {organizations.map((organization) => (
+                      <option key={organization.id} value={organization.id}>{organization.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {(activeOrgId === -1 || activeOrganization?.is_group) && (
+                  <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">
+                    {activeOrgId === -1 ? 'All Orgs' : 'Consolidated'}
+                  </span>
+                )}
               </div>
               <span className="sr-only">{activeOrganization?.name}</span>
             </div>

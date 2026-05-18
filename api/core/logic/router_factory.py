@@ -39,7 +39,23 @@ def _apply_scope_filters(model_class: Type[Any], request: Request, parsed_filter
     for field in _scope_fields(model_class):
         val = scope.get(field)
         if val is not None and field in col_names:
-            parsed_filters.append({"field": field, "op": "=", "value": val})
+            if isinstance(val, list):
+                if "is_shared" in col_names:
+                    # Compound: own org always visible, other orgs only if is_shared=True
+                    direct_id = val[0]
+                    other_ids = val[1:]
+                    if other_ids:
+                        parsed_filters.append({
+                            "field": field,
+                            "op": "shared_scope",
+                            "value": {"direct": direct_id, "others": other_ids}
+                        })
+                    else:
+                        parsed_filters.append({"field": field, "op": "=", "value": direct_id})
+                else:
+                    parsed_filters.append({"field": field, "op": "in", "value": val})
+            else:
+                parsed_filters.append({"field": field, "op": "=", "value": val})
     return parsed_filters
 
 
@@ -48,7 +64,7 @@ def _inject_scope_payload(model_class: Type[Any], request: Request, payload: dic
     for field in _scope_fields(model_class):
         val = scope.get(field)
         if val is not None:
-            payload[field] = val
+            payload[field] = val[0] if isinstance(val, list) else val
         elif not payload.get(field):
             col_names = {c.name for c in model_class.__table__.columns}
             if field in col_names:
@@ -66,7 +82,13 @@ def _check_scope_ownership(model_class: Type[Any], request: Request, item: Any):
         return
     for field in _scope_fields(model_class):
         val = scope.get(field)
-        if val is not None and getattr(item, field, None) != val:
+        if val is None:
+            continue
+        item_val = getattr(item, field, None)
+        if isinstance(val, list):
+            if item_val not in val:
+                raise ResourceNotFoundException("Item not found")
+        elif item_val != val:
             raise ResourceNotFoundException("Item not found")
 
 
@@ -472,6 +494,47 @@ class RouterFactory(Router):
             db.commit()
             return ok(new_item.to_dict(), "Item created successfully.")
 
+        if getattr(model_class, "__soft_delete__", False):
+            @router.get("/deleted", tags=[_api_tag])
+            async def list_deleted(
+                page: int = Query(1, ge=1),
+                per_page: int = Query(20, ge=1, le=999999),
+                db: Session = Depends(get_db),
+                user: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=False))
+            ):
+                """Lists only soft-deleted records."""
+                from sqlalchemy import select as sa_select
+                stmt = sa_select(model_class).where(model_class.deleted_at.isnot(None))
+                total = db.scalar(sa_select(func.count()).select_from(stmt.subquery()))
+                offset = (page - 1) * per_page
+                items = db.scalars(stmt.offset(offset).limit(per_page)).all()
+                data = {
+                    "items": [i.to_dict() for i in items],
+                    "total": total,
+                    "page": page,
+                    "pages": (total + per_page - 1) // per_page
+                }
+                return ok(data, "Deleted items listed successfully.")
+
+            @router.post("/{item_id}/restore")
+            async def restore_item(
+                item_id: int,
+                db: Session = Depends(get_db),
+                user: Any = Depends(check_permissions(model_class.__tablename__, "UPDATE"))
+            ):
+                """Restores a soft-deleted record."""
+                from sqlalchemy import select as sa_select
+                item = db.scalar(sa_select(model_class).where(model_class.id == item_id))
+                if not item:
+                    raise ResourceNotFoundException("Item not found")
+                if item.deleted_at is None:
+                    raise ValidationException("Record is not deleted")
+                item.deleted_at = None
+                item.updated_by = user.id
+                db.commit()
+                db.refresh(item)
+                return ok(item.to_dict(), "Item restored successfully.")
+
         @router.get("/{item_id}")
         async def get_item(
             request: Request,
@@ -567,47 +630,6 @@ class RouterFactory(Router):
             item.delete_self(db, user_id=user.id)
             db.commit()
             return ok({"id": item_id}, "Item deleted successfully.")
-
-        if getattr(model_class, "__soft_delete__", False):
-            @router.get("/deleted", tags=[_api_tag])
-            async def list_deleted(
-                page: int = Query(1, ge=1),
-                per_page: int = Query(20, ge=1, le=999999),
-                db: Session = Depends(get_db),
-                user: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=False))
-            ):
-                """Lists only soft-deleted records."""
-                from sqlalchemy import select as sa_select
-                stmt = sa_select(model_class).where(model_class.deleted_at.isnot(None))
-                total = db.scalar(sa_select(func.count()).select_from(stmt.subquery()))
-                offset = (page - 1) * per_page
-                items = db.scalars(stmt.offset(offset).limit(per_page)).all()
-                data = {
-                    "items": [i.to_dict() for i in items],
-                    "total": total,
-                    "page": page,
-                    "pages": (total + per_page - 1) // per_page
-                }
-                return ok(data, "Deleted items listed successfully.")
-
-            @router.post("/{item_id}/restore")
-            async def restore_item(
-                item_id: int,
-                db: Session = Depends(get_db),
-                user: Any = Depends(check_permissions(model_class.__tablename__, "UPDATE"))
-            ):
-                """Restores a soft-deleted record."""
-                from sqlalchemy import select as sa_select
-                item = db.scalar(sa_select(model_class).where(model_class.id == item_id))
-                if not item:
-                    raise ResourceNotFoundException("Item not found")
-                if item.deleted_at is None:
-                    raise ValidationException("Record is not deleted")
-                item.deleted_at = None
-                item.updated_by = user.id
-                db.commit()
-                db.refresh(item)
-                return ok(item.to_dict(), "Item restored successfully.")
 
         @router.post("/bulk-delete")
         async def bulk_delete(

@@ -23,6 +23,7 @@ const DevToolsView = lazy(() => import('./views/DevTools'))
 const AppManagerView = lazy(() => import('./views/AppManager'))
 const AuditLogsView = lazy(() => import('./views/AuditLogs'))
 const RBACManagerView = lazy(() => import('./views/RBACManager'))
+const ErpUserAccess = lazy(() => import('./views/ErpUserAccess'))
 const GlobalSettingsView = lazy(() => import('./views/GlobalSettings'))
 const InspectRoutesView = lazy(() => import('./views/InspectRoutes'))
 const HealthIntegrityView = lazy(() => import('./views/HealthIntegrity'))
@@ -136,6 +137,7 @@ function App() {
           <Route path="settings/global" element={<GlobalSettingsView />} />
           <Route path="settings/audit" element={<AuditLogsView />} />
           <Route path="settings/rbac" element={<RBACManagerView />} />
+          <Route path="erp/config/user-access" element={<ErpUserAccess />} />
           <Route path="dev" element={<DevToolsView />} />
           <Route path="dev/health" element={<HealthIntegrityView />} />
           <Route path="dev/routes" element={<InspectRoutesView />} />

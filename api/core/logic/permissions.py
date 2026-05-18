@@ -1,7 +1,6 @@
 from fastapi import HTTPException, status, Depends, Request
 from typing import Any, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, distinct
 
 from ..lib.database import get_db
 from ..auth.models import User
@@ -20,8 +19,8 @@ def check_permissions(resource: Optional[str] = None, action: str = "READ", allo
         user: Any = Depends(get_optional_user if allow_public else get_current_user),
         db: Session = Depends(get_db),
     ):
-        org_id = int(request.headers.get("X-Company-ID", 0) or 0)
-        request.state.company_id = org_id  # kept for backwards compat
+        org_id = int(request.headers.get("X-Org-ID", 0) or 0)
+        request.state.org_id = org_id  # New: Org ID in request state
 
         if not user:
             if allow_public and action == "READ":
@@ -37,7 +36,7 @@ def check_permissions(resource: Optional[str] = None, action: str = "READ", allo
         if not resource:
             return user
 
-        if not RBAC.has_permission(db, user, resource, action, company_id=org_id):
+        if not RBAC.has_permission(db, user, resource, action):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Not enough permissions to {action} {resource}"
@@ -48,7 +47,7 @@ def check_permissions(resource: Optional[str] = None, action: str = "READ", allo
 
 class RBAC(Auth):
     @staticmethod
-    def has_permission(db: Session, user: User, resource: str, action: str, company_id: Optional[int] = None) -> bool:
+    def has_permission(db: Session, user: User, resource: str, action: str) -> bool:
         if user.is_admin:
             return True
 
@@ -65,17 +64,6 @@ class RBAC(Auth):
                 Permission.action == action
             )
         
-        if company_id:
-            query = query.filter(or_(UserRole.company_id == company_id, UserRole.company_id == None))
-        else:
-            # If no company_id is provided, only consider global roles (company_id is None)
-            query = query.filter(UserRole.company_id == None)
-        
-        if hasattr(Role, "is_active"):
-            query = query.filter(Role.is_active == True)
-        if hasattr(Permission, "is_active"):
-            query = query.filter(Permission.is_active == True)
-
         return query.first() is not None
 
     @staticmethod
@@ -93,31 +81,8 @@ class RBAC(Auth):
                 Permission.action == "READ"
             )
 
-        if hasattr(Role, "is_active"):
-            query = query.filter(Role.is_active == True)
-        if hasattr(Permission, "is_active"):
-            query = query.filter(Permission.is_active == True)
-
         rows = query.all()
 
         return {row[0] for row in rows}
 
-    @staticmethod
-    def get_user_companies(db: Session, user: User) -> list[dict]:
-        try:
-            from apps.erp.config.models import Organization
-            from ..registry.user_role import UserRole
-        except Exception:
-            return []
 
-        if user.is_admin:
-            rows = db.query(Organization.id, Organization.name, Organization.is_default).all()
-        else:
-            rows = (
-                db.query(Organization.id, Organization.name, Organization.is_default)
-                .join(UserRole, UserRole.company_id == Organization.id)
-                .filter(UserRole.user_id == user.id, UserRole.company_id.isnot(None))
-                .distinct()
-                .all()
-            )
-        return [{"id": r.id, "name": r.name, "is_default": r.is_default} for r in rows]

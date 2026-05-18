@@ -4,7 +4,10 @@
     "date": "2026-05-16",
     "feature": "ERP Form Layouts, UI Bugs, Report Center Filters, HandoffRun DB Tracking",
     "revision_count": 1,
-    "tokens": {"input": null, "output": null},
+    "tokens": {
+      "input": null,
+      "output": null
+    },
     "backend": {
       "files_written": "api/apps/erp/party/views.py, api/apps/erp/stock/views.py, api/apps/erp/hr/views.py, api/apps/erp/asset/views.py, api/apps/erp/crm/views.py, api/apps/erp/pot/views.py, api/apps/erp/accounting/views.py, api/apps/erp/config/views.py, api/apps/erp/report/services/report_service.py",
       "features_added": "Added UI layout definitions to multiple ERP View classes for Party, Contact, Product, ProductCategory, ProductUom, Employee, Department, Position, Asset, AssetCategory, Lead, Pipeline, Activity, PotOrder, PotTerminal, Account, FiscalPeriod, Currency, Uom, ModeOfPayment, ExchangeRate, and PrintTemplate. Enhanced report execution endpoint to pass filter definitions to frontend and correctly handle 'today' parameter in SQL queries.",
@@ -26,7 +29,10 @@
     "date": "2026-05-17",
     "feature": "Fix delete (single item and bulk) - still failing after previous attempts",
     "revision_count": 0,
-    "tokens": {"input": null, "output": null},
+    "tokens": {
+      "input": null,
+      "output": null
+    },
     "backend": {
       "files_written": "api/core/logic/router_factory.py",
       "features_added": "none",
@@ -42,13 +48,16 @@
     "date": "2026-05-17",
     "feature": "Fix delete, payment-invoice link, vocabulary label reactivity",
     "revision_count": 0,
-    "tokens": {"input": null, "output": null},
+    "tokens": {
+      "input": null,
+      "output": null
+    },
     "backend": {
       "files_written": "api/apps/erp/stock/models.py, api/apps/erp/party/models.py, api/apps/erp/accounting/services/payment.py",
       "features_added": "none",
-      "fixes_applied": "Added __soft_delete__ = True to Party, Item, ItemCategory to prevent FK constraint failures on delete; removed duplicate deleted_at column from StockMovementLine; fixed payment allocation methods (auto_allocate, allocate, deallocate) — replaced non-existent inv.allocations ORM attr with direct db.query(PaymentAllocation).filter_by() calls.",
+      "fixes_applied": "Added __soft_delete__ = True to Party, Item, ItemCategory to prevent FK constraint failures on delete; removed duplicate deleted_at column from StockMovementLine; fixed payment allocation methods (auto_allocate, allocate, deallocate) \u2014 replaced non-existent inv.allocations ORM attr with direct db.query(PaymentAllocation).filter_by() calls.",
       "framework_changes": "none",
-      "issues": "Delete still failing — dispatched to multi_agent for deeper investigation."
+      "issues": "Delete still failing \u2014 dispatched to multi_agent for deeper investigation."
     },
     "frontend": {
       "files_written": "ui/src/aras-core/components/DynamicForm.tsx",
@@ -62,9 +71,12 @@
   {
     "id": 4,
     "date": "2026-05-17",
-    "feature": "Fix delete — per-row delete button and bulk-delete path resolution",
+    "feature": "Fix delete \u2014 per-row delete button and bulk-delete path resolution",
     "revision_count": 0,
-    "tokens": {"input": null, "output": null},
+    "tokens": {
+      "input": null,
+      "output": null
+    },
     "backend": null,
     "frontend": {
       "files_written": "ui/src/aras-core/components/ListView.tsx",
@@ -80,7 +92,10 @@
     "date": "2026-05-17",
     "feature": "fk_filter: scope account comboboxes to the current org in Organization form",
     "revision_count": 0,
-    "tokens": {"input": null, "output": null},
+    "tokens": {
+      "input": null,
+      "output": null
+    },
     "backend": {
       "files_written": "api/apps/erp/config/models.py, api/core/logic/ui_generator.py",
       "features_added": "fk_filter emitted in field metadata; all acc_* columns on Organization carry info={fk_filter: {org_id: id}}",
@@ -100,9 +115,12 @@
   {
     "id": 5,
     "date": "2026-05-17",
-    "feature": "Organization COA inheritance — coa_source_org_id field with fk_filter_fallback support",
+    "feature": "Organization COA inheritance \u2014 coa_source_org_id field with fk_filter_fallback support",
     "revision_count": 0,
-    "tokens": {"input": null, "output": null},
+    "tokens": {
+      "input": null,
+      "output": null
+    },
     "backend": {
       "files_written": "api/apps/erp/config/models.py, api/core/logic/ui_generator.py",
       "features_added": "Organization.coa_source_org_id FK; _ACC_FK now carries fk_filter_fallback so account comboboxes resolve to parent COA when set; ui_generator passes fk_filter_fallback through to schema",
@@ -124,7 +142,10 @@
     "date": "2026-05-17",
     "feature": "Section-level inline action buttons in DynamicForm layout + mirror_coa placed in Organization Configuration section",
     "revision_count": 0,
-    "tokens": {"input": null, "output": null},
+    "tokens": {
+      "input": null,
+      "output": null
+    },
     "backend": {
       "files_written": "none",
       "features_added": "none",
@@ -134,7 +155,7 @@
     },
     "frontend": {
       "files_written": "ui/src/aras-core/components/DynamicForm.tsx",
-      "features_added": "LayoutSection.actions[] — action names listed here render as labeled inline buttons in the section header. Generic: any model action can be placed in any section via layout JSON.",
+      "features_added": "LayoutSection.actions[] \u2014 action names listed here render as labeled inline buttons in the section header. Generic: any model action can be placed in any section via layout JSON.",
       "fixes_applied": "none",
       "framework_changes": "none",
       "issues": "none"
@@ -146,7 +167,10 @@
     "date": "2026-05-18",
     "feature": "Organization default accounts: inherit_accounts and fill_default_accounts actions with section inline buttons",
     "revision_count": 0,
-    "tokens": {"input": null, "output": null},
+    "tokens": {
+      "input": null,
+      "output": null
+    },
     "backend": {
       "files_written": "api/apps/erp/config/models.py, api/apps/erp/config/views.py, api/apps/erp/config/default_accounts.json",
       "features_added": "inherit_accounts model action (copies all acc_* from parent org), fill_default_accounts model action (fills acc_* by code from default_accounts.json), both exposed as inline buttons on Default Accounts section header",
@@ -160,13 +184,16 @@
   {
     "id": 8,
     "date": "2026-05-18",
-    "feature": "Fix 500 on post outflow/inflow invoice — product_id → item_id in posting service",
+    "feature": "Fix 500 on post outflow/inflow invoice \u2014 product_id \u2192 item_id in posting service",
     "revision_count": 0,
-    "tokens": {"input": null, "output": null},
+    "tokens": {
+      "input": null,
+      "output": null
+    },
     "backend": {
       "files_written": "api/apps/erp/accounting/services/posting.py, api/apps/erp/accounting/models.py",
       "features_added": "none",
-      "fixes_applied": "post_outflow/inflow_invoice: inv_line.product_id → item_id. _create_stock_movement: Product→Item, product_id→item_id on StockMovementLine, stale currency_id kwarg removed, move_type values corrected (Incoming→receipt, Outgoing→delivery), loc None-guard added. UomService: ProductUom→ItemUom, product_id→item_id. OutflowInvoice.post: result dict check fixed. InflowInvoiceLine/OutflowInvoiceLine: added depends_on/default_from info for uom_id and unit_price auto-fill from item.",
+      "fixes_applied": "post_outflow/inflow_invoice: inv_line.product_id \u2192 item_id. _create_stock_movement: Product\u2192Item, product_id\u2192item_id on StockMovementLine, stale currency_id kwarg removed, move_type values corrected (Incoming\u2192receipt, Outgoing\u2192delivery), loc None-guard added. UomService: ProductUom\u2192ItemUom, product_id\u2192item_id. OutflowInvoice.post: result dict check fixed. InflowInvoiceLine/OutflowInvoiceLine: added depends_on/default_from info for uom_id and unit_price auto-fill from item.",
       "framework_changes": "none",
       "issues": "none"
     },
@@ -178,11 +205,14 @@
     "date": "2026-05-18",
     "feature": "Merge Order+Invoice into single Invoice model with doc_type field",
     "revision_count": 0,
-    "tokens": {"input": null, "output": null},
+    "tokens": {
+      "input": null,
+      "output": null
+    },
     "backend": {
       "files_written": "api/apps/erp/accounting/models.py, api/apps/erp/accounting/views.py, api/apps/erp/accounting/app.py, api/apps/erp/accounting/services/conversion.py",
-      "features_added": "doc_type field (Order/Invoice) on InflowInvoice and OutflowInvoice. pricelist_id on OutflowInvoice. create_invoice model action on both Invoice models — clones record with doc_type=Invoice, copies lines/charges, raises ValidationException if already Invoice or not Confirmed.",
-      "fixes_applied": "payment.py line 89: OutflowInvoice.party_id → supplier_id",
+      "features_added": "doc_type field (Order/Invoice) on InflowInvoice and OutflowInvoice. pricelist_id on OutflowInvoice. create_invoice model action on both Invoice models \u2014 clones record with doc_type=Invoice, copies lines/charges, raises ValidationException if already Invoice or not Confirmed.",
+      "fixes_applied": "payment.py line 89: OutflowInvoice.party_id \u2192 supplier_id",
       "framework_changes": "Removed InflowOrder, InflowOrderLine, InflowOrderCharge, OutflowOrder, OutflowOrderLine, OutflowOrderCharge classes. Removed InflowOrderView and OutflowOrderView. Removed inflow_orders and outflow_orders from menu_groups. Emptied conversion.py. Updated InflowInvoiceView and OutflowInvoiceView layouts to include doc_type and pricelist_id.",
       "issues": "none"
     },
@@ -192,13 +222,16 @@
   {
     "id": 10,
     "date": "2026-05-18",
-    "feature": "Fix model action signatures — all actions now accept db as first param",
+    "feature": "Fix model action signatures \u2014 all actions now accept db as first param",
     "revision_count": 0,
-    "tokens": {"input": null, "output": null},
+    "tokens": {
+      "input": null,
+      "output": null
+    },
     "backend": {
       "files_written": "api/apps/erp/accounting/models.py, api/apps/erp/stock/models.py",
       "features_added": "none",
-      "fixes_applied": "Changed all @Aras.model_action methods from def action(self) to def action(self, db) — framework always passes db as positional arg. Affected: JournalEntry.post, InflowInvoice.post/create_invoice, OutflowInvoice.post/create_invoice, Payment.post/auto_allocate, GoodsReceiptNote.receive/match_invoice, DeliveryNote.post/create_invoice, StockMovement.post. Removed redundant object_session(self) calls inside each.",
+      "fixes_applied": "Changed all @Aras.model_action methods from def action(self) to def action(self, db) \u2014 framework always passes db as positional arg. Affected: JournalEntry.post, InflowInvoice.post/create_invoice, OutflowInvoice.post/create_invoice, Payment.post/auto_allocate, GoodsReceiptNote.receive/match_invoice, DeliveryNote.post/create_invoice, StockMovement.post. Removed redundant object_session(self) calls inside each.",
       "framework_changes": "none",
       "issues": "none"
     },
@@ -210,12 +243,96 @@
     "date": "2026-05-18",
     "feature": "Fix Internal Server Error on Post Invoice execute action",
     "revision_count": 0,
-    "tokens": {"input": null, "output": null},
+    "tokens": {
+      "input": null,
+      "output": null
+    },
     "backend": {
       "files_written": "api/core/logic/router_factory.py, api/apps/erp/accounting/models.py",
       "features_added": "none",
       "fixes_applied": "router_factory.py: re-raises ArasException instead of swallowing in generic ISE wrapper. models.py: InflowInvoice.post now uses result.get('success') consistent with OutflowInvoice.post.",
       "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 12,
+    "date": "2026-05-18",
+    "feature": "Fix Accounting Journal Balance & Party Transition",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/accounting/models.py, api/apps/erp/accounting/services/posting.py, api/apps/erp/accounting/services/payment.py, api/apps/erp/accounting/views.py, api/apps/erp/report/seed_reports.py",
+      "features_added": "Standardized party_id across all invoice types and GRN, aligning with the framework's transition to a unified Party model for both customers and suppliers.",
+      "fixes_applied": "Fixed 'Journal not balanced' error in OutflowInvoice posting by correctly debiting the purchase cost to stock/asset accounts instead of incorrectly using COGS consumption. Corrected InventoryValuationService.receive call in GoodsReceiptNote to pass the correct line ID. Updated report queries and view layouts to reflect party_id renaming.",
+      "framework_changes": "none",
+      "issues": "None"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 13,
+    "date": "2026-05-18",
+    "feature": "ERP org-scoped RBAC + module registration standardization",
+    "revision_count": 1,
+    "backend": {
+      "files_written": "api/apps/erp/config/erp_rbac.py, api/apps/erp/config/erp_rbac_router.py, api/apps/erp/config/app.py, api/apps/erp/hr/app.py, api/apps/erp/asset/app.py, api/apps/erp/party/app.py, api/apps/erp/pot/app.py, api/apps/erp/crm/app.py, api/apps/erp/stock/app.py, api/apps/erp/report/app.py, api/apps/erp/accounting/app.py, api/core/registry/user_role.py, api/core/logic/permissions.py, api/core/auth/routes.py",
+      "features_added": "New ErpUserAccess model (erp_user_access table) with org-scoped RBAC; 5 endpoints for user access management; get_user_org_list plugin integration point in auth/routes.py",
+      "fixes_applied": "Removed UserRole.company_id (framework no longer knows about ERP org concept); removed RBAC.get_user_companies() from framework; standardized all ERP sub-modules to app_name=erp_*, app_type=module, inherit ERP",
+      "framework_changes": "UserRole simplified to user_id+role_id only; RBAC.has_permission() no longer takes company_id; request.state.company_id renamed to request.state.org_id; get_user_companies() moved to ERP layer",
+      "issues": "Gemini put Pydantic SetAccessRequest in erp_rbac.py causing integrity check failure \u2014 split into erp_rbac.py (model+service) and erp_rbac_router.py (router+schema); fixed _clear_access referencing undefined role variable"
+    },
+    "frontend": {
+      "files_written": "ui/src/views/ErpUserAccess.tsx, ui/src/App.tsx",
+      "features_added": "ERP User Access settings page with scope badges, slide-in panel, org checklist, save/revoke actions",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 14,
+    "date": "2026-05-18",
+    "feature": "Hierarchical org scope expansion & is_shared master data",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/auth/service.py, api/core/logic/router_factory.py, api/core/base/model.py, api/apps/erp/base/master_data.py",
+      "features_added": "Hierarchical org scope expansion (top-down for groups, bottom-up for leaf orgs), is_shared flag on MasterDataBase to support shared data visibility.",
+      "fixes_applied": "none",
+      "framework_changes": "Enhanced RouterFactory and Model.apply_filters to handle list-based scopes and compound shared_scope filtering.",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 15,
+    "date": "2026-05-18",
+    "feature": "Hierarchical org scope \u2014 frontend: is_group type + Consolidated badge (revision)",
+    "revision_count": 1,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/store/authStore.ts, ui/src/layouts/MainLayout.tsx",
+      "features_added": "is_group field on Organization interface; Consolidated badge beside org switcher for group orgs",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 16,
+    "date": "2026-05-18",
+    "feature": "Fix Soft-Delete /deleted endpoint shadowing and test script compatibility",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/logic/router_factory.py, tools/tests/test_trash.py",
+      "features_added": "none",
+      "fixes_applied": "Fixed route ordering in RouterFactory.create_router to ensure static endpoints like /deleted are matched before variable /{item_id} endpoints. Updated test script to handle standard FastAPI token response and paginated API data formats.",
+      "framework_changes": "Standardized route priority for all auto-generated routers.",
       "issues": "none"
     },
     "frontend": null,

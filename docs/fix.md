@@ -123,3 +123,15 @@ This file is used only to report if there are fix
 ## Payment ↔ Invoice — rhf fixes (2026-05-18)
   - [Claude Sonnet 4.6] Reverted models.py import from `.base` to `..base` (agent broke parent package path)
   - [Claude Sonnet 4.6] Fixed app.py open_invoices route: replaced nonexistent `supplier_id` with `party_id`, added guard for null party_id, moved PaymentService import to lazy (top-level import caused ImportError via unrelated missing models)
+
+
+## Fix Accounting Journal Balance & Party Transition (2026-05-18)
+  - [Gemini 2.0 Flash] Fixed Journal not balanced error in OutflowInvoice by using purchase cost instead of COGS
+
+
+## Advanced Account Resolution & Journal UI Fix (2026-05-18)
+  - [Gemini 2.0 Flash] Fixed empty Account column in Journal Entry lines by explicitly setting lookup metadata and target API paths; Consolidated GoodsReceiptLine into main models file to resolve circular registration errors.
+
+
+## ERP user access control (org-scoped RBAC) + fix module registration + rename UserRole.company_id → org_id — revision (2026-05-18)
+  - [Gemini] Standardized ERP module registration (app_name, app_type), removed UserRole.company_id and integrated ERP org list in auth routes.

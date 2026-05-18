@@ -8,7 +8,8 @@ from core.exceptions import ValidationException
 
 class Report(MasterDataBase):
     __tablename__ = "erp_report_reports"
-    
+
+    code: Mapped[str] = mapped_column(String(100), nullable=False, index=True, default="")
     report_type: Mapped[str] = mapped_column(String(20), default="query", info={"choices": ["query", "script", "jinja"]})
     module: Mapped[str] = mapped_column(String(50), default="General")
     columns_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)

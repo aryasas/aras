@@ -4,7 +4,6 @@ from .routers.print_router import router as print_router
 
 from core.logic.discovery import autodiscover_models
 from .models import * # Import all models for discovery
-from .models_grn import * # Import all models from models_grn for discovery
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -41,13 +40,14 @@ def get_open_invoices_for_payment(payment_id: int, db: Session = Depends(get_db)
 
 class Accounting(ERP):
     app_name = "erp_accounting"
+    app_type = "module"
     app_label = "Accounting"
     icon = "Calculator"
 
     routers = [print_router, accounting_api_router]
 
     models = autodiscover_models(__name__, [
-        "models", "models_grn"
+        "models"
     ])
 
     menu_groups = [

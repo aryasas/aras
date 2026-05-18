@@ -94,6 +94,8 @@ class InvoicePostingService:
                 reference=invoice.number,
                 narrative=f"Auto-posted from Inflow Invoice {invoice.number}",
                 currency_id=invoice.currency_id,
+                source_type="InflowInvoice",
+                source_id=invoice.id
             )
             # For each inflow invoice line, we need to consume stock for COGS
             stock_movement_lines_data = []
@@ -125,20 +127,28 @@ class InvoicePostingService:
 
         lines = []
 
-        # Expense lines — per invoice line product
+        # Purchase lines — per invoice line product
         for inv_line in invoice.lines:
-            cogs_account = CoaResolver.resolve_cogs_account(db, inv_line.item_id, org_id)
-            if not cogs_account:
-                return {"error": f"Expense/COGS account not found for item {inv_line.item_id}"}
+            from ...stock.models import Item
+            product = db.get(Item, inv_line.item_id)
+            
+            # For purchase, we debit Stock (Asset) if it's a stock item, otherwise Expense
+            if product and product.is_stock_item:
+                target_account = CoaResolver.resolve_stock_account(db, inv_line.item_id, org_id)
+            else:
+                target_account = CoaResolver.resolve_expense_account(db, inv_line.item_id, org_id)
 
-            # --- COGS calculation using FIFO valuation ---
-            cost_of_goods_sold = InventoryValuationService.consume(db, inv_line.item_id, org_id, inv_line.qty)
+            if not target_account:
+                acc_type = "Stock" if product and product.is_stock_item else "Expense"
+                return {"error": f"{acc_type} account not found for item {inv_line.item_id}"}
+
+            line_total = inv_line.qty * (inv_line.unit_price - inv_line.discount)
             
             lines.append({
-                "account_id": cogs_account.id,
-                "debit": cost_of_goods_sold,
+                "account_id": target_account.id,
+                "debit": line_total,
                 "credit": 0,
-                "description": f"Outflow Expense from {invoice.number}"
+                "description": f"Outflow Purchase from {invoice.number}"
             })
 
         # Charge lines
@@ -169,12 +179,10 @@ class InvoicePostingService:
                 reference=invoice.number,
                 narrative=f"Auto-posted from Outflow Invoice {invoice.number}",
                 currency_id=invoice.currency_id,
+                source_type="OutflowInvoice",
+                source_id=invoice.id
             )
             # If a GRN is linked, the stock movement has already been created there.
-            # If no GRN, and this is an incoming transaction, use valuation service to 'receive' stock.
-            # This logic needs to be carefully aligned with actual stock movements.
-            # The _create_stock_movement here is for tracking 'movements', not for creating valuation layers.
-            # Stock layers are created when GRNs are posted.
             if not invoice.grn_id:
                 _create_stock_movement(db, invoice.number, org_id, "Incoming", [
                     {"product_id": l.item_id, "qty": l.qty, "uom_id": l.uom_id, "unit_cost": l.unit_price - l.discount}

@@ -14,7 +14,7 @@
 | `updd` | Update `docs/feature.md` (add only) and `docs/aras.md` if framework changed |
 | `dde` | Don't do edit — no changes whatsoever |
 | `rrc` | Re-read CLAUDE.md rules 1-3 before anything else |
-
+dont run multi_agent directly, i will run it
 
 # Aras Framework — Architecture Reference
 
@@ -317,3 +317,13 @@ Login: `admin` / `admin`
   - [Gemini] Audited and fixed layout sections in `pot/views.py` for missing/duplicate keys.
   - [Gemini] Defined `DOC_LAYOUT_HEADER` and `DOC_LAYOUT_NOTES` constants in `api/apps/erp/base/document.py` and used them in `accounting/views.py` and `stock/views.py`.
   - [Gemini] Renamed "Totals" tab to "Financials" in `accounting/views.py`.
+
+
+---
+## Framework Change: ERP user access control (org-scoped RBAC) + fix module registration + rename UserRole.company_id → org_id — revision (2026-05-18)
+  - [Gemini] RBAC permission checking adjusted to remove company_id parameter, UserRole model simplified.
+
+
+---
+## Framework Change: Hierarchical org scope expansion & is_shared master data (2026-05-18)
+  - [Gemini 2.5 Flash] Enhanced RouterFactory and Model.apply_filters for list-based scopes

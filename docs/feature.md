@@ -222,3 +222,24 @@ This file is used only to report if there are feature added
 ## Payment ↔ Invoice connection — manual allocation UI and deallocate action — revision (2026-05-18)
   - [Gemini] Added payment-invoice connection functionality including computed fields, model actions, view configurations, and a new API endpoint for open invoices.
   - [Codex/GPT-5.5] Added child-table async invoice selection for payment allocations and deallocate-backed remove action
+
+
+## Fix Accounting Journal Balance & Party Transition (2026-05-18)
+  - [Gemini 2.0 Flash] Standardized party_id across all invoice types
+
+
+## Advanced Account Resolution & Journal UI Fix (2026-05-18)
+  - [Gemini 2.0 Flash] Added display_name (Code - Name) to Account for better UI selection; Enhanced CoaResolver to support Chart of Accounts mirroring via coa_source_org_id.
+
+
+## ERP user access control (org-scoped RBAC) + fix module registration + rename UserRole.company_id → org_id — revision (2026-05-18)
+  - [Gemini] Implemented ERP org-scoped RBAC with new model and 5 endpoints.
+  - [Codex/GPT-5.5] ERP User Access settings page with user access table, scope badges, admin handling, slide-in editor, org checklist, save and revoke actions
+
+
+## Hierarchical org scope expansion & is_shared master data (2026-05-18)
+  - [Gemini 2.5 Flash] Hierarchical org scope expansion (top-down for groups, bottom-up for leaf orgs), is_shared flag on MasterDataBase
+
+
+## Hierarchical org scope expansion — parent/child data sharing + is_shared flag on master data — revision (2026-05-18)
+  - [Codex/GPT-5.5] Added is_group support to Organization type and Consolidated badge beside the org switcher for group organizations

@@ -55,7 +55,7 @@ ORDER BY si.doc_date DESC""",
   pi.total_amount as total,
   pi.status
 FROM erp_accounting_outflow_invoices pi
-JOIN erp_party_parties s ON s.id = pi.supplier_id
+JOIN erp_party_parties s ON s.id = pi.party_id
 WHERE pi.org_id = :org_id
   AND (:date_from IS NULL OR pi.doc_date >= :date_from)
   AND (:date_to IS NULL OR pi.doc_date <= :date_to)
@@ -234,7 +234,7 @@ ORDER BY pi.doc_date DESC""",
                 THEN i.total_amount - COALESCE((SELECT SUM(pa.amount) FROM erp_accounting_payment_allocations pa JOIN erp_accounting_payments py ON py.id = pa.payment_id WHERE pa.invoice_id = i.id AND pa.invoice_type = 'OutflowInvoice' AND py.status = 'Posted'), 0)
                 ELSE 0 END as `over_90`
         FROM erp_accounting_outflow_invoices i
-        JOIN erp_party_parties p ON i.supplier_id = p.id
+        JOIN erp_party_parties p ON i.party_id = p.id
         WHERE i.status IN ('Posted', 'Partial') AND i.org_id = :org_id
         HAVING outstanding > 0.01
         ORDER BY days_outstanding DESC

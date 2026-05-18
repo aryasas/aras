@@ -12,6 +12,7 @@ export interface Organization {
   name: string
   profile?: string
   unit_type?: string
+  is_group?: boolean
 }
 
 interface AuthState {

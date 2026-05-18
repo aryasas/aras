@@ -65,9 +65,33 @@ async def get_current_user(
     raw = {k: int(v) for k, v in request.headers.items() if k.lower().startswith("x-scope-") and v.isdigit()}
     oid = int(request.headers.get("X-Org-ID", 0) or 0)
     if oid:
-        raw["org_id"] = oid
+        try:
+            from apps.erp.config.models import Organization
+
+            def _get_descendants(parent_id: int) -> list[int]:
+                ids = []
+                children = db.query(Organization).filter(Organization.parent_id == parent_id).all()
+                for c in children:
+                    ids.append(c.id)
+                    ids.extend(_get_descendants(c.id))
+                return ids
+
+            org = db.query(Organization).filter(Organization.id == oid).first()
+            if org and org.is_group:
+                org_chain = [oid] + _get_descendants(oid)
+            elif org:
+                org_chain = [oid]
+                current = org
+                while current and current.parent_id:
+                    org_chain.append(current.parent_id)
+                    current = db.query(Organization).filter(Organization.id == current.parent_id).first()
+            else:
+                org_chain = [oid]
+            raw["org_id"] = org_chain if len(org_chain) > 1 else oid
+        except ImportError:
+            raw["org_id"] = oid
     request.state.scope = ScopeContext(raw)
-    request.state.org_id = oid  # kept for backwards compat with auth middleware
+    request.state.org_id = oid  # keep direct org_id for writes
     return user
 
 

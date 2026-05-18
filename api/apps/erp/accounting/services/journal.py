@@ -5,7 +5,7 @@ class JournalService:
     """Service for creating and posting journal entries."""
     
     @staticmethod
-    def post_entry(db: Session, org_id: int, lines: list[dict], reference: str = "", narrative: str = "", currency_id: int = None) -> JournalEntry:
+    def post_entry(db: Session, org_id: int, lines: list[dict], reference: str = "", narrative: str = "", currency_id: int = None, source_type: str = None, source_id: int = None) -> JournalEntry:
         """
         Create and post a balanced journal entry.
         lines: [{'account_id': int, 'debit': float, 'credit': float, 'description': str}]
@@ -26,6 +26,8 @@ class JournalService:
             number=reference,
             currency_id=currency_id,
             notes=narrative,
+            source_type=source_type,
+            source_id=source_id,
             status="Posted"
         )
         db.add(entry)

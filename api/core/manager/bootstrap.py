@@ -13,6 +13,7 @@ def run(db: Session) -> None:
     _seed_admin(db)
     _seed_widgets(db)
     _seed_settings(db)
+    _seed_erp_rbac(db)
 
 
 def _seed_admin(db: Session) -> None:
@@ -84,3 +85,11 @@ def _seed_settings(db: Session) -> None:
         db.add_all(new_rows)
         db.commit()
     logger.info("Default settings seeded.")
+
+
+def _seed_erp_rbac(db: Session) -> None:
+    try:
+        from apps.erp.config.seed_rbac import run_seed
+        run_seed(db)
+    except ImportError:
+        pass
