@@ -10,8 +10,14 @@ logger = logging.getLogger(__name__)
 
 
 def run_seed(db: Session) -> None:
+    from pathlib import Path
+    from core.seeds.loader import load_rbac
     from apps.erp.config.erp_rbac import ensure_erp_role, ErpUserAccess
     from core.auth.models import User
+
+    # Load granular ERP roles from YAML
+    seed_file = Path(__file__).parent.parent / "seeds" / "rbac_erp.yaml"
+    load_rbac(seed_file, db)
 
     role = ensure_erp_role(db)
     logger.info("ERP role ready: id=%s name=%s", role.id, role.name)

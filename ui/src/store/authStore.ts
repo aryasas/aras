@@ -39,7 +39,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ token })
   },
   setOrganizations: (organizations) => set((state) => {
-    const activeOrgStillAllowed = state.activeOrgId !== null && organizations.some((organization) => organization.id === state.activeOrgId)
+    const activeOrgStillAllowed = state.activeOrgId !== null && (
+      state.activeOrgId === -1 ||
+      organizations.some((organization) => organization.id === state.activeOrgId)
+    )
     const autoSelect = !activeOrgStillAllowed && organizations.length > 0 ? organizations[0].id : null
 
     if (autoSelect !== null) {

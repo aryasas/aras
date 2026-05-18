@@ -13,6 +13,7 @@ def run(db: Session) -> None:
     _seed_admin(db)
     _seed_widgets(db)
     _seed_settings(db)
+    _seed_framework_rbac(db)
     _seed_erp_rbac(db)
 
 
@@ -85,6 +86,13 @@ def _seed_settings(db: Session) -> None:
         db.add_all(new_rows)
         db.commit()
     logger.info("Default settings seeded.")
+
+
+def _seed_framework_rbac(db: Session) -> None:
+    from pathlib import Path
+    from core.seeds.loader import load_rbac
+    seed_file = Path(__file__).parent.parent / "seeds" / "rbac_framework.yaml"
+    load_rbac(seed_file, db)
 
 
 def _seed_erp_rbac(db: Session) -> None:

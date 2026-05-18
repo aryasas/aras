@@ -10,6 +10,7 @@ import {
 import { resolveFieldComponent, resolveFilterComponent } from '../SchemaRegistry'
 import { useAras } from '../hooks/useAras'
 import { useUIStore } from '../../store/uiStore'
+import { useAuthStore } from '../../store/authStore'
 import { ImportMapping } from './ImportMapping'
 import Combobox from './Combobox'
 
@@ -61,6 +62,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
 }) => {
   const vocabulary = useVocabulary()
   const navigate = useNavigate()
+  const { activeOrgId } = useAuthStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const [metadata, setMetadata] = useState<Metadata | null>(null)
   const [data, setData] = useState<any[]>([])
@@ -188,7 +190,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     } finally {
       setLoading(false)
     }
-  }, [resourceApiPath, metadata, page, perPage, search, filters, fixedFilters, orderBy, desc, isPartyResource, roleFilter])
+  }, [resourceApiPath, metadata, page, perPage, search, filters, fixedFilters, orderBy, desc, isPartyResource, roleFilter, activeOrgId])
 
   useEffect(() => {
     fetchData()

@@ -337,5 +337,26 @@
     },
     "frontend": null,
     "verdict": "APPROVED"
+  },
+  {
+    "id": 17,
+    "date": "2026-05-18",
+    "feature": "RBAC seed YAML/JSON + loader; fix All-orgs picker persistence on refresh",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/seeds/rbac_framework.yaml, api/core/seeds/rbac_framework.json, api/core/seeds/loader.py, api/apps/erp/seeds/rbac_erp.yaml, api/apps/erp/seeds/rbac_erp.json, api/core/seeds/__init__.py, api/apps/erp/seeds/__init__.py",
+      "features_added": "load_rbac() loader reads YAML/JSON seed and upserts roles+permissions; framework RBAC auto-seeded on bootstrap (3 roles: System Admin, User Manager, Viewer); ERP RBAC seeded via manage.py seed (9 roles: ERP Admin, ERP User, Accountant, Sales Manager, Purchase Manager, Inventory Manager, HR Manager, POS Cashier, ERP Viewer)",
+      "fixes_applied": "authStore setOrganizations: treat activeOrgId=-1 (All Orgs) as always valid so it survives page refresh; bootstrap._seed_framework_rbac added before ERP seed",
+      "framework_changes": "bootstrap.py: added _seed_framework_rbac step; seed_rbac.py: now calls load_rbac(rbac_erp.yaml) before ensure_erp_role",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/store/authStore.ts",
+      "features_added": "none",
+      "fixes_applied": "All-orgs selection (-1) now persists across page refresh",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
   }
 ]
