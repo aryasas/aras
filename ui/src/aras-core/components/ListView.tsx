@@ -556,9 +556,23 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     setPage(1)
   }
 
+  const resourceCrumb = cleanResourcePath(resource)
+    .split('/')
+    .filter(Boolean)
+    .map(part => part.replace(/-/g, ' ').replace(/\b\w/g, char => char.toUpperCase()))
+    .join(' / ')
+
   return (
     <>
-    <div className="flex flex-col h-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="aras-list-view flex flex-col h-full bg-transparent overflow-hidden">
+      <div className="mb-6 flex items-end justify-between gap-6 max-sm:flex-col max-sm:items-start">
+        <div>
+          {resourceCrumb && <div className="mb-4 text-sm font-semibold text-[var(--aras-muted)]">{resourceCrumb}</div>}
+          <h1 className="text-[48px] font-normal leading-none tracking-[-0.045em] text-[var(--aras-text)] max-sm:text-[38px]">{title}</h1>
+          <p className="mt-2 text-base text-[var(--aras-muted)]">Create, search, and manage {title.toLowerCase()} records.</p>
+        </div>
+      </div>
+
       {/* ── Toolbar ────────────────────────────────────────────────────────── */}
       <ListToolbar
         title={title}
@@ -664,7 +678,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         )}
 
       {/* ── Content View ─────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto rounded-[var(--aras-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)]">
         {isPartyResource && (
           <div className="flex flex-wrap gap-2 border-b border-slate-100 bg-white px-6 py-3">
             {roleTabs.map(tab => (
@@ -841,7 +855,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
 
       {/* ── Footer / Pagination ────────────────────────────────────────────── */}
       {viewMode === 'list' && (
-      <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+      <div className="mt-0 p-4 bg-[var(--aras-panel)] border border-t-0 border-[var(--aras-border)] flex flex-wrap items-center justify-between gap-3 rounded-b-[var(--aras-radius)]">
         <div className="flex items-center gap-4">
           <span className="text-xs font-medium text-slate-500">
             Showing <span className="text-slate-900 font-bold">{(page-1)*perPage + 1}</span> to <span className="text-slate-900 font-bold">{Math.min(page*perPage, total)}</span> of <span className="text-slate-900 font-bold">{total}</span>

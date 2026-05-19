@@ -1019,7 +1019,9 @@
     "mode": "full",
     "status": "success",
     "notes": "",
-    "tokens": 0
+    "tokens": 0,
+    "commit_hash": "040fdf2",
+    "commit_message": "test git script"
   },
   {
     "id": 89,
@@ -1041,5 +1043,185 @@
     "tokens": 0,
     "commit_hash": "f06d95b",
     "commit_message": "feat: apps/web CMS, apps/saas license, sync_reports bidirectional, ggc script, docs sync, mocks proposals"
+  },
+  {
+    "id": 90,
+    "date": "2026-05-19",
+    "feature": "Real layout mock for list and form",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/real-layout/index.html, ui/public/mocks/index.html",
+      "features_added": "Added a static Aras-style real layout mock with page title, list view, leftmost Add New button, search bar, combined More Actions menu for Export/Import/Archive/Print, table, pagination, and form view.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 91,
+    "date": "2026-05-19",
+    "feature": "Aras Studio mock theme tweaker and form action layout",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/aras-studio/index.html, ui/public/mocks/index.html, ui/public/mocks/real-layout/index.html",
+      "features_added": "Renamed checklist-prototype mock to aras-studio and added a tweak panel for light/normal/dark themes, rounded/square corners, accent colors including #7a2e2e plus recommended colors, black, white, compact/regular/comfy density, font size slider, and mobile layout behavior.",
+      "fixes_applied": "Moved the form Save action to the left side of the form action bar to leave room for future back/previous/next record navigation.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 92,
+    "date": "2026-05-19",
+    "feature": "Real project layout theme controls and form action order",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/store/uiStore.ts, ui/src/index.css, ui/src/layouts/MainLayout.tsx, ui/src/layouts/components/Header.tsx, ui/src/layouts/components/HeaderActions.tsx, ui/src/layouts/components/HeaderSearch.tsx, ui/src/layouts/components/ThemeTweakPanel.tsx, ui/src/layouts/components/Sidebar.tsx, ui/src/layouts/components/SidebarBrand.tsx, ui/src/layouts/components/SidebarNavItem.tsx, ui/src/layouts/components/TopbarAppMenu.tsx, ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "Implemented persisted real-app layout tweak controls for theme, corners, density, font size, and accent color with #7a2e2e as the default accent. Applied variable-driven styling to the authenticated app shell, header, sidebar, topbar app menu, search, and form header.",
+      "fixes_applied": "Moved Save and workflow submit actions to the left side of DynamicForm and moved organization selector into the top bar flow so it no longer stretches or floats over the header.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 93,
+    "date": "2026-05-19",
+    "feature": "Mock-style application shell layout",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/MainLayout.tsx, ui/src/layouts/components/Header.tsx, ui/src/layouts/components/HeaderActions.tsx, ui/src/layouts/components/ThemeTweakPanel.tsx, ui/src/layouts/components/Sidebar.tsx, ui/src/layouts/components/SidebarBrand.tsx, ui/src/layouts/components/SidebarNavItem.tsx, ui/src/layouts/components/Breadcrumbs.tsx",
+      "features_added": "Changed the authenticated shell to a mock-style layout with a 68px icon rail, separate top-left brand cell, right-aligned topbar, compact facility selector, and wider gray workspace.",
+      "fixes_applied": "Removed the wide collapsible sidebar behavior and search-first header layout so the real project structure follows the mock view more closely.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 94,
+    "date": "2026-05-19",
+    "feature": "Mock-aligned cards, lists, and forms",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/index.css, ui/src/components/Card.tsx, ui/src/aras-core/components/ListToolbar.tsx, ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "Added a global Aras Studio theme layer that maps common card, button, table, form, border, text, radius, and spacing utilities to the mock theme tokens. Updated shared Card, ListToolbar, ListView, and DynamicForm wrappers for mock-style surfaces and mobile behavior.",
+      "fixes_applied": "Removed the ListToolbar table title, kept Add New first in the toolbar, and aligned list/form controls with the default #7a2e2e accent and black normal buttons.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 95,
+    "date": "2026-05-19",
+    "feature": "Closer real-layout parity for lists, forms, and child tables",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/index.css, ui/src/aras-core/components/ListToolbar.tsx, ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/DynamicForm.tsx, ui/src/aras-core/components/InlineChildTable.tsx",
+      "features_added": "Aligned real shared list pages with the mock by adding a large page title/subtitle area, putting Add New at the true left of the toolbar, styling form sections as mock-style panels with three-column fields, and restyling inline child tables to match the mock table surface.",
+      "fixes_applied": "Improved mobile handling for list toolbar, list tables, form grids, and child tables.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 96,
+    "date": "2026-05-19",
+    "feature": "Remove extra shell rows and align page headers",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/MainLayout.tsx, ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "Removed the real app's extra breadcrumb and top app menu rows from the shell so pages start directly below the topbar like the mock. Added mock-style crumb/title/subtitle page headers to list and form views without changing metadata names or labels.",
+      "fixes_applied": "Changed the form action row from a sticky card into a transparent mock-style action row and added a List/Form segmented control in the form page header.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 97,
+    "date": "2026-05-19",
+    "feature": "Mock color and control parity refinement",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/index.css, ui/src/layouts/MainLayout.tsx, ui/src/layouts/components/Header.tsx, ui/src/aras-core/components/ListToolbar.tsx",
+      "features_added": "Aligned real app theme tokens with the mock colors: #f3f3f3 workspace background, white panels, #e6e6e6 table headers, stronger gray input borders, 5px rounded controls, and 46px toolbar controls.",
+      "fixes_applied": "Refined topbar facility sizing and toolbar/input/combo styling to better match the mock design without changing metadata names or labels.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 98,
+    "date": "2026-05-19",
+    "feature": "Separate light theme from normal theme",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/MainLayout.tsx",
+      "features_added": "Changed the Light theme token set to use a white workspace and white soft panels, separate from the Normal/default mock-gray theme.",
+      "fixes_applied": "Kept Normal/default on #f3f3f3 with mock-gray table headers while Light now uses white background with lighter table/header borders.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 99,
+    "date": "2026-05-19",
+    "feature": "Letter A logo redesign",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/components/SidebarBrand.tsx, ui/src/views/Login.tsx",
+      "features_added": "Redesigned the application logo surfaces to use a focused letter A mark with a compact accent-colored frame and crossbar detail.",
+      "fixes_applied": "Replaced the abstract sidebar mark and plain login badge with a consistent A-only logo treatment.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 100,
+    "date": "2026-05-20",
+    "feature": "Form UI refinement toward sample layout",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/index.css, ui/src/aras-core/components/DynamicForm.tsx, ui/src/aras-core/components/Combobox.tsx",
+      "features_added": "Refined form sizing, spacing, section borders, table header gray, neutral input/combobox active states, and sample-style Save/Back/Duplicate plus right-side workflow action placement.",
+      "fixes_applied": "Removed strong focus glow/shadow effects from form inputs and comboboxes, reduced over-rounded controls, and tuned neutral colors to better match the provided sample.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 101,
+    "date": "2026-05-20",
+    "feature": "Optional form right rail panels",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/DynamicForm.tsx, ui/src/index.css",
+      "features_added": "Added optional right-side form panels for available totals and activity/status data, matching the sample card style without requiring every resource to provide those fields.",
+      "fixes_applied": "Hides known totals/payment fields from the main form when they are represented in the side rail to avoid duplicated financial summary blocks.",
+      "framework_changes": "none",
+      "issues": "Future enhancement: make side rail field selection configurable from code/view metadata or GUI overrides."
+    },
+    "verdict": "APPROVED"
   }
 ]

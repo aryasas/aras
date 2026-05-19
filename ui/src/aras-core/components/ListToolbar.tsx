@@ -91,14 +91,21 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
   }, []);
 
   return (
-    <div className="p-4 border-b border-slate-100 space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 flex-1">
-          <h2 className="text-xl font-bold text-slate-900 hidden md:block">{title}</h2>
+    <div className="aras-list-toolbar p-0 pb-4 space-y-4">
+      <div className="grid grid-cols-[auto_minmax(280px,1fr)_auto] items-center gap-3 max-lg:grid-cols-1">
+        <button
+          onClick={onAdd}
+            className="flex h-[46px] items-center gap-2 px-[19px] bg-[var(--aras-button)] text-[var(--aras-button-text)] rounded-[var(--aras-radius)] text-sm font-bold transition-all shadow-md"
+        >
+          <Plus size={18} />
+          <span>Add New</span>
+        </button>
+
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
 
           {/* View Mode Switcher */}
           {onViewModeChange && (
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <div className="flex items-center bg-[var(--aras-panel-soft)] p-1 rounded-[var(--aras-radius)] border border-[var(--aras-border)]">
               <button
                 onClick={() => onViewModeChange('list')}
                 className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
@@ -125,19 +132,19 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
             </div>
           )}
 
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <div className="relative min-w-[260px] flex-1 max-w-none">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--aras-muted)]" size={18} />
             <input
               type="text"
               placeholder={`Search in ${title}...`}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+              className="h-[46px] w-full pl-10 pr-4 bg-[var(--aras-panel)] border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] text-[15px] text-[var(--aras-text)] focus:ring-2 focus:ring-[color:var(--aras-accent)]/15 focus:border-[var(--aras-accent)] outline-none transition-all"
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
             />
           </div>
           <button
             onClick={onFilterToggle}
-            className={`p-2 rounded-xl border transition-all flex items-center gap-2 text-sm font-medium ${isFilterOpen ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+            className={`h-[46px] px-4 rounded-[var(--aras-radius)] border transition-all flex items-center gap-2 text-sm font-medium ${isFilterOpen ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-[var(--aras-panel)] border-[var(--aras-border-strong)] text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]'}`}
           >
             <Filter size={18} />
             <span>Filters {filterCount > 0 && `(${filterCount})`}</span>
@@ -193,7 +200,7 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {selectedCount > 0 && (
             <>
               <button
@@ -216,7 +223,7 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
           <div className="relative" ref={actionsRef}>
             <button
               onClick={() => setIsActionsOpen(v => !v)}
-              className="flex items-center gap-1.5 p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 text-sm"
+              className="flex h-[46px] items-center gap-1.5 border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] px-4 text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)] text-sm"
               title="Actions"
             >
               <MoreHorizontal size={18} />
@@ -248,7 +255,7 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
           </div>
 
           <button
-            className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 relative"
+            className="relative grid h-[46px] w-[46px] place-items-center border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]"
             onClick={onColumnPickerToggle}
           >
             <Settings size={18} />
@@ -280,13 +287,6 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
             )}
           </button>
 
-          <button
-            onClick={onAdd}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100"
-          >
-            <Plus size={18} />
-            <span className="hidden sm:inline">Add New</span>
-          </button>
         </div>
       </div>
     </div>

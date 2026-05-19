@@ -57,16 +57,16 @@ export function HeaderSearch() {
   }
 
   return (
-    <div className="relative w-96" ref={searchRef}>
+    <div className="relative w-full max-w-96" ref={searchRef}>
       <div className="relative">
-        <Search className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${loading ? 'text-indigo-500 animate-pulse' : 'text-slate-400'}`} size={18} />
+        <Search className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${loading ? 'text-[var(--aras-accent)] animate-pulse' : 'text-[var(--aras-muted)]'}`} size={18} />
         <input 
           type="text" 
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => query.length >= 2 && setIsOpen(true)}
           placeholder="Search anything..." 
-          className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all text-sm"
+          className="w-full pl-10 pr-4 py-2 bg-[var(--aras-panel-soft)] border border-[var(--aras-border)] rounded-[var(--aras-radius)] focus:ring-2 focus:ring-[color:var(--aras-accent)]/15 focus:border-[var(--aras-accent)] focus:bg-[var(--aras-panel)] outline-none transition-all text-sm text-[var(--aras-text)]"
         />
       </div>
 

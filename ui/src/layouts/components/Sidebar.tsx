@@ -1,20 +1,17 @@
-import { LogOut, Menu } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { SidebarNavItem } from './SidebarNavItem'
-import { SidebarBrand } from './SidebarBrand'
 import type { SidebarApp } from '../types'
 import { useVocabulary } from '../../context/VocabularyContext'
 import { resolveIcon } from '../../lib/iconUtils'
 import { isVisibleMenuItem } from '../../lib/menuUtils'
 
 interface SidebarProps {
-  isOpen: boolean
-  setOpen: (open: boolean) => void
   sidebarData: SidebarApp[]
   currentPath: string
   onLogout: () => void
 }
 
-export function Sidebar({ isOpen, setOpen, sidebarData, currentPath, onLogout }: SidebarProps) {
+export function Sidebar({ sidebarData, currentPath, onLogout }: SidebarProps) {
   const vocabulary = useVocabulary()
   const normalizedSidebarData = sidebarData
     .filter(isVisibleMenuItem)
@@ -39,7 +36,7 @@ export function Sidebar({ isOpen, setOpen, sidebarData, currentPath, onLogout }:
           icon={<IconComponent size={20} />} 
           label={item.label} 
           active={currentPath === item.path} 
-          isOpen={isOpen} 
+          isOpen={false}
         />
       )
     }
@@ -53,13 +50,13 @@ export function Sidebar({ isOpen, setOpen, sidebarData, currentPath, onLogout }:
       const isActive = currentPath === appPath || currentPath.startsWith(`${appPath}/`) || isSubAppActive
       
       return (
-        <div key={`container-${item.name}`} style={{ paddingLeft: isOpen ? `${depth * 12}px` : 0 }}>
+        <div key={`container-${item.name}`}>
           <SidebarNavItem
             to={appPath}
             icon={<IconComponent size={isSubApp ? 16 : 20} />}
             label={item.label}
             active={isActive}
-            isOpen={isOpen}
+            isOpen={false}
           />
         </div>
       )
@@ -68,10 +65,8 @@ export function Sidebar({ isOpen, setOpen, sidebarData, currentPath, onLogout }:
   }
 
   return (
-    <aside className={`${isOpen ? 'w-64' : 'w-20'} transition-all duration-300 bg-white border-r border-slate-200 flex flex-col shadow-sm z-20`}>
-      <SidebarBrand isOpen={isOpen} />
-
-      <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">
+    <aside className="col-start-1 row-start-2 z-20 flex min-h-0 flex-col border-r border-[var(--aras-border)] bg-[var(--aras-panel)] shadow-sm max-sm:flex-row max-sm:overflow-x-auto max-sm:border-b max-sm:border-r-0">
+      <nav className="flex-1 overflow-y-auto pt-7 max-sm:flex max-sm:overflow-x-auto max-sm:overflow-y-hidden max-sm:pt-0">
         {normalizedSidebarData.map((item, index) => {
           const type = item.type || 'app'
           const prevItem = index > 0 ? normalizedSidebarData[index - 1] : null
@@ -79,30 +74,21 @@ export function Sidebar({ isOpen, setOpen, sidebarData, currentPath, onLogout }:
           
           return (
             <div key={`root-${item.name || index}`}>
-              {shouldRenderHeader && isOpen && (
-                <div className="py-2">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">Applications</p>
-                </div>
-              )}
+              {shouldRenderHeader && null}
               {renderItem(item)}
             </div>
           )
         })}
       </nav>
 
-      <div className="p-4 border-t border-slate-100 space-y-2">
+      <div className="border-t border-[var(--aras-border)] max-sm:border-l max-sm:border-t-0">
         <button 
           onClick={onLogout}
-          className="w-full flex items-center gap-3 p-3 rounded-xl text-rose-500 hover:bg-rose-50 transition-all group"
+          className="flex h-[72px] w-full items-center justify-center text-rose-500 transition-all hover:bg-rose-50 max-sm:h-[58px] max-sm:min-w-[62px]"
+          title="Logout"
+          aria-label="Logout"
         >
           <LogOut size={20} className="group-hover:rotate-12 transition-transform" />
-          {isOpen && <span className="font-medium">Logout</span>}
-        </button>
-        <button 
-          onClick={() => setOpen(!isOpen)}
-          className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
-        >
-          <Menu size={20} />
         </button>
       </div>
     </aside>

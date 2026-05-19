@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Real Layout List and Form - Mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :root {
+    --bg: #f3f3f3;
+    --panel: #ffffff;
+    --line: #e2e2e2;
+    --line-strong: #d2d2d2;
+    --head: #e6e6e6;
+    --text: #222226;
+    --muted: #68686d;
+    --faint: #a7a7ad;
+    --blue: #448cf4;
+    --blue-dark: #2f7dea;
+    --green: #4ba83f;
+    --amber: #d2a62d;
+    --red: #d45555;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font-family: Inter, Arial, sans-serif; }
+  body { overflow: hidden; }
+  button, input, select, textarea { font: inherit; }
+  button { cursor: pointer; }
+  .app { height: 100vh; display: grid; grid-template-columns: 68px 1fr; grid-template-rows: 64px 1fr; background: var(--bg); }
+  .brand {
+    grid-column: 1 / 2; grid-row: 1 / 2; background: var(--panel); display: flex; align-items: center;
+    padding-left: 18px; border-bottom: 1px solid var(--line); box-shadow: var(--shadow); z-index: 3;
+  }
+  .brand-mark { width: 42px; height: 42px; border-radius: 50%; background: var(--blue); position: relative; flex: 0 0 auto; }
+  .brand-mark::before { content: ""; position: absolute; left: 12px; top: 9px; width: 9px; height: 18px; background: #fff; border-radius: 2px; }
+  .brand-mark::after { content: ""; position: absolute; left: 20px; top: 20px; width: 15px; height: 7px; background: #fff; border-radius: 2px; }
+  .brand-name { color: var(--blue); font-size: 27px; font-weight: 700; letter-spacing: 0.03em; margin-left: 10px; }
+  .topbar {
+    grid-column: 2 / 3; grid-row: 1 / 2; background: var(--panel); display: flex; align-items: center;
+    justify-content: flex-end; border-bottom: 1px solid var(--line); box-shadow: var(--shadow); z-index: 2;
+  }
+  .facility { height: 64px; min-width: 300px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: #f8f8f8; border: 0; border-left: 1px solid var(--line); border-right: 1px solid var(--line); color: #37373a; font-size: 16px; }
+  .top-icon { width: 56px; height: 64px; border: 0; background: transparent; display: grid; place-items: center; color: #222; }
+  .top-icon:hover, .facility:hover { background: #f1f1f1; }
+  .avatar { width: 27px; height: 27px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #a5d8ff 0 20%, #2e86de 21% 48%, #1d5f9f 49% 100%); box-shadow: inset 0 0 0 2px rgba(255,255,255,0.75); }
+  .rail {
+    grid-column: 1 / 2; grid-row: 2 / 3; background: #fff; border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; padding-top: 28px; z-index: 1;
+  }
+  .rail-btn { height: 72px; border: 0; border-left: 4px solid transparent; background: #fff; display: grid; place-items: center; color: #606064; position: relative; }
+  .rail-btn:hover { background: #f7f7f7; color: #1f1f21; }
+  .rail-btn.active { border-left-color: var(--blue); color: #2f2f33; background: #fff; }
+  .notify-dot { position: absolute; right: 19px; top: 15px; width: 11px; height: 11px; border-radius: 50%; background: #63b82d; border: 2px solid #fff; }
+  .kebab { width: 18px; height: 18px; display: grid; grid-template-columns: repeat(3, 4px); grid-template-rows: repeat(3, 4px); gap: 3px; }
+  .kebab i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+  .content { grid-column: 2 / 3; grid-row: 2 / 3; overflow: auto; padding: 30px 32px 24px; }
+  .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 26px; }
+  .page-title { font-size: 48px; line-height: 1; font-weight: 400; letter-spacing: -0.045em; margin: 0 0 8px; }
+  .subtitle { color: #b7b7bd; font-size: 16px; }
+  .crumb { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+  .view-switch { display: inline-flex; align-items: center; background: #fff; border: 1px solid var(--line); }
+  .view-switch button { height: 39px; min-width: 88px; border: 0; border-right: 1px solid var(--line); background: #fff; color: var(--muted); padding: 0 14px; }
+  .view-switch button:last-child { border-right: 0; }
+  .view-switch button.active { background: var(--blue); color: #fff; }
+  .toolbar {
+    min-width: 1120px; display: grid; grid-template-columns: auto minmax(280px, 1fr) auto auto auto auto;
+    gap: 12px; align-items: center; margin-bottom: 16px;
+  }
+  .primary {
+    height: 46px; padding: 0 19px; border: 0; border-radius: 5px; background: var(--blue); color: #fff;
+    display: inline-flex; align-items: center; gap: 9px; box-shadow: 0 2px 5px rgba(47,125,234,0.25); white-space: nowrap;
+  }
+  .primary:hover { background: var(--blue-dark); }
+  .ghost, .combo {
+    height: 46px; padding: 0 16px; border: 1px solid var(--line-strong); border-radius: 5px; background: #fff; color: #353539;
+    display: inline-flex; align-items: center; gap: 9px; white-space: nowrap;
+  }
+  .ghost:hover, .combo:hover { background: #f8f8f8; }
+  .searchbox { height: 46px; background: #fff; border: 1px solid var(--line-strong); border-radius: 5px; display: flex; align-items: center; gap: 12px; padding: 0 14px 0 16px; }
+  .searchbox input { width: 100%; min-width: 0; border: 0; outline: 0; color: #333338; background: transparent; font-size: 15px; }
+  .searchbox input::placeholder { color: #b8b8bd; }
+  .combo-wrap { position: relative; }
+  .combo-menu {
+    display: none; position: absolute; right: 0; top: calc(100% + 6px); width: 190px; background: #fff;
+    border: 1px solid var(--line); box-shadow: 0 14px 30px rgba(0,0,0,0.12); z-index: 5; padding: 6px;
+  }
+  .combo-wrap:hover .combo-menu { display: block; }
+  .combo-menu button { width: 100%; height: 38px; border: 0; background: #fff; color: #333338; display: flex; align-items: center; gap: 10px; padding: 0 10px; text-align: left; }
+  .combo-menu button:hover { background: #f3f7ff; color: var(--blue-dark); }
+  .table-shell { min-width: 1120px; background: #fff; border: 1px solid #ececec; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  thead { background: var(--head); }
+  th { text-align: left; padding: 16px 18px; font-size: 14px; font-weight: 700; color: #222226; white-space: nowrap; }
+  td { border-top: 1px solid #e7e7e7; padding: 16px 18px; color: var(--muted); font-size: 15px; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  tbody tr:hover td { background: #fbfbfb; }
+  th:nth-child(1), td:nth-child(1) { width: 44px; }
+  th:nth-child(2), td:nth-child(2) { width: 21%; color: #333338; font-weight: 600; }
+  th:nth-child(3), td:nth-child(3) { width: 16%; }
+  th:nth-child(4), td:nth-child(4) { width: 13%; }
+  th:nth-child(5), td:nth-child(5) { width: 15%; }
+  th:nth-child(6), td:nth-child(6) { width: 12%; }
+  th:nth-child(7), td:nth-child(7) { width: 12%; }
+  th:nth-child(8), td:nth-child(8) { width: 9%; text-align: right; }
+  .check { width: 18px; height: 18px; border: 1px solid #c9c9ce; border-radius: 3px; display: inline-block; background: #fff; vertical-align: middle; }
+  .state { display: inline-flex; align-items: center; gap: 9px; color: #46464b; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  .dot.amber { background: var(--amber); }
+  .dot.red { background: var(--red); }
+  .row-action { color: var(--blue-dark); border: 0; background: transparent; font-size: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 0; }
+  .pagination { min-width: 1120px; display: grid; grid-template-columns: 230px 1fr 130px 86px 58px 58px; align-items: center; height: 58px; background: #fff; border: 1px solid #ececec; border-top: 0; color: #55555a; font-size: 15px; }
+  .page-cell { height: 58px; display: flex; align-items: center; padding: 0 18px; border-right: 1px solid #e3e3e3; gap: 9px; }
+  .page-cell.count { border-right: 0; }
+  .pager-btn { height: 58px; width: 58px; border: 0; background: #fff; border-left: 1px solid #e3e3e3; display: grid; place-items: center; color: #111; }
+  .pager-btn:hover { background: #f7f7f7; }
+  .form-view { display: none; min-width: 1120px; }
+  body.show-form .list-view { display: none; }
+  body.show-form .form-view { display: block; }
+  body.show-form .list-tab { background: #fff; color: var(--muted); }
+  body.show-form .form-tab { background: var(--blue); color: #fff; }
+  .form-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+  .form-actions-left, .form-actions-right { display: flex; align-items: center; gap: 10px; }
+  .form-grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 18px; align-items: start; }
+  .section { background: #fff; border: 1px solid #ececec; }
+  .section-head { height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; border-bottom: 1px solid var(--line); background: #f8f8f8; }
+  .section-title { font-size: 15px; font-weight: 700; color: #2c2c31; }
+  .fields { padding: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label { display: block; color: #5d5d62; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+  .input, textarea.input { width: 100%; min-width: 0; height: 44px; border: 1px solid var(--line-strong); background: #fff; border-radius: 4px; padding: 0 12px; color: #252529; outline: 0; }
+  textarea.input { height: 92px; padding-top: 11px; resize: vertical; }
+  .line-items { margin-top: 18px; }
+  .line-items table th:nth-child(1), .line-items table td:nth-child(1) { width: 30%; color: #333338; font-weight: 600; }
+  .line-items table th:nth-child(2), .line-items table td:nth-child(2) { width: 18%; font-weight: 400; color: var(--muted); }
+  .line-items table th:nth-child(3), .line-items table td:nth-child(3) { width: 10%; text-align: right; }
+  .line-items table th:nth-child(4), .line-items table td:nth-child(4) { width: 13%; text-align: right; }
+  .line-items table th:nth-child(5), .line-items table td:nth-child(5) { width: 13%; text-align: right; }
+  .line-items table th:nth-child(6), .line-items table td:nth-child(6) { width: 13%; text-align: right; }
+  .side-panel { display: grid; gap: 18px; }
+  .summary { padding: 18px; display: grid; gap: 13px; }
+  .summary-row { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font-size: 14px; }
+  .summary-row strong { color: var(--text); font-size: 18px; }
+  .timeline { padding: 18px; display: grid; gap: 15px; }
+  .event { display: grid; grid-template-columns: 10px 1fr; gap: 12px; color: var(--muted); font-size: 13px; }
+  .event::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--blue); margin-top: 4px; }
+  .event strong { display: block; color: #303035; font-size: 14px; margin-bottom: 3px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  @media (max-width: 1180px) {
+    body { overflow: auto; }
+    .app { min-width: 980px; }
+    .toolbar, .table-shell, .pagination, .form-view { min-width: 1040px; }
+    .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="brand" aria-label="Aras brand">
+    <div class="brand-mark"></div>
+    <div class="brand-name">Aras</div>
+  </header>
+  <nav class="topbar" aria-label="Account navigation">
+    <button class="facility">Mumbai Facility <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+    <button class="top-icon" aria-label="Apps"><span class="kebab"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></button>
+    <button class="top-icon" aria-label="Settings"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2a2 2 0 1 1-4 0V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1A1.7 1.7 0 0 0 4.6 15 1.7 1.7 0 0 0 3 14H2.8a2 2 0 1 1 0-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 1 1 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3V2.8a2 2 0 1 1 4 0V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9c.3.6.9 1 1.6 1h.2a2 2 0 1 1 0 4H21c-.7 0-1.3.4-1.6 1Z"/></svg></button>
+    <button class="top-icon" aria-label="Profile"><span class="avatar"></span></button>
+  </nav>
+  <aside class="rail" aria-label="Primary navigation">
+    <button class="rail-btn" aria-label="Notifications"><span class="notify-dot"></span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 6-3 8h18c0-2-3-1-3-8"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></button>
+    <button class="rail-btn" aria-label="Analytics"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 12a9 9 0 1 1-9-9v9Z"/><path d="M13 3.05A9 9 0 0 1 20.95 11H13Z"/></svg></button>
+    <button class="rail-btn active" aria-label="Sales Orders"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/></svg></button>
+    <button class="rail-btn" aria-label="Inventory"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m21 8-9-5-9 5 9 5 9-5Z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></button>
+    <button class="rail-btn" aria-label="Finance"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/><path d="M7 6v12"/><path d="M17 6v12"/></svg></button>
+  </aside>
+  <main class="content">
+    <div class="crumb">ERP / Sales / Orders</div>
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">Sales Orders</h1>
+        <div class="subtitle">Manage order records, draft a new order, and review customer commitments.</div>
+      </div>
+      <div class="view-switch" aria-label="View switch">
+        <button class="list-tab active" id="listTab">List</button>
+        <button class="form-tab" id="formTab">Form</button>
+      </div>
+    </div>
+
+    <section class="list-view">
+      <div class="toolbar" aria-label="List toolbar">
+        <button class="primary" id="addNew">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          Add New
+        </button>
+        <label class="searchbox">
+          <span class="sr-only">Search sales orders</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>
+          <input placeholder="Search order, customer, status, owner" />
+        </label>
+        <button class="ghost">Filters <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16"/><path d="M7 12h10"/><path d="M10 18h4"/></svg></button>
+        <button class="ghost">Columns <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg></button>
+        <button class="ghost">Saved View <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div class="combo-wrap">
+          <button class="combo">More Actions <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+          <div class="combo-menu" aria-label="More actions">
+            <button>Export</button>
+            <button>Import</button>
+            <button>Archive</button>
+            <button>Print</button>
+          </div>
+        </div>
+      </div>
+
+      <section class="table-shell" aria-label="Sales order table">
+        <table>
+          <thead>
+            <tr>
+              <th><span class="check" aria-hidden="true"></span></th>
+              <th>Order</th>
+              <th>Customer</th>
+              <th>Status</th>
+              <th>Delivery Date</th>
+              <th>Owner</th>
+              <th>Total</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="check"></span></td><td>SO-2026-00418</td><td>PT Nusantara Retail</td><td><span class="state"><span class="dot"></span>Confirmed</span></td><td>May 24, 2026</td><td>A. Malik</td><td>Rp 46,300,000</td><td><button class="row-action">Open</button></td></tr>
+            <tr><td><span class="check"></span></td><td>SO-2026-00417</td><td>Jakarta Medical Supply</td><td><span class="state"><span class="dot amber"></span>Pending</span></td><td>May 27, 2026</td><td>D. Sari</td><td>Rp 18,950,000</td><td><button class="row-action">Open</button></td></tr>
+            <tr><td><span class="check"></span></td><td>SO-2026-00416</td><td>Bandung Office Mart</td><td><span class="state"><span class="dot"></span>Confirmed</span></td><td>May 29, 2026</td><td>R. Putra</td><td>Rp 12,780,000</td><td><button class="row-action">Open</button></td></tr>
+            <tr><td><span class="check"></span></td><td>SO-2026-00415</td><td>Surabaya Logistics Hub</td><td><span class="state"><span class="dot red"></span>Credit Hold</span></td><td>Jun 02, 2026</td><td>A. Malik</td><td>Rp 79,400,000</td><td><button class="row-action">Open</button></td></tr>
+            <tr><td><span class="check"></span></td><td>SO-2026-00414</td><td>PT Cipta Konstruksi</td><td><span class="state"><span class="dot amber"></span>Draft</span></td><td>Jun 03, 2026</td><td>M. Hana</td><td>Rp 33,120,000</td><td><button class="row-action">Open</button></td></tr>
+            <tr><td><span class="check"></span></td><td>SO-2026-00413</td><td>Tangerang Components</td><td><span class="state"><span class="dot"></span>Confirmed</span></td><td>Jun 05, 2026</td><td>D. Sari</td><td>Rp 24,760,000</td><td><button class="row-action">Open</button></td></tr>
+            <tr><td><span class="check"></span></td><td>SO-2026-00412</td><td>Makassar Food Service</td><td><span class="state"><span class="dot amber"></span>Pending</span></td><td>Jun 08, 2026</td><td>R. Putra</td><td>Rp 8,640,000</td><td><button class="row-action">Open</button></td></tr>
+            <tr><td><span class="check"></span></td><td>SO-2026-00411</td><td>Semarang Hotel Group</td><td><span class="state"><span class="dot"></span>Confirmed</span></td><td>Jun 11, 2026</td><td>M. Hana</td><td>Rp 51,000,000</td><td><button class="row-action">Open</button></td></tr>
+          </tbody>
+        </table>
+      </section>
+      <footer class="pagination" aria-label="Pagination">
+        <div class="page-cell">Items per page: <strong>25</strong> <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+        <div class="page-cell count">1 - 25 of 238 items</div>
+        <div class="page-cell"><strong>1</strong> <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+        <div class="page-cell">of 10</div>
+        <button class="pager-btn" aria-label="Previous page"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="m15 6-6 6 6 6Z"/></svg></button>
+        <button class="pager-btn" aria-label="Next page"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="m9 6 6 6-6 6Z"/></svg></button>
+      </footer>
+    </section>
+
+    <section class="form-view">
+      <div class="form-actions">
+        <div class="form-actions-left">
+          <button class="ghost">Save</button>
+          <button class="ghost" id="backToList"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>Back to List</button>
+          <button class="ghost">Duplicate</button>
+        </div>
+        <div class="form-actions-right">
+          <button class="primary">Submit Order</button>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div>
+          <section class="section" aria-label="Sales order form">
+            <div class="section-head">
+              <div class="section-title">Order Details</div>
+              <span class="state"><span class="dot amber"></span>Draft</span>
+            </div>
+            <div class="fields">
+              <div class="field">
+                <label>Order Number</label>
+                <input class="input" value="SO-2026-00419" />
+              </div>
+              <div class="field">
+                <label>Customer</label>
+                <input class="input" value="PT Nusantara Retail" />
+              </div>
+              <div class="field">
+                <label>Owner</label>
+                <input class="input" value="A. Malik" />
+              </div>
+              <div class="field">
+                <label>Order Date</label>
+                <input class="input" value="May 19, 2026" />
+              </div>
+              <div class="field">
+                <label>Delivery Date</label>
+                <input class="input" value="May 30, 2026" />
+              </div>
+              <div class="field">
+                <label>Warehouse</label>
+                <input class="input" value="Jakarta Main" />
+              </div>
+              <div class="field full">
+                <label>Notes</label>
+                <textarea class="input">Priority dispatch after payment confirmation. Customer requested delivery before noon.</textarea>
+              </div>
+            </div>
+          </section>
+          <section class="section line-items" aria-label="Line items">
+            <div class="section-head">
+              <div class="section-title">Line Items</div>
+              <button class="ghost">Add Line</button>
+            </div>
+            <table>
+              <thead>
+                <tr><th>Item</th><th>SKU</th><th>Qty</th><th>Price</th><th>Discount</th><th>Amount</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Commercial Printer A4</td><td>PRN-A4-220</td><td>4</td><td>Rp 6,400,000</td><td>5%</td><td>Rp 24,320,000</td></tr>
+                <tr><td>Maintenance Kit</td><td>MNT-KIT-12</td><td>8</td><td>Rp 840,000</td><td>0%</td><td>Rp 6,720,000</td></tr>
+                <tr><td>Installation Service</td><td>SRV-INSTALL</td><td>1</td><td>Rp 3,500,000</td><td>0%</td><td>Rp 3,500,000</td></tr>
+              </tbody>
+            </table>
+          </section>
+        </div>
+        <aside class="side-panel">
+          <section class="section">
+            <div class="section-head"><div class="section-title">Totals</div></div>
+            <div class="summary">
+              <div class="summary-row"><span>Subtotal</span><span>Rp 34,540,000</span></div>
+              <div class="summary-row"><span>Tax</span><span>Rp 3,799,400</span></div>
+              <div class="summary-row"><span>Shipping</span><span>Rp 550,000</span></div>
+              <div class="summary-row"><strong>Total</strong><strong>Rp 38,889,400</strong></div>
+            </div>
+          </section>
+          <section class="section">
+            <div class="section-head"><div class="section-title">Activity</div></div>
+            <div class="timeline">
+              <div class="event"><div><strong>Draft created</strong>Today at 09:12 by A. Malik</div></div>
+              <div class="event"><div><strong>Customer selected</strong>Credit terms loaded from customer profile</div></div>
+              <div class="event"><div><strong>Stock reserved</strong>12 units allocated from Jakarta Main</div></div>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </section>
+  </main>
+</div>
+<script>
+  const showList = () => document.body.classList.remove('show-form');
+  const showForm = () => document.body.classList.add('show-form');
+  document.getElementById('addNew').addEventListener('click', showForm);
+  document.getElementById('formTab').addEventListener('click', showForm);
+  document.getElementById('listTab').addEventListener('click', showList);
+  document.getElementById('backToList').addEventListener('click', showList);
+</script>
+</body>
+</html>

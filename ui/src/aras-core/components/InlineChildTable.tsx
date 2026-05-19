@@ -168,19 +168,19 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
   };
 
   return (
-    <div className="bg-white overflow-hidden rounded-3xl border border-slate-200 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-4">
+    <div className="aras-child-table bg-[var(--aras-panel)] overflow-hidden rounded-[var(--aras-radius)] border border-[var(--aras-border)]">
+      <div className="flex min-h-[54px] flex-wrap items-center justify-between gap-3 border-b border-[var(--aras-border)] bg-[var(--aras-panel-soft)] px-5 py-3">
         <div className="flex items-center gap-3">
-          <h3 className="text-sm font-bold text-slate-900">{childMeta.title}</h3>
+          <h3 className="text-sm font-bold text-[var(--aras-text)]">{childMeta.title}</h3>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search rows..."
-            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+            className="rounded-[var(--aras-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)] px-3 py-2 text-xs text-[var(--aras-text)] outline-none focus:ring-2 focus:ring-[color:var(--aras-accent)]/15"
           />
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={addRow} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700">
+          <button type="button" onClick={addRow} className="flex items-center gap-2 rounded-[var(--aras-radius)] bg-[var(--aras-button)] px-3 py-2 text-xs font-bold text-[var(--aras-button-text)]">
             <Plus size={14} />
             Add Row
           </button>
@@ -188,12 +188,12 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
             <Trash2 size={14} />
             Delete Selected
           </button>
-          <button type="button" onClick={() => setIsColumnPickerOpen(!isColumnPickerOpen)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50">
+          <button type="button" onClick={() => setIsColumnPickerOpen(!isColumnPickerOpen)} className="rounded-[var(--aras-radius)] border border-[var(--aras-border)] px-3 py-2 text-xs font-bold text-[var(--aras-muted)] hover:bg-[var(--aras-panel)]">
             Columns
           </button>
         </div>
         {isColumnPickerOpen && (
-          <div className="basis-full rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <div className="basis-full rounded-[var(--aras-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)] p-3">
             <div className="flex flex-wrap gap-3">
               {editableCols.map((field: any) => (
                 <label key={field.name} className="flex items-center gap-2 text-xs font-medium text-slate-600">

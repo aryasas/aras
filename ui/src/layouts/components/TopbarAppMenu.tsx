@@ -92,11 +92,12 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
           onClick={() => setActiveGroup(null)}
           className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all ${
             isActive 
-              ? 'bg-indigo-50 text-indigo-700 font-semibold' 
-              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              ? 'font-semibold'
+              : 'text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)] hover:text-[var(--aras-text)]'
           }`}
+          style={isActive ? { color: 'var(--aras-accent)', backgroundColor: 'color-mix(in srgb, var(--aras-accent) 10%, transparent)' } : undefined}
         >
-          <Icon size={18} className={isActive ? 'text-indigo-600' : 'text-slate-400'} />
+          <Icon size={18} className={isActive ? 'text-[var(--aras-accent)]' : 'text-[var(--aras-muted)]'} />
           {vocabulary.get(item.label || item.name)}
         </Link>
       )
@@ -109,13 +110,13 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
         onClick={() => setActiveGroup(null)}
         className={`relative flex h-10 shrink-0 items-center px-4 text-sm font-medium transition-colors ${
           isActive
-            ? 'text-indigo-600'
-            : 'text-slate-500 hover:text-slate-900'
+            ? 'text-[var(--aras-accent)]'
+            : 'text-[var(--aras-muted)] hover:text-[var(--aras-text)]'
         }`}
       >
         {vocabulary.get(item.label || item.name)}
         {isActive && (
-          <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-indigo-600" />
+          <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-[var(--aras-accent)]" />
         )}
       </Link>
     )
@@ -135,18 +136,18 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
         <button
           onClick={() => setActiveGroup(isOpen ? null : label)}
           className={`flex h-10 items-center gap-1.5 px-4 text-sm font-medium transition-colors ${
-            hasActiveChild ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-900'
+            hasActiveChild ? 'text-[var(--aras-accent)]' : 'text-[var(--aras-muted)] hover:text-[var(--aras-text)]'
           }`}
         >
           {vocabulary.get(label)}
           <ChevronDown size={14} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
           {hasActiveChild && (
-            <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-indigo-600" />
+            <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-[var(--aras-accent)]" />
           )}
         </button>
 
         {isOpen && (
-          <div className="absolute left-0 top-full z-50 mt-1 min-w-[240px] rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-100 max-h-[70vh] overflow-y-auto">
+          <div className="absolute left-0 top-full z-50 mt-1 min-w-[240px] rounded-[var(--aras-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)] p-1.5 shadow-xl ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-100 max-h-[70vh] overflow-y-auto">
             {elements.length === 0 && (
                <div className="px-3 py-2 text-sm text-slate-400 italic">No items</div>
             )}
@@ -176,7 +177,7 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
   }
 
   return (
-    <nav className="bg-white border-b border-slate-200 px-8 sticky top-0 z-30">
+    <nav className="bg-[var(--aras-panel)] border-b border-[var(--aras-border)] px-4 md:px-8 sticky top-0 z-30">
       <div ref={dropdownRef} className="flex flex-wrap min-h-[44px] items-end gap-1">
         {menuData.have_home && renderMenuItem({
           type: 'model',

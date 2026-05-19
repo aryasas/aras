@@ -183,7 +183,7 @@ const Combobox: React.FC<ComboboxProps> = ({
     <div 
       ref={dropdownRef}
       style={dropdownStyles}
-      className="bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+      className="bg-white border border-slate-200 rounded-[var(--aras-radius)] shadow-lg overflow-hidden animate-in fade-in duration-100"
     >
       <div className="p-2 border-b border-slate-100">
         <div className="relative">
@@ -192,7 +192,7 @@ const Combobox: React.FC<ComboboxProps> = ({
             autoFocus
             type="text"
             placeholder="Search..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border-none rounded-lg text-xs outline-none focus:ring-0"
+            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-[var(--aras-radius)] text-xs outline-none focus:ring-0"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -214,7 +214,7 @@ const Combobox: React.FC<ComboboxProps> = ({
             <div 
               key={item.id}
               onClick={() => handleSelect(item)}
-              className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${String(value) === String(item.id) ? 'bg-indigo-50 text-indigo-700 font-bold' : 'hover:bg-slate-50 text-slate-700 font-medium'}`}
+              className={`flex items-center justify-between px-3 py-2 rounded-[var(--aras-radius)] cursor-pointer transition-colors ${String(value) === String(item.id) ? 'bg-slate-100 text-slate-900 font-bold' : 'hover:bg-slate-50 text-slate-700 font-medium'}`}
             >
               <span className="text-xs truncate">{item[displayField] || item.id}</span>
               {String(value) === String(item.id) && <Check size={14} />}
@@ -231,7 +231,7 @@ const Combobox: React.FC<ComboboxProps> = ({
               e.preventDefault();
               handleAddNew();
             }}
-            className="flex items-center gap-2 w-full px-3 py-2.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 border-t border-slate-100"
+            className="flex items-center gap-2 w-full px-3 py-2.5 text-xs font-semibold text-[var(--aras-text)] hover:bg-white border-t border-slate-100"
           >
             <Plus size={13} /> Add new {field?.label?.toLowerCase() ?? targetResource.split('/').pop()?.replace(/s$/, '').replace(/_/g, ' ') ?? ''}
           </button>
@@ -244,7 +244,7 @@ const Combobox: React.FC<ComboboxProps> = ({
     <div className={`relative ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`} ref={containerRef}>
       <div 
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`flex items-center justify-between w-full px-4 py-2.5 bg-slate-50 border rounded-xl text-sm transition-all ${disabled ? 'border-slate-200' : (isOpen ? 'border-indigo-500 ring-2 ring-indigo-500/10 cursor-pointer' : 'border-slate-200 hover:border-slate-300 cursor-pointer')}`}
+        className={`flex items-center justify-between w-full px-4 py-2.5 bg-white border rounded-[var(--aras-radius)] text-sm transition-colors ${disabled ? 'border-slate-200' : (isOpen ? 'border-[#a8a8a8] shadow-[inset_0_0_0_1px_#a8a8a8] cursor-pointer' : 'border-slate-200 hover:border-slate-300 cursor-pointer')}`}
       >
         <div className="flex-1 truncate">
           {selectedItem ? (
@@ -263,7 +263,7 @@ const Combobox: React.FC<ComboboxProps> = ({
                 e.stopPropagation();
                 navigate(`/${cleanResourcePath(targetResource)}/${value}`);
               }}
-              className="p-1 text-slate-400 hover:text-indigo-600 transition-colors"
+              className="p-1 text-slate-400 hover:text-slate-700 transition-colors"
               title="Open in edit form"
             >
               <ExternalLink size={13} />

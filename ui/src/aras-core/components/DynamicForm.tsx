@@ -19,6 +19,7 @@ import { LogicEvaluator } from '../../lib/LogicEvaluator';
 import { useVocabulary, vocabularyCache } from '../../context/VocabularyContext';
 import { PrintPreview } from './PrintPreview';
 import { createDefaultRecord } from '../../lib/schemaUtils';
+import { FormattingService } from '../services/FormattingService';
 
 interface Field {
   name: string;
@@ -977,6 +978,109 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const resourceKey = cleanResourcePath(resource).split('/').pop()?.replace(/-/g, '_');
   const metadataResourceKey = metadata.resource?.split('/').pop()?.replace(/-/g, '_');
   const showWebPagePreview = (resourceKey === 'web_pages' || metadataResourceKey === 'web_pages') && Boolean(formData.slug);
+  const railFieldNames = new Set(['subtotal', 'total_charge', 'total_tax', 'tax', 'shipping', 'shipping_amount', 'total_amount', 'amount_paid', 'amount_due']);
+  const isRailField = (field: Field) => railFieldNames.has(field.name);
+  const getFieldLabel = (fieldName: string, fallback: string) => {
+    const field = metadata.fields.find(f => f.name === fieldName);
+    return vocabulary.get(field?.label || fallback);
+  };
+  const hasValue = (value: any) => value !== null && value !== undefined && value !== '';
+  const getNumber = (fieldName: string) => {
+    const value = formData[fieldName];
+    if (!hasValue(value)) return null;
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+  };
+  const formatMoney = (value: number) => {
+    const config = FormattingService.getConfig();
+    const symbol = config.currencySymbol === '$' && metadata.app_name?.startsWith('erp') ? 'Rp' : config.currencySymbol;
+    const decimals = Number.isInteger(value) ? 0 : config.decimalPrecision;
+    const formatted = new Intl.NumberFormat(config.numberFormat === '#.###,##' ? 'de-DE' : 'en-US', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }).format(value);
+    return symbol === 'Rp' ? `Rp ${formatted}` : `${symbol}${formatted}`;
+  };
+  const formatActivityDate = (value: any) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    const today = new Date();
+    const sameDay = date.toDateString() === today.toDateString();
+    return `${sameDay ? 'Today' : date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  };
+  const totalRows = [
+    ['subtotal', getFieldLabel('subtotal', 'Subtotal'), getNumber('subtotal')],
+    ['total_charge', getFieldLabel('total_charge', 'Tax / Charges'), getNumber('total_charge')],
+    ['total_tax', getFieldLabel('total_tax', 'Tax'), getNumber('total_tax')],
+    ['shipping', getFieldLabel('shipping', 'Shipping'), getNumber('shipping')],
+    ['shipping_amount', getFieldLabel('shipping_amount', 'Shipping'), getNumber('shipping_amount')],
+    ['amount_paid', getFieldLabel('amount_paid', 'Paid'), getNumber('amount_paid')],
+    ['amount_due', getFieldLabel('amount_due', 'Due'), getNumber('amount_due')],
+  ].filter(([, , value]) => value !== null) as [string, string, number][];
+  const grandTotal = getNumber('total_amount') ?? getNumber('amount') ?? null;
+  const hasTotalsRail = totalRows.length > 0 || grandTotal !== null;
+  const activityRows = [
+    (formData.status || formData.created_at) && {
+      title: `${formData.status || 'Record'} created`,
+      detail: formData.created_at ? formatActivityDate(formData.created_at) : 'Record is available for editing',
+    },
+    formData.updated_at && formData.updated_at !== formData.created_at && {
+      title: 'Last updated',
+      detail: formatActivityDate(formData.updated_at),
+    },
+    workflowActions[0] && {
+      title: `Ready for ${workflowActions[0].label}`,
+      detail: 'Next workflow action is available',
+    },
+  ].filter(Boolean) as Array<{ title: string; detail: string }>;
+  const hasActivityRail = activityRows.length > 0;
+  const hasFormRail = hasTotalsRail || hasActivityRail;
+
+  const renderFormRail = () => (
+    <aside className="aras-form-rail space-y-4">
+      {hasTotalsRail && (
+        <section className="aras-side-panel">
+          <div className="aras-side-panel-header">
+            <h3>Totals</h3>
+          </div>
+          <div className="aras-side-panel-body space-y-3">
+            {totalRows.map(([name, label, value]) => (
+              <div key={name} className="flex items-center justify-between gap-4 text-[15px]">
+                <span className="text-[var(--aras-muted)]">{label}</span>
+                <span className="text-right font-medium text-[var(--aras-muted)]">{formatMoney(value)}</span>
+              </div>
+            ))}
+            {grandTotal !== null && (
+              <div className="flex items-center justify-between gap-4 pt-1 text-[18px] font-black text-[var(--aras-text)]">
+                <span>{getFieldLabel('total_amount', 'Total')}</span>
+                <span className="text-right">{formatMoney(grandTotal)}</span>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {hasActivityRail && (
+        <section className="aras-side-panel">
+          <div className="aras-side-panel-header">
+            <h3>Activity</h3>
+          </div>
+          <div className="aras-side-panel-body space-y-4">
+            {activityRows.map((item, index) => (
+              <div key={`${item.title}-${index}`} className="grid grid-cols-[14px_1fr] gap-3">
+                <span className="mt-[7px] h-2.5 w-2.5 rounded-full bg-[var(--aras-primary-action)]" />
+                <div>
+                  <div className="text-sm font-black text-[var(--aras-text)]">{item.title}</div>
+                  <div className="mt-0.5 text-sm text-[var(--aras-muted)]">{item.detail}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </aside>
+  );
 
   const renderField = (field: Field) => {
     if (!isFieldVisible(field)) return null;
@@ -1153,19 +1257,68 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
 
   return (
     <>
-    <div className="max-w-6xl mx-auto space-y-6 pb-20">
+    <div className="aras-form-view mx-auto space-y-6 pb-20">
+      <div className="flex items-end justify-between gap-6 max-sm:flex-col max-sm:items-start">
+        <div>
+          <div className="mb-4 text-sm font-semibold text-[var(--aras-muted)]">
+            {(resourceSubtitle || resource).replace(/\//g, ' / ').replace(/-/g, ' ')}
+          </div>
+          <h1 className="text-[46px] font-normal leading-none tracking-normal text-[var(--aras-text)] max-sm:text-[36px]">
+            {metadataTitle}
+          </h1>
+          <p className="mt-2 text-base text-[var(--aras-muted)]">
+            {currentId != null ? 'Edit this record and manage its related details.' : 'Create a new record and manage its related details.'}
+          </p>
+        </div>
+        <div className="inline-flex border border-[var(--aras-border)] bg-[var(--aras-panel)]">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="h-10 min-w-20 border-r border-[var(--aras-border)] px-4 text-sm font-semibold text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)]"
+          >
+            List
+          </button>
+          <button
+            type="button"
+            className="h-10 min-w-20 px-4 text-sm font-semibold"
+            style={{ backgroundColor: 'var(--aras-button)', color: 'var(--aras-button-text)' }}
+          >
+            Form
+          </button>
+        </div>
+      </div>
+
       {/* ── Header ────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-slate-200 shadow-sm sticky top-0 z-20">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-transparent p-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => handleSubmit()}
+            disabled={saving}
+            className="aras-secondary-action flex h-10 items-center gap-2 rounded-[var(--aras-radius)] px-5 text-sm font-semibold transition-colors disabled:opacity-50"
+          >
+            {saving ? <RefreshCw className="animate-spin" size={17} /> : <Save size={17} />}
+            <span>{saving ? 'Saving...' : 'Save'}</span>
+          </button>
+
           <button 
             onClick={onCancel}
-            className="p-2 hover:bg-slate-50 rounded-xl text-slate-500 transition-colors"
+            className="aras-secondary-action flex h-10 items-center gap-2 rounded-[var(--aras-radius)] px-5 text-sm font-semibold transition-colors"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={17} />
+            <span>Back to List</span>
           </button>
-          <div>
+          {currentId != null && (
+            <button
+              onClick={handleDuplicate}
+              className="aras-secondary-action flex h-10 items-center gap-2 rounded-[var(--aras-radius)] px-5 text-sm font-semibold transition-colors"
+            >
+              <Copy size={17} />
+              <span>Duplicate</span>
+            </button>
+          )}
+          <div className="sr-only">
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-slate-900">
+              <h2 className="text-xl font-bold text-[var(--aras-text)]">
                 {currentId != null ? `Edit ${metadataTitle}` : `New ${metadataTitle}`}
               </h2>
               {showWebPagePreview && (
@@ -1191,11 +1344,26 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         </div>
         
         <div className="flex items-center gap-2">
+          {/* Workflow Actions */}
+          {workflowActions.map(action => (
+            <button
+              key={action.name}
+              onClick={() => handleWorkflowAction(action.name)}
+              disabled={saving}
+              className="aras-primary-action flex h-10 items-center gap-2 rounded-[var(--aras-radius)] border px-5 text-sm font-semibold transition-colors disabled:opacity-50"
+            >
+              <span>{action.label}</span>
+              <ChevronRight size={14} />
+            </button>
+          ))}
+
+          {(workflowActions.length > 0) && <div className="w-px h-6 bg-[var(--aras-border)] mx-1" />}
+
           {/* History Button */}
           {currentId != null && metadata.is_auditable && (
             <button
               onClick={handleShowHistory}
-              className="p-2 hover:bg-slate-50 rounded-xl text-slate-500 transition-colors mr-2"
+              className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] text-[var(--aras-muted)] transition-colors mr-2"
               title="View History"
             >
               <HistoryIcon size={20} />
@@ -1205,7 +1373,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           {/* Customize Button */}
           <button
             onClick={handleCustomize}
-            className="p-2 hover:bg-slate-50 rounded-xl text-slate-500 transition-colors mr-2"
+            className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] text-[var(--aras-muted)] transition-colors mr-2"
             title="Customize Form"
           >
             <Settings size={20} />
@@ -1221,18 +1389,12 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             </button>
           )}
           {currentId != null && (
-            <button onClick={handleDuplicate} title="Duplicate record"
-              className="p-2 hover:bg-indigo-50 rounded-xl text-indigo-400 hover:text-indigo-600 transition-colors">
-              <Copy size={20} />
-            </button>
-          )}
-          {currentId != null && (
             <>
               <button
                 onClick={() => prevId && onNavigate?.(prevId)}
                 disabled={!prevId}
                 title="Previous record"
-                className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 disabled:opacity-30 transition-colors"
+                className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] text-[var(--aras-muted)] disabled:opacity-30 transition-colors"
               >
                 <ChevronLeft size={20} />
               </button>
@@ -1240,7 +1402,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                 onClick={() => nextId && onNavigate?.(nextId)}
                 disabled={!nextId}
                 title="Next record"
-                className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 disabled:opacity-30 transition-colors"
+                className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] text-[var(--aras-muted)] disabled:opacity-30 transition-colors"
               >
                 <ChevronRight size={20} />
               </button>
@@ -1253,33 +1415,20 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
               key={action.name}
               onClick={() => handleModelAction(action)}
               disabled={saving}
-              className="p-2 hover:bg-indigo-50 rounded-xl text-indigo-600 transition-colors"
+              className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] text-[var(--aras-accent)] transition-colors"
               title={action.label}
             >
               <Zap size={20} />
             </button>
           ))}
 
-          {/* Workflow Actions */}
-          {workflowActions.map(action => (
-            <button
-              key={action.name}
-              onClick={() => handleWorkflowAction(action.name)}
-              disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all"
-            >
-              <span>{action.label}</span>
-              <ChevronRight size={14} />
-            </button>
-          ))}
-
-          {(workflowActions.length > 0 || (metadata.actions?.length ?? 0) > 0 || (metadata.app_name === 'erp_accounting' && currentId != null)) && <div className="w-px h-6 bg-slate-200 mx-1" />}
+          {((metadata.actions?.length ?? 0) > 0 || (metadata.app_name === 'erp_accounting' && currentId != null)) && <div className="w-px h-6 bg-[var(--aras-border)] mx-1" />}
 
           {/* Print Button */}
           {metadata.app_name === 'erp_accounting' && currentId != null && (
             <button
               onClick={() => setShowPrintPreview(true)}
-              className="p-2 hover:bg-slate-50 rounded-xl text-slate-500 transition-colors mr-2"
+              className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] text-[var(--aras-muted)] transition-colors mr-2"
               title="Print Document"
             >
               <Printer size={20} />
@@ -1289,23 +1438,16 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           <button 
             type="button" 
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
+            className="px-4 py-2 text-sm font-bold text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] transition-all"
           >
             Cancel
-          </button>
-          <button 
-            onClick={() => handleSubmit()}
-            disabled={saving}
-            className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 disabled:opacity-50"
-          >
-            {saving ? <RefreshCw className="animate-spin" size={18} /> : <Save size={18} />}
-            <span>{saving ? 'Saving...' : 'Save Changes'}</span>
           </button>
         </div>
       </div>
 
       {/* ── Main Form Content ────────────────────────────────────────────── */}
-      <div className="space-y-6">
+      <div className={hasFormRail ? 'grid grid-cols-[minmax(0,1fr)_320px] gap-4 max-xl:grid-cols-1' : ''}>
+      <div className="min-w-0 space-y-6">
         {/* General Errors (errors not mapping to visible fields or mapping to hidden fields) */}
         {Object.entries(errors).filter(([key]) => {
           const field = metadata.fields.find(f => f.name === key);
@@ -1358,7 +1500,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
               const tabFields = (tab?.fields ?? [])
                 .map(name => metadata.fields.find(f => f.name === name))
                 .filter((f): f is Field => !!f);
-              const normalFields = tabFields.filter(f => f.type !== 'child_table');
+              const normalFields = tabFields.filter(f => f.type !== 'child_table' && !isRailField(f));
               const childTableFields = tabFields.filter(f => f.type === 'child_table');
 
               return (
@@ -1390,7 +1532,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             const sectionFields = section.fields
               .map(fieldName => metadata.fields.find(f => f.name === fieldName))
               .filter((f): f is Field => !!f);
-            const normalFields = sectionFields.filter(f => f.type !== 'child_table');
+            const normalFields = sectionFields.filter(f => f.type !== 'child_table' && !isRailField(f));
             const childTableFields = sectionFields.filter(f => f.type === 'child_table');
 
             return (
@@ -1430,10 +1572,10 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             );
           })
         ) : (          <>
-            {metadata.fields.filter(f => f.type !== 'child_table').length > 0 && (
+            {metadata.fields.filter(f => f.type !== 'child_table' && !isRailField(f)).length > 0 && (
               <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {metadata.fields.filter(f => f.type !== 'child_table').map(renderField)}
+                  {metadata.fields.filter(f => f.type !== 'child_table' && !isRailField(f)).map(renderField)}
                 </div>
               </div>
             )}
@@ -1453,8 +1595,6 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             .filter(f => f.type === 'child_table' && !layoutFieldNames.has(f.name))
             .map(renderField);
         })()}
-      </div>
-
       {/* ── Linked Documents ── */}
       {linkedDocs.length > 0 && (
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
@@ -1501,9 +1641,12 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                   onChange={(rows) => setChildRows(prev => ({ ...prev, [child.resource]: rows }))}
                 />
               );
-            })}
+          })}
         </div>
       )}
+      </div>
+      {hasFormRail && renderFormRail()}
+      </div>
     </div>
 
     {/* ── Action Input Dialog ───────────────────────────────────────────── */}

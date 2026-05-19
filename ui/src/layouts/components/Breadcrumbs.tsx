@@ -8,17 +8,17 @@ export function Breadcrumbs() {
   const pathnames = location.pathname.split('/').filter((x) => x)
 
   return (
-    <nav className="h-10 bg-white border-b border-slate-200 flex items-center px-8 z-0">
+    <nav className="flex h-10 items-center border-b border-[var(--aras-border)] bg-[var(--aras-panel)] px-8 z-0 max-sm:px-4">
       <div className="flex items-center space-x-2 text-xs font-medium">
         <Link 
           to="/" 
-          className="flex items-center text-slate-500 hover:text-indigo-600 transition-colors"
+          className="flex items-center text-[var(--aras-muted)] hover:text-[var(--aras-accent)] transition-colors"
         >
           <Home className="w-3.5 h-3.5" />
         </Link>
 
         {pathnames.length > 0 && (
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+          <ChevronRight className="w-3.5 h-3.5 text-[var(--aras-muted)]" />
         )}
 
         {pathnames.map((name, index) => {
@@ -36,18 +36,18 @@ export function Breadcrumbs() {
           return (
             <div key={name} className="flex items-center space-x-2">
               {isLast ? (
-                <span className="text-slate-900 font-semibold truncate max-w-[200px]">
+                <span className="text-[var(--aras-text)] font-semibold truncate max-w-[200px]">
                   {displayName}
                 </span>
               ) : (
                 <>
                   <Link
                     to={routeTo}
-                    className="text-slate-500 hover:text-indigo-600 transition-colors"
+                    className="text-[var(--aras-muted)] hover:text-[var(--aras-accent)] transition-colors"
                   >
                     {displayName}
                   </Link>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronRight className="w-3.5 h-3.5 text-[var(--aras-muted)]" />
                 </>
               )}
             </div>
