@@ -1,3 +1,4 @@
+from typing import Optional
 from sqlalchemy import String, Text, Integer, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
@@ -71,3 +72,7 @@ class HandoffRun(Aras.Model):
     # Manual/direct change fields (populated when source != multi_agent)
     author: Mapped[str] = mapped_column(String(100), nullable=True)          # Claude Code | human | gemini | codex
     notes: Mapped[str] = mapped_column(Text, nullable=True)                  # free-form notes for manual runs
+
+    # Git tracking
+    commit_hash: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    commit_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

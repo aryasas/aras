@@ -78,7 +78,6 @@ def _db_to_json(db: dict) -> dict:
     """Convert a DB HandoffRun record to reports.json schema."""
     date = (db.get("run_date") or "")[:10] or None
 
-    # Try to parse backend/frontend from backend_files / frontend_files
     backend_files = db.get("backend_files") or ""
     frontend_files = db.get("frontend_files") or ""
 
@@ -111,6 +110,8 @@ def _db_to_json(db: dict) -> dict:
         "revision_count": db.get("revision_count", 0),
         "verdict": db.get("claude_verdict") or "APPROVED",
         "tokens": db.get("total_tokens", 0),
+        "commit_hash": db.get("commit_hash") or "",
+        "commit_message": db.get("commit_message") or "",
         "backend": backend,
         "frontend": frontend,
         "notes": db.get("notes") or "",
@@ -149,6 +150,8 @@ def _json_to_db_payload(entry: dict) -> dict:
         "claude_verdict": entry.get("verdict"),
         "revision_count": entry.get("revision_count", 0),
         "total_tokens": entry.get("tokens") if isinstance(entry.get("tokens"), int) else 0,
+        "commit_hash": entry.get("commit_hash") or None,
+        "commit_message": entry.get("commit_message") or None,
         "issues": " | ".join(issues_parts) if issues_parts else None,
         "author": "Claude Code",
         "notes": entry.get("notes") or "Imported from docs/reports.json",
