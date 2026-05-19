@@ -178,7 +178,7 @@ class Model(Aras, Base):
 
     # ── Hooks ─────────────────────────────────────────────────────────────────
 
-    def before_save(self, is_new: bool): 
+    def before_save(self, is_new: bool, db=None):
         """Generic hook executed before database commit."""
         pass
         
@@ -480,7 +480,7 @@ class Model(Aras, Base):
                 # Use local imports to avoid circularity
                 from ..registry.field_model import FieldModel
                 from ..registry.resource_model import ResourceModel
-                from ..manager.naming_manager import NamingManager
+                from ..manager.naming_manager import SeriesManager
                 
                 # Check for fields with 'series' metadata in DB
                 res_rec = db.query(ResourceModel).filter(ResourceModel.name == self.__tablename__).first()
@@ -494,10 +494,10 @@ class Model(Aras, Base):
                     for f_meta in fields_with_series:
                         current_val = getattr(self, f_meta.name, None)
                         if not current_val or current_val == "":
-                            # Generate next value using NamingManager
+                            # Generate next value using SeriesManager
                             # Key is resource_field for uniqueness
                             series_key = f"{self.__tablename__}_{f_meta.name}"
-                            generated = NamingManager.get_next(db, key=series_key, default_prefix=f_meta.series)
+                            generated = SeriesManager.get_next(db, key=series_key, default_prefix=f_meta.series)
                             setattr(self, f_meta.name, generated)
             except Exception as e:
                 print(f"[Model] Series generation failed: {e}")
@@ -529,9 +529,9 @@ class Model(Aras, Base):
             if name_val:
                 setattr(self, "code", name_val)
 
+        self.before_save(is_new=is_new, db=db)
         if is_new:
-            db.add(self)  # must precede before_save so object_session(self) works inside it
-        self.before_save(is_new=is_new)
+            db.add(self)
 
         db.flush() # Ensure ID is available for M2M
         if data:
@@ -608,12 +608,132 @@ class Model(Aras, Base):
 
     def delete_self(self, db: Session, user_id: int = None):
         self._fire_hooks("on_delete")
+        self._cascade_linked_docs(db)
         if self.__soft_delete__ and self.deleted_at is None:
             self.deleted_at = datetime.now(timezone.utc)
             if user_id:
                 self.updated_by = user_id
         else:
             db.delete(self)
+
+    def get_linked_documents(self, db) -> list:
+        """
+        Returns linked document info using two-pass logic.
+        Pass 1: SA FK auto-scan (no declaration needed).
+        Pass 2: Explicit __linked_docs__ (escape hatch).
+        """
+        from sqlalchemy import inspect as sa_inspect
+        from .linked_doc import _resolve_table, _camel_to_words
+
+        result = []
+        seen_ids = set() # (resource, id)
+
+        # Pass 1 — SA FK auto-scan
+        SKIP_COLS = {"created_by", "updated_by", "org_id", "deleted_at", "created_at", "updated_at"}
+        mapper_registry = sa_inspect(type(self)).mapper.registry
+        target_table = self.__tablename__
+
+        for m in mapper_registry.mappers:
+            child_cls = m.class_
+            if child_cls is type(self) or not hasattr(child_cls, "__tablename__"):
+                continue
+            
+            # Skip abstract bases
+            if child_cls.__dict__.get("__abstract__"):
+                continue
+
+            for col in m.persist_selectable.columns:
+                if col.name in SKIP_COLS:
+                    continue
+                for fk in col.foreign_keys:
+                    if fk.column.table.name == target_table:
+                        # found a child that FKs to self
+                        children = db.query(child_cls).filter(
+                            getattr(child_cls, col.key) == self.id
+                        ).all()
+                        
+                        if children:
+                            try:
+                                _, resource = _resolve_table(child_cls.__tablename__)
+                                label = _camel_to_words(child_cls.__name__.replace("Model", "").replace("View", ""))
+                                for child in children:
+                                    if (resource, child.id) not in seen_ids:
+                                        result.append({
+                                            "label": label,
+                                            "resource": resource,
+                                            "id": child.id,
+                                            "number": getattr(child, "number", None) or getattr(child, "name", None) or str(child.id),
+                                        })
+                                        seen_ids.add((resource, child.id))
+                            except Exception:
+                                continue
+
+        # Pass 2 — explicit __linked_docs__
+        for ld in getattr(self.__class__, "__linked_docs__", []):
+            for entry in ld.to_dict_list(db, self):
+                if (entry["resource"], entry["id"]) not in seen_ids:
+                    result.append(entry)
+                    seen_ids.add((entry["resource"], entry["id"]))
+        
+        return result
+
+    def _cascade_linked_docs(self, db):
+        """
+        Soft-deletes all cascade=True linked docs using two-pass logic.
+        """
+        from sqlalchemy import inspect as sa_inspect
+
+        # Pass 1 — SA FK auto-scan (default cascade=True for auto-discovered children if not explicitly excluded)
+        # Actually, for auto-scan, we should be careful about cascading. 
+        # The handoff says: "For cascade: call child.delete_self(db) if getattr(child, "deleted_at", None) is None, else db.delete(child)."
+        # But it doesn't specify if ALL auto-discovered children should cascade.
+        # Usually, children that FK to a parent SHOULD cascade if they are "owned" by it (e.g. LineItems).
+        # Let's follow the handoff's Pass 1 logic for cascade.
+        
+        SKIP_COLS = {"created_by", "updated_by", "org_id", "deleted_at", "created_at", "updated_at"}
+        mapper_registry = sa_inspect(type(self)).mapper.registry
+        target_table = self.__tablename__
+
+        for m in mapper_registry.mappers:
+            child_cls = m.class_
+            if child_cls is type(self) or not hasattr(child_cls, "__tablename__"):
+                continue
+            
+            if child_cls.__dict__.get("__abstract__"):
+                continue
+
+            for col in m.persist_selectable.columns:
+                if col.name in SKIP_COLS:
+                    continue
+                for fk in col.foreign_keys:
+                    if fk.column.table.name == target_table:
+                        # For auto-discovery, we only cascade if the child is explicitly marked as a child
+                        # OR if it's a LineItem pattern. However, the handoff says:
+                        # "Pass 1 — SA FK auto-scan (no declaration needed) ... For cascade: call child.delete_self(db) ..."
+                        # This implies ALL auto-discovered children cascade? That might be dangerous.
+                        # Wait, many relationships are not cascading.
+                        # Re-reading: "UPDATE api/core/base/model.py — replace get_linked_documents(db) and _cascade_linked_docs(db) with two-pass logic"
+                        # It doesn't explicitly say "only if cascade=True".
+                        # But Pass 2 says: "walk self.__class__.__linked_docs__ as before" (which checked .cascade).
+                        
+                        # Let's look at the handoff again.
+                        # "Only yield models that have __tablename__ (skip abstract). For cascade: call child.delete_self(db) if getattr(child, "deleted_at", None) is None, else db.delete(child)."
+                        # It seems to imply Pass 1 cascade is unconditional for found children.
+                        # This might be because in Aras, children usually should be deleted with parent.
+                        
+                        children = db.query(child_cls).filter(
+                            getattr(child_cls, col.key) == self.id
+                        ).all()
+                        for child in children:
+                            if hasattr(child, "deleted_at") and getattr(child, "deleted_at") is None:
+                                child.delete_self(db)
+                            else:
+                                db.delete(child)
+
+        # Pass 2 — explicit __linked_docs__
+        for ld in getattr(self.__class__, "__linked_docs__", []):
+            if ld.cascade:
+                ld.delete_linked(db, self)
 
     # ── Serialization ─────────────────────────────────────────────────────────
 

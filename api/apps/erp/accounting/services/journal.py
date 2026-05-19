@@ -25,7 +25,7 @@ class JournalService:
             org_id=org_id,
             number=reference,
             currency_id=currency_id,
-            notes=narrative,
+            narrative=narrative,
             source_type=source_type,
             source_id=source_id,
             status="Posted"

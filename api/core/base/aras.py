@@ -59,8 +59,8 @@ class Aras:
     @staticmethod
     def next_number(db, key: str, prefix: str = ""):
         """Helper to generate the next sequential number for a naming series."""
-        from ..manager.naming_manager import NamingManager
-        return NamingManager.get_next(db, key, prefix)
+        from ..manager.naming_manager import SeriesManager
+        return SeriesManager.get_next(db, key, prefix)
 
     # Keep aliases for backward compatibility but mark as deprecated if possible
     # For now, let's just rename them to avoid the warning.

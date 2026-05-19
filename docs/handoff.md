@@ -1,352 +1,215 @@
-# Handoff Spec — Customize Add Field · Rename doc_series · Delete+Nav in Form · Stock Ledger in Item
-> run_id: 13
-
-> run_id: 14
 > Written by: Claude Code (claude-sonnet-4-6)
 > Date: 2026-05-19
+> Feature: LinkedDoc auto-discovery, Payment fixes, POS view, Generic form tabs
 
 ---
 
 ## Context
 
-Four independent tasks. Can be implemented in parallel.
+Four features in one run:
+1. **LinkedDoc auto-discovery** — instead of manual `__linked_docs__` declarations, scan SA mapper FKs automatically (port from `aras-old/arasCore/lib/services/linked_doc_detector.py`). `__linked_docs__` becomes an escape hatch only for polymorphic (type+id) relationships.
+2. **Payment fixes** — `party_id` on Payment must be a real FK → Combobox. Add "Get Invoices" and "Auto Allocate" action buttons to the PaymentAllocation child table header.
+3. **POS view** — custom POS screen. Each transaction creates an Invoice directly (no PotOrder). Inflow mode = purchase invoices, Outflow mode = sales invoices. Shift report = aggregates computed from linked invoices, not stored separately.
+4. **Generic linked_list tab** — new layout section type `"type": "linked_list"` that renders a filtered embedded ListView inside a form tab.
 
 ---
 
-## Task 1 — Fix "Add Field" button in Customize panel
+## Backend Tasks
 
-**Problem:** `ListView` inside `handleCustomize` (DynamicForm.tsx) has no `onAdd` — clicking Add does nothing.
+### B1: LinkedDoc auto-discovery
+UPDATE `api/core/base/model.py` — replace `get_linked_documents(db)` and `_cascade_linked_docs(db)` with two-pass logic:
 
-UPDATE `ui/src/aras-core/components/DynamicForm.tsx`
+**Pass 1 — SA FK auto-scan** (no declaration needed):
+```python
+from sqlalchemy import inspect as sa_inspect
+SKIP_COLS = {"created_by", "updated_by", "org_id", "deleted_at", "created_at", "updated_at"}
+mapper_registry = sa_inspect(type(self)).mapper.registry
+target_table = self.__tablename__
+for m in mapper_registry.mappers:
+    child_cls = m.class_
+    if child_cls is type(self) or not hasattr(child_cls, "__tablename__"):
+        continue
+    for col in m.persist_selectable.columns:
+        if col.name in SKIP_COLS:
+            continue
+        for fk in col.foreign_keys:
+            if fk.column.table.name == target_table:
+                # found a child that FKs to self
+                children = db.query(child_cls).filter(
+                    getattr(child_cls, col.key) == self.id
+                ).all()
+                # resolve resource URL via App._registry (use _resolve_table from linked_doc.py)
+                # yield each child as {label, resource, id, number}
+```
+Only yield models that have `__tablename__` (skip abstract). For cascade: call `child.delete_self(db)` if `getattr(child, "deleted_at", None) is None`, else `db.delete(child)`.
 
-In `handleCustomize`, add `onAdd` to the existing `<ListView key={resourceRecord.id} ...>`:
+**Pass 2 — explicit `__linked_docs__`** (unchanged): walk `self.__class__.__linked_docs__` as before.
 
+UPDATE `api/core/base/linked_doc.py` — keep the class but remove caching fields (`_resolved_model` etc.) since auto-resolution is now in model.py. Keep `LinkedDoc(table, filters, condition, cascade, show)` for the explicit pass.
+
+UPDATE `api/apps/erp/accounting/models.py`:
+- `InflowInvoice.__linked_docs__` — remove `PaymentAllocation` entry (auto-discovered via `invoice_id` FK). Keep `JournalEntry` and `StockMovement` (polymorphic).
+- `OutflowInvoice.__linked_docs__` — same.
+
+UPDATE `api/apps/erp/stock/models.py`:
+- `StockMovement.__linked_docs__` — remove `StockMovementLine` entry (auto-discovered via `movement_id` FK).
+
+---
+
+### B2: Payment fixes
+UPDATE `api/apps/erp/accounting/models.py`:
+
+`Payment.party_id` — change from `mapped_column(Integer, nullable=True)` to:
+```python
+party_id: Mapped[Optional[int]] = mapped_column(
+    ForeignKey("erp_party_parties.id"), nullable=True,
+    info={"ui_type": "lookup", "target_resource": "erp/party/parties", "display_column": "name"}
+)
+```
+
+Add model action on `Payment` that returns open invoices as pre-fill data for the allocation table:
+```python
+@Aras.model_action(name="get_open_invoices", permission="edit", label="Get Invoices")
+def get_open_invoices(self, db):
+    from .services.payment import PaymentService
+    rows = PaymentService.get_unpaid_invoices(db, self)
+    # Return in a format the frontend can use to prefill allocations child table
+    prefill = [{"invoice_type": r["invoice_type"], "invoice_id": r["id"], "amount": r["amount_due"]} for r in rows]
+    return ok({"prefill_field": "allocations", "rows": prefill}, message="Open invoices loaded.")
+```
+
+UPDATE `api/apps/erp/accounting/views.py` — `PaymentView`: change the allocations section to include action buttons:
+```python
+{"title": "Allocations", "fields": ["amount_allocated", "amount_unallocated", "allocations"], "actions": ["get_open_invoices", "auto_allocate"]}
+```
+
+---
+
+### B3: POS backend
+UPDATE `api/apps/erp/accounting/models.py` — add `pos_session_id` to both invoice models:
+```python
+# on InflowInvoice and OutflowInvoice:
+pos_session_id: Mapped[Optional[int]] = mapped_column(
+    ForeignKey("erp_pot_sessions.id"), nullable=True, info={"hidden": True}
+)
+```
+
+UPDATE `api/apps/erp/pot/models.py`:
+- Add `mode` field to `PotSession`: `Mapped[str]` with `info={"choices": ["sales", "purchase"]}`, default `"sales"`.
+- Remove the `orders` relationship reference (keep table, just remove relationship for now).
+- Add computed fields to `PotSession`:
+  - `total_sales` → sum of `OutflowInvoice.total_amount` where `pos_session_id = self.id`
+  - `total_purchase` → sum of `InflowInvoice.total_amount` where `pos_session_id = self.id`
+  - `invoice_count` → count of linked invoices
+  - `payment_summary` → list `[{mode_name, total_amount}]` from payments on linked invoices
+- Model action `close_session(db, data)` — sets `closing_balance = data.get("closing_balance", 0)`, sets `status = "Posted"`. No PotOrder creation.
+
+NEW FILE `api/apps/erp/pot/routers.py` — add two endpoints mounted on the pot app router:
+
+`GET /pot/sessions/{session_id}/items` — returns items filtered by session mode:
+- mode=sales → `Item.for_sales == True`
+- mode=purchase → `Item.for_purchase == True`
+- Include `id, code, name, default_sale_price` (or `default_purchase_price`), `qty_on_hand`
+- Must use `org_id` from JWT scope
+
+`POST /pot/sessions/{session_id}/quick_invoice` — body: `{party_id?, items: [{item_id, qty, unit_price}], payment_mode_id, amount_paid}`:
+1. Determine invoice type from session mode: `sales` → `OutflowInvoice`, `purchase` → `InflowInvoice`
+2. Create Invoice with lines, set `pos_session_id = session_id`, set `org_id` from session
+3. Call `post_stock_movement` and `post_journal_entry` handlers (reuse existing workflow)
+4. Create `Payment` and `PaymentAllocation` for `amount_paid` (up to invoice total)
+5. Return `{invoice_number, invoice_id, change_amount}`
+
+UPDATE `api/apps/erp/pot/app.py` — register the new router.
+
+---
+
+### B4: linked_list tab — no backend change needed
+The layout JSON `type: "linked_list"` is already returned as-is from `UIGenerator` since it passes unknown layout types through. No backend change required.
+
+UPDATE `api/apps/erp/pot/views.py` — add `linked_list` to PotSessionView layout:
+```python
+layout = [
+    {"key": "header", "title": "Header", "fields": ["number", "terminal_id", "mode", "status", "doc_date", "opening_balance", "closing_balance"]},
+    {"key": "summary", "title": "Summary", "fields": ["total_sales", "total_purchase", "invoice_count"]},
+    {"type": "linked_list", "title": "Sales Invoices", "resource": "erp/accounting/outflow-invoices", "fk_field": "pos_session_id"},
+    {"type": "linked_list", "title": "Purchase Invoices", "resource": "erp/accounting/inflow-invoices", "fk_field": "pos_session_id"},
+]
+```
+
+---
+
+## Frontend Tasks
+
+### F1: linked_list tab rendering — UPDATE `ui/src/aras-core/components/DynamicForm.tsx`
+
+In the layout map loop (around line 1251 where `'tabs' in entry` is checked), add a new case for `entry.type === 'linked_list'`. Render it as a card panel containing a `<ListView>` with:
+- `resource={entry.resource}`
+- `fixedFilters={{ [entry.fk_field]: currentId }}`  
+- `onRowClick={(id) => navigate('/' + entry.resource + '/' + id)}`
+- No `onAdd` prop (read-only list)
+- Only render when `currentId \!= null`
+
+This is reusing the existing ListView component — minimal code. Import ListView (already imported). Wrap in same card styling as other sections.
+
+---
+
+### F2: Payment — prefill allocations from action result — UPDATE `ui/src/aras-core/components/DynamicForm.tsx`
+
+In `handleModelAction` (the function that calls model actions), after receiving the action response, check if `result.data.prefill_field` exists. If so, find the matching child table field and merge `result.data.rows` into `childRows[prefill_field]`, overwriting existing rows. The `get_open_invoices` action returns `{prefill_field: "allocations", rows: [...]}` — this pre-populates the allocation table so the user can review/edit before saving.
+
+---
+
+### F3: POS View — NEW FILE `ui/src/views/PosView.tsx`
+
+Standalone POS screen. Route: detect at `erp/pot/sessions/:id/pos` in `App.tsx` (add route before the `segment1/*` catch-all).
+
+**Structure:**
+```
+┌──────────────────────────────────────────────────────────┐
+│ [←] Session #POS-001  [SALES badge]  [Close Session btn]  │
+├──────────────────────────┬───────────────────────────────┤
+│  [Search items...]       │  Cart                         │
+│                          │  ─────────────────────────── │
+│  ┌──────┐ ┌──────┐       │  Item A    qty [-][2][+]  100 │
+│  │Item A│ │Item B│       │  Item B    qty [-][1][+]   50 │
+│  │ 50k  │ │ 30k  │       │  ─────────────────────────── │
+│  └──────┘ └──────┘       │  Subtotal:             150    │
+│  ┌──────┐ ┌──────┐       │                               │
+│  │Item C│ │Item D│       │  Party: [Combobox...........]  │
+│  │ 20k  │ │ 15k  │       │  Mode:  [Combobox...........]  │
+│  └──────┘ └──────┘       │  Paid:  [____________]        │
+│                          │  Change: 0                    │
+│                          │  [     CHARGE     ]           │
+└──────────────────────────┴───────────────────────────────┘
+```
+
+- Fetch items from `GET /erp/pot/sessions/{id}/items`
+- Charge button: POST to `/erp/pot/sessions/{id}/quick_invoice`, on success show a brief toast with invoice number + change amount, then clear cart
+- Close Session: calls `close_session` model action, redirects to `/erp/pot/sessions`
+- Items panel: 3-column grid, each card shows name + price. Click adds to cart (qty=1, clicking again increments)
+- Cart qty: inline +/- buttons, 0 removes item
+- Payment mode: Combobox sourced from `erp/config/payment-modes`
+- Party: optional Combobox sourced from `erp/party/parties`
+
+Use Tailwind classes consistent with the rest of the app. No custom CSS.
+
+Register route in `ui/src/App.tsx`:
 ```tsx
-onAdd={() => {
-  showPanel(
-    `New Field — ${vocabulary.get(metadata.title)}`,
-    <DynamicForm
-      resource="aras_fields"
-      id="new"
-      initialData={{ resource_id: resourceRecord.id }}
-      onSave={() => {
-        notify("Field added. Refresh to see changes.", "success");
-        setRefreshTrigger(prev => prev + 1);
-        closePanel();
-      }}
-      onCancel={closePanel}
-    />,
-    'max-w-4xl'
-  );
-}}
+<Route path="erp/pot/sessions/:id/pos" element={<PosView />} />
 ```
-
-Also add `initialData?: Record<string, any>` to `DynamicFormProps`. When `id === 'new'`, merge `initialData` into `formData` on mount (inside the `fetchData` useEffect, after the empty-form branch).
+Add lazy import at top of App.tsx.
 
 ---
 
-## Task 2 — Rename aras_naming_series to doc_series
+#---
 
-**2a. UPDATE `api/core/registry/series.py`**
-Change: `__tablename__ = "aras_naming_series"` to `__tablename__ = "doc_series"`
-
-**2b. UPDATE `api/core/manager/health_manager.py`**
-Change the string `"aras_naming_series"` to `"doc_series"`
-
-**2c. NEW FILE `api/core/migrations/rename_naming_series.py`**
-
-```python
-"""Rename aras_naming_series to doc_series. Run BEFORE manage.py sync."""
-import sys
-sys.path.insert(0, ".")
-from core.lib.database import SessionLocal
-
-SQL = """
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'aras_naming_series')
-  AND NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'doc_series')
-  THEN
-    ALTER TABLE aras_naming_series RENAME TO doc_series;
-    RAISE NOTICE 'Renamed aras_naming_series to doc_series';
-  ELSE
-    RAISE NOTICE 'No rename needed';
-  END IF;
-END $$;
-"""
-
-def run():
-    db = SessionLocal()
-    try:
-        db.execute(SQL)
-        db.commit()
-        print("Done.")
-    finally:
-        db.close()
-
-if __name__ == "__main__":
-    run()
-```
-
----
-
-## Task 3 — Delete button + Back/Next navigation in DynamicForm
-
-UPDATE `ui/src/aras-core/components/DynamicForm.tsx`
-
-### 3a — Add props and delete handler
-
-Add to DynamicFormProps:
-```ts
-onDelete?: () => void;
-onNavigate?: (id: number) => void;
-```
-
-Add delete handler:
-```ts
-const handleDelete = async () => {
-  if (\!currentId) return;
-  const confirmed = await confirm('Delete this record? This cannot be undone.');
-  if (\!confirmed) return;
-  try {
-    const cleanResource = metadata?.api_path || cleanResourcePath(resource);
-    await api.delete(`/${cleanResource}/${currentId}`);
-    notify('Record deleted.', 'success');
-    if (onDelete) onDelete();
-    else if (onCancel) onCancel();
-  } catch (err: any) {
-    notify(err.response?.data?.detail || 'Delete failed', 'error');
-  }
-};
-```
-
-### 3b — Back/Next state and effect
-
-Add state:
-```ts
-const [prevId, setPrevId] = useState<number | null>(null);
-const [nextId, setNextId] = useState<number | null>(null);
-```
-
-Add effect (depends on currentId + metadata):
-```ts
-useEffect(() => {
-  if (\!currentId || \!metadata) { setPrevId(null); setNextId(null); return; }
-  const base = metadata.api_path || cleanResourcePath(resource);
-  const id = Number(currentId);
-  api.get(`/${base}`, { params: { per_page: 1, order_by: 'id', desc: true,
-    filters: JSON.stringify([{ field: 'id', op: '<', value: id }]) }})
-    .then(r => setPrevId(r.data?.data?.items?.[0]?.id ?? null)).catch(() => setPrevId(null));
-  api.get(`/${base}`, { params: { per_page: 1, order_by: 'id', desc: false,
-    filters: JSON.stringify([{ field: 'id', op: '>', value: id }]) }})
-    .then(r => setNextId(r.data?.data?.items?.[0]?.id ?? null)).catch(() => setNextId(null));
-}, [currentId, metadata]);
-```
-
-### 3c — Render toolbar buttons
-
-Import ChevronLeft, ChevronRight, Trash2 from lucide-react. Add to toolbar (alongside Settings button):
-
-```tsx
-{currentId \!= null && (
-  <button onClick={handleDelete} title="Delete record"
-    className="p-2 hover:bg-rose-50 rounded-xl text-rose-400 hover:text-rose-600 transition-colors">
-    <Trash2 size={20} />
-  </button>
-)}
-{currentId \!= null && (
-  <>
-    <button onClick={() => prevId && onNavigate?.(prevId)} disabled={\!prevId}
-      title="Previous record"
-      className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 disabled:opacity-30 transition-colors">
-      <ChevronLeft size={20} />
-    </button>
-    <button onClick={() => nextId && onNavigate?.(nextId)} disabled={\!nextId}
-      title="Next record"
-      className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 disabled:opacity-30 transition-colors">
-      <ChevronRight size={20} />
-    </button>
-  </>
-)}
-```
-
-### 3d — Wire in DynamicView
-
-UPDATE `ui/src/views/DynamicView.tsx`:
-```tsx
-<DynamicForm
-  resource={resource}
-  id={id}
-  onSave={() => navigate(basePath)}
-  onCancel={() => navigate(basePath)}
-  onDelete={() => navigate(basePath)}
-  onNavigate={(newId) => navigate(`${basePath}/${newId}`)}
-/>
-```
-
----
-
-## Task 4 — Stock on-hand in Items form with per-location breakdown
-
-### 4a — Fix stock calculation
-
-UPDATE `api/apps/erp/stock/services/stock.py`
-
-Current compute_qty only counts inflows (to_location_id). Rewrite to subtract outflows (from_location_id):
-
-```python
-@staticmethod
-def compute_qty(db: Session, item_id: int, location_id: int = None) -> float:
-    from sqlalchemy import case as sa_case
-    base = db.query(StockMovementLine).join(StockMovement).filter(
-        StockMovementLine.item_id == item_id,
-        StockMovement.status == "Posted",
-    )
-    if location_id:
-        base = base.filter(
-            (StockMovementLine.to_location_id == location_id) |
-            (StockMovementLine.from_location_id == location_id)
-        )
-        signed = func.sum(sa_case(
-            (StockMovementLine.to_location_id == location_id, StockMovementLine.qty),
-            (StockMovementLine.from_location_id == location_id, -StockMovementLine.qty),
-            else_=0.0
-        ))
-    else:
-        # total: inflows minus outflows; internal transfers cancel automatically
-        signed = func.sum(
-            sa_case((StockMovementLine.to_location_id.isnot(None), StockMovementLine.qty), else_=0.0)
-            - sa_case((StockMovementLine.from_location_id.isnot(None), StockMovementLine.qty), else_=0.0)
-        )
-    return float(base.with_entities(signed).scalar() or 0)
-
-@staticmethod
-def compute_qty_by_location(db: Session, item_id: int) -> list:
-    from ..models import Location
-    from sqlalchemy import union_all, select
-    in_q = select(
-        StockMovementLine.to_location_id.label("loc_id"),
-        StockMovementLine.qty.label("qty")
-    ).join(StockMovement).where(
-        StockMovementLine.item_id == item_id,
-        StockMovement.status == "Posted",
-        StockMovementLine.to_location_id.isnot(None)
-    )
-    out_q = select(
-        StockMovementLine.from_location_id.label("loc_id"),
-        (-StockMovementLine.qty).label("qty")
-    ).join(StockMovement).where(
-        StockMovementLine.item_id == item_id,
-        StockMovement.status == "Posted",
-        StockMovementLine.from_location_id.isnot(None)
-    )
-    combined = union_all(in_q, out_q).subquery()
-    rows = db.query(
-        combined.c.loc_id,
-        Location.name,
-        func.sum(combined.c.qty).label("net_qty")
-    ).join(Location, Location.id == combined.c.loc_id) \
-     .group_by(combined.c.loc_id, Location.name) \
-     .having(func.sum(combined.c.qty) \!= 0).all()
-    return [{"location_id": r.loc_id, "location_name": r.name, "qty": float(r.net_qty)} for r in rows]
-```
-
-### 4b — Add stock endpoint
-
-UPDATE `api/apps/erp/stock/app.py` — add router and register in Stock.routers:
-
-```python
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from core.lib.database import get_db
-from core.response import ok
-
-stock_extra_router = APIRouter()
-
-@stock_extra_router.get("/items/{item_id}/stock")
-def get_item_stock(item_id: int, db: Session = Depends(get_db)):
-    from .services.stock import StockComputeService
-    return ok({
-        "total": StockComputeService.compute_qty(db, item_id),
-        "by_location": StockComputeService.compute_qty_by_location(db, item_id),
-    })
-```
-
-Add stock_extra_router to Stock.routers list.
-
-### 4c — Add stock_by_location computed field to Item
-
-UPDATE `api/apps/erp/stock/models.py` — add after qty_on_hand in Item class:
-
-```python
-@Aras.computed_field
-def stock_by_location(self) -> list:
-    from .services.stock import StockComputeService
-    from sqlalchemy.orm import object_session
-    db = object_session(self)
-    if not db: return []
-    return StockComputeService.compute_qty_by_location(db, self.id)
-```
-
-### 4d — Show in Item view layout
-
-UPDATE `api/apps/erp/stock/views.py` — insert after the "general" section in ItemView.layout:
-
-```python
-{"key": "stock", "title": "Stock", "fields": ["qty_on_hand", "stock_by_location"]},
-```
-
-### 4e — Render stock_by_location in DynamicForm
-
-UPDATE `ui/src/aras-core/components/DynamicForm.tsx` — in renderField, add before the generic Component fallback:
-
-```tsx
-if (field.name === 'stock_by_location') {
-  const rows: { location_name: string; qty: number }[] =
-    Array.isArray(formData[field.name]) ? formData[field.name] : [];
-  return (
-    <div key={field.name} className="flex flex-col gap-1.5 md:col-span-2">
-      <label className="text-sm font-bold text-slate-700">Stock by Location</label>
-      {rows.length === 0
-        ? <p className="text-sm text-slate-400 italic">No stock recorded</p>
-        : (
-          <table className="w-full text-sm border border-slate-200 rounded-xl overflow-hidden">
-            <thead className="bg-slate-50 text-slate-600 text-xs uppercase">
-              <tr>
-                <th className="px-3 py-2 text-left font-semibold">Location</th>
-                <th className="px-3 py-2 text-right font-semibold">Qty on Hand</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr key={i} className="border-t border-slate-100 hover:bg-slate-50">
-                  <td className="px-3 py-2">{r.location_name}</td>
-                  <td className="px-3 py-2 text-right font-mono text-slate-800">{r.qty}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )
-      }
-    </div>
-  );
-}
-```
-
----
-
-## Agent Reports
-
-## Gemini (Gemini 2.5 Flash)
-- Backend implementation of Task 2 and Task 4 complete.
-- Renamed `aras_naming_series` to `doc_series` in `series.py` and `health_manager.py`.
-- Created and ran `api/core/migrations/rename_naming_series.py`.
-- Rewrote `StockComputeService.compute_qty` to correctly handle inflows/outflows and internal transfers.
-- Added `StockComputeService.compute_qty_by_location`.
-- Added `stock_extra_router` with `/items/{item_id}/stock` endpoint.
-- Added `stock_by_location` computed field to `Item` model.
-- Updated `ItemView` layout to include the `stock` section.
-- Ran `manage.py sync` to update the registry.
+## Agent Report (Gemini 2.5 Flash)
+- files_written: api/core/base/model.py, api/core/base/linked_doc.py, api/apps/erp/accounting/models.py, api/apps/erp/stock/models.py, api/apps/erp/accounting/views.py, api/apps/erp/pot/models.py, api/apps/erp/pot/routers.py, api/apps/erp/pot/app.py, api/apps/erp/pot/views.py
+- features_added: LinkedDoc auto-discovery (Pass 1: SA FK scan), Payment.get_open_invoices pre-fill action, POS backend (sessions, quick_invoice, shift summary), linked_list layout support in views.
+- fixes_applied: Payment.party_id FK correction and metadata.
+- framework_changes: Refactored Model for auto-discovery; added App.get_routers for custom endpoints.
+- issues: none.
+- verdict: APPROVED
 
 
 ---
@@ -360,15 +223,14 @@ if (field.name === 'stock_by_location') {
 - issues: none
 
 ### Frontend (Codex GPT-5.5)
-- files_written: ui/src/aras-core/components/DynamicForm.tsx, ui/src/views/DynamicView.tsx
-- features_added: Add Field panel creation, form delete action, previous/next record navigation, stock by location rendering
-- fixes_applied: DynamicView now handles delete and record navigation callbacks
+- files_written: ui/src/aras-core/components/DynamicForm.tsx, ui/src/views/PosView.tsx, ui/src/App.tsx
+- features_added: linked_list form tab rendering, model action allocation prefill handling, POS session view and route
+- fixes_applied: none
 - framework_changes: none
-- issues: none
+- issues: Backend close_session action may not accept payload through the generated action route as currently implemented
 
 ## Claude Review
 - verdict: APPROVED
-- reviewed_by: Claude Code
+- reviewed_by: Claude Sonnet 4.6
 - date: 2026-05-19
-- notes: <!-- none or describe -->
-
+- notes: All files verified. `close_session` had a signature mismatch (no `input_schema` → router called `handler(db)` but method expected `data: dict`). Fixed directly in `api/apps/erp/pot/models.py` — added `_CloseSessionInput(PydanticBaseModel)` inner class and wired `input_schema=_CloseSessionInput` to the decorator. DB sync needs to be run manually (`cd api && python manage.py sync`) — DB unreachable in review sandbox.

@@ -22,8 +22,8 @@ def post_stock_movement(db, item, params: dict):
         org = db.get(Organization, org_id)
         currency_id = getattr(org, "base_currency_id", None) if org else None
 
-    from core.manager.naming_manager import NamingManager
-    mv_number = NamingManager.get_next(db, StockMovement.__tablename__)
+    from core.manager.naming_manager import SeriesManager
+    mv_number = SeriesManager.get_next(db, StockMovement.__tablename__)
 
     movement = StockMovement(
         org_id=org_id,

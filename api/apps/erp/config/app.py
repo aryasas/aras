@@ -48,7 +48,7 @@ class Config(ERP):
         {
             "label": "Series",
             "icon": "Hash",
-            "models": ["aras_naming_series"]
+            "models": ["doc_series"]
         },
         {
             "label": "System Tools",

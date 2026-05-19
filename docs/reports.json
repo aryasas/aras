@@ -113,7 +113,7 @@
     "verdict": "APPROVED"
   },
   {
-    "id": 5,
+    "id": 6,
     "date": "2026-05-17",
     "feature": "Organization COA inheritance \u2014 coa_source_org_id field with fk_filter_fallback support",
     "revision_count": 0,
@@ -138,7 +138,7 @@
     "verdict": "APPROVED"
   },
   {
-    "id": 6,
+    "id": 7,
     "date": "2026-05-17",
     "feature": "Section-level inline action buttons in DynamicForm layout + mirror_coa placed in Organization Configuration section",
     "revision_count": 0,
@@ -163,7 +163,7 @@
     "verdict": "APPROVED"
   },
   {
-    "id": 7,
+    "id": 8,
     "date": "2026-05-18",
     "feature": "Organization default accounts: inherit_accounts and fill_default_accounts actions with section inline buttons",
     "revision_count": 0,
@@ -182,7 +182,7 @@
     "verdict": "APPROVED"
   },
   {
-    "id": 8,
+    "id": 9,
     "date": "2026-05-18",
     "feature": "Fix 500 on post outflow/inflow invoice \u2014 product_id \u2192 item_id in posting service",
     "revision_count": 0,
@@ -201,7 +201,7 @@
     "verdict": "APPROVED"
   },
   {
-    "id": 9,
+    "id": 10,
     "date": "2026-05-18",
     "feature": "Merge Order+Invoice into single Invoice model with doc_type field",
     "revision_count": 0,
@@ -220,7 +220,7 @@
     "verdict": "APPROVED"
   },
   {
-    "id": 10,
+    "id": 11,
     "date": "2026-05-18",
     "feature": "Fix model action signatures \u2014 all actions now accept db as first param",
     "revision_count": 0,
@@ -239,7 +239,26 @@
     "verdict": "APPROVED"
   },
   {
-    "id": 11,
+    "id": 12,
+    "date": "2026-05-18",
+    "feature": "Fix model action signatures \u2014 all actions now accept db as first param",
+    "revision_count": 0,
+    "tokens": {
+      "input": null,
+      "output": null
+    },
+    "backend": {
+      "files_written": "api/apps/erp/accounting/models.py, api/apps/erp/stock/models.py",
+      "features_added": "none",
+      "fixes_applied": "Changed all @Aras.model_action methods from def action(self) to def action(self, db) \u2014 framework always passes db as positional arg. Affected: JournalEntry.post, InflowInvoice.post/create_invoice, OutflowInvoice.post/create_invoice, Payment.post/auto_allocate, GoodsReceiptNote.receive/match_invoice, DeliveryNote.post/create_invoice, StockMovement.post. Removed redundant object_session(self) calls inside each.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 13,
     "date": "2026-05-18",
     "feature": "Fix Internal Server Error on Post Invoice execute action",
     "revision_count": 0,
@@ -258,7 +277,7 @@
     "verdict": "APPROVED"
   },
   {
-    "id": 12,
+    "id": 14,
     "date": "2026-05-18",
     "feature": "Fix Accounting Journal Balance & Party Transition",
     "revision_count": 0,
@@ -273,7 +292,7 @@
     "verdict": "APPROVED"
   },
   {
-    "id": 13,
+    "id": 15,
     "date": "2026-05-18",
     "feature": "ERP org-scoped RBAC + module registration standardization",
     "revision_count": 1,
@@ -294,7 +313,7 @@
     "verdict": "APPROVED"
   },
   {
-    "id": 14,
+    "id": 16,
     "date": "2026-05-18",
     "feature": "Hierarchical org scope expansion & is_shared master data",
     "revision_count": 0,
@@ -309,7 +328,7 @@
     "verdict": "APPROVED"
   },
   {
-    "id": 15,
+    "id": 17,
     "date": "2026-05-18",
     "feature": "Hierarchical org scope \u2014 frontend: is_group type + Consolidated badge (revision)",
     "revision_count": 1,
@@ -324,7 +343,7 @@
     "verdict": "APPROVED"
   },
   {
-    "id": 16,
+    "id": 18,
     "date": "2026-05-18",
     "feature": "Fix Soft-Delete /deleted endpoint shadowing and test script compatibility",
     "revision_count": 0,
@@ -339,7 +358,7 @@
     "verdict": "APPROVED"
   },
   {
-    "id": 17,
+    "id": 19,
     "date": "2026-05-18",
     "feature": "RBAC seed YAML/JSON + loader; fix All-orgs picker persistence on refresh",
     "revision_count": 0,
@@ -360,7 +379,7 @@
     "verdict": "APPROVED"
   },
   {
-    "id": 18,
+    "id": 20,
     "date": "2026-05-18",
     "feature": "show org_id field in all forms",
     "revision_count": 0,
@@ -375,7 +394,7 @@
     "verdict": "APPROVED"
   },
   {
-    "id": 19,
+    "id": 21,
     "date": "2026-05-18",
     "feature": "Field Cleanup + Standalone Child View support",
     "revision_count": 0,
@@ -390,7 +409,7 @@
     "verdict": "APPROVED"
   },
   {
-    "id": 20,
+    "id": 22,
     "date": "2026-05-19",
     "feature": "ErpBase isolation layer + LineItemBase misuse cleanup",
     "revision_count": 0,
@@ -405,7 +424,7 @@
     "verdict": "APPROVED"
   },
   {
-    "id": 21,
+    "id": 23,
     "date": "2026-05-19",
     "feature": "Stock Breakdown by Location & doc_series table rename",
     "revision_count": 0,
@@ -420,7 +439,7 @@
     "verdict": "APPROVED"
   },
   {
-    "id": 23,
+    "id": 24,
     "date": "2026-05-19",
     "feature": "Fix number generation, clean ItemAccount/ItemLocation columns, fix stock.py types",
     "revision_count": 0,
@@ -433,5 +452,107 @@
     },
     "frontend": null,
     "verdict": "APPROVED"
+  },
+  {
+    "id": 25,
+    "date": "2026-05-19",
+    "feature": "Finance report consolidation, Notes entity, COA logic fix, Model cleanup",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/stock/models.py, api/apps/erp/config/models.py, api/apps/erp/core/models.py, api/apps/erp/base/document.py, api/apps/erp/report/routers.py, api/apps/erp/report/services/finance_report_service.py, api/apps/erp/report/app.py",
+      "features_added": "Consolidated financial reports (P&L, Balance Sheet, Trial Balance) supporting multi-org aggregation; Centralized Notes entity with record-level threading in DocumentBase.",
+      "fixes_applied": "fill_default_accounts now respects coa_source_org_id; Organization model action before_save validation added; Item.sku removed; ItemBundle refactored to ErpBase with explicit qty.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 26,
+    "date": "2026-05-19",
+    "feature": "remove duplicate notes field, fix doc number preview, fix stock movement number, cross-doc FK refs",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/base/document.py, api/apps/erp/base/series_router.py, api/apps/erp/app.py, api/apps/erp/accounting/models.py, api/apps/erp/accounting/handlers.py, api/core/manager/naming_manager.py",
+      "features_added": "NamingManager.peek_next(); GET /erp/series/next endpoint; journal_entry_id + stock_movement_id FK on both Invoice models",
+      "fixes_applied": "removed duplicate notes Text from DocumentBase (keep note_id FK only); stock movement number uses NamingManager.get_next instead of f\"SM-{item.number}\"; handlers store journal/movement refs back on invoice",
+      "framework_changes": "none",
+      "issues": "DB migration required: drop notes column from all DocumentBase tables; add journal_entry_id, stock_movement_id to invoice tables"
+    },
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "new document form fetches /erp/series/next and shows actual next number instead of [Auto-generated]",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 27,
+    "date": "2026-05-19",
+    "feature": "rename NamingManager\u2192SeriesManager, fix ISE on post (notes\u2192narrative), fix number persisting after create, connected doc FK metadata, duplicate exclusion",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "core/manager/naming_manager.py, core/base/model.py, core/base/aras.py, core/logic/builtin_handlers.py, apps/erp/base/document.py, apps/erp/base/series_router.py, apps/erp/accounting/handlers.py, apps/erp/accounting/models.py, apps/erp/accounting/services/journal.py",
+      "features_added": "none",
+      "fixes_applied": "NamingManager renamed to SeriesManager; JournalEntry.notes\u2192narrative (DocumentBase no longer has notes column); journal_entry_id/stock_movement_id on invoice models now have read_only+lookup info metadata",
+      "framework_changes": "none",
+      "issues": "manage.py sync needed to add narrative col to erp_accounting_entries"
+    },
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "none",
+      "fixes_applied": "after create, merges server response into formData so number field shows immediately; connected doc fields now read_only so excluded from duplicate payload",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 29,
+    "date": "2026-05-19",
+    "feature": "LinkedDoc auto-discovery, Payment prefill, POS backend, Linked List layout",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/base/model.py, api/core/base/linked_doc.py, api/apps/erp/accounting/models.py, api/apps/erp/stock/models.py, api/apps/erp/accounting/views.py, api/apps/erp/pot/models.py, api/apps/erp/pot/routers.py, api/apps/erp/pot/app.py, api/apps/erp/pot/views.py",
+      "features_added": "Two-pass LinkedDoc discovery (SA FK scan + explicit); Payment.get_open_invoices action; POS custom router with /items and /quick_invoice; PotSession computed shift summary; linked_list layout type support.",
+      "fixes_applied": "Payment.party_id fixed to real FK with lookup metadata.",
+      "framework_changes": "Model.get_linked_documents auto-discovery; App.get_routers support.",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 30,
+    "date": "2026-05-19",
+    "feature": "fix POS session mode TypeScript union",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/PosView.tsx",
+      "features_added": "none",
+      "fixes_applied": "Updated PosSession.mode type to include both, matching backend POS session choices and fixing TS2367.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 31,
+    "date": "2026-05-19",
+    "feature": "fix POS computed item values",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/pot/routers.py",
+      "features_added": "none",
+      "fixes_applied": "POS session items endpoint now evaluates computed item fields before returning price and qty_on_hand, preventing serialized {_aras_computed} objects from reaching React.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
   }
-]
+  ]

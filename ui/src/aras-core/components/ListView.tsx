@@ -87,6 +87,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([])
   const [visibleColumns, setVisibleColumns] = useState<string[]>([])
+  const [dragCol, setDragCol] = useState<string | null>(null)
+  const [columnOrder, setColumnOrder] = useState<string[]>([])
   const [isColumnPickerOpen, setIsColumnPickerOpen] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [bulkEditOpen, setBulkEditOpen] = useState(false)
@@ -127,6 +129,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
 
         const localStorageKey = `${appName}.${cleanResource}.columnVisibility`;
         const storedVisibleColumns = localStorage.getItem(localStorageKey);
+        const colOrderKey = `${resource}_col_order`;
+        const storedColumnOrder = localStorage.getItem(colOrderKey);
 
         const scopedCols = new Set((metadataRes.data.scoped_by ?? []).map((pair: string[]) => pair[0]));
         const defaultCols = metadataRes.data.fields
@@ -140,6 +144,14 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           setVisibleColumns(valid.length > 0 ? valid : defaultCols);
         } else {
           setVisibleColumns(defaultCols);
+        }
+
+        if (storedColumnOrder) {
+          const stored: string[] = JSON.parse(storedColumnOrder);
+          const fieldNames = new Set(metadataRes.data.fields.map((f: Field) => f.name));
+          setColumnOrder(stored.filter(col => fieldNames.has(col)));
+        } else {
+          setColumnOrder([]);
         }
       } catch (err: any) {
         notify("Failed to load resource metadata or saved filters", "error")
@@ -155,6 +167,12 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
       localStorage.setItem(localStorageKey, JSON.stringify(visibleColumns));
     }
   }, [visibleColumns, metadata, resource, appName]);
+
+  useEffect(() => {
+    if (metadata && columnOrder.length > 0) {
+      localStorage.setItem(`${resource}_col_order`, JSON.stringify(columnOrder));
+    }
+  }, [columnOrder, metadata, resource]);
 
   const fetchData = useCallback(async () => {
     if (!metadata) return
@@ -472,6 +490,15 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const visibleFields = visibleColumns.length > 0
     ? fields.filter(f => visibleColumns.includes(f.name))
     : nonHiddenFields
+  const orderedFields = columnOrder.length > 0
+    ? [...visibleFields].sort((a, b) => {
+        const ai = columnOrder.indexOf(a.name);
+        const bi = columnOrder.indexOf(b.name);
+        if (ai === -1) return 1;
+        if (bi === -1) return -1;
+        return ai - bi;
+      })
+    : visibleFields
   const toolbarFields = fields.map(field => ({ ...field, label: vocabulary.get(field.label) }))
   const title = vocabulary.get(metadata.title)
   const roleTabs = [
@@ -630,11 +657,25 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                     {selectedIds.length === data.length && data.length > 0 ? <CheckSquare size={18} className="text-indigo-600" /> : <Square size={18} />}
                   </button>
                 </th>
-                {visibleFields.map(field => (
+                {orderedFields.map(field => (
                   <th
                     key={field.name}
-                    className="px-8 py-5 text-xs font-bold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-slate-50 transition-colors"
-
+                    draggable
+                    onDragStart={() => setDragCol(field.name)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => {
+                      if (!dragCol || dragCol === field.name) return;
+                      const cols = orderedFields.map(x => x.name);
+                      const from = cols.indexOf(dragCol);
+                      const to = cols.indexOf(field.name);
+                      const next = [...cols];
+                      next.splice(from, 1);
+                      next.splice(to, 0, dragCol);
+                      setColumnOrder(next);
+                      setDragCol(null);
+                    }}
+                    onDragEnd={() => setDragCol(null)}
+                    className="px-8 py-5 text-xs font-bold text-slate-600 uppercase tracking-wider cursor-grab active:cursor-grabbing hover:bg-slate-50 transition-colors"
                     onClick={() => {
                       if (orderBy === field.name) setDesc(!desc)
                       else { setOrderBy(field.name); setDesc(true); }
@@ -654,13 +695,13 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                 [...Array(5)].map((_, i) => (
                   <tr key={i} className="animate-pulse">
                     <td className="px-6 py-4"><div className="w-5 h-5 bg-slate-100 rounded"></div></td>
-                    {visibleFields.map(f => <td key={f.name} className="px-6 py-4"><div className="h-4 bg-slate-50 rounded w-3/4"></div></td>)}
+                    {orderedFields.map(f => <td key={f.name} className="px-6 py-4"><div className="h-4 bg-slate-50 rounded w-3/4"></div></td>)}
                     <td className="px-6 py-4"><div className="w-8 h-8 bg-slate-50 rounded"></div></td>
                   </tr>
                 ))
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={visibleFields.length + 2} className="px-6 py-16 text-center">
+                  <td colSpan={orderedFields.length + 2} className="px-6 py-16 text-center">
                     <div className="max-w-xs mx-auto flex flex-col items-center text-slate-400">
                       {search || filters.length > 0 ? (
                         <>
@@ -694,7 +735,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                         {selectedIds.includes(item.id) ? <CheckSquare size={18} /> : <Square size={18} />}
                       </button>
                     </td>
-                    {visibleFields.map(field => {
+                    {orderedFields.map(field => {
                       const isInline = inlineEdit?.rowId === item.id && inlineEdit?.field === field.name
                       const inlineTypes = ['text', 'string', 'number', 'integer', 'email', 'url']
                     const canInline = !field.read_only && inlineTypes.includes(field.type)
@@ -757,7 +798,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           <GenericReport
             title={`${title} Report`}
             data={data}
-            columns={visibleFields.map(f => ({ field: f.name, label: vocabulary.get(f.label), type: f.type }))}
+            columns={orderedFields.map(f => ({ field: f.name, label: vocabulary.get(f.label), type: f.type }))}
             onBack={() => setViewMode('list')}
           />
         )}

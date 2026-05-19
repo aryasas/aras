@@ -18,16 +18,10 @@ class PotSessionView(Aras.View):
     title = "POT Sessions"
     icon = "pi pi-clock"
     layout = [
-        {
-            "key": "general",
-            "title": "General",
-            "fields": ["number", "doc_date", "status", "opening_balance", "closing_balance"]
-        },
-        {
-            "key": "orders",
-            "title": "Orders",
-            "fields": ["orders"]
-        }
+        {"key": "header", "title": "Header", "fields": ["number", "terminal_id", "mode", "status", "doc_date", "opening_balance", "closing_balance"]},
+        {"key": "summary", "title": "Summary", "fields": ["total_sales", "total_purchase", "invoice_count"]},
+        {"type": "linked_list", "title": "Sales Invoices", "resource": "erp/accounting/outflow-invoices", "fk_field": "pos_session_id"},
+        {"type": "linked_list", "title": "Purchase Invoices", "resource": "erp/accounting/inflow-invoices", "fk_field": "pos_session_id"},
     ]
 
 class PotOrderView(Aras.View):

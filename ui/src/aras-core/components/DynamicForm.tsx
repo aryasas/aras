@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
 import { useAuthStore } from '../../store/authStore';
@@ -7,7 +7,7 @@ import {
   Save, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight,
   History as HistoryIcon, Zap, Settings, AlertCircle,
   Building2, Store, School, Users, HandHeart, Library, HeartPulse, Landmark, BriefcaseBusiness,
-  Printer, Trash2
+  Printer, Trash2, Copy, Link2, ArrowUpRight
 } from 'lucide-react';
 import ListView from './ListView';
 import { filterEmptyChildRows, InlineChildTable, invalidateInlineLookupCache } from './InlineChildTable';
@@ -76,6 +76,13 @@ interface LayoutGroup {
   tabs: LayoutSection[];
 }
 
+interface LayoutLinkedList {
+  type: 'linked_list';
+  title: string;
+  resource: string;
+  fk_field: string;
+}
+
 interface Metadata {
   resource: string;
   api_path?: string;
@@ -84,7 +91,7 @@ interface Metadata {
   children?: Array<{ resource: string; fk_column?: string | null }>;
   workflow?: any;
   actions?: ModelAction[];
-  layout?: (LayoutSection | LayoutGroup)[];
+  layout?: (LayoutSection | LayoutGroup | LayoutLinkedList)[];
   is_auditable?: boolean;
   is_document?: boolean;
   app_name?: string;
@@ -163,10 +170,13 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   );
   
   const { notify, confirm } = useAras();
+  const navigate = useNavigate();
   const showPanel = useUIStore((state) => state.showPanel);
   const closePanel = useUIStore((state) => state.closePanel);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [activeTab, setActiveTab] = useState<Record<number, number>>({});
+  const [nextSeriesNumber, setNextSeriesNumber] = useState<string | null>(null);
+  const [linkedDocs, setLinkedDocs] = useState<{ label: string; resource: string; id: number; number: string }[]>([]);
   const handleSubmitRef = useRef<(() => void) | null>(null);
   const initialM2mRef = useRef<Record<string, any[]>>({});
   const initialChildRowIdsRef = useRef<Record<string, Set<any>>>({});
@@ -215,6 +225,16 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     };
     fetchMetadata();
   }, [resource, notify]);
+
+  useEffect(() => {
+    if (!metadata?.is_document || (id != null && id !== 'new')) {
+      setNextSeriesNumber(null);
+      return;
+    }
+    api.get('/erp/series/next', { params: { key: metadata.resource } })
+      .then(res => setNextSeriesNumber(res.data.next ?? null))
+      .catch(() => setNextSeriesNumber(null));
+  }, [metadata, id]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -286,6 +306,17 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           const defaults: any = { ...createDefaultRecord(metadata.fields), ...initialData };
           if (activeOrgId && !defaults['org_id']) defaults['org_id'] = activeOrgId;
           setFormData(defaults);
+          // Pre-populate child rows when duplicating
+          if (initialData) {
+            const childFields = metadata.fields.filter((f: any) => f.type === 'child_table');
+            const seedRows: Record<string, any[]> = {};
+            for (const cf of childFields) {
+              if (Array.isArray(initialData[cf.name]) && initialData[cf.name].length > 0) {
+                seedRows[cf.name] = initialData[cf.name];
+              }
+            }
+            if (Object.keys(seedRows).length > 0) setChildRows(seedRows);
+          }
         }
       } catch (err: any) {
         notify(err.response?.data?.detail || "Failed to load form", "error");
@@ -295,6 +326,13 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     };
     fetchData();
   }, [resource, id, notify, initialData, refreshTrigger, searchParams, parentResourceTitle, activeOrgId, metadata]);
+
+  useEffect(() => {
+    if (!currentId) { setLinkedDocs([]); return; }
+    api.get(`/${cleanResourcePath(resource)}/${currentId}/linked-documents`)
+      .then(res => setLinkedDocs(res.data?.data ?? []))
+      .catch(() => setLinkedDocs([]));
+  }, [resource, currentId, refreshTrigger]);
 
   useEffect(() => {
     if (!currentId || !metadata) {
@@ -390,47 +428,109 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         return;
       }
 
+      const CustomizePanel = () => {
+        const [customizeTab, setCustomizeTab] = useState<'fields' | 'layout'>('fields');
+
+        const LayoutPanel = () => {
+          const [layoutJson, setLayoutJson] = useState(
+            JSON.stringify(resourceRecord?.layout ?? [], null, 2)
+          );
+          const [savingLayout, setSavingLayout] = useState(false);
+          const save = async () => {
+            setSavingLayout(true);
+            try {
+              await api.patch(`/aras_resources/${resourceRecord.id}`, { layout: JSON.parse(layoutJson) });
+              notify('Layout saved. Refresh to see changes.', 'success');
+              closePanel();
+            } catch {
+              notify('Invalid JSON or save failed', 'error');
+            }
+            setSavingLayout(false);
+          };
+          return (
+            <div className="p-4 flex flex-col gap-3">
+              <p className="text-xs text-slate-500">Edit layout JSON directly. Supports <code>type:"tabs"</code> and <code>type:"section"</code>.</p>
+              <textarea
+                className="w-full h-64 font-mono text-xs border border-slate-200 rounded-xl p-3 bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none"
+                value={layoutJson}
+                onChange={e => setLayoutJson(e.target.value)}
+              />
+              <button onClick={save} disabled={savingLayout}
+                className="self-end px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm hover:bg-indigo-700 disabled:opacity-50">
+                {savingLayout ? 'Saving…' : 'Save Layout'}
+              </button>
+            </div>
+          );
+        };
+
+        return (
+          <div className="h-[calc(100vh-150px)] flex flex-col">
+            <div className="flex border-b border-slate-200 bg-white px-4 pt-3">
+              <button
+                type="button"
+                onClick={() => setCustomizeTab('fields')}
+                className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${customizeTab === 'fields' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+              >
+                Fields
+              </button>
+              <button
+                type="button"
+                onClick={() => setCustomizeTab('layout')}
+                className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${customizeTab === 'layout' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+              >
+                Layout
+              </button>
+            </div>
+            <div className="flex-1 min-h-0">
+              {customizeTab === 'fields' ? (
+                <ListView
+                  key={resourceRecord.id}
+                  resource="aras_fields"
+                  fixedFilters={{ resource_id: resourceRecord.id }}
+                  onAdd={() => {
+                    showPanel(
+                      `New Field — ${vocabulary.get(metadata.title)}`,
+                      <DynamicForm
+                        resource="aras_fields"
+                        id="new"
+                        initialData={{ resource_id: resourceRecord.id }}
+                        onSave={() => {
+                          notify("Field added. Refresh to see changes.", "success");
+                          setRefreshTrigger(prev => prev + 1);
+                          closePanel();
+                        }}
+                        onCancel={closePanel}
+                      />,
+                      'max-w-4xl'
+                    );
+                  }}
+                  onRowClick={(fieldId) => {
+                     showPanel(`Edit Field Customization`,
+                       <DynamicForm
+                         resource="aras_fields"
+                         id={fieldId}
+                         parentResourceTitle={metadata.title}
+                         onSave={() => {
+                           notify("Field customized. Refresh to see changes.", "success");
+                           setRefreshTrigger(prev => prev + 1);
+                         }}
+                         onCancel={closePanel}
+                       />,
+                       'max-w-4xl'
+                     );
+                  }}
+                />
+              ) : (
+                <LayoutPanel />
+              )}
+            </div>
+          </div>
+        );
+      };
+
       showPanel(
         `Customize: ${vocabulary.get(metadata.title)}`,
-        <div className="h-[calc(100vh-150px)]">
-          <ListView
-            key={resourceRecord.id}
-            resource="aras_fields"
-            fixedFilters={{ resource_id: resourceRecord.id }}
-            onAdd={() => {
-              showPanel(
-                `New Field — ${vocabulary.get(metadata.title)}`,
-                <DynamicForm
-                  resource="aras_fields"
-                  id="new"
-                  initialData={{ resource_id: resourceRecord.id }}
-                  onSave={() => {
-                    notify("Field added. Refresh to see changes.", "success");
-                    setRefreshTrigger(prev => prev + 1);
-                    closePanel();
-                  }}
-                  onCancel={closePanel}
-                />,
-                'max-w-4xl'
-              );
-            }}
-            onRowClick={(fieldId) => {
-               showPanel(`Edit Field Customization`, 
-                 <DynamicForm 
-                   resource="aras_fields" 
-                   id={fieldId} 
-                   parentResourceTitle={metadata.title}
-                   onSave={() => {
-                     notify("Field customized. Refresh to see changes.", "success");
-                     setRefreshTrigger(prev => prev + 1);
-                   }}
-                   onCancel={closePanel}
-                 />,
-                 'max-w-4xl'
-               );
-            }}
-          />
-        </div>,
+        <CustomizePanel />,
         'max-w-5xl'
       );
     } catch (err) {
@@ -470,6 +570,28 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     } catch (err: any) {
       notify(err.response?.data?.detail || 'Delete failed', 'error');
     }
+  };
+
+  const handleDuplicate = () => {
+    if (!metadata) return;
+    const SKIP = new Set(['id', 'number', 'created_at', 'updated_at', 'created_by', 'updated_by', 'status', 'deleted_at']);
+    const readOnlyOrComputed = new Set(
+      metadata.fields.filter((f: any) => f.read_only || f.type === 'computed').map((f: any) => f.name)
+    );
+    const duplicateData: Record<string, any> = {};
+    for (const [k, v] of Object.entries(formData)) {
+      if (!SKIP.has(k) && !readOnlyOrComputed.has(k)) duplicateData[k] = v;
+    }
+    // Include child rows stripped of their IDs (will be created fresh on save)
+    const childFields = metadata.fields.filter((f: any) => f.type === 'child_table');
+    for (const cf of childFields) {
+      const rows = childRows[cf.name];
+      if (rows?.length) {
+        duplicateData[cf.name] = rows.map(({ id: _id, ...row }: any) => row);
+      }
+    }
+    const cleanResource = metadata.api_path || cleanResourcePath(resource);
+    navigate(`/${cleanResource}/new`, { state: { initialData: duplicateData } });
   };
 
   const resolveChildApiPath = (field: Field): string => {
@@ -516,7 +638,18 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     setSaving(true);
     try {
       const cleanResource = cleanResourcePath(resource);
-      await api.post(`/${cleanResource}/${currentId}/action/${action.name}`, inputData ?? {});
+      const response = await api.post(`/${cleanResource}/${currentId}/action/${action.name}`, inputData ?? {});
+      const result = response.data?.result?.data ?? response.data?.result ?? response.data;
+      if (result?.prefill_field && Array.isArray(result.rows)) {
+        setChildRows(prev => ({
+          ...prev,
+          [result.prefill_field]: result.rows
+        }));
+      }
+      if (result?.redirect) {
+        navigate(result.redirect);
+        return;
+      }
       notify(`${action.label} completed successfully`, "success");
       setRefreshTrigger(prev => prev + 1);
     } catch (err: any) {
@@ -567,7 +700,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       const m2mFields = metadata?.fields.filter(f => f.type === 'm2m') ?? [];
       const payload = { ...formData };
       m2mFields.forEach(field => delete payload[field.name]);
-      let res;
+      let res: { data?: any };
       if (currentId != null) {
         res = await api.patch(`/${cleanResource}/${currentId}`, payload);
       } else {
@@ -588,6 +721,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           ? await api.post(`/${cleanResource}/batch`, { parent: payload, children })
           : await api.post(`/${cleanResource}`, payload);
         if (res.data?.id != null) setCurrentId(res.data.id);
+        // Merge server response into formData so server-generated fields (number, etc.) appear immediately
+        if (res.data && typeof res.data === 'object') setFormData((prev: any) => ({ ...prev, ...(res.data as Record<string, any>) }));
         const childErrors = res.data?.child_errors || res.data?.errors;
         if (childErrors) {
           setErrors(prev => ({ ...prev, children: Array.isArray(childErrors) ? childErrors.join(', ') : String(childErrors) }));
@@ -724,6 +859,18 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         <div className="space-y-6">
           {metadata.layout && metadata.layout.length > 0 ? (
             metadata.layout.map((section, idx) => {
+              if (section.type === 'linked_list') {
+                return (
+                  <div key={idx} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="px-8 py-4 bg-slate-50 border-b border-slate-100">
+                      <div className="h-4 w-32 bg-slate-200 rounded" />
+                    </div>
+                    <div className="p-8">
+                      <div className="h-40 w-full bg-slate-100 rounded-lg" />
+                    </div>
+                  </div>
+                );
+              }
               const fieldNames = 'tabs' in section ? section.tabs.flatMap(t => t.fields) : section.fields;
               const sectionFields = fieldNames
                 .map(fieldName => metadata.fields.find(f => f.name === fieldName))
@@ -846,6 +993,35 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       );
     }
 
+    if (field.name === 'note_id') {
+      const noteId = formData[field.name];
+      return (
+        <div key={field.name} className="flex flex-col gap-1.5 md:col-span-2">
+          <label className="text-sm font-bold text-slate-700">Notes</label>
+          <textarea
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm resize-none focus:ring-2 focus:ring-indigo-500 outline-none"
+            rows={3}
+            placeholder="Add a note..."
+            defaultValue={formData['notes'] ?? ''}
+            onBlur={async (e) => {
+              const content = e.target.value.trim();
+              if (!content) return;
+              if (noteId) {
+                await api.patch(`/erp/core/notes/${noteId}`, { content });
+              } else if (currentId) {
+                const res = await api.post(`/erp/core/notes`, {
+                  resource: metadata?.resource,
+                  record_id: currentId,
+                  content,
+                });
+                handleChange(field.name, res.data?.data?.id);
+              }
+            }}
+          />
+        </div>
+      );
+    }
+
     const Component = resolveFieldComponent(field);
     const fieldLabel = vocabulary.get(field.label);
 
@@ -867,7 +1043,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
 
         {isDocNumberField ? (
           <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-500 select-none">
-            {formData[field.name] ? String(formData[field.name]) : '[Auto-generated]'}
+            {formData[field.name] ? String(formData[field.name]) : (nextSeriesNumber ?? '[Auto-generated]')}
           </div>
         ) : field.type === 'm2m' && field.target_resource ? (
           <MultiSelectCombobox
@@ -998,6 +1174,12 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             </button>
           )}
           {currentId != null && (
+            <button onClick={handleDuplicate} title="Duplicate record"
+              className="p-2 hover:bg-indigo-50 rounded-xl text-indigo-400 hover:text-indigo-600 transition-colors">
+              <Copy size={20} />
+            </button>
+          )}
+          {currentId != null && (
             <>
               <button
                 onClick={() => prevId && onNavigate?.(prevId)}
@@ -1104,6 +1286,24 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
 
         {metadata.layout && metadata.layout.length > 0 ? (
           metadata.layout.map((entry, idx) => {
+            if (entry.type === 'linked_list') {
+              if (currentId == null) return null;
+              return (
+                <div key={idx} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="px-8 py-4 bg-slate-50 border-b border-slate-100">
+                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">{vocabulary.get(entry.title)}</h3>
+                  </div>
+                  <div className="p-6">
+                    <ListView
+                      resource={entry.resource}
+                      fixedFilters={{ [entry.fk_field]: currentId }}
+                      onRowClick={(id) => navigate('/' + entry.resource + '/' + id)}
+                    />
+                  </div>
+                </div>
+              );
+            }
+
             if ('tabs' in entry) {
               // Tab group
               const currentTab = activeTab[idx] ?? 0;
@@ -1207,6 +1407,30 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             .map(renderField);
         })()}
       </div>
+
+      {/* ── Linked Documents ── */}
+      {linkedDocs.length > 0 && (
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-8 py-4 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+            <Link2 size={14} className="text-slate-400" />
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Linked Documents</h3>
+          </div>
+          <div className="p-6 flex flex-wrap gap-3">
+            {linkedDocs.map(doc => (
+              <button
+                key={`${doc.resource}-${doc.id}`}
+                type="button"
+                onClick={() => navigate(`/${doc.resource}/${doc.id}`)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-200 text-sm font-medium text-slate-700 hover:text-indigo-700 transition-colors"
+              >
+                <span className="text-xs text-slate-400 font-normal">{doc.label}</span>
+                <span className="font-semibold">{doc.number}</span>
+                <ArrowUpRight size={13} className="text-slate-400" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Child Tables Section (Fallback for children not in fields list) ── */}
       {metadata.children && metadata.children.length > 0 && (

@@ -1,10 +1,11 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { DynamicForm } from '../aras-core/components/DynamicForm'
 import ListView from '../aras-core/components/ListView'
 
 export default function DynamicView() {
   const params = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   
   // Resolve resource path and ID from segments
   // allSegments = [segment1, ...splat]
@@ -34,9 +35,10 @@ export default function DynamicView() {
 
   if (id) {
     return (
-      <DynamicForm 
-        resource={resource} 
-        id={id} 
+      <DynamicForm
+        resource={resource}
+        id={id}
+        initialData={location.state?.initialData}
         onSave={() => navigate(basePath)}
         onCancel={() => navigate(basePath)}
         onDelete={() => navigate(basePath)}

@@ -28,6 +28,7 @@ const GlobalSettingsView = lazy(() => import('./views/GlobalSettings'))
 const InspectRoutesView = lazy(() => import('./views/InspectRoutes'))
 const HealthIntegrityView = lazy(() => import('./views/HealthIntegrity'))
 const ArchivedView = lazy(() => import('./views/ArchivedView'))
+const PosView = lazy(() => import('./views/PosView'))
 const SmartDispatcher = lazy(() => import('./views/SmartDispatcher'))
 const HelpUserView = lazy(() => import('./views/HelpUser'))
 const HelpDevView = lazy(() => import('./views/HelpDev'))
@@ -149,6 +150,7 @@ function App() {
           <Route path="profile" element={<ProfileView />} />
           <Route path="reports" element={<ReportCenterView />} />
           <Route path="archive/*" element={<ArchivedView />} />
+          <Route path="erp/pot/sessions/:id/pos" element={<PosView />} />
           
           <Route path=":segment1/*" element={<SmartDispatcher />} />
 

@@ -338,5 +338,14 @@ Login: `admin` / `admin`
 
 
 ---
-## Framework Change: Stock Breakdown & Table Rename (2026-05-19)
-  - [Gemini 2.5 Flash] Renamed aras_naming_series to doc_series.
+## Framework Change: LinkedDoc Auto-Discovery (2026-05-19)
+- [Gemini 2.5 Flash] Refactored core `Model` to automatically discover linked documents via SQLAlchemy foreign key inspection, reducing the need for manual `__linked_docs__` declarations.
+
+## Framework Change: POS Custom App Routers (2026-05-19)
+- [Gemini 2.5 Flash] Added `App.get_routers()` support to allow apps to mount custom FastAPI routers alongside auto-generated ones.
+
+---
+## Framework Change: Document number fix + model column cleanup (2026-05-19)
+  - [Claude Sonnet 4.6] `model.py`: `db.add(self)` moved before `before_save()` — `object_session(self)` was returning None for new objects, causing `DocumentBase.before_save` to skip number generation entirely. All new documents now get series numbers on creation.
+  - [Claude Sonnet 4.6] `ItemAccount` switched from `LineItemBase` → `ErpBase` (removes unneeded qty/amount/sequence). `ItemLocation.min_qty`/`max_qty` removed. `Item.sku` removal and `ItemBundle.notes`/`amount` cleanup deferred to handoff run_id 15.
+  - [Claude Sonnet 4.6] ERP series seeded via `python apps/erp/config/seed_series.py` (10 series entries).

@@ -129,20 +129,30 @@ class Organization(ConfigBase):
 
     @Aras.model_action(name="inherit_accounts", permission="edit", label="Inherit from Parent", icon="ArrowDownToLine")
     def inherit_accounts(self, db):
+        from ..accounting.models import Account
         from core.exceptions import ValidationException
         if not self.parent_id:
             raise ValidationException("No parent — set parent_id first.")
         parent = db.get(Organization, self.parent_id)
         if not parent:
             raise ValidationException("Parent organization not found.")
-        filled = 0
+        lookup_org_id = self.coa_source_org_id or self.id
+        filled = skipped = 0
         for field in Organization._ACC_FIELDS:
-            parent_val = getattr(parent, field, None)
-            if parent_val is not None:
-                setattr(self, field, parent_val)
+            parent_acc_id = getattr(parent, field, None)
+            if parent_acc_id is None:
+                continue
+            parent_acc = db.get(Account, parent_acc_id)
+            if not parent_acc:
+                continue
+            own_acc = db.query(Account).filter_by(org_id=lookup_org_id, code=parent_acc.code).first()
+            if own_acc:
+                setattr(self, field, own_acc.id)
                 filled += 1
+            else:
+                skipped += 1
         db.flush()
-        return {"filled": filled}
+        return {"filled": filled, "skipped": skipped}
 
     @Aras.model_action(name="fill_default_accounts", permission="edit", label="Fill from Defaults", icon="Wand2")
     def fill_default_accounts(self, db):
@@ -155,10 +165,11 @@ class Organization(ConfigBase):
         with open(config_path) as f:
             mapping: dict[str, str] = json.load(f)  # {field_name: account_code}
         filled = skipped = 0
+        lookup_org_id = self.coa_source_org_id or self.id
         for field, code in mapping.items():
             if field not in Organization._ACC_FIELDS:
                 continue
-            acc = db.query(Account).filter_by(org_id=self.id, code=code).first()
+            acc = db.query(Account).filter_by(org_id=lookup_org_id, code=code).first()
             if acc:
                 setattr(self, field, acc.id)
                 filled += 1
@@ -166,6 +177,27 @@ class Organization(ConfigBase):
                 skipped += 1
         db.flush()
         return {"filled": filled, "skipped": skipped}
+
+    def before_save(self, is_new: bool, db=None):
+        from ..accounting.models import Account
+        from core.exceptions import ValidationException
+        if db is None:
+            from sqlalchemy.orm import object_session
+            db = object_session(self)
+        if not db:
+            return
+        lookup_org_id = self.coa_source_org_id or self.id
+        if not lookup_org_id:
+            return
+        for field in Organization._ACC_FIELDS:
+            val = getattr(self, field, None)
+            if val is None:
+                continue
+            acc = db.get(Account, val)
+            if acc and acc.org_id != lookup_org_id:
+                raise ValidationException(
+                    f"Account '{acc.code}' (field: {field}) does not belong to the COA org (id={lookup_org_id})."
+                )
 
 class Currency(ConfigBase):
     __tablename__ = "erp_config_currencies"

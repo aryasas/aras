@@ -1,15 +1,16 @@
 from ..app import ERP
-from ..app import ERP
 from .models import PotSession, PotOrder, PotOrderLine, PotTerminal, PotPaymentLine
-from . import views # Trigger view registration
+from .routers import router as _sessions_router
+from . import views  # noqa
 
 class POT(ERP):
     app_name = "erp_pot"
     app_type = "module"
     app_label = "Point of Transaction"
     icon = "CreditCard"
-    
+
     models = [PotTerminal, PotSession, PotOrder, PotOrderLine, PotPaymentLine]
+    routers = [_sessions_router]
 
     
     menu_groups = [

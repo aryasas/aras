@@ -254,4 +254,35 @@ This file is used only to report if there are feature added
 
 
 ## Unknown (2026-05-19)
-  - [Codex/GPT-5.5] Add Field panel creation, form delete action, previous/next record navigation, stock by location rendering
+
+## Finance report consolidation (2026-05-19)
+- [Gemini 2.5 Flash] Implemented P&L, Balance Sheet, and Trial Balance endpoints and service.
+- [Gemini 2.5 Flash] Support for consolidated reports (HQ + mirrored organizations).
+
+## Notes Entity (2026-05-19)
+- [Gemini 2.5 Flash] Introduced centralized Note entity for record-level tracking.
+- [Gemini 2.5 Flash] DocumentBase now supports note_id for persistent threading.
+
+
+## Unknown (2026-05-19)
+  - [Codex/GPT-5.5] Actions dropdown, column drag reorder, inline child row edit dialog, duplicate record button, FK add/edit navigation, note viewer, layout JSON customize panel
+
+
+## LinkedDoc Auto-Discovery (2026-05-19)
+- [Gemini 2.5 Flash] Refactored `Model.get_linked_documents` to use two-pass logic: SQLAlchemy inspection for automatic FK-based child discovery and explicit `__linked_docs__` declarations.
+- [Gemini 2.5 Flash] Implemented automatic cascading soft-delete for discovered children in `Model._cascade_linked_docs`.
+
+## Payment Invoices Prefill (2026-05-19)
+- [Gemini 2.5 Flash] Added `get_open_invoices` model action to `Payment` to pre-fill allocation line items.
+
+## POS Backend & Custom Routers (2026-05-19)
+- [Gemini 2.5 Flash] Added `pos_session_id` tracking to Inflow/Outflow invoices.
+- [Gemini 2.5 Flash] Implemented `POS` custom router with `/items` and `/quick_invoice` endpoints.
+- [Gemini 2.5 Flash] Enhanced `PotSession` with computed shift summary fields (`total_sales`, `total_purchase`, `invoice_count`, `payment_summary`).
+
+## Linked List Layout (2026-05-19)
+- [Gemini 2.5 Flash] Added support for `type: "linked_list"` in layout JSON to render filtered embedded lists in forms.
+
+
+## LinkedDoc auto-discovery, Payment fixes, POS view, Generic form tabs (2026-05-19)
+  - [Codex/GPT-5.5] linked_list form tab rendering, model action allocation prefill handling, POS session view and route

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
-import { Search, Plus, Check, ChevronDown, X, Loader2 } from 'lucide-react';
+import { Search, Plus, Check, ChevronDown, X, Loader2, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface Option {
@@ -19,6 +19,7 @@ interface ComboboxProps {
   displayField?: string;
   disabled?: boolean;
   extraFilters?: Record<string, any>;
+  field?: any;
 }
 
 const Combobox: React.FC<ComboboxProps> = ({
@@ -29,7 +30,8 @@ const Combobox: React.FC<ComboboxProps> = ({
   placeholder = "Select...",
   displayField = "name",
   disabled = false,
-  extraFilters
+  extraFilters,
+  field
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -40,6 +42,7 @@ const Combobox: React.FC<ComboboxProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropdownStyles, setDropdownStyles] = useState<React.CSSProperties>({});
   const navigate = useNavigate();
+  const targetResource = field?.target_resource || resource;
 
   // Close when clicking outside
   useEffect(() => {
@@ -171,8 +174,8 @@ const Combobox: React.FC<ComboboxProps> = ({
   };
 
   const handleAddNew = () => {
-    if (disabled || !resource) return;
-    const cleanRes = cleanResourcePath(resource);
+    if (disabled || !targetResource) return;
+    const cleanRes = cleanResourcePath(targetResource);
     navigate(`/${cleanRes}/new`);
   };
 
@@ -220,14 +223,17 @@ const Combobox: React.FC<ComboboxProps> = ({
         )}
       </div>
 
-      {resource && (
+      {targetResource && !disabled && (
         <div className="p-1 border-t border-slate-100 bg-slate-50/50">
           <button 
-            onClick={handleAddNew}
-            className="flex items-center gap-2 w-full px-3 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg text-xs font-bold transition-colors"
+            type="button"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              handleAddNew();
+            }}
+            className="flex items-center gap-2 w-full px-3 py-2.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 border-t border-slate-100"
           >
-            <Plus size={14} />
-            <span>Add New {resource.split('/').pop()?.replace(/s$/, '').replace(/_/g, ' ')}</span>
+            <Plus size={13} /> Add new {field?.label?.toLowerCase() ?? targetResource.split('/').pop()?.replace(/s$/, '').replace(/_/g, ' ') ?? ''}
           </button>
         </div>
       )}
@@ -248,6 +254,21 @@ const Combobox: React.FC<ComboboxProps> = ({
           )}
         </div>
         <div className="flex items-center gap-1">
+          {value && targetResource && (
+            <button
+              type="button"
+              tabIndex={-1}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                navigate(`/${cleanResourcePath(targetResource)}/${value}`);
+              }}
+              className="p-1 text-slate-400 hover:text-indigo-600 transition-colors"
+              title="Open in edit form"
+            >
+              <ExternalLink size={13} />
+            </button>
+          )}
           {selectedItem && !disabled && (
             <button onClick={handleClear} className="p-1 hover:bg-slate-200 rounded-lg text-slate-400">
               <X size={14} />
@@ -263,4 +284,3 @@ const Combobox: React.FC<ComboboxProps> = ({
 };
 
 export default Combobox;
-

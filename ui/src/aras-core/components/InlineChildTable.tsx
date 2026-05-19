@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2, X } from 'lucide-react';
 import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
 import { resolveFieldComponent } from '../SchemaRegistry';
@@ -49,6 +49,7 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [editingCell, setEditingCell] = useState<{ rowIndex: number; fieldName: string } | null>(null);
   const [editingValue, setEditingValue] = useState<any>('');
+  const [editingRow, setEditingRow] = useState<{ idx: number; data: any } | null>(null);
 
   useEffect(() => {
     const clean = cleanResourcePath(childResource);
@@ -200,6 +201,7 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
                     type="checkbox"
                     checked={visibleColumns.includes(field.name)}
                     onChange={(e) => setVisibleColumns(e.target.checked ? [...visibleColumns, field.name] : visibleColumns.filter(col => col !== field.name))}
+                    className="w-4 h-4 rounded accent-indigo-600 cursor-pointer"
                   />
                   {field.label}
                 </label>
@@ -208,7 +210,7 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
           </div>
         )}
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-slate-50/50 border-b border-slate-100">
@@ -234,7 +236,12 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
               return (
               <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/30 transition-colors group">
                 <td className="px-4 py-3 align-middle">
-                  <input type="checkbox" checked={selectedRows.includes(idx)} onChange={() => toggleSelected(idx)} />
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.includes(idx)}
+                    onChange={() => toggleSelected(idx)}
+                    className="w-4 h-4 rounded accent-indigo-600 cursor-pointer"
+                  />
                 </td>
                 {visibleCols.map((f: any) => {
                   const Component = resolveFieldComponent(f);
@@ -314,6 +321,14 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
                 <td className="px-4 py-3 align-middle text-center opacity-50 group-hover:opacity-100 transition-opacity">
                   <button
                     type="button"
+                    onClick={() => setEditingRow({ idx, data: { ...row } })}
+                    className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                    title="Edit row"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  <button
+                    type="button"
                     onClick={async () => {
                       await runRemoveAction(row);
                       deleteRow(idx);
@@ -330,6 +345,49 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
           </tbody>
         </table>
       </div>
+      {editingRow && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-slate-800">Edit Row</h3>
+              <button onClick={() => setEditingRow(null)} className="p-2 hover:bg-slate-100 rounded-xl">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {childMeta?.fields?.filter((f: any) => !f.hidden && f.name !== fkColumn).map((f: any) => {
+                const Component = resolveFieldComponent(f);
+                return (
+                  <div key={f.name} className="flex flex-col gap-1.5">
+                    <label className="text-sm font-bold text-slate-700">{f.label}</label>
+                    <Component
+                      field={f}
+                      value={editingRow.data[f.name]}
+                      onChange={(val: any) => setEditingRow(prev => prev ? { ...prev, data: { ...prev.data, [f.name]: val } } : null)}
+                      formData={editingRow.data}
+                      disabled={f.read_only}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <button onClick={() => setEditingRow(null)} className="px-4 py-2 text-sm rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50">Cancel</button>
+              <button
+                onClick={() => {
+                  const next = [...rows];
+                  next[editingRow.idx] = { ...rows[editingRow.idx], ...editingRow.data };
+                  onChange(next);
+                  setEditingRow(null);
+                }}
+                className="px-4 py-2 text-sm rounded-xl bg-indigo-600 text-white hover:bg-indigo-700"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

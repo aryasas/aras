@@ -108,6 +108,14 @@ This file is used only to report if there are fix
 ## Unknown (2026-05-17)
   - [Codex/GPT-5.5] normalized child table API path resolution so Price Rule deletes use the registered route
 
+## COA Logic Fix & Validation (2026-05-19)
+- [Gemini 2.5 Flash] `fill_default_accounts` now respects `coa_source_org_id`.
+- [Gemini 2.5 Flash] Added `before_save` guard to `Organization` ensuring account-org integrity.
+
+## Model Cleanup (2026-05-19)
+- [Gemini 2.5 Flash] Removed redundant `sku` from `Item`.
+- [Gemini 2.5 Flash] Refactored `ItemBundle` to inherit from `ErpBase` and use explicit `qty`.
+
 
 ## Unknown (2026-05-17)
   - [Codex/GPT-5.5] bulk delete verified as raw JSON array; vocabulary cache exported and refetch triggered on profile change
@@ -143,3 +151,11 @@ This file is used only to report if there are fix
 
 ## Unknown (2026-05-19)
   - [Codex/GPT-5.5] DynamicView now handles delete and record navigation callbacks
+
+
+## Unknown (2026-05-19)
+  - [Codex/GPT-5.5] Styled child-table checkboxes and scrollbar
+
+
+## Payment Party FK & Lookup (2026-05-19)
+- [Gemini 2.5 Flash] Fixed `Payment.party_id` to be a real `ForeignKey` with proper UI lookup metadata.

@@ -93,8 +93,8 @@ class PaymentView(Aras.View):
     }
     layout = [
         {"title": "Header", "fields": ["number", "currency_id", "payment_type", "party_type", "party_id", "doc_date", "status"]},
-        {"title": "Payment Details", "fields": ["account_id", "mode_of_payment_id", "amount", "amount_allocated", "amount_unallocated", "reference"]},
-        {"title": "Allocations", "fields": ["allocations"]},
-        DOC_LAYOUT_NOTES # Replaced Notes section
+        {"title": "Payment Details", "fields": ["account_id", "mode_of_payment_id", "amount", "reference"]},
+        {"title": "Allocations", "fields": ["amount_allocated", "amount_unallocated", "allocations"], "actions": ["get_open_invoices", "auto_allocate"]},
+        DOC_LAYOUT_NOTES
     ]
 

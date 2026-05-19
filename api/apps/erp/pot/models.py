@@ -1,9 +1,9 @@
 from typing import Optional
 from sqlalchemy import String, ForeignKey, Float, Boolean, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from pydantic import BaseModel as PydanticBaseModel
 from core import Aras
-from core.response import ok, err
-from core.exceptions import ValidationException
+from core.response import ok
 from ..base import DocumentBase, LineItemBase, ErpBase
 
 
@@ -25,39 +25,94 @@ class PotSession(DocumentBase):
     terminal_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_pot_terminals.id"), nullable=True)
     opening_balance: Mapped[float] = mapped_column(Float, default=0)
     closing_balance: Mapped[float] = mapped_column(Float, default=0)
+    mode: Mapped[str] = mapped_column(String(20), default="sales", info={"choices": ["sales", "purchase", "both"]})
 
-    orders: Mapped[list["PotOrder"]] = relationship("PotOrder", back_populates="session", cascade="all, delete-orphan")
+    # orders: Mapped[list["PotOrder"]] = relationship("PotOrder", back_populates="session", cascade="all, delete-orphan")
 
-    @Aras.model_action(name="get_products", permission="read", label="POT Products")
-    def get_products(self):
-        from .services.pot import PotService
+    @Aras.computed_field
+    def total_sales(self) -> float:
+        from ..accounting.models import OutflowInvoice, OutflowInvoiceLine
+        from sqlalchemy import func, select
         from sqlalchemy.orm import object_session
         db = object_session(self)
-        products = PotService.get_pot_products(db, self.id)
-        return ok(products, message="POT Products retrieved successfully.")
+        if not db: return 0.0
+        stmt = (
+            select(func.sum(OutflowInvoiceLine.qty * (OutflowInvoiceLine.unit_price - OutflowInvoiceLine.discount)))
+            .join(OutflowInvoice, OutflowInvoiceLine.invoice_id == OutflowInvoice.id)
+            .where(OutflowInvoice.pos_session_id == self.id)
+        )
+        return db.scalar(stmt) or 0.0
 
-    @Aras.model_action(name="submit_order", permission="edit", label="Submit POT Order")
-    def submit_order(self, data: dict):
-        from .services.pot import PotService
+    @Aras.computed_field
+    def total_purchase(self) -> float:
+        from ..accounting.models import InflowInvoice, InflowInvoiceLine
+        from sqlalchemy import func, select
         from sqlalchemy.orm import object_session
         db = object_session(self)
-        order_result = PotService.process_order(db, self.id, data)
-        return ok(order_result, message="POT Order submitted successfully.")
+        if not db: return 0.0
+        stmt = (
+            select(func.sum(InflowInvoiceLine.qty * (InflowInvoiceLine.unit_price - InflowInvoiceLine.discount)))
+            .join(InflowInvoice, InflowInvoiceLine.invoice_id == InflowInvoice.id)
+            .where(InflowInvoice.pos_session_id == self.id)
+        )
+        return db.scalar(stmt) or 0.0
 
-    @Aras.model_action(name="close_session", permission="edit", label="Close Session")
-    def close_session(self, data: dict):
-        from .services.pot import PotService
+    @Aras.computed_field
+    def invoice_count(self) -> int:
+        from ..accounting.models import InflowInvoice, OutflowInvoice
+        from sqlalchemy import func, select
         from sqlalchemy.orm import object_session
         db = object_session(self)
-        cash_counted = data.get("cash_counted", 0)
-        session_result = PotService.close_session(db, self.id, cash_counted)
-        return ok(session_result, message="POT Session closed successfully.")
+        if not db: return 0
+        inflow = db.scalar(select(func.count(InflowInvoice.id)).where(InflowInvoice.pos_session_id == self.id)) or 0
+        outflow = db.scalar(select(func.count(OutflowInvoice.id)).where(OutflowInvoice.pos_session_id == self.id)) or 0
+        return inflow + outflow
+
+    @Aras.computed_field
+    def payment_summary(self) -> list:
+        from ..accounting.models import InflowInvoice, OutflowInvoice, Payment, PaymentAllocation
+        from sqlalchemy import func, select
+        from sqlalchemy.orm import object_session
+        db = object_session(self)
+        if not db: return []
+
+        in_ids = db.scalars(select(InflowInvoice.id).where(InflowInvoice.pos_session_id == self.id)).all()
+        out_ids = db.scalars(select(OutflowInvoice.id).where(OutflowInvoice.pos_session_id == self.id)).all()
+        all_ids = list(in_ids) + list(out_ids)
+        if not all_ids:
+            return []
+
+        stmt = (
+            select(Payment.mode_of_payment_id, func.sum(PaymentAllocation.amount))
+            .join(PaymentAllocation, Payment.id == PaymentAllocation.payment_id)
+            .where(PaymentAllocation.invoice_id.in_(all_ids))
+            .group_by(Payment.mode_of_payment_id)
+        )
+        rows = db.execute(stmt).all()
+
+        from ..config.models import ModeOfPayment
+        summary = []
+        for mode_id, total in rows:
+            mode_obj = db.get(ModeOfPayment, mode_id)
+            summary.append({"mode_name": mode_obj.name if mode_obj else "Unknown", "total_amount": float(total)})
+        return summary
+
+    class _CloseSessionInput(PydanticBaseModel):
+        closing_balance: float = 0.0
+
+    @Aras.model_action(name="open_pos", permission="edit", label="Open POS")
+    def open_pos(self, db):
+        return ok({"redirect": f"/erp/pot/sessions/{self.id}/pos"}, message="")
+
+    @Aras.model_action(name="close_session", permission="edit", label="Close Session", input_schema=_CloseSessionInput)
+    def close_session(self, db, data: _CloseSessionInput):
+        self.closing_balance = data.closing_balance
+        self.status = "Posted"
+        return ok({"status": self.status}, message="POT Session closed successfully.")
 
     @Aras.model_action(name="shift_report", permission="read", label="Shift Report")
-    def shift_report(self):
+    def shift_report(self, db):
         from .services.pot import PotService
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
         report_data = PotService.get_shift_report(db, self.id)
         return ok(report_data, message="Shift Report retrieved successfully.")
 
@@ -75,7 +130,7 @@ class PotOrder(DocumentBase):
 
     lines: Mapped[list["PotOrderLine"]] = relationship("PotOrderLine", back_populates="parent", cascade="all, delete-orphan")
     payments: Mapped[list["PotPaymentLine"]] = relationship("PotPaymentLine", back_populates="parent", cascade="all, delete-orphan")
-    session: Mapped["PotSession"] = relationship("PotSession", back_populates="orders")
+    session: Mapped["PotSession"] = relationship("PotSession")
 
 
 class PotOrderLine(LineItemBase):

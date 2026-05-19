@@ -1,8 +1,8 @@
 from datetime import date, datetime, timezone
 from typing import Optional
-from sqlalchemy import String, ForeignKey, Float, Date, Integer, Boolean, Numeric
+from sqlalchemy import String, ForeignKey, Float, Date, Integer, Boolean, Numeric, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship, object_session
-from core import Aras
+from core import Aras, LinkedDoc
 from core.response import ok
 from core.exceptions import ValidationException
 from ..base import MasterDataBase, DocumentBase, LineItemBase
@@ -48,8 +48,24 @@ class JournalEntry(DocumentBase):
     __soft_delete__ = True
 
     currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"))
+    narrative: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     source_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     source_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    __linked_docs__ = [
+        LinkedDoc(
+            table="erp_accounting_inflow_invoices",
+            filters={"id": "@source_id"},
+            condition=lambda self: self.source_type == "InflowInvoice",
+            cascade=True,
+        ),
+        LinkedDoc(
+            table="erp_accounting_outflow_invoices",
+            filters={"id": "@source_id"},
+            condition=lambda self: self.source_type == "OutflowInvoice",
+            cascade=True,
+        ),
+    ]
 
     lines: Mapped[list["JournalEntryLine"]] = relationship("JournalEntryLine", back_populates="parent", cascade="all, delete-orphan")
 
@@ -79,12 +95,21 @@ class JournalEntryLine(LineItemBase):
 class InflowInvoice(DocumentBase):
     __tablename__ = "erp_accounting_inflow_invoices"
     __soft_delete__ = True
+    __linked_docs__ = [
+        LinkedDoc(table="erp_accounting_entries", filters={"source_type": "@class_name", "source_id": "@id"}, cascade=True),
+        LinkedDoc(table="erp_stock_movements", filters={"origin_model": "@class_name", "origin_id": "@id"}, cascade=True),
+    ]
 
     party_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
     currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"), nullable=True)
     pricelist_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_price_types.id"), nullable=True)
     doc_type: Mapped[str] = mapped_column(String(20), default="Invoice", info={"choices": ["Order", "Invoice"]})
     location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
+    journal_entry_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_entries.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "erp/accounting/entries", "display_column": "number", "read_only": True})
+    stock_movement_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_movements.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "erp/stock/movements", "display_column": "number", "read_only": True})
+    pos_session_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("erp_pot_sessions.id"), nullable=True, info={"hidden": True}
+    )
 
     lines: Mapped[list["InflowInvoiceLine"]] = relationship("InflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["InflowInvoiceCharge"]] = relationship("InflowInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
@@ -171,29 +196,7 @@ class InflowInvoice(DocumentBase):
             fn(db=db, item=self, params={})
         self.status = "Posted"
         return ok({"status": self.status}, message="Inflow Invoice posted successfully.")
-    @Aras.on_delete
-    def on_delete_cascade(self):
-        db = object_session(self)
-        if db is None:
-            return
 
-        # Soft-delete JournalEntry records
-        journal_entries = db.query(JournalEntry).filter_by(source_type="InflowInvoice", source_id=self.id).all()
-        for entry in journal_entries:
-            entry.deleted_at = datetime.now(timezone.utc)
-
-        # Soft-delete StockMovement records and their lines
-        from ...stock.models import StockMovement
-        stock_movements = db.query(StockMovement).filter_by(origin_model="InflowInvoice", origin_id=self.id).all()
-        for movement in stock_movements:
-            movement.deleted_at = datetime.now(timezone.utc)
-            for line in movement.lines: # Assuming StockMovement has a 'lines' relationship
-                line.deleted_at = datetime.now(timezone.utc)
-
-        # Soft-delete PaymentAllocation records
-        payment_allocations = db.query(PaymentAllocation).filter_by(invoice_type="InflowInvoice", invoice_id=self.id).all()
-        for allocation in payment_allocations:
-            allocation.deleted_at = datetime.now(timezone.utc)
     @Aras.computed_field
     def payment_allocations(self) -> list["PaymentAllocation"]:
         db = object_session(self)
@@ -228,6 +231,10 @@ class InflowInvoiceCharge(LineItemBase):
 class OutflowInvoice(DocumentBase):
     __tablename__ = "erp_accounting_outflow_invoices"
     __soft_delete__ = True
+    __linked_docs__ = [
+        LinkedDoc(table="erp_accounting_entries", filters={"source_type": "@class_name", "source_id": "@id"}, cascade=True),
+        LinkedDoc(table="erp_stock_movements", filters={"origin_model": "@class_name", "origin_id": "@id"}, cascade=True),
+    ]
 
     party_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
     currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"), nullable=True)
@@ -235,6 +242,11 @@ class OutflowInvoice(DocumentBase):
     doc_type: Mapped[str] = mapped_column(String(20), default="Invoice", info={"choices": ["Order", "Invoice"]})
     location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
     grn_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_grns.id"), nullable=True)
+    journal_entry_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_entries.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "erp/accounting/entries", "display_column": "number", "read_only": True})
+    stock_movement_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_movements.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "erp/stock/movements", "display_column": "number", "read_only": True})
+    pos_session_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("erp_pot_sessions.id"), nullable=True, info={"hidden": True}
+    )
 
     lines: Mapped[list["OutflowInvoiceLine"]] = relationship("OutflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["OutflowInvoiceCharge"]] = relationship("OutflowInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
@@ -321,29 +333,7 @@ class OutflowInvoice(DocumentBase):
             fn(db=db, item=self, params={})
         self.status = "Posted"
         return ok({"status": self.status}, message="Outflow Invoice posted successfully.")
-    @Aras.on_delete
-    def on_delete_cascade(self):
-        db = object_session(self)
-        if db is None:
-            return
 
-        # Soft-delete JournalEntry records
-        journal_entries = db.query(JournalEntry).filter_by(source_type="OutflowInvoice", source_id=self.id).all()
-        for entry in journal_entries:
-            entry.deleted_at = datetime.now(timezone.utc)
-
-        # Soft-delete StockMovement records and their lines
-        from ...stock.models import StockMovement
-        stock_movements = db.query(StockMovement).filter_by(origin_model="OutflowInvoice", origin_id=self.id).all()
-        for movement in stock_movements:
-            movement.deleted_at = datetime.now(timezone.utc)
-            for line in movement.lines: # Assuming StockMovement has a 'lines' relationship
-                line.deleted_at = datetime.now(timezone.utc)
-
-        # Soft-delete PaymentAllocation records
-        payment_allocations = db.query(PaymentAllocation).filter_by(invoice_type="OutflowInvoice", invoice_id=self.id).all()
-        for allocation in payment_allocations:
-            allocation.deleted_at = datetime.now(timezone.utc)
     @Aras.computed_field
     def payment_allocations(self) -> list["PaymentAllocation"]:
         db = object_session(self)
@@ -380,7 +370,10 @@ class Payment(DocumentBase):
     currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"))
     payment_type: Mapped[str] = mapped_column(String(20), info={"choices": ["Incoming", "Outgoing"]})
     party_type: Mapped[str] = mapped_column(String(20), info={"choices": ["Customer", "Supplier", "Other"]})
-    party_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True) # Abstract party ID
+    party_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("erp_party_parties.id"), nullable=True,
+        info={"ui_type": "lookup", "target_resource": "erp/party/parties", "display_column": "name"}
+    )
     account_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_accounts.id"))
     mode_of_payment_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_payment_modes.id"), nullable=True)
     amount: Mapped[float] = mapped_column(Float, default=0)
@@ -397,6 +390,14 @@ class Payment(DocumentBase):
     @Aras.computed_field
     def amount_unallocated(self) -> float:
         return self.amount - self.amount_allocated
+
+    @Aras.model_action(name="get_open_invoices", permission="edit", label="Get Invoices")
+    def get_open_invoices(self, db):
+        from .services.payment import PaymentService
+        rows = PaymentService.get_unpaid_invoices(db, self)
+        # Return in a format the frontend can use to prefill allocations child table
+        prefill = [{"invoice_type": r["invoice_type"], "invoice_id": r["id"], "amount": r["amount_due"]} for r in rows]
+        return ok({"prefill_field": "allocations", "rows": prefill}, message="Open invoices loaded.")
 
     @Aras.model_action(name="post", permission="edit", label="Post Payment")
     def post(self, db):

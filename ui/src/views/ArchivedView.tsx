@@ -1,41 +1,70 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, RotateCcw } from 'lucide-react'
+import { ArrowLeft, RotateCcw, Archive } from 'lucide-react'
 import api from '../lib/api'
+import { cleanResourcePath } from '../lib/resourceUtils'
 import { useAras } from '../aras-core/hooks/useAras'
 import { LoadingState } from '../components/LoadingState'
 import { EmptyState } from '../components/EmptyState'
+
+interface Field {
+  name: string
+  label: string
+  type: string
+  hidden?: boolean
+}
 
 export default function ArchivedView() {
   const params = useParams()
   const navigate = useNavigate()
   const { notify } = useAras()
   const resource = useMemo(() => params['*'] || '', [params])
+  const cleanResource = useMemo(() => cleanResourcePath(resource), [resource])
+
   const [rows, setRows] = useState<any[]>([])
+  const [columns, setColumns] = useState<Field[]>([])
+  const [resourceTitle, setResourceTitle] = useState('')
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<string | number | null>(null)
 
+  const loadMetadata = useCallback(async () => {
+    if (!cleanResource) return
+    try {
+      const res = await api.get(`/${cleanResource}/metadata`)
+      const meta = res.data?.data ?? res.data
+      setResourceTitle(meta?.title ?? cleanResource)
+      const cols: Field[] = (meta?.fields ?? []).filter(
+        (f: Field) => !f.hidden && f.type !== 'child_table'
+      ).slice(0, 6)
+      setColumns(cols)
+    } catch {
+      // fallback: show id + name columns
+      setColumns([{ name: 'id', label: 'ID', type: 'integer' }, { name: 'number', label: 'Number', type: 'text' }])
+    }
+  }, [cleanResource])
+
   const loadRows = useCallback(async () => {
-    if (!resource) return
+    if (!cleanResource) return
     try {
       setLoading(true)
-      const res = await api.get(`/${resource}/deleted`)
-      setRows(res.data?.items ?? res.data ?? [])
+      const res = await api.get(`/${cleanResource}/deleted`)
+      setRows(res.data?.data?.items ?? res.data?.items ?? res.data ?? [])
     } catch (err: any) {
       notify(err.message || 'Failed to load archived records', 'error')
     } finally {
       setLoading(false)
     }
-  }, [resource, notify])
+  }, [cleanResource, notify])
 
   useEffect(() => {
+    loadMetadata()
     loadRows()
-  }, [loadRows])
+  }, [loadMetadata, loadRows])
 
   const restore = async () => {
     if (!selectedId) return
     try {
-      await api.post(`/${resource}/${selectedId}/restore`)
+      await api.post(`/${cleanResource}/${selectedId}/restore`)
       notify('Record restored', 'success')
       setSelectedId(null)
       loadRows()
@@ -44,18 +73,23 @@ export default function ArchivedView() {
     }
   }
 
+  const parentPath = useMemo(() => `/${cleanResource}`, [cleanResource])
+
   if (loading) return <LoadingState label="Loading archive..." />
 
   return (
     <div className="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="flex items-center justify-between gap-4 border-b border-slate-100 p-4">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="rounded-xl p-2 text-slate-500 hover:bg-slate-50">
+          <button onClick={() => navigate(parentPath)} className="rounded-xl p-2 text-slate-500 hover:bg-slate-50">
             <ArrowLeft size={18} />
           </button>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900">Archived Records</h1>
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{resource}</p>
+          <div className="flex items-center gap-2">
+            <Archive size={18} className="text-slate-400" />
+            <div>
+              <h1 className="text-lg font-bold text-slate-900">Archived — {resourceTitle}</h1>
+              <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{cleanResource}</p>
+            </div>
           </div>
         </div>
         <button
@@ -75,19 +109,32 @@ export default function ArchivedView() {
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500">
               <tr>
-                <th className="w-10 px-6 py-3" />
-                <th className="px-6 py-3">Record</th>
-                <th className="px-6 py-3">Deleted At</th>
+                <th className="w-10 px-4 py-3" />
+                {columns.map(col => (
+                  <th key={col.name} className="px-4 py-3">{col.label}</th>
+                ))}
+                <th className="px-4 py-3">Deleted At</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {rows.map((row) => (
                 <tr key={row.id} className={selectedId === row.id ? 'bg-indigo-50/50' : 'hover:bg-slate-50'}>
-                  <td className="px-6 py-3">
-                    <input type="radio" checked={selectedId === row.id} onChange={() => setSelectedId(row.id)} />
+                  <td className="px-4 py-3">
+                    <input
+                      type="radio"
+                      checked={selectedId === row.id}
+                      onChange={() => setSelectedId(row.id)}
+                      className="accent-indigo-600"
+                    />
                   </td>
-                  <td className="px-6 py-3 font-medium text-slate-700">{row.name || row.code || row.description || row.id}</td>
-                  <td className="px-6 py-3 text-slate-500">{row.deleted_at ? new Date(row.deleted_at).toLocaleString() : '-'}</td>
+                  {columns.map(col => (
+                    <td key={col.name} className="px-4 py-3 text-slate-700">
+                      {row[col.name] == null ? '—' : String(row[col.name])}
+                    </td>
+                  ))}
+                  <td className="px-4 py-3 text-slate-400 text-xs">
+                    {row.deleted_at ? new Date(row.deleted_at).toLocaleString() : '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>

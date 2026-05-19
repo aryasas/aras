@@ -5,6 +5,7 @@ Registered in HandlerRegistry so they can be triggered by WorkflowManager
 """
 from sqlalchemy.orm import Session
 from core.logic.handler_registry import HandlerRegistry
+from core.manager.naming_manager import SeriesManager
 
 
 @HandlerRegistry.register(
@@ -40,7 +41,7 @@ def post_stock_movement(db: Session, item, params: dict):
 
     movement = StockMovement(
         org_id=item.org_id,
-        number=f"SM-{item.number}",
+        number=SeriesManager.get_next(db, "erp_stock_movements"),
         move_type=move_type,
         status="Posted",
         origin_model=item.__class__.__name__,
@@ -49,6 +50,7 @@ def post_stock_movement(db: Session, item, params: dict):
     )
     db.add(movement)
     db.flush()
+    item.stock_movement_id = movement.id
 
     for line in item.lines:
         item_obj = db.get(Item, line.item_id)
@@ -134,7 +136,7 @@ def post_journal_entry(db: Session, item, params: dict):
         for charge in item.charges:
             _append_charge_line(db, charge, lines, side="credit")
 
-        JournalService.post_entry(
+        entry = JournalService.post_entry(
             db, org_id, lines,
             reference=item.number,
             narrative=f"Auto-posted from Inflow Invoice {item.number}",
@@ -142,6 +144,7 @@ def post_journal_entry(db: Session, item, params: dict):
             source_type="InflowInvoice",
             source_id=item.id,
         )
+        item.journal_entry_id = entry.id
 
     elif isinstance(item, OutflowInvoice):
         from ..stock.models import Item as StockItem
@@ -174,7 +177,7 @@ def post_journal_entry(db: Session, item, params: dict):
             "credit": float(item.total_amount),
             "description": f"Outflow Invoice {item.number}",
         })
-        JournalService.post_entry(
+        entry = JournalService.post_entry(
             db, org_id, lines,
             reference=item.number,
             narrative=f"Auto-posted from Outflow Invoice {item.number}",
@@ -182,6 +185,7 @@ def post_journal_entry(db: Session, item, params: dict):
             source_type="OutflowInvoice",
             source_id=item.id,
         )
+        item.journal_entry_id = entry.id
 
 
 def _append_charge_line(db, charge, lines: list, side: str):

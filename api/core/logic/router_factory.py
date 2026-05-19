@@ -235,12 +235,14 @@ class RouterFactory(Router):
                 # Determine if the field is required
                 is_form_hidden = info.get("form_hidden", False)
                 is_scope_field = column.name in scope_field_names
+                is_read_only = info.get("read_only", False)
                 has_default = (
                     column.nullable or
                     column.default is not None or
                     column.server_default is not None or
                     is_form_hidden or
-                    is_scope_field
+                    is_scope_field or
+                    is_read_only
                 )
 
                 pydantic_kwargs = {}
@@ -534,6 +536,19 @@ class RouterFactory(Router):
                 db.commit()
                 db.refresh(item)
                 return ok(item.to_dict(), "Item restored successfully.")
+
+        @router.get("/{item_id}/linked-documents")
+        async def get_linked_documents(
+            item_id: int,
+            db: Session = Depends(get_db),
+            user: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=False))
+        ):
+            """Returns documents linked to this record (reverse FK lookups)."""
+            item = model_class.get(db, item_id)
+            if not item:
+                raise ResourceNotFoundException("Item not found")
+            docs = item.get_linked_documents(db) if hasattr(item, "get_linked_documents") else []
+            return ok(docs, "Linked documents fetched.")
 
         @router.get("/{item_id}")
         async def get_item(

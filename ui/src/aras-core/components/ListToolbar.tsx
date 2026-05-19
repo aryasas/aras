@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Search, Filter, Plus, Edit3, Trash2,
-  Download, Upload, Settings, List, LayoutGrid, FileText, ChevronDown, X
+  Download, Upload, Settings, List, LayoutGrid, FileText, ChevronDown, X, MoreHorizontal
   , Archive
 } from 'lucide-react';
 
@@ -65,7 +65,9 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
   savedFilters
 }) => {
   const [isSavedFiltersOpen, setIsSavedFiltersOpen] = useState(false);
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
   const savedFiltersRef = useRef<HTMLDivElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -77,6 +79,15 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
+  }, []);
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (actionsRef.current && !actionsRef.current.contains(e.target as Node))
+        setIsActionsOpen(false);
+    };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
   }, []);
 
   return (
@@ -202,29 +213,39 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
             </>
           )}
 
-          <button
-            onClick={onExport}
-            disabled={isExporting}
-            className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-            title="Export to CSV"
-          >
-            <Download size={18} className={isExporting ? 'animate-bounce' : ''} />
-          </button>
-
-          <label className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 cursor-pointer" title="Import from CSV">
-            <Upload size={18} />
-            <input type="file" accept=".csv" className="hidden" onChange={onImport} />
-          </label>
-
-          {onArchive && (
+          <div className="relative" ref={actionsRef}>
             <button
-              onClick={onArchive}
-              className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50"
-              title="Archived records"
+              onClick={() => setIsActionsOpen(v => !v)}
+              className="flex items-center gap-1.5 p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 text-sm"
+              title="Actions"
             >
-              <Archive size={18} />
+              <MoreHorizontal size={18} />
+              <ChevronDown size={14} />
             </button>
-          )}
+            {isActionsOpen && (
+              <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-slate-200 rounded-xl shadow-lg z-30 overflow-hidden">
+                <button
+                  onClick={() => { onExport(); setIsActionsOpen(false); }}
+                  disabled={isExporting}
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  <Download size={15} /> Export CSV
+                </button>
+                <label className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer">
+                  <Upload size={15} /> Import CSV
+                  <input type="file" accept=".csv" className="hidden" onChange={(e) => { onImport(e); setIsActionsOpen(false); }} />
+                </label>
+                {onArchive && (
+                  <button
+                    onClick={() => { onArchive(); setIsActionsOpen(false); }}
+                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    <Archive size={15} /> View Archive
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
 
           <button
             className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 relative"

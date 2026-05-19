@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy import String, ForeignKey, Float, Date, Boolean, Numeric, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from decimal import Decimal
-from core import Aras
+from core import Aras, LinkedDoc
 from core.response import ok, err
 from core.exceptions import ValidationException
 from ..base import MasterDataBase, DocumentBase, LineItemBase, ErpBase
@@ -28,7 +28,6 @@ class Item(MasterDataBase):
     __soft_delete__ = True
 
     code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    sku: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, info={"pattern": "^[a-zA-Z0-9]{1,50}$"})
     category_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_categories.id"), nullable=True)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
     uom_purchase_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
@@ -183,6 +182,10 @@ class DeliveryNoteLine(LineItemBase):
 class StockMovement(DocumentBase):
     __tablename__ = "erp_stock_movements"
     __soft_delete__ = True
+    __linked_docs__ = [
+        LinkedDoc(table="erp_accounting_inflow_invoices", filters={"id": "@origin_id"}, condition=lambda self: self.origin_model == "InflowInvoice", cascade=True),
+        LinkedDoc(table="erp_accounting_outflow_invoices", filters={"id": "@origin_id"}, condition=lambda self: self.origin_model == "OutflowInvoice", cascade=True),
+    ]
 
     move_type: Mapped[str] = mapped_column(String(30), info={"choices": ["receipt", "delivery", "internal", "return", "scrap"]})
     from_location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
@@ -225,13 +228,13 @@ class StockMovementLine(LineItemBase):
     parent: Mapped["StockMovement"] = relationship("StockMovement", back_populates="lines")
 
 
-class ItemBundle(LineItemBase):
+class ItemBundle(ErpBase):
     __tablename__ = "erp_stock_item_bundles"
     __parent__ = "erp_stock_items"
     bundle_item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))     # bundle being defined
     component_item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))  # ingredient
+    qty: Mapped[float] = mapped_column(Float, default=1.0)
     uom_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True, info={"display_column": "name", "depends_on": "component_item_id", "default_from": "uom_id"})
-    notes: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
 
 

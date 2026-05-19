@@ -1,6 +1,7 @@
 from ..app import ERP
 from .models import Report
 from . import views # Trigger view registration
+from .routers import router as report_router
 
 class ReportApp(ERP):
     app_name = "erp_report"
@@ -8,6 +9,7 @@ class ReportApp(ERP):
     app_label = "Reports"
     icon = "FileBarChart"
 
+    routers = [report_router]
     models = [Report]
 
     menu_groups = [

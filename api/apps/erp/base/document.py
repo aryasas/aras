@@ -1,7 +1,7 @@
 from typing import Optional
 from datetime import date
-from sqlalchemy import String, Date, Text, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, object_session
+from sqlalchemy import String, Date, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column
 from .erp_base import ErpBase
 
 class DocumentBase(ErpBase):
@@ -18,14 +18,12 @@ class DocumentBase(ErpBase):
         default="Draft",
         info={"choices": ["Draft", "Confirmed", "Posted", "Cancelled"]},
     )
-    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    note_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_core_notes.id"), nullable=True)
 
-    def before_save(self, is_new: bool):
-        if is_new and not self.number:
-            db = object_session(self)
-            if db:
-                from core.manager.naming_manager import NamingManager
-                self.number = NamingManager.get_next(db, self.__tablename__)
+    def before_save(self, is_new: bool, db=None):
+        if not self.number and db is not None:
+            from core.manager.naming_manager import SeriesManager
+            self.number = SeriesManager.get_next(db, self.__tablename__)
 
 DOC_LAYOUT_HEADER = {
     "key": "header",
@@ -36,5 +34,5 @@ DOC_LAYOUT_HEADER = {
 DOC_LAYOUT_NOTES = {
     "key": "notes",
     "title": "Notes",
-    "fields": ["notes"],
+    "fields": ["note_id"],
 }
