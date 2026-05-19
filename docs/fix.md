@@ -163,3 +163,11 @@ This file is used only to report if there are fix
 
 ## Tenant Admin UI (2026-05-19)
   - [Gemini 2.5 Flash] Fixed PotService stale imports and SQLAlchemy 2.0 query.get() deprecation warnings. Restored PotSession.orders relationship.
+
+
+## Phase 4 — License enforcement + apps/saas/ MVP (2026-05-19)
+  - [GPT (codex)] Replaced broken LicenseStatus UI imports with existing app components
+
+
+## Phase 4 — License enforcement + apps/saas/ MVP — revision (2026-05-19)
+  - [GPT (codex)] Fixed ContactView type-only React import for TypeScript build

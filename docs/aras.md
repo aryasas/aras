@@ -53,6 +53,31 @@ All classes accessed via unified namespace — `from core import Aras`. → `fra
 
 Full `manage.py` command list: → `framework_ref.md` L211–227
 
+### App Registration Requirements (required for all apps)
+
+Every app needs three things to have visible resources in the UI:
+
+1. **views.py** — `Aras.View` subclass per model:
+   ```python
+   class WebPageView(Aras.View):
+       model = WebPage
+       title = "Pages"
+       icon = "pi pi-file"
+   ```
+
+2. **app.py** — must import views (side-effect) and call `autodiscover_models`:
+   ```python
+   from core.logic.discovery import autodiscover_models
+   from .models import *
+   from . import views  # triggers View registration
+   
+   class WebApp(App):
+       models = autodiscover_models(__name__, ["models"])
+   ```
+   Without `models = autodiscover_models(...)`, `cls.models` is empty and `get_menu_structure()` returns nothing.
+
+3. **sync** — after adding a new app, run `python manage.py sync` to populate AppModel/ResourceModel/FieldModel in DB.
+
 ---
 
 ## Model Rules
@@ -67,6 +92,13 @@ Full `manage.py` command list: → `framework_ref.md` L211–227
 - `is_active` is NOT auto-provided — opt in via `__features__ = ["activatable"]`
 - Auto-provided columns (never declare): `id`, `created_at`, `updated_at`, `created_by`, `updated_by`
 - Full attribute list: → `framework_ref.md` L70–89
+
+## Model Actions
+
+### display_token response pattern
+If a model action returns `ok({"display_token": token}, message="...")`, the frontend DynamicForm
+automatically shows a copyable modal with the token. Use this for any action that generates a secret
+the user must copy once (license tokens, API keys, one-time passwords).
 
 ## View Rules
 
@@ -99,6 +131,22 @@ All routes prefixed `/api/v1/`. Underscores → hyphens. App/parent prefixes str
 Example: App `erp_accounting` (parent `erp`), model `erp_accounting_accounts` → `/api/v1/erp/accounting/accounts`
 
 Full endpoint list: → `framework_ref.md` L118–137
+
+## Endpoint Patterns
+
+### Public endpoints (no auth)
+Routers mounted via `App.routers = [router]` do NOT get auth by default. To add a public
+endpoint (no JWT required), simply define the route without `Depends(get_current_user)`:
+
+```python
+router = APIRouter(prefix="/web", tags=["Web"])
+
+@router.get("/pages/{slug}")
+def get_page(slug: str, db: Session = Depends(get_db)):
+    ...
+```
+
+This pattern is used by `apps/web/` for public CMS endpoints.
 
 ---
 

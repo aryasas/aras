@@ -124,6 +124,18 @@ async def generic_exception_handler(request: Request, exc: Exception):
         },
     )
 
+@app.middleware("http")
+async def license_check_middleware(request: Request, call_next):
+    if os.getenv("ARAS_LICENSE_ENFORCE", "false").lower() == "true":
+        path = request.url.path
+        if not path.startswith(("/api/v1/auth/token", "/api/v1/health", "/api/v1/license", "/docs", "/openapi.json")):
+            from core.auth.middleware import get_license_payload
+            try:
+                get_license_payload()
+            except HTTPException as e:
+                return JSONResponse(status_code=e.status_code, content={"detail": e.detail})
+    return await call_next(request)
+
 # Rate limiting — must be added before CORS so it applies to all routes
 from core.lib.rate_limiter import RateLimiterMiddleware
 app.add_middleware(RateLimiterMiddleware)
@@ -174,6 +186,55 @@ for model in core_models:
     router = Aras.logic.router_factory.RouterFactory.create_router(model)
     app.include_router(router, prefix="/api/v1")
 
+from pydantic import BaseModel
+class ActivateLicenseRequest(BaseModel):
+    token: str
+
+@app.get("/api/v1/license/status")
+async def license_status():
+    from core.auth.middleware import get_license_payload, _license_cache, LICENSE_PATH
+    from core.auth.license import days_until_expiry
+    import os
+    if not os.path.exists(LICENSE_PATH):
+        return {"valid": False, "reason": "missing"}
+        
+    try:
+        if _license_cache.get("verified"):
+            payload = _license_cache["payload"]
+        else:
+            payload = get_license_payload()
+            
+        token = _license_cache.get("token")
+        days = days_until_expiry(token) if token else 0
+        return {
+            "valid": True, 
+            "tenant_id": payload.get("sub"), 
+            "days_remaining": days, 
+            "expired": days is not None and days < 0
+        }
+    except HTTPException as e:
+        return {"valid": False, "reason": str(e.detail)}
+    except Exception as e:
+        return {"valid": False, "reason": str(e)}
+
+@app.post("/api/v1/license/activate")
+async def activate_license(data: ActivateLicenseRequest, current_user: Any = Depends(get_current_user)):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    from core.auth.middleware import LICENSE_PATH, _license_cache
+    import os
+    
+    os.makedirs(os.path.dirname(LICENSE_PATH), exist_ok=True)
+    with open(LICENSE_PATH, "w") as f:
+        f.write(data.token)
+        
+    _license_cache["verified"] = False
+    _license_cache["token"] = None
+    _license_cache["payload"] = None
+    
+    return {"status": "success"}
+
 @app.get("/")
 async def root():
     return {
@@ -191,6 +252,7 @@ async def get_sidebar_data(_: Any = Depends(get_current_user)):
     # 1. Main Navigation Links
     sidebar = [
         {"type": "link", "name": "dashboard", "label": "Dashboard", "icon": "LayoutDashboard", "path": "/dashboard", "have_home": False},
+        {"type": "link", "name": "pos", "label": "Point of Sale", "icon": "ShoppingCart", "path": "/erp/pot/pos", "have_home": False},
         {"type": "link", "name": "reports", "label": "Report Center", "icon": "FileBarChart", "path": "/reports", "have_home": False},
         {"type": "link", "name": "settings", "label": "Settings", "icon": "Settings", "path": "/settings", "have_home": False},
         {"type": "link", "name": "help", "label": "Help", "icon": "HelpCircle", "path": "/help", "have_home": False},

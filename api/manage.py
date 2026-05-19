@@ -58,6 +58,9 @@ def main():
     ts = tenant_sub.add_parser("seed", help="Seed basic data into a tenant database")
     ts.add_argument("tenant_id", help="Tenant ID to seed")
 
+    # Cleanup
+    subparsers.add_parser("cleanup", help="Delete inactive (stale) app/resource/field rows from registry")
+
     args = parser.parse_args()
 
 
@@ -261,6 +264,41 @@ def main():
                 sys.exit(1)
         else:
             tenant_parser.print_help()
+
+    elif args.command == "cleanup":
+        from core.lib.database import SessionLocal
+        from core.registry.app_model import AppModel
+        from core.registry.resource_model import ResourceModel
+        from core.registry.field_model import FieldModel
+        db = SessionLocal()
+        try:
+            stale_apps = db.query(AppModel).filter(AppModel.is_active == False).all()
+            if not stale_apps:
+                print("Nothing to clean up.")
+            else:
+                print(f"Found {len(stale_apps)} inactive app(s):")
+                for a in stale_apps:
+                    print(f"  - {a.name}")
+                    from core.registry.link_model import LinkModel
+                    resources = db.query(ResourceModel).filter(ResourceModel.app_id == a.id).all()
+                    resource_ids = [r.id for r in resources]
+                    db.query(LinkModel).filter(
+                        LinkModel.source_resource_id.in_(resource_ids) |
+                        LinkModel.target_resource_id.in_(resource_ids)
+                    ).delete(synchronize_session=False)
+                    db.query(FieldModel).filter(FieldModel.resource_id.in_(resource_ids)).delete(synchronize_session=False)
+                    for r in resources:
+                        db.delete(r)
+                    db.flush()
+                    db.delete(a)
+                db.commit()
+                print("Cleanup complete.")
+        except Exception as e:
+            db.rollback()
+            print(f"Error: {e}")
+            sys.exit(1)
+        finally:
+            db.close()
 
     else:
         parser.print_help()

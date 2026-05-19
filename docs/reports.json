@@ -1,13 +1,175 @@
 [
   {
-    "id": 1,
+    "id": 3,
+    "date": "2026-05-17",
+    "feature": "Unknown",
+    "mode": "frontend-only",
+    "status": "success",
+    "revision_count": 0,
+    "verdict": "APPROVED",
+    "tokens": 28696,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/OrganizationPicker.tsx, ui/src/views/CompanyPicker.tsx, ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "none",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "notes": ""
+  },
+  {
+    "id": 7,
+    "date": "2026-05-17",
+    "feature": "Fix delete (single item and bulk) \u2014 still failing after previous attempts",
+    "mode": "full",
+    "status": "success",
+    "revision_count": 0,
+    "verdict": "APPROVED",
+    "tokens": 83286,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListView.tsx",
+      "features_added": "none",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "notes": ""
+  },
+  {
+    "id": 9,
+    "date": "2026-05-17",
+    "feature": "Advanced Account Resolution & Journal UI Fix",
+    "mode": "gemini-direct",
+    "status": "done",
+    "revision_count": 0,
+    "verdict": "APPROVED",
+    "tokens": 0,
+    "backend": {
+      "files_written": "api/apps/erp/accounting/models.py,api/apps/erp/stock/services/coa_resolver.py,api/apps/erp/accounting/services/posting.py",
+      "features_added": "none",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "notes": ""
+  },
+  {
+    "id": 11,
+    "date": "2026-05-18",
+    "feature": "Fix model action signatures \u2014 all actions now accept db as first param",
+    "revision_count": 0,
+    "tokens": 0,
+    "backend": {
+      "files_written": "api/apps/erp/accounting/models.py, api/apps/erp/stock/models.py",
+      "features_added": "none",
+      "fixes_applied": "Changed all @Aras.model_action methods from def action(self) to def action(self, db) \u2014 framework always passes db as positional arg. Affected: JournalEntry.post, InflowInvoice.post/create_invoice, OutflowInvoice.post/create_invoice, Payment.post/auto_allocate, GoodsReceiptNote.receive/match_invoice, DeliveryNote.post/create_invoice, StockMovement.post. Removed redundant object_session(self) calls inside each.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": ""
+  },
+  {
+    "id": 11,
+    "date": "2026-05-18",
+    "feature": "Remove redundant fields on child models, clean ItemUom, add View.standalone for child list access",
+    "mode": "frontend-only",
+    "status": "success",
+    "revision_count": 0,
+    "verdict": "APPROVED",
+    "tokens": 8983,
+    "backend": null,
+    "frontend": null,
+    "notes": ""
+  },
+  {
+    "id": 12,
+    "date": "2026-05-18",
+    "feature": "Stock Breakdown & Table Rename",
+    "mode": "gemini-direct",
+    "status": "done",
+    "revision_count": 0,
+    "verdict": "APPROVED",
+    "tokens": 0,
+    "backend": {
+      "files_written": "api/core/registry/series.py,api/core/manager/health_manager.py,api/core/migrations/rename_naming_series.py,api/apps/erp/stock/services/stock.py,api/apps/erp/stock/app.py,api/apps/erp/stock/models.py,api/apps/erp/stock/views.py",
+      "features_added": "none",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "notes": ""
+  },
+  {
+    "id": 15,
+    "date": "2026-05-19",
+    "feature": "Tenant Admin UI",
+    "mode": "claude-direct",
+    "status": "done",
+    "revision_count": 0,
+    "verdict": "APPROVED",
+    "tokens": 0,
+    "backend": {
+      "files_written": "ui/src/views/TenantAdmin.tsx,ui/src/App.tsx,api/apps/erp/pot/services/pot.py,api/apps/erp/pot/models.py,ui/src/views/PosView.tsx",
+      "features_added": "none",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "notes": ""
+  },
+  {
+    "id": 16,
+    "date": "2026-05-19",
+    "feature": "Phase 2 polish \u2014 tenant menu entry, POS session open flow",
+    "mode": "frontend-only",
+    "status": "success",
+    "revision_count": 0,
+    "verdict": "APPROVED",
+    "tokens": 43041,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/Settings.tsx, ui/src/views/PosView.tsx, ui/src/App.tsx",
+      "features_added": "none",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "notes": ""
+  },
+  {
+    "id": 17,
+    "date": "2026-05-19",
+    "feature": "Phase 4 \u2014 License enforcement + apps/saas/ MVP",
+    "mode": "frontend-only",
+    "status": "success",
+    "revision_count": 1,
+    "verdict": "APPROVED",
+    "tokens": 65324,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/LicenseStatus.tsx, ui/src/App.tsx, ui/src/views/Settings.tsx, ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "none",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "notes": ""
+  },
+  {
+    "id": 48,
     "date": "2026-05-16",
     "feature": "ERP Form Layouts, UI Bugs, Report Center Filters, HandoffRun DB Tracking",
     "revision_count": 1,
-    "tokens": {
-      "input": null,
-      "output": null
-    },
+    "tokens": 0,
     "backend": {
       "files_written": "api/apps/erp/party/views.py, api/apps/erp/stock/views.py, api/apps/erp/hr/views.py, api/apps/erp/asset/views.py, api/apps/erp/crm/views.py, api/apps/erp/pot/views.py, api/apps/erp/accounting/views.py, api/apps/erp/config/views.py, api/apps/erp/report/services/report_service.py",
       "features_added": "Added UI layout definitions to multiple ERP View classes for Party, Contact, Product, ProductCategory, ProductUom, Employee, Department, Position, Asset, AssetCategory, Lead, Pipeline, Activity, PotOrder, PotTerminal, Account, FiscalPeriod, Currency, Uom, ModeOfPayment, ExchangeRate, and PrintTemplate. Enhanced report execution endpoint to pass filter definitions to frontend and correctly handle 'today' parameter in SQL queries.",
@@ -22,17 +184,17 @@
       "framework_changes": "none",
       "issues": "npm run build still fails on existing TypeScript errors outside the requested scope; ReportCenter targeted ESLint passes"
     },
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "full",
+    "status": "success",
+    "notes": ""
   },
   {
-    "id": 2,
+    "id": 49,
     "date": "2026-05-17",
     "feature": "Fix delete (single item and bulk) - still failing after previous attempts",
     "revision_count": 0,
-    "tokens": {
-      "input": null,
-      "output": null
-    },
+    "tokens": 0,
     "backend": {
       "files_written": "api/core/logic/router_factory.py",
       "features_added": "none",
@@ -41,17 +203,17 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": ""
   },
   {
-    "id": 3,
+    "id": 50,
     "date": "2026-05-17",
     "feature": "Fix delete, payment-invoice link, vocabulary label reactivity",
     "revision_count": 0,
-    "tokens": {
-      "input": null,
-      "output": null
-    },
+    "tokens": 0,
     "backend": {
       "files_written": "api/apps/erp/stock/models.py, api/apps/erp/party/models.py, api/apps/erp/accounting/services/payment.py",
       "features_added": "none",
@@ -66,17 +228,17 @@
       "framework_changes": "none",
       "issues": "none"
     },
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "full",
+    "status": "success",
+    "notes": ""
   },
   {
-    "id": 4,
+    "id": 51,
     "date": "2026-05-17",
     "feature": "Fix delete \u2014 per-row delete button and bulk-delete path resolution",
     "revision_count": 0,
-    "tokens": {
-      "input": null,
-      "output": null
-    },
+    "tokens": 0,
     "backend": null,
     "frontend": {
       "files_written": "ui/src/aras-core/components/ListView.tsx",
@@ -85,17 +247,17 @@
       "framework_changes": "none",
       "issues": "none"
     },
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "frontend-only",
+    "status": "success",
+    "notes": ""
   },
   {
-    "id": 5,
+    "id": 52,
     "date": "2026-05-17",
     "feature": "fk_filter: scope account comboboxes to the current org in Organization form",
     "revision_count": 0,
-    "tokens": {
-      "input": null,
-      "output": null
-    },
+    "tokens": 0,
     "backend": {
       "files_written": "api/apps/erp/config/models.py, api/core/logic/ui_generator.py",
       "features_added": "fk_filter emitted in field metadata; all acc_* columns on Organization carry info={fk_filter: {org_id: id}}",
@@ -110,17 +272,17 @@
       "framework_changes": "none",
       "issues": "none"
     },
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "full",
+    "status": "success",
+    "notes": ""
   },
   {
-    "id": 6,
+    "id": 53,
     "date": "2026-05-17",
     "feature": "Organization COA inheritance \u2014 coa_source_org_id field with fk_filter_fallback support",
     "revision_count": 0,
-    "tokens": {
-      "input": null,
-      "output": null
-    },
+    "tokens": 0,
     "backend": {
       "files_written": "api/apps/erp/config/models.py, api/core/logic/ui_generator.py",
       "features_added": "Organization.coa_source_org_id FK; _ACC_FK now carries fk_filter_fallback so account comboboxes resolve to parent COA when set; ui_generator passes fk_filter_fallback through to schema",
@@ -135,17 +297,17 @@
       "framework_changes": "none",
       "issues": "none"
     },
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "full",
+    "status": "success",
+    "notes": ""
   },
   {
-    "id": 7,
+    "id": 54,
     "date": "2026-05-17",
     "feature": "Section-level inline action buttons in DynamicForm layout + mirror_coa placed in Organization Configuration section",
     "revision_count": 0,
-    "tokens": {
-      "input": null,
-      "output": null
-    },
+    "tokens": 0,
     "backend": {
       "files_written": "none",
       "features_added": "none",
@@ -160,17 +322,17 @@
       "framework_changes": "none",
       "issues": "none"
     },
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "full",
+    "status": "success",
+    "notes": ""
   },
   {
-    "id": 8,
+    "id": 55,
     "date": "2026-05-18",
     "feature": "Organization default accounts: inherit_accounts and fill_default_accounts actions with section inline buttons",
     "revision_count": 0,
-    "tokens": {
-      "input": null,
-      "output": null
-    },
+    "tokens": 0,
     "backend": {
       "files_written": "api/apps/erp/config/models.py, api/apps/erp/config/views.py, api/apps/erp/config/default_accounts.json",
       "features_added": "inherit_accounts model action (copies all acc_* from parent org), fill_default_accounts model action (fills acc_* by code from default_accounts.json), both exposed as inline buttons on Default Accounts section header",
@@ -179,17 +341,17 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": ""
   },
   {
-    "id": 9,
+    "id": 56,
     "date": "2026-05-18",
     "feature": "Fix 500 on post outflow/inflow invoice \u2014 product_id \u2192 item_id in posting service",
     "revision_count": 0,
-    "tokens": {
-      "input": null,
-      "output": null
-    },
+    "tokens": 0,
     "backend": {
       "files_written": "api/apps/erp/accounting/services/posting.py, api/apps/erp/accounting/models.py",
       "features_added": "none",
@@ -198,17 +360,17 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": ""
   },
   {
-    "id": 10,
+    "id": 57,
     "date": "2026-05-18",
     "feature": "Merge Order+Invoice into single Invoice model with doc_type field",
     "revision_count": 0,
-    "tokens": {
-      "input": null,
-      "output": null
-    },
+    "tokens": 0,
     "backend": {
       "files_written": "api/apps/erp/accounting/models.py, api/apps/erp/accounting/views.py, api/apps/erp/accounting/app.py, api/apps/erp/accounting/services/conversion.py",
       "features_added": "doc_type field (Order/Invoice) on InflowInvoice and OutflowInvoice. pricelist_id on OutflowInvoice. create_invoice model action on both Invoice models \u2014 clones record with doc_type=Invoice, copies lines/charges, raises ValidationException if already Invoice or not Confirmed.",
@@ -217,17 +379,17 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": ""
   },
   {
-    "id": 11,
+    "id": 58,
     "date": "2026-05-18",
     "feature": "Fix model action signatures \u2014 all actions now accept db as first param",
     "revision_count": 0,
-    "tokens": {
-      "input": null,
-      "output": null
-    },
+    "tokens": 0,
     "backend": {
       "files_written": "api/apps/erp/accounting/models.py, api/apps/erp/stock/models.py",
       "features_added": "none",
@@ -236,36 +398,17 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": ""
   },
   {
-    "id": 12,
-    "date": "2026-05-18",
-    "feature": "Fix model action signatures \u2014 all actions now accept db as first param",
-    "revision_count": 0,
-    "tokens": {
-      "input": null,
-      "output": null
-    },
-    "backend": {
-      "files_written": "api/apps/erp/accounting/models.py, api/apps/erp/stock/models.py",
-      "features_added": "none",
-      "fixes_applied": "Changed all @Aras.model_action methods from def action(self) to def action(self, db) \u2014 framework always passes db as positional arg. Affected: JournalEntry.post, InflowInvoice.post/create_invoice, OutflowInvoice.post/create_invoice, Payment.post/auto_allocate, GoodsReceiptNote.receive/match_invoice, DeliveryNote.post/create_invoice, StockMovement.post. Removed redundant object_session(self) calls inside each.",
-      "framework_changes": "none",
-      "issues": "none"
-    },
-    "frontend": null,
-    "verdict": "APPROVED"
-  },
-  {
-    "id": 13,
+    "id": 59,
     "date": "2026-05-18",
     "feature": "Fix Internal Server Error on Post Invoice execute action",
     "revision_count": 0,
-    "tokens": {
-      "input": null,
-      "output": null
-    },
+    "tokens": 0,
     "backend": {
       "files_written": "api/core/logic/router_factory.py, api/apps/erp/accounting/models.py",
       "features_added": "none",
@@ -274,10 +417,13 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": ""
   },
   {
-    "id": 14,
+    "id": 60,
     "date": "2026-05-18",
     "feature": "Fix Accounting Journal Balance & Party Transition",
     "revision_count": 0,
@@ -289,10 +435,14 @@
       "issues": "None"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 15,
+    "id": 61,
     "date": "2026-05-18",
     "feature": "ERP org-scoped RBAC + module registration standardization",
     "revision_count": 1,
@@ -310,10 +460,14 @@
       "framework_changes": "none",
       "issues": "none"
     },
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "full",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 16,
+    "id": 62,
     "date": "2026-05-18",
     "feature": "Hierarchical org scope expansion & is_shared master data",
     "revision_count": 0,
@@ -325,10 +479,14 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 17,
+    "id": 63,
     "date": "2026-05-18",
     "feature": "Hierarchical org scope \u2014 frontend: is_group type + Consolidated badge (revision)",
     "revision_count": 1,
@@ -340,10 +498,14 @@
       "framework_changes": "none",
       "issues": "none"
     },
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "frontend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 18,
+    "id": 64,
     "date": "2026-05-18",
     "feature": "Fix Soft-Delete /deleted endpoint shadowing and test script compatibility",
     "revision_count": 0,
@@ -355,10 +517,14 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 19,
+    "id": 65,
     "date": "2026-05-18",
     "feature": "RBAC seed YAML/JSON + loader; fix All-orgs picker persistence on refresh",
     "revision_count": 0,
@@ -376,10 +542,14 @@
       "framework_changes": "none",
       "issues": "none"
     },
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "full",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 20,
+    "id": 66,
     "date": "2026-05-18",
     "feature": "show org_id field in all forms",
     "revision_count": 0,
@@ -391,10 +561,14 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 21,
+    "id": 67,
     "date": "2026-05-18",
     "feature": "Field Cleanup + Standalone Child View support",
     "revision_count": 0,
@@ -406,10 +580,14 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 22,
+    "id": 68,
     "date": "2026-05-19",
     "feature": "ErpBase isolation layer + LineItemBase misuse cleanup",
     "revision_count": 0,
@@ -421,10 +599,14 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 23,
+    "id": 69,
     "date": "2026-05-19",
     "feature": "Stock Breakdown by Location & doc_series table rename",
     "revision_count": 0,
@@ -436,10 +618,14 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 24,
+    "id": 70,
     "date": "2026-05-19",
     "feature": "Fix number generation, clean ItemAccount/ItemLocation columns, fix stock.py types",
     "revision_count": 0,
@@ -451,10 +637,14 @@
       "issues": "Run python manage.py sync to update registry after model changes"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 25,
+    "id": 71,
     "date": "2026-05-19",
     "feature": "Finance report consolidation, Notes entity, COA logic fix, Model cleanup",
     "revision_count": 0,
@@ -466,10 +656,14 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 26,
+    "id": 72,
     "date": "2026-05-19",
     "feature": "remove duplicate notes field, fix doc number preview, fix stock movement number, cross-doc FK refs",
     "revision_count": 0,
@@ -487,10 +681,14 @@
       "framework_changes": "none",
       "issues": "none"
     },
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "full",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 27,
+    "id": 73,
     "date": "2026-05-19",
     "feature": "rename NamingManager\u2192SeriesManager, fix ISE on post (notes\u2192narrative), fix number persisting after create, connected doc FK metadata, duplicate exclusion",
     "revision_count": 0,
@@ -508,10 +706,14 @@
       "framework_changes": "none",
       "issues": "none"
     },
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "full",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 29,
+    "id": 74,
     "date": "2026-05-19",
     "feature": "LinkedDoc auto-discovery, Payment prefill, POS backend, Linked List layout",
     "revision_count": 0,
@@ -523,10 +725,14 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 30,
+    "id": 75,
     "date": "2026-05-19",
     "feature": "fix POS session mode TypeScript union",
     "revision_count": 0,
@@ -538,10 +744,14 @@
       "framework_changes": "none",
       "issues": "none"
     },
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "frontend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 31,
+    "id": 76,
     "date": "2026-05-19",
     "feature": "fix POS computed item values",
     "revision_count": 0,
@@ -553,10 +763,14 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 32,
+    "id": 77,
     "date": "2026-05-19",
     "feature": "fix POS quick invoice line construction",
     "revision_count": 0,
@@ -568,10 +782,14 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 33,
+    "id": 78,
     "date": "2026-05-19",
     "feature": "fix POS payment currency",
     "revision_count": 0,
@@ -583,10 +801,14 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 34,
+    "id": 79,
     "date": "2026-05-19",
     "feature": "fix POS sales purchase mode mapping and persistence",
     "revision_count": 0,
@@ -598,10 +820,14 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 35,
+    "id": 80,
     "date": "2026-05-19",
     "feature": "fix POS payment journal account mapping and delete related-doc confirmation",
     "revision_count": 0,
@@ -619,10 +845,14 @@
       "framework_changes": "none",
       "issues": "none"
     },
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "full",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 36,
+    "id": 81,
     "date": "2026-05-19",
     "feature": "fix journal delete recursion \u2014 circular cascade between JournalEntry and invoices",
     "revision_count": 0,
@@ -634,10 +864,14 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 37,
+    "id": 82,
     "date": "2026-05-19",
     "feature": "fix cascade recursion + journaling: cash sale combined journal, AR journal for credit sales",
     "revision_count": 0,
@@ -649,10 +883,14 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 38,
+    "id": 83,
     "date": "2026-05-19",
     "feature": "Payment cascade on invoice delete + POS credit sales split journal",
     "revision_count": 0,
@@ -664,10 +902,14 @@
       "issues": "Workflow DB: seed_workflow.py is correct for invoices (post+cancel). Run once per tenant: cd api && python -m apps.erp.config.seed_workflow. Without seed the /workflow/ API falls back to WorkflowMixin which has submit/cancel only - post will fail. @model_action(name=post) always works independently."
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 39,
+    "id": 84,
     "date": "2026-05-19",
     "feature": "multi_agent.py agent role variables with -o/-f/-b CLI flags",
     "revision_count": 0,
@@ -679,10 +921,14 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 40,
+    "id": 85,
     "date": "2026-05-19",
     "feature": "POS fixes + Tenant Admin UI",
     "revision_count": 0,
@@ -700,10 +946,14 @@
       "framework_changes": "none",
       "issues": "none"
     },
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "full",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   },
   {
-    "id": 41,
+    "id": 86,
     "date": "2026-05-19",
     "feature": "PotOrder cleanup",
     "revision_count": 0,
@@ -715,6 +965,79 @@
       "issues": "none"
     },
     "frontend": null,
-    "verdict": "APPROVED"
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
+  },
+  {
+    "id": 87,
+    "date": "2026-05-19",
+    "feature": "Phase 4 - License enforcement + apps/saas/ MVP",
+    "revision_count": 1,
+    "backend": {
+      "files_written": "api/main.py, api/core/auth/middleware.py, api/apps/saas/__init__.py, api/apps/saas/app.py, api/apps/saas/models.py, api/apps/saas/routers.py, api/apps/saas/services/license_service.py",
+      "features_added": "Global license enforcement middleware in main.py, SaaS app for issuing licenses and managing subscriptions, auto-renewal logic for instance license.",
+      "fixes_applied": "Converted Subscription model actions from get_actions() classmethod to @Aras.model_action decorators; fixed cache ordering bug in renew_license_if_needed; fixed nullable Mapped[T] to Mapped[Optional[T]] in all saas models.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/views/LicenseStatus.tsx, ui/src/App.tsx, ui/src/views/Settings.tsx, ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "License status page at /admin/license, Settings license entry, copy-token modal in DynamicForm for model actions returning display_token.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED",
+    "mode": "full",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
+  },
+  {
+    "id": 88,
+    "date": "2026-05-19",
+    "feature": "Phase 3 \u2014 apps/web/ Generic CMS App",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/web/__init__.py, api/apps/web/app.py, api/apps/web/models.py, api/apps/web/routers.py",
+      "features_added": "WebPage, WebMenuItem, ContactSubmission, SiteSetting models with publish/unpublish/mark_read actions. Public endpoints: GET /web/pages/{slug}, GET /web/menu/{location}, GET /web/settings, POST /web/contact.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/views/WebPageView.tsx, ui/src/views/ContactView.tsx, ui/src/App.tsx, ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "Public WebPage renderer at /p/:slug, admin preview at preview/:slug, public contact form at /contact, WebPage preview button in DynamicForm.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED",
+    "mode": "full",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
+  },
+  {
+    "id": 89,
+    "date": "2026-05-19",
+    "feature": "Docs sync, plan merge, reports sync (B1-B4)",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "docs/aras.md, docs/framework_ref.md, docs/plan.md, tools/sync_reports.py",
+      "features_added": "Framework documentation sync for app registration and public endpoints; SaaS Roadmap merge into master plan; sync_reports.py utility script.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "",
+    "tokens": 0
   }
 ]

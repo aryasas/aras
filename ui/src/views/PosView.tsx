@@ -10,6 +10,7 @@ interface PosSession {
   number?: string
   mode?: 'sales' | 'purchase' | 'both'
   status?: string
+  doc_date?: string
 }
 
 interface PosItem {
@@ -34,12 +35,16 @@ interface QuickInvoiceResult {
 }
 
 const getItemPrice = (item: PosItem) => Number(item.price ?? item.default_sale_price ?? item.default_purchase_price ?? 0)
+const today = () => new Date().toISOString().slice(0, 10)
 
 export default function PosView() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { notify, formatCurrency } = useAras()
   const [session, setSession] = useState<PosSession | null>(null)
+  const [openSessions, setOpenSessions] = useState<PosSession[]>([])
+  const [sessionsLoading, setSessionsLoading] = useState(false)
+  const [creatingSession, setCreatingSession] = useState(false)
   const [items, setItems] = useState<PosItem[]>([])
   const [cart, setCart] = useState<CartLine[]>([])
   const [search, setSearch] = useState('')
@@ -48,7 +53,7 @@ export default function PosView() {
   const [amountPaid, setAmountPaid] = useState('')
   const [posMode, setPosMode] = useState<'sales' | 'purchase'>('sales')
   const [isCreditMode, setIsCreditMode] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [charging, setCharging] = useState(false)
   const [closing, setClosing] = useState(false)
   const [receipt, setReceipt] = useState<(QuickInvoiceResult & { items: CartLine[]; paid: number; change: number; isCredit: boolean; mode: 'sales' | 'purchase' }) | null>(null)
@@ -62,6 +67,19 @@ export default function PosView() {
         setPosMode(s.mode === 'purchase' ? 'purchase' : 'sales')
       })
       .catch(err => notify(err.response?.data?.detail || 'Failed to load session', 'error'))
+  }, [id])
+
+  useEffect(() => {
+    if (id) return
+    setSessionsLoading(true)
+    api.get('/erp/pot/sessions', {
+      params: {
+        filters: JSON.stringify([{ field: 'status', op: '=', value: 'Open' }])
+      }
+    })
+      .then(res => setOpenSessions(res.data as PosSession[]))
+      .catch(err => notify(err.response?.data?.detail || 'Failed to load sessions', 'error'))
+      .finally(() => setSessionsLoading(false))
   }, [id])
 
   useEffect(() => {
@@ -110,6 +128,23 @@ export default function PosView() {
     setPartyId(null)
     setAmountPaid('')
     setIsCreditMode(false)
+  }
+
+  const createSession = async () => {
+    setCreatingSession(true)
+    try {
+      const res = await api.post('/erp/pot/sessions', {
+        status: 'Open',
+        mode: 'sales',
+        doc_date: today()
+      })
+      const nextSession = res.data as PosSession
+      navigate(`/erp/pot/sessions/${nextSession.id}/pos`)
+    } catch (err: any) {
+      notify(err.response?.data?.detail || 'Failed to create session', 'error')
+    } finally {
+      setCreatingSession(false)
+    }
   }
 
   const charge = async () => {
@@ -163,6 +198,70 @@ export default function PosView() {
     } finally {
       setClosing(false)
     }
+  }
+
+  if (!id) {
+    return (
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Point of Sale</h1>
+            <p className="text-slate-500 mt-1">Open an existing register session or start a new one.</p>
+          </div>
+          <button
+            type="button"
+            onClick={createSession}
+            disabled={creatingSession}
+            className="inline-flex items-center justify-center px-5 py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+          >
+            {creatingSession ? 'Creating...' : 'New Session'}
+          </button>
+        </div>
+
+        {sessionsLoading ? (
+          <div className="h-56 flex items-center justify-center text-slate-400">
+            <Loader2 size={22} className="animate-spin mr-2" />
+            <span className="text-sm font-medium">Loading sessions...</span>
+          </div>
+        ) : openSessions.length === 0 ? (
+          <div className="min-h-64 rounded-2xl border border-dashed border-slate-300 bg-white flex items-center justify-center p-8">
+            <button
+              type="button"
+              onClick={createSession}
+              disabled={creatingSession}
+              className="px-5 py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+            >
+              {creatingSession ? 'Creating...' : 'New Session'}
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {openSessions.map(openSession => (
+              <div key={openSession.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="text-base font-bold text-slate-900 truncate">
+                      {openSession.number ?? `Session #${openSession.id}`}
+                    </h2>
+                    <p className="text-sm text-slate-500 mt-1">{openSession.doc_date ?? today()}</p>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold uppercase shrink-0">
+                    {openSession.mode ?? 'sales'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/erp/pot/sessions/${openSession.id}/pos`)}
+                  className="mt-5 w-full px-4 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors"
+                >
+                  Open
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
   }
 
   if (loading) {

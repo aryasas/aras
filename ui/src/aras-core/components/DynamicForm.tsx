@@ -178,6 +178,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const [workflowActions, setWorkflowActions] = useState<WorkflowAction[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [actionDialog, setActionDialog] = useState<{ action: ModelAction; inputData: Record<string, any> } | null>(null);
+  const [actionTokenDialog, setActionTokenDialog] = useState<{ title: string; token: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [childRows, setChildRows] = useState<Record<string, any[]>>({});
   const [resourceSubtitle, setResourceSubtitle] = useState<string | null>(parentResourceTitle ?? null);
@@ -669,11 +670,15 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       const cleanResource = cleanResourcePath(resource);
       const response = await api.post(`/${cleanResource}/${currentId}/action/${action.name}`, inputData ?? {});
       const result = response.data?.result?.data ?? response.data?.result ?? response.data;
+      const displayToken = result?.display_token ?? result?.token ?? result?.data?.display_token ?? result?.data?.token;
       if (result?.prefill_field && Array.isArray(result.rows)) {
         setChildRows(prev => ({
           ...prev,
           [result.prefill_field]: result.rows
         }));
+      }
+      if (displayToken) {
+        setActionTokenDialog({ title: action.label, token: String(displayToken) });
       }
       if (result?.redirect) {
         navigate(result.redirect);
@@ -969,6 +974,9 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   }
   if (!metadata) return null;
   const metadataTitle = vocabulary.get(metadata.title);
+  const resourceKey = cleanResourcePath(resource).split('/').pop()?.replace(/-/g, '_');
+  const metadataResourceKey = metadata.resource?.split('/').pop()?.replace(/-/g, '_');
+  const showWebPagePreview = (resourceKey === 'web_pages' || metadataResourceKey === 'web_pages') && Boolean(formData.slug);
 
   const renderField = (field: Field) => {
     if (!isFieldVisible(field)) return null;
@@ -1160,6 +1168,16 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
               <h2 className="text-xl font-bold text-slate-900">
                 {currentId != null ? `Edit ${metadataTitle}` : `New ${metadataTitle}`}
               </h2>
+              {showWebPagePreview && (
+                <button
+                  type="button"
+                  onClick={() => window.open(`/preview/${formData.slug}`, '_blank', 'noopener,noreferrer')}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-indigo-600"
+                  title="Preview page"
+                >
+                  <ArrowUpRight size={16} />
+                </button>
+              )}
               {formData.status && (
                 <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-md border border-indigo-100 uppercase tracking-widest">
                   {formData.status}
@@ -1528,6 +1546,54 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
               className="px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-colors disabled:opacity-50"
             >
               {actionDialog.action.label}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {actionTokenDialog && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+        <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">{actionTokenDialog.title}</h3>
+              <p className="mt-1 text-sm text-slate-500">Copy this token now. It may not be shown again.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActionTokenDialog(null)}
+              className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+              title="Close"
+            >
+              X
+            </button>
+          </div>
+          <pre className="mt-4 max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-slate-200 bg-slate-950 p-4 text-xs leading-relaxed text-slate-100">
+            {actionTokenDialog.token}
+          </pre>
+          <div className="mt-5 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setActionTokenDialog(null)}
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(actionTokenDialog.token);
+                  notify('Token copied', 'success');
+                } catch {
+                  notify('Could not copy token', 'error');
+                }
+              }}
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-indigo-700"
+            >
+              <Copy size={16} />
+              Copy
             </button>
           </div>
         </div>

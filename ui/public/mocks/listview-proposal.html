@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ListView Proposal - Agent Design</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg: #f6f7f4;
+    --panel: #ffffff;
+    --ink: #20231f;
+    --muted: #6d746a;
+    --line: #dfe4dc;
+    --green: #1f7a4d;
+    --blue: #2d5f91;
+    --amber: #9a6414;
+    --red: #a34033;
+    --soft: #eef2ea;
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .shell {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+  header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 22px;
+  }
+  h1 {
+    margin: 0;
+    font-size: 30px;
+    letter-spacing: 0;
+  }
+  .subhead {
+    color: var(--muted);
+    margin-top: 7px;
+    font-size: 14px;
+  }
+  .summary {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .metric {
+    min-width: 118px;
+    padding: 12px 14px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .metric strong {
+    display: block;
+    font-size: 18px;
+  }
+  .metric span {
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: 0 18px 50px rgba(39, 50, 34, 0.08);
+    overflow: hidden;
+  }
+  .toolbar {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto;
+    gap: 12px;
+    padding: 16px;
+    border-bottom: 1px solid var(--line);
+    background: #fbfcfa;
+  }
+  .left-tools,
+  .right-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .search {
+    min-width: 260px;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: white;
+  }
+  .search input {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    font: inherit;
+    color: var(--ink);
+  }
+  button {
+    border: 1px solid var(--line);
+    background: white;
+    color: var(--ink);
+    border-radius: 7px;
+    padding: 10px 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.primary {
+    border-color: #234c38;
+    background: #234c38;
+    color: white;
+  }
+  button:hover {
+    border-color: #aab5a4;
+  }
+  .bulk {
+    color: var(--muted);
+    background: var(--soft);
+  }
+  .table-wrap {
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 860px;
+  }
+  th {
+    background: #f4f6f2;
+    color: #596057;
+    text-align: left;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  th.sortable::after {
+    content: " ↆ";
+    color: #889382;
+    font-size: 13px;
+  }
+  td {
+    padding: 14px;
+    border-bottom: 1px solid #edf0ea;
+    vertical-align: middle;
+    font-size: 14px;
+  }
+  tbody tr:hover {
+    background: #fbfcfa;
+  }
+  .invoice {
+    font-weight: 800;
+  }
+  .customer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    display: grid;
+    place-items: center;
+    color: white;
+    font-size: 12px;
+    font-weight: 800;
+    background: #486451;
+  }
+  .amount {
+    text-align: right;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .badge::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .paid { color: var(--green); background: #e9f5ee; }
+  .draft { color: var(--blue); background: #e9f0f7; }
+  .overdue { color: var(--red); background: #f9ecea; }
+  .pending { color: var(--amber); background: #fbf0dd; }
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  .icon-btn {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+  }
+  .pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .pages {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pages button {
+    min-width: 36px;
+    padding: 8px 10px;
+  }
+  .pages .active {
+    background: #234c38;
+    color: white;
+    border-color: #234c38;
+  }
+  @media (max-width: 760px) {
+    header, .toolbar, .pager {
+      display: block;
+    }
+    .summary, .right-tools {
+      margin-top: 14px;
+    }
+    .search {
+      min-width: 100%;
+      margin-bottom: 8px;
+    }
+    .shell {
+      padding: 20px 12px;
+    }
+  }
+</style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <h1>Invoices</h1>
+        <div class="subhead">Receivables workspace with searchable records, bulk operations, and status tracking.</div>
+      </div>
+      <div class="summary" aria-label="Invoice summary">
+        <div class="metric"><strong>128</strong><span>Total records</span></div>
+        <div class="metric"><strong>$84.2k</strong><span>Open amount</span></div>
+        <div class="metric"><strong>9</strong><span>Overdue</span></div>
+      </div>
+    </header>
+
+    <section class="card" aria-label="Invoices table">
+      <div class="toolbar">
+        <div class="left-tools">
+          <label class="search">
+            <span aria-hidden="true">⌕</span>
+            <input id="search" type="search" placeholder="Search invoices, customers, amounts..." />
+          </label>
+          <button type="button">Filter</button>
+          <button type="button">Columns</button>
+        </div>
+        <div class="right-tools">
+          <button type="button" class="bulk">Bulk actions</button>
+          <button type="button" class="primary">New invoice</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th><input type="checkbox" aria-label="Select all invoices" /></th>
+              <th class="sortable">#</th>
+              <th class="sortable">Date</th>
+              <th class="sortable">Customer</th>
+              <th class="sortable amount">Amount</th>
+              <th>Status</th>
+              <th class="amount">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rows">
+            <tr>
+              <td><input type="checkbox" aria-label="Select INV-1048" /></td>
+              <td class="invoice">INV-1048</td>
+              <td>May 18, 2026</td>
+              <td><div class="customer"><span class="avatar">NV</span>Northvale Studio</div></td>
+              <td class="amount">$12,840.00</td>
+              <td><span class="badge paid">Paid</span></td>
+              <td><div class="actions"><button class="icon-btn" title="Edit">✎</button><button class="icon-btn" title="Delete">×</button></div></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" aria-label="Select INV-1047" /></td>
+              <td class="invoice">INV-1047</td>
+              <td>May 17, 2026</td>
+              <td><div class="customer"><span class="avatar">AC</span>Atlas Collective</div></td>
+              <td class="amount">$7,420.00</td>
+              <td><span class="badge pending">Pending</span></td>
+              <td><div class="actions"><button class="icon-btn" title="Edit">✎</button><button class="icon-btn" title="Delete">×</button></div></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" aria-label="Select INV-1046" /></td>
+              <td class="invoice">INV-1046</td>
+              <td>May 14, 2026</td>
+              <td><div class="customer"><span class="avatar">BR</span>Bright River Foods</div></td>
+              <td class="amount">$3,190.50</td>
+              <td><span class="badge overdue">Overdue</span></td>
+              <td><div class="actions"><button class="icon-btn" title="Edit">✎</button><button class="icon-btn" title="Delete">×</button></div></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" aria-label="Select INV-1045" /></td>
+              <td class="invoice">INV-1045</td>
+              <td>May 12, 2026</td>
+              <td><div class="customer"><span class="avatar">LS</span>Lumen Square</div></td>
+              <td class="amount">$18,760.00</td>
+              <td><span class="badge draft">Draft</span></td>
+              <td><div class="actions"><button class="icon-btn" title="Edit">✎</button><button class="icon-btn" title="Delete">×</button></div></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" aria-label="Select INV-1044" /></td>
+              <td class="invoice">INV-1044</td>
+              <td>May 09, 2026</td>
+              <td><div class="customer"><span class="avatar">KE</span>Kestral Energy</div></td>
+              <td class="amount">$5,635.25</td>
+              <td><span class="badge paid">Paid</span></td>
+              <td><div class="actions"><button class="icon-btn" title="Edit">✎</button><button class="icon-btn" title="Delete">×</button></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <div>Showing 1-5 of 128 invoices</div>
+        <div class="pages" aria-label="Pagination">
+          <button type="button">Prev</button>
+          <button type="button" class="active">1</button>
+          <button type="button">2</button>
+          <button type="button">3</button>
+          <button type="button">Next</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const search = document.getElementById('search');
+    const rows = Array.from(document.querySelectorAll('#rows tr'));
+    search.addEventListener('input', () => {
+      const query = search.value.toLowerCase();
+      rows.forEach((row) => {
+        row.style.display = row.textContent.toLowerCase().includes(query) ? '' : 'none';
+      });
+    });
+  </script>
+</body>
+</html>

@@ -60,12 +60,46 @@ def get_license_payload() -> Dict:
     _license_cache["payload"] = payload
     _license_cache["verified"] = True
 
+    # Attempt renewal if approaching expiry (after caching — runs async-ish, next request picks up new token)
+    renew_license_if_needed(token)
+
     logger.info(
         f"Instance license verified for tenant '{payload.get('sub')}'. "
         f"Expires in {days_until_expiry(token)} days."
     )
 
     return payload
+
+
+def renew_license_if_needed(token: str):
+    import httpx
+    
+    days = days_until_expiry(token)
+    if days is not None and 0 <= days <= 7:
+        control_plane_url = os.getenv("ARAS_CONTROL_PLANE_URL", "http://localhost:8000")
+        try:
+            payload = verify_license_token(token)
+            tenant_id = payload.get("sub") if payload else "unknown"
+            
+            with httpx.Client() as client:
+                res = client.post(
+                    f"{control_plane_url}/api/v1/saas/license/renew",
+                    json={"tenant_id": tenant_id, "current_token": token},
+                    timeout=5.0
+                )
+                if res.status_code == 200:
+                    new_token = res.json().get("token")
+                    if new_token:
+                        with open(LICENSE_PATH, "w") as f:
+                            f.write(new_token)
+                        _license_cache["verified"] = False
+                        _license_cache["token"] = None
+                        _license_cache["payload"] = None
+                        logger.info("License automatically renewed successfully.")
+                else:
+                    logger.warning(f"Failed to auto-renew license: {res.text}")
+        except Exception as e:
+            logger.warning(f"Failed to auto-renew license (network/error): {e}")
 
 
 # Alias for clarity in router dependencies

@@ -16,6 +16,7 @@ const ResetPassword = lazy(() => import('./views/ResetPassword'))
 const MainLayout = lazy(() => import('./layouts/MainLayout'))
 const HomeView = lazy(() => import('./views/Home'))
 const SettingsView = lazy(() => import('./views/Settings'))
+const DashboardSettingsView = lazy(() => import('./views/DashboardSettings'))
 const ProfileView = lazy(() => import('./views/Profile'))
 const DynamicView = lazy(() => import('./views/DynamicView'))
 const ReportCenterView = lazy(() => import('./views/ReportCenter'))
@@ -26,6 +27,9 @@ const AuditLogsView = lazy(() => import('./views/AuditLogs'))
 const RBACManagerView = lazy(() => import('./views/RBACManager'))
 const ErpUserAccess = lazy(() => import('./views/ErpUserAccess'))
 const GlobalSettingsView = lazy(() => import('./views/GlobalSettings'))
+const LicenseStatusView = lazy(() => import('./views/LicenseStatus'))
+const WebPageView = lazy(() => import('./views/WebPageView'))
+const ContactView = lazy(() => import('./views/ContactView'))
 const InspectRoutesView = lazy(() => import('./views/InspectRoutes'))
 const HealthIntegrityView = lazy(() => import('./views/HealthIntegrity'))
 const ArchivedView = lazy(() => import('./views/ArchivedView'))
@@ -121,6 +125,8 @@ function App() {
         />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/p/:slug" element={<WebPageView />} />
+        <Route path="/contact" element={<ContactView />} />
 
         {/* Authenticated Routes with MainLayout */}
         <Route 
@@ -136,9 +142,12 @@ function App() {
           <Route index element={<HomeView />} />
           <Route path="dashboard" element={<HomeView />} />
           <Route path="settings" element={<SettingsView />} />
+          <Route path="settings/dashboard" element={<DashboardSettingsView />} />
           <Route path="settings/global" element={<GlobalSettingsView />} />
           <Route path="settings/audit" element={<AuditLogsView />} />
           <Route path="settings/rbac" element={<RBACManagerView />} />
+          <Route path="admin/license" element={<LicenseStatusView />} />
+          <Route path="preview/:slug" element={<WebPageView />} />
           <Route path="erp/config/user-access" element={<ErpUserAccess />} />
           <Route path="dev" element={<DevToolsView />} />
           <Route path="dev/health" element={<HealthIntegrityView />} />
@@ -152,6 +161,7 @@ function App() {
           <Route path="profile" element={<ProfileView />} />
           <Route path="reports" element={<ReportCenterView />} />
           <Route path="archive/*" element={<ArchivedView />} />
+          <Route path="erp/pot/pos" element={<PosView />} />
           <Route path="erp/pot/sessions/:id/pos" element={<PosView />} />
           
           <Route path=":segment1/*" element={<SmartDispatcher />} />

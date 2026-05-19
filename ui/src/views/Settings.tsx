@@ -1,16 +1,22 @@
 import React from 'react'
-import { Settings as SettingsIcon, Shield, Globe, Package, Terminal, History, Paintbrush } from 'lucide-react'
+import { Settings as SettingsIcon, Shield, Globe, Package, Terminal, History, Paintbrush, Server, Key, LayoutDashboard } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useAuthStore } from '../store/authStore'
 
 function Settings() {
+  const user = useAuthStore((s) => s.user)
   const sections: { id: string; label: string; icon: React.ReactNode; description: string; path: string; external?: boolean }[] = [
     { id: 'apps', label: 'App Manager', icon: <Package size={20} />, description: 'Install, update, and manage framework extensions.', path: '/apps' },
+    { id: 'tenants', label: 'Tenant Management', icon: <Server size={20} />, description: 'Provision and manage client databases.', path: '/admin/tenants' },
+    { id: 'license', label: 'License', icon: <Key size={20} />, description: 'Instance license status and activation.', path: '/admin/license' },
+    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} />, description: 'Manage dashboard widgets and user layout preferences.', path: '/settings/dashboard' },
     { id: 'devtools', label: 'Developer Tools', icon: <Terminal size={20} />, description: 'System inspection, metadata sync, and database stats.', path: '/dev' },
     { id: 'global', label: 'Global Preferences', icon: <Globe size={20} />, description: 'Date/Number formats, localization, and system constraints.', path: '/settings/global' },
     { id: 'security', label: 'Security & Auth', icon: <Shield size={20} />, description: 'Password policies, roles, and session management.', path: '/settings/rbac' },
     { id: 'audit', label: 'Activity Audit Trail', icon: <History size={20} />, description: 'System changes and user activity logs.', path: '/settings/audit' },
     { id: 'mocks', label: 'UI Mocks', icon: <Paintbrush size={20} />, description: 'Design proposals and UI mockups for review.', path: '/mocks/', external: true },
   ]
+  const visibleSections = sections.filter(s => !['tenants', 'license', 'dashboard'].includes(s.id) || user?.is_admin)
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -26,7 +32,7 @@ function Settings() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sections.map(section => {
+        {visibleSections.map(section => {
           const cardContent = (
             <div className="flex items-start gap-4">
               <div className="p-4 bg-slate-50 rounded-2xl group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors text-slate-400">

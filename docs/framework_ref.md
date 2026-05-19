@@ -131,6 +131,9 @@ All routes prefixed `/api/v1/`.
 | `/api/v1/files/...` | * | File upload/download |
 | `/api/v1/workflow/...` | * | Workflow transitions |
 | `/api/v1/auth/token` | POST | JWT login (form-encoded: `username`, `password`) |
+| `/api/v1/license/status` | GET | Public, returns {valid, tenant_id, days_remaining, expired} |
+| `/api/v1/license/activate` | POST | Admin only, writes token to data/license.jwt |
+| `/api/v1/saas/license/renew` | POST | Public (instance→hub), validates current_token then issues new one |
 | `/api/v1/tenants` | GET/POST | List / provision tenants (admin only) |
 | `/api/v1/tenants/{id}/seed` | POST | Seed a provisioned tenant (admin only) |
 | `/api/v1/tenants/{id}` | DELETE | Deprovision tenant (admin only) |
@@ -337,6 +340,17 @@ class MyApp(Aras.App):
 | `asset` | `asset` | AssetCategory, Asset |
 | `pot` | `pot` | PotTerminal, PotSession, PotOrder, PotOrderLine |
 | `report` | `erp_report` | Report |
+
+---
+
+## Standard Apps
+
+| Path | `app_name` | Key models |
+|---|---|---|
+| `apps/saas/` | `saas` | Plan, Subscription, LicenseToken, ActivationRequest |
+| `apps/web/` | `web` | WebPage, WebMenuItem, ContactSubmission, SiteSetting |
+
+---
 
 ERP abstract bases (`api/apps/erp/base/`):
 

@@ -290,3 +290,24 @@ This file is used only to report if there are feature added
 
 ## Tenant Admin UI (2026-05-19)
   - [Gemini 2.5 Flash] Added TenantAdmin view to manage multi-tenant dbs. Added POS receipt panel for completed orders.
+
+
+## Phase 2 polish — tenant menu entry, POS session open flow (2026-05-19)
+  - [GPT (codex)] Tenant Management settings entry for admins; POS no-session picker with open-session cards, new-session creation, and /erp/pot/pos route
+
+
+## Phase 4 — License enforcement + apps/saas/ MVP (2026-05-19)
+  - [GPT (codex)] License status/admin activation page, /admin/license route, Settings license entry, copyable token modal for model action responses
+
+
+## Phase 4 — License enforcement + apps/saas/ MVP — revision (2026-05-19)
+  - [GPT (codex)] CMS preview/public page routes, public contact form route, WebPage preview button in DynamicForm
+
+## Docs Sync & SaaS Roadmap (2026-05-19)
+- [Gemini 2.5 Flash] Synced `docs/aras.md` with app registration requirements and endpoint patterns.
+- [Gemini 2.5 Flash] Merged `docs/saasplan.md` into `docs/plan.md` and marked completed phases.
+- [Gemini 2.5 Flash] Created `tools/sync_reports.py` for docs/reports.json → DB synchronization.
+
+
+## Docs sync, plan merge, reports sync, dev tools review, mock design proposals — revision (2026-05-19)
+  - [GPT (codex)] Dashboard settings section and route; standalone ListView and FormView mock proposals; mock index entries

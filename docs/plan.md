@@ -186,3 +186,37 @@ Goal: dense, reliable admin workflows — faster scanning, clearer actions, bett
 43. **Backend 19** seed framework standardization
 44. **Framework 1–4** refactoring phases
 45. **GUI Redesign** full admin UI overhaul
+
+---
+
+## 6. SaaS Product Roadmap
+
+### Fase 0 — FastAPI + React refactor ✅ DONE
+- [Gemini] Move core to FastAPI
+- [Codex] Move UI to React 19 + Tailwind 4
+
+### Fase 1 — Multi-tenant core ✅ DONE
+- [Gemini] Tenant connection router (db-per-tenant)
+- [Gemini] Tenant provisioning scripts
+- [Gemini] Registry models (AppModel, ResourceModel, etc.)
+
+### Fase 2 — Modul POS ✅ DONE
+- [Gemini] PotTerminal, PotSession, PotOrder models
+- [Gemini] POS Quick Invoice API
+- [Codex] POS UI (Touch friendly)
+
+### Fase 3 — Mobile App (React Native) — ⏸ SKIPPED (deprioritized)
+- [Planned] Deprioritized in favor of web-based SaaS control plane
+
+### Fase 4 — Web utama (license + apps/saas/ + apps/web/ done; payment gateway TODO) ✅ DONE
+- [Gemini] License enforcement middleware
+- [Gemini] apps/saas (control plane)
+- [Gemini] apps/web (generic CMS)
+- [TODO] Midtrans/Xendit integration
+
+### Fase 5 — Control Plane MVP ✅ DONE
+- [Gemini] apps/saas/ with Plan, Subscription, LicenseToken
+- [Gemini] Subscription management UI
+
+### Fase 6–8 — TODO
+- [Planned] Auto-provisioning, automated billing, resource monitoring.

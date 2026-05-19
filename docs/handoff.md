@@ -1,168 +1,233 @@
+---
+
 > Written by: Claude Code (claude-sonnet-4-6)
+> run_id: 19
 > Date: 2026-05-19
-> Feature: POS fixes + Tenant Admin UI
+> Feature: Docs sync, plan merge, reports sync, dev tools review, mock design proposals
 
 ---
 
 ## Context
 
-Fase 1 (multi-tenant core) is fully implemented — `core/tenant/router.py`, `registry.py`, `provisioner.py`, and `/api/v1/tenants` API all exist. Fase 2 (POS) has two backend bugs blocking the shift report, plus two missing pieces for SaaS readiness: tenant management admin page and POS receipt modal.
+Multiple maintenance tasks across docs, tooling, and UI mockups. No model or API changes. No breaking changes.
+
+Current state:
+- `docs/aras.md` and `docs/framework_ref.md` are stale — missing `apps/web/`, `apps/saas/`, the `views.py` + `autodiscover_models` requirement, public endpoint pattern, and display_token action response pattern
+- `docs/saasplan.md` and `docs/plan.md` are separate — need merging with phase completion status
+- `docs/reports.json` is manually maintained by Claude; `dev_handoff_runs` DB table is populated by `multi_agent.py`. They are out of sync — reports.json has 43 entries, DB has fewer (API was offline during most direct-code runs)
+- `/dev` route in the UI has accumulated tools that may belong in Settings instead
+- `ui/public/mocks/` has 5 existing design proposals — agents should add new free-design proposals for ListView and FormView without deleting anything
 
 ---
 
-## Backend Tasks
+## Backend Tasks (Gemini)
 
-### B1: Fix PotService stale imports + SQLAlchemy 2.0 compat
-UPDATE `api/apps/erp/pot/services/pot.py` — the file currently has two import blocks at the top. The first block (lines 1–6) imports non-existent names `PosSession, PosOrder, PosOrderLine, PosPaymentLine, PosTerminal` (old naming). Remove the first block entirely. Keep only the second import block. Then replace all deprecated `db.query(X).get(id)` calls with `db.get(X, id)` throughout the file — affects `get_pot_products`, `process_order`, `open_session`, `close_session`, `get_shift_report`.
+### B1: Sync docs/aras.md
 
-Also fix `get_shift_report` — it calls `session.orders` but that relationship is commented out on PotSession (line 30 of models.py). Replace with an explicit query:
-```python
-orders = db.query(PotOrder).filter(PotOrder.session_id == session_id).all()
-```
-Use this `orders` list instead of `session.orders` everywhere in `get_shift_report`. `order.payments` is fine — that relationship is defined on `PotOrder`.
+UPDATE `docs/aras.md` — append or update the following sections. Do NOT rewrite sections that are already accurate. Only add what's missing.
 
-### B2: Restore PotSession.orders relationship
-UPDATE `api/apps/erp/pot/models.py` — uncomment line 30:
-```python
-orders: Mapped[list["PotOrder"]] = relationship("PotOrder", back_populates="session", cascade="all, delete-orphan")
+**Add to App Structure section** (or create if missing):
+
 ```
-Also add `back_populates="session"` to `PotOrder.session` (currently missing it):
-```python
-session: Mapped["PotSession"] = relationship("PotSession", back_populates="orders")
+### App Registration Requirements (required for all apps)
+
+Every app needs three things to have visible resources in the UI:
+
+1. **views.py** — `Aras.View` subclass per model:
+   ```python
+   class WebPageView(Aras.View):
+       model = WebPage
+       title = "Pages"
+       icon = "pi pi-file"
+   ```
+
+2. **app.py** — must import views (side-effect) and call `autodiscover_models`:
+   ```python
+   from core.logic.discovery import autodiscover_models
+   from .models import *
+   from . import views  # triggers View registration
+   
+   class WebApp(App):
+       models = autodiscover_models(__name__, ["models"])
+   ```
+   Without `models = autodiscover_models(...)`, `cls.models` is empty and `get_menu_structure()` returns nothing.
+
+3. **sync** — after adding a new app, run `python manage.py sync` to populate AppModel/ResourceModel/FieldModel in DB.
 ```
+
+**Add to Model Actions section** (or create if missing):
+
+```
+### display_token response pattern
+If a model action returns `ok({"display_token": token}, message="...")`, the frontend DynamicForm
+automatically shows a copyable modal with the token. Use this for any action that generates a secret
+the user must copy once (license tokens, API keys, one-time passwords).
+```
+
+**Add to Endpoint Patterns section** (or create if missing):
+
+```
+### Public endpoints (no auth)
+Routers mounted via `App.routers = [router]` do NOT get auth by default. To add a public
+endpoint (no JWT required), simply define the route without `Depends(get_current_user)`:
+
+```python
+router = APIRouter(prefix="/web", tags=["Web"])
+
+@router.get("/pages/{slug}")
+def get_page(slug: str, db: Session = Depends(get_db)):
+    ...
+```
+
+This pattern is used by `apps/web/` for public CMS endpoints.
+```
+
+### B2: Sync docs/framework_ref.md
+
+UPDATE `docs/framework_ref.md` — add missing entries to the relevant tables. Do NOT rewrite existing entries. Grep the file first to understand its structure, then append only what's missing.
+
+Add to the Apps table:
+- `apps/saas/` — SaaS control plane. Models: Plan, Subscription, LicenseToken, ActivationRequest. Custom router: POST /saas/license/renew (public, validates current token then issues new one).
+- `apps/web/` — Generic CMS. Models: WebPage, WebMenuItem, ContactSubmission, SiteSetting. Custom public endpoints: GET /web/pages/{slug}, GET /web/menu/{location}, GET /web/settings, POST /web/contact.
+
+Add to the Core Endpoints table (or create if missing):
+- `GET /api/v1/license/status` — public, returns {valid, tenant_id, days_remaining, expired}
+- `POST /api/v1/license/activate` — admin only, writes token to data/license.jwt
+- `POST /api/v1/saas/license/renew` — public (instance→hub), validates current_token then issues new one
+
+### B3: Merge docs/plan.md + docs/saasplan.md
+
+MERGE `docs/saasplan.md` INTO `docs/plan.md`. Rules:
+- Keep ALL content from plan.md (the big backlog table)
+- Extract the SaaS roadmap phases from saasplan.md and add them as a new section `## 6. SaaS Product Roadmap` at the end of plan.md
+- Mark completed phases with ✅ DONE:
+  - Fase 0 — FastAPI + React refactor ✅ DONE
+  - Fase 1 — Multi-tenant core ✅ DONE
+  - Fase 2 — Modul POS ✅ DONE
+  - Fase 3 — Mobile App (React Native) — ⏸ SKIPPED (deprioritized)
+  - Fase 4 — Web utama (license + apps/saas/ + apps/web/ done; payment gateway TODO)
+  - Fase 5 — Control Plane MVP ✅ DONE (apps/saas/ with Plan, Subscription, LicenseToken)
+  - Fase 6–8 — TODO
+- After merging, DELETE `docs/saasplan.md` (content is preserved in plan.md)
+- Do NOT delete `docs/saasprompt.md`
+
+### B4: Sync reports.json → DB
+
+NEW FILE `tools/sync_reports.py` — one-time script to import `docs/reports.json` entries into `dev_handoff_runs` DB table.
+
+Logic:
+- Read `docs/reports.json`
+- For each entry, check if a `HandoffRun` with matching `feature` already exists in DB (GET /api/v1/dev/dev_handoff_runs?search=feature)
+- If not found, POST to `http://localhost:8000/api/v1/dev/dev_handoff_runs` with:
+  - `feature` = entry.feature
+  - `mode` = "full" (if both backend+frontend non-null) else "backend-only" or "frontend-only"
+  - `status` = "success" (all entries in reports.json are APPROVED)
+  - `run_date` = entry.date + "T00:00:00Z"
+  - `backend_files` = entry.backend.files_written (if backend non-null)
+  - `frontend_files` = entry.frontend.files_written (if frontend non-null)
+  - `claude_verdict` = entry.verdict
+  - `revision_count` = entry.revision_count
+  - `author` = "Claude Code"
+  - `notes` = "Imported from docs/reports.json"
+- Print: imported N, skipped M (already exist)
+
+Usage: `python tools/sync_reports.py` — requires API running on localhost:8000. Read `tools/multi_agent.py` lines 1–50 to understand how it gets an auth token (`_get_token()`), reuse the same pattern.
 
 ---
 
-## Frontend Tasks
+## Frontend Tasks (GPT/Codex)
 
-### F1: Tenant Admin page
-NEW FILE `ui/src/views/TenantAdmin.tsx` — admin-only page mounted at `/admin/tenants`.
+### F1: Dev Tools audit — restructure what belongs where
 
-**Section 1 — Provision New Tenant** (card):
-- Form: `tenant_id` (text input, required, slug hint), `db_name` (text input, optional, placeholder `aras_tenant_{tenant_id}`)
-- "Provision" button → POST `/api/v1/tenants/provision` → on success notify + refresh list; on error show inline error message
+READ `ui/src/views/DevToolsView.tsx` (and related dev views) and `ui/src/views/Settings.tsx`. Produce a restructuring:
 
-**Section 2 — Active Tenants** (table):
-Columns: Tenant ID | DB Name | Actions
-- Fetch GET `/api/v1/tenants` → `data.data[]`
-- Row actions: "Seed" → POST `/api/v1/tenants/{id}/seed` with `window.confirm` first; "Remove" → DELETE `/api/v1/tenants/{id}` with `window.confirm` first
-- Empty state: "No tenants provisioned yet"
+Move these OUT of /dev and INTO /settings (as new sub-sections):
+- **Dashboard Widgets** (widget type/config management) → Settings > Dashboard
+- **User Dashboard Layout** (per-user layout editing) → Settings > Dashboard
+- These are end-user/operator features, not developer tools
 
-Use `useAras()` for `api` and `notify`. Check `user.is_admin` — redirect to `/` if not admin. Register route and lazy import in `ui/src/App.tsx` (add `<Route path="admin/tenants" element={<TenantAdmin />} />`).
+Keep in /dev (developer-only tools):
+- Health & Integrity checks
+- Schema/metadata inspector
+- Route inspector
+- Handoff runs viewer
+- Metadata flush
 
-### F2: POS receipt panel after charge
-UPDATE `ui/src/views/PosView.tsx` — after a successful `quick_invoice` response, set receipt state instead of calling `clearCart()` immediately.
+Implement the moves:
+1. Add "Dashboard" section to `ui/src/views/Settings.tsx` sections list pointing to `/settings/dashboard` (admin only)
+2. If widget/layout management views exist as components inside DevToolsView, extract them into `ui/src/views/DashboardSettings.tsx` — simple page with links/panels for widget config and layout editing
+3. Update `/dev` to remove the moved items
+4. Register `/settings/dashboard` in `App.tsx`
 
-Add state:
-```tsx
-const [receipt, setReceipt] = useState<(QuickInvoiceResult & { items: CartLine[] }) | null>(null)
-```
+### F2: New mockups — free design, no reference
 
-On successful charge: `setReceipt({ ...result, items: [...cart] })` — do NOT call `clearCart()` yet.
+Create TWO new HTML files in `ui/public/mocks/`. These are pure design proposals — no code, no framework constraints. Agents should design what they think looks best for a data-heavy admin interface without looking at the existing Aras UI.
 
-Show receipt panel (replaces the charge section in the right column when `receipt != null`):
-- Invoice number (large, bold)
-- Item rows: `item.name | qty × formatCurrency(price) | line total`
-- Divider, Subtotal row
-- If not credit mode: "Paid" + "Change" rows
-- If credit mode: badge "Credit — AR/AP created"
-- Print button → `window.print()` (add `print:block` on receipt, `print:hidden` on item grid)
-- "New Transaction" button → `setReceipt(null); clearCart()`
+**File 1: `ui/public/mocks/listview-proposal.html`**
+Design a ListView / data table for an admin app. Requirements:
+- Shows a list of records (use "Invoices" as example data — columns: #, Date, Customer, Amount, Status)
+- Toolbar with: search, filter button, column picker, new button, bulk actions
+- Rows: checkbox, sortable columns, status badge, row actions (edit/delete)
+- Pagination
+- Must work without any external dependencies (pure HTML + inline CSS + vanilla JS if needed)
+- Design should be your own — no reference to current Aras UI
 
-## Claude Review
-APPROVED
+**File 2: `ui/public/mocks/formview-proposal.html`**
+Design a Form / Detail view for a single record. Requirements:
+- Shows an "Invoice" with header fields (number, date, customer, status) and a line items table
+- Tabs or sections for: Details, Line Items, Notes, Activity
+- Action buttons: Save, Post, Print
+- Must work without any external dependencies
+- Design should be your own — no reference to current Aras UI
+
+### F3: Update mocks index
+
+UPDATE `ui/public/mocks/index.html` — add two new card entries for the files created in F2:
+- "ListView Proposal — Agent Design" → `listview-proposal.html`
+- "FormView Proposal — Agent Design" → `formview-proposal.html`
+
+Do NOT delete or modify any existing cards.
 
 ---
 
 ## Agent Reports
-
-### Backend (Gemini)
-- files_written: api/apps/erp/pot/services/pot.py, api/apps/erp/pot/models.py
-- features_added: PotSession.orders relationship restored with back_populates on both sides
-- fixes_applied: Removed stale PosSession import block; replaced db.query().get() with db.get(); get_shift_report and close_session use explicit PotOrder queries
-- framework_changes: none
-- issues: none
-
-### Frontend (Gemini)
-- files_written: ui/src/views/TenantAdmin.tsx, ui/src/views/PosView.tsx, ui/src/App.tsx
-- features_added: TenantAdmin page at /admin/tenants (list/provision/seed/deprovision); POS receipt panel; /admin/tenants route + lazy import
+### Backend (Gemini (gemini-2.5-flash))
+- files_written: docs/aras.md, docs/framework_ref.md, docs/plan.md, tools/sync_reports.py
+- features_added: Framework documentation sync (app registration, public endpoints), SaaS Roadmap merge into plan.md, sync_reports.py tool.
 - fixes_applied: none
 - framework_changes: none
-- issues: PosView.tsx had structural corruption — receipt state undeclared, orphaned JSX block outside component close, dangling )} in JSX
+- issues: none
 
 ## Claude Review
-- verdict: NEEDS-FIX (fixed inline)
-- reviewed_by: Claude Sonnet 4.6
+- verdict: APPROVED
+- reviewed_by: Claude Code
 - date: 2026-05-19
+- notes: All 7 tasks complete. aras.md/framework_ref.md patched cleanly. plan.md merged, saasplan.md deleted. sync_reports.py correct auth pattern. DashboardSettings.tsx correct (dashboard items were never in DevTools so nothing to remove). Both mockups 370+ lines. Index updated.
 
-## Revision Tasks (completed inline)
-- [x] PosView.tsx: added `receipt` useState declaration (type: QuickInvoiceResult & items/paid/change/isCredit/mode)
-- [x] PosView.tsx: replaced dangling `)}` before `</aside>` with full receipt panel JSX (invoice number, item rows, totals, credit badge, Print + New Transaction buttons)
-- [x] PosView.tsx: removed orphaned JSX block (lines 437–505) that appeared after component closing brace
 
 ---
+## Agent Reports (revision (2026-05-19))
 
-## Next Task: Remove dead PotOrder models
-
-> Written by: Claude Code (claude-sonnet-4-6)
-> Date: 2026-05-19
-> Feature: PotOrder cleanup
-
-## Context
-
-POS flow creates invoices directly (`quick_invoice` → InflowInvoice/OutflowInvoice with `pos_session_id`). PotSession computed fields (`total_sales`, `total_purchase`, `invoice_count`, `payment_summary`) already aggregate from invoices. PotOrder/PotOrderLine/PotPaymentLine serve no purpose in the current architecture and should be removed.
-
-## Backend Tasks
-
-### B1: Delete dead models + service methods
-DELETE `PotOrder`, `PotOrderLine`, `PotPaymentLine` from `api/apps/erp/pot/models.py`.
-Remove their imports and the `PotSession.orders` relationship (there are no orders anymore).
-Remove `PotPaymentLine` import from the top of the file.
-
-UPDATE `api/apps/erp/pot/services/pot.py` — remove `process_order`, `open_session`, `close_session`, `get_shift_report`, and `get_pot_products` methods entirely. Remove `PotOrder, PotOrderLine, PotPaymentLine, PotTerminal` from imports (keep only `PotSession`). Remove `ModeOfPayment` import. The class can be empty or deleted if no methods remain.
-
-UPDATE `api/apps/erp/pot/views.py` — remove `PotOrderView` and `PotOrderLineView` classes and their imports.
-
-`shift_report` model action on `PotSession` calls `PotService.get_shift_report`. Rewrite it to use the computed fields that already exist on the session:
-```python
-@Aras.model_action(name="shift_report", permission="read", label="Shift Report")
-def shift_report(self, db):
-    from sqlalchemy.orm import object_session
-    s = object_session(self)
-    return ok({
-        "session_id": self.id,
-        "session_number": self.number,
-        "status": self.status,
-        "total_sales": self.total_sales,
-        "total_purchase": self.total_purchase,
-        "invoice_count": self.invoice_count,
-        "payment_summary": self.payment_summary,
-        "opening_balance": float(self.opening_balance or 0),
-        "closing_balance": float(self.closing_balance or 0),
-    }, message="Shift Report")
-```
-
-After changes run `cd api && python manage.py sync` — auto_migrate will NOT drop the old tables (drop is manual), but the models will be unregistered from the UI.
-
----
-
-## Agent Reports
-
-### Backend (Gemini)
-- files_written: api/apps/erp/pot/models.py, api/apps/erp/pot/services/pot.py, api/apps/erp/pot/views.py, api/apps/erp/pot/app.py
+### Backend (Gemini (gemini-2.5-flash))
+- files_written: none
 - features_added: none
-- fixes_applied: Removed dead PotOrder, PotOrderLine, and PotPaymentLine models, views, and service methods. Rewrote shift_report model action on PotSession to use computed fields. Removed removed models from pot/app.py and re-synced metadata.
+- fixes_applied: none
 - framework_changes: none
 - issues: none
 
-## Gemini Review
-- verdict: APPROVED
-- reviewed_by: Gemini
-- date: 2026-05-19
-
+### Frontend (GPT (codex))
+- files_written: ui/src/views/Settings.tsx, ui/src/views/DashboardSettings.tsx, ui/src/App.tsx, ui/public/mocks/listview-proposal.html, ui/public/mocks/formview-proposal.html, ui/public/mocks/index.html
+- features_added: Dashboard settings section and route; standalone ListView and FormView mock proposals; mock index entries
+- fixes_applied: none
+- framework_changes: none
+- issues: none
 
 ## Claude Review
-- verdict: APPROVED
-- reviewed_by: Claude Sonnet 4.6
-- date: 2026-05-19
-- notes: PotOrder/PotOrderLine/PotPaymentLine removed. PotService is empty stub (pass). shift_report uses computed fields. PotOrderView/PotOrderLineView gone. Files verified.
+- verdict: <!-- APPROVED / NEEDS-FIX -->
+- reviewed_by: Claude Code
+- date: <!-- fill -->
+- notes: <!-- none or describe -->
+
+## Revision Tasks
+<!-- If verdict is NEEDS-FIX, list tasks here then re-run multi_agent.py -->
+<!-- Delete this section if APPROVED -->
