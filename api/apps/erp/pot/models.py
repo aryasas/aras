@@ -27,24 +27,8 @@ class PotSession(DocumentBase):
     closing_balance: Mapped[float] = mapped_column(Float, default=0)
     mode: Mapped[str] = mapped_column(String(20), default="sales", info={"choices": ["sales", "purchase", "both"]})
 
-    # orders: Mapped[list["PotOrder"]] = relationship("PotOrder", back_populates="session", cascade="all, delete-orphan")
-
     @Aras.computed_field
     def total_sales(self) -> float:
-        from ..accounting.models import OutflowInvoice, OutflowInvoiceLine
-        from sqlalchemy import func, select
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
-        if not db: return 0.0
-        stmt = (
-            select(func.sum(OutflowInvoiceLine.qty * (OutflowInvoiceLine.unit_price - OutflowInvoiceLine.discount)))
-            .join(OutflowInvoice, OutflowInvoiceLine.invoice_id == OutflowInvoice.id)
-            .where(OutflowInvoice.pos_session_id == self.id)
-        )
-        return db.scalar(stmt) or 0.0
-
-    @Aras.computed_field
-    def total_purchase(self) -> float:
         from ..accounting.models import InflowInvoice, InflowInvoiceLine
         from sqlalchemy import func, select
         from sqlalchemy.orm import object_session
@@ -54,6 +38,20 @@ class PotSession(DocumentBase):
             select(func.sum(InflowInvoiceLine.qty * (InflowInvoiceLine.unit_price - InflowInvoiceLine.discount)))
             .join(InflowInvoice, InflowInvoiceLine.invoice_id == InflowInvoice.id)
             .where(InflowInvoice.pos_session_id == self.id)
+        )
+        return db.scalar(stmt) or 0.0
+
+    @Aras.computed_field
+    def total_purchase(self) -> float:
+        from ..accounting.models import OutflowInvoice, OutflowInvoiceLine
+        from sqlalchemy import func, select
+        from sqlalchemy.orm import object_session
+        db = object_session(self)
+        if not db: return 0.0
+        stmt = (
+            select(func.sum(OutflowInvoiceLine.qty * (OutflowInvoiceLine.unit_price - OutflowInvoiceLine.discount)))
+            .join(OutflowInvoice, OutflowInvoiceLine.invoice_id == OutflowInvoice.id)
+            .where(OutflowInvoice.pos_session_id == self.id)
         )
         return db.scalar(stmt) or 0.0
 
@@ -112,47 +110,16 @@ class PotSession(DocumentBase):
 
     @Aras.model_action(name="shift_report", permission="read", label="Shift Report")
     def shift_report(self, db):
-        from .services.pot import PotService
-        report_data = PotService.get_shift_report(db, self.id)
-        return ok(report_data, message="Shift Report retrieved successfully.")
-
-
-class PotOrder(DocumentBase):
-    __tablename__ = "erp_pot_orders"
-    __parent__ = "erp_pot_sessions"
-
-    session_id: Mapped[int] = mapped_column(ForeignKey("erp_pot_sessions.id"))
-    party_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_party_parties.id"), nullable=True)
-    pricelist_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_price_types.id"), nullable=True)
-    total_amount: Mapped[float] = mapped_column(Float, default=0)
-    paid_amount: Mapped[float] = mapped_column(Float, default=0)
-    change_amount: Mapped[float] = mapped_column(Float, default=0)
-
-    lines: Mapped[list["PotOrderLine"]] = relationship("PotOrderLine", back_populates="parent", cascade="all, delete-orphan")
-    payments: Mapped[list["PotPaymentLine"]] = relationship("PotPaymentLine", back_populates="parent", cascade="all, delete-orphan")
-    session: Mapped["PotSession"] = relationship("PotSession")
-
-
-class PotOrderLine(LineItemBase):
-    __tablename__ = "erp_pot_order_lines"
-    __parent__ = "erp_pot_orders"
-
-    order_id: Mapped[int] = mapped_column(ForeignKey("erp_pot_orders.id"))
-    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
-    qty: Mapped[float] = mapped_column(Float, default=1.0)
-    uom_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
-    price: Mapped[float] = mapped_column(Float, default=0)
-    discount: Mapped[float] = mapped_column(Float, default=0)
-
-    parent: Mapped["PotOrder"] = relationship("PotOrder", back_populates="lines")
-
-
-class PotPaymentLine(LineItemBase):
-    __tablename__ = "erp_pot_payment_lines"
-    __parent__ = "erp_pot_orders"
-
-    order_id: Mapped[int] = mapped_column(ForeignKey("erp_pot_orders.id"))
-    mode_id: Mapped[int] = mapped_column(ForeignKey("erp_config_payment_modes.id"))
-    amount: Mapped[float] = mapped_column(Float, default=0)
-
-    parent: Mapped["PotOrder"] = relationship("PotOrder", back_populates="payments")
+        from sqlalchemy.orm import object_session
+        s = object_session(self)
+        return ok({
+            "session_id": self.id,
+            "session_number": self.number,
+            "status": self.status,
+            "total_sales": self.total_sales,
+            "total_purchase": self.total_purchase,
+            "invoice_count": self.invoice_count,
+            "payment_summary": self.payment_summary,
+            "opening_balance": float(self.opening_balance or 0),
+            "closing_balance": float(self.closing_balance or 0),
+        }, message="Shift Report")

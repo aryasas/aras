@@ -57,13 +57,13 @@ class JournalEntry(DocumentBase):
             table="erp_accounting_inflow_invoices",
             filters={"id": "@source_id"},
             condition=lambda self: self.source_type == "InflowInvoice",
-            cascade=True,
+            cascade=False,
         ),
         LinkedDoc(
             table="erp_accounting_outflow_invoices",
             filters={"id": "@source_id"},
             condition=lambda self: self.source_type == "OutflowInvoice",
-            cascade=True,
+            cascade=False,
         ),
     ]
 
@@ -183,6 +183,23 @@ class InflowInvoice(DocumentBase):
     @Aras.computed_field
     def amount_due(self) -> float:
         return self.total_amount - self.amount_paid
+
+    @Aras.on_delete
+    def _cascade_payments(self, db):
+        allocs = db.query(PaymentAllocation).filter(
+            PaymentAllocation.invoice_type == "InflowInvoice",
+            PaymentAllocation.invoice_id == self.id
+        ).all()
+        payment_ids = {a.payment_id for a in allocs}
+        for a in allocs:
+            db.delete(a)
+        if payment_ids:
+            db.flush()
+            for pid in payment_ids:
+                if db.query(PaymentAllocation).filter_by(payment_id=pid).count() == 0:
+                    p = db.get(Payment, pid)
+                    if p and not getattr(p, "deleted_at", None):
+                        p.delete_self(db)
 
     @Aras.model_action(name="post", permission="edit", label="Post Invoice")
     def post(self, db):
@@ -321,6 +338,23 @@ class OutflowInvoice(DocumentBase):
     def amount_due(self) -> float:
         return self.total_amount - self.amount_paid
 
+    @Aras.on_delete
+    def _cascade_payments(self, db):
+        allocs = db.query(PaymentAllocation).filter(
+            PaymentAllocation.invoice_type == "OutflowInvoice",
+            PaymentAllocation.invoice_id == self.id
+        ).all()
+        payment_ids = {a.payment_id for a in allocs}
+        for a in allocs:
+            db.delete(a)
+        if payment_ids:
+            db.flush()
+            for pid in payment_ids:
+                if db.query(PaymentAllocation).filter_by(payment_id=pid).count() == 0:
+                    p = db.get(Payment, pid)
+                    if p and not getattr(p, "deleted_at", None):
+                        p.delete_self(db)
+
     @Aras.model_action(name="post", permission="edit", label="Post Invoice")
     def post(self, db):
         if self.status != "Draft":
@@ -378,6 +412,7 @@ class Payment(DocumentBase):
     mode_of_payment_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_payment_modes.id"), nullable=True)
     amount: Mapped[float] = mapped_column(Float, default=0)
     reference: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    journal_entry_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_entries.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "erp/accounting/entries", "display_column": "number", "read_only": True})
 
     allocations: Mapped[list["PaymentAllocation"]] = relationship("PaymentAllocation", back_populates="parent", cascade="all, delete-orphan")
 
@@ -403,8 +438,10 @@ class Payment(DocumentBase):
     def post(self, db):
         from .services.payment import PaymentService
         success = PaymentService.post_payment(db, self)
-        if success:
+        if success is True:
             return ok({"status": self.status}, message="Payment posted successfully.")
+        if isinstance(success, dict) and success.get("error"):
+            raise ValidationException(success["error"])
         raise ValidationException("Failed to post payment.")
 
     @Aras.model_action(name="auto_allocate", permission="edit", label="Auto Allocate")

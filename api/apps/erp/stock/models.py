@@ -183,8 +183,8 @@ class StockMovement(DocumentBase):
     __tablename__ = "erp_stock_movements"
     __soft_delete__ = True
     __linked_docs__ = [
-        LinkedDoc(table="erp_accounting_inflow_invoices", filters={"id": "@origin_id"}, condition=lambda self: self.origin_model == "InflowInvoice", cascade=True),
-        LinkedDoc(table="erp_accounting_outflow_invoices", filters={"id": "@origin_id"}, condition=lambda self: self.origin_model == "OutflowInvoice", cascade=True),
+        LinkedDoc(table="erp_accounting_inflow_invoices", filters={"id": "@origin_id"}, condition=lambda self: self.origin_model == "InflowInvoice", cascade=False),
+        LinkedDoc(table="erp_accounting_outflow_invoices", filters={"id": "@origin_id"}, condition=lambda self: self.origin_model == "OutflowInvoice", cascade=False),
     ]
 
     move_type: Mapped[str] = mapped_column(String(30), info={"choices": ["receipt", "delivery", "internal", "return", "scrap"]})

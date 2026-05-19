@@ -1,6 +1,6 @@
 from typing import Optional
 from sqlalchemy.orm import Session
-from ..models import Payment, PaymentAllocation, InflowInvoice, OutflowInvoice, Account, ModeOfPayment, OrganizationPaymentAccount
+from ..models import Payment, PaymentAllocation, InflowInvoice, OutflowInvoice, Account
 from .journal import JournalService
 
 
@@ -9,35 +9,51 @@ class PaymentService:
     @staticmethod
     def _resolve_cash_account(db: Session, payment: Payment) -> Optional[Account]:
         """Maps payment mode → GL account via OrganizationPaymentAccount."""
+        if payment.account_id:
+            account = db.get(Account, payment.account_id)
+            if account:
+                return account
+
         if payment.mode_of_payment_id:
+            from ...config.models import OrganizationPaymentAccount
             mapping = db.query(OrganizationPaymentAccount).filter(
                 OrganizationPaymentAccount.mode_id == payment.mode_of_payment_id
             ).first()
             if mapping:
-                return db.query(Account).get(mapping.account_id)
-        # Fallback: any asset account
+                return db.get(Account, mapping.account_id)
+
+        from ...config.models import Organization
+        org = db.get(Organization, payment.org_id)
+        for account_id in (getattr(org, "acc_cash_default_id", None), getattr(org, "acc_bank_default_id", None)):
+            if account_id:
+                account = db.get(Account, account_id)
+                if account:
+                    return account
+
         return db.query(Account).filter(
             Account.org_id == payment.org_id,
-            Account.account_type == "Asset",
+            Account.account_type == "asset_current",
             Account.is_group == False
         ).first()
 
     @staticmethod
     def post_payment(db: Session, payment: Payment):
-        """Post payment to GL: debit cash, credit AR (incoming) or debit AP, credit cash (outgoing)."""
+        """Post payment to GL: debit cash, credit AR (incoming) or debit AP, credit cash (outgoing).
+        Skips GL journal when journal_entry_id already set (combined journal was created at invoice posting)."""
         if payment.status != "Draft":
             return {"error": f"Payment is already {payment.status}"}
+
+        if getattr(payment, "journal_entry_id", None):
+            payment.status = "Posted"
+            return True
 
         cash_account = PaymentService._resolve_cash_account(db, payment)
         if not cash_account:
             return {"error": "Cash/Bank account not configured for this payment mode."}
 
+        from ...stock.services.coa_resolver import CoaResolver
         if payment.payment_type == "Incoming":
-            ar_account = db.query(Account).filter(
-                Account.org_id == payment.org_id,
-                Account.account_type == "Asset",
-                Account.is_group == False
-            ).first()
+            ar_account = CoaResolver.resolve_ar_account(db, payment.org_id)
             if not ar_account:
                 return {"error": "AR account not found."}
             lines = [
@@ -47,11 +63,7 @@ class PaymentService:
                  "description": f"Clear receivable: {payment.number}"},
             ]
         else:
-            ap_account = db.query(Account).filter(
-                Account.org_id == payment.org_id,
-                Account.account_type == "Liability",
-                Account.is_group == False
-            ).first()
+            ap_account = CoaResolver.resolve_ap_account(db, payment.org_id)
             if not ap_account:
                 return {"error": "AP account not found."}
             lines = [
@@ -65,13 +77,14 @@ class PaymentService:
             JournalService.post_entry(
                 db, payment.org_id, lines,
                 reference=payment.number,
-                narrative=f"Auto-posted from Payment {payment.number}"
+                narrative=f"Auto-posted from Payment {payment.number}",
+                currency_id=payment.currency_id,
+                source_type="Payment",
+                source_id=payment.id,
             )
             payment.status = "Posted"
-            db.commit()
             return True
         except Exception as e:
-            db.rollback()
             return {"error": str(e)}
 
     @staticmethod
@@ -194,4 +207,3 @@ class PaymentService:
 
         db.commit()
         return {"ok": True}
-

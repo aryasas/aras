@@ -554,5 +554,167 @@
     },
     "frontend": null,
     "verdict": "APPROVED"
+  },
+  {
+    "id": 32,
+    "date": "2026-05-19",
+    "feature": "fix POS quick invoice line construction",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/pot/routers.py",
+      "features_added": "none",
+      "fixes_applied": "Removed org_id keyword from invoice line and payment allocation constructors in POS quick_invoice because LineItemBase rows are scoped through their parent documents, not directly by org_id.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 33,
+    "date": "2026-05-19",
+    "feature": "fix POS payment currency",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/pot/routers.py",
+      "features_added": "none",
+      "fixes_applied": "POS quick_invoice now sets Payment.currency_id from the organization's base currency and returns a clear error if no base currency is configured.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 34,
+    "date": "2026-05-19",
+    "feature": "fix POS sales purchase mode mapping and persistence",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/pot/routers.py, api/apps/erp/pot/models.py, api/apps/erp/pot/views.py",
+      "features_added": "none",
+      "fixes_applied": "Mapped POS sales to InflowInvoice and purchase to OutflowInvoice to match accounting handlers; corrected POT session sales/purchase totals and linked lists; committed quick_invoice transactions after invoice/payment/allocation creation.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 35,
+    "date": "2026-05-19",
+    "feature": "fix POS payment journal account mapping and delete related-doc confirmation",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/accounting/services/payment.py, api/apps/erp/accounting/models.py, api/apps/erp/pot/routers.py, api/apps/erp/config/models.py, api/apps/erp/config/views.py",
+      "features_added": "none",
+      "fixes_applied": "Payment posting now debits the selected/mapped payment account and credits resolved AR/AP; POS now posts payment journals and uses payment-mode account mappings; Payment Mode layout exposes child account mappings.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/DynamicForm.tsx, ui/src/aras-core/components/ListView.tsx",
+      "features_added": "Delete confirmations now warn when linked documents will also be deleted.",
+      "fixes_applied": "Fixed linked-documents response normalization so related docs are detected by the form.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 36,
+    "date": "2026-05-19",
+    "feature": "fix journal delete recursion \u2014 circular cascade between JournalEntry and invoices",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/base/model.py, api/apps/erp/accounting/models.py",
+      "features_added": "none",
+      "fixes_applied": "Pass 1 of _cascade_linked_docs now skips nullable FK columns (reference/lookup FKs, not ownership); JournalEntry.__linked_docs__ cascade set to False for invoices \u2014 invoice owns journal, not the reverse. Eliminates maximum recursion depth error on journal delete.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 37,
+    "date": "2026-05-19",
+    "feature": "fix cascade recursion + journaling: cash sale combined journal, AR journal for credit sales",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/accounting/models.py, api/apps/erp/accounting/handlers.py, api/apps/erp/accounting/services/payment.py, api/apps/erp/pot/routers.py, api/apps/erp/stock/models.py",
+      "features_added": "Payment.journal_entry_id column; post_journal_entry handler now accepts payment_account_id param to create combined DR Cash/CR Revenue journal for immediate-payment sales; POS router restructured to create payment before journal so combined entry links to payment; PaymentService.post_payment skips GL when journal_entry_id already set",
+      "fixes_applied": "Eliminated second circular cascade: StockMovement.__linked_docs__ cascade=False for invoices (invoice owns stock, not reverse)",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 38,
+    "date": "2026-05-19",
+    "feature": "Payment cascade on invoice delete + POS credit sales split journal",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/accounting/models.py, api/apps/erp/accounting/handlers.py, api/apps/erp/pot/routers.py",
+      "features_added": "POS auto-credit sales: when amount_paid < total, quick_invoice creates split journal DR Cash + DR AR / CR Revenue; handles full credit (amount_paid=0) unchanged",
+      "fixes_applied": "Payment cascade on invoice delete: added @Aras.on_delete to InflowInvoice and OutflowInvoice that deletes PaymentAllocation rows (polymorphic invoice_id not FK so auto-scan missed them) and soft-deletes orphan Payment when no allocations remain",
+      "framework_changes": "none",
+      "issues": "Workflow DB: seed_workflow.py is correct for invoices (post+cancel). Run once per tenant: cd api && python -m apps.erp.config.seed_workflow. Without seed the /workflow/ API falls back to WorkflowMixin which has submit/cancel only - post will fail. @model_action(name=post) always works independently."
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 39,
+    "date": "2026-05-19",
+    "feature": "multi_agent.py agent role variables with -o/-f/-b CLI flags",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "tools/multi_agent.py",
+      "features_added": "MODEL_* constants, AGENTS registry, DEFAULT_ORCHESTRATOR/BACKEND/FRONTEND role vars, -b/-f/-o CLI flags, unified run_worker() dispatcher",
+      "fixes_applied": "hardcoded Gemini/Codex labels replaced with dynamic agent labels throughout update_docs, _print_summary, _persist_new",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 40,
+    "date": "2026-05-19",
+    "feature": "POS fixes + Tenant Admin UI",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/pot/services/pot.py, api/apps/erp/pot/models.py",
+      "features_added": "none",
+      "fixes_applied": "Fixed PotService stale imports and SQLAlchemy 2.0 db.get() usage. Restored PotSession.orders relationship.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/views/TenantAdmin.tsx, ui/src/App.tsx, ui/src/views/PosView.tsx",
+      "features_added": "TenantAdmin page with provisioning and seeding actions. Added receipt panel in POS view.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 41,
+    "date": "2026-05-19",
+    "feature": "PotOrder cleanup",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/pot/models.py, api/apps/erp/pot/services/pot.py, api/apps/erp/pot/views.py, api/apps/erp/pot/app.py",
+      "features_added": "none",
+      "fixes_applied": "Removed dead PotOrder, PotOrderLine, and PotPaymentLine models, views, and service methods. Rewrote shift_report model action to use computed fields.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
   }
-  ]
+]

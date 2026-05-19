@@ -1,5 +1,5 @@
 from ..app import ERP
-from .models import PotSession, PotOrder, PotOrderLine, PotTerminal, PotPaymentLine
+from .models import PotSession, PotTerminal
 from .routers import router as _sessions_router
 from . import views  # noqa
 
@@ -9,7 +9,7 @@ class POT(ERP):
     app_label = "Point of Transaction"
     icon = "CreditCard"
 
-    models = [PotTerminal, PotSession, PotOrder, PotOrderLine, PotPaymentLine]
+    models = [PotTerminal, PotSession]
     routers = [_sessions_router]
 
     
@@ -22,7 +22,7 @@ class POT(ERP):
         {
             "label": "Retail",
             "icon": "ShoppingBag",
-            "models": ["erp_pot_sessions", "erp_pot_orders"]
+            "models": ["erp_pot_sessions"]
         }
     ]
 

@@ -4,19 +4,27 @@ Multi-agent orchestration for aras project.
 
 Workflow:
   1. Claude Code writes docs/handoff.md
-  2. Run this script → Gemini (backend) + Codex (frontend) implement tasks
+  2. Run this script → backend agent + frontend agent implement tasks
   3. Agent reports appended to handoff.md, docs updated, run persisted to DB
   4. Claude reviews handoff.md and writes ## Claude Review
      - APPROVED → done
      - NEEDS-FIX → Claude adds ## Revision Tasks → re-run this script
 
+Role defaults (edit DEFAULT_* vars to change permanently):
+  orchestrator = sonnet   (-o flag to override)
+  backend      = gemini   (-b flag to override)
+  frontend     = gpt      (-f flag to override)
+
 Usage:
-  python tools/multi_agent.py                          # run both (flash default)
-  python tools/multi_agent.py --backend-only           # Gemini flash, backend only
-  python tools/multi_agent.py --backend-only --model flash   # explicit flash
-  python tools/multi_agent.py --backend-only --model pro     # use Pro instead
+  python tools/multi_agent.py                          # run both with defaults
+  python tools/multi_agent.py -b gemini-pro            # backend on Gemini Pro
+  python tools/multi_agent.py -f gemini                # frontend on Gemini Flash
+  python tools/multi_agent.py -b sonnet -f gpt         # mix agents per role
+  python tools/multi_agent.py --backend-only
   python tools/multi_agent.py --frontend-only
   python tools/multi_agent.py --test "hello"
+
+Available agent keys: gemini, gemini-pro, gemini-flash, gpt, sonnet, opus, haiku
 """
 
 import argparse
@@ -72,6 +80,44 @@ FRONTEND_SYSTEM = (
 )
 
 
+# ── Model constants ───────────────────────────────────────────────────────────
+# Edit these to change a model globally — injected everywhere via AGENTS below.
+
+MODEL_GEMINI_FLASH  = "gemini-2.5-flash"
+MODEL_GEMINI_PRO    = "gemini-2.5-pro"
+MODEL_CLAUDE_SONNET = "claude-sonnet-4-6"
+MODEL_CLAUDE_OPUS   = "claude-opus-4-7"
+MODEL_CLAUDE_HAIKU  = "claude-haiku-4-5-20251001"
+
+# ── Agent registry ────────────────────────────────────────────────────────────
+# key → {cli, model, label}  (model=None means the CLI picks it)
+
+AGENTS: dict[str, dict] = {
+    "gemini":       {"cli": "gemini",  "model": MODEL_GEMINI_FLASH,  "label": f"Gemini ({MODEL_GEMINI_FLASH})"},
+    "gemini-flash": {"cli": "gemini",  "model": MODEL_GEMINI_FLASH,  "label": f"Gemini ({MODEL_GEMINI_FLASH})"},
+    "gemini-pro":   {"cli": "gemini",  "model": MODEL_GEMINI_PRO,    "label": f"Gemini ({MODEL_GEMINI_PRO})"},
+    "gpt":          {"cli": "codex",   "model": None,                "label": "GPT (codex)"},
+    "codex":        {"cli": "codex",   "model": None,                "label": "GPT (codex)"},
+    "sonnet":       {"cli": "claude",  "model": MODEL_CLAUDE_SONNET, "label": f"Claude ({MODEL_CLAUDE_SONNET})"},
+    "opus":         {"cli": "claude",  "model": MODEL_CLAUDE_OPUS,   "label": f"Claude ({MODEL_CLAUDE_OPUS})"},
+    "haiku":        {"cli": "claude",  "model": MODEL_CLAUDE_HAIKU,  "label": f"Claude ({MODEL_CLAUDE_HAIKU})"},
+}
+
+# ── Role defaults ─────────────────────────────────────────────────────────────
+# Change these to permanently reassign which LLM handles each role.
+
+DEFAULT_ORCHESTRATOR = "sonnet"
+DEFAULT_BACKEND      = "gemini"
+DEFAULT_FRONTEND     = "gpt"
+
+
+def _resolve_agent(key, default: str) -> dict:
+    k = (key or default).lower()
+    if k not in AGENTS:
+        raise SystemExit(f"Unknown agent '{k}'. Available: {', '.join(AGENTS)}")
+    return {**AGENTS[k], "key": k}
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 
 def run_agent(label: str, cmd: list) -> tuple:
@@ -89,37 +135,17 @@ def run_agent(label: str, cmd: list) -> tuple:
     return "".join(lines), proc.returncode
 
 
-GEMINI_ALIASES = {
-    "flash":      "gemini-2.5-flash",
-    "pro":        "gemini-2.5-pro",
-    "flash-lite": "gemini-2.5-flash-lite",  # blocked by user preference
-}
-GEMINI_DEFAULT = "gemini-2.5-flash"
-
-
-def _resolve_gemini_model(alias) -> str:
-    if not alias:
-        return GEMINI_DEFAULT
-    return GEMINI_ALIASES.get(alias.lower(), alias) or GEMINI_DEFAULT
-
-
-def run_backend(handoff: str, model: str = GEMINI_DEFAULT) -> str:
-    label = f"Gemini ({model}) — Backend"
-    output, _ = run_agent(label, [
-        "gemini", "-m", model, "-y", "-p", BACKEND_SYSTEM + handoff,
-    ])
-    return output
-
-
-def run_frontend(handoff: str, agent: str = "codex", model: str = GEMINI_DEFAULT) -> str:
-    if agent == "gemini":
-        output, _ = run_agent(f"Gemini ({model}) — Frontend", [
-            "gemini", "-m", model, "-y", "-p", FRONTEND_SYSTEM + handoff,
-        ])
+def run_worker(role: str, agent: dict, prompt: str) -> str:
+    label = f"{agent['label']} — {role.capitalize()}"
+    if agent["cli"] == "gemini":
+        cmd = ["gemini", "-m", agent["model"], "-y", "-p", prompt]
+    elif agent["cli"] == "codex":
+        cmd = ["codex", "exec", "--dangerously-bypass-approvals-and-sandbox", prompt]
+    elif agent["cli"] == "claude":
+        cmd = ["claude", "-p", prompt, "--model", agent["model"]]
     else:
-        output, _ = run_agent("Codex GPT-5.5 — Frontend", [
-            "codex", "exec", "--dangerously-bypass-approvals-and-sandbox", FRONTEND_SYSTEM + handoff,
-        ])
+        raise SystemExit(f"Unknown CLI type: {agent['cli']}")
+    output, _ = run_agent(label, cmd)
     return output
 
 
@@ -178,32 +204,33 @@ def _append(path: Path, text: str):
         f.write("\n" + text)
 
 
-def update_docs(br: dict, fr: dict, feature: str, is_revision: bool = False):
+def update_docs(br: dict, fr: dict, feature: str, backend_label: str, frontend_label: str, is_revision: bool = False):
     label = f"{feature} — revision ({DATE})" if is_revision else f"{feature} ({DATE})"
+    bl, fl = f"[{backend_label}]", f"[{frontend_label}]"
 
     feats = []
     if br["features_added"] != "none":
-        feats.append(f"  - [Gemini] {br['features_added']}")
+        feats.append(f"  - {bl} {br['features_added']}")
     if fr["features_added"] != "none":
-        feats.append(f"  - [Codex/GPT-5.5] {fr['features_added']}")
+        feats.append(f"  - {fl} {fr['features_added']}")
     if feats:
         _append(FEATURE_FILE, f"\n## {label}\n" + "\n".join(feats) + "\n")
         print("  + feature.md updated")
 
     fixes = []
     if br["fixes_applied"] != "none":
-        fixes.append(f"  - [Gemini] {br['fixes_applied']}")
+        fixes.append(f"  - {bl} {br['fixes_applied']}")
     if fr["fixes_applied"] != "none":
-        fixes.append(f"  - [Codex/GPT-5.5] {fr['fixes_applied']}")
+        fixes.append(f"  - {fl} {fr['fixes_applied']}")
     if fixes:
         _append(FIX_FILE, f"\n## {label}\n" + "\n".join(fixes) + "\n")
         print("  + fix.md updated")
 
     fw = []
     if br["framework_changes"] != "none":
-        fw.append(f"  - [Gemini] {br['framework_changes']}")
+        fw.append(f"  - {bl} {br['framework_changes']}")
     if fr["framework_changes"] != "none":
-        fw.append(f"  - [Codex/GPT-5.5] {fr['framework_changes']}")
+        fw.append(f"  - {fl} {fr['framework_changes']}")
     if fw:
         _append(ARAS_FILE, f"\n---\n## Framework Change: {label}\n" + "\n".join(fw) + "\n")
         print("  + aras.md updated (framework change)")
@@ -211,13 +238,13 @@ def update_docs(br: dict, fr: dict, feature: str, is_revision: bool = False):
     rev_label = f"revision ({DATE})" if is_revision else DATE
     summary = (
         f"\n---\n## Agent Reports ({rev_label})\n\n"
-        f"### Backend (Gemini 2.5 Flash)\n"
+        f"### Backend ({backend_label})\n"
         f"- files_written: {br['files_written']}\n"
         f"- features_added: {br['features_added']}\n"
         f"- fixes_applied: {br['fixes_applied']}\n"
         f"- framework_changes: {br['framework_changes']}\n"
         f"- issues: {br['issues']}\n\n"
-        f"### Frontend (Codex GPT-5.5)\n"
+        f"### Frontend ({frontend_label})\n"
         f"- files_written: {fr['files_written']}\n"
         f"- features_added: {fr['features_added']}\n"
         f"- fixes_applied: {fr['fixes_applied']}\n"
@@ -238,16 +265,16 @@ def update_docs(br: dict, fr: dict, feature: str, is_revision: bool = False):
 
 # ── Terminal summary ──────────────────────────────────────────────────────────
 
-def _print_summary(br: dict, fr: dict):
+def _print_summary(br: dict, fr: dict, backend_label: str, frontend_label: str):
     print(f"\n{'='*60}")
     print("  RUN SUMMARY")
     print(f"{'='*60}")
-    for label, r in [("Gemini ", br), ("Codex  ", fr)]:
-        print(f"  {label} files   : {r['files_written']}")
-        print(f"  {label} features: {r['features_added']}")
-        print(f"  {label} fixes   : {r['fixes_applied']}")
-        print(f"  {label} fw      : {r['framework_changes']}")
-        print(f"  {label} issues  : {r['issues']}")
+    for lbl, r in [(backend_label[:12].ljust(12), br), (frontend_label[:12].ljust(12), fr)]:
+        print(f"  {lbl} files   : {r['files_written']}")
+        print(f"  {lbl} features: {r['features_added']}")
+        print(f"  {lbl} fixes   : {r['fixes_applied']}")
+        print(f"  {lbl} fw      : {r['framework_changes']}")
+        print(f"  {lbl} issues  : {r['issues']}")
         print(f"  {'─'*56}")
     print(f"{'='*60}\n")
 
@@ -265,9 +292,12 @@ def _get_token() -> str:
     return login.json()["access_token"]
 
 
-def _persist_new(mode: str, handoff: str, backend_out: str, frontend_out: str, br: dict, fr: dict) -> int:
+def _persist_new(mode: str, handoff: str, backend_out: str, frontend_out: str, br: dict, fr: dict,
+                 backend_label: str = "", frontend_label: str = "") -> int:
     """Create a new DB record. Returns the record id."""
     feature = get_feature(handoff)
+    bl = backend_label or "Backend"
+    fl = frontend_label or "Frontend"
     payload = {
         "feature": feature,
         "mode": mode,
@@ -276,7 +306,7 @@ def _persist_new(mode: str, handoff: str, backend_out: str, frontend_out: str, b
         "prompt_md": handoff,
         "backend_files": br["files_written"],
         "frontend_files": fr["files_written"],
-        "output_md": f"## Backend Output (Gemini)\n{backend_out}\n\n## Frontend Output (Codex/GPT-5.5)\n{frontend_out}",
+        "output_md": f"## Backend Output ({bl})\n{backend_out}\n\n## Frontend Output ({fl})\n{frontend_out}",
         "issues": " | ".join(x for x in [br["issues"], fr["issues"]] if x != "none"),
         "gemini_prompt_tokens": 0, "gemini_completion_tokens": 0,
         "gpt_prompt_tokens": parse_codex_tokens(frontend_out), "gpt_completion_tokens": 0,
@@ -344,38 +374,43 @@ def _parse_claude_review(handoff: str) -> dict:
 # ── Main run logic ────────────────────────────────────────────────────────────
 
 def run_agents(args, handoff: str, is_revision: bool = False) -> tuple:
-    br = fr = {k: "none" for k in ["files_written", "features_added", "fixes_applied", "framework_changes", "issues"]}
+    empty = {k: "none" for k in ["files_written", "features_added", "fixes_applied", "framework_changes", "issues"]}
+    br = fr = empty.copy()
     backend_out = frontend_out = ""
-    model = _resolve_gemini_model(getattr(args, "model", None))
-    agent = getattr(args, "agent", "codex") or "codex"
+
+    b_agent = _resolve_agent(getattr(args, "backend",  None), DEFAULT_BACKEND)
+    f_agent = _resolve_agent(getattr(args, "frontend", None), DEFAULT_FRONTEND)
 
     if args.frontend_only:
-        frontend_out = run_frontend(handoff, agent=agent, model=model)
+        frontend_out = run_worker("frontend", f_agent, FRONTEND_SYSTEM + handoff)
         fr = parse_report(frontend_out)
     elif args.backend_only:
-        backend_out = run_backend(handoff, model)
+        backend_out = run_worker("backend", b_agent, BACKEND_SYSTEM + handoff)
         br = parse_report(backend_out)
     else:
-        backend_out = run_backend(handoff, model)
+        backend_out = run_worker("backend", b_agent, BACKEND_SYSTEM + handoff)
         br = parse_report(backend_out)
-        frontend_out = run_frontend(handoff, agent=agent, model=model)
+        frontend_out = run_worker("frontend", f_agent, FRONTEND_SYSTEM + handoff)
         fr = parse_report(frontend_out)
 
-    _print_summary(br, fr)
-    update_docs(br, fr, get_feature(handoff), is_revision=is_revision)
-    return backend_out, frontend_out, br, fr
+    _print_summary(br, fr, b_agent["label"], f_agent["label"])
+    update_docs(br, fr, get_feature(handoff), b_agent["label"], f_agent["label"], is_revision=is_revision)
+    return backend_out, frontend_out, br, fr, b_agent["label"], f_agent["label"]
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 def main():
+    keys = ", ".join(AGENTS)
     parser = argparse.ArgumentParser(description="aras multi-agent — reads docs/handoff.md")
     parser.add_argument("--backend-only",  action="store_true")
     parser.add_argument("--frontend-only", action="store_true")
-    parser.add_argument("--model", metavar="ALIAS",
-                        help="Gemini model alias: flash (default), pro. Example: --model flash")
-    parser.add_argument("--agent", metavar="NAME", default="codex",
-                        help="Frontend agent: gemini | codex (default). Example: --agent gemini")
+    parser.add_argument("-b", "--backend",      metavar="AGENT", default=None,
+                        help=f"Backend agent key (default: {DEFAULT_BACKEND}). Options: {keys}")
+    parser.add_argument("-f", "--frontend",     metavar="AGENT", default=None,
+                        help=f"Frontend agent key (default: {DEFAULT_FRONTEND}). Options: {keys}")
+    parser.add_argument("-o", "--orchestrator", metavar="AGENT", default=None,
+                        help=f"Orchestrator agent key (default: {DEFAULT_ORCHESTRATOR}, informational). Options: {keys}")
     parser.add_argument("--test", metavar="PROMPT", help="Smoke-test both CLIs")
     parser.add_argument("--submit-review", action="store_true",
                         help="Parse ## Claude Review from handoff.md and PATCH verdict to DB")
@@ -385,8 +420,10 @@ def main():
     args = parser.parse_args()
 
     if args.test:
-        run_backend(args.test)
-        run_frontend(args.test)
+        b = _resolve_agent(args.backend, DEFAULT_BACKEND)
+        f = _resolve_agent(args.frontend, DEFAULT_FRONTEND)
+        run_worker("backend",  b, BACKEND_SYSTEM  + args.test)
+        run_worker("frontend", f, FRONTEND_SYSTEM + args.test)
         return
 
     if args.log_manual:
@@ -419,31 +456,31 @@ def main():
     rev_num = get_revision_count(handoff)
     mode = "backend-only" if args.backend_only else "frontend-only" if args.frontend_only else "full"
 
+    b_agent = _resolve_agent(args.backend,  DEFAULT_BACKEND)
+    f_agent = _resolve_agent(args.frontend, DEFAULT_FRONTEND)
+    o_agent = _resolve_agent(args.orchestrator, DEFAULT_ORCHESTRATOR)
+
     print(f"\n{'='*60}")
-    print(f"  Handoff  : {HANDOFF_FILE}")
-    print(f"  Feature  : {feature}")
-    print(f"  Mode     : {mode}")
-    print(f"  Revision : {'yes #' + str(rev_num + 1) if is_revision else 'no (initial run)'}")
-    print(f"  Backend  : {_resolve_gemini_model(args.model)} (gemini CLI)")
-    fe_agent = getattr(args, "agent", "codex") or "codex"
-    fe_label = f"{_resolve_gemini_model(args.model)} (gemini CLI)" if fe_agent == "gemini" else "GPT-5.5 (codex CLI)"
-    print(f"  Frontend : {fe_label}")
+    print(f"  Handoff      : {HANDOFF_FILE}")
+    print(f"  Feature      : {feature}")
+    print(f"  Mode         : {mode}")
+    print(f"  Revision     : {'yes #' + str(rev_num + 1) if is_revision else 'no (initial run)'}")
+    print(f"  Orchestrator : {o_agent['label']}")
+    print(f"  Backend      : {b_agent['label']}")
+    print(f"  Frontend     : {f_agent['label']}")
     print(f"{'='*60}")
 
-    backend_out, frontend_out, br, fr = run_agents(args, handoff, is_revision=is_revision)
+    backend_out, frontend_out, br, fr, b_label, f_label = run_agents(args, handoff, is_revision=is_revision)
 
     if is_revision:
-        # Re-read existing run id from DB by feature name to PATCH it
-        # We store run_id in handoff.md first line comment for simplicity
         run_id = _get_run_id_from_handoff(handoff)
         _patch_run(run_id, {
             "revision_count": rev_num + 1,
-            "output_md": f"## Revision {rev_num + 1} — Backend (Gemini)\n{backend_out}\n\n## Revision {rev_num + 1} — Frontend (Codex)\n{frontend_out}",
+            "output_md": f"## Revision {rev_num + 1} — Backend ({b_label})\n{backend_out}\n\n## Revision {rev_num + 1} — Frontend ({f_label})\n{frontend_out}",
             "issues": " | ".join(x for x in [br["issues"], fr["issues"]] if x != "none"),
         })
     else:
-        run_id = _persist_new(mode, handoff, backend_out, frontend_out, br, fr)
-        # Store run_id in handoff.md for future revision PATCHes
+        run_id = _persist_new(mode, handoff, backend_out, frontend_out, br, fr, b_label, f_label)
         _inject_run_id(run_id)
 
     print("=" * 60)

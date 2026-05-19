@@ -159,3 +159,7 @@ This file is used only to report if there are fix
 
 ## Payment Party FK & Lookup (2026-05-19)
 - [Gemini 2.5 Flash] Fixed `Payment.party_id` to be a real `ForeignKey` with proper UI lookup metadata.
+
+
+## Tenant Admin UI (2026-05-19)
+  - [Gemini 2.5 Flash] Fixed PotService stale imports and SQLAlchemy 2.0 query.get() deprecation warnings. Restored PotSession.orders relationship.

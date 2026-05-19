@@ -21,6 +21,7 @@ const DynamicView = lazy(() => import('./views/DynamicView'))
 const ReportCenterView = lazy(() => import('./views/ReportCenter'))
 const DevToolsView = lazy(() => import('./views/DevTools'))
 const AppManagerView = lazy(() => import('./views/AppManager'))
+const TenantAdmin = lazy(() => import('./views/TenantAdmin'))
 const AuditLogsView = lazy(() => import('./views/AuditLogs'))
 const RBACManagerView = lazy(() => import('./views/RBACManager'))
 const ErpUserAccess = lazy(() => import('./views/ErpUserAccess'))
@@ -142,6 +143,7 @@ function App() {
           <Route path="dev" element={<DevToolsView />} />
           <Route path="dev/health" element={<HealthIntegrityView />} />
           <Route path="dev/routes" element={<InspectRoutesView />} />
+          <Route path="admin/tenants" element={<TenantAdmin />} />
           <Route path="dev/help" element={<HelpDevView />} />
           <Route path="help" element={<HelpUserView />} />
           <Route path="dev/table/:app/:model" element={<DynamicView />} />

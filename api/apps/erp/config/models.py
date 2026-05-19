@@ -258,7 +258,7 @@ class OrganizationPaymentAccount(LineItemBase):
     __parent__ = "erp_config_payment_modes"
     
     mode_id: Mapped[int] = mapped_column(ForeignKey("erp_config_payment_modes.id"))
-    account_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_accounts.id"))
+    account_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_accounts.id"), info={"display_column": "display_name"})
     
     parent: Mapped["ModeOfPayment"] = relationship("ModeOfPayment", back_populates="accounts")
 
@@ -299,4 +299,3 @@ class OrganizationPostingRule(ConfigBase):
     debit_account_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
     credit_account_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-

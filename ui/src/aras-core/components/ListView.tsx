@@ -54,6 +54,19 @@ interface SavedFilter {
   is_default: boolean;
 }
 
+interface LinkedDoc {
+  label: string;
+  resource: string;
+  id: number;
+  number: string;
+}
+
+const normalizeLinkedDocs = (value: any): LinkedDoc[] => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  return [];
+}
+
 const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   resource: string,
   onRowClick?: (id: string | number) => void,
@@ -114,6 +127,26 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     if (!metadata) return false;
     return metadata.fields.some((f: any) => f.name === 'parent_id');
   }, [metadata]);
+
+  const fetchLinkedDocs = async (id: string | number): Promise<LinkedDoc[]> => {
+    try {
+      const res = await api.get(`/${resourceApiPath}/${id}/linked-documents`)
+      return normalizeLinkedDocs(res.data)
+    } catch {
+      return []
+    }
+  }
+
+  const linkedDocsDeleteMessage = (count: number, docs: LinkedDoc[]) => {
+    if (docs.length === 0) {
+      return count === 1
+        ? 'Are you sure you want to delete this item? This action cannot be undone.'
+        : `Are you sure you want to delete ${count} items? This action cannot be undone.`
+    }
+    const preview = docs.slice(0, 5).map(doc => `${doc.label} ${doc.number || `#${doc.id}`}`).join(', ')
+    const suffix = docs.length > 5 ? `, and ${docs.length - 5} more` : ''
+    return `Delete ${count === 1 ? 'this item' : `${count} items`} and ${docs.length} related document${docs.length === 1 ? '' : 's'}? Related documents will also be deleted: ${preview}${suffix}. This action cannot be undone.`
+  }
 
   // Fetch Metadata & Initial Data
   useEffect(() => {
@@ -230,9 +263,10 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   }
 
   const handleDeleteBulk = async () => {
+    const relatedDocs = (await Promise.all(selectedIds.map(id => fetchLinkedDocs(id)))).flat()
     const ok = await confirm({
       title: 'Delete Items',
-      message: `Are you sure you want to delete ${selectedIds.length} items? This action cannot be undone.`,
+      message: linkedDocsDeleteMessage(selectedIds.length, relatedDocs),
       type: 'danger',
       confirmText: 'Delete Now'
     })
@@ -256,9 +290,10 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   }
 
   const handleDeleteOne = async (item: any) => {
+    const relatedDocs = await fetchLinkedDocs(item.id)
     const ok = await confirm({
       title: 'Delete',
-      message: 'Are you sure you want to delete this item? This action cannot be undone.',
+      message: linkedDocsDeleteMessage(1, relatedDocs),
       type: 'danger',
       confirmText: 'Delete'
     })

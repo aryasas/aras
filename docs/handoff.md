@@ -1,236 +1,168 @@
 > Written by: Claude Code (claude-sonnet-4-6)
 > Date: 2026-05-19
-> Feature: LinkedDoc auto-discovery, Payment fixes, POS view, Generic form tabs
+> Feature: POS fixes + Tenant Admin UI
 
 ---
 
 ## Context
 
-Four features in one run:
-1. **LinkedDoc auto-discovery** — instead of manual `__linked_docs__` declarations, scan SA mapper FKs automatically (port from `aras-old/arasCore/lib/services/linked_doc_detector.py`). `__linked_docs__` becomes an escape hatch only for polymorphic (type+id) relationships.
-2. **Payment fixes** — `party_id` on Payment must be a real FK → Combobox. Add "Get Invoices" and "Auto Allocate" action buttons to the PaymentAllocation child table header.
-3. **POS view** — custom POS screen. Each transaction creates an Invoice directly (no PotOrder). Inflow mode = purchase invoices, Outflow mode = sales invoices. Shift report = aggregates computed from linked invoices, not stored separately.
-4. **Generic linked_list tab** — new layout section type `"type": "linked_list"` that renders a filtered embedded ListView inside a form tab.
+Fase 1 (multi-tenant core) is fully implemented — `core/tenant/router.py`, `registry.py`, `provisioner.py`, and `/api/v1/tenants` API all exist. Fase 2 (POS) has two backend bugs blocking the shift report, plus two missing pieces for SaaS readiness: tenant management admin page and POS receipt modal.
 
 ---
 
 ## Backend Tasks
 
-### B1: LinkedDoc auto-discovery
-UPDATE `api/core/base/model.py` — replace `get_linked_documents(db)` and `_cascade_linked_docs(db)` with two-pass logic:
+### B1: Fix PotService stale imports + SQLAlchemy 2.0 compat
+UPDATE `api/apps/erp/pot/services/pot.py` — the file currently has two import blocks at the top. The first block (lines 1–6) imports non-existent names `PosSession, PosOrder, PosOrderLine, PosPaymentLine, PosTerminal` (old naming). Remove the first block entirely. Keep only the second import block. Then replace all deprecated `db.query(X).get(id)` calls with `db.get(X, id)` throughout the file — affects `get_pot_products`, `process_order`, `open_session`, `close_session`, `get_shift_report`.
 
-**Pass 1 — SA FK auto-scan** (no declaration needed):
+Also fix `get_shift_report` — it calls `session.orders` but that relationship is commented out on PotSession (line 30 of models.py). Replace with an explicit query:
 ```python
-from sqlalchemy import inspect as sa_inspect
-SKIP_COLS = {"created_by", "updated_by", "org_id", "deleted_at", "created_at", "updated_at"}
-mapper_registry = sa_inspect(type(self)).mapper.registry
-target_table = self.__tablename__
-for m in mapper_registry.mappers:
-    child_cls = m.class_
-    if child_cls is type(self) or not hasattr(child_cls, "__tablename__"):
-        continue
-    for col in m.persist_selectable.columns:
-        if col.name in SKIP_COLS:
-            continue
-        for fk in col.foreign_keys:
-            if fk.column.table.name == target_table:
-                # found a child that FKs to self
-                children = db.query(child_cls).filter(
-                    getattr(child_cls, col.key) == self.id
-                ).all()
-                # resolve resource URL via App._registry (use _resolve_table from linked_doc.py)
-                # yield each child as {label, resource, id, number}
+orders = db.query(PotOrder).filter(PotOrder.session_id == session_id).all()
 ```
-Only yield models that have `__tablename__` (skip abstract). For cascade: call `child.delete_self(db)` if `getattr(child, "deleted_at", None) is None`, else `db.delete(child)`.
+Use this `orders` list instead of `session.orders` everywhere in `get_shift_report`. `order.payments` is fine — that relationship is defined on `PotOrder`.
 
-**Pass 2 — explicit `__linked_docs__`** (unchanged): walk `self.__class__.__linked_docs__` as before.
-
-UPDATE `api/core/base/linked_doc.py` — keep the class but remove caching fields (`_resolved_model` etc.) since auto-resolution is now in model.py. Keep `LinkedDoc(table, filters, condition, cascade, show)` for the explicit pass.
-
-UPDATE `api/apps/erp/accounting/models.py`:
-- `InflowInvoice.__linked_docs__` — remove `PaymentAllocation` entry (auto-discovered via `invoice_id` FK). Keep `JournalEntry` and `StockMovement` (polymorphic).
-- `OutflowInvoice.__linked_docs__` — same.
-
-UPDATE `api/apps/erp/stock/models.py`:
-- `StockMovement.__linked_docs__` — remove `StockMovementLine` entry (auto-discovered via `movement_id` FK).
-
----
-
-### B2: Payment fixes
-UPDATE `api/apps/erp/accounting/models.py`:
-
-`Payment.party_id` — change from `mapped_column(Integer, nullable=True)` to:
+### B2: Restore PotSession.orders relationship
+UPDATE `api/apps/erp/pot/models.py` — uncomment line 30:
 ```python
-party_id: Mapped[Optional[int]] = mapped_column(
-    ForeignKey("erp_party_parties.id"), nullable=True,
-    info={"ui_type": "lookup", "target_resource": "erp/party/parties", "display_column": "name"}
-)
+orders: Mapped[list["PotOrder"]] = relationship("PotOrder", back_populates="session", cascade="all, delete-orphan")
 ```
-
-Add model action on `Payment` that returns open invoices as pre-fill data for the allocation table:
+Also add `back_populates="session"` to `PotOrder.session` (currently missing it):
 ```python
-@Aras.model_action(name="get_open_invoices", permission="edit", label="Get Invoices")
-def get_open_invoices(self, db):
-    from .services.payment import PaymentService
-    rows = PaymentService.get_unpaid_invoices(db, self)
-    # Return in a format the frontend can use to prefill allocations child table
-    prefill = [{"invoice_type": r["invoice_type"], "invoice_id": r["id"], "amount": r["amount_due"]} for r in rows]
-    return ok({"prefill_field": "allocations", "rows": prefill}, message="Open invoices loaded.")
-```
-
-UPDATE `api/apps/erp/accounting/views.py` — `PaymentView`: change the allocations section to include action buttons:
-```python
-{"title": "Allocations", "fields": ["amount_allocated", "amount_unallocated", "allocations"], "actions": ["get_open_invoices", "auto_allocate"]}
-```
-
----
-
-### B3: POS backend
-UPDATE `api/apps/erp/accounting/models.py` — add `pos_session_id` to both invoice models:
-```python
-# on InflowInvoice and OutflowInvoice:
-pos_session_id: Mapped[Optional[int]] = mapped_column(
-    ForeignKey("erp_pot_sessions.id"), nullable=True, info={"hidden": True}
-)
-```
-
-UPDATE `api/apps/erp/pot/models.py`:
-- Add `mode` field to `PotSession`: `Mapped[str]` with `info={"choices": ["sales", "purchase"]}`, default `"sales"`.
-- Remove the `orders` relationship reference (keep table, just remove relationship for now).
-- Add computed fields to `PotSession`:
-  - `total_sales` → sum of `OutflowInvoice.total_amount` where `pos_session_id = self.id`
-  - `total_purchase` → sum of `InflowInvoice.total_amount` where `pos_session_id = self.id`
-  - `invoice_count` → count of linked invoices
-  - `payment_summary` → list `[{mode_name, total_amount}]` from payments on linked invoices
-- Model action `close_session(db, data)` — sets `closing_balance = data.get("closing_balance", 0)`, sets `status = "Posted"`. No PotOrder creation.
-
-NEW FILE `api/apps/erp/pot/routers.py` — add two endpoints mounted on the pot app router:
-
-`GET /pot/sessions/{session_id}/items` — returns items filtered by session mode:
-- mode=sales → `Item.for_sales == True`
-- mode=purchase → `Item.for_purchase == True`
-- Include `id, code, name, default_sale_price` (or `default_purchase_price`), `qty_on_hand`
-- Must use `org_id` from JWT scope
-
-`POST /pot/sessions/{session_id}/quick_invoice` — body: `{party_id?, items: [{item_id, qty, unit_price}], payment_mode_id, amount_paid}`:
-1. Determine invoice type from session mode: `sales` → `OutflowInvoice`, `purchase` → `InflowInvoice`
-2. Create Invoice with lines, set `pos_session_id = session_id`, set `org_id` from session
-3. Call `post_stock_movement` and `post_journal_entry` handlers (reuse existing workflow)
-4. Create `Payment` and `PaymentAllocation` for `amount_paid` (up to invoice total)
-5. Return `{invoice_number, invoice_id, change_amount}`
-
-UPDATE `api/apps/erp/pot/app.py` — register the new router.
-
----
-
-### B4: linked_list tab — no backend change needed
-The layout JSON `type: "linked_list"` is already returned as-is from `UIGenerator` since it passes unknown layout types through. No backend change required.
-
-UPDATE `api/apps/erp/pot/views.py` — add `linked_list` to PotSessionView layout:
-```python
-layout = [
-    {"key": "header", "title": "Header", "fields": ["number", "terminal_id", "mode", "status", "doc_date", "opening_balance", "closing_balance"]},
-    {"key": "summary", "title": "Summary", "fields": ["total_sales", "total_purchase", "invoice_count"]},
-    {"type": "linked_list", "title": "Sales Invoices", "resource": "erp/accounting/outflow-invoices", "fk_field": "pos_session_id"},
-    {"type": "linked_list", "title": "Purchase Invoices", "resource": "erp/accounting/inflow-invoices", "fk_field": "pos_session_id"},
-]
+session: Mapped["PotSession"] = relationship("PotSession", back_populates="orders")
 ```
 
 ---
 
 ## Frontend Tasks
 
-### F1: linked_list tab rendering — UPDATE `ui/src/aras-core/components/DynamicForm.tsx`
+### F1: Tenant Admin page
+NEW FILE `ui/src/views/TenantAdmin.tsx` — admin-only page mounted at `/admin/tenants`.
 
-In the layout map loop (around line 1251 where `'tabs' in entry` is checked), add a new case for `entry.type === 'linked_list'`. Render it as a card panel containing a `<ListView>` with:
-- `resource={entry.resource}`
-- `fixedFilters={{ [entry.fk_field]: currentId }}`  
-- `onRowClick={(id) => navigate('/' + entry.resource + '/' + id)}`
-- No `onAdd` prop (read-only list)
-- Only render when `currentId \!= null`
+**Section 1 — Provision New Tenant** (card):
+- Form: `tenant_id` (text input, required, slug hint), `db_name` (text input, optional, placeholder `aras_tenant_{tenant_id}`)
+- "Provision" button → POST `/api/v1/tenants/provision` → on success notify + refresh list; on error show inline error message
 
-This is reusing the existing ListView component — minimal code. Import ListView (already imported). Wrap in same card styling as other sections.
+**Section 2 — Active Tenants** (table):
+Columns: Tenant ID | DB Name | Actions
+- Fetch GET `/api/v1/tenants` → `data.data[]`
+- Row actions: "Seed" → POST `/api/v1/tenants/{id}/seed` with `window.confirm` first; "Remove" → DELETE `/api/v1/tenants/{id}` with `window.confirm` first
+- Empty state: "No tenants provisioned yet"
 
----
+Use `useAras()` for `api` and `notify`. Check `user.is_admin` — redirect to `/` if not admin. Register route and lazy import in `ui/src/App.tsx` (add `<Route path="admin/tenants" element={<TenantAdmin />} />`).
 
-### F2: Payment — prefill allocations from action result — UPDATE `ui/src/aras-core/components/DynamicForm.tsx`
+### F2: POS receipt panel after charge
+UPDATE `ui/src/views/PosView.tsx` — after a successful `quick_invoice` response, set receipt state instead of calling `clearCart()` immediately.
 
-In `handleModelAction` (the function that calls model actions), after receiving the action response, check if `result.data.prefill_field` exists. If so, find the matching child table field and merge `result.data.rows` into `childRows[prefill_field]`, overwriting existing rows. The `get_open_invoices` action returns `{prefill_field: "allocations", rows: [...]}` — this pre-populates the allocation table so the user can review/edit before saving.
-
----
-
-### F3: POS View — NEW FILE `ui/src/views/PosView.tsx`
-
-Standalone POS screen. Route: detect at `erp/pot/sessions/:id/pos` in `App.tsx` (add route before the `segment1/*` catch-all).
-
-**Structure:**
-```
-┌──────────────────────────────────────────────────────────┐
-│ [←] Session #POS-001  [SALES badge]  [Close Session btn]  │
-├──────────────────────────┬───────────────────────────────┤
-│  [Search items...]       │  Cart                         │
-│                          │  ─────────────────────────── │
-│  ┌──────┐ ┌──────┐       │  Item A    qty [-][2][+]  100 │
-│  │Item A│ │Item B│       │  Item B    qty [-][1][+]   50 │
-│  │ 50k  │ │ 30k  │       │  ─────────────────────────── │
-│  └──────┘ └──────┘       │  Subtotal:             150    │
-│  ┌──────┐ ┌──────┐       │                               │
-│  │Item C│ │Item D│       │  Party: [Combobox...........]  │
-│  │ 20k  │ │ 15k  │       │  Mode:  [Combobox...........]  │
-│  └──────┘ └──────┘       │  Paid:  [____________]        │
-│                          │  Change: 0                    │
-│                          │  [     CHARGE     ]           │
-└──────────────────────────┴───────────────────────────────┘
-```
-
-- Fetch items from `GET /erp/pot/sessions/{id}/items`
-- Charge button: POST to `/erp/pot/sessions/{id}/quick_invoice`, on success show a brief toast with invoice number + change amount, then clear cart
-- Close Session: calls `close_session` model action, redirects to `/erp/pot/sessions`
-- Items panel: 3-column grid, each card shows name + price. Click adds to cart (qty=1, clicking again increments)
-- Cart qty: inline +/- buttons, 0 removes item
-- Payment mode: Combobox sourced from `erp/config/payment-modes`
-- Party: optional Combobox sourced from `erp/party/parties`
-
-Use Tailwind classes consistent with the rest of the app. No custom CSS.
-
-Register route in `ui/src/App.tsx`:
+Add state:
 ```tsx
-<Route path="erp/pot/sessions/:id/pos" element={<PosView />} />
+const [receipt, setReceipt] = useState<(QuickInvoiceResult & { items: CartLine[] }) | null>(null)
 ```
-Add lazy import at top of App.tsx.
+
+On successful charge: `setReceipt({ ...result, items: [...cart] })` — do NOT call `clearCart()` yet.
+
+Show receipt panel (replaces the charge section in the right column when `receipt != null`):
+- Invoice number (large, bold)
+- Item rows: `item.name | qty × formatCurrency(price) | line total`
+- Divider, Subtotal row
+- If not credit mode: "Paid" + "Change" rows
+- If credit mode: badge "Credit — AR/AP created"
+- Print button → `window.print()` (add `print:block` on receipt, `print:hidden` on item grid)
+- "New Transaction" button → `setReceipt(null); clearCart()`
+
+## Claude Review
+APPROVED
 
 ---
 
-#---
+## Agent Reports
 
-## Agent Report (Gemini 2.5 Flash)
-- files_written: api/core/base/model.py, api/core/base/linked_doc.py, api/apps/erp/accounting/models.py, api/apps/erp/stock/models.py, api/apps/erp/accounting/views.py, api/apps/erp/pot/models.py, api/apps/erp/pot/routers.py, api/apps/erp/pot/app.py, api/apps/erp/pot/views.py
-- features_added: LinkedDoc auto-discovery (Pass 1: SA FK scan), Payment.get_open_invoices pre-fill action, POS backend (sessions, quick_invoice, shift summary), linked_list layout support in views.
-- fixes_applied: Payment.party_id FK correction and metadata.
-- framework_changes: Refactored Model for auto-discovery; added App.get_routers for custom endpoints.
-- issues: none.
-- verdict: APPROVED
-
-
----
-## Agent Reports (2026-05-19)
-
-### Backend (Gemini 2.5 Flash)
-- files_written: none
-- features_added: none
-- fixes_applied: none
+### Backend (Gemini)
+- files_written: api/apps/erp/pot/services/pot.py, api/apps/erp/pot/models.py
+- features_added: PotSession.orders relationship restored with back_populates on both sides
+- fixes_applied: Removed stale PosSession import block; replaced db.query().get() with db.get(); get_shift_report and close_session use explicit PotOrder queries
 - framework_changes: none
 - issues: none
 
-### Frontend (Codex GPT-5.5)
-- files_written: ui/src/aras-core/components/DynamicForm.tsx, ui/src/views/PosView.tsx, ui/src/App.tsx
-- features_added: linked_list form tab rendering, model action allocation prefill handling, POS session view and route
+### Frontend (Gemini)
+- files_written: ui/src/views/TenantAdmin.tsx, ui/src/views/PosView.tsx, ui/src/App.tsx
+- features_added: TenantAdmin page at /admin/tenants (list/provision/seed/deprovision); POS receipt panel; /admin/tenants route + lazy import
 - fixes_applied: none
 - framework_changes: none
-- issues: Backend close_session action may not accept payload through the generated action route as currently implemented
+- issues: PosView.tsx had structural corruption — receipt state undeclared, orphaned JSX block outside component close, dangling )} in JSX
+
+## Claude Review
+- verdict: NEEDS-FIX (fixed inline)
+- reviewed_by: Claude Sonnet 4.6
+- date: 2026-05-19
+
+## Revision Tasks (completed inline)
+- [x] PosView.tsx: added `receipt` useState declaration (type: QuickInvoiceResult & items/paid/change/isCredit/mode)
+- [x] PosView.tsx: replaced dangling `)}` before `</aside>` with full receipt panel JSX (invoice number, item rows, totals, credit badge, Print + New Transaction buttons)
+- [x] PosView.tsx: removed orphaned JSX block (lines 437–505) that appeared after component closing brace
+
+---
+
+## Next Task: Remove dead PotOrder models
+
+> Written by: Claude Code (claude-sonnet-4-6)
+> Date: 2026-05-19
+> Feature: PotOrder cleanup
+
+## Context
+
+POS flow creates invoices directly (`quick_invoice` → InflowInvoice/OutflowInvoice with `pos_session_id`). PotSession computed fields (`total_sales`, `total_purchase`, `invoice_count`, `payment_summary`) already aggregate from invoices. PotOrder/PotOrderLine/PotPaymentLine serve no purpose in the current architecture and should be removed.
+
+## Backend Tasks
+
+### B1: Delete dead models + service methods
+DELETE `PotOrder`, `PotOrderLine`, `PotPaymentLine` from `api/apps/erp/pot/models.py`.
+Remove their imports and the `PotSession.orders` relationship (there are no orders anymore).
+Remove `PotPaymentLine` import from the top of the file.
+
+UPDATE `api/apps/erp/pot/services/pot.py` — remove `process_order`, `open_session`, `close_session`, `get_shift_report`, and `get_pot_products` methods entirely. Remove `PotOrder, PotOrderLine, PotPaymentLine, PotTerminal` from imports (keep only `PotSession`). Remove `ModeOfPayment` import. The class can be empty or deleted if no methods remain.
+
+UPDATE `api/apps/erp/pot/views.py` — remove `PotOrderView` and `PotOrderLineView` classes and their imports.
+
+`shift_report` model action on `PotSession` calls `PotService.get_shift_report`. Rewrite it to use the computed fields that already exist on the session:
+```python
+@Aras.model_action(name="shift_report", permission="read", label="Shift Report")
+def shift_report(self, db):
+    from sqlalchemy.orm import object_session
+    s = object_session(self)
+    return ok({
+        "session_id": self.id,
+        "session_number": self.number,
+        "status": self.status,
+        "total_sales": self.total_sales,
+        "total_purchase": self.total_purchase,
+        "invoice_count": self.invoice_count,
+        "payment_summary": self.payment_summary,
+        "opening_balance": float(self.opening_balance or 0),
+        "closing_balance": float(self.closing_balance or 0),
+    }, message="Shift Report")
+```
+
+After changes run `cd api && python manage.py sync` — auto_migrate will NOT drop the old tables (drop is manual), but the models will be unregistered from the UI.
+
+---
+
+## Agent Reports
+
+### Backend (Gemini)
+- files_written: api/apps/erp/pot/models.py, api/apps/erp/pot/services/pot.py, api/apps/erp/pot/views.py, api/apps/erp/pot/app.py
+- features_added: none
+- fixes_applied: Removed dead PotOrder, PotOrderLine, and PotPaymentLine models, views, and service methods. Rewrote shift_report model action on PotSession to use computed fields. Removed removed models from pot/app.py and re-synced metadata.
+- framework_changes: none
+- issues: none
+
+## Gemini Review
+- verdict: APPROVED
+- reviewed_by: Gemini
+- date: 2026-05-19
+
 
 ## Claude Review
 - verdict: APPROVED
 - reviewed_by: Claude Sonnet 4.6
 - date: 2026-05-19
-- notes: All files verified. `close_session` had a signature mismatch (no `input_schema` → router called `handler(db)` but method expected `data: dict`). Fixed directly in `api/apps/erp/pot/models.py` — added `_CloseSessionInput(PydanticBaseModel)` inner class and wired `input_schema=_CloseSessionInput` to the decorator. DB sync needs to be run manually (`cd api && python manage.py sync`) — DB unreachable in review sandbox.
+- notes: PotOrder/PotOrderLine/PotPaymentLine removed. PotService is empty stub (pass). shift_report uses computed fields. PotOrderView/PotOrderLineView gone. Files verified.

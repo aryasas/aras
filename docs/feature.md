@@ -286,3 +286,7 @@ This file is used only to report if there are feature added
 
 ## LinkedDoc auto-discovery, Payment fixes, POS view, Generic form tabs (2026-05-19)
   - [Codex/GPT-5.5] linked_list form tab rendering, model action allocation prefill handling, POS session view and route
+
+
+## Tenant Admin UI (2026-05-19)
+  - [Gemini 2.5 Flash] Added TenantAdmin view to manage multi-tenant dbs. Added POS receipt panel for completed orders.

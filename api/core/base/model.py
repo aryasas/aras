@@ -705,22 +705,12 @@ class Model(Aras, Base):
             for col in m.persist_selectable.columns:
                 if col.name in SKIP_COLS:
                     continue
+                # Skip nullable columns — they are lookup/reference FKs, not ownership.
+                # Ownership FKs (line items, children) are non-nullable.
+                if col.nullable:
+                    continue
                 for fk in col.foreign_keys:
                     if fk.column.table.name == target_table:
-                        # For auto-discovery, we only cascade if the child is explicitly marked as a child
-                        # OR if it's a LineItem pattern. However, the handoff says:
-                        # "Pass 1 — SA FK auto-scan (no declaration needed) ... For cascade: call child.delete_self(db) ..."
-                        # This implies ALL auto-discovered children cascade? That might be dangerous.
-                        # Wait, many relationships are not cascading.
-                        # Re-reading: "UPDATE api/core/base/model.py — replace get_linked_documents(db) and _cascade_linked_docs(db) with two-pass logic"
-                        # It doesn't explicitly say "only if cascade=True".
-                        # But Pass 2 says: "walk self.__class__.__linked_docs__ as before" (which checked .cascade).
-                        
-                        # Let's look at the handoff again.
-                        # "Only yield models that have __tablename__ (skip abstract). For cascade: call child.delete_self(db) if getattr(child, "deleted_at", None) is None, else db.delete(child)."
-                        # It seems to imply Pass 1 cascade is unconditional for found children.
-                        # This might be because in Aras, children usually should be deleted with parent.
-                        
                         children = db.query(child_cls).filter(
                             getattr(child_cls, col.key) == self.id
                         ).all()

@@ -47,9 +47,11 @@ export default function PosView() {
   const [paymentModeId, setPaymentModeId] = useState<number | null>(null)
   const [amountPaid, setAmountPaid] = useState('')
   const [posMode, setPosMode] = useState<'sales' | 'purchase'>('sales')
+  const [isCreditMode, setIsCreditMode] = useState(false)
   const [loading, setLoading] = useState(true)
   const [charging, setCharging] = useState(false)
   const [closing, setClosing] = useState(false)
+  const [receipt, setReceipt] = useState<(QuickInvoiceResult & { items: CartLine[]; paid: number; change: number; isCredit: boolean; mode: 'sales' | 'purchase' }) | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -107,17 +109,19 @@ export default function PosView() {
     setCart([])
     setPartyId(null)
     setAmountPaid('')
+    setIsCreditMode(false)
   }
 
   const charge = async () => {
-    if (!id || cart.length === 0 || !paymentModeId) return
+    if (!id || cart.length === 0) return
+    if (!isCreditMode && !paymentModeId) return
 
     setCharging(true)
     try {
       const res = await api.post(`/erp/pot/sessions/${id}/quick_invoice`, {
         party_id: partyId,
-        payment_mode_id: paymentModeId,
-        amount_paid: paid,
+        payment_mode_id: isCreditMode ? null : paymentModeId,
+        amount_paid: isCreditMode ? 0 : paid,
         mode: posMode,
         items: cart.map(line => ({
           item_id: line.item.id,
@@ -126,8 +130,19 @@ export default function PosView() {
         }))
       })
       const result = res.data as QuickInvoiceResult
-      notify(`Invoice ${result.invoice_number ?? result.invoice_id} charged. Change: ${formatCurrency(result.change_amount ?? 0)}`, 'success')
-      clearCart()
+      if (isCreditMode) {
+        notify(`Invoice ${result.invoice_number ?? result.invoice_id} — credit ${posMode === 'sales' ? 'sale (AR)' : 'purchase (AP)'} created.`, 'success')
+      } else {
+        notify(`Invoice ${result.invoice_number ?? result.invoice_id} charged. Change: ${formatCurrency(result.change_amount ?? 0)}`, 'success')
+      }
+      setReceipt({
+        ...result,
+        items: [...cart],
+        paid: isCreditMode ? 0 : paid,
+        change: result.change_amount ?? 0,
+        isCredit: isCreditMode,
+        mode: posMode
+      })
     } catch (err: any) {
       notify(err.response?.data?.detail || 'Charge failed', 'error')
     } finally {
@@ -177,11 +192,11 @@ export default function PosView() {
           </div>
           {session?.mode === 'both' ? (
             <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs font-bold">
-              <button type="button" onClick={() => { setPosMode('sales'); setCart([]) }}
+              <button type="button" onClick={() => { setPosMode('sales'); setCart([]); setIsCreditMode(false) }}
                 className={`px-3 py-1 transition-colors ${posMode === 'sales' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
                 Sales
               </button>
-              <button type="button" onClick={() => { setPosMode('purchase'); setCart([]) }}
+              <button type="button" onClick={() => { setPosMode('purchase'); setCart([]); setIsCreditMode(false) }}
                 className={`px-3 py-1 transition-colors ${posMode === 'purchase' ? 'bg-sky-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
                 Purchase
               </button>
@@ -203,7 +218,7 @@ export default function PosView() {
       </div>
 
       <div className="flex-1 grid grid-cols-1 xl:grid-cols-[1fr_440px] min-h-0">
-        <div className="p-6 flex flex-col min-h-0 border-r border-slate-200">
+        <div className="p-6 flex flex-col min-h-0 border-r border-slate-200 print:hidden">
           <div className="mb-5">
             <input
               type="text"
@@ -277,13 +292,81 @@ export default function PosView() {
             )}
           </div>
 
-          <div className="p-6 border-t border-slate-200 space-y-4 shrink-0">
+          {receipt ? (
+            <div className="p-6 border-t border-slate-200 space-y-4 shrink-0 bg-white print:block">
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-black text-slate-900">{receipt.invoice_number ?? `#${receipt.invoice_id}`}</h3>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">Receipt</p>
+              </div>
+              <div className="space-y-3">
+                {receipt.items.map(line => (
+                  <div key={line.item.id} className="flex items-center justify-between text-sm">
+                    <div>
+                      <div className="font-semibold text-slate-900">{line.item.name}</div>
+                      <div className="text-xs text-slate-500">{line.qty} × {formatCurrency(getItemPrice(line.item))}</div>
+                    </div>
+                    <div className="font-bold text-slate-900">{formatCurrency(getItemPrice(line.item) * line.qty)}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="border-t border-slate-200 pt-3 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-500 font-medium">Subtotal</span>
+                  <span className="text-lg font-bold text-slate-900">{formatCurrency(receipt.items.reduce((s, l) => s + getItemPrice(l.item) * l.qty, 0))}</span>
+                </div>
+                {receipt.isCredit ? (
+                  <div className="mt-4 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 uppercase tracking-wider">
+                    Credit — {receipt.mode === 'sales' ? 'AR' : 'AP'} created
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-500 font-medium">Paid</span>
+                      <span className="font-bold text-slate-900">{formatCurrency(receipt.paid)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-500 font-medium">Change</span>
+                      <span className="font-bold text-slate-900">{formatCurrency(receipt.change)}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-6 pt-4 print:hidden">
+                <button type="button" onClick={() => window.print()} className="px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold hover:bg-slate-50 transition-colors">Print</button>
+                <button type="button" onClick={() => { setReceipt(null); clearCart() }} className="px-4 py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-colors">New Transaction</button>
+              </div>
+            </div>
+          ) : (
+          <div className="p-6 border-t border-slate-200 space-y-4 shrink-0 print:hidden">
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-500 font-medium">Subtotal</span>
               <span className="text-lg font-bold text-slate-900">{formatCurrency(subtotal)}</span>
             </div>
 
-            <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Credit {posMode === 'sales' ? 'Sale' : 'Purchase'}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !isCreditMode
+                  setIsCreditMode(next)
+                  if (next) { setPaymentModeId(null); setAmountPaid('') }
+                }}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                  isCreditMode
+                    ? posMode === 'sales' ? 'bg-amber-500' : 'bg-purple-500'
+                    : 'bg-slate-200'
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                  isCreditMode ? 'translate-x-[18px]' : 'translate-x-0.5'
+                }`} />
+              </button>
+            </div>
+
+            <div className={`space-y-3 ${isCreditMode ? 'opacity-40 pointer-events-none select-none' : ''}`}>
               <label className="block">
                 <span className="block mb-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Party</span>
                 <Combobox resource="erp/party/parties" value={partyId} onChange={setPartyId} placeholder="Optional party" />
@@ -304,19 +387,40 @@ export default function PosView() {
               </label>
             </div>
 
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-500 font-medium">Change</span>
-              <span className="font-bold text-slate-900">{formatCurrency(change)}</span>
-            </div>
+            {isCreditMode ? (
+              <div className="flex items-center justify-between text-sm">
+                <span className={`font-medium ${posMode === 'sales' ? 'text-amber-600' : 'text-purple-600'}`}>
+                  {posMode === 'sales' ? 'AR Outstanding' : 'AP Outstanding'}
+                </span>
+                <span className={`font-bold ${posMode === 'sales' ? 'text-amber-700' : 'text-purple-700'}`}>
+                  {formatCurrency(subtotal)}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-500 font-medium">Change</span>
+                <span className="font-bold text-slate-900">{formatCurrency(change)}</span>
+              </div>
+            )}
 
             <div className="grid grid-cols-[1fr_auto] gap-2">
               <button
                 type="button"
                 onClick={charge}
-                disabled={charging || cart.length === 0 || !paymentModeId}
-                className="h-12 rounded-xl bg-indigo-600 text-white text-sm font-bold uppercase tracking-wider hover:bg-indigo-700 disabled:opacity-60 disabled:hover:bg-indigo-600 transition-colors"
+                disabled={charging || cart.length === 0 || (!isCreditMode && !paymentModeId)}
+                className={`h-12 rounded-xl text-white text-sm font-bold uppercase tracking-wider disabled:opacity-60 transition-colors ${
+                  isCreditMode
+                    ? posMode === 'sales'
+                      ? 'bg-amber-500 hover:bg-amber-600 disabled:hover:bg-amber-500'
+                      : 'bg-purple-600 hover:bg-purple-700 disabled:hover:bg-purple-600'
+                    : 'bg-indigo-600 hover:bg-indigo-700 disabled:hover:bg-indigo-600'
+                }`}
               >
-                {charging ? 'Charging...' : 'Charge'}
+                {charging
+                  ? 'Charging...'
+                  : isCreditMode
+                    ? posMode === 'sales' ? 'Credit Sale' : 'Credit Purchase'
+                    : 'Charge'}
               </button>
               <button
                 type="button"
@@ -329,6 +433,7 @@ export default function PosView() {
               </button>
             </div>
           </div>
+          )}
         </aside>
       </div>
     </div>

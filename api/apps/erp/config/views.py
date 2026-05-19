@@ -89,7 +89,7 @@ class ModeOfPaymentView(Aras.View):
         {
             "key": "general",
             "title": "General",
-            "fields": ["name", "type", "account_id"],
+            "fields": ["name", "payment_type", "erp_config_payment_accounts"],
         },
     ]
 

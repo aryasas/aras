@@ -97,6 +97,26 @@ interface Metadata {
   app_name?: string;
 }
 
+interface LinkedDoc {
+  label: string;
+  resource: string;
+  id: number;
+  number: string;
+}
+
+const normalizeLinkedDocs = (value: any): LinkedDoc[] => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  return [];
+};
+
+const linkedDocsDeleteMessage = (docs: LinkedDoc[]) => {
+  if (docs.length === 0) return 'Delete this record? This cannot be undone.';
+  const preview = docs.slice(0, 5).map(doc => `${doc.label} ${doc.number || `#${doc.id}`}`).join(', ');
+  const suffix = docs.length > 5 ? `, and ${docs.length - 5} more` : '';
+  return `Delete this record and ${docs.length} related document${docs.length === 1 ? '' : 's'}? Related documents will also be deleted: ${preview}${suffix}. This cannot be undone.`;
+};
+
 const PROFILE_OPTIONS = [
   { value: 'general', label: 'General', icon: BriefcaseBusiness },
   { value: 'retail', label: 'Retail', icon: Store },
@@ -176,7 +196,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [activeTab, setActiveTab] = useState<Record<number, number>>({});
   const [nextSeriesNumber, setNextSeriesNumber] = useState<string | null>(null);
-  const [linkedDocs, setLinkedDocs] = useState<{ label: string; resource: string; id: number; number: string }[]>([]);
+  const [linkedDocs, setLinkedDocs] = useState<LinkedDoc[]>([]);
   const handleSubmitRef = useRef<(() => void) | null>(null);
   const initialM2mRef = useRef<Record<string, any[]>>({});
   const initialChildRowIdsRef = useRef<Record<string, Set<any>>>({});
@@ -330,7 +350,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   useEffect(() => {
     if (!currentId) { setLinkedDocs([]); return; }
     api.get(`/${cleanResourcePath(resource)}/${currentId}/linked-documents`)
-      .then(res => setLinkedDocs(res.data?.data ?? []))
+      .then(res => setLinkedDocs(normalizeLinkedDocs(res.data)))
       .catch(() => setLinkedDocs([]));
   }, [resource, currentId, refreshTrigger]);
 
@@ -554,15 +574,24 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
 
   const handleDelete = async () => {
     if (!currentId) return;
+    const cleanResource = metadata?.api_path || cleanResourcePath(resource);
+    let docs = linkedDocs;
+    if (docs.length === 0) {
+      try {
+        const res = await api.get(`/${cleanResource}/${currentId}/linked-documents`);
+        docs = normalizeLinkedDocs(res.data);
+      } catch {
+        docs = [];
+      }
+    }
     const confirmed = await confirm({
       title: 'Delete record',
-      message: 'Delete this record? This cannot be undone.',
+      message: linkedDocsDeleteMessage(docs),
       confirmText: 'Delete',
       type: 'danger'
     });
     if (!confirmed) return;
     try {
-      const cleanResource = metadata?.api_path || cleanResourcePath(resource);
       await api.delete(`/${cleanResource}/${currentId}`);
       notify('Record deleted.', 'success');
       if (onDelete) onDelete();
