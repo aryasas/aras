@@ -9,6 +9,7 @@ import { Building2 } from 'lucide-react'
 import { useAras } from '../aras-core/hooks/useAras'
 import { useUIStore } from '../store/uiStore'
 import { SidebarBrand } from './components/SidebarBrand'
+import { PageHeader } from '../components/PageHeader'
 
 export default function MainLayout() {
   const [sidebarData, setSidebarData] = useState<SidebarApp[]>([])
@@ -136,6 +137,7 @@ export default function MainLayout() {
         {/* Content Area */}
         <div className="flex-1 overflow-auto bg-[var(--aras-bg-main)] px-8 py-7 max-sm:min-h-screen max-sm:overflow-visible max-sm:p-4">
           <div className="mx-auto max-w-none">
+            <PageHeader />
             <Outlet context={{ sidebarData }} />
           </div>
         </div>

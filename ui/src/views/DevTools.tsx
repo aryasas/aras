@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Terminal, Database, RefreshCw, Cpu, Box, Layout, Table, Link as LinkIcon, Users, Settings, GitBranch, HelpCircle, X } from 'lucide-react'
 import api from '../lib/api'
 import { MetadataService } from '../aras-core/services/MetadataService'
+import { useUIStore } from '../store/uiStore'
 import { useAras } from '../aras-core/hooks/useAras'
 import { Link, useNavigate } from 'react-router-dom'
 import TenantSwitcher from './TenantSwitcher'
@@ -43,6 +44,13 @@ export default function DevTools() {
   const [info, setInfo] = useState<FrameworkInfo | null>(null)
   const [stats, setStats] = useState<DbStat[]>([])
   const [syncing, setSyncing] = useState(false)
+  const setPageTitle = useUIStore(state => state.setPageTitle)
+
+  useEffect(() => {
+    setPageTitle('Developer Tools', 'Internal framework inspection and maintenance utilities.', 'SYSTEM / DEV')
+    return () => setPageTitle('', '', '')
+  }, [setPageTitle])
+
   const [activeTab, setActiveTab] = useState<'overview' | 'handoff'>('overview')
   const [handoffRuns, setHandoffRuns] = useState<HandoffRun[]>([])
   const [selectedRun, setSelectedRun] = useState<HandoffRun | null>(null)
@@ -97,15 +105,8 @@ export default function DevTools() {
   }, [activeTab])
 
   return (
-    <div className="p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-            <Terminal className="text-indigo-600" />
-            Developer Tools
-          </h1>
-          <p className="text-slate-500 mt-1 font-medium">Internal framework inspection and maintenance utilities.</p>
-        </div>
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex items-center justify-end mb-8">
         <button
           onClick={handleSync}
           disabled={syncing}

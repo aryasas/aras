@@ -4,7 +4,7 @@ import api from '../../lib/api'
 import { cleanResourcePath } from '../../lib/resourceUtils'
 import {
   Search, Plus, ChevronLeft, ChevronRight,
-  CheckSquare, Square, X,
+  CheckSquare, Square, X, Check,
   ChevronDown, ChevronUp, Trash2
 } from 'lucide-react'
 import { resolveFieldComponent, resolveFilterComponent } from '../SchemaRegistry'
@@ -82,6 +82,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { notify, confirm, appName } = useAras()
+  const setPageTitle = useUIStore(state => state.setPageTitle)
 
   // Query State
   const [page, setPage] = useState(1)
@@ -113,6 +114,24 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   // Inline editing: { rowId, fieldName, value }
   const [inlineEdit, setInlineEdit] = useState<{ rowId: string | number; field: string; value: any } | null>(null)
   const inlineInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (metadata) {
+      const title = vocabulary.get(metadata.title)
+      const resourceCrumb = cleanResourcePath(resource)
+        .split('/')
+        .filter(Boolean)
+        .map(part => part.replace(/-/g, ' ').replace(/\b\w/g, char => char.toUpperCase()))
+        .join(' / ')
+      
+      setPageTitle(
+        title, 
+        `Create, search, and manage ${title.toLowerCase()} records.`,
+        resourceCrumb
+      )
+    }
+    return () => setPageTitle('', '', '')
+  }, [metadata, resource, vocabulary, setPageTitle])
 
   const showPanel = useUIStore(state => state.showPanel)
   const closePanel = useUIStore(state => state.closePanel)
@@ -556,23 +575,9 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     setPage(1)
   }
 
-  const resourceCrumb = cleanResourcePath(resource)
-    .split('/')
-    .filter(Boolean)
-    .map(part => part.replace(/-/g, ' ').replace(/\b\w/g, char => char.toUpperCase()))
-    .join(' / ')
-
   return (
     <>
     <div className="aras-list-view flex flex-col h-full bg-transparent overflow-hidden">
-      <div className="mb-6 flex items-end justify-between gap-6 max-sm:flex-col max-sm:items-start">
-        <div>
-          {resourceCrumb && <div className="mb-4 text-sm font-semibold text-[var(--aras-muted)]">{resourceCrumb}</div>}
-          <h1 className="text-[48px] font-normal leading-none tracking-[-0.045em] text-[var(--aras-text)] max-sm:text-[38px]">{title}</h1>
-          <p className="mt-2 text-base text-[var(--aras-muted)]">Create, search, and manage {title.toLowerCase()} records.</p>
-        </div>
-      </div>
-
       {/* ── Toolbar ────────────────────────────────────────────────────────── */}
       <ListToolbar
         title={title}
@@ -605,19 +610,48 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
 
         {/* ── Advanced Filter Builder ────────────────────────────────────── */}
         {isFilterOpen && (
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+          <div id="filter-conditions-panel" className="bg-[var(--aras-panel-soft)] p-4 rounded-[var(--aras-radius)] border border-[var(--aras-border)] space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-500 uppercase">Filter Conditions</span>
-              <button onClick={addFilter} className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1">
+              <span className="text-[11px] font-semibold text-[var(--aras-muted)] uppercase tracking-wider">Filter Conditions</span>
+              <button onClick={addFilter} className="text-xs font-semibold text-[var(--aras-accent)] hover:underline flex items-center gap-1">
                 <Plus size={14} /> Add Rule
               </button>
             </div>
+
+            {/* Saved Filters Display */}
+            {savedFilters.length > 0 && (
+              <div className="space-y-2 pb-4 border-b border-[var(--aras-border)] mb-4">
+                <h4 className="text-[11px] font-semibold text-[var(--aras-muted)] uppercase tracking-wider mb-2">Saved Filters</h4>
+                <div className="flex flex-wrap gap-2">
+                  {savedFilters.map(sf => (
+                    <div key={sf.id} className="inline-flex items-center bg-[var(--aras-panel)] text-[var(--aras-accent)] text-xs font-semibold px-3 py-1.5 rounded-[var(--aras-radius)] border border-[var(--aras-border-strong)]">
+                      <span className="mr-2">{sf.name}</span>
+                      <button
+                        onClick={() => handleApplySavedFilter(sf.id)}
+                        className="p-1 -my-1 rounded-[var(--aras-radius)] hover:bg-[var(--aras-panel-soft)] transition-colors"
+                        title="Apply Filter"
+                      >
+                        <Check size={12} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSavedFilter(sf.id)}
+                        className="ml-1 p-1 -my-1 rounded-[var(--aras-radius)] hover:bg-rose-50 text-rose-600 transition-colors"
+                        title="Delete Filter"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             {filters.length === 0 ? (
-              <p className="text-sm text-slate-400 italic">No filters applied. Add a rule to refine results.</p>
+              <p className="text-sm text-[var(--aras-muted)] italic">No filters applied. Add a rule to refine results.</p>
             ) : (              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {filters.map((f, i) => (
-                  <div key={i} className="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-200">
-                    <div className="flex-1">
+                  <div key={i} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-[var(--aras-panel)] p-3 rounded-[var(--aras-radius)] border border-[var(--aras-border)]">
+                    <div className="flex-1 min-w-[120px]">
                       <Combobox
                         options={fields.map(field => ({ label: vocabulary.get(field.label), value: field.name }))}
                         value={f.field}
@@ -628,13 +662,18 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                     <select
                       value={f.op}
                       onChange={(e) => updateFilter(i, 'op', e.target.value)}
-                      className="text-xs bg-indigo-50 text-indigo-700 rounded-lg p-2 outline-none font-bold h-[42px]"
+                      className="flex-shrink-0 w-auto text-sm bg-[var(--aras-panel)] text-[var(--aras-text)] rounded-[var(--aras-radius)] px-3 py-2 border border-[var(--aras-border-strong)] outline-none transition-colors h-[42px]"
                     >
-                      <option value="=">=</option>
-                      <option value="!=">!=</option>
-                      <option value=">">&gt;</option>
-                      <option value="<">&lt;</option>
+                      <option value="=">is</option>
+                      <option value="!=">is not</option>
+                      <option value=">">is greater than</option>
+                      <option value="<">is less than</option>
                       <option value="ilike">contains</option>
+                      <option value="not_ilike">does not contain</option>
+                      <option value="in">is one of</option>
+                      <option value="not_in">is not one of</option>
+                      <option value="is_null">is empty</option>
+                      <option value="is_not_null">is not empty</option>
                     </select>
                     <div className="flex-1">
                       {(() => {
@@ -652,7 +691,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                         );
                       })()}
                     </div>
-                    <button onClick={() => removeFilter(i)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
+                    <button onClick={() => removeFilter(i)} className="flex-shrink-0 p-2 text-[var(--aras-muted)] hover:text-rose-500 hover:bg-rose-50 rounded-[var(--aras-radius)] transition-colors">
                       <X size={14} />
                     </button>
                   </div>
@@ -663,13 +702,13 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
             <div className="flex justify-end pt-2">
                <button
                  onClick={() => { setFilters([]); setPage(1); }}
-                 className="text-xs font-bold text-slate-500 hover:text-slate-700 mr-4"
+                 className="text-xs font-semibold text-[var(--aras-muted)] hover:text-[var(--aras-text)] mr-4"
                >
                  Reset All
                </button>
                <button
                  onClick={() => { setPage(1); fetchData(); }}
-                 className="px-4 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700"
+                 className="px-4 py-2 bg-[var(--aras-accent)] text-white text-xs font-semibold rounded-[var(--aras-radius)] hover:opacity-90"
                >
                  Apply Filters
                </button>
@@ -678,18 +717,18 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         )}
 
       {/* ── Content View ─────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-auto rounded-[var(--aras-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)]">
+      <div className="flex-1 overflow-auto rounded-[var(--aras-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)] mt-4">
         {isPartyResource && (
-          <div className="flex flex-wrap gap-2 border-b border-slate-100 bg-white px-6 py-3">
+          <div className="flex flex-wrap gap-1 border-b border-[var(--aras-border)] bg-[var(--aras-panel-soft)] px-4 py-2">
             {roleTabs.map(tab => (
               <button
                 key={tab.value}
                 type="button"
                 onClick={() => setRoleFilter(tab.value)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
+                className={`rounded-[var(--aras-radius)] px-3 py-1.5 text-xs font-medium transition-colors ${
                   roleFilter === tab.value
-                    ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100'
-                    : 'bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                    ? 'bg-[var(--aras-panel)] text-[var(--aras-accent)] border border-[var(--aras-border-strong)]'
+                    : 'text-[var(--aras-muted)] hover:text-[var(--aras-text)] hover:bg-[var(--aras-panel)]'
                 }`}
               >
                 {tab.label}
@@ -700,10 +739,10 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         {viewMode === 'list' && (
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead className="sticky top-0 z-10">
-              <tr className="bg-slate-50/80 backdrop-blur-sm border-b border-slate-200">
-                <th className="px-6 py-4 w-10">
-                  <button onClick={handleSelectAll} className="text-slate-400 hover:text-indigo-600">
-                    {selectedIds.length === data.length && data.length > 0 ? <CheckSquare size={18} className="text-indigo-600" /> : <Square size={18} />}
+              <tr className="bg-[var(--aras-table-head)] border-b border-[var(--aras-border)]">
+                <th className="px-6 py-4 w-10" scope="col">
+                  <button onClick={handleSelectAll} className="text-[var(--aras-muted)] hover:text-[var(--aras-accent)] transition-colors">
+                    {selectedIds.length === data.length && data.length > 0 ? <CheckSquare size={18} className="text-[var(--aras-accent)]" /> : <Square size={18} />}
                   </button>
                 </th>
                 {orderedFields.map(field => (
@@ -724,46 +763,47 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                       setDragCol(null);
                     }}
                     onDragEnd={() => setDragCol(null)}
-                    className="px-8 py-5 text-xs font-bold text-slate-600 uppercase tracking-wider cursor-grab active:cursor-grabbing hover:bg-slate-50 transition-colors"
+                    className="px-6 py-4 text-[13px] font-semibold text-[var(--aras-text)] cursor-grab active:cursor-grabbing hover:bg-[var(--aras-panel-soft)] transition-colors"
                     onClick={() => {
                       if (orderBy === field.name) setDesc(!desc)
                       else { setOrderBy(field.name); setDesc(true); }
                     }}
+                    scope="col"
                   >
                     <div className="flex items-center gap-2">
                       {vocabulary.get(field.label)}
-                      {orderBy === field.name && (desc ? <ChevronDown size={14} /> : <ChevronUp size={14} />)}
+                      {orderBy === field.name && (desc ? <ChevronDown size={14} className="text-[var(--aras-accent)]" /> : <ChevronUp size={14} className="text-[var(--aras-accent)]" />)}
                     </div>
                   </th>
                 ))}
                 <th className="px-6 py-5 w-12"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[var(--aras-border)]">
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td className="px-6 py-4"><div className="w-5 h-5 bg-slate-100 rounded"></div></td>
-                    {orderedFields.map(f => <td key={f.name} className="px-6 py-4"><div className="h-4 bg-slate-50 rounded w-3/4"></div></td>)}
-                    <td className="px-6 py-4"><div className="w-8 h-8 bg-slate-50 rounded"></div></td>
+                    <td className="px-6 py-4"><div className="w-5 h-5 bg-[var(--aras-panel-soft)] rounded"></div></td>
+                    {orderedFields.map(f => <td key={f.name} className="px-6 py-4"><div className="h-4 bg-[var(--aras-panel-soft)] rounded w-3/4"></div></td>)}
+                    <td className="px-6 py-4"><div className="w-8 h-8 bg-[var(--aras-panel-soft)] rounded"></div></td>
                   </tr>
                 ))
               ) : data.length === 0 ? (
                 <tr>
                   <td colSpan={orderedFields.length + 2} className="px-6 py-16 text-center">
-                    <div className="max-w-xs mx-auto flex flex-col items-center text-slate-400">
+                    <div className="max-w-xs mx-auto flex flex-col items-center text-[var(--aras-muted)]">
                       {search || filters.length > 0 ? (
                         <>
                           <Search size={40} className="mb-3 opacity-20" />
                           <p className="text-sm font-medium">No records match your search.</p>
-                          <button onClick={() => {setSearch(''); setFilters([]);}} className="mt-2 text-xs text-indigo-600 font-bold hover:underline">Clear filters</button>
+                          <button onClick={() => {setSearch(''); setFilters([]);}} className="mt-2 text-xs text-[var(--aras-accent)] font-semibold hover:underline">Clear filters</button>
                         </>
                       ) : (
                         <>
                           <Plus size={40} className="mb-3 opacity-20" />
-                          <p className="text-sm font-medium text-slate-500">No records yet.</p>
+                          <p className="text-sm font-medium text-[var(--aras-muted)]">No records yet.</p>
                           {onAdd && (
-                            <button onClick={onAdd} className="mt-3 px-4 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                            <button onClick={onAdd} className="mt-3 px-4 py-2 text-xs font-semibold bg-[var(--aras-accent)] text-white rounded-[var(--aras-radius)] hover:opacity-90 transition">
                               Add New
                             </button>
                           )}
@@ -776,11 +816,11 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                 data.map((item) => (
                   <tr
                     key={item.id}
-                    className={`hover:bg-indigo-50/30 transition-colors cursor-pointer group ${selectedIds.includes(item.id) ? 'bg-indigo-50/50' : ''}`}
+                    className={`hover:bg-[var(--aras-panel-soft)] transition-colors cursor-pointer group ${selectedIds.includes(item.id) ? 'bg-[var(--aras-panel-soft)]' : ''}`}
                     onClick={() => onRowClick ? onRowClick(item.id) : null}
                   >
                     <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => handleSelectOne(item.id)} className={`${selectedIds.includes(item.id) ? 'text-indigo-600' : 'text-slate-300 group-hover:text-slate-400'}`}>
+                      <button onClick={() => handleSelectOne(item.id)} className={`${selectedIds.includes(item.id) ? 'text-[var(--aras-accent)]' : 'text-[var(--aras-faint)] group-hover:text-[var(--aras-muted)]'}`}>
                         {selectedIds.includes(item.id) ? <CheckSquare size={18} /> : <Square size={18} />}
                       </button>
                     </td>
@@ -791,7 +831,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                     return (
                       <td
                         key={field.name}
-                        className="px-6 py-4 text-sm text-slate-600 font-medium"
+                        className="px-6 py-4 text-sm text-[var(--aras-muted)] font-medium"
                         onDoubleClick={(e) => {
                           if (!canInline) return
                           e.stopPropagation()
@@ -803,7 +843,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                           <input
                             ref={inlineInputRef}
                             type={field.type === 'number' || field.type === 'integer' ? 'number' : 'text'}
-                            className="w-full border-b-2 border-indigo-400 bg-indigo-50 rounded px-1 py-0.5 text-sm outline-none"
+                            className="w-full border border-[var(--aras-accent)] bg-[var(--aras-panel)] rounded-[var(--aras-radius)] px-2 py-1 text-sm outline-none text-[var(--aras-text)]"
                             value={inlineEdit.value}
                             onChange={e => setInlineEdit(prev => prev ? { ...prev, value: e.target.value } : prev)}
                             onBlur={handleInlineSave}
@@ -825,7 +865,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                           e.stopPropagation()
                           handleDeleteOne(item)
                         }}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 opacity-0 transition-colors hover:bg-rose-50 hover:text-rose-600 group-hover:opacity-100 focus:opacity-100"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--aras-radius)] text-[var(--aras-muted)] transition-colors hover:bg-rose-50 hover:text-rose-600 focus:outline-none"
                         title="Delete"
                         aria-label="Delete row"
                       >
@@ -855,13 +895,13 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
 
       {/* ── Footer / Pagination ────────────────────────────────────────────── */}
       {viewMode === 'list' && (
-      <div className="mt-0 p-4 bg-[var(--aras-panel)] border border-t-0 border-[var(--aras-border)] flex flex-wrap items-center justify-between gap-3 rounded-b-[var(--aras-radius)]">
+      <div className="mt-0 p-3 bg-[var(--aras-panel)] border border-t-0 border-[var(--aras-border)] flex flex-wrap items-center justify-between gap-3 rounded-b-[var(--aras-radius)]">
         <div className="flex items-center gap-4">
-          <span className="text-xs font-medium text-slate-500">
-            Showing <span className="text-slate-900 font-bold">{(page-1)*perPage + 1}</span> to <span className="text-slate-900 font-bold">{Math.min(page*perPage, total)}</span> of <span className="text-slate-900 font-bold">{total}</span>
+          <span className="text-xs font-medium text-[var(--aras-muted)]">
+            Showing <span className="text-[var(--aras-text)] font-semibold">{(page-1)*perPage + 1}</span> to <span className="text-[var(--aras-text)] font-semibold">{Math.min(page*perPage, total)}</span> of <span className="text-[var(--aras-text)] font-semibold">{total}</span>
           </span>
           <select
-            className="text-xs bg-white border border-slate-200 rounded-lg p-1 outline-none focus:ring-1 focus:ring-indigo-500"
+            className="text-xs bg-[var(--aras-panel)] border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] px-2 py-1 outline-none text-[var(--aras-text)]"
             value={perPage}
             onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
           >
@@ -873,37 +913,35 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           </select>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] overflow-hidden">
           <button
             disabled={page === 1}
             onClick={() => setPage(p => p - 1)}
-            className="p-2 text-slate-500 hover:bg-white border border-transparent hover:border-slate-200 rounded-xl disabled:opacity-30 disabled:hover:bg-transparent"
+            className="px-3 py-2 text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)] disabled:opacity-30 disabled:hover:bg-transparent border-r border-[var(--aras-border)]"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={16} />
           </button>
-          
-          <div className="flex items-center gap-1">
-            {[...Array(Math.min(5, totalPages))].map((_, i) => {
-              let p = page <= 3 ? i + 1 : page + i - 2
-              if (p > totalPages) return null
-              return (
-                <button
-                  key={p}
-                  onClick={() => setPage(p)}
-                  className={`w-9 h-9 flex items-center justify-center text-xs font-bold rounded-xl transition-all ${page === p ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100' : 'text-slate-600 hover:bg-white hover:border-slate-200 border border-transparent'}`}
-                >
-                  {p}
-                </button>
-              )
-            })}
-          </div>
+
+          {[...Array(Math.min(5, totalPages))].map((_, i) => {
+            let p = page <= 3 ? i + 1 : page + i - 2
+            if (p > totalPages) return null
+            return (
+              <button
+                key={p}
+                onClick={() => setPage(p)}
+                className={`w-9 h-9 flex items-center justify-center text-xs font-semibold border-r border-[var(--aras-border)] last:border-r-0 transition-colors ${page === p ? 'bg-[var(--aras-panel-soft)] text-[var(--aras-accent)]' : 'text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)]'}`}
+              >
+                {p}
+              </button>
+            )
+          })}
 
           <button
             disabled={page === totalPages}
             onClick={() => setPage(p => p + 1)}
-            className="p-2 text-slate-500 hover:bg-white border border-transparent hover:border-slate-200 rounded-xl disabled:opacity-30 disabled:hover:bg-transparent"
+            className="px-3 py-2 text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)] disabled:opacity-30 disabled:hover:bg-transparent border-l border-[var(--aras-border)]"
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={16} />
           </button>
         </div>
       </div>
@@ -912,20 +950,20 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
 
     {/* Bulk Edit Modal */}
     {bulkEditOpen && (
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-5">
+      <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+        <div className="bg-[var(--aras-panel)] rounded-[var(--aras-radius)] border border-[var(--aras-border)] w-full max-w-md p-6 space-y-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-extrabold text-slate-900">Bulk Edit — {selectedIds.length} rows</h3>
-            <button onClick={() => setBulkEditOpen(false)} className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-500 transition-all">
+            <h3 className="text-lg font-semibold text-[var(--aras-text)]">Bulk Edit — {selectedIds.length} rows</h3>
+            <button onClick={() => setBulkEditOpen(false)} className="p-1.5 rounded-[var(--aras-radius)] hover:bg-[var(--aras-panel-soft)] text-[var(--aras-muted)] transition-colors">
               <X size={18} />
             </button>
           </div>
-          <p className="text-sm text-slate-500">Choose a field and set a new value for all selected rows.</p>
+          <p className="text-sm text-[var(--aras-muted)]">Choose a field and set a new value for all selected rows.</p>
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-bold text-slate-600 mb-1 block">Field</label>
+              <label className="text-xs font-semibold text-[var(--aras-text)] mb-1 block">Field</label>
               <select
-                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] px-3 py-2 text-sm outline-none bg-[var(--aras-panel)] text-[var(--aras-text)]"
                 value={bulkEditField}
                 onChange={e => {
                   setBulkEditField(e.target.value)
@@ -939,7 +977,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
               </select>
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-600 mb-1 block">New Value</label>
+              <label className="text-xs font-semibold text-[var(--aras-text)] mb-1 block">New Value</label>
               {(() => {
                 const field = metadata?.fields.find(f => f.name === bulkEditField);
                 if (!field) return null;
@@ -957,13 +995,13 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
             </div>
           </div>
           <div className="flex gap-3 pt-1">
-            <button onClick={() => setBulkEditOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all">
+            <button onClick={() => setBulkEditOpen(false)} className="flex-1 px-4 py-2 border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] text-sm font-semibold text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)] transition-colors">
               Cancel
             </button>
             <button
               onClick={handleBulkEditSubmit}
               disabled={bulkEditing || !bulkEditField}
-              className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all"
+              className="flex-1 px-4 py-2 bg-[var(--aras-accent)] text-white rounded-[var(--aras-radius)] text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
             >
               {bulkEditing ? 'Saving…' : 'Apply'}
             </button>

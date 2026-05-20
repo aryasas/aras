@@ -17,11 +17,11 @@ const SidePanel: React.FC = () => {
         className={`w-full ${panel.width} bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 ease-out`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h2 className="text-xl font-bold text-slate-900">{panel.title}</h2>
+        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 backdrop-blur-sm">
+          <h2 className="text-xl font-extrabold tracking-tight text-slate-900">{panel.title}</h2>
           <button 
             onClick={closePanel}
-            className="p-2 hover:bg-white rounded-xl text-slate-400 hover:text-slate-600 border border-transparent hover:border-slate-200 transition-all"
+            className="p-2 hover:bg-white rounded-xl text-slate-400 hover:text-slate-600 border border-transparent hover:border-slate-200 transition-all shadow-sm hover:shadow"
           >
             <X size={20} />
           </button>

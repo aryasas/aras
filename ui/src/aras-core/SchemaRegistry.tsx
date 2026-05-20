@@ -12,7 +12,7 @@ export interface FieldProps {
 }
 
 const DefaultInput: React.FC<FieldProps> = ({ value, onChange, field, disabled }) => {
-  const commonClass = "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-300";
+  const commonClass = "w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:border-indigo-300 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder:text-slate-300 shadow-sm";
   return (
     <input 
       type={field.type === 'email' ? 'email' : 'text'}
@@ -30,7 +30,7 @@ const NumberInput: React.FC<FieldProps> = ({ value, onChange, disabled }) => (
     type="number"
     value={value || ''}
     onChange={(e) => onChange(e.target.value)}
-    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:border-indigo-300 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm"
     disabled={disabled}
     placeholder="0.00"
   />
@@ -46,16 +46,16 @@ const BooleanInput: React.FC<FieldProps> = ({ value, onChange, disabled }) => (
         className="peer sr-only"
         disabled={disabled}
       />
-      <div className="w-10 h-6 bg-slate-200 rounded-full peer-checked:bg-indigo-600 transition-all"></div>
+      <div className="w-10 h-6 bg-slate-200 rounded-full peer-checked:bg-indigo-600 transition-all peer-focus:ring-4 peer-focus:ring-indigo-500/20"></div>
       <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all peer-checked:left-5 shadow-sm"></div>
     </div>
-    <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900 transition-colors">
+    <span className="text-sm font-semibold text-slate-600 group-hover:text-indigo-600 transition-colors">
       {value ? 'Yes' : 'No'}
     </span>
   </label>
 );
 
-const DATE_CLASS = "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
+const DATE_CLASS = "w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:border-indigo-300 focus:ring-4 focus:ring-indigo-500/10 transition-all cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed";
 
 const DateInput: React.FC<FieldProps> = ({ value, onChange, disabled }) => (
   <input
@@ -96,7 +96,7 @@ const TextAreaInput: React.FC<FieldProps> = ({ value, onChange, field, disabled 
     value={value || ''} 
     onChange={(e) => onChange(e.target.value)}
     disabled={disabled}
-    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:border-indigo-300 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm"
     placeholder={`Enter ${field.label.toLowerCase()}...`}
   />
 );
@@ -200,7 +200,7 @@ export function resolveFilterComponent(field: any): React.ComponentType<FieldPro
         type="date"
         value={props.value ? props.value.split('T')[0] : ''}
         onChange={(e) => props.onChange(e.target.value)}
-        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs outline-none focus:ring-1 focus:ring-indigo-400"
+        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
       />
     );
   }
@@ -210,7 +210,7 @@ export function resolveFilterComponent(field: any): React.ComponentType<FieldPro
         type="datetime-local"
         value={props.value ? props.value.split('.')[0] : ''}
         onChange={(e) => props.onChange(e.target.value)}
-        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs outline-none focus:ring-1 focus:ring-indigo-400"
+        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
       />
     );
   }
@@ -220,7 +220,7 @@ export function resolveFilterComponent(field: any): React.ComponentType<FieldPro
       value={props.value || ''}
       placeholder="Value..."
       onChange={(e) => props.onChange(e.target.value)}
-      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs outline-none focus:ring-1 focus:ring-indigo-400"
+      className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
     />
   );
 }

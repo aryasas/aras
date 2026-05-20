@@ -182,17 +182,20 @@ const Combobox: React.FC<ComboboxProps> = ({
   const dropdownMenu = (
     <div 
       ref={dropdownRef}
+      id={`combobox-listbox-${field?.name || resource}`}
+      role="listbox"
+      aria-labelledby={`combobox-button-${field?.name || resource}`}
       style={dropdownStyles}
-      className="bg-white border border-slate-200 rounded-[var(--aras-radius)] shadow-lg overflow-hidden animate-in fade-in duration-100"
+      className="bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden animate-in fade-in duration-100"
     >
-      <div className="p-2 border-b border-slate-100">
+      <div className="p-2 border-b border-slate-100 bg-slate-50/50 backdrop-blur-sm">
         <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             autoFocus
             type="text"
             placeholder="Search..."
-            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-[var(--aras-radius)] text-xs outline-none focus:ring-0"
+            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-500/10 transition-all"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -213,6 +216,8 @@ const Combobox: React.FC<ComboboxProps> = ({
           items.map((item) => (
             <div 
               key={item.id}
+              role="option"
+              aria-selected={String(value) === String(item.id)}
               onClick={() => handleSelect(item)}
               className={`flex items-center justify-between px-3 py-2 rounded-[var(--aras-radius)] cursor-pointer transition-colors ${String(value) === String(item.id) ? 'bg-slate-100 text-slate-900 font-bold' : 'hover:bg-slate-50 text-slate-700 font-medium'}`}
             >
@@ -242,11 +247,17 @@ const Combobox: React.FC<ComboboxProps> = ({
 
   return (
     <div className={`relative ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`} ref={containerRef}>
-      <div 
+      <button
+        id={`combobox-button-${field?.name || resource}`}
+        role="combobox"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-controls={`combobox-listbox-${field?.name || resource}`}
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`flex items-center justify-between w-full px-4 py-2.5 bg-white border rounded-[var(--aras-radius)] text-sm transition-colors ${disabled ? 'border-slate-200' : (isOpen ? 'border-[#a8a8a8] shadow-[inset_0_0_0_1px_#a8a8a8] cursor-pointer' : 'border-slate-200 hover:border-slate-300 cursor-pointer')}`}
+        disabled={disabled}
+        className={`flex items-center justify-between w-full px-4 py-2.5 bg-white border rounded-xl text-sm transition-all shadow-sm ${disabled ? 'border-slate-200 bg-slate-50' : (isOpen ? 'border-indigo-300 ring-4 ring-indigo-500/10 cursor-pointer' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 cursor-pointer')}`}
       >
-        <div className="flex-1 truncate">
+        <div className="flex-1 truncate text-left">
           {selectedItem ? (
             <span className="text-slate-900 font-medium">{selectedItem[displayField] || selectedItem.id}</span>
           ) : (
@@ -276,7 +287,7 @@ const Combobox: React.FC<ComboboxProps> = ({
           )}
           <ChevronDown size={16} className={`text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
         </div>
-      </div>
+      </button>
 
       {isOpen && !disabled && createPortal(dropdownMenu, document.body)}
     </div>

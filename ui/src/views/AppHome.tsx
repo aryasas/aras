@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router-dom'
 import api from '../lib/api'
+import { useUIStore } from '../store/uiStore'
 import type { SidebarItem, AppMenuData, MenuItem } from '../layouts/types'
 import { useVocabulary } from '../context/VocabularyContext'
 import { resolveIcon } from '../lib/iconUtils'
@@ -18,6 +19,7 @@ export default function AppHome() {
   const { sidebarData } = useOutletContext<OutletContext>()
   const [remoteMenu, setRemoteMenu] = useState<AppMenuData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const setPageTitle = useUIStore(state => state.setPageTitle)
 
   // Combine segments to get the full app path
   const appPath = useMemo(() => {
@@ -32,6 +34,18 @@ export default function AppHome() {
     }),
     [appPath, sidebarData]
   )
+
+  useEffect(() => {
+    const appLabel = remoteMenu?.app_label || sidebarApp?.label || appPath
+    if (appLabel) {
+      setPageTitle(
+        vocabulary.get(appLabel),
+        'Select a module or resource to continue.',
+        appPath.replace(/\//g, ' / ').toUpperCase()
+      )
+    }
+    return () => setPageTitle('', '', '')
+  }, [remoteMenu, sidebarApp, appPath, vocabulary, setPageTitle])
 
   useEffect(() => {
     let cancelled = false
@@ -77,8 +91,6 @@ export default function AppHome() {
     sub_apps: []
   }
 
-  const IconComponent = resolveIcon(appInfo.icon)
-
   const renderTile = (item: MenuItem, groupLabel?: string) => {
     const ItemIcon = resolveIcon(item.icon || 'FileText')
     return (
@@ -100,16 +112,6 @@ export default function AppHome() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <div className="flex items-center gap-6">
-        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 shadow-sm">
-          <IconComponent size={40} />
-        </div>
-        <div>
-          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">{vocabulary.get(appInfo.app_label)}</h1>
-          <p className="mt-1.5 text-slate-500 font-medium">Select a module or resource to continue.</p>
-        </div>
-      </div>
-
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         {/* Render Sub-Apps first if any */}
         {appInfo.sub_apps?.filter(isVisibleMenuItem).map((sub: any) => {

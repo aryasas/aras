@@ -5,6 +5,7 @@ import { useAras } from '../aras-core/hooks/useAras'
 import { resolveIcon } from '../lib/iconUtils'
 import { LoadingState } from '../components/LoadingState'
 import { EmptyState } from '../components/EmptyState'
+import { useUIStore } from '../store/uiStore'
 
 interface Widget {
   id: number
@@ -35,6 +36,12 @@ export const DashboardView: React.FC = () => {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const { notify } = useAras()
+  const setPageTitle = useUIStore((state) => state.setPageTitle)
+
+  useEffect(() => {
+    setPageTitle('Dashboard', 'Real-time overview of your operations and performance.')
+    return () => setPageTitle('', '', '')
+  }, [setPageTitle])
 
   const loadWidgets = useCallback(async () => {
     try {

@@ -2,10 +2,17 @@ import React, { useState, useEffect } from 'react'
 import api from '../lib/api'
 import { User, Mail, Shield, Lock, Save, AlertCircle, CheckCircle } from 'lucide-react'
 import { useAras } from '../aras-core/hooks/useAras'
+import { useUIStore } from '../store/uiStore'
 
 const Profile = () => {
   const [userInfo, setUserInfo] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const setPageTitle = useUIStore((state) => state.setPageTitle)
+
+  useEffect(() => {
+    setPageTitle('Your Profile', 'Manage your account details and security settings.', 'PROFILE')
+    return () => setPageTitle('', '', '')
+  }, [setPageTitle])
   
   // Password change state
   const [oldPassword, setOldPassword] = useState('')
@@ -70,16 +77,6 @@ const Profile = () => {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto">
-      <div className="flex items-center gap-4 mb-8">
-        <div className="h-16 w-16 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-          {userInfo?.username?.charAt(0).toUpperCase()}
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Your Profile</h1>
-          <p className="text-slate-500 mt-1">Manage your account details and security settings.</p>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Profile Info */}
         <div className="md:col-span-1 space-y-6">

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { Package, Plus, RefreshCw, CheckCircle2, Trash2, X, AlertCircle, Upload, Code } from 'lucide-react'
+import { Plus, RefreshCw, CheckCircle2, Trash2, X, AlertCircle, Upload, Code } from 'lucide-react'
 import api from '../lib/api'
 import { MetadataService } from '../aras-core/services/MetadataService'
+import { useUIStore } from '../store/uiStore'
 import * as Icons from 'lucide-react'
 
 interface AppManifest {
@@ -63,6 +64,13 @@ const JSON_TEMPLATE = `{
 export default function AppManager() {
   const [apps, setApps] = useState<AppManifest[]>([])
   const [syncing, setSyncing] = useState(false)
+  const setPageTitle = useUIStore(state => state.setPageTitle)
+
+  useEffect(() => {
+    setPageTitle('App Manager', 'Install, configure, and manage framework extensions.', 'SYSTEM / EXTENSIONS')
+    return () => setPageTitle('', '', '')
+  }, [setPageTitle])
+
   const [installModalOpen, setInstallModalOpen] = useState(false)
   const [installMode, setInstallMode] = useState<'yaml' | 'json' | 'upload'>('yaml')
   const [yamlContent, setYamlContent] = useState(YAML_TEMPLATE)
@@ -135,32 +143,23 @@ export default function AppManager() {
   const subModules = apps.filter(app => app.parent_name)
 
   return (
-    <div className="p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-            <Package className="text-indigo-600" />
-            App Manager
-          </h1>
-          <p className="text-slate-500 mt-1 font-medium">Install, configure, and manage framework extensions.</p>
-        </div>
-        <div className="flex gap-3">
-          <button 
-            onClick={handleSync}
-            disabled={syncing}
-            className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-bold hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
-          >
-            <RefreshCw className={syncing ? 'animate-spin' : ''} size={18} />
-            {syncing ? 'Syncing...' : 'Sync Registry'}
-          </button>
-          <button 
-            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
-            onClick={() => setInstallModalOpen(true)}
-          >
-            <Plus size={18} />
-            Install New App
-          </button>
-        </div>
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex items-center justify-end mb-8 gap-3">
+        <button 
+          onClick={handleSync}
+          disabled={syncing}
+          className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-bold hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+        >
+          <RefreshCw className={syncing ? 'animate-spin' : ''} size={18} />
+          {syncing ? 'Syncing...' : 'Sync Registry'}
+        </button>
+        <button 
+          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
+          onClick={() => setInstallModalOpen(true)}
+        >
+          <Plus size={18} />
+          Install New App
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

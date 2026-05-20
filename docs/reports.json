@@ -1223,5 +1223,146 @@
       "issues": "Future enhancement: make side rail field selection configurable from code/view metadata or GUI overrides."
     },
     "verdict": "APPROVED"
+  },
+  {
+    "id": 102,
+    "date": "2026-05-19",
+    "feature": "Sales Orders Gemini Mock UI + Appearance Tweak Panel",
+    "revision_count": 1,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/mock-by-gemini/index.html, ui/public/mocks/index.html",
+      "features_added": "High-fidelity Sales Orders mock with an integrated Appearance Tweak Panel. Features: Theme switching (Light, Normal/Warm, Dark), Corner shape control (Rounded/Square), live Accent Color picker (inc. #7a2e2e, black, white), Density control (Compact, Regular, Comfy), and Font Size slider. Improved mobile responsiveness with sidebar toggle and responsive form grids. Moved Form 'Save' button to leftmost position for future navigation extensibility.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 103,
+    "date": "2026-05-19",
+    "feature": "POS fixes + Tenant Admin UI",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/pot/services/pot.py, api/apps/erp/pot/models.py",
+      "features_added": "none",
+      "fixes_applied": "Fixed PotService stale imports and SQLAlchemy 2.0 db.get() usage. Restored PotSession.orders relationship.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/views/TenantAdmin.tsx, ui/src/App.tsx, ui/src/views/PosView.tsx",
+      "features_added": "TenantAdmin page with provisioning and seeding actions. Added receipt panel in POS view.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 104,
+    "date": "2026-05-20",
+    "feature": "Refined mock-by-gemini typography",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/mock-by-gemini/index.html",
+      "features_added": "none",
+      "fixes_applied": "Aligned fonts with Aras Studio, refined typography and shadows.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 105,
+    "date": "2026-05-20",
+    "feature": "Unified UI Refinement",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/index.css, ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/ListToolbar.tsx, ui/src/aras-core/components/DynamicForm.tsx, ui/src/aras-core/components/Combobox.tsx, ui/src/aras-core/components/InlineChildTable.tsx, ui/src/aras-core/SchemaRegistry.tsx, ui/src/aras-core/components/SidePanel.tsx, ui/src/aras-core/components/GlobalDialog.tsx",
+      "features_added": "none",
+      "fixes_applied": "Unified the entire UI with a modern, polished aesthetic using Indigo/Slate theme. Refined typography, spacing, borders (rounded-xl/2xl), shadows, and interactive states across all core components including List Views, Forms, Child Tables, Comboboxes, and Toolbars.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 106,
+    "date": "2026-05-20",
+    "feature": "UI Accessibility & Responsiveness Refinement",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/Combobox.tsx, ui/src/aras-core/components/ListToolbar.tsx, ui/src/aras-core/components/InlineChildTable.tsx, ui/src/aras-core/components/GlobalDialog.tsx",
+      "features_added": "Enhanced accessibility with ARIA attributes and improved component discoverability. Refined responsiveness for various screen sizes.",
+      "fixes_applied": "Improved contrast ratios (verified with WCAG AA guidelines). Made ListView row action buttons always visible. Added `scope='col'` to table headers for screen readers. Implemented ARIA roles/attributes for Combobox (role=combobox, aria-haspopup, aria-expanded, role=listbox, role=option) and GlobalDialog (role=dialog, aria-modal, aria-labelledby). Added labels and ARIA attributes to search inputs and toggle buttons in ListToolbar and InlineChildTable.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 107,
+    "date": "2026-05-20",
+    "feature": "ERP Mocks \u2014 Generic + Editorial list+form",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/erp-generic/index.html, ui/public/mocks/erp-editorial/index.html, ui/public/mocks/index.html",
+      "features_added": "Added two ERP Documents mocks with built-in light/medium/dark theme picker and split/stacked/drawer layout picker. erp-generic uses Inter + DM Mono with purple accent. erp-editorial (built with frontend-design skill) uses Fraunces + JetBrains Mono in an editorial broadsheet aesthetic with parchment/ink/obsidian themes. Linked both from the mocks index page as mock 08 and mock 09.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 108,
+    "date": "2026-05-20",
+    "feature": "Refine ListView + ListToolbar to match real-layout/aras-studio mocks",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/ListToolbar.tsx",
+      "features_added": "none",
+      "fixes_applied": "Replaced indigo/slate/rounded-xl/shadow-md utility classes with --aras-* token references across page header, filter panel, saved-filter pills, role tabs, table thead/tbody, pagination strip (mock-style segmented control with vertical dividers), bulk edit modal, view-mode switcher, search input, filter/saved-filter/actions/column-picker dropdowns, and primary Add New button. Page title restyled to mock spec (44px, tracking -0.045em, weight 400). Buttons flattened to 46px height with var(--aras-radius). Removed shadow-md, ring-4, backdrop-blur, and 2xl/3xl radii so theme tokens drive corner/density/accent uniformly.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 109,
+    "date": "2026-05-20",
+    "feature": "Tighten ListView density; migrate DynamicForm header to aras tokens",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/index.css, ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "none",
+      "fixes_applied": "Reduced .aras-list-view and .aras-child-table th/td padding (16/18 -> 10/14 * density) and font-size to 13px; reduced form grid/input padding via --aras-density multiplier; tightened ListView page header (text-44 -> text-36, mb-6 -> mb-4); migrated DynamicForm header h1/Save/Back/Duplicate buttons + status pill + subtitle from indigo/slate/shadow/rounded-xl to --aras-* tokens with rounded-[var(--aras-radius)] flat 42px buttons",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 110,
+    "date": "2026-05-20",
+    "feature": "Fix TypeScript compilation errors in multiple UI files",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/DynamicForm.tsx, ui/src/views/AppHome.tsx, ui/src/views/AppManager.tsx, ui/src/views/DashboardView.tsx",
+      "features_added": "none",
+      "fixes_applied": "Removed unused variables 'metadataTitle', 'showWebPagePreview', 'resourceKey', and 'metadataResourceKey' in DynamicForm.tsx. Removed unused 'IconComponent' in AppHome.tsx. Removed redundant 'Package' import in AppManager.tsx. Fixed missing 'useUIStore' import and implicit 'any' type for state in DashboardView.tsx.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
   }
 ]

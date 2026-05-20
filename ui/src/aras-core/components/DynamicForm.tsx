@@ -192,6 +192,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   );
   
   const { notify, confirm } = useAras();
+  const setPageTitle = useUIStore(state => state.setPageTitle);
   const navigate = useNavigate();
   const showPanel = useUIStore((state) => state.showPanel);
   const closePanel = useUIStore((state) => state.closePanel);
@@ -202,6 +203,19 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const handleSubmitRef = useRef<(() => void) | null>(null);
   const initialM2mRef = useRef<Record<string, any[]>>({});
   const initialChildRowIdsRef = useRef<Record<string, Set<any>>>({});
+
+  useEffect(() => {
+    if (metadata) {
+      const title = vocabulary.get(metadata.title);
+      const breadcrumbs = (resourceSubtitle || resource).replace(/\//g, ' / ').replace(/-/g, ' ');
+      setPageTitle(
+        currentId != null ? `Edit ${title}` : `New ${title}`,
+        currentId != null ? 'Edit this record and manage its related details.' : 'Create a new record and manage its related details.',
+        breadcrumbs
+      );
+    }
+    return () => setPageTitle('', '', '');
+  }, [metadata, currentId, resourceSubtitle, resource, vocabulary, setPageTitle]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -473,7 +487,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             <div className="p-4 flex flex-col gap-3">
               <p className="text-xs text-slate-500">Edit layout JSON directly. Supports <code>type:"tabs"</code> and <code>type:"section"</code>.</p>
               <textarea
-                className="w-full h-64 font-mono text-xs border border-slate-200 rounded-xl p-3 bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full h-64 font-mono text-xs border border-slate-300 rounded p-3 bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none"
                 value={layoutJson}
                 onChange={e => setLayoutJson(e.target.value)}
               />
@@ -859,7 +873,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   );
   if (!metadata) return (
     <div className="p-8">
-      <div className="bg-rose-50 border border-rose-100 rounded-3xl p-6 flex items-start gap-4 shadow-sm">
+      <div className="bg-rose-50 border border-rose-100 rounded-lg p-6 flex items-start gap-4 shadow-sm">
         <AlertCircle className="text-rose-500 shrink-0 mt-0.5" size={24} />
         <div>
           <h3 className="text-sm font-bold text-rose-700">Metadata could not be loaded</h3>
@@ -876,7 +890,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     return (
       <div className="p-8 space-y-6 animate-pulse">
         {/* Skeleton for Header */}
-        <div className="flex items-center justify-between bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex items-center justify-between bg-slate-50 px-8 py-3 rounded-lg border border-slate-200 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 bg-slate-200 rounded-xl" />
             <div>
@@ -896,8 +910,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             metadata.layout.map((section, idx) => {
               if (section.type === 'linked_list') {
                 return (
-                  <div key={idx} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="px-8 py-4 bg-slate-50 border-b border-slate-100">
+                  <div key={idx} className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="px-8 py-3 bg-slate-50 border-b border-slate-100">
                       <div className="h-4 w-32 bg-slate-200 rounded" />
                     </div>
                     <div className="p-8">
@@ -916,11 +930,11 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
               return (
                 <React.Fragment key={idx}>
                   {normalFields.length > 0 && (
-                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                      <div className="px-8 py-4 bg-slate-50 border-b border-slate-100">
+                    <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                      <div className="px-8 py-3 bg-slate-50 border-b border-slate-100">
                         <div className="h-4 w-32 bg-slate-200 rounded" />
                       </div>
-                      <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
                         {normalFields.map((_f, i) => (
                           <div key={i} className="space-y-2">
                             <div className="h-3 w-24 bg-slate-200 rounded" />
@@ -931,7 +945,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                     </div>
                   )}
                   {childFields.map((_f, i) => (
-                    <div key={i} className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 space-y-4">
+                    <div key={i} className="bg-white rounded-lg border border-slate-200 shadow-sm p-8 space-y-4">
                       <div className="h-4 w-48 bg-slate-200 rounded" /> {/* Section title skeleton */}
                       <div className="space-y-3"> {/* Container for multiple row skeletons */}
                         <div className="h-10 w-full bg-slate-100 rounded-lg" /> {/* Row 1 skeleton */}
@@ -946,9 +960,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           ) : (
             <>
               {visibleFields.length > 0 && (
-                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {visibleFields.map((_f, i) => (
+                <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">                    {visibleFields.map((_f, i) => (
                       <div key={i} className="space-y-2">
                         <div className="h-3 w-24 bg-slate-200 rounded" />
                         <div className="h-9 w-full bg-slate-200 rounded" />
@@ -958,7 +971,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                 </div>
               )}
               {childTableFields.map((_f, i) => (
-                <div key={i} className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 space-y-4">
+                <div key={i} className="bg-white rounded-lg border border-slate-200 shadow-sm p-8 space-y-4">
                   <div className="h-4 w-48 bg-slate-200 rounded" /> {/* Section title skeleton */}
                   <div className="space-y-3"> {/* Container for multiple row skeletons */}
                     <div className="h-10 w-full bg-slate-100 rounded-lg" /> {/* Row 1 skeleton */}
@@ -974,10 +987,6 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     );
   }
   if (!metadata) return null;
-  const metadataTitle = vocabulary.get(metadata.title);
-  const resourceKey = cleanResourcePath(resource).split('/').pop()?.replace(/-/g, '_');
-  const metadataResourceKey = metadata.resource?.split('/').pop()?.replace(/-/g, '_');
-  const showWebPagePreview = (resourceKey === 'web_pages' || metadataResourceKey === 'web_pages') && Boolean(formData.slug);
   const railFieldNames = new Set(['subtotal', 'total_charge', 'total_tax', 'tax', 'shipping', 'shipping_amount', 'total_amount', 'amount_paid', 'amount_due']);
   const isRailField = (field: Field) => railFieldNames.has(field.name);
   const getFieldLabel = (fieldName: string, fallback: string) => {
@@ -1137,10 +1146,10 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     if (field.name === 'note_id') {
       const noteId = formData[field.name];
       return (
-        <div key={field.name} className="flex flex-col gap-1.5 md:col-span-2">
+        <div key={field.name} className="flex flex-col gap-1.5 md:col-span-3">
           <label className="text-sm font-bold text-slate-700">Notes</label>
           <textarea
-            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm resize-none focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full h-23 px-3 py-2 bg-slate-50 border border-slate-300 rounded text-sm resize-y focus:ring-2 focus:ring-indigo-500 outline-none"
             rows={3}
             placeholder="Add a note..."
             defaultValue={formData['notes'] ?? ''}
@@ -1176,14 +1185,14 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     const ProfileIcon = selectedProfile?.icon || Building2;
 
     return (
-      <div key={field.name} className={`flex flex-col gap-1.5 ${field.type === 'textarea' ? 'md:col-span-2' : ''}`}>
-        <label className="text-sm font-bold text-slate-700 flex items-center gap-1">
+      <div key={field.name} className={`flex flex-col gap-1.5 ${field.type === 'textarea' || field.name === 'stock_by_location' ? 'md:col-span-3' : ''}`}>
+        <label className="block text-xs font-semibold text-slate-600 mb-2">
           {fieldLabel}
-          {field.required && <span className="text-rose-500">*</span>}
+          {field.required && <span className="ml-1 text-rose-500">*</span>}
         </label>
 
         {isDocNumberField ? (
-          <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-500 select-none">
+          <div className="w-full h-11 px-3 py-2 bg-slate-100 border border-slate-300 rounded text-sm text-slate-500 select-none flex items-center">
             {formData[field.name] ? String(formData[field.name]) : (nextSeriesNumber ?? '[Auto-generated]')}
           </div>
         ) : field.type === 'm2m' && field.target_resource ? (
@@ -1199,7 +1208,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             value={formData[field.name] ?? ''}
             onChange={(e) => handleChange(field.name, e.target.value ? Number(e.target.value) : null)}
             disabled={organizations.length === 1}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none disabled:opacity-60"
+            className="w-full h-11 px-3 py-2 bg-slate-50 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none disabled:opacity-60"
           >
             {organizations.length > 1 && <option value="">Select organization...</option>}
             {organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}
@@ -1211,7 +1220,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
               value={formData[field.name] || 'general'}
               onChange={(e) => handleChange(field.name, e.target.value)}
               disabled={field.read_only}
-              className="w-full appearance-none px-3 py-2 pl-9 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none disabled:opacity-60"
+              className="w-full h-11 appearance-none px-3 py-2 pl-9 bg-slate-50 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none disabled:opacity-60"
             >
               {PROFILE_OPTIONS.map(option => (
                 <option key={option.value} value={option.value}>{option.label}</option>
@@ -1223,7 +1232,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             value={formData[field.name] || 'organization'}
             onChange={(e) => handleChange(field.name, e.target.value)}
             disabled={field.read_only}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none disabled:opacity-60"
+            className="w-full h-11 px-3 py-2 bg-slate-50 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none disabled:opacity-60"
           >
             {UNIT_TYPE_OPTIONS.map(option => (
               <option key={option.value} value={option.value}>{option.label}</option>
@@ -1235,7 +1244,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             value={formData[field.name] || ''}
             onChange={(e) => handleChange(field.name, e.target.value)}
             disabled={field.read_only}
-            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-300"
+            className="w-full h-11 px-3 py-2 bg-slate-50 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-300"
             placeholder={`${TERMINAL_PLACEHOLDERS[vocabulary.profile] || vocabulary.pot}...`}
           />
         ) : (
@@ -1249,7 +1258,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         )}
         
         {errors[field.name] && (
-          <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">{errors[field.name]}</span>
+          <span className="text-xs font-medium text-rose-600">{errors[field.name]}</span>
         )}
       </div>
     );
@@ -1257,395 +1266,363 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
 
   return (
     <>
-    <div className="aras-form-view mx-auto space-y-6 pb-20">
-      <div className="flex items-end justify-between gap-6 max-sm:flex-col max-sm:items-start">
-        <div>
-          <div className="mb-4 text-sm font-semibold text-[var(--aras-muted)]">
-            {(resourceSubtitle || resource).replace(/\//g, ' / ').replace(/-/g, ' ')}
+    <div className="aras-form-view mx-auto pb-20">
+      {/* ── Sticky Toolbar Header ────────────────────────────────────────── */}
+      <div className="sticky top-[-28px] z-30 mb-6 -mx-8 px-8 py-4 bg-[var(--aras-bg-main)]/80 backdrop-blur-md border-b border-[var(--aras-border)] shadow-sm">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <button
+              onClick={onCancel}
+              className="group flex h-10 w-10 items-center justify-center rounded-[var(--aras-radius)] border border-[var(--aras-border-strong)] bg-[var(--aras-panel)] text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)] hover:text-[var(--aras-text)] transition-all"
+              title="Go Back"
+            >
+              <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
+            </button>
+            
+            {formData.status && (
+              <span className="px-2 py-0.5 bg-[var(--aras-accent)]/10 text-[var(--aras-accent)] text-[10px] font-bold rounded-md border border-[var(--aras-accent)]/20 uppercase tracking-widest whitespace-nowrap">
+                {formData.status}
+              </span>
+            )}
+            {currentId && (
+              <span className="text-sm font-bold text-[var(--aras-muted)] opacity-50">
+                #{currentId}
+              </span>
+            )}
           </div>
-          <h1 className="text-[46px] font-normal leading-none tracking-normal text-[var(--aras-text)] max-sm:text-[36px]">
-            {metadataTitle}
-          </h1>
-          <p className="mt-2 text-base text-[var(--aras-muted)]">
-            {currentId != null ? 'Edit this record and manage its related details.' : 'Create a new record and manage its related details.'}
-          </p>
-        </div>
-        <div className="inline-flex border border-[var(--aras-border)] bg-[var(--aras-panel)]">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="h-10 min-w-20 border-r border-[var(--aras-border)] px-4 text-sm font-semibold text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)]"
-          >
-            List
-          </button>
-          <button
-            type="button"
-            className="h-10 min-w-20 px-4 text-sm font-semibold"
-            style={{ backgroundColor: 'var(--aras-button)', color: 'var(--aras-button-text)' }}
-          >
-            Form
-          </button>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Utility Actions (Left Group) */}
+            <div className="flex items-center gap-1 mr-2 px-2 border-r border-[var(--aras-border)]">
+              {currentId != null && metadata.is_auditable && (
+                <button
+                  onClick={handleShowHistory}
+                  className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] text-[var(--aras-muted)] transition-colors"
+                  title="View History"
+                >
+                  <HistoryIcon size={18} />
+                </button>
+              )}
+
+              <button
+                onClick={handleCustomize}
+                className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] text-[var(--aras-muted)] transition-colors"
+                title="Customize Form"
+              >
+                <Settings size={18} />
+              </button>
+
+              {metadata.app_name === 'erp_accounting' && currentId != null && (
+                <button
+                  onClick={() => setShowPrintPreview(true)}
+                  className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] text-[var(--aras-muted)] transition-colors"
+                  title="Print Document"
+                >
+                  <Printer size={18} />
+                </button>
+              )}
+
+              {currentId != null && (
+                <button
+                  onClick={handleDelete}
+                  title="Delete record"
+                  className="p-2 hover:bg-rose-50 rounded-[var(--aras-radius)] text-rose-400 hover:text-rose-600 transition-colors"
+                >
+                  <Trash2 size={18} />
+                </button>
+              )}
+            </div>
+
+            {/* Navigation (Only if edit) */}
+            {currentId != null && (
+              <div className="flex items-center gap-1 mr-2 px-2 border-r border-[var(--aras-border)]">
+                <button
+                  onClick={() => prevId && onNavigate?.(prevId)}
+                  disabled={!prevId}
+                  className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] text-[var(--aras-muted)] disabled:opacity-30"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <button
+                  onClick={() => nextId && onNavigate?.(nextId)}
+                  disabled={!nextId}
+                  className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] text-[var(--aras-muted)] disabled:opacity-30"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+            )}
+
+            {/* Main Action Buttons */}
+            {currentId != null && (
+              <button
+                onClick={handleDuplicate}
+                className="hidden md:flex h-10 items-center gap-2 rounded-[var(--aras-radius)] border border-[var(--aras-border-strong)] bg-[var(--aras-panel)] px-4 text-sm font-semibold text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)] transition-colors"
+              >
+                <Copy size={16} />
+                <span>Duplicate</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => handleSubmit()}
+              disabled={saving}
+              className="flex h-10 items-center gap-2 rounded-[var(--aras-radius)] bg-[var(--aras-accent)] px-6 text-sm font-bold text-white shadow-sm hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50"
+            >
+              {saving ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
+              <span>{saving ? 'Saving...' : 'Save Record'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* ── Header ────────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-transparent p-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => handleSubmit()}
-            disabled={saving}
-            className="aras-secondary-action flex h-10 items-center gap-2 rounded-[var(--aras-radius)] px-5 text-sm font-semibold transition-colors disabled:opacity-50"
-          >
-            {saving ? <RefreshCw className="animate-spin" size={17} /> : <Save size={17} />}
-            <span>{saving ? 'Saving...' : 'Save'}</span>
-          </button>
-
-          <button 
-            onClick={onCancel}
-            className="aras-secondary-action flex h-10 items-center gap-2 rounded-[var(--aras-radius)] px-5 text-sm font-semibold transition-colors"
-          >
-            <ArrowLeft size={17} />
-            <span>Back to List</span>
-          </button>
-          {currentId != null && (
-            <button
-              onClick={handleDuplicate}
-              className="aras-secondary-action flex h-10 items-center gap-2 rounded-[var(--aras-radius)] px-5 text-sm font-semibold transition-colors"
-            >
-              <Copy size={17} />
-              <span>Duplicate</span>
-            </button>
-          )}
-          <div className="sr-only">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-[var(--aras-text)]">
-                {currentId != null ? `Edit ${metadataTitle}` : `New ${metadataTitle}`}
-              </h2>
-              {showWebPagePreview && (
-                <button
-                  type="button"
-                  onClick={() => window.open(`/preview/${formData.slug}`, '_blank', 'noopener,noreferrer')}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-indigo-600"
-                  title="Preview page"
-                >
-                  <ArrowUpRight size={16} />
-                </button>
-              )}
-              {formData.status && (
-                <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-md border border-indigo-100 uppercase tracking-widest">
-                  {formData.status}
-                </span>
-              )}
-            </div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-widest">
-              Resource: {resourceSubtitle || resource}
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {/* Workflow Actions */}
+      {/* ── Workflow & Custom Actions ────────────────────────────────────── */}
+      {((workflowActions.length > 0 || (currentId != null && metadata?.actions && metadata.actions.length > 0))) && (
+        <div className="flex flex-wrap items-center gap-3 mb-6 p-4 bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] border border-[var(--aras-border)]">
+          <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--aras-muted)] mr-2 flex items-center gap-2">
+            <Zap size={14} className="text-[var(--aras-accent)]" />
+            Quick Actions
+          </span>
           {workflowActions.map(action => (
             <button
               key={action.name}
               onClick={() => handleWorkflowAction(action.name)}
               disabled={saving}
-              className="aras-primary-action flex h-10 items-center gap-2 rounded-[var(--aras-radius)] border px-5 text-sm font-semibold transition-colors disabled:opacity-50"
+              className="aras-primary-action flex h-9 items-center gap-2 rounded-full border px-5 text-xs font-bold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
             >
               <span>{action.label}</span>
               <ChevronRight size={14} />
             </button>
           ))}
 
-          {(workflowActions.length > 0) && <div className="w-px h-6 bg-[var(--aras-border)] mx-1" />}
-
-          {/* History Button */}
-          {currentId != null && metadata.is_auditable && (
-            <button
-              onClick={handleShowHistory}
-              className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] text-[var(--aras-muted)] transition-colors mr-2"
-              title="View History"
-            >
-              <HistoryIcon size={20} />
-            </button>
-          )}
-
-          {/* Customize Button */}
-          <button
-            onClick={handleCustomize}
-            className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] text-[var(--aras-muted)] transition-colors mr-2"
-            title="Customize Form"
-          >
-            <Settings size={20} />
-          </button>
-
-          {currentId != null && (
-            <button
-              onClick={handleDelete}
-              title="Delete record"
-              className="p-2 hover:bg-rose-50 rounded-xl text-rose-400 hover:text-rose-600 transition-colors"
-            >
-              <Trash2 size={20} />
-            </button>
-          )}
-          {currentId != null && (
-            <>
+          {currentId != null && metadata?.actions && metadata.actions.length > 0 && (
+            metadata.actions.map(action => (
               <button
-                onClick={() => prevId && onNavigate?.(prevId)}
-                disabled={!prevId}
-                title="Previous record"
-                className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] text-[var(--aras-muted)] disabled:opacity-30 transition-colors"
+                key={action.name}
+                onClick={() => handleModelAction(action)}
+                disabled={saving}
+                className="flex h-9 items-center gap-2 px-4 rounded-full bg-[var(--aras-panel)] border border-[var(--aras-border-strong)] text-[var(--aras-accent)] text-xs font-bold hover:bg-[var(--aras-panel-soft)] transition-all"
               >
-                <ChevronLeft size={20} />
+                <Zap size={14} />
+                {action.label}
               </button>
-              <button
-                onClick={() => nextId && onNavigate?.(nextId)}
-                disabled={!nextId}
-                title="Next record"
-                className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] text-[var(--aras-muted)] disabled:opacity-30 transition-colors"
-              >
-                <ChevronRight size={20} />
-              </button>
-            </>
+            ))
           )}
-
-          {/* Model Actions */}
-          {currentId != null && metadata.actions?.map(action => (
-            <button
-              key={action.name}
-              onClick={() => handleModelAction(action)}
-              disabled={saving}
-              className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] text-[var(--aras-accent)] transition-colors"
-              title={action.label}
-            >
-              <Zap size={20} />
-            </button>
-          ))}
-
-          {((metadata.actions?.length ?? 0) > 0 || (metadata.app_name === 'erp_accounting' && currentId != null)) && <div className="w-px h-6 bg-[var(--aras-border)] mx-1" />}
-
-          {/* Print Button */}
-          {metadata.app_name === 'erp_accounting' && currentId != null && (
-            <button
-              onClick={() => setShowPrintPreview(true)}
-              className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] text-[var(--aras-muted)] transition-colors mr-2"
-              title="Print Document"
-            >
-              <Printer size={20} />
-            </button>
-          )}
-
-          <button 
-            type="button" 
-            onClick={onCancel}
-            className="px-4 py-2 text-sm font-bold text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] transition-all"
-          >
-            Cancel
-          </button>
         </div>
-      </div>
+      )}
 
-      {/* ── Main Form Content ────────────────────────────────────────────── */}
-      <div className={hasFormRail ? 'grid grid-cols-[minmax(0,1fr)_320px] gap-4 max-xl:grid-cols-1' : ''}>
-      <div className="min-w-0 space-y-6">
-        {/* General Errors (errors not mapping to visible fields or mapping to hidden fields) */}
-        {Object.entries(errors).filter(([key]) => {
-          const field = metadata.fields.find(f => f.name === key);
-          return !field || !isFieldVisible(field);
-        }).length > 0 && (
-          <div className="bg-rose-50 border border-rose-100 rounded-3xl p-6 flex items-start gap-4">
-            <AlertCircle className="text-rose-500 shrink-0 mt-0.5" size={24} />
-            <div className="space-y-1">
-              <h4 className="text-sm font-bold text-rose-700">Please correct the following:</h4>
-              <ul className="list-disc list-inside text-xs text-rose-600 space-y-1">
-                {Object.entries(errors)
-                  .filter(([key]) => {
-                    const field = metadata.fields.find(f => f.name === key);
-                    return !field || !isFieldVisible(field);
-                  })
-                  .map(([key, msg]) => (
-                    <li key={key}>
-                      <span className="font-bold uppercase tracking-tight mr-1">{key.replace(/_/g, ' ')}:</span> {msg}
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          </div>
-        )}
-
-        {metadata.layout && metadata.layout.length > 0 ? (
-          metadata.layout.map((entry, idx) => {
-            if (entry.type === 'linked_list') {
-              if (currentId == null) return null;
-              return (
-                <div key={idx} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="px-8 py-4 bg-slate-50 border-b border-slate-100">
-                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">{vocabulary.get(entry.title)}</h3>
-                  </div>
-                  <div className="p-6">
-                    <ListView
-                      resource={entry.resource}
-                      fixedFilters={{ [entry.fk_field]: currentId }}
-                      onRowClick={(id) => navigate('/' + entry.resource + '/' + id)}
-                    />
-                  </div>
-                </div>
-              );
-            }
-
-            if ('tabs' in entry) {
-              // Tab group
-              const currentTab = activeTab[idx] ?? 0;
-              const tab = entry.tabs[currentTab];
-              const tabFields = (tab?.fields ?? [])
-                .map(name => metadata.fields.find(f => f.name === name))
-                .filter((f): f is Field => !!f);
-              const normalFields = tabFields.filter(f => f.type !== 'child_table' && !isRailField(f));
-              const childTableFields = tabFields.filter(f => f.type === 'child_table');
-
-              return (
-                <div key={idx} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="flex border-b border-slate-200 bg-slate-50">
-                    {entry.tabs.map((t, ti) => (
-                      <button
-                        key={ti}
-                        type="button"
-                        onClick={() => setActiveTab(prev => ({ ...prev, [idx]: ti }))}
-                        className={`px-6 py-3 text-sm font-semibold transition-colors ${currentTab === ti ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'text-slate-500 hover:text-slate-700'}`}
-                      >
-                        {vocabulary.get(t.title)}
-                      </button>
+      {/* ── Main Form Content Area ────────────────────────────────────────── */}
+      <div className={hasFormRail ? 'grid grid-cols-[minmax(0,1fr)_340px] gap-6 max-xl:grid-cols-1' : ''}>
+        <div className="min-w-0 space-y-6">
+          {/* General Errors */}
+          {Object.entries(errors).filter(([key]) => {
+            const field = metadata.fields.find(f => f.name === key);
+            return !field || !isFieldVisible(field);
+          }).length > 0 && (
+            <div className="bg-rose-50 border border-rose-200 rounded-[var(--aras-radius)] p-5 flex items-start gap-4 shadow-sm">
+              <AlertCircle className="text-rose-500 shrink-0 mt-0.5" size={20} />
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-rose-800">Please correct the following:</h4>
+                <ul className="list-disc list-inside text-xs text-rose-700 space-y-1">
+                  {Object.entries(errors)
+                    .filter(([key]) => {
+                      const field = metadata.fields.find(f => f.name === key);
+                      return !field || !isFieldVisible(field);
+                    })
+                    .map(([key, msg]) => (
+                      <li key={key}>
+                        <span className="font-bold uppercase tracking-tight mr-1">{key.replace(/_/g, ' ')}:</span> {msg}
+                      </li>
                     ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {metadata.layout && metadata.layout.length > 0 ? (
+            metadata.layout.map((entry, idx) => {
+              if (entry.type === 'linked_list') {
+                if (currentId == null) return null;
+                return (
+                  <div key={idx} className="bg-[var(--aras-panel)] rounded-[var(--aras-radius)] border border-[var(--aras-border)] overflow-hidden shadow-sm">
+                    <div className="px-6 py-3 bg-[var(--aras-table-head)] border-b border-[var(--aras-border)]">
+                      <h3 className="text-xs font-bold text-[var(--aras-text)] uppercase tracking-wider">{vocabulary.get(entry.title)}</h3>
+                    </div>
+                    <div className="p-0"> {/* List view has its own padding */}
+                      <ListView
+                        resource={entry.resource}
+                        fixedFilters={{ [entry.fk_field]: currentId }}
+                        onRowClick={(id) => navigate('/' + entry.resource + '/' + id)}
+                      />
+                    </div>
                   </div>
+                );
+              }
+
+              if ('tabs' in entry) {
+                // Tab group
+                const currentTab = activeTab[idx] ?? 0;
+                const tab = entry.tabs[currentTab];
+                const tabFields = (tab?.fields ?? [])
+                  .map(name => metadata.fields.find(f => f.name === name))
+                  .filter((f): f is Field => !!f);
+                const normalFields = tabFields.filter(f => f.type !== 'child_table' && !isRailField(f));
+                const childTableFields = tabFields.filter(f => f.type === 'child_table');
+
+                return (
+                  <div key={idx} className="bg-[var(--aras-panel)] rounded-[var(--aras-radius)] border border-[var(--aras-border)] overflow-hidden shadow-sm">
+                    <div className="flex border-b border-[var(--aras-border)] bg-[var(--aras-table-head)]">
+                      {entry.tabs.map((t, ti) => (
+                        <button
+                          key={ti}
+                          type="button"
+                          onClick={() => setActiveTab(prev => ({ ...prev, [idx]: ti }))}
+                          className={`px-6 py-3 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${currentTab === ti ? 'text-[var(--aras-accent)] border-[var(--aras-accent)] bg-[var(--aras-panel)]' : 'text-[var(--aras-muted)] border-transparent hover:text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]'}`}
+                        >
+                          {vocabulary.get(t.title)}
+                        </button>
+                      ))}
+                    </div>
+                    {normalFields.length > 0 && (
+                      <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {normalFields.map(renderField)}
+                      </div>
+                    )}
+                    {childTableFields.map(renderField)}
+                  </div>
+                );
+              }
+
+              // Regular section
+              const section = entry as LayoutSection;
+              const sectionFields = section.fields
+                .map(fieldName => metadata.fields.find(f => f.name === fieldName))
+                .filter((f): f is Field => !!f);
+              const normalFields = sectionFields.filter(f => f.type !== 'child_table' && !isRailField(f));
+              const childTableFields = sectionFields.filter(f => f.type === 'child_table');
+
+              return (
+                <React.Fragment key={idx}>
                   {normalFields.length > 0 && (
-                    <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {normalFields.map(renderField)}
+                    <div className="bg-[var(--aras-panel)] rounded-[var(--aras-radius)] border border-[var(--aras-border)] overflow-hidden shadow-sm transition-shadow hover:shadow-md">
+                      <div className="px-6 py-3 bg-[var(--aras-table-head)] border-b border-[var(--aras-border)] flex items-center justify-between">
+                        <h3 className="text-xs font-bold text-[var(--aras-text)] uppercase tracking-widest">{vocabulary.get(section.title)}</h3>
+                        {currentId != null && section.actions && section.actions.length > 0 && (
+                          <div className="flex items-center gap-2">
+                            {section.actions.map(actionName => {
+                              const act = metadata.actions?.find(a => a.name === actionName);
+                              if (!act) return null;
+                              return (
+                                <button
+                                  key={act.name}
+                                  onClick={() => handleModelAction(act)}
+                                  disabled={saving}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold text-[var(--aras-accent)] bg-[var(--aras-accent)]/10 hover:bg-[var(--aras-accent)]/20 rounded-md transition-colors uppercase tracking-wider"
+                                  title={act.label}
+                                >
+                                  <Zap size={12} />
+                                  {act.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {normalFields.map(renderField)}
+                      </div>
                     </div>
                   )}
                   {childTableFields.map(renderField)}
-                </div>
+                </React.Fragment>
               );
-            }
-
-            // Regular section
-            const section = entry as LayoutSection;
-            const sectionFields = section.fields
-              .map(fieldName => metadata.fields.find(f => f.name === fieldName))
-              .filter((f): f is Field => !!f);
-            const normalFields = sectionFields.filter(f => f.type !== 'child_table' && !isRailField(f));
-            const childTableFields = sectionFields.filter(f => f.type === 'child_table');
-
-            return (
-              <React.Fragment key={idx}>
-                {normalFields.length > 0 && (
-                  <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="px-8 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                      <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">{vocabulary.get(section.title)}</h3>
-                      {currentId != null && section.actions && section.actions.length > 0 && (
-                        <div className="flex items-center gap-2">
-                          {section.actions.map(actionName => {
-                            const act = metadata.actions?.find(a => a.name === actionName);
-                            if (!act) return null;
-                            return (
-                              <button
-                                key={act.name}
-                                onClick={() => handleModelAction(act)}
-                                disabled={saving}
-                                className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
-                                title={act.label}
-                              >
-                                <Zap size={12} />
-                                {act.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {normalFields.map(renderField)}
-                    </div>
+            })
+          ) : (
+            <>
+              {metadata.fields.filter(f => f.type !== 'child_table' && !isRailField(f)).length > 0 && (
+                <div className="bg-[var(--aras-panel)] rounded-[var(--aras-radius)] border border-[var(--aras-border)] shadow-sm overflow-hidden">
+                  <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {metadata.fields.filter(f => f.type !== 'child_table' && !isRailField(f)).map(renderField)}
                   </div>
-                )}
-                {childTableFields.map(renderField)}
-              </React.Fragment>
-            );
-          })
-        ) : (          <>
-            {metadata.fields.filter(f => f.type !== 'child_table' && !isRailField(f)).length > 0 && (
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {metadata.fields.filter(f => f.type !== 'child_table' && !isRailField(f)).map(renderField)}
                 </div>
-              </div>
-            )}
-            {metadata.fields.filter(f => f.type === 'child_table').map(renderField)}
-          </>
-        )}
-        {/* Render child_table fields not covered by the layout */}
-        {metadata.layout && metadata.layout.length > 0 && (() => {
-          const layoutFieldNames = new Set(
-            metadata.layout.flatMap((entry: any) =>
-              'tabs' in entry
-                ? entry.tabs.flatMap((t: any) => t.fields ?? [])
-                : entry.fields ?? []
-            )
-          );
-          return metadata.fields
-            .filter(f => f.type === 'child_table' && !layoutFieldNames.has(f.name))
-            .map(renderField);
-        })()}
-      {/* ── Linked Documents ── */}
-      {linkedDocs.length > 0 && (
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-8 py-4 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
-            <Link2 size={14} className="text-slate-400" />
-            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Linked Documents</h3>
-          </div>
-          <div className="p-6 flex flex-wrap gap-3">
-            {linkedDocs.map(doc => (
-              <button
-                key={`${doc.resource}-${doc.id}`}
-                type="button"
-                onClick={() => navigate(`/${doc.resource}/${doc.id}`)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-200 text-sm font-medium text-slate-700 hover:text-indigo-700 transition-colors"
-              >
-                <span className="text-xs text-slate-400 font-normal">{doc.label}</span>
-                <span className="font-semibold">{doc.number}</span>
-                <ArrowUpRight size={13} className="text-slate-400" />
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+              )}
+              {metadata.fields.filter(f => f.type === 'child_table').map(renderField)}
+            </>
+          )}
 
-      {/* ── Child Tables Section (Fallback for children not in fields list) ── */}
-      {metadata.children && metadata.children.length > 0 && (
-        <div className="space-y-6">
-          {metadata.children
-            .filter(child => !metadata.fields.some(f => 
-              f.type === 'child_table' && 
-              (cleanResourcePath(f.target_resource || '') === cleanResourcePath(child.resource) || cleanResourcePath(f.name) === cleanResourcePath(child.resource))
-            ))
-            .map((child) => {
-              const parentResourceKey = cleanResourcePath(metadata.resource).split('/').pop();
-              const fkKey = child.fk_column || `${parentResourceKey}_id`;
-              return (
-                <InlineChildTable
-                  key={`${child.resource}-${refreshTrigger}`}
-                  childResource={child.resource}
-                  fkColumn={fkKey}
-                  parentId={currentId}
-                  parentData={formData}
-                  rows={childRows[child.resource] ?? []}
-                  onChange={(rows) => setChildRows(prev => ({ ...prev, [child.resource]: rows }))}
-                />
-              );
-          })}
+          {/* Render child_table fields not covered by the layout */}
+          {metadata.layout && metadata.layout.length > 0 && (() => {
+            const layoutFieldNames = new Set(
+              metadata.layout.flatMap((entry: any) =>
+                'tabs' in entry
+                  ? entry.tabs.flatMap((t: any) => t.fields ?? [])
+                  : entry.fields ?? []
+              )
+            );
+            return metadata.fields
+              .filter(f => f.type === 'child_table' && !layoutFieldNames.has(f.name))
+              .map(renderField);
+          })()}
+
+          {/* Linked Documents */}
+          {linkedDocs.length > 0 && (
+            <div className="bg-[var(--aras-panel)] rounded-[var(--aras-radius)] border border-[var(--aras-border)] shadow-sm overflow-hidden">
+              <div className="px-6 py-3 bg-[var(--aras-table-head)] border-b border-[var(--aras-border)] flex items-center gap-2">
+                <Link2 size={14} className="text-[var(--aras-muted)]" />
+                <h3 className="text-xs font-bold text-[var(--aras-text)] uppercase tracking-wider">Linked Documents</h3>
+              </div>
+              <div className="p-6 flex flex-wrap gap-3">
+                {linkedDocs.map(doc => (
+                  <button
+                    key={`${doc.resource}-${doc.id}`}
+                    type="button"
+                    onClick={() => navigate(`/${doc.resource}/${doc.id}`)}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-[var(--aras-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel-soft)] hover:bg-[var(--aras-panel)] hover:border-[var(--aras-accent)] hover:text-[var(--aras-accent)] transition-all"
+                  >
+                    <span className="text-[10px] text-[var(--aras-muted)] font-bold uppercase tracking-tight">{doc.label}</span>
+                    <span className="text-sm font-bold">{doc.number}</span>
+                    <ArrowUpRight size={14} className="opacity-40" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Explicit Children (not in fields) */}
+          {metadata.children && metadata.children.length > 0 && (
+            <div className="space-y-6">
+              {metadata.children
+                .filter(child => !metadata.fields.some(f => 
+                  f.type === 'child_table' && 
+                  (cleanResourcePath(f.target_resource || '') === cleanResourcePath(child.resource) || cleanResourcePath(f.name) === cleanResourcePath(child.resource))
+                ))
+                .map((child) => {
+                  const parentResourceKey = cleanResourcePath(metadata.resource).split('/').pop();
+                  const fkKey = child.fk_column || `${parentResourceKey}_id`;
+                  return (
+                    <InlineChildTable
+                      key={`${child.resource}-${refreshTrigger}`}
+                      childResource={child.resource}
+                      fkColumn={fkKey}
+                      parentId={currentId}
+                      parentData={formData}
+                      rows={childRows[child.resource] ?? []}
+                      onChange={(rows) => setChildRows(prev => ({ ...prev, [child.resource]: rows }))}
+                    />
+                  );
+              })}
+            </div>
+          )}
         </div>
-      )}
-      </div>
-      {hasFormRail && renderFormRail()}
+
+        {/* Form Rail (Totals / Activity) */}
+        {hasFormRail && (
+          <div className="max-xl:order-first">
+            <div className="sticky top-[80px] space-y-6">
+              {renderFormRail()}
+            </div>
+          </div>
+        )}
       </div>
     </div>
 
@@ -1662,7 +1639,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                 </label>
                 <input
                   type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  className="w-full h-11 border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                   value={actionDialog.inputData[field.name] ?? ''}
                   onChange={e => setActionDialog(prev => prev && ({
                     ...prev,

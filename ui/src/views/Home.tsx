@@ -4,6 +4,7 @@ import { resolveIcon } from '../lib/iconUtils'
 import { ArrowRight } from 'lucide-react'
 import { DashboardView } from './DashboardView'
 import { useAuthStore } from '../store/authStore'
+import { useUIStore } from '../store/uiStore'
 import api from '../lib/api'
 
 interface SidebarApp {
@@ -19,22 +20,23 @@ export default function HomeView() {
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
   const [apps, setApps] = useState<SidebarApp[]>([])
+  const setPageTitle = useUIStore(state => state.setPageTitle)
+
+  const displayName = user?.full_name || user?.username || 'there'
+
+  useEffect(() => {
+    setPageTitle(`Welcome back, ${displayName}`, "Here's what's happening in your workspace today.", "HOME")
+    return () => setPageTitle('', '', '')
+  }, [displayName, setPageTitle])
 
   useEffect(() => {
     api.get('/sidebar').then((res) => setApps(res.data)).catch(() => {})
   }, [])
 
-  const displayName = user?.full_name || user?.username || 'there'
-
   const userApps = apps.filter(a => a.app_type !== 'framework')
 
   return (
     <>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Welcome back, {displayName}</h1>
-        <p className="text-slate-500 mt-1">Here's what's happening in your workspace today.</p>
-      </div>
-
       {userApps.length > 0 && (
         <div className="mb-10">
           <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Your Apps</h2>

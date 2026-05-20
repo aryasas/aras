@@ -95,7 +95,7 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
       <div className="grid grid-cols-[auto_minmax(280px,1fr)_auto] items-center gap-3 max-lg:grid-cols-1">
         <button
           onClick={onAdd}
-            className="flex h-[46px] items-center gap-2 px-[19px] bg-[var(--aras-button)] text-[var(--aras-button-text)] rounded-[var(--aras-radius)] text-sm font-bold transition-all shadow-md"
+          className="flex h-[46px] items-center gap-2 px-5 bg-[var(--aras-accent)] hover:opacity-90 text-white rounded-[var(--aras-radius)] text-sm font-semibold outline-none transition-opacity"
         >
           <Plus size={18} />
           <span>Add New</span>
@@ -105,46 +105,54 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
 
           {/* View Mode Switcher */}
           {onViewModeChange && (
-            <div className="flex items-center bg-[var(--aras-panel-soft)] p-1 rounded-[var(--aras-radius)] border border-[var(--aras-border)]">
+            <div className="flex h-[46px] items-center border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] bg-[var(--aras-panel)] overflow-hidden">
               <button
                 onClick={() => onViewModeChange('list')}
-                className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`h-full px-2.5 flex items-center transition-colors ${viewMode === 'list' ? 'bg-[var(--aras-panel-soft)] text-[var(--aras-accent)]' : 'text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)]'}`}
                 title="List View"
+                aria-pressed={viewMode === 'list'}
               >
                 <List size={18} />
               </button>
               {hasTreeSupport && (
                 <button
                   onClick={() => onViewModeChange('tree')}
-                  className={`p-1.5 rounded-lg transition-all ${viewMode === 'tree' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`h-full px-2.5 flex items-center border-l border-[var(--aras-border)] transition-colors ${viewMode === 'tree' ? 'bg-[var(--aras-panel-soft)] text-[var(--aras-accent)]' : 'text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)]'}`}
                   title="Tree View"
+                  aria-pressed={viewMode === 'tree'}
                 >
                   <LayoutGrid size={18} />
                 </button>
               )}
               <button
                 onClick={() => onViewModeChange('report')}
-                className={`p-1.5 rounded-lg transition-all ${viewMode === 'report' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`h-full px-2.5 flex items-center border-l border-[var(--aras-border)] transition-colors ${viewMode === 'report' ? 'bg-[var(--aras-panel-soft)] text-[var(--aras-accent)]' : 'text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)]'}`}
                 title="Report View"
+                aria-pressed={viewMode === 'report'}
               >
                 <FileText size={18} />
               </button>
             </div>
           )}
 
-          <div className="relative min-w-[260px] flex-1 max-w-none">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--aras-muted)]" size={18} />
+          <div className="relative min-w-[260px] flex-1 max-w-none group">
+            <label htmlFor="list-search-input" className="sr-only">Search in {title}</label>
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--aras-muted)]" size={18} />
             <input
+              id="list-search-input"
               type="text"
               placeholder={`Search in ${title}...`}
-              className="h-[46px] w-full pl-10 pr-4 bg-[var(--aras-panel)] border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] text-[15px] text-[var(--aras-text)] focus:ring-2 focus:ring-[color:var(--aras-accent)]/15 focus:border-[var(--aras-accent)] outline-none transition-all"
+              className="h-[46px] w-full pl-10 pr-4 bg-[var(--aras-panel)] border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] text-[14px] text-[var(--aras-text)] placeholder:text-[var(--aras-muted)] focus:outline-none transition-colors"
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
+              aria-label={`Search in ${title}`}
             />
           </div>
           <button
             onClick={onFilterToggle}
-            className={`h-[46px] px-4 rounded-[var(--aras-radius)] border transition-all flex items-center gap-2 text-sm font-medium ${isFilterOpen ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-[var(--aras-panel)] border-[var(--aras-border-strong)] text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]'}`}
+            className={`h-[46px] px-4 rounded-[var(--aras-radius)] border transition-colors flex items-center gap-2 text-sm font-medium ${isFilterOpen ? 'border-[var(--aras-accent)] text-[var(--aras-accent)] bg-[var(--aras-panel)]' : 'bg-[var(--aras-panel)] border-[var(--aras-border-strong)] text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]'}`}
+            aria-expanded={isFilterOpen}
+            aria-controls="filter-conditions-panel"
           >
             <Filter size={18} />
             <span>Filters {filterCount > 0 && `(${filterCount})`}</span>
@@ -153,7 +161,7 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
           {filterCount > 0 && (
             <button
               onClick={onSaveFilter}
-              className="p-2 rounded-xl border transition-all flex items-center gap-2 text-sm font-medium bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+              className="h-[46px] px-4 rounded-[var(--aras-radius)] border transition-colors flex items-center gap-2 text-sm font-medium bg-[var(--aras-panel)] border-[var(--aras-border-strong)] text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]"
             >
               <Plus size={18} />
               <span>Save Filter</span>
@@ -164,29 +172,29 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
             <div className="relative" ref={savedFiltersRef}>
               <button
                 onClick={() => setIsSavedFiltersOpen(!isSavedFiltersOpen)}
-                className="p-2 rounded-xl border transition-all flex items-center gap-2 text-sm font-medium bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                className="h-[46px] px-4 rounded-[var(--aras-radius)] border transition-colors flex items-center gap-2 text-sm font-medium bg-[var(--aras-panel)] border-[var(--aras-border-strong)] text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]"
               >
                 <span>Saved Filters</span>
                 <ChevronDown size={18} />
               </button>
               {isSavedFiltersOpen && (
                 <div
-                  className="absolute right-0 mt-3 w-64 bg-white border border-slate-200 shadow-xl rounded-2xl z-50 p-4"
+                  className="absolute right-0 mt-2 w-64 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-[var(--aras-radius)] z-50 p-3"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">Saved Filters</h4>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                  <h4 className="text-[11px] font-semibold text-[var(--aras-muted)] uppercase tracking-wider mb-2 px-1">Saved Filters</h4>
+                  <div className="space-y-1 max-h-60 overflow-y-auto">
                     {savedFilters.map(sf => (
                       <div key={sf.id} className="flex items-center justify-between group">
                         <button
                           onClick={() => { onApplySavedFilter(sf.id); setIsSavedFiltersOpen(false); }}
-                          className="flex-1 text-left text-sm text-slate-700 hover:text-indigo-600 p-1 rounded-lg transition-colors"
+                          className="flex-1 text-left text-sm text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)] px-2 py-1.5 rounded-[var(--aras-radius)] transition-colors"
                         >
-                          {sf.name} {sf.is_default && <span className="text-[10px] text-slate-400">(default)</span>}
+                          {sf.name} {sf.is_default && <span className="text-[10px] text-[var(--aras-muted)]">(default)</span>}
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); onDeleteSavedFilter(sf.id); }}
-                          className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                          className="p-1 text-[var(--aras-muted)] hover:text-rose-500 rounded-[var(--aras-radius)] transition-colors opacity-0 group-hover:opacity-100"
                           title="Delete saved filter"
                         >
                           <X size={14} />
@@ -205,14 +213,14 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
             <>
               <button
                 onClick={onBulkEdit}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-all"
+                className="flex h-[46px] items-center gap-2 px-4 rounded-[var(--aras-radius)] text-sm font-medium border border-[var(--aras-border-strong)] bg-[var(--aras-panel)] text-[var(--aras-accent)] hover:bg-[var(--aras-panel-soft)] transition-colors"
               >
                 <Edit3 size={18} />
                 <span>Edit ({selectedCount})</span>
               </button>
               <button
                 onClick={onBulkDelete}
-                className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-sm font-bold hover:bg-rose-100 transition-all"
+                className="flex h-[46px] items-center gap-2 px-4 rounded-[var(--aras-radius)] text-sm font-medium border border-[var(--aras-border-strong)] bg-[var(--aras-panel)] text-rose-600 hover:bg-rose-50 transition-colors"
               >
                 <Trash2 size={18} />
                 <span>Delete ({selectedCount})</span>
@@ -230,22 +238,22 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
               <ChevronDown size={14} />
             </button>
             {isActionsOpen && (
-              <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-slate-200 rounded-xl shadow-lg z-30 overflow-hidden">
+              <div className="absolute right-0 top-full mt-2 w-48 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-[var(--aras-radius)] z-30 overflow-hidden">
                 <button
                   onClick={() => { onExport(); setIsActionsOpen(false); }}
                   disabled={isExporting}
-                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]"
                 >
                   <Download size={15} /> Export CSV
                 </button>
-                <label className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer">
+                <label className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)] cursor-pointer">
                   <Upload size={15} /> Import CSV
                   <input type="file" accept=".csv" className="hidden" onChange={(e) => { onImport(e); setIsActionsOpen(false); }} />
                 </label>
                 {onArchive && (
                   <button
                     onClick={() => { onArchive(); setIsActionsOpen(false); }}
-                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
+                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]"
                   >
                     <Archive size={15} /> View Archive
                   </button>
@@ -261,13 +269,13 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
             <Settings size={18} />
             {isColumnPickerOpen && (
               <div
-                className="absolute right-0 mt-3 w-64 bg-white border border-slate-200 shadow-xl rounded-2xl z-50 p-4"
+                className="absolute right-0 top-full mt-2 w-64 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-[var(--aras-radius)] z-50 p-3"
                 onClick={(e) => e.stopPropagation()}
               >
-                <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">Visible Columns</h4>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
+                <h4 className="text-[11px] font-semibold text-[var(--aras-muted)] uppercase tracking-wider mb-2 px-1">Visible Columns</h4>
+                <div className="space-y-1 max-h-60 overflow-y-auto">
                   {fields.map(f => (
-                    <label key={f.name} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded-lg">
+                    <label key={f.name} className="flex items-center gap-2 cursor-pointer hover:bg-[var(--aras-panel-soft)] px-2 py-1.5 rounded-[var(--aras-radius)]">
                       <input
                         type="checkbox"
                         checked={visibleColumns.includes(f.name)}
@@ -277,9 +285,9 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
                             checked ? [...visibleColumns, f.name] : visibleColumns.filter(c => c !== f.name)
                           )
                         }}
-                        className="rounded text-indigo-600 focus:ring-indigo-500"
+                        className="accent-[var(--aras-accent)]"
                       />
-                      <span className="text-sm text-slate-700">{f.label}</span>
+                      <span className="text-sm text-[var(--aras-text)]">{f.label}</span>
                     </label>
                   ))}
                 </div>

@@ -3,6 +3,7 @@ import api from '../lib/api'
 import { FileText, Play, Search, Loader2, ChevronLeft } from 'lucide-react'
 import GenericReport from '../aras-core/components/GenericReport'
 import { useAras } from '../aras-core/hooks/useAras'
+import { useUIStore } from '../store/uiStore'
 
 interface Report {
   id: number
@@ -37,6 +38,13 @@ const getErrorDetail = (err: unknown, fallback: string) => (
 export default function ReportCenter() {
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
+  const setPageTitle = useUIStore(state => state.setPageTitle)
+
+  useEffect(() => {
+    setPageTitle('Report Center', 'Browse and execute system reports across all modules.', 'ANALYTICS')
+    return () => setPageTitle('', '', '')
+  }, [setPageTitle])
+
   const [search, setSearch] = useState('')
   const [activeModule, setActiveModule] = useState<string | null>(null)
   const [runningReport, setRunningReport] = useState<number | null>(null)
@@ -192,12 +200,7 @@ export default function ReportCenter() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Report Center</h1>
-          <p className="mt-1.5 text-slate-500 font-medium">Browse and execute system reports across all modules.</p>
-        </div>
-
+      <div className="flex flex-col md:flex-row md:items-center justify-end gap-4">
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />

@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="ink" data-layout="split">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Documents — Aras Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=JetBrains+Mono:wght@400;500;600&family=Söhne&family=Public+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Public Sans',ui-sans-serif,system-ui,sans-serif;
+    font-size:13px;line-height:1.55;letter-spacing:-.005em;
+    transition:background .35s cubic-bezier(.2,.7,.2,1),color .35s;
+    -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+    text-rendering:optimizeLegibility;
+  }
+  /* ============================================================
+     THREE THEMES — three publications.
+     parchment : warm cream paper, ink + vermilion (financial broadsheet)
+     ink       : midday slate, parchment-on-ink (quarterly review)
+     obsidian  : deep ink, gold-leaf accent (rare book / terminal)
+  ============================================================ */
+  [data-theme="parchment"]{
+    --bg:#f4efe6; --bg-grain:#efe9dd;
+    --paper:#fbf7ee; --paper-2:#f7f1e3;
+    --rule:#d9cfb8; --rule-soft:#e7ddc5; --rule-strong:#b8a982;
+    --ink:#1a1814; --ink-2:#3e3a31; --ink-3:#7a7361; --ink-4:#a89e85;
+    --accent:#b8341c;          /* vermilion */
+    --accent-2:#7a2010;
+    --accent-soft:#f4d9d1;
+    --gold:#9a7b2b;
+    --ok:#3d6b3d; --ok-soft:#dde6cf;
+    --warn:#8a5a14; --warn-soft:#efe1c0;
+    --danger:#a8261c; --danger-soft:#f0d2cb;
+    --shadow:0 1px 0 rgba(60,40,15,.06), 0 1px 2px rgba(60,40,15,.04);
+    --shadow-pop:0 24px 60px -28px rgba(60,40,15,.35);
+    --display:'Fraunces',serif;
+    --texture:radial-gradient(circle at 20% 10%, rgba(184,52,28,.025), transparent 50%),
+              radial-gradient(circle at 90% 80%, rgba(154,123,43,.04), transparent 60%);
+  }
+  [data-theme="ink"]{
+    --bg:#21232a; --bg-grain:#1e2026;
+    --paper:#2a2d36; --paper-2:#30343f;
+    --rule:rgba(238,228,205,.10); --rule-soft:rgba(238,228,205,.06); --rule-strong:rgba(238,228,205,.22);
+    --ink:#f1ead6; --ink-2:#cdc6b3; --ink-3:#928c7b; --ink-4:#5f5a4e;
+    --accent:#e8a87c;
+    --accent-2:#d4886a;
+    --accent-soft:rgba(232,168,124,.14);
+    --gold:#d4b25a;
+    --ok:#9fc88a; --ok-soft:rgba(159,200,138,.13);
+    --warn:#e6c478; --warn-soft:rgba(230,196,120,.13);
+    --danger:#e69a8a; --danger-soft:rgba(230,154,138,.13);
+    --shadow:0 1px 0 rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.15);
+    --shadow-pop:0 28px 80px -32px rgba(0,0,0,.6);
+    --display:'Fraunces',serif;
+    --texture:radial-gradient(circle at 12% 8%, rgba(232,168,124,.05), transparent 55%),
+              radial-gradient(circle at 88% 92%, rgba(212,178,90,.04), transparent 60%);
+  }
+  [data-theme="obsidian"]{
+    --bg:#0c0d11; --bg-grain:#0a0b0f;
+    --paper:#13151b; --paper-2:#181b22;
+    --rule:rgba(208,178,107,.10); --rule-soft:rgba(208,178,107,.05); --rule-strong:rgba(208,178,107,.25);
+    --ink:#ede4c9; --ink-2:#b8ad8a; --ink-3:#7a725a; --ink-4:#4a4538;
+    --accent:#d4b25a;          /* gold leaf */
+    --accent-2:#a8893f;
+    --accent-soft:rgba(212,178,90,.12);
+    --gold:#d4b25a;
+    --ok:#8fb872; --ok-soft:rgba(143,184,114,.1);
+    --warn:#d4a64a; --warn-soft:rgba(212,166,74,.1);
+    --danger:#c8665a; --danger-soft:rgba(200,102,90,.1);
+    --shadow:0 1px 0 rgba(0,0,0,.6), 0 2px 6px rgba(0,0,0,.4);
+    --shadow-pop:0 32px 96px -32px rgba(0,0,0,.85);
+    --display:'Fraunces',serif;
+    --texture:radial-gradient(circle at 15% 5%, rgba(212,178,90,.06), transparent 55%),
+              radial-gradient(circle at 90% 95%, rgba(212,178,90,.03), transparent 60%);
+  }
+
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    background-image:
+      var(--texture),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-attachment:fixed;
+  }
+
+  ::selection{background:var(--accent);color:var(--paper)}
+
+  .mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-feature-settings:"tnum","zero","ss01"}
+  .num{font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums slashed-zero}
+  .display{font-family:var(--display);font-optical-sizing:auto}
+
+  /* ============================================================
+     MASTHEAD
+  ============================================================ */
+  .masthead{
+    position:sticky;top:0;z-index:30;
+    background:color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter:blur(12px) saturate(1.2);
+    -webkit-backdrop-filter:blur(12px) saturate(1.2);
+    border-bottom:1px solid var(--rule);
+  }
+  .masthead-inner{
+    display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:24px;
+    padding:12px 32px;
+  }
+  .wordmark{
+    font-family:var(--display);font-weight:500;font-size:26px;line-height:1;
+    letter-spacing:-.025em;color:var(--ink);
+    font-feature-settings:"ss01","ss02";
+  }
+  .wordmark i{font-style:italic;color:var(--accent);font-weight:400}
+  .wordmark sup{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;color:var(--ink-3);margin-left:4px;vertical-align:top;letter-spacing:.08em}
+
+  .breadcrumb{display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase}
+  .breadcrumb .sep{color:var(--ink-4)}
+  .breadcrumb em{font-style:normal;color:var(--ink);font-weight:500}
+  .breadcrumb .live{display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-weight:500}
+  .breadcrumb .live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 var(--accent);animation:pulse 2.4s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+
+  .masthead-right{display:flex;align-items:center;gap:14px}
+
+  .picker{
+    display:inline-flex;align-items:stretch;
+    background:var(--paper);border:1px solid var(--rule);border-radius:2px;
+    padding:0;overflow:hidden;
+  }
+  .picker button{
+    background:transparent;border:0;color:var(--ink-3);
+    font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    padding:7px 12px;cursor:pointer;transition:all .2s;
+    border-right:1px solid var(--rule-soft);
+    position:relative;
+  }
+  .picker button:last-child{border-right:0}
+  .picker button:hover{color:var(--ink)}
+  .picker button.on{color:var(--paper);background:var(--ink)}
+  [data-theme="parchment"] .picker button.on{background:var(--ink)}
+  [data-theme="ink"] .picker button.on{background:var(--ink);color:var(--bg)}
+  [data-theme="obsidian"] .picker button.on{background:var(--accent);color:var(--bg)}
+  .picker-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-4);text-transform:uppercase;letter-spacing:.14em;margin-right:2px}
+
+  .iconbtn{
+    width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;
+    background:transparent;border:1px solid var(--rule);border-radius:2px;
+    color:var(--ink-2);cursor:pointer;transition:all .15s;
+  }
+  .iconbtn:hover{color:var(--ink);border-color:var(--rule-strong);background:var(--paper)}
+
+  /* ============================================================
+     EDITORIAL HEADER (page hero)
+  ============================================================ */
+  .hero{
+    padding:36px 32px 18px;
+    border-bottom:1px solid var(--rule);
+    position:relative;
+  }
+  .hero::before{
+    content:'';position:absolute;left:32px;right:32px;top:0;height:1px;
+    background:linear-gradient(90deg, var(--accent) 0%, var(--accent) 80px, transparent 80px);
+  }
+  .hero-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:48px;align-items:end}
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--accent);font-weight:500;margin-bottom:14px;
+    display:flex;align-items:center;gap:14px;
+  }
+  .eyebrow .vol{color:var(--ink-3)}
+  .eyebrow .dateline{color:var(--ink-3);margin-left:auto}
+  h1.title{
+    font-family:var(--display);font-weight:300;font-optical-sizing:auto;
+    font-size:clamp(40px, 5.6vw, 72px);line-height:.95;letter-spacing:-.035em;
+    color:var(--ink);
+  }
+  h1.title em{font-style:italic;font-weight:400;color:var(--accent);font-feature-settings:"ss01"}
+  .deck{
+    margin-top:14px;max-width:62ch;color:var(--ink-2);font-size:14px;line-height:1.55;
+    font-family:var(--display);font-weight:400;font-style:italic;font-size:16px;
+  }
+  .deck::first-letter{font-size:1.6em;line-height:.9;float:left;margin:.15em .12em -.05em 0;color:var(--accent);font-weight:500;font-style:normal;font-family:var(--display)}
+
+  .ticker{
+    display:flex;flex-direction:column;gap:18px;min-width:300px;
+    padding-left:32px;border-left:1px solid var(--rule);
+  }
+  .ticker-row{display:flex;align-items:baseline;gap:14px}
+  .ticker-row .k{
+    font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--ink-3);min-width:80px;
+  }
+  .ticker-row .v{
+    font-family:var(--display);font-weight:400;font-size:26px;color:var(--ink);line-height:1;
+    font-variant-numeric:tabular-nums;letter-spacing:-.02em;
+  }
+  .ticker-row .delta{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:500}
+  .delta.up{color:var(--ok)}
+  .delta.down{color:var(--danger)}
+
+  /* ============================================================
+     WORKSPACE
+  ============================================================ */
+  .workspace{padding:24px 32px 64px;display:grid;gap:24px;position:relative}
+  [data-layout="split"] .workspace{grid-template-columns:minmax(0, 1.2fr) minmax(0, 1fr)}
+  [data-layout="stacked"] .workspace{grid-template-columns:minmax(0,1fr)}
+  [data-layout="drawer"] .workspace{grid-template-columns:minmax(0,1fr)}
+  [data-layout="drawer"] .form-panel{
+    position:fixed;top:0;right:0;bottom:0;width:min(620px,100vw);z-index:50;
+    background:var(--paper);border-left:1px solid var(--rule-strong);
+    transform:translateX(101%);transition:transform .45s cubic-bezier(.2,.85,.2,1);
+    box-shadow:var(--shadow-pop);overflow-y:auto;
+    border-radius:0;
+  }
+  [data-layout="drawer"][data-drawer="open"] .form-panel{transform:translateX(0)}
+  .drawer-scrim{
+    position:fixed;inset:0;background:color-mix(in srgb, var(--bg) 70%, black);
+    z-index:49;opacity:0;pointer-events:none;transition:opacity .3s;
+    backdrop-filter:blur(2px);
+  }
+  [data-layout="drawer"][data-drawer="open"] .drawer-scrim{opacity:.7;pointer-events:auto}
+  [data-layout="split"] .drawer-scrim,[data-layout="stacked"] .drawer-scrim{display:none}
+
+  .panel{
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:3px;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+    position:relative;
+  }
+
+  /* ============================================================
+     LIST PANEL — the broadsheet table
+  ============================================================ */
+  .toolbar{
+    display:flex;align-items:center;gap:10px;
+    padding:12px 16px;border-bottom:1px solid var(--rule);
+    background:var(--paper-2);
+  }
+  .search{flex:1;position:relative;max-width:340px}
+  .search input{
+    width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule-strong);
+    padding:8px 4px 8px 26px;font-size:13px;color:var(--ink);
+    font-family:var(--display);font-style:italic;font-weight:400;
+    transition:border-color .2s;
+  }
+  .search input::placeholder{color:var(--ink-3);font-style:italic}
+  .search input:focus{outline:none;border-bottom-color:var(--accent)}
+  .search svg{position:absolute;left:2px;top:50%;transform:translateY(-50%);color:var(--ink-3)}
+
+  .chips{display:flex;gap:0;border:1px solid var(--rule);border-radius:2px;overflow:hidden}
+  .chip{
+    background:transparent;border:0;border-right:1px solid var(--rule);
+    padding:6px 12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);cursor:pointer;
+    transition:all .15s;
+  }
+  .chip:last-child{border-right:0}
+  .chip:hover{color:var(--ink);background:var(--paper)}
+  .chip.active{color:var(--paper);background:var(--ink)}
+  [data-theme="ink"] .chip.active{color:var(--bg)}
+  [data-theme="obsidian"] .chip.active{background:var(--accent);color:var(--bg)}
+  .chip .count{margin-left:5px;color:inherit;opacity:.6}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:7px;padding:7px 14px;
+    border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:10.5px;
+    font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;
+    transition:all .2s;border:1px solid transparent;white-space:nowrap;
+  }
+  .btn-primary{background:var(--accent);color:var(--paper);border-color:var(--accent)}
+  [data-theme="obsidian"] .btn-primary{color:var(--bg)}
+  .btn-primary:hover{background:var(--accent-2);border-color:var(--accent-2)}
+  .btn-ghost{background:transparent;color:var(--ink-2);border-color:var(--rule-strong)}
+  .btn-ghost:hover{color:var(--ink);border-color:var(--ink)}
+  .btn-quiet{background:transparent;color:var(--ink-3);border:0;padding:7px 8px}
+  .btn-quiet:hover{color:var(--ink)}
+
+  .tbl-wrap{overflow:auto;max-height:64vh}
+  .tbl-wrap::-webkit-scrollbar{width:8px;height:8px}
+  .tbl-wrap::-webkit-scrollbar-thumb{background:var(--rule-strong);border-radius:4px}
+  .tbl-wrap::-webkit-scrollbar-track{background:transparent}
+
+  table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+  .tbl thead th{
+    position:sticky;top:0;z-index:2;background:var(--paper-2);
+    text-align:left;padding:10px 14px;
+    font-family:'JetBrains Mono',monospace;font-size:9.5px;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-weight:500;
+    border-bottom:1.5px solid var(--ink);white-space:nowrap;
+  }
+  [data-theme="ink"] .tbl thead th, [data-theme="obsidian"] .tbl thead th{border-bottom-color:var(--accent)}
+  .tbl thead th .sort{display:inline-block;margin-left:4px;opacity:.5}
+  .tbl tbody td{
+    padding:14px 14px;border-bottom:1px solid var(--rule-soft);
+    color:var(--ink-2);vertical-align:middle;
+  }
+  .tbl tbody tr{cursor:pointer;transition:background .15s}
+  .tbl tbody tr:hover{background:var(--paper-2)}
+  .tbl tbody tr.selected{background:var(--accent-soft)}
+  .tbl tbody tr.selected td{color:var(--ink)}
+  .tbl tbody tr.selected td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+
+  .doc-no{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink);letter-spacing:.02em}
+  .doc-no .pfx{color:var(--accent);font-weight:600}
+
+  .cust{display:flex;align-items:center;gap:10px}
+  .seal{
+    width:26px;height:26px;border-radius:2px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--display);font-weight:500;font-size:11.5px;font-style:italic;
+    color:var(--paper);letter-spacing:-.02em;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.15);
+  }
+  .cust-name{color:var(--ink);font-weight:500;font-size:13px}
+  .cust-meta{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase;margin-top:1px}
+
+  .num-cell{text-align:right;font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--ink);font-weight:500}
+  .num-cell .cur{color:var(--ink-3);font-size:10px;margin-right:3px;letter-spacing:.06em}
+
+  .date-cell{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink-2)}
+  .date-cell .d{color:var(--ink)}
+  .date-cell .y{color:var(--ink-4);margin-left:1px}
+
+  .badge{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:3px 9px 3px 8px;border-radius:2px;
+    font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;
+    letter-spacing:.1em;text-transform:uppercase;
+    border:1px solid currentColor;
+  }
+  .badge::before{content:'';width:5px;height:5px;background:currentColor;border-radius:50%}
+  .b-ok{color:var(--ok);background:var(--ok-soft);border-color:transparent}
+  .b-warn{color:var(--warn);background:var(--warn-soft);border-color:transparent}
+  .b-danger{color:var(--danger);background:var(--danger-soft);border-color:transparent}
+  .b-neutral{color:var(--ink-3);background:transparent;border-color:var(--rule-strong)}
+  .b-gold{color:var(--gold);background:transparent;border-color:var(--gold)}
+
+  .owner{display:flex;align-items:center;gap:7px}
+  .owner .dot{
+    width:18px;height:18px;border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:9px;font-weight:600;color:var(--paper);
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  .pager{
+    display:flex;align-items:center;gap:10px;padding:12px 16px;
+    border-top:1px solid var(--rule);background:var(--paper-2);
+    color:var(--ink-3);font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.06em;
+  }
+  .pager .ofcount{color:var(--ink)}
+  .pager .spacer{flex:1}
+  .pgbtn{
+    width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;
+    border:1px solid var(--rule);border-radius:2px;color:var(--ink-2);cursor:pointer;
+    background:transparent;font-family:inherit;font-size:11px;transition:all .15s;
+  }
+  .pgbtn:hover{color:var(--ink);border-color:var(--rule-strong)}
+  .pgbtn.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  [data-theme="obsidian"] .pgbtn.on{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+
+  /* ============================================================
+     FORM PANEL — the dossier
+  ============================================================ */
+  .dossier-head{
+    padding:24px 24px 20px;border-bottom:1px solid var(--rule);
+    background:linear-gradient(180deg, var(--paper-2) 0%, var(--paper) 100%);
+    position:relative;
+  }
+  .dossier-head::after{
+    content:'';position:absolute;left:24px;bottom:-1px;width:64px;height:2px;
+    background:var(--accent);
+  }
+  .dossier-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .dossier-id{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase}
+  .dossier-id b{color:var(--accent);font-weight:600}
+  .dossier-actions{display:flex;gap:6px}
+  .dossier-name{
+    font-family:var(--display);font-weight:300;font-style:italic;
+    font-size:34px;line-height:1.05;letter-spacing:-.025em;color:var(--ink);
+  }
+  .dossier-sub{
+    margin-top:8px;display:flex;gap:18px;align-items:center;
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-3);letter-spacing:.05em;
+  }
+  .dossier-sub b{color:var(--ink-2);font-weight:500}
+  .dossier-sub .sep{color:var(--ink-4)}
+
+  .tabs{
+    display:flex;gap:0;padding:0 24px;border-bottom:1px solid var(--rule);
+    background:var(--paper);overflow-x:auto;
+  }
+  .tab{
+    padding:13px 18px 12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);cursor:pointer;
+    border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;white-space:nowrap;
+    font-weight:500;
+  }
+  .tab:hover{color:var(--ink)}
+  .tab.on{color:var(--ink);border-bottom-color:var(--accent)}
+  .tab .num{margin-right:7px;color:var(--ink-4);font-size:9.5px}
+
+  .form-body{padding:24px 24px 8px;display:flex;flex-direction:column;gap:28px}
+  .section-rule{
+    display:flex;align-items:center;gap:14px;margin-bottom:16px;
+  }
+  .section-rule .roman{
+    font-family:var(--display);font-style:italic;font-weight:400;
+    color:var(--accent);font-size:18px;letter-spacing:.02em;
+  }
+  .section-rule .title{
+    font-family:'JetBrains Mono',monospace;font-size:10px;
+    letter-spacing:.22em;text-transform:uppercase;color:var(--ink-2);font-weight:600;
+  }
+  .section-rule::after{content:'';flex:1;height:1px;background:var(--rule)}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 20px}
+  .field{display:flex;flex-direction:column;gap:6px;min-width:0}
+  .field.col-2{grid-column:span 2}
+  .field > label{
+    font-family:'JetBrains Mono',monospace;font-size:9.5px;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:500;
+    display:flex;align-items:baseline;gap:6px;
+  }
+  .field > label .req{color:var(--accent);font-weight:600}
+  .field > label .hint{margin-left:auto;color:var(--ink-4);font-size:9px;letter-spacing:.08em;text-transform:none;font-style:italic;font-family:var(--display)}
+
+  .input,.select,.textarea{
+    background:transparent;border:0;border-bottom:1px solid var(--rule-strong);
+    padding:7px 0 8px;font-size:14px;color:var(--ink);
+    font-family:'Public Sans',sans-serif;font-weight:400;
+    width:100%;transition:border-color .2s,background .2s;border-radius:0;
+  }
+  .input.num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+  .input:focus,.select:focus,.textarea:focus{outline:none;border-bottom-color:var(--accent)}
+  .input[readonly]{color:var(--ink-3);border-bottom-style:dashed}
+  .textarea{resize:vertical;min-height:64px;line-height:1.5;font-family:var(--display);font-style:italic;font-size:14px}
+
+  .select-wrap{position:relative}
+  .select-wrap::after{
+    content:'';position:absolute;right:2px;top:50%;width:7px;height:7px;
+    border-right:1.5px solid var(--ink-3);border-bottom:1.5px solid var(--ink-3);
+    transform:translateY(-70%) rotate(45deg);pointer-events:none;
+  }
+  .select{appearance:none;padding-right:24px;cursor:pointer}
+  .select option{background:var(--paper);color:var(--ink)}
+
+  .input-prefix{display:flex;align-items:baseline;gap:8px;border-bottom:1px solid var(--rule-strong);padding:7px 0 8px}
+  .input-prefix .pfx{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase}
+  .input-prefix input{flex:1;background:transparent;border:0;padding:0;font-size:14px;color:var(--ink);font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;text-align:right}
+  .input-prefix input:focus{outline:none}
+
+  .switch{display:inline-flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+  .switch input{display:none}
+  .switch .track{
+    width:32px;height:18px;background:var(--paper-2);border:1px solid var(--rule-strong);
+    border-radius:2px;position:relative;transition:all .2s;flex-shrink:0;
+  }
+  .switch .track::after{
+    content:'';position:absolute;top:1px;left:1px;width:14px;height:14px;
+    background:var(--ink-3);border-radius:1px;transition:all .25s cubic-bezier(.2,.7,.2,1);
+  }
+  .switch input:checked + .track{background:var(--accent);border-color:var(--accent)}
+  .switch input:checked + .track::after{left:15px;background:var(--paper)}
+  .switch .lbl{font-size:12.5px;color:var(--ink-2)}
+  .switch .lbl b{color:var(--ink);font-weight:500}
+
+  /* totals callout */
+  .totals{
+    margin-top:8px;padding:18px 20px;
+    background:var(--paper-2);
+    border:1px solid var(--rule);border-left:3px solid var(--accent);
+    border-radius:2px;
+    display:grid;grid-template-columns:1fr 1fr;gap:14px 28px;
+  }
+  .totals .line{display:flex;justify-content:space-between;align-items:baseline}
+  .totals .line .k{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+  .totals .line .v{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:13px;color:var(--ink)}
+  .totals .grand{grid-column:span 2;border-top:1px solid var(--rule);padding-top:12px;margin-top:4px;display:flex;justify-content:space-between;align-items:baseline}
+  .totals .grand .k{font-family:var(--display);font-style:italic;font-size:14px;color:var(--ink-2)}
+  .totals .grand .v{font-family:var(--display);font-weight:400;font-size:28px;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .totals .grand .v .cur{color:var(--accent);font-size:14px;margin-right:8px;font-family:'JetBrains Mono',monospace;font-weight:500;letter-spacing:.1em}
+
+  .meta-strip{
+    padding:14px 24px;background:var(--paper-2);border-top:1px solid var(--rule);
+    display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+    font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-3);
+    letter-spacing:.06em;
+  }
+  .meta-strip b{color:var(--ink-2);font-weight:500}
+  .meta-strip .sep{color:var(--ink-4)}
+  .meta-strip .ver{margin-left:auto;color:var(--accent);font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+
+  .form-actions{
+    position:sticky;bottom:0;display:flex;align-items:center;gap:10px;
+    padding:14px 24px;border-top:1px solid var(--rule);background:var(--paper);
+    box-shadow:0 -8px 20px -8px rgba(0,0,0,.08);
+  }
+  .form-actions .saved{
+    flex:1;display:flex;align-items:center;gap:8px;
+    color:var(--ok);font-family:'JetBrains Mono',monospace;font-size:10px;
+    letter-spacing:.1em;text-transform:uppercase;
+  }
+  .save-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
+
+  /* close drawer */
+  .close-x{display:none}
+  [data-layout="drawer"] .close-x{display:inline-flex}
+
+  /* footer rule */
+  .footnote{
+    text-align:center;padding:32px;color:var(--ink-4);
+    font-family:var(--display);font-style:italic;font-size:13px;
+    border-top:1px solid var(--rule);margin-top:24px;
+  }
+  .footnote b{color:var(--accent);font-weight:500;font-style:normal;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;margin:0 6px}
+
+  @media (max-width:1180px){
+    [data-layout="split"] .workspace{grid-template-columns:1fr}
+    .hero-grid{grid-template-columns:1fr;gap:24px}
+    .ticker{padding-left:0;border-left:0;border-top:1px solid var(--rule);padding-top:18px}
+  }
+  @media (max-width:720px){
+    .masthead-inner{grid-template-columns:1fr;gap:12px}
+    .hero{padding:24px 18px 14px}
+    .workspace{padding:16px 18px 32px}
+    .grid{grid-template-columns:1fr}
+    .totals{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     MASTHEAD
+  ============================================================ -->
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="wordmark">Aras<i>·</i>Ledger<sup>VOL.XII</sup></div>
+    <nav class="breadcrumb">
+      <span>ERP</span><span class="sep">⁄</span>
+      <span>Commerce</span><span class="sep">⁄</span>
+      <em>Documents</em>
+      <span class="sep" style="margin-left:18px">·</span>
+      <span class="live">Live · 17 active sessions</span>
+    </nav>
+    <div class="masthead-right">
+      <span class="picker-label">Edition</span>
+      <div class="picker" id="theme-picker">
+        <button data-theme-val="parchment">Parchment</button>
+        <button data-theme-val="ink" class="on">Ink</button>
+        <button data-theme-val="obsidian">Obsidian</button>
+      </div>
+      <span class="picker-label">Layout</span>
+      <div class="picker" id="layout-picker">
+        <button data-layout-val="split" class="on">Spread</button>
+        <button data-layout-val="stacked">Column</button>
+        <button data-layout-val="drawer">Folio</button>
+      </div>
+      <button class="iconbtn" title="Settings">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+          <circle cx="8" cy="8" r="2.2"/>
+          <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.4 1.4M11.55 11.55l1.4 1.4M3.05 12.95l1.4-1.4M11.55 4.45l1.4-1.4"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================
+     HERO
+  ============================================================ -->
+<section class="hero">
+  <div class="hero-grid">
+    <div>
+      <div class="eyebrow">
+        <span>§ 04 · Receivables</span>
+        <span class="vol">Issue No. 0418</span>
+        <span class="dateline">Wed · 20 May 2026</span>
+      </div>
+      <h1 class="title">Documents,<br/>arranged in <em>quiet order.</em></h1>
+      <p class="deck">Quotations, sales orders, invoices and credit notes — sorted, signed, and settled across the organisation. Open value stands at <b style="color:var(--ink);font-style:normal">$84,200</b> across <b style="color:var(--ink);font-style:normal">17</b> ledgers awaiting approval.</p>
+    </div>
+    <aside class="ticker">
+      <div class="ticker-row">
+        <span class="k">Open</span>
+        <span class="v">248</span>
+        <span class="delta up">▲ 12.4%</span>
+      </div>
+      <div class="ticker-row">
+        <span class="k">Overdue</span>
+        <span class="v">17</span>
+        <span class="delta down">▲ 4 wk</span>
+      </div>
+      <div class="ticker-row">
+        <span class="k">Value · USD</span>
+        <span class="v">84,200</span>
+        <span class="delta up">▲ 8.1%</span>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============================================================
+     WORKSPACE
+  ============================================================ -->
+<main class="workspace">
+
+  <!-- ===== LIST PANEL ===== -->
+  <section class="panel list-panel">
+    <div class="toolbar">
+      <div class="search">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="m11 11 3.5 3.5"/></svg>
+        <input placeholder="Find by ref, customer, account…" />
+      </div>
+      <div class="chips">
+        <button class="chip active">All <span class="count">248</span></button>
+        <button class="chip">Draft <span class="count">17</span></button>
+        <button class="chip">Open <span class="count">94</span></button>
+        <button class="chip">Paid <span class="count">130</span></button>
+        <button class="chip">Overdue <span class="count">7</span></button>
+      </div>
+      <div style="flex:1"></div>
+      <button class="btn btn-ghost">
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+        Filter
+      </button>
+      <button class="btn btn-ghost">
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 11V3M4 7l4 4 4-4M2 14h12"/></svg>
+        Export
+      </button>
+      <button class="btn btn-primary" id="new-btn">
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v10M3 8h10"/></svg>
+        Compose
+      </button>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr>
+          <th style="width:34px"><input type="checkbox" /></th>
+          <th>Document <span class="sort">↑</span></th>
+          <th>Counterparty</th>
+          <th>Owner</th>
+          <th>Issued</th>
+          <th style="text-align:right">Amount</th>
+          <th>State</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <div class="pager">
+      <span>Showing <span class="ofcount">1 — 8</span> of <span class="ofcount">248</span> · sorted by date desc</span>
+      <div class="spacer"></div>
+      <button class="pgbtn">‹</button>
+      <button class="pgbtn on">1</button>
+      <button class="pgbtn">2</button>
+      <button class="pgbtn">3</button>
+      <span style="color:var(--ink-4)">·</span>
+      <button class="pgbtn">31</button>
+      <button class="pgbtn">›</button>
+    </div>
+  </section>
+
+  <!-- ===== FORM PANEL ===== -->
+  <aside class="panel form-panel" id="form-panel">
+    <div class="dossier-head">
+      <div class="dossier-top">
+        <div class="dossier-id"><b>SO</b> · 2026 · 00417 · <span style="color:var(--ink-2)">Folio 84/248</span></div>
+        <div class="dossier-actions">
+          <button class="iconbtn close-x" id="close-drawer" title="Close">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l10 10M13 3 3 13"/></svg>
+          </button>
+          <button class="btn btn-ghost">Duplicate</button>
+          <button class="btn btn-ghost">Print</button>
+        </div>
+      </div>
+      <div class="dossier-name" id="form-name">Acme Industrial Co.</div>
+      <div class="dossier-sub">
+        <span>Issued <b>18 May 2026</b></span>
+        <span class="sep">·</span>
+        <span>Due <b>02 Jun 2026</b></span>
+        <span class="sep">·</span>
+        <span>Owner <b>Maya Larsen</b></span>
+        <span class="sep">·</span>
+        <span style="color:var(--warn)">▲ 13 days outstanding</span>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab on"><span class="num">I</span>Overview</div>
+      <div class="tab"><span class="num">II</span>Line items <span style="color:var(--ink-4);margin-left:5px;font-size:9.5px">·6</span></div>
+      <div class="tab"><span class="num">III</span>Activity</div>
+      <div class="tab"><span class="num">IV</span>Files <span style="color:var(--ink-4);margin-left:5px;font-size:9.5px">·3</span></div>
+    </div>
+
+    <div class="form-body">
+
+      <div class="section">
+        <div class="section-rule">
+          <span class="roman">i.</span>
+          <span class="title">General Particulars</span>
+        </div>
+        <div class="grid">
+          <div class="field">
+            <label>Document type <span class="req">*</span></label>
+            <div class="select-wrap">
+              <select class="select">
+                <option>Sales Order</option><option>Quotation</option>
+                <option>Invoice</option><option>Credit Note</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label>Reference <span class="hint">customer's purchase order</span></label>
+            <input class="input num" value="PO-2026-1118" />
+          </div>
+          <div class="field col-2">
+            <label>Counterparty <span class="req">*</span></label>
+            <input class="input" id="form-customer" value="Acme Industrial Co." />
+          </div>
+          <div class="field">
+            <label>Issue date</label>
+            <input class="input num" type="date" value="2026-05-18" />
+          </div>
+          <div class="field">
+            <label>Due date <span class="hint">+ net 14</span></label>
+            <input class="input num" type="date" value="2026-06-02" />
+          </div>
+          <div class="field">
+            <label>Owner</label>
+            <div class="select-wrap">
+              <select class="select">
+                <option>Maya Larsen</option><option>Daniel Roth</option>
+                <option>Anika Patel</option><option>Sven Olsen</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label>Currency</label>
+            <div class="select-wrap">
+              <select class="select">
+                <option>USD — US Dollar</option><option>EUR — Euro</option>
+                <option>GBP — Pound Sterling</option><option>IDR — Rupiah</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-rule">
+          <span class="roman">ii.</span>
+          <span class="title">Amounts</span>
+        </div>
+        <div class="grid">
+          <div class="field">
+            <label>Subtotal</label>
+            <div class="input-prefix"><span class="pfx">USD</span><input readonly value="18,420.00" /></div>
+          </div>
+          <div class="field">
+            <label>Tax <span class="hint">10% VAT</span></label>
+            <div class="input-prefix"><span class="pfx">USD</span><input readonly value="1,842.00" /></div>
+          </div>
+          <div class="field">
+            <label>Discount</label>
+            <div class="input-prefix"><span class="pfx">USD</span><input value="0.00" /></div>
+          </div>
+          <div class="field">
+            <label>Shipping</label>
+            <div class="input-prefix"><span class="pfx">USD</span><input value="0.00" /></div>
+          </div>
+        </div>
+        <div class="totals">
+          <div class="line"><span class="k">Subtotal</span><span class="v">18,420.00</span></div>
+          <div class="line"><span class="k">Tax (10%)</span><span class="v">+ 1,842.00</span></div>
+          <div class="line"><span class="k">Discount</span><span class="v">−   0.00</span></div>
+          <div class="line"><span class="k">Shipping</span><span class="v">+   0.00</span></div>
+          <div class="grand">
+            <span class="k">Total due</span>
+            <span class="v"><span class="cur">USD</span>20,262<span style="color:var(--ink-3)">.00</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-rule">
+          <span class="roman">iii.</span>
+          <span class="title">Marginalia &amp; Flags</span>
+        </div>
+        <div class="field" style="margin-bottom:14px">
+          <label>Internal note <span class="hint">visible to team only</span></label>
+          <textarea class="textarea" placeholder="A note for the file…">Standard 14-day terms. Customer requested split delivery on line 3 — coordinate with warehouse before shipment.</textarea>
+        </div>
+        <div style="display:flex;gap:28px;flex-wrap:wrap;margin-top:6px">
+          <label class="switch"><input type="checkbox" checked /><span class="track"></span><span class="lbl"><b>Email</b> on save</span></label>
+          <label class="switch"><input type="checkbox" /><span class="track"></span><span class="lbl"><b>Lock</b> pricing</span></label>
+          <label class="switch"><input type="checkbox" checked /><span class="track"></span><span class="lbl"><b>Auto-post</b> to GL</span></label>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="meta-strip">
+      <span>Created <b>2026-05-18 · 09:14</b> by <b>m.larsen</b></span>
+      <span class="sep">·</span>
+      <span>Modified <b>2h ago</b></span>
+      <span class="sep">·</span>
+      <span>Signed off <b>—</b></span>
+      <span class="ver">Rev. vii</span>
+    </div>
+
+    <div class="form-actions">
+      <div class="saved"><span class="save-dot"></span>All changes saved · 14:32:08</div>
+      <button class="btn btn-quiet">Discard</button>
+      <button class="btn btn-ghost">Save draft</button>
+      <button class="btn btn-primary">Save &amp; Post</button>
+    </div>
+  </aside>
+
+  <div class="drawer-scrim" id="scrim"></div>
+</main>
+
+<footer class="footnote">
+  Set in <b>Fraunces</b> &amp; <b>JetBrains Mono</b> · An Aras Ledger production · <b>MMXXVI</b>
+</footer>
+
+<script>
+  const root = document.documentElement;
+
+  // ===== Theme picker
+  document.querySelectorAll('#theme-picker button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#theme-picker button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      root.setAttribute('data-theme', b.dataset.themeVal);
+    });
+  });
+
+  // ===== Layout picker
+  document.querySelectorAll('#layout-picker button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#layout-picker button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      root.setAttribute('data-layout', b.dataset.layoutVal);
+      root.removeAttribute('data-drawer');
+    });
+  });
+
+  // ===== Drawer behaviour
+  document.getElementById('new-btn').addEventListener('click', () => {
+    if (root.getAttribute('data-layout') === 'drawer') root.setAttribute('data-drawer', 'open');
+  });
+  document.getElementById('scrim').addEventListener('click', () => root.removeAttribute('data-drawer'));
+  document.getElementById('close-drawer').addEventListener('click', () => root.removeAttribute('data-drawer'));
+
+  // ===== Table rows
+  const data = [
+    {pfx:'SO',no:'2026·00417',c:'Acme Industrial Co.',acct:'A-1024 · West',i:'AC',col:'#b8341c',o:'ML',oc:'#7a2010',on:'Maya L.',d:'18 May',y:'·26',a:'20,262.00',cur:'USD',s:'Open',b:'b-warn',sel:true},
+    {pfx:'SO',no:'2026·00416',c:'Northwind Traders',acct:'N-0884 · EU',i:'NT',col:'#1f5a73',o:'DR',oc:'#3a3a3a',on:'Daniel R.',d:'17 May',y:'·26',a:'4,890.00',cur:'EUR',s:'Paid',b:'b-ok'},
+    {pfx:'IN',no:'2026·00891',c:'Globex Corporation',acct:'G-2210 · Multi',i:'GX',col:'#8a5a14',o:'AP',oc:'#7a2010',on:'Anika P.',d:'16 May',y:'·26',a:'12,400.00',cur:'USD',s:'Overdue',b:'b-danger'},
+    {pfx:'QT',no:'2026·00203',c:'Initech Ltd.',acct:'I-3091 · US',i:'IN',col:'#3d6b3d',o:'ML',oc:'#7a2010',on:'Maya L.',d:'16 May',y:'·26',a:'7,150.00',cur:'USD',s:'Draft',b:'b-neutral'},
+    {pfx:'SO',no:'2026·00415',c:'Soylent Corp',acct:'S-5512 · APAC',i:'SC',col:'#5a4a3a',o:'SO',oc:'#1a1814',on:'Sven O.',d:'15 May',y:'·26',a:'31,808.50',cur:'USD',s:'Open',b:'b-warn'},
+    {pfx:'IN',no:'2026·00890',c:'Hooli Inc.',acct:'H-7720 · West',i:'HO',col:'#7a5599',o:'DR',oc:'#3a3a3a',on:'Daniel R.',d:'14 May',y:'·26',a:'2,990.00',cur:'USD',s:'Paid',b:'b-ok'},
+    {pfx:'CN',no:'2026·00018',c:'Pied Piper',acct:'P-9034 · West',i:'PP',col:'#9a7b2b',o:'AP',oc:'#7a2010',on:'Anika P.',d:'13 May',y:'·26',a:'(480.00)',cur:'USD',s:'Posted',b:'b-gold'},
+    {pfx:'QT',no:'2026·00202',c:'Stark Industries',acct:'S-0001 · West',i:'SI',col:'#0e3b5c',o:'ML',oc:'#7a2010',on:'Maya L.',d:'12 May',y:'·26',a:'48,200.00',cur:'USD',s:'Draft',b:'b-neutral'},
+  ];
+  const rows = document.getElementById('rows');
+  rows.innerHTML = data.map((r,i) => `
+    <tr class="${r.sel?'selected':''}" data-i="${i}">
+      <td><input type="checkbox" ${r.sel?'checked':''} /></td>
+      <td><span class="doc-no"><span class="pfx">${r.pfx}</span> · ${r.no}</span></td>
+      <td>
+        <div class="cust">
+          <span class="seal" style="background:${r.col}">${r.i}</span>
+          <span>
+            <div class="cust-name">${r.c}</div>
+            <div class="cust-meta">${r.acct}</div>
+          </span>
+        </div>
+      </td>
+      <td><span class="owner"><span class="dot" style="background:${r.oc}">${r.o}</span>${r.on}</span></td>
+      <td><span class="date-cell"><span class="d">${r.d}</span><span class="y">${r.y}</span></span></td>
+      <td class="num-cell"><span class="cur">${r.cur}</span>${r.a}</td>
+      <td><span class="badge ${r.b}">${r.s}</span></td>
+    </tr>
+  `).join('');
+
+  rows.addEventListener('click', e => {
+    const tr = e.target.closest('tr');
+    if (!tr || e.target.matches('input[type="checkbox"]')) return;
+    rows.querySelectorAll('tr').forEach(x => x.classList.remove('selected'));
+    tr.classList.add('selected');
+    const r = data[+tr.dataset.i];
+    document.getElementById('form-name').textContent = r.c;
+    document.getElementById('form-customer').value = r.c;
+    document.querySelector('.dossier-id').innerHTML =
+      `<b>${r.pfx}</b> · ${r.no.replace('·',' · ')} · <span style="color:var(--ink-2)">Folio ${83+(+tr.dataset.i)}/248</span>`;
+    if (root.getAttribute('data-layout') === 'drawer') root.setAttribute('data-drawer','open');
+  });
+
+  // ===== Tab toggle (cosmetic)
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
+      t.classList.add('on');
+    });
+  });
+</script>
+</body>
+</html>

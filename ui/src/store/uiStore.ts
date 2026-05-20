@@ -29,6 +29,9 @@ interface UIStore {
   density: 'compact' | 'regular' | 'comfy';
   accentColor: string;
   fontScale: number;
+  pageTitle: string;
+  pageSubtitle: string;
+  breadcrumbs: string;
   showAlert: (title: string, message: string, onConfirm?: () => void) => void;
   showConfirm: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => void;
   showError: (title: string, message: string) => void;
@@ -36,6 +39,7 @@ interface UIStore {
 
   showPanel: (title: string, content: React.ReactNode, width?: string) => void;
   closePanel: () => void;
+  setPageTitle: (title: string, subtitle?: string, breadcrumbs?: string) => void;
   toggleDarkMode: () => void;
   setThemeMode: (themeMode: UIStore['themeMode']) => void;
   setCornerMode: (cornerMode: UIStore['cornerMode']) => void;
@@ -69,6 +73,9 @@ export const useUIStore = create<UIStore>()(
       density: 'regular',
       accentColor: '#7a2e2e',
       fontScale: 100,
+      pageTitle: '',
+      pageSubtitle: '',
+      breadcrumbs: '',
 
       showAlert: (title, message, onConfirm) => set({
         dialog: { isOpen: true, title, message, type: 'alert', onConfirm, confirmLabel: 'OK' }
@@ -85,6 +92,12 @@ export const useUIStore = create<UIStore>()(
         panel: { isOpen: true, title, content, width }
       }),
       closePanel: () => set({ panel: defaultPanel }),
+
+      setPageTitle: (title, subtitle = '', breadcrumbs = '') => set({
+        pageTitle: title,
+        pageSubtitle: subtitle,
+        breadcrumbs: breadcrumbs
+      }),
 
       toggleDarkMode: () => {
         const next = !get().darkMode

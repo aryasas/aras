@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="medium" data-layout="split">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ERP Generic — List + Form Mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Inter',sans-serif;font-size:13px;line-height:1.5;transition:background .25s,color .25s}
+
+  [data-theme="light"]{
+    --bg:#f7f7f5;--surface:#ffffff;--surface-2:#fafaf8;--border:#e8e8e3;--border-strong:#d8d8d2;
+    --text-1:#18181b;--text-2:#52525b;--text-3:#a1a1aa;
+    --accent:#4f46e5;--accent-soft:#eef2ff;--accent-text:#4338ca;
+    --ok:#15803d;--ok-soft:#dcfce7;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--neutral-soft:#f4f4f5;
+    --shadow:0 1px 2px rgba(0,0,0,.04),0 1px 1px rgba(0,0,0,.03);
+    --shadow-pop:0 8px 28px rgba(0,0,0,.10);
+  }
+  [data-theme="medium"]{
+    --bg:#1e2030;--surface:#262838;--surface-2:#2d3041;--border:rgba(255,255,255,.08);--border-strong:rgba(255,255,255,.16);
+    --text-1:#e4e6f0;--text-2:#a4a8c0;--text-3:#6b6f88;
+    --accent:#a78bfa;--accent-soft:rgba(167,139,250,.15);--accent-text:#c4b5fd;
+    --ok:#86efac;--ok-soft:rgba(134,239,172,.12);--warn:#fcd34d;--warn-soft:rgba(252,211,77,.12);--danger:#fca5a5;--danger-soft:rgba(252,165,165,.12);--neutral-soft:rgba(255,255,255,.05);
+    --shadow:0 1px 2px rgba(0,0,0,.4);
+    --shadow-pop:0 12px 40px rgba(0,0,0,.5);
+  }
+  [data-theme="dark"]{
+    --bg:#0a0b10;--surface:#11131a;--surface-2:#171924;--border:rgba(255,255,255,.05);--border-strong:rgba(255,255,255,.12);
+    --text-1:#f0f0f5;--text-2:#8b8fa8;--text-3:#525671;
+    --accent:#7c6dfa;--accent-soft:rgba(124,109,250,.14);--accent-text:#a89bff;
+    --ok:#4ade80;--ok-soft:rgba(74,222,128,.1);--warn:#fbbf24;--warn-soft:rgba(251,191,36,.1);--danger:#f87171;--danger-soft:rgba(248,113,113,.1);--neutral-soft:rgba(255,255,255,.04);
+    --shadow:0 1px 2px rgba(0,0,0,.6);
+    --shadow-pop:0 16px 48px rgba(0,0,0,.7);
+  }
+  body{background:var(--bg);color:var(--text-1)}
+
+  .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:16px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);backdrop-filter:blur(8px)}
+  .brand{font-family:'Instrument Serif',serif;font-size:22px;letter-spacing:-.5px}
+  .brand b{color:var(--accent)}
+  .crumbs{display:flex;align-items:center;gap:8px;color:var(--text-3);font-family:'DM Mono',monospace;font-size:11px}
+  .crumbs span{color:var(--text-2)}
+  .crumbs em{color:var(--text-1);font-style:normal}
+  .topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+  .picker{display:inline-flex;align-items:center;gap:4px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:3px}
+  .picker button{background:transparent;border:0;color:var(--text-2);font-family:'DM Mono',monospace;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;transition:all .15s}
+  .picker button:hover{color:var(--text-1)}
+  .picker button.on{background:var(--accent-soft);color:var(--accent-text);box-shadow:inset 0 0 0 1px var(--border-strong)}
+  .picker-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-3);margin-right:6px;text-transform:uppercase;letter-spacing:.5px}
+
+  .iconbtn{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text-2);cursor:pointer;transition:all .15s}
+  .iconbtn:hover{color:var(--text-1);border-color:var(--border-strong);background:var(--surface-2)}
+
+  .page-head{padding:24px 24px 12px;display:flex;align-items:flex-end;gap:20px}
+  .page-head h1{font-family:'Instrument Serif',serif;font-size:30px;font-weight:400;letter-spacing:-.5px}
+  .page-head h1 em{font-style:italic;color:var(--accent-text)}
+  .page-head .sub{color:var(--text-2);font-size:12.5px;margin-top:4px}
+  .page-head .stats{margin-left:auto;display:flex;gap:18px}
+  .stat{text-align:right}
+  .stat .v{font-family:'DM Mono',monospace;font-size:18px;color:var(--text-1);font-weight:500}
+  .stat .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-3);margin-top:2px}
+
+  .workspace{padding:8px 24px 32px;display:grid;gap:16px}
+  [data-layout="split"] .workspace{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+  [data-layout="stacked"] .workspace{grid-template-columns:minmax(0,1fr)}
+  [data-layout="drawer"] .workspace{grid-template-columns:minmax(0,1fr);position:relative}
+  [data-layout="drawer"] .form-panel{position:fixed;top:0;right:0;bottom:0;width:min(560px,100vw);z-index:30;background:var(--surface);border-left:1px solid var(--border);transform:translateX(100%);transition:transform .3s ease;box-shadow:var(--shadow-pop);overflow-y:auto}
+  [data-layout="drawer"][data-drawer="open"] .form-panel{transform:translateX(0)}
+  [data-layout="drawer"] .drawer-scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:29;opacity:0;pointer-events:none;transition:opacity .2s}
+  [data-layout="drawer"][data-drawer="open"] .drawer-scrim{opacity:1;pointer-events:auto}
+  [data-layout="split"] .drawer-scrim,[data-layout="stacked"] .drawer-scrim{display:none}
+
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+  .toolbar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface)}
+  .search{flex:1;position:relative;max-width:320px}
+  .search input{width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:7px 10px 7px 30px;font-size:12.5px;color:var(--text-1);font-family:'Inter',sans-serif}
+  .search input::placeholder{color:var(--text-3)}
+  .search input:focus{outline:none;border-color:var(--accent);background:var(--surface)}
+  .search svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-3)}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--border);border-radius:7px;padding:5px 9px;font-size:11.5px;color:var(--text-2);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif}
+  .chip:hover{color:var(--text-1);border-color:var(--border-strong)}
+  .chip.active{background:var(--accent-soft);color:var(--accent-text);border-color:transparent}
+
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;font-size:12.5px;font-weight:500;cursor:pointer;transition:all .15s;border:1px solid transparent;font-family:'Inter',sans-serif}
+  .btn-primary{background:var(--accent);color:#fff}
+  [data-theme="medium"] .btn-primary,[data-theme="dark"] .btn-primary{color:#13141c}
+  .btn-primary:hover{filter:brightness(1.08)}
+  .btn-ghost{background:transparent;color:var(--text-2);border-color:var(--border)}
+  .btn-ghost:hover{background:var(--surface-2);color:var(--text-1)}
+
+  .tbl-wrap{overflow:auto;max-height:62vh}
+  table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+  .tbl th{position:sticky;top:0;background:var(--surface-2);text-align:left;padding:10px 14px;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap}
+  .tbl td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text-2);vertical-align:middle}
+  .tbl tbody tr{cursor:pointer;transition:background .12s}
+  .tbl tbody tr:hover{background:var(--surface-2)}
+  .tbl tbody tr.selected{background:var(--accent-soft)}
+  .tbl tbody tr.selected td{color:var(--text-1)}
+  .tbl tbody tr.selected td:first-child{box-shadow:inset 2px 0 0 var(--accent)}
+  .code{font-family:'DM Mono',monospace;font-size:11.5px;color:var(--text-1)}
+  .mono{font-family:'DM Mono',monospace}
+
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:500;font-family:'DM Mono',monospace}
+  .badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
+  .b-ok{background:var(--ok-soft);color:var(--ok)}
+  .b-warn{background:var(--warn-soft);color:var(--warn)}
+  .b-danger{background:var(--danger-soft);color:var(--danger)}
+  .b-neutral{background:var(--neutral-soft);color:var(--text-2)}
+
+  .avatar{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff;margin-right:6px;vertical-align:middle}
+
+  .pager{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--border);color:var(--text-3);font-size:11.5px;font-family:'DM Mono',monospace}
+  .pager .spacer{flex:1}
+  .pgbtn{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;color:var(--text-2);cursor:pointer;background:transparent}
+  .pgbtn:hover{color:var(--text-1);border-color:var(--border-strong)}
+  .pgbtn.on{background:var(--accent-soft);color:var(--accent-text);border-color:transparent}
+
+  .form-body{padding:18px 20px;display:flex;flex-direction:column;gap:18px}
+  .form-head{padding:18px 20px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border)}
+  .form-head .h-id{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-3)}
+  .form-head .h-name{font-family:'Instrument Serif',serif;font-size:22px;letter-spacing:-.3px;line-height:1.1;margin-top:2px}
+  .form-head .h-actions{margin-left:auto;display:flex;gap:8px}
+
+  .tabs{display:flex;gap:2px;padding:0 20px;border-bottom:1px solid var(--border);background:var(--surface)}
+  .tab{padding:10px 14px;font-size:12px;color:var(--text-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-weight:500;transition:all .15s}
+  .tab:hover{color:var(--text-1)}
+  .tab.on{color:var(--accent-text);border-bottom-color:var(--accent)}
+
+  .section{display:flex;flex-direction:column;gap:6px}
+  .section-title{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-3);font-weight:600;margin-bottom:6px;padding-bottom:6px;border-bottom:1px dashed var(--border)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field.col-2{grid-column:span 2}
+  .field label{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);font-weight:500}
+  .field label .req{color:var(--danger);margin-left:3px}
+  .input,.select,.textarea{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:12.5px;color:var(--text-1);font-family:'Inter',sans-serif;width:100%;transition:all .15s}
+  .input:focus,.select:focus,.textarea:focus{outline:none;border-color:var(--accent);background:var(--surface)}
+  .textarea{resize:vertical;min-height:80px}
+  .input[readonly]{color:var(--text-3);background:transparent;border-style:dashed}
+
+  .select-wrap{position:relative}
+  .select-wrap::after{content:'';position:absolute;right:12px;top:50%;width:8px;height:8px;border-right:1.5px solid var(--text-3);border-bottom:1.5px solid var(--text-3);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+  .select{appearance:none;padding-right:30px;cursor:pointer}
+
+  .switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+  .switch input{display:none}
+  .switch .track{width:32px;height:18px;background:var(--neutral-soft);border:1px solid var(--border);border-radius:20px;position:relative;transition:all .2s}
+  .switch .track::after{content:'';position:absolute;top:1px;left:1px;width:14px;height:14px;background:var(--text-3);border-radius:50%;transition:all .2s}
+  .switch input:checked + .track{background:var(--accent-soft);border-color:var(--accent)}
+  .switch input:checked + .track::after{left:15px;background:var(--accent)}
+  .switch .lbl{font-size:12px;color:var(--text-2)}
+
+  .meta-row{display:flex;align-items:center;gap:18px;padding:12px 20px;background:var(--surface-2);border-top:1px solid var(--border);font-size:11px;color:var(--text-3);font-family:'DM Mono',monospace}
+  .meta-row b{color:var(--text-2);font-weight:500}
+
+  .form-actions{position:sticky;bottom:0;display:flex;align-items:center;gap:8px;padding:12px 20px;border-top:1px solid var(--border);background:var(--surface);box-shadow:0 -4px 12px rgba(0,0,0,.06)}
+  .form-actions .left{flex:1;display:flex;gap:8px;color:var(--text-3);font-size:11px;font-family:'DM Mono',monospace;align-items:center}
+  .save-dot{width:6px;height:6px;border-radius:50%;background:var(--ok)}
+
+  @media (max-width:1080px){[data-layout="split"] .workspace{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">aras<b>.</b></div>
+  <div class="crumbs"><span>ERP</span> / <span>Sales</span> / <em>Documents</em></div>
+  <div class="topbar-right">
+    <span class="picker-label">theme</span>
+    <div class="picker" id="theme-picker">
+      <button data-theme-val="light">light</button>
+      <button data-theme-val="medium" class="on">medium</button>
+      <button data-theme-val="dark">dark</button>
+    </div>
+    <span class="picker-label">layout</span>
+    <div class="picker" id="layout-picker">
+      <button data-layout-val="split" class="on">split</button>
+      <button data-layout-val="stacked">stacked</button>
+      <button data-layout-val="drawer">drawer</button>
+    </div>
+    <button class="iconbtn" title="notifications">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5a4 4 0 0 0-4 4v3l-1.5 2.5h11L12 8V5.5a4 4 0 0 0-4-4Z"/><path d="M6 13.5a2 2 0 0 0 4 0"/></svg>
+    </button>
+  </div>
+</header>
+
+<section class="page-head">
+  <div>
+    <h1>Documents <em>— Sales</em></h1>
+    <div class="sub">Quotations, sales orders, invoices and credit notes across the organisation.</div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="v">248</div><div class="k">total</div></div>
+    <div class="stat"><div class="v">17</div><div class="k">draft</div></div>
+    <div class="stat"><div class="v">$84.2k</div><div class="k">open value</div></div>
+  </div>
+</section>
+
+<main class="workspace">
+
+  <section class="panel list-panel">
+    <div class="toolbar">
+      <div class="search">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="5"/><path d="m11 11 3.5 3.5"/></svg>
+        <input placeholder="Search documents, customers, refs…" />
+      </div>
+      <button class="chip active">All</button>
+      <button class="chip">Draft</button>
+      <button class="chip">Open</button>
+      <button class="chip">Paid</button>
+      <button class="chip">Overdue</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-ghost"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 4h12M4 8h8M6 12h4"/></svg>Filter</button>
+      <button class="btn btn-primary" id="new-btn"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3v10M3 8h10"/></svg>New</button>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr>
+          <th style="width:34px"><input type="checkbox" /></th>
+          <th>Doc #</th><th>Customer</th><th>Owner</th><th>Date</th>
+          <th style="text-align:right">Amount</th><th>Status</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <div class="pager">
+      <span>Showing 1–8 of 248</span>
+      <div class="spacer"></div>
+      <button class="pgbtn">‹</button>
+      <button class="pgbtn on">1</button>
+      <button class="pgbtn">2</button>
+      <button class="pgbtn">3</button>
+      <span>…</span>
+      <button class="pgbtn">31</button>
+      <button class="pgbtn">›</button>
+    </div>
+  </section>
+
+  <aside class="panel form-panel" id="form-panel">
+    <div class="form-head">
+      <div>
+        <div class="h-id mono">SO-2026-00417</div>
+        <div class="h-name" id="form-name">Acme Industrial Co.</div>
+      </div>
+      <div class="h-actions">
+        <button class="iconbtn" id="close-drawer" title="close" style="display:none"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l10 10M13 3 3 13"/></svg></button>
+        <button class="btn btn-ghost">Duplicate</button>
+        <button class="btn btn-ghost">Print</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab on">Overview</div>
+      <div class="tab">Line items</div>
+      <div class="tab">Activity</div>
+      <div class="tab">Files</div>
+    </div>
+
+    <div class="form-body">
+      <div class="section">
+        <div class="section-title">General</div>
+        <div class="grid">
+          <div class="field"><label>Document type <span class="req">*</span></label><div class="select-wrap"><select class="select"><option>Sales Order</option><option>Quotation</option><option>Invoice</option><option>Credit Note</option></select></div></div>
+          <div class="field"><label>Reference</label><input class="input mono" value="PO-2026-1118" /></div>
+          <div class="field col-2"><label>Customer <span class="req">*</span></label><input class="input" id="form-customer" value="Acme Industrial Co." /></div>
+          <div class="field"><label>Issue date</label><input class="input mono" type="date" value="2026-05-18" /></div>
+          <div class="field"><label>Due date</label><input class="input mono" type="date" value="2026-06-02" /></div>
+          <div class="field"><label>Owner</label><div class="select-wrap"><select class="select"><option>Maya Larsen</option><option>Daniel Roth</option><option>Anika Patel</option></select></div></div>
+          <div class="field"><label>Currency</label><div class="select-wrap"><select class="select"><option>USD — US Dollar</option><option>EUR — Euro</option><option>IDR — Rupiah</option></select></div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Amounts</div>
+        <div class="grid">
+          <div class="field"><label>Subtotal</label><input class="input mono" readonly value="$ 18,420.00" /></div>
+          <div class="field"><label>Tax (10%)</label><input class="input mono" readonly value="$ 1,842.00" /></div>
+          <div class="field"><label>Discount</label><input class="input mono" value="$ 0.00" /></div>
+          <div class="field"><label>Total</label><input class="input mono" readonly value="$ 20,262.00" style="font-weight:600;color:var(--text-1)" /></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Notes & flags</div>
+        <div class="field"><label>Internal note</label><textarea class="textarea" placeholder="Add a note visible to your team…">Standard 14-day terms. Customer requested split delivery for line 3.</textarea></div>
+        <div style="display:flex;gap:24px;margin-top:8px">
+          <label class="switch"><input type="checkbox" checked /><span class="track"></span><span class="lbl">Send by email on save</span></label>
+          <label class="switch"><input type="checkbox" /><span class="track"></span><span class="lbl">Lock pricing</span></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="meta-row">
+      <span>Created <b>2026-05-18 09:14</b> by <b>maya.larsen</b></span>
+      <span>·</span>
+      <span>Modified <b>2 hours ago</b></span>
+      <span style="margin-left:auto">v.7</span>
+    </div>
+
+    <div class="form-actions">
+      <div class="left"><span class="save-dot"></span> All changes saved</div>
+      <button class="btn btn-ghost">Discard</button>
+      <button class="btn btn-primary">Save & Post</button>
+    </div>
+  </aside>
+
+  <div class="drawer-scrim" id="scrim"></div>
+</main>
+
+<script>
+  const root = document.documentElement;
+  document.querySelectorAll('#theme-picker button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('#theme-picker button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      root.setAttribute('data-theme', b.dataset.themeVal);
+    });
+  });
+  const closeBtn = document.getElementById('close-drawer');
+  document.querySelectorAll('#layout-picker button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('#layout-picker button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      const v = b.dataset.layoutVal;
+      root.setAttribute('data-layout', v);
+      root.removeAttribute('data-drawer');
+      closeBtn.style.display = v === 'drawer' ? 'inline-flex' : 'none';
+    });
+  });
+  document.getElementById('new-btn').addEventListener('click',()=>{
+    if (root.getAttribute('data-layout')==='drawer') root.setAttribute('data-drawer','open');
+  });
+  document.getElementById('scrim').addEventListener('click',()=>root.removeAttribute('data-drawer'));
+  closeBtn.addEventListener('click',()=>root.removeAttribute('data-drawer'));
+
+  const data = [
+    {n:'SO-2026-00417',c:'Acme Industrial Co.',i:'AI',col:'#7c6dfa',o:'Maya Larsen',d:'May 18',a:'$20,262.00',s:'Open',b:'b-warn',sel:true},
+    {n:'SO-2026-00416',c:'Northwind Traders',i:'NT',col:'#22d3ee',o:'Daniel Roth',d:'May 17',a:'$ 4,890.00',s:'Paid',b:'b-ok'},
+    {n:'IN-2026-00891',c:'Globex Corporation',i:'GC',col:'#f59e0b',o:'Anika Patel',d:'May 16',a:'$12,400.00',s:'Overdue',b:'b-danger'},
+    {n:'QT-2026-00203',c:'Initech Ltd.',i:'IL',col:'#10b981',o:'Maya Larsen',d:'May 16',a:'$ 7,150.00',s:'Draft',b:'b-neutral'},
+    {n:'SO-2026-00415',c:'Soylent Corp',i:'SC',col:'#ef4444',o:'Sven Olsen',d:'May 15',a:'$31,808.50',s:'Open',b:'b-warn'},
+    {n:'IN-2026-00890',c:'Hooli Inc.',i:'HI',col:'#a78bfa',o:'Daniel Roth',d:'May 14',a:'$ 2,990.00',s:'Paid',b:'b-ok'},
+    {n:'CN-2026-00018',c:'Pied Piper',i:'PP',col:'#eab308',o:'Anika Patel',d:'May 13',a:'-$ 480.00',s:'Posted',b:'b-neutral'},
+    {n:'QT-2026-00202',c:'Stark Industries',i:'SI',col:'#06b6d4',o:'Maya Larsen',d:'May 12',a:'$48,200.00',s:'Draft',b:'b-neutral'},
+  ];
+  const rows = document.getElementById('rows');
+  rows.innerHTML = data.map((r,i)=>`
+    <tr class="${r.sel?'selected':''}" data-i="${i}">
+      <td><input type="checkbox" ${r.sel?'checked':''} /></td>
+      <td class="code">${r.n}</td>
+      <td><span class="avatar" style="background:${r.col}">${r.i}</span>${r.c}</td>
+      <td>${r.o}</td>
+      <td class="mono" style="font-size:11.5px">${r.d}</td>
+      <td class="mono" style="text-align:right;color:var(--text-1)">${r.a}</td>
+      <td><span class="badge ${r.b}">${r.s}</span></td>
+    </tr>
+  `).join('');
+  rows.addEventListener('click',e=>{
+    const tr = e.target.closest('tr'); if(!tr) return;
+    rows.querySelectorAll('tr').forEach(x=>x.classList.remove('selected'));
+    tr.classList.add('selected');
+    const r = data[+tr.dataset.i];
+    document.getElementById('form-name').textContent = r.c;
+    document.getElementById('form-customer').value = r.c;
+    document.querySelector('.h-id').textContent = r.n;
+    if (root.getAttribute('data-layout')==='drawer') root.setAttribute('data-drawer','open');
+  });
+</script>
+</body>
+</html>

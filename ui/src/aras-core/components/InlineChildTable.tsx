@@ -168,32 +168,41 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
   };
 
   return (
-    <div className="aras-child-table bg-[var(--aras-panel)] overflow-hidden rounded-[var(--aras-radius)] border border-[var(--aras-border)]">
-      <div className="flex min-h-[54px] flex-wrap items-center justify-between gap-3 border-b border-[var(--aras-border)] bg-[var(--aras-panel-soft)] px-5 py-3">
+    <div className="aras-child-table bg-white overflow-hidden rounded-3xl border border-slate-200 shadow-sm">
+      <div className="flex min-h-[54px] flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/50 backdrop-blur-sm px-6 py-4">
         <div className="flex items-center gap-3">
-          <h3 className="text-sm font-bold text-[var(--aras-text)]">{childMeta.title}</h3>
+          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">{childMeta.title}</h3>
+          <label htmlFor="child-table-search-input" className="sr-only">Search rows</label>
           <input
+            id="child-table-search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search rows..."
-            className="rounded-[var(--aras-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)] px-3 py-2 text-xs text-[var(--aras-text)] outline-none focus:ring-2 focus:ring-[color:var(--aras-accent)]/15"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
+            aria-label="Search rows in child table"
           />
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={addRow} className="flex items-center gap-2 rounded-[var(--aras-radius)] bg-[var(--aras-button)] px-3 py-2 text-xs font-bold text-[var(--aras-button-text)]">
+          <button type="button" onClick={addRow} className="flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all focus:ring-4 focus:ring-indigo-500/20">
             <Plus size={14} />
             Add Row
           </button>
-          <button type="button" onClick={deleteSelected} disabled={selectedRows.length === 0} className="flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-100 disabled:opacity-40">
+          <button type="button" onClick={deleteSelected} disabled={selectedRows.length === 0} className="flex items-center gap-2 rounded-xl bg-rose-50 px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-100 disabled:opacity-40 transition-colors">
             <Trash2 size={14} />
             Delete Selected
           </button>
-          <button type="button" onClick={() => setIsColumnPickerOpen(!isColumnPickerOpen)} className="rounded-[var(--aras-radius)] border border-[var(--aras-border)] px-3 py-2 text-xs font-bold text-[var(--aras-muted)] hover:bg-[var(--aras-panel)]">
+          <button
+            type="button"
+            onClick={() => setIsColumnPickerOpen(!isColumnPickerOpen)}
+            className="rounded-xl border border-slate-200 bg-white shadow-sm px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+            aria-expanded={isColumnPickerOpen}
+            aria-controls="child-table-column-picker"
+          >
             Columns
           </button>
         </div>
         {isColumnPickerOpen && (
-          <div className="basis-full rounded-[var(--aras-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)] p-3">
+          <div id="child-table-column-picker" className="basis-full rounded-[var(--aras-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)] p-3">
             <div className="flex flex-wrap gap-3">
               {editableCols.map((field: any) => (
                 <label key={field.name} className="flex items-center gap-2 text-xs font-medium text-slate-600">
@@ -201,7 +210,8 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
                     type="checkbox"
                     checked={visibleColumns.includes(field.name)}
                     onChange={(e) => setVisibleColumns(e.target.checked ? [...visibleColumns, field.name] : visibleColumns.filter(col => col !== field.name))}
-                    className="w-4 h-4 rounded accent-indigo-600 cursor-pointer"
+                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    aria-label={`Toggle visibility of ${field.label} column`}
                   />
                   {field.label}
                 </label>
@@ -213,20 +223,20 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
       <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-slate-50/50 border-b border-slate-100">
-              <th className="w-10 px-4 py-3" />
+            <tr className="bg-slate-50 border-b border-slate-100">
+              <th className="w-10 px-6 py-4" />
               {visibleCols.map((f: any) => (
-                <th key={f.name} className="px-6 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                <th key={f.name} className="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                   {f.label}
                 </th>
               ))}
-              <th className="w-12 px-6 py-3" />
+              <th className="w-12 px-6 py-4" />
             </tr>
           </thead>
           <tbody>
             {filteredRows.length === 0 && (
               <tr>
-                <td colSpan={visibleCols.length + 2} className="px-6 py-12 text-center text-slate-400 text-sm italic bg-slate-50/30">
+                <td colSpan={visibleCols.length + 2} className="px-6 py-16 text-center text-slate-400 text-sm italic bg-slate-50/10">
                   {search ? 'No results found' : 'No rows yet — click Add Row'}
                 </td>
               </tr>
@@ -234,13 +244,13 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
             {filteredRows.map((row) => {
               const idx = rows.indexOf(row);
               return (
-              <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/30 transition-colors group">
-                <td className="px-4 py-3 align-middle">
+              <tr key={idx} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors group">
+                <td className="px-6 py-4 align-middle">
                   <input
                     type="checkbox"
                     checked={selectedRows.includes(idx)}
                     onChange={() => toggleSelected(idx)}
-                    className="w-4 h-4 rounded accent-indigo-600 cursor-pointer"
+                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                   />
                 </td>
                 {visibleCols.map((f: any) => {
@@ -248,7 +258,7 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
                   const displayVal = row[`${f.name}_label`] ?? row[f.name];
                   const isEditing = editingCell?.rowIndex === idx && editingCell.fieldName === f.name;
                   return (
-                    <td key={f.name} className="px-4 py-3 align-top min-w-[200px]" onClick={() => startEdit(idx, f)}>
+                    <td key={f.name} className="px-6 py-4 align-top min-w-[200px]" onClick={() => startEdit(idx, f)}>
                       <div className="relative">
                         {isEditing ? (
                           f.type === 'select' && f.options ? (
@@ -261,7 +271,7 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
                                 if (e.key === 'Enter') commitEdit();
                                 if (e.key === 'Escape') cancelEdit();
                               }}
-                              className="w-full rounded-xl border border-indigo-200 bg-white px-3 py-2 text-sm outline-none ring-2 ring-indigo-100"
+                              className="w-full rounded-xl border border-indigo-200 bg-white px-3 py-2 text-sm outline-none ring-4 ring-indigo-500/10"
                             >
                               {f.options.map((option: any) => <option key={option.value} value={option.value}>{option.label}</option>)}
                             </select>
@@ -276,12 +286,12 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
                                 if (e.key === 'Enter') commitEdit();
                                 if (e.key === 'Escape') cancelEdit();
                               }}
-                              className="w-full rounded-xl border border-indigo-200 bg-white px-3 py-2 text-sm outline-none ring-2 ring-indigo-100"
+                              className="w-full rounded-xl border border-indigo-200 bg-white px-3 py-2 text-sm outline-none ring-4 ring-indigo-500/10"
                             />
                           )
                         ) : f.type === 'async_select' && f.choices_url ? (
                           f.read_only ? (
-                            <span className="block px-4 py-2.5 text-sm text-slate-700">
+                            <span className="block px-4 py-2.5 text-sm text-slate-700 font-medium">
                               {displayVal ?? ''}
                             </span>
                           ) : (
@@ -295,7 +305,7 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
                           )
                         ) : f.type === 'lookup' && f.target_resource ? (
                           f.read_only ? (
-                            <span className="block px-4 py-2.5 text-sm text-slate-700">
+                            <span className="block px-4 py-2.5 text-sm text-slate-700 font-medium">
                               {displayVal ?? ''}
                             </span>
                           ) : (
@@ -318,11 +328,11 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
                     </td>
                   );
                 })}
-                <td className="px-4 py-3 align-middle text-center opacity-50 group-hover:opacity-100 transition-opacity">
+                <td className="px-6 py-4 align-middle text-center opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                   <button
                     type="button"
                     onClick={() => setEditingRow({ idx, data: { ...row } })}
-                    className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                    className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
                     title="Edit row"
                   >
                     <Pencil size={15} />
@@ -333,7 +343,7 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
                       await runRemoveAction(row);
                       deleteRow(idx);
                     }}
-                    className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+                    className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
                     title={childMeta.actions?.find((action: any) => action.name === 'deallocate')?.label ?? 'Remove row'}
                   >
                     <Trash2 size={16} />

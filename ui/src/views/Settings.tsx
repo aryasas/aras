@@ -2,9 +2,18 @@ import React from 'react'
 import { Settings as SettingsIcon, Shield, Globe, Package, Terminal, History, Paintbrush, Server, Key, LayoutDashboard } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
+import { useUIStore } from '../store/uiStore'
+import { useEffect } from 'react'
 
 function Settings() {
   const user = useAuthStore((s) => s.user)
+  const setPageTitle = useUIStore(state => state.setPageTitle)
+
+  useEffect(() => {
+    setPageTitle('System Settings', 'Configure your platform behavior and global preferences.', 'SYSTEM')
+    return () => setPageTitle('', '', '')
+  }, [setPageTitle])
+
   const sections: { id: string; label: string; icon: React.ReactNode; description: string; path: string; external?: boolean }[] = [
     { id: 'apps', label: 'App Manager', icon: <Package size={20} />, description: 'Install, update, and manage framework extensions.', path: '/apps' },
     { id: 'tenants', label: 'Tenant Management', icon: <Server size={20} />, description: 'Provision and manage client databases.', path: '/admin/tenants' },
@@ -20,11 +29,7 @@ function Settings() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">System Settings</h1>
-          <p className="text-slate-500 mt-1">Configure your platform behavior and global preferences.</p>
-        </div>
+      <div className="flex items-center justify-end mb-8">
         <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-500 text-sm font-medium shadow-sm">
           <SettingsIcon size={16} />
           <span>Version 1.0.0</span>

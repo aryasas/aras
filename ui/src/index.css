@@ -22,24 +22,24 @@
   color-scheme: light dark;
   
   /* Aras Pro Tokens */
-  --aras-accent: #7a2e2e;
-  --aras-accent-strong: #642424;
-  --aras-primary-action: #5688e8;
-  --aras-primary-action-strong: #4778d8;
-  --aras-button: #111111;
+  --aras-accent: #6366f1;
+  --aras-accent-strong: #4f46e5;
+  --aras-primary-action: #6366f1;
+  --aras-primary-action-strong: #4f46e5;
+  --aras-button: #0f172a;
   --aras-button-text: #ffffff;
-  --aras-radius: 5px;
+  --aras-radius: 10px;
   --aras-density: 1;
   --aras-font-scale: 1;
-  --aras-border: #e7e7e7;
-  --aras-border-strong: #d4d4d4;
-  --aras-bg-main: #f3f3f3;
+  --aras-border: #e2e8f0;
+  --aras-border-strong: #cbd5e1;
+  --aras-bg-main: #f8fafc;
   --aras-panel: #ffffff;
-  --aras-panel-soft: #f7f7f7;
-  --aras-table-head: #e2e2e2;
-  --aras-text: #222226;
-  --aras-muted: #6e6e75;
-  --aras-faint: #b7b7bd;
+  --aras-panel-soft: #f8fafc;
+  --aras-table-head: #f1f5f9;
+  --aras-text: #0f172a;
+  --aras-muted: #64748b;
+  --aras-faint: #cbd5e1;
   
   color: #1e293b;
   background-color: white;
@@ -211,18 +211,18 @@ html.dark {
 
 .aras-list-view th {
   color: var(--aras-text) !important;
-  font-size: calc(14px * var(--aras-font-scale)) !important;
+  font-size: calc(13px * var(--aras-font-scale)) !important;
   text-transform: none !important;
   letter-spacing: 0 !important;
   border-bottom: 1px solid var(--aras-border);
-  padding: 16px 18px !important;
+  padding: calc(10px * var(--aras-density)) calc(14px * var(--aras-density)) !important;
 }
 
 .aras-list-view td {
   color: var(--aras-muted) !important;
-  font-size: calc(15px * var(--aras-font-scale)) !important;
+  font-size: calc(13px * var(--aras-font-scale)) !important;
   border-top: 1px solid #e7e7e7;
-  padding: 16px 18px !important;
+  padding: calc(10px * var(--aras-density)) calc(14px * var(--aras-density)) !important;
 }
 
 .aras-list-view tbody tr:hover td {
@@ -275,8 +275,8 @@ html.dark {
 
 .aras-form-view .p-8.grid {
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  gap: 16px 18px !important;
-  padding: 18px 20px !important;
+  gap: calc(12px * var(--aras-density)) calc(16px * var(--aras-density)) !important;
+  padding: calc(14px * var(--aras-density)) calc(18px * var(--aras-density)) !important;
 }
 
 .aras-form-view label {
@@ -298,7 +298,9 @@ html.dark {
 .aras-form-view input,
 .aras-form-view select,
 .aras-form-view textarea {
-  min-height: 42px;
+  min-height: calc(38px * var(--aras-density));
+  padding: calc(8px * var(--aras-density)) calc(12px * var(--aras-density)) !important;
+  font-size: calc(13px * var(--aras-font-scale)) !important;
 }
 
 .aras-form-view textarea {
@@ -322,16 +324,16 @@ html.dark {
 
 .aras-child-table th {
   color: var(--aras-text) !important;
-  font-size: calc(14px * var(--aras-font-scale)) !important;
+  font-size: calc(13px * var(--aras-font-scale)) !important;
   text-transform: none !important;
   letter-spacing: 0 !important;
-  padding: 14px 18px !important;
+  padding: calc(10px * var(--aras-density)) calc(14px * var(--aras-density)) !important;
 }
 
 .aras-child-table td {
   border-top: 1px solid var(--aras-border);
   color: var(--aras-muted) !important;
-  padding: 14px 18px !important;
+  padding: calc(10px * var(--aras-density)) calc(14px * var(--aras-density)) !important;
 }
 
 .aras-form-view input:focus,
