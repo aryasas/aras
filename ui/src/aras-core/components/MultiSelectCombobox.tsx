@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
@@ -30,7 +30,26 @@ const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropdownStyles, setDropdownStyles] = useState<React.CSSProperties>({});
 
-  // Close when clicking outside
+  const updateDropdownPosition = useCallback(() => {
+    if (isOpen && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      const dropdownHeight = 300;
+      
+      const spaceBelow = windowHeight - rect.bottom;
+      const showAbove = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
+
+      setDropdownStyles({
+        position: 'fixed',
+        top: showAbove ? 'auto' : `${rect.bottom + 4}px`,
+        bottom: showAbove ? `${windowHeight - rect.top + 4}px` : 'auto',
+        left: `${rect.left}px`,
+        width: `${rect.width}px`,
+        zIndex: 9999,
+      });
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node) &&
@@ -42,51 +61,20 @@ const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Update dropdown position when opened
   useEffect(() => {
-    if (isOpen && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const windowHeight = window.innerHeight;
-      const dropdownHeight = 300;
-      
-      const spaceBelow = windowHeight - rect.bottom;
-      const showAbove = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
+    updateDropdownPosition();
+  }, [isOpen, updateDropdownPosition]);
 
-      setDropdownStyles({
-        position: 'fixed',
-        top: showAbove ? 'auto' : `${rect.bottom + 8}px`,
-        bottom: showAbove ? `${windowHeight - rect.top + 8}px` : 'auto',
-        left: `${rect.left}px`,
-        width: `${rect.width}px`,
-        zIndex: 9999,
-      });
-    }
-  }, [isOpen]);
-
-  // Handle Scroll/Resize while open
   useEffect(() => {
     if (!isOpen) return;
-    const updatePos = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setDropdownStyles(prev => ({
-          ...prev,
-          top: prev.bottom === 'auto' ? `${rect.bottom + 8}px` : 'auto',
-          bottom: prev.top === 'auto' ? `${window.innerHeight - rect.top + 8}px` : 'auto',
-          left: `${rect.left}px`,
-          width: `${rect.width}px`,
-        }));
-      }
-    };
-    window.addEventListener('scroll', updatePos, true);
-    window.addEventListener('resize', updatePos);
+    window.addEventListener('scroll', updateDropdownPosition, true);
+    window.addEventListener('resize', updateDropdownPosition);
     return () => {
-      window.removeEventListener('scroll', updatePos, true);
-      window.removeEventListener('resize', updatePos);
+      window.removeEventListener('scroll', updateDropdownPosition, true);
+      window.removeEventListener('resize', updateDropdownPosition);
     };
-  }, [isOpen]);
+  }, [isOpen, updateDropdownPosition]);
 
-  // Fetch initial selected items if value exists
   useEffect(() => {
     if (value && value.length > 0 && selectedItems.length === 0) {
       const fetchSelected = async () => {
@@ -103,9 +91,8 @@ const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({
     } else if (!value || value.length === 0) {
       setSelectedItems([]);
     }
-  }, [value, resource]);
+  }, [value, resource, selectedItems.length]);
 
-  // Fetch items based on search
   useEffect(() => {
     if (!isOpen || disabled) return;
 
@@ -159,76 +146,90 @@ const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({
     <div 
       ref={dropdownRef}
       style={dropdownStyles}
-      className="bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+      className="bg-[var(--aras-panel)] border border-[var(--aras-border-strong)] rounded-lg shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 ring-1 ring-black/5"
     >
-      <div className="p-2 border-b border-slate-100">
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      <div className="p-1.5 border-b border-[var(--aras-border)] bg-[var(--aras-panel-soft)]/50">
+        <div className="relative group">
+          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--aras-muted)]" />
           <input 
             autoFocus
             type="text"
             placeholder="Search..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border-none rounded-lg text-xs outline-none focus:ring-0"
+            className="w-full pl-8 pr-3 py-1.5 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-md text-xs outline-none focus:border-[var(--aras-accent)] transition-all text-[var(--aras-text)] placeholder:text-[var(--aras-muted)]"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="max-h-60 overflow-y-auto p-1">
+      <div className="max-h-[240px] overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-[var(--aras-border-strong)] scrollbar-track-transparent">
         {loading ? (
-          <div className="flex items-center justify-center p-6 text-slate-400">
-            <Loader2 size={18} className="animate-spin mr-2" />
-            <span className="text-xs font-medium">Searching...</span>
+          <div className="flex flex-col items-center justify-center py-6 text-[var(--aras-muted)]">
+            <Loader2 size={16} className="animate-spin mb-1.5 text-[var(--aras-accent)]" />
+            <span className="text-[10px] font-medium">Loading...</span>
           </div>
         ) : items.length === 0 ? (
-          <div className="p-6 text-center text-slate-400 text-xs italic">
-            No results found.
+          <div className="py-6 text-center text-xs text-[var(--aras-muted)] italic">
+            No results found
           </div>
         ) : (
-          items.map((item) => {
-            const isSelected = value.includes(item.id);
-            return (
-              <div 
-                key={item.id}
-                onClick={() => handleSelect(item)}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${isSelected ? 'bg-indigo-50 text-indigo-700 font-bold' : 'hover:bg-slate-50 text-slate-700 font-medium'}`}
-              >
-                <span className="text-xs truncate">{item[displayField] || item.id}</span>
-                {isSelected && <Check size={14} />}
-              </div>
-            );
-          })
+          <div className="space-y-0.5">
+            {items.map((item) => {
+              const isSelected = value.includes(item.id);
+              return (
+                <div 
+                  key={item.id}
+                  onClick={() => handleSelect(item)}
+                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-[var(--aras-radius)] cursor-pointer transition-all ${
+                    isSelected 
+                      ? 'bg-[var(--aras-accent)] text-white' 
+                      : 'text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]'
+                  }`}
+                >
+                  <span className={`text-xs truncate ${isSelected ? 'font-bold' : 'font-medium'}`}>
+                    {item[displayField] || item.id}
+                  </span>
+                  {isSelected && <Check size={14} className="shrink-0 ml-2" />}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
   );
 
   return (
-    <div className={`relative ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`} ref={containerRef}>
+    <div className={`relative w-full ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`} ref={containerRef}>
       <div 
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`flex flex-wrap items-center gap-1.5 w-full min-h-[42px] px-3 py-1.5 bg-slate-50 border rounded-xl text-sm transition-all ${disabled ? 'border-slate-200' : (isOpen ? 'border-indigo-500 ring-2 ring-indigo-500/10 cursor-pointer' : 'border-slate-200 hover:border-slate-300 cursor-pointer')}`}
+        className={`flex flex-wrap items-center gap-1.5 w-full min-h-[36px] px-3 py-1 bg-[var(--aras-panel)] border rounded-[var(--aras-radius)] text-xs transition-all ${
+          disabled 
+            ? 'border-[var(--aras-border)] bg-[var(--aras-panel-soft)]' 
+            : isOpen 
+              ? 'border-[var(--aras-accent)] ring-2 ring-[var(--aras-accent)]/10 cursor-pointer shadow-sm' 
+              : 'border-[var(--aras-border)] hover:border-[var(--aras-border-strong)] cursor-pointer'
+        }`}
       >
         {selectedItems.length > 0 ? (
           selectedItems.map(item => (
-            <span key={item.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-md text-xs font-bold">
+            <span key={item.id} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-[var(--aras-accent)]/10 text-[var(--aras-accent)] rounded-md text-[10px] font-bold">
               {item[displayField] || item.id}
               {!disabled && (
                 <button 
                   onClick={(e) => handleRemove(e, item.id)}
-                  className="hover:text-indigo-900"
+                  className="hover:text-[var(--aras-accent)] opacity-60 hover:opacity-100"
                 >
-                  <X size={12} />
+                  <X size={10} />
                 </button>
               )}
             </span>
           ))
         ) : (
-          <span className="text-slate-400 py-1">{placeholder}</span>
+          <span className="text-[var(--aras-muted)] py-1">{placeholder}</span>
         )}
         <div className="flex-1" />
-        <ChevronDown size={16} className={`text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown size={14} className={`text-[var(--aras-muted)] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </div>
 
       {isOpen && !disabled && createPortal(dropdownMenu, document.body)}
@@ -237,4 +238,3 @@ const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({
 };
 
 export default MultiSelectCombobox;
-

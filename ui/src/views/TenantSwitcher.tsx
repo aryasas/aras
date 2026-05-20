@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Building2, RefreshCw } from 'lucide-react'
 import api from '../lib/api'
 import { useTenant } from '../context/TenantContext'
+import Combobox from '../aras-core/components/Combobox'
 
 const DEV_MULTI_TENANT = import.meta.env.VITE_DEV_MULTI_TENANT === 'true'
 
@@ -79,22 +80,17 @@ export default function TenantSwitcher() {
         </div>
 
         <div className="flex items-center gap-3">
-          <select
-            value={tenantId}
-            onChange={(event) => setTenantId(event.target.value)}
-            className="min-w-56 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
-          >
-            <option value="">Select tenant</option>
-            {tenants.map((tenant) => {
-              const key = tenantKey(tenant)
-              if (!key) return null
-              return (
-                <option key={key} value={key}>
-                  {tenantLabel(tenant)}
-                </option>
-              )
-            })}
-          </select>
+          <div className="min-w-56">
+            <Combobox
+              options={tenants.map((tenant) => ({
+                label: tenantLabel(tenant),
+                value: tenantKey(tenant)
+              }))}
+              value={tenantId}
+              onChange={(val) => setTenantId(String(val))}
+              placeholder="Select tenant"
+            />
+          </div>
 
           <button
             type="button"

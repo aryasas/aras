@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP - Grouped Table</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 text-sm text-gray-800">
+    <div class="p-6 max-w-5xl mx-auto">
+        <h1 class="text-2xl font-semibold text-gray-900 mb-6">Chart of Accounts</h1>
+        
+        <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-100 border-b border-gray-300 text-xs uppercase tracking-wider text-gray-600">
+                        <th class="p-3 font-medium">Account Code / Name</th>
+                        <th class="p-3 font-medium">Type</th>
+                        <th class="p-3 font-medium text-right">Balance</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <!-- Group Header 1 -->
+                    <tr class="bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors">
+                        <td class="p-3 font-bold text-blue-900" colspan="2">
+                            <i class="fas fa-chevron-down mr-2 text-blue-500 w-4"></i>
+                            1000 - Assets
+                        </td>
+                        <td class="p-3 font-bold text-right text-blue-900">$1,250,000.00</td>
+                    </tr>
+                    <!-- Group 1 Items -->
+                    <tr>
+                        <td class="p-3 pl-10"><span class="text-gray-500 mr-2">1010</span> Cash in Bank</td>
+                        <td class="p-3 text-gray-500">Bank</td>
+                        <td class="p-3 text-right font-medium">$450,000.00</td>
+                    </tr>
+                    <tr>
+                        <td class="p-3 pl-10"><span class="text-gray-500 mr-2">1200</span> Accounts Receivable</td>
+                        <td class="p-3 text-gray-500">Asset</td>
+                        <td class="p-3 text-right font-medium">$800,000.00</td>
+                    </tr>
+
+                    <!-- Group Header 2 -->
+                    <tr class="bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors">
+                        <td class="p-3 font-bold text-blue-900" colspan="2">
+                            <i class="fas fa-chevron-right mr-2 text-blue-500 w-4"></i>
+                            2000 - Liabilities
+                        </td>
+                        <td class="p-3 font-bold text-right text-blue-900">$320,000.00</td>
+                    </tr>
+                    <!-- Group 2 Items (Hidden for demo of collapse) -->
+                    
+                    <!-- Group Header 3 -->
+                    <tr class="bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors border-t border-gray-300">
+                        <td class="p-3 font-bold text-blue-900" colspan="2">
+                            <i class="fas fa-chevron-down mr-2 text-blue-500 w-4"></i>
+                            4000 - Revenue
+                        </td>
+                        <td class="p-3 font-bold text-right text-blue-900">$2,400,000.00</td>
+                    </tr>
+                    <!-- Group 3 Items -->
+                    <tr>
+                        <td class="p-3 pl-10"><span class="text-gray-500 mr-2">4100</span> Product Sales</td>
+                        <td class="p-3 text-gray-500">Revenue</td>
+                        <td class="p-3 text-right font-medium">$2,100,000.00</td>
+                    </tr>
+                    <tr>
+                        <td class="p-3 pl-10"><span class="text-gray-500 mr-2">4200</span> Service Income</td>
+                        <td class="p-3 text-gray-500">Revenue</td>
+                        <td class="p-3 text-right font-medium">$300,000.00</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

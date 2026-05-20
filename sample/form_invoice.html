@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP - Invoice Form</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 text-sm text-gray-800">
+    <div class="max-w-5xl mx-auto p-6 mt-4">
+        
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">New Sales Invoice</h1>
+            <div class="flex gap-2">
+                <button class="px-4 py-2 bg-white border border-gray-300 rounded shadow-sm hover:bg-gray-50 text-gray-700">Cancel</button>
+                <button class="px-4 py-2 bg-green-600 text-white rounded shadow-sm hover:bg-green-700">Save Invoice</button>
+            </div>
+        </div>
+
+        <div class="bg-white shadow-sm border border-gray-200 rounded-lg mb-6">
+            <!-- Header Section -->
+            <div class="p-6 border-b border-gray-200 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 bg-white font-medium">
+                        <option>TechNova Inc.</option>
+                        <option>Acme Corp</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Date</label>
+                    <input type="date" value="2023-10-24" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                    <input type="date" value="2023-11-23" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500">
+                </div>
+            </div>
+
+            <!-- Inline Editable Line Items -->
+            <div class="p-0 overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500">
+                        <tr>
+                            <th class="p-3 font-medium w-10"></th>
+                            <th class="p-3 font-medium">Item Code / Description</th>
+                            <th class="p-3 font-medium w-24">Qty</th>
+                            <th class="p-3 font-medium w-32">Rate</th>
+                            <th class="p-3 font-medium w-32">Tax</th>
+                            <th class="p-3 font-medium text-right w-32">Amount</th>
+                            <th class="p-3 font-medium w-10"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <!-- Line 1 -->
+                        <tr class="hover:bg-gray-50 group">
+                            <td class="p-3 text-gray-400 text-center"><i class="fas fa-grip-vertical cursor-move"></i></td>
+                            <td class="p-3">
+                                <input type="text" value="Consulting Services - Architecture Review" class="w-full px-2 py-1 border border-transparent hover:border-gray-300 focus:border-green-500 focus:ring-1 focus:ring-green-500 rounded bg-transparent focus:bg-white transition-colors font-medium">
+                            </td>
+                            <td class="p-3">
+                                <input type="number" value="40" class="w-full px-2 py-1 border border-transparent hover:border-gray-300 focus:border-green-500 focus:ring-1 focus:ring-green-500 rounded bg-transparent focus:bg-white text-right">
+                            </td>
+                            <td class="p-3">
+                                <input type="text" value="150.00" class="w-full px-2 py-1 border border-transparent hover:border-gray-300 focus:border-green-500 focus:ring-1 focus:ring-green-500 rounded bg-transparent focus:bg-white text-right">
+                            </td>
+                            <td class="p-3">
+                                <select class="w-full px-2 py-1 border border-transparent hover:border-gray-300 focus:border-green-500 focus:ring-1 focus:ring-green-500 rounded bg-transparent focus:bg-white text-sm">
+                                    <option>VAT 20%</option>
+                                    <option>No Tax</option>
+                                </select>
+                            </td>
+                            <td class="p-3 text-right font-bold text-gray-900">
+                                $6,000.00
+                            </td>
+                            <td class="p-3 text-center">
+                                <button class="text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-times"></i></button>
+                            </td>
+                        </tr>
+                        <!-- Line 2 -->
+                        <tr class="hover:bg-gray-50 group">
+                            <td class="p-3 text-gray-400 text-center"><i class="fas fa-grip-vertical cursor-move"></i></td>
+                            <td class="p-3">
+                                <input type="text" placeholder="Enter item description..." class="w-full px-2 py-1 border border-transparent hover:border-gray-300 focus:border-green-500 focus:ring-1 focus:ring-green-500 rounded bg-transparent focus:bg-white transition-colors">
+                            </td>
+                            <td class="p-3">
+                                <input type="number" placeholder="0" class="w-full px-2 py-1 border border-transparent hover:border-gray-300 focus:border-green-500 focus:ring-1 focus:ring-green-500 rounded bg-transparent focus:bg-white text-right">
+                            </td>
+                            <td class="p-3">
+                                <input type="text" placeholder="0.00" class="w-full px-2 py-1 border border-transparent hover:border-gray-300 focus:border-green-500 focus:ring-1 focus:ring-green-500 rounded bg-transparent focus:bg-white text-right">
+                            </td>
+                            <td class="p-3">
+                                <select class="w-full px-2 py-1 border border-transparent hover:border-gray-300 focus:border-green-500 focus:ring-1 focus:ring-green-500 rounded bg-transparent focus:bg-white text-sm">
+                                    <option>Select Tax</option>
+                                    <option>VAT 20%</option>
+                                    <option>No Tax</option>
+                                </select>
+                            </td>
+                            <td class="p-3 text-right font-bold text-gray-900">
+                                $0.00
+                            </td>
+                            <td class="p-3 text-center">
+                                <button class="text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-times"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-4 border-t border-gray-200">
+                <button class="text-green-600 hover:text-green-800 font-medium text-sm"><i class="fas fa-plus mr-1"></i> Add Line Item</button>
+            </div>
+            
+            <!-- Totals Section -->
+            <div class="p-6 bg-gray-50 border-t border-gray-200 flex justify-end rounded-b-lg">
+                <div class="w-64 space-y-3 text-sm">
+                    <div class="flex justify-between text-gray-600">
+                        <span>Subtotal</span>
+                        <span>$6,000.00</span>
+                    </div>
+                    <div class="flex justify-between text-gray-600">
+                        <span>Tax (VAT 20%)</span>
+                        <span>$1,200.00</span>
+                    </div>
+                    <div class="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-200">
+                        <span>Total</span>
+                        <span>$7,200.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

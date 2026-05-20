@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import api from '../lib/api'
 import { Lock, User, AlertCircle } from 'lucide-react'
+import { ArasLogo } from '../components/ArasLogo'
 
 const Login = () => {
   const [username, setUsername] = useState('')
@@ -36,8 +37,12 @@ const Login = () => {
       setOrganizations(organizations)
       setActiveOrg(defaultOrgId)
       navigate('/')
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed. Please check your credentials.')
+    } catch (err: unknown) {
+      const detail =
+        typeof err === 'object' && err !== null && 'response' in err
+          ? (err as { response?: { data?: { detail?: unknown } } }).response?.data?.detail
+          : undefined
+      setError(typeof detail === 'string' ? detail : 'Login failed. Please check your credentials.')
     } finally {
       setLoading(false)
     }
@@ -47,9 +52,8 @@ const Login = () => {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl shadow-slate-200 border border-slate-100 overflow-hidden">
         <div className="p-8 pb-0 flex flex-col items-center">
-          <div className="relative mb-6 flex h-16 w-16 items-center justify-center rounded-[var(--aras-radius)] border border-[color-mix(in_srgb,var(--aras-accent)_34%,transparent)] bg-[var(--aras-accent)] shadow-lg shadow-indigo-200">
-            <span className="font-serif text-[46px] font-black leading-none text-white">A</span>
-            <span className="absolute bottom-[18px] left-[23px] h-[4px] w-[20px] rounded-full bg-white/90" />
+          <div className="mb-6">
+            <ArasLogo size="lg" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900">Welcome Back</h1>
           <p className="text-slate-500 mt-2">Sign in to your Aras account</p>

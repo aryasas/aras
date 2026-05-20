@@ -6,11 +6,12 @@ import { useAuthStore } from '../../store/authStore';
 import {
   Save, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight,
   History as HistoryIcon, Zap, Settings, AlertCircle,
-  Building2, Store, School, Users, HandHeart, Library, HeartPulse, Landmark, BriefcaseBusiness,
+  Store, School, Users, HandHeart, Library, HeartPulse, Landmark, BriefcaseBusiness,
   Printer, Trash2, Copy, Link2, ArrowUpRight
 } from 'lucide-react';
 import ListView from './ListView';
 import { filterEmptyChildRows, InlineChildTable, invalidateInlineLookupCache } from './InlineChildTable';
+import Combobox from './Combobox';
 import MultiSelectCombobox from './MultiSelectCombobox';
 import { resolveFieldComponent } from '../SchemaRegistry';
 import { useAras } from '../hooks/useAras';
@@ -1181,8 +1182,6 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     const isProfileField = field.name === 'profile';
     const isUnitTypeField = field.name === 'unit_type';
     const isTerminalLabelField = field.name === 'terminal_label';
-    const selectedProfile = PROFILE_OPTIONS.find(option => option.value === formData[field.name]);
-    const ProfileIcon = selectedProfile?.icon || Building2;
 
     return (
       <div key={field.name} className={`flex flex-col gap-1.5 ${field.type === 'textarea' || field.name === 'stock_by_location' ? 'md:col-span-3' : ''}`}>
@@ -1204,40 +1203,29 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             disabled={field.read_only}
           />
         ) : isOrganizationField ? (
-          <select
-            value={formData[field.name] ?? ''}
-            onChange={(e) => handleChange(field.name, e.target.value ? Number(e.target.value) : null)}
+          <Combobox
+            options={organizations.map((org) => ({ label: org.name, value: org.id }))}
+            value={formData[field.name]}
+            onChange={(val) => handleChange(field.name, val ? Number(val) : null)}
+            placeholder="Select organization..."
             disabled={organizations.length === 1}
-            className="w-full h-11 px-3 py-2 bg-slate-50 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none disabled:opacity-60"
-          >
-            {organizations.length > 1 && <option value="">Select organization...</option>}
-            {organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}
-          </select>
+          />
         ) : isProfileField ? (
-          <div className="relative">
-            <ProfileIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
-            <select
-              value={formData[field.name] || 'general'}
-              onChange={(e) => handleChange(field.name, e.target.value)}
-              disabled={field.read_only}
-              className="w-full h-11 appearance-none px-3 py-2 pl-9 bg-slate-50 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none disabled:opacity-60"
-            >
-              {PROFILE_OPTIONS.map(option => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </div>
-        ) : isUnitTypeField ? (
-          <select
-            value={formData[field.name] || 'organization'}
-            onChange={(e) => handleChange(field.name, e.target.value)}
+          <Combobox
+            options={PROFILE_OPTIONS}
+            value={formData[field.name] || 'general'}
+            onChange={(val) => handleChange(field.name, val)}
             disabled={field.read_only}
-            className="w-full h-11 px-3 py-2 bg-slate-50 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none disabled:opacity-60"
-          >
-            {UNIT_TYPE_OPTIONS.map(option => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
+            placeholder="Select profile..."
+          />
+        ) : isUnitTypeField ? (
+          <Combobox
+            options={UNIT_TYPE_OPTIONS}
+            value={formData[field.name] || 'organization'}
+            onChange={(val) => handleChange(field.name, val)}
+            disabled={field.read_only}
+            placeholder="Select unit type..."
+          />
         ) : isTerminalLabelField ? (
           <input
             type="text"

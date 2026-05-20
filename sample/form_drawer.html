@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP - Side Drawer Form</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 text-sm text-gray-800 h-screen overflow-hidden flex">
+    
+    <!-- Background List (Blurred/Darkened slightly to show focus on drawer) -->
+    <div class="flex-1 p-6 relative">
+        <h1 class="text-2xl font-semibold text-gray-900 mb-6">Tasks</h1>
+        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 opacity-50 pointer-events-none">
+            <div class="h-10 bg-gray-100 rounded mb-4 w-full"></div>
+            <div class="h-10 bg-gray-100 rounded mb-4 w-full"></div>
+            <div class="h-10 bg-gray-100 rounded mb-4 w-full"></div>
+        </div>
+        
+        <!-- Overlay overlay -->
+        <div class="absolute inset-0 bg-gray-900 bg-opacity-20 z-10"></div>
+    </div>
+
+    <!-- Right Side Drawer -->
+    <div class="w-96 bg-white h-full shadow-2xl z-20 flex flex-col transform transition-transform duration-300">
+        <!-- Drawer Header -->
+        <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+            <h2 class="text-lg font-bold text-gray-900">Edit Task</h2>
+            <button class="text-gray-400 hover:text-gray-600 focus:outline-none"><i class="fas fa-times text-lg"></i></button>
+        </div>
+
+        <!-- Drawer Body (Scrollable) -->
+        <div class="flex-1 overflow-y-auto p-6 space-y-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Task Name</label>
+                <input type="text" value="Update Marketing Assets" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 bg-white">
+                    <option>To Do</option>
+                    <option selected>In Progress</option>
+                    <option>Review</option>
+                    <option>Done</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Assignee</label>
+                <div class="flex items-center gap-2 p-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50">
+                    <div class="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">JD</div>
+                    <span class="flex-1">Jane Doe</span>
+                    <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                    <input type="date" value="2023-11-01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 bg-white">
+                        <option>Low</option>
+                        <option>Normal</option>
+                        <option selected>High</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea rows="5" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500">Need to update all the social media banners for the Q4 campaign. Make sure to use the new branding guidelines.</textarea>
+            </div>
+        </div>
+
+        <!-- Drawer Footer (Sticky) -->
+        <div class="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-2">
+            <button class="px-4 py-2 bg-white border border-gray-300 rounded shadow-sm hover:bg-gray-100 text-gray-700 font-medium">Cancel</button>
+            <button class="px-4 py-2 bg-purple-600 text-white rounded shadow-sm hover:bg-purple-700 font-medium">Save Changes</button>
+        </div>
+    </div>
+</body>
+</html>

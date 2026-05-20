@@ -262,19 +262,16 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
                       <div className="relative">
                         {isEditing ? (
                           f.type === 'select' && f.options ? (
-                            <select
-                              autoFocus
-                              value={editingValue ?? ''}
-                              onChange={(e) => setEditingValue(e.target.value)}
-                              onBlur={commitEdit}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') commitEdit();
-                                if (e.key === 'Escape') cancelEdit();
+                            <Combobox
+                              options={f.options}
+                              value={editingValue}
+                              onChange={(val) => {
+                                setEditingValue(val);
+                                // For select fields in inline table, we might want to commit immediately on change
+                                // but standard behavior is commit on blur/enter.
                               }}
-                              className="w-full rounded-xl border border-indigo-200 bg-white px-3 py-2 text-sm outline-none ring-4 ring-indigo-500/10"
-                            >
-                              {f.options.map((option: any) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                            </select>
+                              placeholder={`Select...`}
+                            />
                           ) : (
                             <input
                               autoFocus
@@ -286,7 +283,7 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
                                 if (e.key === 'Enter') commitEdit();
                                 if (e.key === 'Escape') cancelEdit();
                               }}
-                              className="w-full rounded-xl border border-indigo-200 bg-white px-3 py-2 text-sm outline-none ring-4 ring-indigo-500/10"
+                              className="w-full h-9 px-3 bg-[var(--aras-panel)] border border-[var(--aras-accent)] rounded-[var(--aras-radius)] text-xs outline-none ring-2 ring-[var(--aras-accent)]/10"
                             />
                           )
                         ) : f.type === 'async_select' && f.choices_url ? (

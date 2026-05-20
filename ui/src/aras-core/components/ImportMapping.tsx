@@ -182,7 +182,7 @@ export const ImportMapping: React.FC<ImportMappingProps> = ({
                   <Combobox 
                     options={fieldOptions}
                     value={mapping[header] || ''}
-                    onChange={(val) => handleMap(header, val)}
+                    onChange={(val) => handleMap(header, val == null ? '' : String(val))}
                     placeholder="(Ignore Column)"
                   />
                 </div>
@@ -314,4 +314,3 @@ export const ImportMapping: React.FC<ImportMappingProps> = ({
   }
   return null; // Should not reach here
 };
-

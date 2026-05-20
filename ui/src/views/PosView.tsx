@@ -468,11 +468,21 @@ export default function PosView() {
             <div className={`space-y-3 ${isCreditMode ? 'opacity-40 pointer-events-none select-none' : ''}`}>
               <label className="block">
                 <span className="block mb-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Party</span>
-                <Combobox resource="erp/party/parties" value={partyId} onChange={setPartyId} placeholder="Optional party" />
+                <Combobox
+                  resource="erp/party/parties"
+                  value={partyId}
+                  onChange={(value) => setPartyId(typeof value === 'number' ? value : value ? Number(value) : null)}
+                  placeholder="Optional party"
+                />
               </label>
               <label className="block">
                 <span className="block mb-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Mode</span>
-                <Combobox resource="erp/config/payment-modes" value={paymentModeId} onChange={setPaymentModeId} placeholder="Payment mode" />
+                <Combobox
+                  resource="erp/config/payment-modes"
+                  value={paymentModeId}
+                  onChange={(value) => setPaymentModeId(typeof value === 'number' ? value : value ? Number(value) : null)}
+                  placeholder="Payment mode"
+                />
               </label>
               <label className="block">
                 <span className="block mb-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Paid</span>

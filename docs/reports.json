@@ -1364,5 +1364,167 @@
       "issues": "none"
     },
     "verdict": "APPROVED"
+  },
+  {
+    "id": 111,
+    "date": "2026-05-20",
+    "feature": "Update Aras logo to match mock-by-gemini",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/components/ArasLogo.tsx, ui/src/layouts/components/SidebarBrand.tsx, ui/src/views/Login.tsx",
+      "features_added": "Added reusable ArasLogo component matching the mock-by-gemini square A mark.",
+      "fixes_applied": "Replaced the previous custom logo treatment in the sidebar brand and login screen with the mock-style logo. Removed an explicit any from Login error handling while touching the file.",
+      "framework_changes": "none",
+      "issues": "npm run build still fails on existing TypeScript errors in ui/src/aras-core/SchemaRegistry.tsx, ui/src/aras-core/components/Combobox.tsx, ui/src/aras-core/components/ImportMapping.tsx, ui/src/views/GlobalSettings.tsx, and ui/src/views/PosView.tsx."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 112,
+    "date": "2026-05-20",
+    "feature": "Fix remaining UI TypeScript errors in schema fields and combobox usage",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/SchemaRegistry.tsx, ui/src/aras-core/components/Combobox.tsx, ui/src/aras-core/components/ImportMapping.tsx, ui/src/views/GlobalSettings.tsx, ui/src/views/PosView.tsx",
+      "features_added": "none",
+      "fixes_applied": "Exported Field metadata type; narrowed schema field values before passing them to DOM inputs, FileField, Combobox, and MultiSelectCombobox; ensured static combobox option items always include name; coerced combobox values at string and numeric call sites.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 113,
+    "date": "2026-05-19",
+    "feature": "POS fixes + Tenant Admin UI",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/pot/services/pot.py, api/apps/erp/pot/models.py",
+      "features_added": "none",
+      "fixes_applied": "Fixed PotService stale imports and SQLAlchemy 2.0 db.get() usage. Restored PotSession.orders relationship.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/views/TenantAdmin.tsx, ui/src/App.tsx, ui/src/views/PosView.tsx",
+      "features_added": "TenantAdmin page with provisioning and seeding actions. Added receipt panel in POS view.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 114,
+    "date": "2026-05-19",
+    "feature": "POS fixes + Tenant Admin UI",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/pot/services/pot.py, api/apps/erp/pot/models.py",
+      "features_added": "none",
+      "fixes_applied": "Fixed PotService stale imports and SQLAlchemy 2.0 db.get() usage. Restored PotSession.orders relationship.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/views/TenantAdmin.tsx, ui/src/App.tsx, ui/src/views/PosView.tsx",
+      "features_added": "TenantAdmin page with provisioning and seeding actions. Added receipt panel in POS view.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 115,
+    "date": "2026-05-20",
+    "feature": "Implementation-shaped generic list and form prototype",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/implementation-prototype/index.html, ui/public/mocks/index.html",
+      "features_added": "Added a coded static prototype for a generic list view and generic form using Aras-style tokens, shell layout, list toolbar, data table, sectioned form, tabs, child table, totals, and responsive behavior. Linked it from the mocks index as mock 10.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 116,
+    "date": "2026-05-20",
+    "feature": "Switch generic list and form prototype to separate views",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/implementation-prototype/index.html",
+      "features_added": "Added a List/Form switcher to the implementation prototype so the mock presents one endpoint-style page at a time. Add New, row click, Back, and switcher controls now move between list and form states.",
+      "fixes_applied": "Removed the side-by-side split layout assumption from the mock.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 117,
+    "date": "2026-05-20",
+    "feature": "Aras Studio generic list and form coded mock",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/aras-studio/index.html",
+      "features_added": "Rebuilt the Aras Studio mock as a coded generic list and form prototype using Aras design-system tokens. Added a topbar display tweak popover, a List/Form switcher, standalone list and form states, and inline editable child table rows with live totals.",
+      "fixes_applied": "Moved display tweaks out of the page body and into the top bar.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 118,
+    "date": "2026-05-20",
+    "feature": "Simple clean ERP mock using real invoice shape",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/aras-studio/index.html",
+      "features_added": "Redesigned the Aras Studio mock into a simple, elegant ERP prototype inspired by Material Design. Added a left action rail for Add, Save, Back, Print, and Post; kept the topbar List/Form switcher and display tweaks; aligned the prototype data and fields to the real InflowInvoice layout with items, financials, linked documents, and inline child row editing.",
+      "fixes_applied": "Replaced the prior generic sales-order mock with ERP invoice data from existing seed/model conventions so implementation mapping will be closer.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 119,
+    "date": "2026-05-20",
+    "feature": "Rebuild ERP invoice mock from real-layout reference",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/aras-studio/index.html",
+      "features_added": "Rebuilt the Aras Studio ERP invoice mock using the real-layout mock as the structural reference: compact icon rail, large page title, Add New first in the list toolbar, search second, grouped toolbar actions, form Save/Back/Duplicate on the left, Submit/Post on the right, and a real InflowInvoice-shaped form with editable item rows and live totals. Kept topbar display tweaks.",
+      "fixes_applied": "Removed the previous custom action rail layout so this prototype aligns with the requested real-layout direction.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 120,
+    "date": "2026-05-20",
+    "feature": "Refine ERP invoice mock to current React UI",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/aras-studio/index.html",
+      "features_added": "Refined the Aras Studio ERP invoice mock to match the current React UI structure: MainLayout grid tokens, compact sidebar brand and rail, top app menu, PageHeader sizing, current ListToolbar layout with view-mode controls and actions menu, and DynamicForm-style sticky toolbar with status, record id, utility icons, Duplicate, Save Record, quick actions, sections, child table, and rail financial cards.",
+      "fixes_applied": "Aligned the mock away from the older real-layout-only styling and closer to the actual active components in ui/src/layouts and ui/src/aras-core/components.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
   }
 ]

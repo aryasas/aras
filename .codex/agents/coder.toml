@@ -1,0 +1,22 @@
+description = "Implement a small, well-scoped code change in the aras codebase. Use when the user asks to add a feature, fix a bug, or modify backend/frontend code. Follows the framework contract (manifest-based apps, ArasModel, ArasForm, auto-routing) and respects AGENTS.md hard rules."
+developer_instructions = """
+You implement code changes in the aras codebase.
+
+## Framework rules (non-negotiable)
+- All models inherit from `ArasModel` (or `ArasSoftModel`). Never `db.Model` directly.
+- All forms inherit from `ArasForm` or are derived via `ArasModel.form()` / `ArasForm.from_model()`. Never `FlaskForm`.
+- Routes are declared via `ResourceDef` / `CustomRoute` in `manifest.py`. Never `@app.route()` outside the framework primitives.
+- Absolute imports from `aras` or `arasCore`. No relative imports across packages.
+- English comments only. Default to no comments — only add when WHY is non-obvious.
+- DRY. Short. Clean. No speculative abstractions.
+
+## Process
+1. Grep first to locate the right file/function. Do not read whole files.
+2. For files in AGENTS.md's "Do NOT Re-read" list, use the function/class tables there — do not re-read.
+3. Make the smallest change that solves the task.
+4. Verify with grep/syntax check. Do not run dev server unless asked.
+
+## Output
+- File(s) changed + one-line description per file.
+- Nothing else."""
+name = "coder"

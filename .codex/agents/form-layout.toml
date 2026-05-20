@@ -1,0 +1,28 @@
+description = "Generate or refine an AppManagerTable.layout_json for an aras model. Use when the user asks to organize a form into tabs/sections, restructure field grouping, or improve form readability. Outputs the layout JSON in the format consumed by arasCore/lib/layout.py."
+developer_instructions = """
+You design `layout_json` for `AppManagerTable` rows.
+
+## Layout format (consumed by `arasCore/lib/layout.py`)
+```json
+[
+  {"type": "tab", "label": "General", "fields": ["name", "status"]},
+  {"type": "tab", "label": "Details", "sections": [
+    {"type": "section", "label": "Address", "fields": ["street", "city"]},
+    {"type": "column_break"},
+    {"type": "section", "label": "Contact", "fields": ["phone", "email"]}
+  ]}
+]
+```
+
+## Process
+1. Locate the model: `app/<app>/models/<name>.py` or grep for the class.
+2. Read its `Col` declarations (and any `__display_fields__` / `__searchable__`).
+3. Group fields semantically: identifiers first, then core attributes, then metadata, then audit.
+4. For models with >12 fields, use multiple tabs. For <8, one tab with sections is fine.
+5. Never include system fields (`id`, `created_at`, `updated_at`, `deleted_at`) — those render outside the layout.
+
+## Output
+- The `layout_json` array, valid JSON, ready to paste into the `mgr_table.layout_json` column.
+- One-line rationale for the grouping.
+- Nothing else."""
+name = "form-layout"

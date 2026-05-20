@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
+import Combobox from '../../aras-core/components/Combobox'
 
 const accentOptions = [
   { label: 'Aras red', value: '#7a2e2e' },
@@ -46,41 +47,41 @@ export function ThemeTweakPanel() {
           <div className="space-y-4">
             <label className="block">
               <span className="mb-1.5 block text-xs font-bold text-[var(--aras-muted)]">Theme</span>
-              <select
+              <Combobox
+                options={[
+                  { label: 'Light', value: 'light' },
+                  { label: 'Normal', value: 'normal' },
+                  { label: 'Dark', value: 'dark' }
+                ]}
                 value={themeMode}
-                onChange={(event) => setThemeMode(event.target.value as typeof themeMode)}
-                className="h-9 w-full rounded-[var(--aras-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)] px-3 text-sm text-[var(--aras-text)] outline-none"
-              >
-                <option value="light">Light</option>
-                <option value="normal">Normal</option>
-                <option value="dark">Dark</option>
-              </select>
+                onChange={(val) => setThemeMode(val as any)}
+              />
             </label>
 
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
                 <span className="mb-1.5 block text-xs font-bold text-[var(--aras-muted)]">Corners</span>
-                <select
+                <Combobox
+                  options={[
+                    { label: 'Rounded', value: 'rounded' },
+                    { label: 'Square', value: 'square' }
+                  ]}
                   value={cornerMode}
-                  onChange={(event) => setCornerMode(event.target.value as typeof cornerMode)}
-                  className="h-9 w-full rounded-[var(--aras-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)] px-3 text-sm text-[var(--aras-text)] outline-none"
-                >
-                  <option value="rounded">Rounded</option>
-                  <option value="square">Square</option>
-                </select>
+                  onChange={(val) => setCornerMode(val as any)}
+                />
               </label>
 
               <label className="block">
                 <span className="mb-1.5 block text-xs font-bold text-[var(--aras-muted)]">Layout</span>
-                <select
+                <Combobox
+                  options={[
+                    { label: 'Compact', value: 'compact' },
+                    { label: 'Regular', value: 'regular' },
+                    { label: 'Comfy', value: 'comfy' }
+                  ]}
                   value={density}
-                  onChange={(event) => setDensity(event.target.value as typeof density)}
-                  className="h-9 w-full rounded-[var(--aras-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)] px-3 text-sm text-[var(--aras-text)] outline-none"
-                >
-                  <option value="compact">Compact</option>
-                  <option value="regular">Regular</option>
-                  <option value="comfy">Comfy</option>
-                </select>
+                  onChange={(val) => setDensity(val as any)}
+                />
               </label>
             </div>
 

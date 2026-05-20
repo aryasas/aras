@@ -659,22 +659,25 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                         placeholder="Field..."
                       />
                     </div>
-                    <select
-                      value={f.op}
-                      onChange={(e) => updateFilter(i, 'op', e.target.value)}
-                      className="flex-shrink-0 w-auto text-sm bg-[var(--aras-panel)] text-[var(--aras-text)] rounded-[var(--aras-radius)] px-3 py-2 border border-[var(--aras-border-strong)] outline-none transition-colors h-[42px]"
-                    >
-                      <option value="=">is</option>
-                      <option value="!=">is not</option>
-                      <option value=">">is greater than</option>
-                      <option value="<">is less than</option>
-                      <option value="ilike">contains</option>
-                      <option value="not_ilike">does not contain</option>
-                      <option value="in">is one of</option>
-                      <option value="not_in">is not one of</option>
-                      <option value="is_null">is empty</option>
-                      <option value="is_not_null">is not empty</option>
-                    </select>
+                    <div className="w-[80px] flex-shrink-0">
+                      <Combobox
+                        options={[
+                          { label: 'is', value: '=' },
+                          { label: 'is not', value: '!=' },
+                          { label: 'is greater than', value: '>' },
+                          { label: 'is less than', value: '<' },
+                          { label: 'contains', value: 'ilike' },
+                          { label: 'does not contain', value: 'not_ilike' },
+                          { label: 'is one of', value: 'in' },
+                          { label: 'is not one of', value: 'not_in' },
+                          { label: 'is empty', value: 'is_null' },
+                          { label: 'is not empty', value: 'is_not_null' }
+                        ]}
+                        value={f.op}
+                        onChange={(val) => updateFilter(i, 'op', val)}
+                        placeholder="Op..."
+                      />
+                    </div>
                     <div className="flex-1">
                       {(() => {
                         const fieldDef = fields.find(fd => fd.name === f.field);
@@ -900,17 +903,19 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           <span className="text-xs font-medium text-[var(--aras-muted)]">
             Showing <span className="text-[var(--aras-text)] font-semibold">{(page-1)*perPage + 1}</span> to <span className="text-[var(--aras-text)] font-semibold">{Math.min(page*perPage, total)}</span> of <span className="text-[var(--aras-text)] font-semibold">{total}</span>
           </span>
-          <select
-            className="text-xs bg-[var(--aras-panel)] border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] px-2 py-1 outline-none text-[var(--aras-text)]"
-            value={perPage}
-            onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
-          >
-            <option value={10}>10 per page</option>
-            <option value={20}>20 per page</option>
-            <option value={50}>50 per page</option>
-            <option value={100}>100 per page</option>
-            <option value={999999}>All</option>
-          </select>
+          <div className="min-w-[120px]">
+            <Combobox
+              options={[
+                { label: '10 per page', value: 10 },
+                { label: '20 per page', value: 20 },
+                { label: '50 per page', value: 50 },
+                { label: '100 per page', value: 100 },
+                { label: 'All', value: 999999 }
+              ]}
+              value={perPage}
+              onChange={(val) => { setPerPage(Number(val)); setPage(1); }}
+            />
+          </div>
         </div>
 
         <div className="flex items-center border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] overflow-hidden">
@@ -962,19 +967,17 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           <div className="space-y-3">
             <div>
               <label className="text-xs font-semibold text-[var(--aras-text)] mb-1 block">Field</label>
-              <select
-                className="w-full border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] px-3 py-2 text-sm outline-none bg-[var(--aras-panel)] text-[var(--aras-text)]"
+              <Combobox
+                options={(metadata?.fields ?? [])
+                  .filter(f => !f.read_only && !f.hidden && !['id','created_at','updated_at','created_by','updated_by'].includes(f.name))
+                  .map(f => ({ label: vocabulary.get(f.label), value: f.name }))}
                 value={bulkEditField}
-                onChange={e => {
-                  setBulkEditField(e.target.value)
+                onChange={val => {
+                  setBulkEditField(String(val))
                   setBulkEditValue('')
                 }}
-              >
-                <option value="">— Select field —</option>
-                {(metadata?.fields ?? []).filter(f => !f.read_only && !f.hidden && !['id','created_at','updated_at','created_by','updated_by'].includes(f.name)).map(f => (
-                  <option key={f.name} value={f.name}>{vocabulary.get(f.label)}</option>
-                ))}
-              </select>
+                placeholder="Select field to edit..."
+              />
             </div>
             <div>
               <label className="text-xs font-semibold text-[var(--aras-text)] mb-1 block">New Value</label>

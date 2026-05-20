@@ -1,25 +1,32 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
 import { Search, Plus, Check, ChevronDown, X, Loader2, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import type { Field } from '../SchemaRegistry';
 
 interface Option {
   label: string;
-  value: any;
+  value: string | number;
+}
+
+interface ComboboxItem {
+  id: string | number;
+  name: string;
+  [key: string]: string | number;
 }
 
 interface ComboboxProps {
   resource?: string;
   options?: Option[];
-  value: any;
-  onChange: (value: any) => void;
+  value: string | number | undefined | null;
+  onChange: (value: string | number | undefined | null) => void;
   placeholder?: string;
   displayField?: string;
   disabled?: boolean;
-  extraFilters?: Record<string, any>;
-  field?: any;
+  extraFilters?: Record<string, string | number | boolean>;
+  field?: Field;
 }
 
 const Combobox: React.FC<ComboboxProps> = ({
@@ -35,16 +42,44 @@ const Combobox: React.FC<ComboboxProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<ComboboxItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [initialLoading, setInitialLoading] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ComboboxItem | null>(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [dropdownStyles, setDropdownStyles] = useState<React.CSSProperties>({});
   const navigate = useNavigate();
   const targetResource = field?.target_resource || resource;
 
-  // Close when clicking outside
+  const optionToItem = (opt: Option): ComboboxItem => ({
+    id: opt.value,
+    name: opt.label,
+    [displayField]: opt.label,
+  });
+
+  const updateDropdownPosition = useCallback(() => {
+    if (isOpen && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      const dropdownHeight = 350;
+      
+      const spaceBelow = windowHeight - rect.bottom;
+      const showAbove = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
+
+      setDropdownStyles({
+        position: 'fixed',
+        top: showAbove ? 'auto' : `${rect.bottom + 4}px`,
+        bottom: showAbove ? `${windowHeight - rect.top + 4}px` : 'auto',
+        left: `${rect.left}px`,
+        width: `${rect.width}px`,
+        zIndex: 9999,
+      });
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node) && 
@@ -56,72 +91,44 @@ const Combobox: React.FC<ComboboxProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Update dropdown position when opened
   useEffect(() => {
-    if (isOpen && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const windowHeight = window.innerHeight;
-      const dropdownHeight = 300; // estimated max height
-      
-      const spaceBelow = windowHeight - rect.bottom;
-      const showAbove = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
+    updateDropdownPosition();
+  }, [isOpen, updateDropdownPosition]);
 
-      setDropdownStyles({
-        position: 'fixed',
-        top: showAbove ? 'auto' : `${rect.bottom + 8}px`,
-        bottom: showAbove ? `${windowHeight - rect.top + 8}px` : 'auto',
-        left: `${rect.left}px`,
-        width: `${rect.width}px`,
-        zIndex: 9999,
-      });
-    }
-  }, [isOpen]);
-
-  // Handle Scroll/Resize while open
   useEffect(() => {
     if (!isOpen) return;
-    const updatePos = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setDropdownStyles(prev => ({
-          ...prev,
-          top: prev.bottom === 'auto' ? `${rect.bottom + 8}px` : 'auto',
-          bottom: prev.top === 'auto' ? `${window.innerHeight - rect.top + 8}px` : 'auto',
-          left: `${rect.left}px`,
-          width: `${rect.width}px`,
-        }));
-      }
-    };
-    window.addEventListener('scroll', updatePos, true);
-    window.addEventListener('resize', updatePos);
+    window.addEventListener('scroll', updateDropdownPosition, true);
+    window.addEventListener('resize', updateDropdownPosition);
     return () => {
-      window.removeEventListener('scroll', updatePos, true);
-      window.removeEventListener('resize', updatePos);
+      window.removeEventListener('scroll', updateDropdownPosition, true);
+      window.removeEventListener('resize', updateDropdownPosition);
     };
-  }, [isOpen]);
+  }, [isOpen, updateDropdownPosition]);
 
-  // Fetch initial selected item if value exists (for resource-based lookups)
   useEffect(() => {
-    if (resource && value && !selectedItem) {
-      const fetchSelected = async () => {
+    const fetchAndSetSelectedItem = async () => {
+      if (resource && value) {
         try {
+          setInitialLoading(true);
           const cleanRes = cleanResourcePath(resource);
           const res = await api.get(`/${cleanRes}/${value}`);
           setSelectedItem(res.data);
         } catch (err) {
           console.error("Failed to fetch selected item", err);
+          setSelectedItem(null);
+        } finally {
+          setInitialLoading(false);
         }
-      };
-      fetchSelected();
-    } else if (options && value) {
-      const opt = options.find(o => String(o.value) === String(value));
-      if (opt) setSelectedItem({ [displayField]: opt.label, id: opt.value });
-    } else if (!value) {
-      setSelectedItem(null);
-    }
+      } else if (options && value) {
+        const opt = options.find(o => String(o.value) === String(value));
+        setSelectedItem(opt ? optionToItem(opt) : null);
+      } else if (!value) {
+        setSelectedItem(null);
+      }
+    };
+    fetchAndSetSelectedItem();
   }, [value, resource, options, displayField]);
 
-  // Fetch items based on search (for resource-based lookups)
   useEffect(() => {
     if (!isOpen || disabled || !resource) return;
 
@@ -139,6 +146,7 @@ const Combobox: React.FC<ComboboxProps> = ({
         };
         const res = await api.get(`/${cleanRes}/`, { params });
         setItems(res.data.items);
+        setActiveIndex(-1);
       } catch (err) {
         console.error("Failed to fetch items", err);
       } finally {
@@ -149,17 +157,17 @@ const Combobox: React.FC<ComboboxProps> = ({
     return () => clearTimeout(timer);
   }, [search, resource, isOpen, disabled, extraFilters]);
 
-  // Filter static options
   useEffect(() => {
     if (options) {
-      const filtered = options.filter(opt => 
+      const filtered = options.filter(opt =>
         opt.label.toLowerCase().includes(search.toLowerCase())
-      ).map(opt => ({ [displayField]: opt.label, id: opt.value }));
+      ).map(optionToItem);
       setItems(filtered);
+      setActiveIndex(-1);
     }
   }, [search, options, displayField]);
 
-  const handleSelect = (item: any) => {
+  const handleSelect = (item: ComboboxItem) => {
     setSelectedItem(item);
     onChange(item.id);
     setIsOpen(false);
@@ -179,6 +187,44 @@ const Combobox: React.FC<ComboboxProps> = ({
     navigate(`/${cleanRes}/new`);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (disabled) return;
+
+    if (!isOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
+        e.preventDefault();
+        setIsOpen(true);
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setActiveIndex(prev => (prev < items.length - 1 ? prev + 1 : prev));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setActiveIndex(prev => (prev > 0 ? prev - 1 : 0));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (activeIndex >= 0 && activeIndex < items.length) {
+          handleSelect(items[activeIndex]);
+        } else if (items.length > 0 && activeIndex === -1) {
+          handleSelect(items[0]);
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setIsOpen(false);
+        break;
+      case 'Tab':
+        setIsOpen(false);
+        break;
+    }
+  };
+
   const dropdownMenu = (
     <div 
       ref={dropdownRef}
@@ -186,59 +232,74 @@ const Combobox: React.FC<ComboboxProps> = ({
       role="listbox"
       aria-labelledby={`combobox-button-${field?.name || resource}`}
       style={dropdownStyles}
-      className="bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden animate-in fade-in duration-100"
+      className="bg-[var(--aras-panel)] border border-[var(--aras-border-strong)] rounded-lg shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 ring-1 ring-black/5"
     >
-      <div className="p-2 border-b border-slate-100 bg-slate-50/50 backdrop-blur-sm">
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      <div className="p-1.5 border-b border-[var(--aras-border)] bg-[var(--aras-panel-soft)]/50">
+        <div className="relative group">
+          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--aras-muted)]" />
           <input 
+            ref={inputRef}
             autoFocus
             type="text"
             placeholder="Search..."
-            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+            className="w-full pl-8 pr-3 py-1.5 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-md text-xs outline-none focus:border-[var(--aras-accent)] transition-all text-[var(--aras-text)] placeholder:text-[var(--aras-muted)]"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={handleKeyDown}
           />
         </div>
       </div>
 
-      <div className="max-h-60 overflow-y-auto p-1">
+      <div className="max-h-[240px] overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-[var(--aras-border-strong)] scrollbar-track-transparent">
         {loading ? (
-          <div className="flex items-center justify-center p-6 text-slate-400">
-            <Loader2 size={18} className="animate-spin mr-2" />
-            <span className="text-xs font-medium">Searching...</span>
+          <div className="flex flex-col items-center justify-center py-6 text-[var(--aras-muted)]">
+            <Loader2 size={16} className="animate-spin mb-1.5 text-[var(--aras-accent)]" />
+            <span className="text-[10px] font-medium">Loading...</span>
           </div>
         ) : items.length === 0 ? (
-          <div className="p-6 text-center text-slate-400 text-xs italic">
-            No results found.
+          <div className="py-6 text-center text-xs text-[var(--aras-muted)] italic">
+            No results found
           </div>
         ) : (
-          items.map((item) => (
-            <div 
-              key={item.id}
-              role="option"
-              aria-selected={String(value) === String(item.id)}
-              onClick={() => handleSelect(item)}
-              className={`flex items-center justify-between px-3 py-2 rounded-[var(--aras-radius)] cursor-pointer transition-colors ${String(value) === String(item.id) ? 'bg-slate-100 text-slate-900 font-bold' : 'hover:bg-slate-50 text-slate-700 font-medium'}`}
-            >
-              <span className="text-xs truncate">{item[displayField] || item.id}</span>
-              {String(value) === String(item.id) && <Check size={14} />}
-            </div>
-          ))
+          <div className="space-y-0.5">
+            {items.map((item, index) => {
+              const isSelected = String(value) === String(item.id);
+              const isActive = index === activeIndex;
+              return (
+                <div 
+                  key={item.id}
+                  role="option"
+                  aria-selected={isSelected}
+                  onClick={() => handleSelect(item)}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-[var(--aras-radius)] cursor-pointer transition-all ${
+                    isSelected 
+                      ? 'bg-[var(--aras-accent)] text-white' 
+                      : isActive 
+                        ? 'bg-[var(--aras-panel-soft)] text-[var(--aras-text)]' 
+                        : 'text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]'
+                  }`}
+                >
+                  <span className={`text-xs truncate ${isSelected ? 'font-bold' : 'font-medium'}`}>
+                    {item[displayField] || item.id}
+                  </span>
+                  {isSelected && <Check size={14} className="shrink-0 ml-2" />}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
       {targetResource && !disabled && (
-        <div className="p-1 border-t border-slate-100 bg-slate-50/50">
+        <div className="p-1 border-t border-[var(--aras-border)] bg-[var(--aras-panel-soft)]/30">
           <button 
             type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              handleAddNew();
-            }}
-            className="flex items-center gap-2 w-full px-3 py-2.5 text-xs font-semibold text-[var(--aras-text)] hover:bg-white border-t border-slate-100"
+            onMouseDown={(e) => { e.preventDefault(); handleAddNew(); }}
+            className="flex items-center gap-1.5 w-full px-2.5 py-1.5 text-[10px] font-bold text-[var(--aras-accent)] hover:bg-[var(--aras-accent)] hover:text-white rounded-md transition-all"
           >
-            <Plus size={13} /> Add new {field?.label?.toLowerCase() ?? targetResource.split('/').pop()?.replace(/s$/, '').replace(/_/g, ' ') ?? ''}
+            <Plus size={12} /> 
+            Add New Record
           </button>
         </div>
       )}
@@ -246,48 +307,61 @@ const Combobox: React.FC<ComboboxProps> = ({
   );
 
   return (
-    <div className={`relative ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`} ref={containerRef}>
-      <button
+    <div className={`relative w-full ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`} ref={containerRef}>
+      <div
         id={`combobox-button-${field?.name || resource}`}
         role="combobox"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-controls={`combobox-listbox-${field?.name || resource}`}
+        tabIndex={disabled ? -1 : 0}
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        disabled={disabled}
-        className={`flex items-center justify-between w-full px-4 py-2.5 bg-white border rounded-xl text-sm transition-all shadow-sm ${disabled ? 'border-slate-200 bg-slate-50' : (isOpen ? 'border-indigo-300 ring-4 ring-indigo-500/10 cursor-pointer' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 cursor-pointer')}`}
+        onKeyDown={handleKeyDown}
+        className={`flex items-center justify-between w-full h-9 px-3 bg-[var(--aras-panel)] border rounded-[var(--aras-radius)] text-xs transition-all ${
+          disabled 
+            ? 'border-[var(--aras-border)] bg-[var(--aras-panel-soft)]' 
+            : isOpen 
+              ? 'border-[var(--aras-accent)] ring-2 ring-[var(--aras-accent)]/10 cursor-pointer shadow-sm' 
+              : 'border-[var(--aras-border)] hover:border-[var(--aras-border-strong)] cursor-pointer'
+        }`}
       >
-        <div className="flex-1 truncate text-left">
-          {selectedItem ? (
-            <span className="text-slate-900 font-medium">{selectedItem[displayField] || selectedItem.id}</span>
+        <div className="flex-1 truncate text-left pr-2">
+          {initialLoading ? (
+            <div className="flex items-center gap-1.5">
+              <Loader2 size={12} className="animate-spin text-[var(--aras-accent)]" />
+              <span className="text-[var(--aras-muted)]">Loading...</span>
+            </div>
+          ) : selectedItem ? (
+            <span className="text-[var(--aras-text)] font-semibold">{selectedItem[displayField] || selectedItem.id}</span>
           ) : (
-            <span className="text-slate-400">{placeholder}</span>
+            <span className="text-[var(--aras-muted)]">{placeholder}</span>
           )}
         </div>
-        <div className="flex items-center gap-1">
-          {value && targetResource && (
+        
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+          {value && targetResource && !isOpen && (
             <button
               type="button"
               tabIndex={-1}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                navigate(`/${cleanResourcePath(targetResource)}/${value}`);
-              }}
-              className="p-1 text-slate-400 hover:text-slate-700 transition-colors"
-              title="Open in edit form"
+              onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/${cleanResourcePath(targetResource)}/${value}`); }}
+              className="p-1 text-[var(--aras-muted)] hover:text-[var(--aras-accent)] rounded-md"
+              title="View Record"
             >
-              <ExternalLink size={13} />
+              <ExternalLink size={12} />
             </button>
           )}
           {selectedItem && !disabled && (
-            <button onClick={handleClear} className="p-1 hover:bg-slate-200 rounded-lg text-slate-400">
-              <X size={14} />
+            <button 
+              tabIndex={-1}
+              onClick={handleClear} 
+              className="p-1 text-[var(--aras-muted)] hover:text-red-500 rounded-md"
+            >
+              <X size={12} />
             </button>
           )}
-          <ChevronDown size={16} className={`text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown size={14} className={`text-[var(--aras-muted)] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </div>
-      </button>
+      </div>
 
       {isOpen && !disabled && createPortal(dropdownMenu, document.body)}
     </div>

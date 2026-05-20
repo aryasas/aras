@@ -144,8 +144,9 @@ function GlobalSettings() {
                 ]}
                 value={settings['default_language']?.value || 'en'}
                 onChange={(val) => {
-                  handleUpdate('default_language', val)
-                  handleUpdate('core.language_default', val)
+                  const value = val == null ? '' : String(val)
+                  handleUpdate('default_language', value)
+                  handleUpdate('core.language_default', value)
                 }}
               />
               <p className="text-xs text-slate-500 mt-2">New users will inherit this language setting by default.</p>
@@ -187,7 +188,7 @@ function GlobalSettings() {
                     { label: 'DD-MMM-YYYY (12-May-2026)', value: 'DD-MMM-YYYY' }
                   ]}
                   value={settings['core.date_format']?.value || 'YYYY-MM-DD'}
-                  onChange={(val) => handleUpdate('core.date_format', val)}
+                  onChange={(val) => handleUpdate('core.date_format', val == null ? '' : String(val))}
                 />
               </div>
 
@@ -223,7 +224,7 @@ function GlobalSettings() {
                     { label: '1 234,56 (French/RU)', value: '# ###,##' }
                   ]}
                   value={settings['core.number_format']?.value || '#,###.##'}
-                  onChange={(val) => handleUpdate('core.number_format', val)}
+                  onChange={(val) => handleUpdate('core.number_format', val == null ? '' : String(val))}
                 />
               </div>
 

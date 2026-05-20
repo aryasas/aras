@@ -4,6 +4,7 @@ import { FileText, Play, Search, Loader2, ChevronLeft } from 'lucide-react'
 import GenericReport from '../aras-core/components/GenericReport'
 import { useAras } from '../aras-core/hooks/useAras'
 import { useUIStore } from '../store/uiStore'
+import Combobox from '../aras-core/components/Combobox'
 
 interface Report {
   id: number
@@ -148,19 +149,18 @@ export default function ReportCenter() {
 
     if (filter.type === 'select') {
       return (
-        <label key={filter.field} className="space-y-1.5">
+        <label key={filter.field} className="space-y-1.5 block">
           <span className="block text-xs font-black text-slate-400 uppercase tracking-wider">{label}</span>
-          <select
-            className={baseClass}
-            value={value}
-            onChange={(e) => setReportParams(prev => ({ ...prev, [filter.field]: e.target.value }))}
-          >
-            {(filter.options || []).map((option) => {
+          <Combobox
+            options={(filter.options || []).map((option) => {
               const optionValue = Array.isArray(option) ? option[0] : option.value
               const optionLabel = Array.isArray(option) ? option[1] : option.label
-              return <option key={`${filter.field}-${optionValue}`} value={optionValue}>{optionLabel}</option>
+              return { label: optionLabel, value: optionValue }
             })}
-          </select>
+            value={value}
+            onChange={(val) => setReportParams(prev => ({ ...prev, [filter.field]: String(val) }))}
+            placeholder={`Select ${label}...`}
+          />
         </label>
       )
     }

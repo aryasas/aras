@@ -3,338 +3,447 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Aras Studio — Mock</title>
+<title>Aras ERP Invoice - Current UI Mock</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <style>
   *, *::before, *::after { box-sizing: border-box; }
   :root {
-    --bg: #f3f3f3;
-    --panel: #ffffff;
-    --rail: #ffffff;
-    --line: #e4e4e4;
-    --line-strong: #d8d8d8;
-    --head: #e2e2e2;
-    --text: #222222;
-    --muted: #6e6e72;
-    --faint: #cfcfd2;
-    --blue: #448cf4;
-    --blue-2: #2f7dea;
-    --yellow: #e7cd4f;
-    --green: #66b72f;
-    --shadow: 0 1px 3px rgba(0,0,0,0.08);
-    --radius: 5px;
-    --density: 1;
-    --font-scale: 1;
-    --accent: var(--blue);
-    --accent-2: var(--blue-2);
+    --aras-bg-main: #f3f3f3;
+    --aras-panel: #ffffff;
+    --aras-panel-soft: #f8f8f8;
+    --aras-table-head: #e6e6e6;
+    --aras-border: #e2e2e2;
+    --aras-border-strong: #d2d2d2;
+    --aras-text: #222226;
+    --aras-muted: #68686d;
+    --aras-accent: #448cf4;
+    --aras-accent-strong: #2f7dea;
+    --aras-button: var(--aras-accent);
+    --aras-button-text: #ffffff;
+    --aras-radius: 5px;
+    --aras-density: 1;
+    --aras-font-scale: 1;
+    --green: #4ba83f;
+    --amber: #d2a62d;
+    --red: #d45555;
   }
-  body.theme-normal {
-    --bg: #faf9f5;
-    --panel: #fffefb;
-    --rail: #fffefb;
-    --line: #e8e0d4;
-    --line-strong: #d8ccbc;
-    --head: #eee7dc;
-    --text: #27231f;
-    --muted: #6d665f;
-    --faint: #c8bfb4;
-    --shadow: 0 1px 4px rgba(58,45,31,0.08);
+  body.theme-light {
+    --aras-bg-main: #ffffff;
+    --aras-panel: #ffffff;
+    --aras-panel-soft: #ffffff;
+    --aras-table-head: #f4f4f4;
+    --aras-border: #e8e8e8;
+    --aras-border-strong: #d8d8d8;
   }
   body.theme-dark {
-    --bg: #111317;
-    --panel: #191c22;
-    --rail: #181b21;
-    --line: #2b3038;
-    --line-strong: #3a414b;
-    --head: #242932;
-    --text: #f3f4f6;
-    --muted: #a8adb7;
-    --faint: #69717d;
-    --shadow: 0 1px 4px rgba(0,0,0,0.38);
+    --aras-bg-main: #020617;
+    --aras-panel: #0f172a;
+    --aras-panel-soft: #111827;
+    --aras-table-head: #1f2937;
+    --aras-border: #1e293b;
+    --aras-border-strong: #334155;
+    --aras-text: #f8fafc;
+    --aras-muted: #cbd5e1;
   }
-  body.radius-square { --radius: 0; }
-  body.radius-rounded { --radius: 12px; }
-  body.density-compact { --density: 0.78; }
-  body.density-comfy { --density: 1.18; }
-  body.accent-blue { --accent: #448cf4; --accent-2: #2f7dea; }
-  body.accent-red { --accent: #7a2e2e; --accent-2: #642424; }
-  body.accent-green { --accent: #34785f; --accent-2: #27664f; }
-  body.accent-violet { --accent: #6f5bd8; --accent-2: #5945c4; }
-  body.accent-black { --accent: #111111; --accent-2: #000000; }
-  body.accent-white { --accent: #ffffff; --accent-2: #f2f2f2; }
-  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font-family: Inter, Arial, sans-serif; }
-  body { overflow: hidden; font-size: calc(16px * var(--font-scale)); }
-  button, input, select { font: inherit; }
-  .app { height: 100vh; display: grid; grid-template-columns: 68px 1fr; grid-template-rows: 64px 1fr; background: var(--bg); }
+  body.density-compact { --aras-density: .82; }
+  body.density-comfy { --aras-density: 1.16; }
+  body.radius-square { --aras-radius: 0px; }
+  body.accent-black { --aras-accent: #111111; --aras-accent-strong: #000000; --aras-button: #111111; }
+  body.accent-oxblood { --aras-accent: #6b2c2c; --aras-accent-strong: #552020; --aras-button: #6b2c2c; }
+  body.accent-teal { --aras-accent: #0f766e; --aras-accent-strong: #115e59; --aras-button: #0f766e; }
+  html, body { margin: 0; min-height: 100%; background: var(--aras-bg-main); color: var(--aras-text); font-family: Inter, Arial, sans-serif; font-size: calc(13px * var(--aras-font-scale)); }
+  body { overflow: hidden; }
+  button, input, select, textarea { font: inherit; }
+  button { cursor: pointer; }
+  .app { height: 100vh; display: grid; grid-template-columns: 68px minmax(0,1fr); grid-template-rows: 64px minmax(0,1fr); background: var(--aras-bg-main); }
   .brand {
-    grid-column: 1 / 2; grid-row: 1 / 2; background: var(--panel); display: flex; align-items: center;
-    padding-left: 18px; border-bottom: 1px solid var(--line); box-shadow: var(--shadow); z-index: 3;
+    grid-column: 1; grid-row: 1; background: var(--aras-panel); border-bottom: 1px solid var(--aras-border);
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); display: flex; align-items: center; justify-content: center; z-index: 30;
   }
-  .brand-mark { width: 42px; height: 42px; border-radius: 50%; background: var(--accent); color: #fff; position: relative; flex: 0 0 auto; }
+  .brand-mark { width: 42px; height: 42px; border-radius: 50%; background: var(--aras-accent); position: relative; }
   .brand-mark::before { content: ""; position: absolute; left: 12px; top: 9px; width: 9px; height: 18px; background: #fff; border-radius: 2px; }
   .brand-mark::after { content: ""; position: absolute; left: 20px; top: 20px; width: 15px; height: 7px; background: #fff; border-radius: 2px; }
-  .brand-name { color: var(--accent); font-size: calc(27px * var(--font-scale)); font-weight: 700; letter-spacing: 0.03em; margin-left: 10px; }
   .topbar {
-    grid-column: 2 / 3; grid-row: 1 / 2; background: var(--panel); display: flex; align-items: center;
-    justify-content: flex-end; border-bottom: 1px solid var(--line); box-shadow: var(--shadow); z-index: 2;
+    grid-column: 2; grid-row: 1; min-height: 64px; display: flex; align-items: center; justify-content: flex-end; gap: 12px;
+    border-bottom: 1px solid var(--aras-border); background: var(--aras-panel); box-shadow: 0 1px 3px rgba(0,0,0,.08); z-index: 20;
   }
-  .facility { height: 64px; min-width: 300px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: var(--panel); border-left: 1px solid var(--line); border-right: 1px solid var(--line); color: var(--text); font-size: calc(16px * var(--font-scale)); }
-  .top-icon { width: 56px; height: 64px; border: 0; background: transparent; display: grid; place-items: center; color: #222; cursor: pointer; }
-  .top-icon:hover, .facility:hover { background: var(--head); }
-  .avatar { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #9fd5ff 0 20%, #2e86de 21% 46%, #1d5f9f 47% 100%); box-shadow: inset 0 0 0 2px rgba(255,255,255,0.7); }
-  .rail {
-    grid-column: 1 / 2; grid-row: 2 / 3; background: var(--rail); border-right: 1px solid var(--line);
-    display: flex; flex-direction: column; align-items: stretch; padding-top: 28px; z-index: 1;
-  }
-  .rail-btn { height: calc(72px * var(--density)); border: 0; border-left: 4px solid transparent; background: var(--rail); display: grid; place-items: center; color: var(--muted); cursor: pointer; position: relative; }
-  .rail-btn:hover { background: var(--head); color: var(--text); }
-  .rail-btn.active { border-left-color: var(--accent); color: var(--text); background: var(--rail); }
-  .notify-dot { position: absolute; right: 19px; top: 15px; width: 11px; height: 11px; border-radius: 50%; background: #63b82d; border: 2px solid #fff; }
-  .content { grid-column: 2 / 3; grid-row: 2 / 3; overflow: auto; padding: calc(32px * var(--density)) 32px 24px; }
-  .page-title { font-size: calc(52px * var(--font-scale)); line-height: 1; font-weight: 400; letter-spacing: -0.045em; margin: 0 0 8px; }
-  .subtitle { color: var(--faint); font-size: calc(17px * var(--font-scale)); margin-bottom: calc(30px * var(--density)); }
-  .tabs { width: min(500px, 100%); display: grid; grid-template-columns: 1fr 1fr; border-bottom: 2px solid var(--line-strong); margin-bottom: calc(24px * var(--density)); }
-  .tab { height: calc(42px * var(--density)); border: 0; background: transparent; color: var(--muted); font-weight: 500; text-align: left; padding-left: 20px; position: relative; cursor: pointer; font-size: calc(16px * var(--font-scale)); }
-  .tab.active { color: var(--text); font-weight: 700; }
-  .tab.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px; background: var(--accent); }
-  .tweak-panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: calc(24px * var(--density)); box-shadow: var(--shadow); }
-  .tweak-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-  .tweak-title { font-size: calc(14px * var(--font-scale)); font-weight: 700; color: var(--text); }
-  .tweak-grid { display: grid; grid-template-columns: repeat(5, minmax(140px, 1fr)); gap: 12px; align-items: end; }
-  .tweak-control label { display: block; color: var(--muted); font-size: calc(12px * var(--font-scale)); font-weight: 700; margin-bottom: 6px; }
-  .tweak-control select, .tweak-control input[type="range"] { width: 100%; height: 36px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--panel); color: var(--text); padding: 0 10px; }
-  .swatches { display: flex; gap: 6px; flex-wrap: wrap; }
-  .swatch { width: 30px; height: 30px; border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 0; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.26); }
-  .swatch.active { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .swatch[data-accent="blue"] { background: #448cf4; }
-  .swatch[data-accent="red"] { background: #7a2e2e; }
-  .swatch[data-accent="green"] { background: #34785f; }
-  .swatch[data-accent="violet"] { background: #6f5bd8; }
-  .swatch[data-accent="black"] { background: #111; }
-  .swatch[data-accent="white"] { background: #fff; }
-  .filters { display: grid; grid-template-columns: 250px 250px minmax(280px, 1fr) 180px auto; gap: calc(30px * var(--density)); align-items: end; margin-bottom: calc(30px * var(--density)); }
-  .field-label { color: var(--muted); font-size: calc(14px * var(--font-scale)); font-weight: 600; margin-bottom: 10px; letter-spacing: 0.01em; }
-  .selectbox, .searchbox { height: calc(50px * var(--density)); background: var(--panel); border: 0; border-bottom: 2px solid var(--line-strong); box-shadow: 0 1px 0 rgba(0,0,0,0.02); display: flex; align-items: center; padding: 0 18px 0 20px; color: var(--text); font-size: calc(16px * var(--font-scale)); border-radius: var(--radius) var(--radius) 0 0; }
-  .selectbox { justify-content: space-between; cursor: pointer; }
-  .searchbox { gap: 12px; }
-  .searchbox input { width: 100%; border: 0; outline: 0; color: var(--text); background: transparent; font-size: calc(16px * var(--font-scale)); }
-  .searchbox input::placeholder { color: #c8c8cc; }
-  .toggle-wrap { display: flex; align-items: center; gap: 12px; height: calc(50px * var(--density)); color: var(--text); font-size: calc(16px * var(--font-scale)); white-space: nowrap; }
-  .switch { width: 43px; height: 19px; border: 0; border-radius: 20px; background: #e0e0e0; padding: 3px; cursor: pointer; transition: background 0.2s; }
-  .switch span { display: block; width: 13px; height: 13px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.14); transition: transform 0.2s; }
-  .switch.on { background: var(--accent); }
-  .switch.on span { transform: translateX(24px); }
-  .primary { height: calc(50px * var(--density)); padding: 0 24px; border: 0; border-radius: var(--radius); background: var(--accent); color: #fff; font-size: calc(16px * var(--font-scale)); cursor: pointer; box-shadow: 0 2px 5px rgba(47,125,234,0.28); white-space: nowrap; }
-  .accent-white .primary { color: #111; border: 1px solid var(--line-strong); }
-  .primary:hover { background: var(--accent-2); }
-  .table-shell { background: var(--panel); border: 1px solid var(--line); min-width: 1180px; border-radius: var(--radius) var(--radius) 0 0; overflow: hidden; }
-  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  thead { background: var(--head); }
-  th { text-align: left; padding: calc(20px * var(--density)) 20px; font-size: calc(16px * var(--font-scale)); font-weight: 700; color: var(--text); white-space: nowrap; }
-  td { border-top: 1px solid var(--line); padding: calc(18px * var(--density)) 20px; color: var(--muted); font-size: calc(17px * var(--font-scale)); vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  tbody tr:hover td { background: var(--bg); }
-  th:nth-child(1), td:nth-child(1) { width: 33%; }
-  th:nth-child(2), td:nth-child(2) { width: 13%; }
-  th:nth-child(3), td:nth-child(3) { width: 9%; }
-  th:nth-child(4), td:nth-child(4) { width: 17%; }
-  th:nth-child(5), td:nth-child(5) { width: 8%; }
-  th:nth-child(6), td:nth-child(6) { width: 15%; }
-  th:nth-child(7), td:nth-child(7) { width: 5%; }
-  .state { display: inline-flex; align-items: center; gap: 11px; color: #4d4d51; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
-  .dot.yellow { background: var(--yellow); }
-  .action { color: var(--accent); border: 0; background: transparent; font-size: calc(16px * var(--font-scale)); cursor: pointer; display: inline-flex; align-items: center; gap: 10px; padding: 0; }
-  .pagination { min-width: 1180px; display: grid; grid-template-columns: 240px 1fr 140px 80px 64px 64px; align-items: center; height: calc(61px * var(--density)); background: var(--panel); border: 1px solid var(--line); border-top: 0; color: var(--muted); font-size: calc(16px * var(--font-scale)); border-radius: 0 0 var(--radius) var(--radius); overflow: hidden; }
-  .page-cell { height: calc(61px * var(--density)); display: flex; align-items: center; padding: 0 20px; border-right: 1px solid var(--line); gap: 10px; }
-  .page-cell:last-child { border-right: 0; justify-content: center; padding: 0; }
-  .page-cell.count { border-right: 0; }
-  .pager-btn { height: calc(61px * var(--density)); width: 64px; border: 0; background: var(--panel); border-left: 1px solid var(--line); display: grid; place-items: center; cursor: pointer; color: var(--text); }
-  .pager-btn:hover { background: var(--head); }
+  .org-picker { min-width: 260px; padding: 0 16px; display: flex; align-items: center; gap: 10px; color: var(--aras-muted); }
+  .org-select { height: 38px; min-width: 220px; border: 1px solid var(--aras-border-strong); border-radius: var(--aras-radius); background: var(--aras-panel); color: var(--aras-text); padding: 0 10px; }
+  .top-icon { width: 56px; height: 64px; border: 0; background: transparent; display: grid; place-items: center; color: var(--aras-text); }
+  .top-icon:hover { background: var(--aras-panel-soft); }
+  .avatar { width: 27px; height: 27px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #a5d8ff 0 20%, #2e86de 21% 48%, #1d5f9f 49% 100%); box-shadow: inset 0 0 0 2px rgba(255,255,255,.75); }
   .kebab { width: 18px; height: 18px; display: grid; grid-template-columns: repeat(3, 4px); grid-template-rows: repeat(3, 4px); gap: 3px; }
   .kebab i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+  .tweak { position: relative; }
+  .tweak-menu {
+    display: none; position: absolute; right: 0; top: calc(100% + 6px); width: 340px; padding: 14px;
+    border: 1px solid var(--aras-border); border-radius: var(--aras-radius); background: var(--aras-panel);
+    box-shadow: 0 14px 30px rgba(0,0,0,.14); z-index: 50;
+  }
+  .tweak.open .tweak-menu { display: block; }
+  .tweak-title { font-weight: 800; margin-bottom: 12px; }
+  .tweak-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .tweak-field label { display: block; color: var(--aras-muted); font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+  .tweak-field select { width: 100%; height: 34px; border: 1px solid var(--aras-border-strong); border-radius: var(--aras-radius); background: var(--aras-panel); color: var(--aras-text); padding: 0 10px; }
+  .swatches { grid-column: 1 / -1; display: flex; gap: 8px; }
+  .swatch { width: 28px; height: 28px; border-radius: var(--aras-radius); border: 1px solid var(--aras-border-strong); }
+  .swatch.active { outline: 2px solid var(--aras-accent); outline-offset: 2px; }
+  .swatch[data-accent="blue"] { background: #448cf4; }
+  .swatch[data-accent="black"] { background: #111; }
+  .swatch[data-accent="oxblood"] { background: #6b2c2c; }
+  .swatch[data-accent="teal"] { background: #0f766e; }
+  .rail {
+    grid-column: 1; grid-row: 2; min-height: 0; display: flex; flex-direction: column; border-right: 1px solid var(--aras-border);
+    background: var(--aras-panel); box-shadow: 0 1px 3px rgba(0,0,0,.08); z-index: 10;
+  }
+  .rail-nav { flex: 1; overflow-y: auto; padding-top: 28px; }
+  .rail-btn { height: calc(72px * var(--aras-density)); width: 100%; border: 0; border-left: 4px solid transparent; background: var(--aras-panel); color: var(--aras-muted); display: grid; place-items: center; position: relative; }
+  .rail-btn:hover { background: var(--aras-panel-soft); color: var(--aras-text); }
+  .rail-btn.active { border-left-color: var(--aras-accent); color: var(--aras-text); }
+  .logout { border-top: 1px solid var(--aras-border); color: #ef4444; }
+  .notify-dot { position: absolute; right: 19px; top: 15px; width: 11px; height: 11px; border-radius: 50%; background: #63b82d; border: 2px solid #fff; }
+  .main { grid-column: 2; grid-row: 2; min-width: 0; overflow: hidden; display: flex; flex-direction: column; }
+  .app-menu { height: 42px; display: flex; align-items: center; gap: 6px; padding: 0 32px; border-bottom: 1px solid var(--aras-border); background: var(--aras-panel); }
+  .app-menu button { height: 28px; border: 0; border-radius: var(--aras-radius); background: transparent; color: var(--aras-muted); padding: 0 10px; font-weight: 700; font-size: 12px; }
+  .app-menu button.active { color: var(--aras-accent); background: color-mix(in srgb, var(--aras-accent) 10%, transparent); }
+  .content { flex: 1; overflow: auto; padding: 28px 32px; background: var(--aras-bg-main); }
+  .page-head { margin-bottom: 32px; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+  .crumb { margin-bottom: 8px; color: var(--aras-muted); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; opacity: .7; }
+  .page-title { margin: 0; font-size: 36px; line-height: 1; letter-spacing: -0.045em; font-weight: 400; }
+  .subtitle { margin-top: 8px; color: var(--aras-muted); font-size: 13px; max-width: 760px; }
+  .resource-switch { height: 40px; display: flex; border: 1px solid var(--aras-border-strong); border-radius: var(--aras-radius); background: var(--aras-panel); overflow: hidden; }
+  .resource-switch button { width: 92px; border: 0; border-left: 1px solid var(--aras-border); color: var(--aras-muted); background: var(--aras-panel); font-weight: 700; }
+  .resource-switch button:first-child { border-left: 0; }
+  .resource-switch button.active { color: var(--aras-accent); background: var(--aras-panel-soft); }
+  .toolbar { padding: 0 0 16px; display: grid; grid-template-columns: auto minmax(280px,1fr) auto; gap: 12px; align-items: center; min-width: 1080px; }
+  .add-btn {
+    height: 46px; display: inline-flex; align-items: center; gap: 9px; padding: 0 20px;
+    border: 0; border-radius: var(--aras-radius); background: var(--aras-accent); color: #fff; font-weight: 700;
+  }
+  .toolbar-center { min-width: 0; display: flex; align-items: center; gap: 12px; }
+  .view-mode { height: 46px; display: inline-flex; border: 1px solid var(--aras-border-strong); border-radius: var(--aras-radius); background: var(--aras-panel); overflow: hidden; }
+  .view-mode button { width: 42px; border: 0; border-left: 1px solid var(--aras-border); background: var(--aras-panel); color: var(--aras-muted); display: grid; place-items: center; }
+  .view-mode button:first-child { border-left: 0; }
+  .view-mode button.active { color: var(--aras-accent); background: var(--aras-panel-soft); }
+  .searchbox { position: relative; min-width: 260px; flex: 1; }
+  .searchbox svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--aras-muted); }
+  .searchbox input { height: 46px; width: 100%; border: 1px solid var(--aras-border-strong); border-radius: var(--aras-radius); background: var(--aras-panel); color: var(--aras-text); padding: 0 14px 0 42px; outline: 0; }
+  .toolbar-btn, .icon-btn {
+    height: 46px; border: 1px solid var(--aras-border-strong); border-radius: var(--aras-radius); background: var(--aras-panel); color: var(--aras-text);
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 14px; font-weight: 600;
+  }
+  .toolbar-btn:hover, .icon-btn:hover { background: var(--aras-panel-soft); }
+  .icon-btn { width: 46px; padding: 0; }
+  .toolbar-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+  .dropdown { position: relative; }
+  .dropdown-menu {
+    display: none; position: absolute; right: 0; top: calc(100% + 8px); width: 190px; overflow: hidden;
+    border: 1px solid var(--aras-border); border-radius: var(--aras-radius); background: var(--aras-panel); z-index: 20;
+  }
+  .dropdown.open .dropdown-menu { display: block; }
+  .dropdown-menu button { width: 100%; height: 38px; border: 0; background: var(--aras-panel); color: var(--aras-text); text-align: left; padding: 0 14px; }
+  .dropdown-menu button:hover { background: var(--aras-panel-soft); }
+  .table-shell { min-width: 1080px; overflow: hidden; border: 1px solid var(--aras-border); border-radius: var(--aras-radius); background: var(--aras-panel); box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  th { height: 44px; padding: 0 16px; color: var(--aras-text); background: var(--aras-table-head); text-align: left; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+  td { padding: calc(14px * var(--aras-density)) 16px; border-top: 1px solid var(--aras-border); color: var(--aras-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  tbody tr:hover td { background: var(--aras-panel-soft); }
+  th:nth-child(1), td:nth-child(1) { width: 44px; }
+  th:nth-child(2), td:nth-child(2) { width: 16%; color: var(--aras-text); font-weight: 700; }
+  th:nth-child(3), td:nth-child(3) { width: 18%; }
+  th:nth-child(4), td:nth-child(4) { width: 12%; }
+  th:nth-child(5), td:nth-child(5) { width: 13%; }
+  th:nth-child(6), td:nth-child(6) { width: 12%; }
+  th:nth-child(7), td:nth-child(7) { width: 14%; text-align: right; }
+  th:nth-child(8), td:nth-child(8) { width: 10%; text-align: right; }
+  .check { width: 18px; height: 18px; border: 1px solid var(--aras-border-strong); border-radius: var(--aras-radius); display: inline-block; background: var(--aras-panel); }
+  .state { display: inline-flex; align-items: center; gap: 9px; color: var(--aras-text); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  .dot.amber { background: var(--amber); }
+  .dot.red { background: var(--red); }
+  .row-action { border: 0; background: transparent; color: var(--aras-accent); font-weight: 700; padding: 0; }
+  .pager { min-width: 1080px; height: 50px; display: flex; align-items: center; justify-content: space-between; color: var(--aras-muted); }
+  .form-view { display: none; }
+  body.show-form .list-view { display: none; }
+  body.show-form .form-view { display: block; }
+  body.show-form .list-switch { color: var(--aras-muted); background: var(--aras-panel); }
+  body.show-form .form-switch { color: var(--aras-accent); background: var(--aras-panel-soft); }
+  .form-toolbar {
+    position: sticky; top: -28px; z-index: 15; margin: -28px -32px 24px; padding: 16px 32px;
+    background: color-mix(in srgb, var(--aras-bg-main) 86%, transparent); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--aras-border); box-shadow: 0 1px 3px rgba(0,0,0,.07);
+  }
+  .form-toolbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .form-toolbar-left, .form-toolbar-right, .utility-group { display: flex; align-items: center; gap: 8px; }
+  .back-btn { height: 40px; width: 40px; border: 1px solid var(--aras-border-strong); border-radius: var(--aras-radius); background: var(--aras-panel); color: var(--aras-muted); display: grid; place-items: center; }
+  .status-pill { padding: 4px 8px; border-radius: var(--aras-radius); border: 1px solid color-mix(in srgb, var(--aras-accent) 20%, transparent); background: color-mix(in srgb, var(--aras-accent) 10%, transparent); color: var(--aras-accent); font-size: 10px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+  .record-id { color: var(--aras-muted); font-weight: 800; opacity: .55; }
+  .tool-icon { height: 36px; width: 36px; border: 0; border-radius: var(--aras-radius); background: transparent; color: var(--aras-muted); display: grid; place-items: center; }
+  .tool-icon:hover { background: var(--aras-panel-soft); color: var(--aras-text); }
+  .utility-group { padding-right: 10px; margin-right: 8px; border-right: 1px solid var(--aras-border); }
+  .ghost { height: 40px; border: 1px solid var(--aras-border-strong); border-radius: var(--aras-radius); background: var(--aras-panel); color: var(--aras-text); display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; font-weight: 700; }
+  .save-record { height: 40px; border: 0; border-radius: var(--aras-radius); background: var(--aras-accent); color: #fff; display: inline-flex; align-items: center; gap: 8px; padding: 0 22px; font-weight: 800; }
+  .quick-actions { margin-bottom: 24px; padding: 14px 16px; border: 1px solid var(--aras-border); border-radius: var(--aras-radius); background: var(--aras-panel-soft); display: flex; align-items: center; gap: 12px; }
+  .quick-label { color: var(--aras-muted); font-size: 10px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+  .action-chip { height: 34px; border: 1px solid var(--aras-border-strong); border-radius: 999px; background: var(--aras-panel); color: var(--aras-accent); padding: 0 15px; font-size: 12px; font-weight: 800; }
+  .form-layout { display: grid; grid-template-columns: minmax(0,1fr) 340px; gap: 24px; align-items: start; }
+  .form-main { min-width: 0; display: grid; gap: 24px; }
+  .section { background: var(--aras-panel); border: 1px solid var(--aras-border); border-radius: var(--aras-radius); overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  .section-head { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--aras-table-head); border-bottom: 1px solid var(--aras-border); }
+  .section-title { color: var(--aras-text); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .12em; }
+  .fields { padding: 28px; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 22px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label { display: block; color: var(--aras-muted); font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+  .input, textarea.input { width: 100%; height: 42px; border: 1px solid var(--aras-border-strong); border-radius: var(--aras-radius); background: var(--aras-panel); color: var(--aras-text); padding: 0 12px; outline: 0; }
+  textarea.input { height: 92px; padding-top: 11px; resize: vertical; }
+  .line-table th:nth-child(1), .line-table td:nth-child(1) { width: 28%; color: var(--aras-text); font-weight: 600; }
+  .line-table th:nth-child(2), .line-table td:nth-child(2) { width: 12%; }
+  .line-table th:nth-child(3), .line-table td:nth-child(3) { width: 10%; text-align: right; }
+  .line-table th:nth-child(4), .line-table td:nth-child(4) { width: 14%; text-align: right; }
+  .line-table th:nth-child(5), .line-table td:nth-child(5) { width: 12%; text-align: right; }
+  .line-table th:nth-child(6), .line-table td:nth-child(6) { width: 14%; text-align: right; }
+  .line-edit { width: 100%; border: 1px solid transparent; border-radius: var(--aras-radius); background: transparent; color: inherit; text-align: inherit; padding: 6px; outline: 0; }
+  .line-edit:hover, .line-edit:focus { border-color: var(--aras-border-strong); background: var(--aras-panel); }
+  .side-panel { position: sticky; top: 80px; display: grid; gap: 24px; }
+  .summary { padding: 20px; display: grid; gap: 13px; }
+  .summary-row { display: flex; justify-content: space-between; gap: 16px; color: var(--aras-muted); }
+  .summary-row strong { color: var(--aras-text); font-size: 18px; }
+  .linked { padding: 20px; display: flex; flex-wrap: wrap; gap: 10px; }
+  .linked button { height: 38px; border: 1px solid var(--aras-border); border-radius: var(--aras-radius); background: var(--aras-panel-soft); color: var(--aras-text); display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; font-weight: 700; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
   @media (max-width: 1180px) {
     body { overflow: auto; }
-    .app { min-width: 1000px; }
-    .filters { grid-template-columns: 250px 250px 1fr; }
-    .toggle-wrap, .primary { grid-column: auto; }
-  }
-  @media (max-width: 760px) {
-    body { overflow: auto; }
-    .app { min-width: 0; height: auto; min-height: 100vh; display: block; }
-    .brand { height: 58px; padding-left: 16px; border-right: 0; }
-    .brand-mark { width: 34px; height: 34px; }
-    .brand-mark::before { left: 10px; top: 7px; width: 7px; height: 15px; }
-    .brand-mark::after { left: 16px; top: 17px; width: 13px; height: 6px; }
-    .topbar { height: auto; justify-content: stretch; overflow-x: auto; }
-    .facility { min-width: 210px; height: 52px; padding: 0 14px; font-size: calc(14px * var(--font-scale)); }
-    .top-icon { height: 52px; min-width: 52px; }
-    .rail { flex-direction: row; padding-top: 0; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
-    .rail-btn { min-width: 62px; height: 58px; border-left: 0; border-bottom: 4px solid transparent; }
-    .rail-btn.active { border-bottom-color: var(--accent); border-left-color: transparent; }
-    .content { padding: 22px 16px 18px; }
-    .page-title { font-size: calc(38px * var(--font-scale)); }
-    .subtitle { margin-bottom: 20px; }
-    .tweak-grid { grid-template-columns: 1fr; }
-    .filters { grid-template-columns: 1fr; gap: 14px; }
-    .table-shell, .pagination { min-width: 780px; }
-    .pagination { grid-template-columns: 180px 1fr 90px 64px 52px 52px; }
+    .app { min-width: 980px; }
+    .form-layout { grid-template-columns: 1fr; }
+    .side-panel { position: static; }
   }
 </style>
 </head>
-<body class="theme-light radius-rounded accent-blue density-regular">
+<body class="theme-normal density-regular radius-rounded accent-blue">
 <div class="app">
-  <header class="brand" aria-label="Aras brand">
-    <div class="brand-mark"></div>
-    <div class="brand-name">Aras</div>
-  </header>
-  <nav class="topbar" aria-label="Account navigation">
-    <button class="facility">Mumbai Facility <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+  <header class="brand" aria-label="Aras brand"><div class="brand-mark"></div></header>
+  <nav class="topbar" aria-label="Global header">
+    <div class="org-picker">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+      <select class="org-select"><option>Jakarta Main</option><option>All Organizations</option></select>
+    </div>
     <button class="top-icon" aria-label="Apps"><span class="kebab"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></button>
-    <button class="top-icon" aria-label="Settings"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2a2 2 0 1 1-4 0V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1A1.7 1.7 0 0 0 4.6 15 1.7 1.7 0 0 0 3 14H2.8a2 2 0 1 1 0-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 1 1 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3V2.8a2 2 0 1 1 4 0V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9c.3.6.9 1 1.6 1h.2a2 2 0 1 1 0 4H21c-.7 0-1.3.4-1.6 1Z"/></svg></button>
-    <button class="top-icon" aria-label="Profile"><span class="avatar"></span></button>
-  </nav>
-  <aside class="rail" aria-label="Primary navigation">
-    <button class="rail-btn" aria-label="Notifications"><span class="notify-dot"></span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 6-3 8h18c0-2-3-1-3-8"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></button>
-    <button class="rail-btn" aria-label="Analytics"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 12a9 9 0 1 1-9-9v9Z"/><path d="M13 3.05A9 9 0 0 1 20.95 11H13Z"/></svg></button>
-    <button class="rail-btn" aria-label="Inbox"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 12v7h16v-7"/><path d="m8 12 4 4 4-4"/><path d="M12 3v13"/><path d="M4 12h5"/><path d="M15 12h5"/></svg></button>
-    <button class="rail-btn" aria-label="Briefcase"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1"/><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 12h18"/><path d="M10 12v2h4v-2"/></svg></button>
-    <button class="rail-btn active" aria-label="Checklist"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 8h6"/><path d="M9 13h6"/><path d="m9 17 1.5 1.5L15 14"/></svg></button>
-  </aside>
-  <main class="content">
-    <h1 class="page-title">Aras Studio</h1>
-    <div class="subtitle">Create, view or edit your Checklists and Prototypes</div>
-    <section class="tweak-panel" aria-label="Theme controls">
-      <div class="tweak-head">
-        <div class="tweak-title">Studio Tweaks</div>
-      </div>
-      <div class="tweak-grid">
-        <div class="tweak-control">
-          <label for="themeSelect">Theme</label>
-          <select id="themeSelect">
-            <option value="light" selected>Light</option>
-            <option value="normal">Normal</option>
-            <option value="dark">Dark</option>
-          </select>
-        </div>
-        <div class="tweak-control">
-          <label for="cornerSelect">Corners</label>
-          <select id="cornerSelect">
-            <option value="rounded" selected>Rounded</option>
-            <option value="square">Square</option>
-          </select>
-        </div>
-        <div class="tweak-control">
-          <label for="densitySelect">Layout</label>
-          <select id="densitySelect">
-            <option value="compact">Compact</option>
-            <option value="regular" selected>Regular</option>
-            <option value="comfy">Comfy</option>
-          </select>
-        </div>
-        <div class="tweak-control">
-          <label for="fontRange">Font Size</label>
-          <input id="fontRange" type="range" min="88" max="116" value="100" />
-        </div>
-        <div class="tweak-control">
-          <label>Accent</label>
-          <div class="swatches" id="accentSwatches">
-            <button class="swatch active" data-accent="blue" aria-label="Blue accent"></button>
-            <button class="swatch" data-accent="red" aria-label="Red accent"></button>
-            <button class="swatch" data-accent="green" aria-label="Green accent"></button>
-            <button class="swatch" data-accent="violet" aria-label="Violet accent"></button>
-            <button class="swatch" data-accent="black" aria-label="Black accent"></button>
-            <button class="swatch" data-accent="white" aria-label="White accent"></button>
+    <div class="tweak" id="tweak">
+      <button class="top-icon" id="tweakToggle" aria-label="Display tweaks"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M2 14h4"/><path d="M10 8h4"/><path d="M18 16h4"/></svg></button>
+      <div class="tweak-menu">
+        <div class="tweak-title">Display Tweaks</div>
+        <div class="tweak-grid">
+          <div class="tweak-field"><label for="themeSelect">Theme</label><select id="themeSelect"><option value="normal" selected>Normal</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+          <div class="tweak-field"><label for="densitySelect">Density</label><select id="densitySelect"><option value="compact">Compact</option><option value="regular" selected>Regular</option><option value="comfy">Comfy</option></select></div>
+          <div class="tweak-field"><label for="radiusSelect">Corners</label><select id="radiusSelect"><option value="rounded" selected>Rounded</option><option value="square">Square</option></select></div>
+          <div class="tweak-field"><label for="resourceSelect">Resource</label><select id="resourceSelect"><option>Inflow Invoices</option><option>Outflow Invoices</option><option>Stock Movements</option></select></div>
+          <div class="tweak-field" style="grid-column:1/-1">
+            <label>Accent</label>
+            <div class="swatches" id="swatches">
+              <button class="swatch active" data-accent="blue" aria-label="Blue accent"></button>
+              <button class="swatch" data-accent="black" aria-label="Black accent"></button>
+              <button class="swatch" data-accent="oxblood" aria-label="Oxblood accent"></button>
+              <button class="swatch" data-accent="teal" aria-label="Teal accent"></button>
+            </div>
           </div>
         </div>
       </div>
-    </section>
-    <div class="tabs" role="tablist">
-      <button class="tab" role="tab">Published</button>
-      <button class="tab active" role="tab" aria-selected="true">Prototype</button>
     </div>
-    <section class="filters" aria-label="Checklist filters">
-      <label>
-        <div class="field-label">Filter by State</div>
-        <div class="selectbox">Choose an option <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
-      </label>
-      <label>
-        <div class="field-label">Filter by Role</div>
-        <div class="selectbox">Choose an option <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
-      </label>
-      <label>
-        <span class="sr-only">Search</span>
-        <div class="searchbox"><input placeholder="Search" /><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="1.9"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg></div>
-      </label>
-      <div class="toggle-wrap"><button class="switch" id="archiveSwitch" aria-label="Show Archived"><span></span></button> Show Archived</div>
-      <button class="primary">Start a Prototype</button>
-    </section>
-    <section class="table-shell" aria-label="Prototype checklist table">
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th><th>State</th><th>Checklist ID</th><th>Type of Equipment</th><th>SOP Number</th><th>Change Control Reference</th><th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>Plant Safety and Security Checklist</td><td><span class="state"><span class="dot"></span>Being Built</span></td><td>CHK-DEC21-2</td><td>Dual Polarization Interferometer</td><td>1223</td><td>7989</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
-          <tr><td>Internal Quality/GMP Audit Checklist</td><td><span class="state"><span class="dot"></span>Being Built</span></td><td>CHK-DEC21-2</td><td>Albumin Analyzers</td><td>1804</td><td>1032</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
-          <tr><td>Facility Maintenance and Good Housekeeping Checklist</td><td><span class="state"><span class="dot yellow"></span>Submitted For Review</span></td><td>CHK-DEC21-2</td><td>Hemostasis Analyzer</td><td>1587</td><td>1132</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
-          <tr><td>Material/Component/Label Verification, Storage, Handling Checklist</td><td><span class="state"><span class="dot yellow"></span>Being Reviewed</span></td><td>CHK-DEC21-2</td><td>HbA1c Analyzer</td><td>0665</td><td>2132</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
-          <tr><td>Equipment/Line/Area Cleaning, Preparation, and Clearance</td><td><span class="state"><span class="dot yellow"></span>Submitted For Review</span></td><td>CHK-DEC21-2</td><td>Immunochemistry Analyzer</td><td>1212</td><td>3212</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
-          <tr><td>Operational Process Validation, Production Change Order Control</td><td><span class="state"><span class="dot"></span>Being Built</span></td><td>CHK-DEC21-2</td><td>Hypoxic Chamber</td><td>1512</td><td>1102</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
-          <tr><td>In-Process Inspection, Sampling, and Laboratory Control</td><td><span class="state"><span class="dot"></span>Being Built</span></td><td>CHK-DEC21-2</td><td>Refrigerated Incubator</td><td>1712</td><td>1101</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
-          <tr><td>Reprocessing/Disposition of Materials</td><td><span class="state"><span class="dot yellow"></span>Being Reviewed</span></td><td>CHK-DEC21-2</td><td>Water Jacketed Incubator</td><td>1213</td><td>1331</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
-          <tr><td>Finished Product Verification, Storage, and Handling</td><td><span class="state"><span class="dot yellow"></span>Submitted For Review</span></td><td>CHK-DEC21-2</td><td>Laboratory Pumps</td><td>1214</td><td>1423</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
-          <tr><td>Sampling, Testing, and Release for Distribution</td><td><span class="state"><span class="dot"></span>Being Built</span></td><td>CHK-DEC21-2</td><td>Liquid Pumps</td><td>1244</td><td>0991</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
-          <tr><td>Material/Component/Label Verification, Storage, Handling Checklist</td><td><span class="state"><span class="dot"></span>Being Built</span></td><td>CHK-DEC21-2</td><td>Syringe Infusion Pump</td><td>1244</td><td>1124</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
-          <tr><td>Air Swept Sifter = Type B</td><td><span class="state"><span class="dot"></span>Being Built</span></td><td>CHK-DEC21-2</td><td>Laboratory Spray Drye</td><td>1553</td><td>1243</td><td><button class="action">More <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m7 10 5 5 5-5Z"/></svg></button></td></tr>
-        </tbody>
-      </table>
-    </section>
-    <footer class="pagination" aria-label="Pagination">
-      <div class="page-cell">Items per page: <strong>100</strong> <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
-      <div class="page-cell count">1 - 100 of 1,228 items</div>
-      <div class="page-cell"><strong>12</strong> <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
-      <div class="page-cell">of 40 pages</div>
-      <button class="pager-btn" aria-label="Previous page"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="m15 6-6 6 6 6Z"/></svg></button>
-      <button class="pager-btn" aria-label="Next page"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="m9 6 6 6-6 6Z"/></svg></button>
-    </footer>
+    <button class="top-icon" aria-label="Profile"><span class="avatar"></span></button>
+  </nav>
+
+  <aside class="rail" aria-label="Primary navigation">
+    <nav class="rail-nav">
+      <button class="rail-btn" aria-label="Notifications"><span class="notify-dot"></span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 6-3 8h18c0-2-3-1-3-8"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></button>
+      <button class="rail-btn" aria-label="Dashboard"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a9 9 0 1 1-9-9v9Z"/><path d="M13 3.05A9 9 0 0 1 20.95 11H13Z"/></svg></button>
+      <button class="rail-btn active" aria-label="Accounting"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/></svg></button>
+      <button class="rail-btn" aria-label="Stock"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m21 8-9-5-9 5 9 5 9-5Z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></button>
+    </nav>
+    <button class="rail-btn logout" aria-label="Logout"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg></button>
+  </aside>
+
+  <main class="main">
+    <div class="app-menu">
+      <button>ERP</button><button class="active">Accounting</button><button>Stock</button><button>Reports</button>
+    </div>
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <div class="crumb">ERP / Accounting / Inflow Invoices</div>
+          <h1 class="page-title">Inflow Invoices</h1>
+          <div class="subtitle">Create, search, and manage inflow invoices with the current Aras list and form patterns.</div>
+        </div>
+        <div class="resource-switch" aria-label="Prototype view switch">
+          <button class="list-switch active" id="listTab">List</button>
+          <button class="form-switch" id="formTab">Form</button>
+        </div>
+      </div>
+
+      <section class="list-view">
+        <div class="toolbar" aria-label="List toolbar">
+          <button class="add-btn" id="addNew"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>Add New</button>
+          <div class="toolbar-center">
+            <div class="view-mode" aria-label="View mode">
+              <button class="active" title="List"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg></button>
+              <button title="Report"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg></button>
+            </div>
+            <label class="searchbox">
+              <span class="sr-only">Search in Inflow Invoices</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>
+              <input value="SINV/2025" aria-label="Search in Inflow Invoices" />
+            </label>
+            <button class="toolbar-btn">Filters</button>
+            <button class="toolbar-btn">Saved Filters</button>
+          </div>
+          <div class="toolbar-right">
+            <div class="dropdown" id="actionsMenu">
+              <button class="toolbar-btn" id="actionsToggle" title="Actions"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+              <div class="dropdown-menu"><button>Export CSV</button><button>Import CSV</button><button>View Archive</button></div>
+            </div>
+            <button class="icon-btn" title="Visible columns"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1A1.7 1.7 0 0 0 4.6 15 1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1L7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9c.3.6.9 1 1.6 1h.2v4H21c-.7 0-1.3.4-1.6 1Z"/></svg></button>
+          </div>
+        </div>
+
+        <section class="table-shell" aria-label="Inflow invoice table">
+          <table>
+            <thead><tr><th><span class="check"></span></th><th>Number</th><th>Party</th><th>Doc Type</th><th>Status</th><th>Doc Date</th><th>Total Amount</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr><td><span class="check"></span></td><td>SINV/2025/0001</td><td>Toko Maju Bersama</td><td>Invoice</td><td><span class="state"><span class="dot amber"></span>Draft</span></td><td>Jan 10, 2025</td><td>Rp 330,000</td><td><button class="row-action">Open</button></td></tr>
+              <tr><td><span class="check"></span></td><td>SINV/2025/0002</td><td>CV Sejahtera Abadi</td><td>Invoice</td><td><span class="state"><span class="dot"></span>Posted</span></td><td>Jan 15, 2025</td><td>Rp 372,500</td><td><button class="row-action">Open</button></td></tr>
+              <tr><td><span class="check"></span></td><td>SINV/2025/0003</td><td>PT Distribusi Nusa</td><td>Invoice</td><td><span class="state"><span class="dot red"></span>Partial</span></td><td>Feb 03, 2025</td><td>Rp 475,000</td><td><button class="row-action">Open</button></td></tr>
+              <tr><td><span class="check"></span></td><td>SINV/2025/0048</td><td>Warung Pak Budi</td><td>Order</td><td><span class="state"><span class="dot"></span>Confirmed</span></td><td>Mar 21, 2025</td><td>Rp 219,000</td><td><button class="row-action">Open</button></td></tr>
+              <tr><td><span class="check"></span></td><td>SINV/2025/0049</td><td>Koperasi Karyawan</td><td>Invoice</td><td><span class="state"><span class="dot amber"></span>Draft</span></td><td>Mar 22, 2025</td><td>Rp 1,120,000</td><td><button class="row-action">Open</button></td></tr>
+            </tbody>
+          </table>
+        </section>
+        <footer class="pager"><span>1-20 of 212 records</span><span>Rows per page: 20 | Page 1 of 11</span></footer>
+      </section>
+
+      <section class="form-view">
+        <div class="form-toolbar">
+          <div class="form-toolbar-inner">
+            <div class="form-toolbar-left">
+              <button class="back-btn" id="backToList" title="Go Back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button>
+              <span class="status-pill">Draft</span>
+              <span class="record-id">#1</span>
+            </div>
+            <div class="form-toolbar-right">
+              <div class="utility-group">
+                <button class="tool-icon" title="History"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg></button>
+                <button class="tool-icon" title="Customize"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1A1.7 1.7 0 0 0 4.6 15 1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1L7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9c.3.6.9 1 1.6 1h.2v4H21c-.7 0-1.3.4-1.6 1Z"/></svg></button>
+                <button class="tool-icon" title="Print"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg></button>
+              </div>
+              <button class="ghost"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Duplicate</button>
+              <button class="save-record"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Save Record</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="quick-actions">
+          <span class="quick-label">Quick Actions</span>
+          <button class="action-chip">Post Invoice</button>
+          <button class="action-chip">Create Invoice</button>
+        </div>
+
+        <div class="form-layout">
+          <div class="form-main">
+            <section class="section">
+              <div class="section-head"><div class="section-title">Header</div></div>
+              <div class="fields">
+                <div class="field"><label>Number</label><input class="input" value="SINV/2025/0001" /></div>
+                <div class="field"><label>Party</label><input class="input" value="Toko Maju Bersama" /></div>
+                <div class="field"><label>Doc Date</label><input class="input" value="Jan 10, 2025" /></div>
+                <div class="field"><label>Doc Type</label><input class="input" value="Invoice" /></div>
+                <div class="field"><label>Pricelist</label><input class="input" value="Retail" /></div>
+                <div class="field"><label>Currency</label><input class="input" value="IDR" /></div>
+                <div class="field full"><label>Notes</label><textarea class="input">Demo inflow invoice SINV/2025/0001. This follows InflowInvoiceView: Header, Items, Taxes & Charges, Financials, Notes.</textarea></div>
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="section-head"><div class="section-title">Items</div><button class="action-chip" id="addLine">Add Row</button></div>
+              <table class="line-table">
+                <thead><tr><th>Item</th><th>UOM</th><th>Qty</th><th>Unit Price</th><th>Discount</th><th>Amount</th></tr></thead>
+                <tbody id="lineBody">
+                  <tr><td><input class="line-edit" value="Kopi Arabica 250g" /></td><td><input class="line-edit" value="PCS" /></td><td><input class="line-edit qty" value="10" /></td><td><input class="line-edit rate" value="15000" /></td><td><input class="line-edit discount" value="0" /></td><td class="line-total">Rp 150,000</td></tr>
+                  <tr><td><input class="line-edit" value="Teh Melati 100g" /></td><td><input class="line-edit" value="PCS" /></td><td><input class="line-edit qty" value="20" /></td><td><input class="line-edit rate" value="9000" /></td><td><input class="line-edit discount" value="0" /></td><td class="line-total">Rp 180,000</td></tr>
+                </tbody>
+              </table>
+            </section>
+          </div>
+
+          <aside class="side-panel">
+            <section class="section">
+              <div class="section-head"><div class="section-title">Financials</div></div>
+              <div class="summary">
+                <div class="summary-row"><span>Subtotal</span><span id="subtotal">Rp 330,000</span></div>
+                <div class="summary-row"><span>Total Charge</span><span>Rp 0</span></div>
+                <div class="summary-row"><span>Amount Paid</span><span>Rp 0</span></div>
+                <div class="summary-row"><strong>Total Amount</strong><strong id="totalAmount">Rp 330,000</strong></div>
+              </div>
+            </section>
+            <section class="section">
+              <div class="section-head"><div class="section-title">Linked Documents</div></div>
+              <div class="linked">
+                <button>Journal Entry Pending</button>
+                <button>Stock Movement Pending</button>
+                <button>Payment Allocations 0</button>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </section>
+    </div>
   </main>
 </div>
 <script>
   const body = document.body;
+  const showList = () => body.classList.remove('show-form');
+  const showForm = () => body.classList.add('show-form');
+  document.getElementById('addNew').addEventListener('click', showForm);
+  document.getElementById('formTab').addEventListener('click', showForm);
+  document.getElementById('listTab').addEventListener('click', showList);
+  document.getElementById('backToList').addEventListener('click', showList);
+  document.querySelectorAll('.row-action').forEach((button) => button.addEventListener('click', showForm));
+  document.getElementById('actionsToggle').addEventListener('click', () => document.getElementById('actionsMenu').classList.toggle('open'));
+  document.getElementById('tweakToggle').addEventListener('click', () => document.getElementById('tweak').classList.toggle('open'));
   const setClass = (prefix, value) => {
-    body.className = body.className
-      .split(' ')
-      .filter((name) => name && !name.startsWith(prefix))
-      .concat(prefix + value)
-      .join(' ');
+    body.className = body.className.split(' ').filter((name) => name && !name.startsWith(prefix)).concat(prefix + value).join(' ');
   };
-  document.getElementById('themeSelect').addEventListener('change', function () {
-    setClass('theme-', this.value);
-  });
-  document.getElementById('cornerSelect').addEventListener('change', function () {
-    setClass('radius-', this.value);
-  });
-  document.getElementById('densitySelect').addEventListener('change', function () {
-    setClass('density-', this.value);
-  });
-  document.getElementById('fontRange').addEventListener('input', function () {
-    body.style.setProperty('--font-scale', String(Number(this.value) / 100));
-  });
-  document.getElementById('accentSwatches').addEventListener('click', function (event) {
+  document.getElementById('themeSelect').addEventListener('change', (event) => setClass('theme-', event.target.value));
+  document.getElementById('densitySelect').addEventListener('change', (event) => setClass('density-', event.target.value));
+  document.getElementById('radiusSelect').addEventListener('change', (event) => setClass('radius-', event.target.value));
+  document.getElementById('swatches').addEventListener('click', (event) => {
     const button = event.target.closest('.swatch');
     if (!button) return;
-    this.querySelectorAll('.swatch').forEach((item) => item.classList.remove('active'));
+    document.querySelectorAll('.swatch').forEach((item) => item.classList.remove('active'));
     button.classList.add('active');
     setClass('accent-', button.dataset.accent);
   });
-  document.getElementById('archiveSwitch').addEventListener('click', function () {
-    this.classList.toggle('on');
+  const rupiah = (value) => 'Rp ' + Math.round(value).toLocaleString('id-ID');
+  const recalc = () => {
+    let subtotal = 0;
+    document.querySelectorAll('#lineBody tr').forEach((row) => {
+      const qty = Number(row.querySelector('.qty').value || 0);
+      const rate = Number(row.querySelector('.rate').value || 0);
+      const discount = Number(row.querySelector('.discount').value || 0);
+      const amount = qty * (rate - discount);
+      row.querySelector('.line-total').textContent = rupiah(amount);
+      subtotal += amount;
+    });
+    document.getElementById('subtotal').textContent = rupiah(subtotal);
+    document.getElementById('totalAmount').textContent = rupiah(subtotal);
+  };
+  document.getElementById('lineBody').addEventListener('input', recalc);
+  document.getElementById('addLine').addEventListener('click', () => {
+    const row = document.createElement('tr');
+    row.innerHTML = '<td><input class="line-edit" value="New item" /></td><td><input class="line-edit" value="PCS" /></td><td><input class="line-edit qty" value="1" /></td><td><input class="line-edit rate" value="0" /></td><td><input class="line-edit discount" value="0" /></td><td class="line-total">Rp 0</td>';
+    document.getElementById('lineBody').appendChild(row);
+    recalc();
   });
+  recalc();
 </script>
 </body>
 </html>

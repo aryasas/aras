@@ -10,6 +10,8 @@ import { useAras } from '../aras-core/hooks/useAras'
 import { useUIStore } from '../store/uiStore'
 import { SidebarBrand } from './components/SidebarBrand'
 import { PageHeader } from '../components/PageHeader'
+import { TopbarAppMenu } from './components/TopbarAppMenu'
+import Combobox from '../aras-core/components/Combobox'
 
 export default function MainLayout() {
   const [sidebarData, setSidebarData] = useState<SidebarApp[]>([])
@@ -53,7 +55,17 @@ export default function MainLayout() {
       muted: '#cbd5e1',
       button: accentColor,
     },
-  }[themeMode]
+  }[themeMode] || {
+    bg: '#f3f3f3',
+    panel: '#ffffff',
+    panelSoft: '#f8f8f8',
+    tableHead: '#e6e6e6',
+    border: '#e2e2e2',
+    borderStrong: '#d2d2d2',
+    text: '#222226',
+    muted: '#68686d',
+    button: '#111111',
+  }
 
   const layoutStyle = {
     '--aras-accent': accentColor,
@@ -107,33 +119,30 @@ export default function MainLayout() {
       <main className="col-start-2 row-span-2 row-start-1 flex min-w-0 flex-col overflow-hidden max-sm:block max-sm:overflow-visible">
         <Header>
           {organizations.length > 1 && (
-            <div className="z-50">
-              <label className="sr-only" htmlFor="organization-selector">Organization</label>
+            <div className="z-50 flex items-center gap-3 px-4">
               <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--aras-muted)] pointer-events-none" size={16} />
-                  <select
-                    id="organization-selector"
-                    value={activeOrgId ?? ''}
-                    onChange={(event) => setActiveOrg(Number(event.target.value))}
-                    className="h-16 min-w-[300px] max-w-[340px] appearance-none border-0 border-l border-r border-[var(--aras-border)] bg-[var(--aras-panel-soft)] pl-12 pr-10 text-base font-semibold text-[var(--aras-text)] outline-none transition-colors hover:bg-[var(--aras-panel)] focus:border-[var(--aras-accent)] focus:ring-2 focus:ring-[color:var(--aras-accent)]/10 max-sm:h-12 max-sm:min-w-52"
-                  >
-                    <option value="-1">All</option>
-                    {organizations.map((organization) => (
-                      <option key={organization.id} value={organization.id}>{organization.name}</option>
-                    ))}
-                  </select>
+                <Building2 size={16} className="text-[var(--aras-muted)]" />
+                <div className="min-w-[240px]">
+                  <Combobox
+                    options={[
+                      { label: 'All Organizations', value: -1 },
+                      ...organizations.map((org) => ({ label: org.name, value: org.id }))
+                    ]}
+                    value={activeOrgId ?? -1}
+                    onChange={(val) => setActiveOrg(Number(val))}
+                    placeholder="Select Organization"
+                  />
                 </div>
                 {(activeOrgId === -1 || activeOrganization?.is_group) && (
-                  <span className="text-xs font-semibold px-2 py-1 rounded-[var(--aras-radius)]" style={{ color: 'var(--aras-accent)', backgroundColor: 'color-mix(in srgb, var(--aras-accent) 10%, transparent)' }}>
-                    {activeOrgId === -1 ? 'All Orgs' : 'Consolidated'}
+                  <span className="text-[10px] font-bold px-2 py-1 rounded-[var(--aras-radius)] whitespace-nowrap" style={{ color: 'var(--aras-accent)', backgroundColor: 'color-mix(in srgb, var(--aras-accent) 10%, transparent)' }}>
+                    {activeOrgId === -1 ? 'ALL ORGS' : 'CONSOLIDATED'}
                   </span>
                 )}
               </div>
-              <span className="sr-only">{activeOrganization?.name}</span>
             </div>
           )}
         </Header>
+        <TopbarAppMenu sidebarData={sidebarData} />
         {/* Content Area */}
         <div className="flex-1 overflow-auto bg-[var(--aras-bg-main)] px-8 py-7 max-sm:min-h-screen max-sm:overflow-visible max-sm:p-4">
           <div className="mx-auto max-w-none">
