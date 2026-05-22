@@ -7,7 +7,7 @@ from core.lib.database import get_db
 from ..config.models import Organization
 from .services.finance_report_service import FinanceReportService
 
-router = APIRouter(prefix="/erp/report", tags=["Reports"])
+router = APIRouter(prefix="", tags=["Reports"])
 
 @router.get("/profit-loss")
 def get_profit_loss(

@@ -4,145 +4,1018 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Implementation Prototype - Generic List and Form</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 <style>
   *, *::before, *::after { box-sizing: border-box; }
+
   :root {
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --aras-accent: #7a2e2e;
-    --aras-accent-strong: #642525;
-    --aras-primary-action: #7a2e2e;
-    --aras-primary-action-strong: #642525;
-    --aras-button: #0f172a;
-    --aras-button-text: #ffffff;
-    --aras-radius: 10px;
-    --aras-density: 1;
-    --aras-font-scale: 1;
-    --aras-border: #e2e8f0;
-    --aras-border-strong: #cbd5e1;
-    --aras-bg-main: #f8fafc;
-    --aras-panel: #ffffff;
-    --aras-panel-soft: #f8fafc;
-    --aras-table-head: #f1f5f9;
-    --aras-text: #0f172a;
-    --aras-muted: #64748b;
-    --aras-faint: #cbd5e1;
+    font-family: "Sora", sans-serif;
+    --app-accent: #bb5a33;
+    --app-accent-strong: #924223;
+    --app-accent-soft: rgba(187, 90, 51, 0.12);
+    --app-action: #143936;
+    --app-action-strong: #0d2826;
+    --app-action-text: #f8f3ec;
+    --app-radius: 18px;
+    --app-density: 1;
+    --app-font-scale: 1;
+    --app-border: rgba(53, 40, 30, 0.12);
+    --app-border-strong: rgba(53, 40, 30, 0.18);
+    --app-bg-main: #f5efe6;
+    --app-bg-deep: #ece3d7;
+    --app-panel: rgba(255, 252, 247, 0.85);
+    --app-panel-strong: rgba(255, 253, 249, 0.95);
+    --app-panel-soft: rgba(250, 244, 236, 0.92);
+    --app-table-head: rgba(128, 88, 60, 0.08);
+    --app-text: #201811;
+    --app-muted: #6f6458;
+    --app-muted-2: #9b8f81;
+    --app-faint: #d8ccbe;
+    --app-rail: #1a2127;
+    --app-rail-2: #232c34;
+    --app-rail-text: #93a0aa;
+    --app-ok: #195c45;
+    --app-ok-bg: #ddf2e9;
+    --app-warn: #9a5e14;
+    --app-warn-bg: #fdf0d0;
+    --app-danger: #9b2f2f;
+    --app-danger-bg: #fde4df;
   }
 
   body {
     min-width: 320px;
     min-height: 100vh;
     margin: 0;
-    color: var(--aras-muted);
-    background: var(--aras-bg-main);
-    font-size: calc(16px * var(--aras-font-scale));
+    color: var(--app-muted);
+    background:
+      radial-gradient(circle at top left, rgba(187, 90, 51, 0.18), transparent 32%),
+      radial-gradient(circle at right 12%, rgba(20, 57, 54, 0.14), transparent 24%),
+      linear-gradient(180deg, #f9f5ef 0%, var(--app-bg-main) 46%, var(--app-bg-deep) 100%);
+    font-size: calc(16px * var(--app-font-scale));
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  body::before,
+  body::after {
+    content: "";
+    position: fixed;
+    inset: auto;
+    pointer-events: none;
+    filter: blur(60px);
+    opacity: 0.55;
+    z-index: 0;
+  }
+
+  body::before {
+    width: 340px;
+    height: 340px;
+    top: -70px;
+    right: -80px;
+    background: rgba(187, 90, 51, 0.18);
+  }
+
+  body::after {
+    width: 280px;
+    height: 280px;
+    left: -70px;
+    bottom: 8%;
+    background: rgba(20, 57, 54, 0.16);
   }
 
   button, input, select, textarea { font: inherit; }
   button { cursor: pointer; }
-  .app { min-height: 100vh; display: grid; grid-template-columns: 68px minmax(0, 1fr); }
-  .rail { background: #111827; border-right: 1px solid #0b1220; padding: 14px 10px; display: flex; flex-direction: column; gap: 12px; }
-  .brand { width: 42px; height: 42px; display: grid; place-items: center; color: white; background: var(--aras-accent); border-radius: 12px; font-weight: 800; }
-  .rail-btn { width: 42px; height: 42px; display: grid; place-items: center; border: 0; border-radius: var(--aras-radius); background: transparent; color: #94a3b8; }
-  .rail-btn.active, .rail-btn:hover { background: rgba(255,255,255,.08); color: #fff; }
-  .main { min-width: 0; display: grid; grid-template-rows: 64px minmax(0, 1fr); }
-  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 24px; background: var(--aras-panel); border-bottom: 1px solid var(--aras-border); }
-  .crumb { color: var(--aras-muted); font-size: 13px; }
-  .top-actions { display: flex; align-items: center; gap: 10px; }
-  .select-shell, .icon-btn, .ghost-btn, .primary-btn, .secondary-btn { height: 42px; border-radius: var(--aras-radius); border: 1px solid var(--aras-border-strong); background: var(--aras-panel); color: var(--aras-text); }
-  .select-shell { padding: 0 12px; min-width: 190px; }
-  .icon-btn { width: 42px; display: grid; place-items: center; }
-  .primary-btn { padding: 0 16px; background: var(--aras-primary-action); border-color: var(--aras-primary-action); color: var(--aras-button-text); font-weight: 700; }
-  .primary-btn:hover { background: var(--aras-primary-action-strong); }
-  .secondary-btn, .ghost-btn { padding: 0 14px; font-weight: 600; }
-  .ghost-btn { color: var(--aras-muted); }
-  .workspace { min-width: 0; padding: 24px; }
-  .prototype { max-width: 1480px; margin: 0 auto; }
-  .page-header { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
-  h1 { margin: 0; color: var(--aras-text); font-size: 36px; line-height: 1.05; font-weight: 500; letter-spacing: 0; }
-  .subtitle { margin-top: 8px; color: var(--aras-muted); font-size: 14px; }
-  .toggle { display: inline-flex; height: 42px; padding: 3px; gap: 3px; border: 1px solid var(--aras-border-strong); background: var(--aras-panel); border-radius: var(--aras-radius); }
-  .toggle button { border: 0; background: transparent; color: var(--aras-muted); border-radius: calc(var(--aras-radius) - 3px); padding: 0 14px; font-weight: 700; }
-  .toggle button.active { background: var(--aras-panel-soft); color: var(--aras-accent); }
-  .view-stack { display: grid; gap: 18px; align-items: start; }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+  }
+
+  .rail {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0)),
+      linear-gradient(180deg, var(--app-rail) 0%, #11181d 100%);
+    border-right: 1px solid rgba(255,255,255,0.06);
+    padding: 18px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-shadow: inset -1px 0 0 rgba(255,255,255,0.03);
+  }
+
+  .brand {
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    color: #fff9f2;
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0)),
+      linear-gradient(135deg, var(--app-accent) 0%, #8a3920 100%);
+    border-radius: 16px;
+    font: 600 24px/1 "Instrument Serif", serif;
+    box-shadow:
+      0 18px 34px rgba(146, 66, 35, 0.34),
+      inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+
+  .rail-divider {
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.15), rgba(255,255,255,0));
+    margin: 2px 0 4px;
+  }
+
+  .rail-btn {
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 16px;
+    background: transparent;
+    color: var(--app-rail-text);
+    transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+  }
+
+  .rail-btn.active,
+  .rail-btn:hover {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02)),
+      rgba(255,255,255,0.05);
+    color: #fff8ef;
+    transform: translateY(-1px);
+  }
+
+  .rail-spacer { flex: 1; }
+
+  .main {
+    min-width: 0;
+    display: grid;
+    grid-template-rows: 78px minmax(0, 1fr);
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 0 28px;
+    background: rgba(249, 245, 239, 0.74);
+    border-bottom: 1px solid rgba(53, 40, 30, 0.08);
+    backdrop-filter: blur(14px);
+    position: sticky;
+    top: 0;
+    z-index: 3;
+  }
+
+  .crumb {
+    color: var(--app-muted-2);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .top-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .select-shell,
+  .icon-btn,
+  .ghost-btn,
+  .primary-btn,
+  .secondary-btn {
+    min-height: 44px;
+    border-radius: 14px;
+    border: 1px solid var(--app-border);
+    background: var(--app-panel-strong);
+    color: var(--app-text);
+    box-shadow: 0 10px 24px rgba(43, 30, 20, 0.04);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  }
+
+  .select-shell {
+    padding: 0 14px;
+    min-width: 220px;
+    color: var(--app-text);
+  }
+
+  .icon-btn {
+    width: 44px;
+    display: grid;
+    place-items: center;
+  }
+
+  .primary-btn,
+  .secondary-btn,
+  .ghost-btn {
+    padding: 0 16px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .primary-btn {
+    background: linear-gradient(135deg, var(--app-action) 0%, #20534d 100%);
+    border-color: rgba(20, 57, 54, 0.5);
+    color: var(--app-action-text);
+    box-shadow: 0 16px 28px rgba(20, 57, 54, 0.18);
+  }
+
+  .primary-btn:hover { background: linear-gradient(135deg, var(--app-action-strong) 0%, #143936 100%); }
+
+  .secondary-btn {
+    background: rgba(255, 252, 247, 0.72);
+    color: var(--app-text);
+  }
+
+  .ghost-btn {
+    background: transparent;
+    color: var(--app-muted);
+    box-shadow: none;
+  }
+
+  .select-shell:hover,
+  .icon-btn:hover,
+  .ghost-btn:hover,
+  .secondary-btn:hover,
+  .primary-btn:hover {
+    border-color: var(--app-border-strong);
+    box-shadow: 0 14px 28px rgba(43, 30, 20, 0.08);
+    transform: translateY(-1px);
+  }
+
+  .workspace {
+    min-width: 0;
+    overflow: auto;
+    padding: 30px;
+  }
+
+  .prototype {
+    max-width: 1520px;
+    margin: 0 auto;
+    display: grid;
+    gap: 22px;
+  }
+
+  .page-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+    gap: 18px;
+    align-items: stretch;
+  }
+
+  .hero-panel,
+  .hero-side,
+  .surface,
+  .section {
+    background: var(--app-panel);
+    border: 1px solid var(--app-border);
+    border-radius: 28px;
+    backdrop-filter: blur(18px);
+    box-shadow:
+      0 22px 50px rgba(62, 41, 25, 0.08),
+      inset 0 1px 0 rgba(255,255,255,0.65);
+  }
+
+  .hero-panel {
+    padding: 28px 28px 26px;
+    background:
+      radial-gradient(circle at top right, rgba(187, 90, 51, 0.12), transparent 26%),
+      linear-gradient(180deg, rgba(255,255,255,0.76), rgba(255,255,255,0.58));
+  }
+
+  .eyebrow,
+  .surface-kicker,
+  .section-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--app-muted-2);
+  }
+
+  .eyebrow::before,
+  .surface-kicker::before,
+  .section-kicker::before {
+    content: "";
+    width: 26px;
+    height: 1px;
+    background: linear-gradient(90deg, var(--app-accent), transparent);
+  }
+
+  h1 {
+    margin: 14px 0 0;
+    color: var(--app-text);
+    font: 500 56px/0.96 "Instrument Serif", serif;
+    letter-spacing: -0.04em;
+  }
+
+  .subtitle {
+    max-width: 760px;
+    margin-top: 14px;
+    color: var(--app-muted);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .hero-tags {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+  }
+
+  .meta-pill,
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--app-border);
+    background: rgba(255, 253, 249, 0.72);
+    color: var(--app-muted);
+    font-size: 12px;
+  }
+
+  .meta-pill strong,
+  .chip strong {
+    color: var(--app-text);
+    font-weight: 600;
+  }
+
+  .hero-side {
+    padding: 18px;
+    display: grid;
+    gap: 14px;
+    background:
+      linear-gradient(180deg, rgba(255, 252, 247, 0.96), rgba(250, 243, 233, 0.84));
+  }
+
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .stat-card {
+    min-width: 0;
+    padding: 16px 16px 15px;
+    border-radius: 20px;
+    border: 1px solid rgba(53, 40, 30, 0.08);
+    background: rgba(255,255,255,0.62);
+  }
+
+  .stat-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--app-muted-2);
+  }
+
+  .stat-value {
+    display: block;
+    margin-top: 10px;
+    color: var(--app-text);
+    font: 500 34px/0.95 "Instrument Serif", serif;
+    letter-spacing: -0.03em;
+  }
+
+  .stat-note {
+    display: block;
+    margin-top: 8px;
+    color: var(--app-muted);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .toggle-shell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(53, 40, 30, 0.08);
+    background: rgba(255,255,255,0.62);
+  }
+
+  .toggle-copy strong {
+    display: block;
+    color: var(--app-text);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .toggle-copy span {
+    display: block;
+    margin-top: 5px;
+    color: var(--app-muted);
+    font-size: 12px;
+  }
+
+  .toggle {
+    display: inline-flex;
+    height: 48px;
+    padding: 4px;
+    gap: 4px;
+    border: 1px solid var(--app-border);
+    background: rgba(245, 239, 230, 0.9);
+    border-radius: 16px;
+  }
+
+  .toggle button {
+    border: 0;
+    background: transparent;
+    color: var(--app-muted);
+    border-radius: 12px;
+    padding: 0 16px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .toggle button.active {
+    background: #fffdf9;
+    color: var(--app-action);
+    box-shadow: 0 10px 20px rgba(43, 30, 20, 0.08);
+  }
+
+  .view-stack { display: grid; gap: 20px; align-items: start; }
   .mock-view { display: none; }
   body[data-view="list"] .mock-list { display: block; }
   body[data-view="form"] .mock-form { display: grid; }
 
-  .aras-list-toolbar { padding: 0 0 16px; }
-  .toolbar-grid { display: grid; grid-template-columns: auto minmax(280px, 1fr) auto; gap: 12px; align-items: center; }
-  .search-wrap { position: relative; min-width: 260px; }
-  .search-wrap svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--aras-muted); }
-  .search-wrap input { width: 100%; height: 46px; padding: 0 14px 0 40px; border: 1px solid var(--aras-border-strong); border-radius: var(--aras-radius); background: var(--aras-panel); color: var(--aras-text); }
-  .toolbar-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
-  .chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-  .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px; border: 1px solid var(--aras-border); background: var(--aras-panel); color: var(--aras-muted); border-radius: 999px; font-size: 12px; }
-  .chip strong { color: var(--aras-text); font-weight: 700; }
+  .surface {
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, rgba(255, 253, 249, 0.9), rgba(255, 251, 246, 0.78));
+  }
 
-  .surface { background: var(--aras-panel); border: 1px solid var(--aras-border); border-radius: var(--aras-radius); overflow: hidden; }
-  .aras-list-view table { width: 100%; border-collapse: collapse; background: var(--aras-panel); table-layout: fixed; }
-  .aras-list-view thead tr { background: var(--aras-table-head); }
-  .aras-list-view th { color: var(--aras-text); font-size: 13px; text-align: left; font-weight: 700; border-bottom: 1px solid var(--aras-border); padding: calc(10px * var(--aras-density)) calc(14px * var(--aras-density)); }
-  .aras-list-view td { color: var(--aras-muted); font-size: 13px; border-top: 1px solid #e7e7e7; padding: calc(10px * var(--aras-density)) calc(14px * var(--aras-density)); vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .aras-list-view tbody tr:hover td, .aras-list-view tbody tr.selected td { background: var(--aras-bg-main); }
-  .checkbox { width: 17px; height: 17px; border: 1px solid var(--aras-border-strong); border-radius: 4px; display: inline-block; background: white; }
-  .checkbox.on { background: var(--aras-accent); border-color: var(--aras-accent); position: relative; }
-  .checkbox.on::after { content: ""; position: absolute; width: 7px; height: 4px; border-left: 2px solid white; border-bottom: 2px solid white; transform: rotate(-45deg); left: 4px; top: 4px; }
-  .record-title { color: var(--aras-text); font-weight: 750; }
-  .muted { color: var(--aras-muted); }
-  .badge { display: inline-flex; align-items: center; min-height: 26px; padding: 0 9px; border-radius: 999px; font-size: 12px; font-weight: 700; border: 1px solid var(--aras-border); background: var(--aras-panel-soft); color: var(--aras-text); }
-  .badge.green { background: #ecfdf5; border-color: #bbf7d0; color: #166534; }
-  .badge.amber { background: #fffbeb; border-color: #fde68a; color: #92400e; }
-  .badge.red { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
-  .row-actions { display: flex; gap: 6px; justify-content: flex-end; }
-  .row-actions button { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--aras-border); background: var(--aras-panel); color: var(--aras-muted); }
-  .pagination { min-height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; border-top: 1px solid var(--aras-border); font-size: 13px; }
+  .surface-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px 24px 0;
+  }
 
-  .aras-form-view { display: grid; gap: 14px; }
-  .form-header { display: flex; justify-content: space-between; gap: 14px; align-items: center; padding: 14px 18px; background: #fbfbfb; border-bottom: 1px solid var(--aras-border); }
-  .form-header h2 { margin: 0; color: var(--aras-text); font-size: 17px; letter-spacing: 0; }
-  .form-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  .section { background: var(--aras-panel); border: 1px solid var(--aras-border); border-radius: var(--aras-radius); overflow: hidden; }
-  .section-title { min-height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 18px; background: #fbfbfb; border-bottom: 1px solid var(--aras-border); }
-  .section-title h3 { margin: 0; color: var(--aras-text); font-size: 15px; letter-spacing: 0; }
-  .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 16px; padding: 14px 18px; }
-  .field { min-width: 0; display: grid; gap: 6px; }
+  .surface-header h2 {
+    margin: 8px 0 0;
+    color: var(--app-text);
+    font-size: 24px;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+  }
+
+  .surface-note {
+    max-width: 520px;
+    margin-top: 10px;
+    color: var(--app-muted);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  .aras-list-toolbar { padding: 24px; }
+
+  .toolbar-grid {
+    display: grid;
+    grid-template-columns: auto minmax(280px, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+  }
+
+  .search-wrap {
+    position: relative;
+    min-width: 260px;
+  }
+
+  .search-wrap svg {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--app-muted-2);
+  }
+
+  .search-wrap input {
+    width: 100%;
+    min-height: 48px;
+    padding: 0 16px 0 46px;
+    border: 1px solid var(--app-border);
+    border-radius: 15px;
+    background: rgba(255,255,255,0.72);
+    color: var(--app-text);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
+  }
+
+  .search-wrap input::placeholder { color: var(--app-muted-2); }
+
+  .toolbar-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .chip-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+
+  .table-wrap {
+    padding: 0 16px 16px;
+  }
+
+  .aras-list-view table,
+  .child-table table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .aras-list-view table {
+    background: rgba(255,255,255,0.72);
+    border: 1px solid rgba(53, 40, 30, 0.08);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  .aras-list-view thead tr,
+  .child-table thead tr {
+    background: var(--app-table-head);
+  }
+
+  .aras-list-view th,
+  .child-table th {
+    color: var(--app-text);
+    font-size: 12px;
+    text-align: left;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(53, 40, 30, 0.08);
+    padding: calc(12px * var(--app-density)) calc(16px * var(--app-density));
+  }
+
+  .aras-list-view td,
+  .child-table td {
+    color: var(--app-muted);
+    font-size: 13px;
+    border-top: 1px solid rgba(53, 40, 30, 0.06);
+    padding: calc(14px * var(--app-density)) calc(16px * var(--app-density));
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .aras-list-view tbody tr {
+    transition: background 0.18s ease, transform 0.18s ease;
+  }
+
+  .aras-list-view tbody tr:hover td,
+  .aras-list-view tbody tr.selected td {
+    background: rgba(187, 90, 51, 0.06);
+  }
+
+  .checkbox {
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--app-border-strong);
+    border-radius: 6px;
+    display: inline-block;
+    background: rgba(255,255,255,0.82);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+
+  .checkbox.on {
+    background: var(--app-accent);
+    border-color: var(--app-accent);
+    position: relative;
+  }
+
+  .checkbox.on::after {
+    content: "";
+    position: absolute;
+    width: 7px;
+    height: 4px;
+    border-left: 2px solid white;
+    border-bottom: 2px solid white;
+    transform: rotate(-45deg);
+    left: 4px;
+    top: 4px;
+  }
+
+  .record-title {
+    color: var(--app-text);
+    font: 500 22px/0.95 "Instrument Serif", serif;
+    letter-spacing: -0.03em;
+  }
+
+  .muted { color: var(--app-muted); }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid transparent;
+  }
+
+  .badge.green {
+    background: var(--app-ok-bg);
+    border-color: rgba(25, 92, 69, 0.12);
+    color: var(--app-ok);
+  }
+
+  .badge.amber {
+    background: var(--app-warn-bg);
+    border-color: rgba(154, 94, 20, 0.12);
+    color: var(--app-warn);
+  }
+
+  .badge.red {
+    background: var(--app-danger-bg);
+    border-color: rgba(155, 47, 47, 0.12);
+    color: var(--app-danger);
+  }
+
+  .badge.soft {
+    background: rgba(255,255,255,0.72);
+    border-color: var(--app-border);
+    color: var(--app-muted);
+  }
+
+  .row-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+
+  .row-actions button {
+    min-width: 34px;
+    width: auto;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    padding: 0 10px;
+    border-radius: 12px;
+    border: 1px solid var(--app-border);
+    background: rgba(255,255,255,0.72);
+    color: var(--app-muted);
+  }
+
+  .pagination {
+    min-height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 24px 20px;
+    color: var(--app-muted);
+    font-size: 12px;
+  }
+
+  .aras-form-view { display: grid; gap: 16px; }
+
+  .form-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: flex-start;
+    padding: 24px;
+  }
+
+  .form-head-main {
+    display: grid;
+    gap: 18px;
+  }
+
+  .form-command-strip {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .form-header h2 {
+    margin: 10px 0 0;
+    color: var(--app-text);
+    font: 500 42px/0.96 "Instrument Serif", serif;
+    letter-spacing: -0.04em;
+  }
+
+  .hint {
+    color: var(--app-muted);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .form-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+
+  .form-head-side {
+    min-width: 270px;
+    display: grid;
+    gap: 12px;
+  }
+
+  .status-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    border-radius: 20px;
+    border: 1px solid rgba(53, 40, 30, 0.08);
+    background: rgba(255,255,255,0.68);
+  }
+
+  .status-panel strong {
+    display: block;
+    color: var(--app-text);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .status-panel span {
+    display: block;
+    margin-top: 5px;
+    color: var(--app-muted);
+    font-size: 12px;
+  }
+
+  .mini-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .mini-card {
+    padding: 14px 12px;
+    border-radius: 18px;
+    border: 1px solid rgba(53, 40, 30, 0.08);
+    background: rgba(255,255,255,0.58);
+  }
+
+  .mini-card span {
+    display: block;
+    color: var(--app-muted-2);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .mini-card strong {
+    display: block;
+    margin-top: 10px;
+    color: var(--app-text);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .section {
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, rgba(255, 253, 249, 0.94), rgba(255, 249, 242, 0.82));
+  }
+
+  .section-title {
+    min-height: 74px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 22px;
+    border-bottom: 1px solid rgba(53, 40, 30, 0.08);
+  }
+
+  .section-title h3 {
+    margin: 10px 0 0;
+    color: var(--app-text);
+    font-size: 22px;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+
+  .section-note {
+    color: var(--app-muted);
+    font-size: 12px;
+    line-height: 1.6;
+    text-align: right;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px 18px;
+    padding: 22px;
+  }
+
+  .field {
+    min-width: 0;
+    display: grid;
+    gap: 8px;
+  }
+
   .field.full { grid-column: 1 / -1; }
-  .field label { color: var(--aras-muted); font-size: 13px; line-height: 1.25; }
-  .field input, .field select, .field textarea { width: 100%; min-height: 38px; padding: 8px 12px; color: var(--aras-text); background: var(--aras-panel); border: 1px solid var(--aras-border-strong); border-radius: var(--aras-radius); box-shadow: none; }
-  .field textarea { min-height: 94px; resize: vertical; }
-  .field input:focus, .field select:focus, .field textarea:focus, .search-wrap input:focus { border-color: #a8a8a8; outline: 0; box-shadow: inset 0 0 0 1px #a8a8a8; }
-  .hint { color: var(--aras-muted); font-size: 12px; }
-  .tabs { display: flex; gap: 3px; padding: 8px; border-bottom: 1px solid var(--aras-border); background: var(--aras-panel); }
-  .tabs button { height: 34px; border: 0; border-radius: 8px; padding: 0 12px; background: transparent; color: var(--aras-muted); font-weight: 700; }
-  .tabs button.active { background: var(--aras-panel-soft); color: var(--aras-accent); }
-  .child-table { overflow-x: auto; }
-  .child-table table { min-width: 720px; width: 100%; border-collapse: collapse; table-layout: fixed; }
-  .child-table th { padding: 10px 14px; color: var(--aras-text); font-size: 13px; background: var(--aras-table-head); text-align: left; }
-  .child-table td { padding: 10px 14px; border-top: 1px solid var(--aras-border); color: var(--aras-muted); font-size: 13px; }
-  .summary { display: grid; gap: 9px; padding: 14px 18px; border-top: 1px solid var(--aras-border); background: var(--aras-panel-soft); }
-  .summary-line { display: flex; justify-content: space-between; gap: 18px; font-size: 13px; }
-  .summary-line.total { color: var(--aras-text); font-weight: 800; font-size: 15px; }
 
-  @media (max-width: 1180px) {
+  .field label {
+    color: var(--app-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    line-height: 1.35;
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    width: 100%;
+    min-height: 46px;
+    padding: 11px 14px;
+    color: var(--app-text);
+    background: rgba(255,255,255,0.76);
+    border: 1px solid var(--app-border);
+    border-radius: 15px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+
+  .field textarea {
+    min-height: 118px;
+    resize: vertical;
+  }
+
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus,
+  .search-wrap input:focus,
+  .select-shell:focus {
+    border-color: rgba(20, 57, 54, 0.28);
+    outline: 0;
+    box-shadow:
+      0 0 0 4px rgba(20, 57, 54, 0.08),
+      inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 14px 14px 0;
+    background: transparent;
+  }
+
+  .tabs button {
+    min-height: 40px;
+    border: 0;
+    border-radius: 14px;
+    padding: 0 14px;
+    background: transparent;
+    color: var(--app-muted);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .tabs button.active {
+    background: rgba(255,255,255,0.74);
+    color: var(--app-action);
+    box-shadow: 0 10px 18px rgba(43, 30, 20, 0.08);
+  }
+
+  .child-table {
+    padding: 14px;
+    overflow-x: auto;
+  }
+
+  .child-table table {
+    min-width: 720px;
+    background: rgba(255,255,255,0.7);
+    border: 1px solid rgba(53, 40, 30, 0.08);
+    border-radius: 18px;
+    overflow: hidden;
+  }
+
+  .summary {
+    display: grid;
+    gap: 10px;
+    padding: 0 22px 22px;
+  }
+
+  .summary-shell {
+    border-radius: 20px;
+    border: 1px solid rgba(53, 40, 30, 0.08);
+    background: rgba(255,255,255,0.68);
+    padding: 18px;
+  }
+
+  .summary-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    font-size: 13px;
+    color: var(--app-muted);
+  }
+
+  .summary-line + .summary-line { margin-top: 10px; }
+
+  .summary-line.total {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(53, 40, 30, 0.08);
+    color: var(--app-text);
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  @media (max-width: 1280px) {
+    .page-header { grid-template-columns: 1fr; }
+    .hero-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .form-header { flex-direction: column; }
+    .form-head-side { min-width: 0; width: 100%; }
+  }
+
+  @media (max-width: 1024px) {
+    .toolbar-grid { grid-template-columns: 1fr; }
+    .toolbar-actions { justify-content: flex-start; }
     .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    h1 { font-size: 48px; }
   }
 
   @media (max-width: 760px) {
     .app { grid-template-columns: 1fr; }
     .rail { display: none; }
     .main { grid-template-rows: auto minmax(0, 1fr); }
-    .topbar { align-items: stretch; flex-direction: column; padding: 14px; }
+    .topbar {
+      align-items: stretch;
+      flex-direction: column;
+      padding: 16px;
+    }
     .top-actions { flex-wrap: wrap; }
-    .workspace { padding: 14px; }
-    .page-header { align-items: stretch; flex-direction: column; }
-    h1 { font-size: 30px; }
-    .toolbar-grid { grid-template-columns: 1fr; }
+    .workspace { padding: 16px; }
+    .hero-panel,
+    .hero-side,
+    .surface,
+    .section { border-radius: 24px; }
+    .hero-panel,
+    .hero-side,
+    .surface-header,
+    .aras-list-toolbar,
+    .form-header,
+    .form-grid,
+    .section-title,
+    .summary { padding-left: 16px; padding-right: 16px; }
+    .hero-stats,
+    .mini-grid,
+    .form-grid { grid-template-columns: 1fr; }
+    .toggle-shell {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    h1 { font-size: 40px; }
+    .record-title { font-size: 19px; }
     .toolbar-actions { justify-content: stretch; }
-    .toolbar-actions button, .primary-btn, .secondary-btn, .ghost-btn { justify-content: center; }
+    .toolbar-actions button,
+    .primary-btn,
+    .secondary-btn,
+    .ghost-btn { width: 100%; justify-content: center; }
+    .form-command-strip { flex-direction: column; }
+    .pagination {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 0 16px 16px;
+    }
+    .section-title {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+    .section-note { text-align: left; }
     .aras-list-view { overflow-x: auto; }
     .aras-list-view table { min-width: 880px; }
-    .form-grid { grid-template-columns: 1fr; }
-    .form-header, .section-title { align-items: stretch; flex-direction: column; padding: 14px; }
+    .child-table { padding-top: 12px; }
   }
 </style>
 </head>
@@ -150,9 +1023,12 @@
 <div class="app">
   <aside class="rail" aria-label="Application navigation">
     <div class="brand">A</div>
+    <div class="rail-divider"></div>
     <button class="rail-btn active" title="Records" aria-label="Records"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18"/><path d="M3 12h18"/><path d="M3 19h18"/></svg></button>
     <button class="rail-btn" title="Reports" aria-label="Reports"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5"/><path d="M9 19V9"/><path d="M14 19V3"/><path d="M19 19v-7"/></svg></button>
     <button class="rail-btn" title="Settings" aria-label="Settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.8 1.8 0 0 0 .36 2l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.8 1.8 0 0 0-2-.36 1.8 1.8 0 0 0-1 1.64V21a2 2 0 1 1-4 0v-.09a1.8 1.8 0 0 0-1-1.64 1.8 1.8 0 0 0-2 .36l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.8 1.8 0 0 0 .36-2 1.8 1.8 0 0 0-1.64-1H3a2 2 0 1 1 0-4h.09a1.8 1.8 0 0 0 1.64-1 1.8 1.8 0 0 0-.36-2l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.8 1.8 0 0 0 2 .36h.01A1.8 1.8 0 0 0 10 2.69V3a2 2 0 1 1 4 0v.09a1.8 1.8 0 0 0 1 1.64 1.8 1.8 0 0 0 2-.36l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.8 1.8 0 0 0-.36 2v.01A1.8 1.8 0 0 0 21.31 10H21a2 2 0 1 1 0 4h-.09a1.8 1.8 0 0 0-1.51 1z"/></svg></button>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" title="Profile" aria-label="Profile"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg></button>
   </aside>
   <main class="main">
     <header class="topbar">
@@ -168,97 +1044,138 @@
     <div class="workspace">
       <div class="prototype">
         <div class="page-header">
-          <div>
+          <section class="hero-panel">
+            <div class="eyebrow">Implementation Template</div>
             <h1>Generic Documents</h1>
-            <div class="subtitle">Implementation-shaped mock using separate list and form views, matching the real app's different endpoints/pages.</div>
-          </div>
-          <div class="toggle" aria-label="Prototype view mode">
-            <button class="active" data-view-button="list">List</button>
-            <button data-view-button="form">Form</button>
-          </div>
+            <div class="subtitle">A premium implementation-shaped mock for list and form views. The structure still follows the real app model, but the visual system now has stronger hierarchy, calmer spacing, and clearer primary actions.</div>
+            <div class="hero-tags">
+              <span class="meta-pill"><strong>List + form</strong> Same page, separate states</span>
+              <span class="meta-pill"><strong>Premium density</strong> Better rhythm for high-volume work</span>
+              <span class="meta-pill"><strong>Mobile-safe</strong> Stack cleanly below 760px</span>
+            </div>
+          </section>
+          <aside class="hero-side">
+            <div class="hero-stats">
+              <div class="stat-card">
+                <span class="stat-label">Records</span>
+                <span class="stat-value">128</span>
+                <span class="stat-note">40 drafts currently need attention.</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-label">Overdue</span>
+                <span class="stat-value">18</span>
+                <span class="stat-note">A tighter warning channel than the base mock.</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-label">Avg. Cycle</span>
+                <span class="stat-value">3.6d</span>
+                <span class="stat-note">Fast enough to show progress without clutter.</span>
+              </div>
+            </div>
+            <div class="toggle-shell">
+              <div class="toggle-copy">
+                <strong>View state</strong>
+                <span>Flip between list and form without changing the underlying mock structure.</span>
+              </div>
+              <div class="toggle" aria-label="Prototype view mode">
+                <button class="active" data-view-button="list">List</button>
+                <button data-view-button="form">Form</button>
+              </div>
+            </div>
+          </aside>
         </div>
 
         <div class="view-stack">
           <section class="aras-list-view mock-view mock-list" aria-label="Generic document list">
-            <div class="aras-list-toolbar">
-              <div class="toolbar-grid">
-                <button class="primary-btn" data-view-button="form">Add New</button>
-                <div class="search-wrap">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                  <input value="customer: nusantara status: draft" aria-label="Search in Generic Documents" />
-                </div>
-                <div class="toolbar-actions">
-                  <button class="secondary-btn">Filters (2)</button>
-                  <button class="secondary-btn">Columns</button>
-                  <button class="secondary-btn">Actions</button>
-                </div>
-              </div>
-              <div class="chip-row">
-                <span class="chip"><strong>Status</strong> Draft or Submitted</span>
-                <span class="chip"><strong>Date</strong> This month</span>
-                <span class="chip"><strong>Saved</strong> Open receivables</span>
-              </div>
-            </div>
             <div class="surface">
-              <table>
-                <thead>
-                  <tr>
-                    <th style="width:42px"><span class="checkbox" aria-hidden="true"></span></th>
-                    <th style="width:138px">Document</th>
-                    <th>Party</th>
-                    <th style="width:118px">Date</th>
-                    <th style="width:116px">Status</th>
-                    <th style="width:112px">Amount</th>
-                    <th style="width:86px">Owner</th>
-                    <th style="width:96px"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr class="selected" data-open-form>
-                    <td><span class="checkbox on" aria-hidden="true"></span></td>
-                    <td><span class="record-title">SO-2026-0142</span></td>
-                    <td>Nusantara Office Supplies with a very long branch name</td>
-                    <td>May 20, 2026</td>
-                    <td><span class="badge amber">Draft</span></td>
-                    <td>Rp 18.450.000</td>
-                    <td>Rina</td>
-                    <td><div class="row-actions"><button aria-label="Edit">✎</button><button aria-label="More">⋯</button></div></td>
-                  </tr>
-                  <tr>
-                    <td><span class="checkbox" aria-hidden="true"></span></td>
-                    <td><span class="record-title">SO-2026-0141</span></td>
-                    <td>PT Sumber Sentosa</td>
-                    <td>May 19, 2026</td>
-                    <td><span class="badge green">Submitted</span></td>
-                    <td>Rp 9.875.000</td>
-                    <td>Aras</td>
-                    <td><div class="row-actions"><button aria-label="Edit">✎</button><button aria-label="More">⋯</button></div></td>
-                  </tr>
-                  <tr>
-                    <td><span class="checkbox" aria-hidden="true"></span></td>
-                    <td><span class="record-title">SO-2026-0140</span></td>
-                    <td>CV Lentera Baru</td>
-                    <td>May 18, 2026</td>
-                    <td><span class="badge red">Overdue</span></td>
-                    <td>Rp 2.310.000</td>
-                    <td>Dimas</td>
-                    <td><div class="row-actions"><button aria-label="Edit">✎</button><button aria-label="More">⋯</button></div></td>
-                  </tr>
-                  <tr>
-                    <td><span class="checkbox" aria-hidden="true"></span></td>
-                    <td><span class="record-title">QT-2026-0088</span></td>
-                    <td>Bintang Timur Cooperative</td>
-                    <td>May 17, 2026</td>
-                    <td><span class="badge">Quoted</span></td>
-                    <td>Rp 41.000.000</td>
-                    <td>Maya</td>
-                    <td><div class="row-actions"><button aria-label="Edit">✎</button><button aria-label="More">⋯</button></div></td>
-                  </tr>
-                </tbody>
-              </table>
+              <div class="surface-header">
+                <div>
+                  <div class="surface-kicker">Live Queue</div>
+                  <h2>Open commercial documents</h2>
+                  <div class="surface-note">The action order is left-weighted now: create first, then search, then secondary controls. That matches how operators usually work through a queue.</div>
+                </div>
+                <span class="badge soft">Synced 2 min ago</span>
+              </div>
+              <div class="aras-list-toolbar">
+                <div class="toolbar-grid">
+                  <button class="primary-btn" data-view-button="form">Add New</button>
+                  <div class="search-wrap">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    <input value="customer: nusantara status: draft" aria-label="Search in Generic Documents" />
+                  </div>
+                  <div class="toolbar-actions">
+                    <button class="secondary-btn">Filters (2)</button>
+                    <button class="secondary-btn">Columns</button>
+                    <button class="secondary-btn">Actions</button>
+                  </div>
+                </div>
+                <div class="chip-row">
+                  <span class="chip"><strong>Status</strong> Draft or Submitted</span>
+                  <span class="chip"><strong>Date</strong> This month</span>
+                  <span class="chip"><strong>Saved</strong> Open receivables</span>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:42px"><span class="checkbox" aria-hidden="true"></span></th>
+                      <th style="width:146px">Document</th>
+                      <th>Party</th>
+                      <th style="width:126px">Date</th>
+                      <th style="width:124px">Status</th>
+                      <th style="width:126px">Amount</th>
+                      <th style="width:96px">Owner</th>
+                      <th style="width:104px"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="selected" data-open-form>
+                      <td><span class="checkbox on" aria-hidden="true"></span></td>
+                      <td><span class="record-title">SO-2026-0142</span></td>
+                      <td>Nusantara Office Supplies with a very long branch name</td>
+                      <td>May 20, 2026</td>
+                      <td><span class="badge amber">Draft</span></td>
+                      <td>Rp 18.450.000</td>
+                      <td>Rina</td>
+                      <td><div class="row-actions"><button aria-label="Edit">Edit</button><button aria-label="More">...</button></div></td>
+                    </tr>
+                    <tr>
+                      <td><span class="checkbox" aria-hidden="true"></span></td>
+                      <td><span class="record-title">SO-2026-0141</span></td>
+                      <td>PT Sumber Sentosa</td>
+                      <td>May 19, 2026</td>
+                      <td><span class="badge green">Submitted</span></td>
+                      <td>Rp 9.875.000</td>
+                      <td>Aras</td>
+                      <td><div class="row-actions"><button aria-label="Edit">Edit</button><button aria-label="More">...</button></div></td>
+                    </tr>
+                    <tr>
+                      <td><span class="checkbox" aria-hidden="true"></span></td>
+                      <td><span class="record-title">SO-2026-0140</span></td>
+                      <td>CV Lentera Baru</td>
+                      <td>May 18, 2026</td>
+                      <td><span class="badge red">Overdue</span></td>
+                      <td>Rp 2.310.000</td>
+                      <td>Dimas</td>
+                      <td><div class="row-actions"><button aria-label="Edit">Edit</button><button aria-label="More">...</button></div></td>
+                    </tr>
+                    <tr>
+                      <td><span class="checkbox" aria-hidden="true"></span></td>
+                      <td><span class="record-title">QT-2026-0088</span></td>
+                      <td>Bintang Timur Cooperative</td>
+                      <td>May 17, 2026</td>
+                      <td><span class="badge soft">Quoted</span></td>
+                      <td>Rp 41.000.000</td>
+                      <td>Maya</td>
+                      <td><div class="row-actions"><button aria-label="Edit">Edit</button><button aria-label="More">...</button></div></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
               <div class="pagination">
                 <span>4 selected-ready records from 128 total</span>
-                <span>Page 1 of 7 &nbsp; ‹ &nbsp; ›</span>
+                <span>Page 1 of 7   <strong>&lsaquo;</strong>   <strong>&rsaquo;</strong></span>
               </div>
             </div>
           </section>
@@ -266,22 +1183,56 @@
           <aside class="aras-form-view mock-view mock-form" aria-label="Generic document form">
             <div class="surface">
               <div class="form-header">
-                <div>
-                  <h2>SO-2026-0142</h2>
-                  <div class="hint">Draft record, unsaved field changes visible</div>
+                <div class="form-head-main">
+                  <div class="form-command-strip">
+                    <button class="primary-btn">Save</button>
+                    <button class="ghost-btn" data-view-button="list">Back</button>
+                    <button class="secondary-btn">Duplicate</button>
+                  </div>
+                  <div>
+                    <div class="eyebrow">Sales Order</div>
+                    <h2>SO-2026-0142</h2>
+                    <div class="hint">Draft record with unsaved field changes. The primary action now sits first, close to the navigation affordance, which reduces decision drift in dense forms.</div>
+                    <div class="form-meta">
+                      <span class="meta-pill"><strong>Owner</strong> Rina</span>
+                      <span class="meta-pill"><strong>Last touched</strong> 4 min ago</span>
+                      <span class="meta-pill"><strong>Lines</strong> 3 items</span>
+                    </div>
+                  </div>
                 </div>
-                <div class="form-actions">
-                  <button class="ghost-btn" data-view-button="list">Back</button>
-                  <button class="secondary-btn">Duplicate</button>
-                  <button class="primary-btn">Save</button>
+                <div class="form-head-side">
+                  <div class="status-panel">
+                    <div>
+                      <strong>Ready for completion</strong>
+                      <span>Commercial details are filled. Review terms, then submit.</span>
+                    </div>
+                    <span class="badge amber">Draft</span>
+                  </div>
+                  <div class="mini-grid">
+                    <div class="mini-card">
+                      <span>Total</span>
+                      <strong>Rp 9.35M</strong>
+                    </div>
+                    <div class="mini-card">
+                      <span>Tax</span>
+                      <strong>11%</strong>
+                    </div>
+                    <div class="mini-card">
+                      <span>Currency</span>
+                      <strong>IDR</strong>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
             <section class="section">
               <div class="section-title">
-                <h3>Document Details</h3>
-                <span class="badge amber">Draft</span>
+                <div>
+                  <div class="section-kicker">Core Fields</div>
+                  <h3>Document Details</h3>
+                </div>
+                <div class="section-note">Commercial terms, party selection, and internal context are grouped into one cleaner section.</div>
               </div>
               <div class="form-grid">
                 <div class="field"><label>Series</label><input value="SO-.YYYY.-.####" /></div>
@@ -314,9 +1265,11 @@
                 </table>
               </div>
               <div class="summary">
-                <div class="summary-line"><span>Subtotal</span><span>Rp 8.425.000</span></div>
-                <div class="summary-line"><span>Tax 11%</span><span>Rp 926.750</span></div>
-                <div class="summary-line total"><span>Total</span><span>Rp 9.351.750</span></div>
+                <div class="summary-shell">
+                  <div class="summary-line"><span>Subtotal</span><span>Rp 8.425.000</span></div>
+                  <div class="summary-line"><span>Tax 11%</span><span>Rp 926.750</span></div>
+                  <div class="summary-line total"><span>Total</span><span>Rp 9.351.750</span></div>
+                </div>
               </div>
             </section>
           </aside>

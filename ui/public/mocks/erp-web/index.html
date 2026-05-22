@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aras ERP — Web</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --sidebar-w: 240px;
+      --header-h: 56px;
+      --accent: #4F46E5;
+      --accent-light: #EEF2FF;
+      --sidebar-bg: #0F172A;
+      --sidebar-text: #94A3B8;
+      --sidebar-hover: #1E293B;
+      --sidebar-active-bg: #4F46E5;
+      --sidebar-active-text: #FFFFFF;
+      --surface: #FFFFFF;
+      --bg: #F8FAFC;
+      --border: #E2E8F0;
+      --text: #0F172A;
+      --text-2: #64748B;
+      --text-3: #94A3B8;
+      --green: #059669;
+      --green-bg: #D1FAE5;
+      --amber: #D97706;
+      --amber-bg: #FEF3C7;
+      --red: #DC2626;
+      --red-bg: #FEE2E2;
+      --slate-text: #475569;
+      --slate-bg: #F1F5F9;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .mono { font-family: 'DM Mono', monospace; }
+
+    /* ── SIDEBAR ─────────────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+      z-index: 20;
+    }
+
+    .sidebar-logo {
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      border-bottom: 1px solid #1E293B;
+      flex-shrink: 0;
+    }
+
+    .logo-mark {
+      width: 28px; height: 28px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px; color: white;
+      letter-spacing: -0.5px;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-size: 15px;
+      font-weight: 700;
+      color: white;
+      letter-spacing: -0.3px;
+    }
+
+    .logo-text span { color: #6366F1; }
+
+    .sidebar-section {
+      padding: 8px 12px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #334155;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 8px 8px 4px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--sidebar-text);
+      transition: background 0.12s, color 0.12s;
+      font-size: 13.5px;
+      font-weight: 500;
+      margin-bottom: 1px;
+      border: none;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+    }
+
+    .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .nav-item:hover { background: var(--sidebar-hover); color: #CBD5E1; }
+    .nav-item.active { background: var(--accent); color: white; }
+    .nav-item .badge {
+      margin-left: auto;
+      background: #1E293B;
+      color: #94A3B8;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 20px;
+      font-family: 'DM Mono', monospace;
+    }
+    .nav-item.active .badge { background: rgba(255,255,255,0.2); color: white; }
+
+    .sidebar-spacer { flex: 1; }
+
+    .sidebar-footer {
+      padding: 12px;
+      border-top: 1px solid #1E293B;
+      flex-shrink: 0;
+    }
+
+    .user-chip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .user-chip:hover { background: var(--sidebar-hover); }
+
+    .avatar {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366F1, #4F46E5);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: white;
+      flex-shrink: 0;
+    }
+
+    .user-info { flex: 1; min-width: 0; }
+    .user-name { font-size: 13px; font-weight: 600; color: #E2E8F0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-role { font-size: 11px; color: #475569; margin-top: 0; }
+
+    /* ── MAIN ────────────────────────────────────────────── */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    /* ── HEADER ──────────────────────────────────────────── */
+    #header {
+      height: var(--header-h);
+      background: white;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 16px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-3);
+      min-width: 160px;
+    }
+
+    .breadcrumb .current { color: var(--text); font-weight: 600; }
+    .breadcrumb svg { width: 12px; height: 12px; }
+
+    .search-bar {
+      flex: 1;
+      max-width: 360px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      height: 34px;
+    }
+
+    .search-bar input {
+      border: none; outline: none; background: transparent;
+      font-family: inherit; font-size: 13px; color: var(--text);
+      flex: 1; width: 100%;
+    }
+
+    .search-bar input::placeholder { color: var(--text-3); }
+    .search-bar svg { width: 14px; height: 14px; color: var(--text-3); flex-shrink: 0; }
+
+    .header-spacer { flex: 1; }
+
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+
+    .icon-btn {
+      width: 34px; height: 34px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border: none; background: transparent;
+      color: var(--text-2);
+      position: relative;
+    }
+
+    .icon-btn:hover { background: var(--bg); }
+    .icon-btn svg { width: 18px; height: 18px; }
+
+    .notif-dot {
+      position: absolute; top: 6px; right: 6px;
+      width: 7px; height: 7px;
+      background: #EF4444;
+      border-radius: 50%;
+      border: 1.5px solid white;
+    }
+
+    .header-user {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 10px 4px 4px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+    }
+
+    .header-user:hover { background: var(--bg); }
+    .header-user .avatar { width: 26px; height: 26px; font-size: 10px; }
+    .header-user span { font-size: 13px; font-weight: 500; color: var(--text); }
+
+    /* ── CONTENT AREA ────────────────────────────────────── */
+    #content {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .view { display: none; height: 100%; overflow-y: auto; }
+    .view.active { display: block; }
+
+    .view-inner {
+      padding: 28px 32px;
+      max-width: 1400px;
+    }
+
+    /* ── PAGE HEADER ─────────────────────────────────────── */
+    .page-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .page-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); }
+    .page-subtitle { font-size: 13px; color: var(--text-3); margin-top: 2px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer; border: none;
+      transition: opacity 0.12s;
+    }
+
+    .btn:hover { opacity: 0.88; }
+    .btn svg { width: 15px; height: 15px; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-ghost { background: white; color: var(--text); border: 1px solid var(--border); }
+
+    /* ── KPI CARDS ───────────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      transform: translate(30px, -30px);
+      opacity: 0.06;
+    }
+
+    .kpi-card.c1::after { background: #4F46E5; }
+    .kpi-card.c2::after { background: #059669; }
+    .kpi-card.c3::after { background: #D97706; }
+    .kpi-card.c4::after { background: #0EA5E9; }
+
+    .kpi-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-3);
+      margin-bottom: 10px;
+    }
+
+    .kpi-value {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      color: var(--text);
+      line-height: 1;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .kpi-trend {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 8px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .kpi-trend svg { width: 14px; height: 14px; }
+    .trend-up { color: var(--green); }
+    .trend-dn { color: var(--red); }
+    .kpi-trend .vs { color: var(--text-3); font-weight: 400; margin-left: 2px; }
+
+    /* ── MIDDLE ROW ──────────────────────────────────────── */
+    .middle-row {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .panel {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-title { font-size: 14px; font-weight: 600; color: var(--text); }
+
+    .see-all {
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    /* ── TABLE ───────────────────────────────────────────── */
+    table { width: 100%; border-collapse: collapse; }
+
+    thead th {
+      padding: 10px 20px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-3);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    thead th:hover { color: var(--text-2); }
+
+    thead th .sort-icon { display: inline-block; margin-left: 4px; opacity: 0.4; }
+
+    tbody tr {
+      border-bottom: 1px solid #F8FAFC;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    tbody tr:hover { background: #F8FAFC; }
+    tbody tr:last-child { border-bottom: none; }
+
+    tbody td {
+      padding: 12px 20px;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .td-mono { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-2); }
+    .td-amount { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; }
+
+    /* ── BADGES ──────────────────────────────────────────── */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.2px;
+    }
+
+    .b-paid { background: var(--green-bg); color: var(--green); }
+    .b-pending { background: var(--amber-bg); color: var(--amber); }
+    .b-overdue { background: var(--red-bg); color: var(--red); }
+    .b-draft { background: var(--slate-bg); color: var(--slate-text); }
+
+    /* ── ACTIVITY FEED ───────────────────────────────────── */
+    .feed { padding: 4px 0; overflow-y: auto; max-height: 360px; }
+
+    .feed-item {
+      display: flex;
+      gap: 14px;
+      padding: 12px 20px;
+      position: relative;
+    }
+
+    .feed-item::before {
+      content: '';
+      position: absolute;
+      left: 35px;
+      top: 36px;
+      bottom: -12px;
+      width: 1px;
+      background: var(--border);
+    }
+
+    .feed-item:last-child::before { display: none; }
+
+    .feed-dot {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+      border: 2px solid white;
+      box-shadow: 0 0 0 1px var(--border);
+    }
+
+    .feed-dot svg { width: 11px; height: 11px; }
+
+    .feed-body { flex: 1; min-width: 0; }
+    .feed-text { font-size: 12.5px; color: var(--text); line-height: 1.4; }
+    .feed-text strong { font-weight: 600; }
+    .feed-time { font-size: 11px; color: var(--text-3); margin-top: 2px; font-family: 'DM Mono', monospace; }
+
+    /* ── CHART ───────────────────────────────────────────── */
+    .chart-panel { margin-bottom: 8px; }
+
+    .chart-body { padding: 20px 20px 0; }
+    .chart-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      height: 80px;
+    }
+
+    .bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+    }
+
+    .bar-col:hover .bar { opacity: 0.75; }
+    .bar-col:hover .bar-tip { opacity: 1; }
+
+    .bar-tip {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--text);
+      color: white;
+      font-size: 10px;
+      font-family: 'DM Mono', monospace;
+      padding: 3px 7px;
+      border-radius: 5px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s;
+    }
+
+    .bar-tip::after {
+      content: '';
+      position: absolute;
+      top: 100%; left: 50%;
+      transform: translateX(-50%);
+      border: 4px solid transparent;
+      border-top-color: var(--text);
+    }
+
+    .bar {
+      width: 100%;
+      border-radius: 4px 4px 0 0;
+      background: var(--accent);
+      transition: opacity 0.12s;
+    }
+
+    .bar.muted { background: #C7D2FE; }
+
+    .chart-labels {
+      display: flex;
+      gap: 8px;
+      padding: 8px 20px 16px;
+    }
+
+    .chart-label {
+      flex: 1;
+      text-align: center;
+      font-size: 10px;
+      color: var(--text-3);
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* ── INVOICES VIEW ───────────────────────────────────── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-search {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      height: 36px;
+      flex: 1;
+      max-width: 280px;
+    }
+
+    .toolbar-search input {
+      border: none; outline: none; background: transparent;
+      font-family: inherit; font-size: 13px; color: var(--text); flex: 1;
+    }
+
+    .toolbar-search input::placeholder { color: var(--text-3); }
+    .toolbar-search svg { width: 14px; height: 14px; color: var(--text-3); }
+
+    .filter-chip {
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.1s;
+    }
+
+    .filter-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+    .filter-chip:not(.active) { background: white; color: var(--text-2); }
+    .filter-chip:not(.active):hover { border-color: var(--accent); color: var(--accent); }
+
+    .date-input {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0 12px;
+      height: 36px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--text-2);
+      outline: none;
+    }
+
+    .toolbar-spacer { flex: 1; }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-3);
+    }
+
+    .page-btn {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border);
+      background: white; color: var(--text-2);
+      font-family: 'DM Mono', monospace;
+    }
+
+    .page-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+    .page-btn:not(.active):hover { border-color: var(--accent); color: var(--accent); }
+    .page-btn svg { width: 12px; height: 12px; }
+
+    /* ── NEW INVOICE FORM ────────────────────────────────── */
+    .form-wrap {
+      max-width: 860px;
+    }
+
+    .form-section {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .form-section-header {
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--text-3);
+    }
+
+    .form-body { padding: 24px; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .form-grid.col3 { grid-template-columns: 1fr 1fr 1fr; }
+    .form-grid.full { grid-template-columns: 1fr; }
+
+    .form-field { display: flex; flex-direction: column; gap: 6px; }
+
+    .form-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-3);
+    }
+
+    .form-input, .form-select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-family: inherit;
+      font-size: 13.5px;
+      color: var(--text);
+      outline: none;
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+
+    .form-input:focus, .form-select:focus { border-color: var(--accent); background: white; }
+    .form-input::placeholder { color: var(--text-3); }
+    .form-select { appearance: none; cursor: pointer; }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      padding: 20px 0 8px;
+    }
+
+    /* ── LINE ITEMS TABLE ────────────────────────────────── */
+    .line-items { width: 100%; border-collapse: collapse; }
+    .line-items th {
+      padding: 8px 12px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-3);
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .line-items td { padding: 8px 12px; }
+    .line-items td input {
+      width: 100%;
+      border: 1px solid transparent;
+      background: transparent;
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+    }
+
+    .line-items td input:focus { border-color: var(--accent); background: white; }
+
+    .add-row-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 12px;
+      font-size: 12px; font-weight: 600; color: var(--accent);
+      cursor: pointer; border: none; background: transparent;
+      font-family: inherit;
+    }
+
+    .add-row-btn svg { width: 14px; height: 14px; }
+    .add-row-btn:hover { color: var(--accent); opacity: 0.8; }
+
+    /* Scroll styling */
+    .view::-webkit-scrollbar { width: 6px; }
+    .view::-webkit-scrollbar-track { background: transparent; }
+    .view::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* Fade-in animation */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .view.active { animation: fadeUp 0.2s ease; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- SIDEBAR                                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<aside id="sidebar">
+
+  <div class="sidebar-logo">
+    <div class="logo-mark">A</div>
+    <div class="logo-text">aras<span>.</span>erp</div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Workspace</div>
+    <button class="nav-item active" onclick="nav('dashboard', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item" onclick="nav('invoices', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Invoices
+      <span class="badge">24</span>
+    </button>
+    <button class="nav-item" onclick="nav('dashboard', this)" style="pointer-events:none;opacity:0.5">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      Purchases
+    </button>
+    <button class="nav-item" onclick="nav('dashboard', this)" style="pointer-events:none;opacity:0.5">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      Inventory
+    </button>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">CRM</div>
+    <button class="nav-item" onclick="nav('dashboard', this)" style="pointer-events:none;opacity:0.5">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Clients
+    </button>
+    <button class="nav-item" onclick="nav('dashboard', this)" style="pointer-events:none;opacity:0.5">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Reports
+    </button>
+  </div>
+
+  <div class="sidebar-spacer"></div>
+
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="avatar">AR</div>
+      <div class="user-info">
+        <div class="user-name">Aras</div>
+        <div class="user-role">Administrator</div>
+      </div>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+    </div>
+  </div>
+
+</aside>
+
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- MAIN                                                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="main">
+
+  <!-- HEADER -->
+  <header id="header">
+    <div class="breadcrumb">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      <span class="current" id="breadcrumb-label">Dashboard</span>
+    </div>
+    <div class="search-bar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Search anything… (⌘K)">
+    </div>
+    <div class="header-spacer"></div>
+    <div class="header-actions">
+      <button class="icon-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <div class="notif-dot"></div>
+      </button>
+      <button class="icon-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      </button>
+      <div class="header-user">
+        <div class="avatar">AR</div>
+        <span>Aras</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <div id="content">
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- DASHBOARD VIEW                            -->
+    <!-- ══════════════════════════════════════════ -->
+    <div class="view active" id="view-dashboard">
+      <div class="view-inner">
+
+        <div class="page-header">
+          <div>
+            <div class="page-title">Good morning, Aras 👋</div>
+            <div class="page-subtitle">Thursday, 22 May 2026 — here's what's happening today</div>
+          </div>
+          <button class="btn btn-primary" onclick="nav('new-invoice', document.querySelector('.nav-item:nth-child(2)'))">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Invoice
+          </button>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card c1">
+            <div class="kpi-label">Total Revenue</div>
+            <div class="kpi-value">$142.5k</div>
+            <div class="kpi-trend trend-up">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              +12.5%
+              <span class="vs">vs last month</span>
+            </div>
+          </div>
+          <div class="kpi-card c2">
+            <div class="kpi-label">Orders</div>
+            <div class="kpi-value">248</div>
+            <div class="kpi-trend trend-up">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              +8 new
+              <span class="vs">this week</span>
+            </div>
+          </div>
+          <div class="kpi-card c3">
+            <div class="kpi-label">Outstanding</div>
+            <div class="kpi-value">$18.2k</div>
+            <div class="kpi-trend trend-dn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+              3 overdue
+              <span class="vs">invoices</span>
+            </div>
+          </div>
+          <div class="kpi-card" style="border-top: 3px solid #0EA5E9">
+            <div class="kpi-label">Active Clients</div>
+            <div class="kpi-value">64</div>
+            <div class="kpi-trend trend-up" style="color:#0EA5E9">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              +4 new
+              <span class="vs">this month</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Middle row -->
+        <div class="middle-row">
+
+          <!-- Recent Invoices Table -->
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">Recent Invoices</div>
+              <a class="see-all" onclick="nav('invoices', document.querySelectorAll('.nav-item')[1])">See all →</a>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Invoice <span class="sort-icon">↕</span></th>
+                  <th>Client <span class="sort-icon">↕</span></th>
+                  <th>Date <span class="sort-icon">↕</span></th>
+                  <th>Amount <span class="sort-icon">↕</span></th>
+                  <th>Status <span class="sort-icon">↕</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="td-mono">#INV-0042</td>
+                  <td style="font-weight:500">Acme Corp</td>
+                  <td style="color:var(--text-3);font-size:12px">22 May 2026</td>
+                  <td class="td-amount">$3,200.00</td>
+                  <td><span class="badge b-paid">paid</span></td>
+                </tr>
+                <tr>
+                  <td class="td-mono">#INV-0041</td>
+                  <td style="font-weight:500">Globex Industries</td>
+                  <td style="color:var(--text-3);font-size:12px">20 May 2026</td>
+                  <td class="td-amount">$1,850.00</td>
+                  <td><span class="badge b-pending">pending</span></td>
+                </tr>
+                <tr>
+                  <td class="td-mono">#INV-0040</td>
+                  <td style="font-weight:500">Initech</td>
+                  <td style="color:var(--text-3);font-size:12px">15 May 2026</td>
+                  <td class="td-amount">$650.00</td>
+                  <td><span class="badge b-overdue">overdue</span></td>
+                </tr>
+                <tr>
+                  <td class="td-mono">#INV-0039</td>
+                  <td style="font-weight:500">Umbrella Corp</td>
+                  <td style="color:var(--text-3);font-size:12px">12 May 2026</td>
+                  <td class="td-amount">$12,400.00</td>
+                  <td><span class="badge b-draft">draft</span></td>
+                </tr>
+                <tr>
+                  <td class="td-mono">#INV-0038</td>
+                  <td style="font-weight:500">Cyberdyne Systems</td>
+                  <td style="color:var(--text-3);font-size:12px">10 May 2026</td>
+                  <td class="td-amount">$5,300.00</td>
+                  <td><span class="badge b-paid">paid</span></td>
+                </tr>
+                <tr>
+                  <td class="td-mono">#INV-0037</td>
+                  <td style="font-weight:500">Weyland Corp</td>
+                  <td style="color:var(--text-3);font-size:12px">08 May 2026</td>
+                  <td class="td-amount">$2,100.00</td>
+                  <td><span class="badge b-pending">pending</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Activity Feed -->
+          <div class="panel" style="display:flex;flex-direction:column">
+            <div class="panel-header">
+              <div class="panel-title">Activity</div>
+              <span style="font-size:11px;color:var(--text-3);font-family:'DM Mono',monospace">Today</span>
+            </div>
+            <div class="feed">
+              <div class="feed-item">
+                <div class="feed-dot" style="background:#D1FAE5">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="feed-body">
+                  <div class="feed-text">Invoice <strong>#INV-0042</strong> marked as paid by Acme Corp</div>
+                  <div class="feed-time">2h ago</div>
+                </div>
+              </div>
+              <div class="feed-item">
+                <div class="feed-dot" style="background:#EEF2FF">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+                </div>
+                <div class="feed-body">
+                  <div class="feed-text">New invoice <strong>#INV-0043</strong> created for Globex</div>
+                  <div class="feed-time">4h ago</div>
+                </div>
+              </div>
+              <div class="feed-item">
+                <div class="feed-dot" style="background:#FEE2E2">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+                <div class="feed-body">
+                  <div class="feed-text"><strong>Initech</strong> invoice overdue — $650.00</div>
+                  <div class="feed-time">Yesterday</div>
+                </div>
+              </div>
+              <div class="feed-item">
+                <div class="feed-dot" style="background:#EEF2FF">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                </div>
+                <div class="feed-body">
+                  <div class="feed-text">New client <strong>Weyland Corp</strong> added to CRM</div>
+                  <div class="feed-time">2 days ago</div>
+                </div>
+              </div>
+              <div class="feed-item">
+                <div class="feed-dot" style="background:#D1FAE5">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="feed-body">
+                  <div class="feed-text">Payment of <strong>$8,500</strong> received from Umbrella Corp</div>
+                  <div class="feed-time">3 days ago</div>
+                </div>
+              </div>
+              <div class="feed-item">
+                <div class="feed-dot" style="background:#FEF3C7">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                </div>
+                <div class="feed-body">
+                  <div class="feed-text">PO <strong>#PO-0019</strong> awaiting approval — $1,840</div>
+                  <div class="feed-time">4 days ago</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Revenue Chart -->
+        <div class="panel chart-panel">
+          <div class="panel-header">
+            <div class="panel-title">Monthly Revenue</div>
+            <div style="display:flex;gap:12px;align-items:center">
+              <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-3)"><div style="width:10px;height:10px;border-radius:2px;background:#4F46E5"></div>2026</div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-3)"><div style="width:10px;height:10px;border-radius:2px;background:#C7D2FE"></div>2025</div>
+            </div>
+          </div>
+          <div class="chart-body">
+            <div class="chart-bars">
+              <div class="bar-col"><div class="bar-tip">$28.4k</div><div class="bar" style="height:42px"></div></div>
+              <div class="bar-col"><div class="bar-tip">$32.1k</div><div class="bar" style="height:48px"></div></div>
+              <div class="bar-col"><div class="bar-tip">$25.8k</div><div class="bar" style="height:38px"></div></div>
+              <div class="bar-col"><div class="bar-tip">$41.2k</div><div class="bar" style="height:62px"></div></div>
+              <div class="bar-col"><div class="bar-tip">$142.5k (YTD)</div><div class="bar" style="height:80px"></div></div>
+              <div class="bar-col" style="opacity:.35"><div class="bar-tip">2025: $88.4k</div><div class="bar muted" style="height:55px"></div></div>
+              <div class="bar-col" style="opacity:.35"><div class="bar-tip">2025: $74.2k</div><div class="bar muted" style="height:44px"></div></div>
+              <div class="bar-col" style="opacity:.35"><div class="bar-tip">2025: $91.0k</div><div class="bar muted" style="height:58px"></div></div>
+              <div class="bar-col" style="opacity:.35"><div class="bar-tip">2025: $62.3k</div><div class="bar muted" style="height:38px"></div></div>
+              <div class="bar-col" style="opacity:.35"><div class="bar-tip">2025: $108.7k</div><div class="bar muted" style="height:68px"></div></div>
+              <div class="bar-col" style="opacity:.35"><div class="bar-tip">2025: $95.1k</div><div class="bar muted" style="height:60px"></div></div>
+              <div class="bar-col" style="opacity:.35"><div class="bar-tip">2025: $120.4k</div><div class="bar muted" style="height:76px"></div></div>
+            </div>
+          </div>
+          <div class="chart-labels">
+            <div class="chart-label">Jan</div><div class="chart-label">Feb</div>
+            <div class="chart-label">Mar</div><div class="chart-label">Apr</div>
+            <div class="chart-label">May</div><div class="chart-label">Jun</div>
+            <div class="chart-label">Jul</div><div class="chart-label">Aug</div>
+            <div class="chart-label">Sep</div><div class="chart-label">Oct</div>
+            <div class="chart-label">Nov</div><div class="chart-label">Dec</div>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /dashboard -->
+
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- INVOICES VIEW                             -->
+    <!-- ══════════════════════════════════════════ -->
+    <div class="view" id="view-invoices">
+      <div class="view-inner">
+
+        <div class="page-header">
+          <div>
+            <div class="page-title">Invoices</div>
+            <div class="page-subtitle">24 invoices total · $18,200 outstanding</div>
+          </div>
+          <button class="btn btn-primary" onclick="nav('new-invoice', null)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Invoice
+          </button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <div class="toolbar-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" placeholder="Search by client, ID, amount…">
+          </div>
+          <button class="filter-chip active">All (24)</button>
+          <button class="filter-chip" onclick="this.parentNode.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));this.classList.add('active')">Paid (14)</button>
+          <button class="filter-chip" onclick="this.parentNode.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));this.classList.add('active')">Pending (6)</button>
+          <button class="filter-chip" onclick="this.parentNode.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));this.classList.add('active')">Overdue (3)</button>
+          <button class="filter-chip" onclick="this.parentNode.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));this.classList.add('active')">Draft (1)</button>
+          <input class="date-input" type="text" placeholder="From: 2026-05-01">
+          <input class="date-input" type="text" placeholder="To: 2026-05-31">
+        </div>
+
+        <!-- Full table -->
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:40px"><input type="checkbox" style="width:14px;height:14px;accent-color:#4F46E5"></th>
+                <th>Invoice <span class="sort-icon">↕</span></th>
+                <th>Client <span class="sort-icon">↕</span></th>
+                <th>Issued <span class="sort-icon">↕</span></th>
+                <th>Due <span class="sort-icon">↕</span></th>
+                <th>Amount <span class="sort-icon">↕</span></th>
+                <th>Status <span class="sort-icon">↕</span></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><input type="checkbox" style="width:14px;height:14px;accent-color:#4F46E5"></td><td class="td-mono">#INV-0042</td><td style="font-weight:500">Acme Corp</td><td style="color:var(--text-3);font-size:12px">22 May 2026</td><td style="color:var(--text-3);font-size:12px">22 Jun 2026</td><td class="td-amount">$3,200.00</td><td><span class="badge b-paid">paid</span></td><td style="color:var(--text-3)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></td></tr>
+              <tr><td><input type="checkbox" style="width:14px;height:14px;accent-color:#4F46E5"></td><td class="td-mono">#INV-0041</td><td style="font-weight:500">Globex Industries</td><td style="color:var(--text-3);font-size:12px">20 May 2026</td><td style="color:var(--text-3);font-size:12px">20 Jun 2026</td><td class="td-amount">$1,850.00</td><td><span class="badge b-pending">pending</span></td><td style="color:var(--text-3)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></td></tr>
+              <tr><td><input type="checkbox" style="width:14px;height:14px;accent-color:#4F46E5"></td><td class="td-mono">#INV-0040</td><td style="font-weight:500">Initech</td><td style="color:var(--text-3);font-size:12px">15 May 2026</td><td style="color:var(--red);font-size:12px;font-weight:600">01 May 2026</td><td class="td-amount">$650.00</td><td><span class="badge b-overdue">overdue</span></td><td style="color:var(--text-3)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></td></tr>
+              <tr><td><input type="checkbox" style="width:14px;height:14px;accent-color:#4F46E5"></td><td class="td-mono">#INV-0039</td><td style="font-weight:500">Umbrella Corp</td><td style="color:var(--text-3);font-size:12px">12 May 2026</td><td style="color:var(--text-3);font-size:12px">12 Jun 2026</td><td class="td-amount">$12,400.00</td><td><span class="badge b-draft">draft</span></td><td style="color:var(--text-3)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></td></tr>
+              <tr><td><input type="checkbox" style="width:14px;height:14px;accent-color:#4F46E5"></td><td class="td-mono">#INV-0038</td><td style="font-weight:500">Cyberdyne Systems</td><td style="color:var(--text-3);font-size:12px">10 May 2026</td><td style="color:var(--text-3);font-size:12px">10 Jun 2026</td><td class="td-amount">$5,300.00</td><td><span class="badge b-paid">paid</span></td><td style="color:var(--text-3)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></td></tr>
+              <tr><td><input type="checkbox" style="width:14px;height:14px;accent-color:#4F46E5"></td><td class="td-mono">#INV-0037</td><td style="font-weight:500">Weyland Corp</td><td style="color:var(--text-3);font-size:12px">08 May 2026</td><td style="color:var(--text-3);font-size:12px">08 Jun 2026</td><td class="td-amount">$2,100.00</td><td><span class="badge b-pending">pending</span></td><td style="color:var(--text-3)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></td></tr>
+              <tr><td><input type="checkbox" style="width:14px;height:14px;accent-color:#4F46E5"></td><td class="td-mono">#INV-0036</td><td style="font-weight:500">Acme Corp</td><td style="color:var(--text-3);font-size:12px">05 May 2026</td><td style="color:var(--text-3);font-size:12px">05 Jun 2026</td><td class="td-amount">$7,800.00</td><td><span class="badge b-paid">paid</span></td><td style="color:var(--text-3)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></td></tr>
+              <tr><td><input type="checkbox" style="width:14px;height:14px;accent-color:#4F46E5"></td><td class="td-mono">#INV-0035</td><td style="font-weight:500">Initech</td><td style="color:var(--text-3);font-size:12px">02 May 2026</td><td style="color:var(--red);font-size:12px;font-weight:600">18 Apr 2026</td><td class="td-amount">$940.00</td><td><span class="badge b-overdue">overdue</span></td><td style="color:var(--text-3)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></td></tr>
+            </tbody>
+          </table>
+          <div class="pagination">
+            <span>Showing 1–8 of 24</span>
+            <div style="flex:1"></div>
+            <button class="page-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /invoices -->
+
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- NEW INVOICE FORM                          -->
+    <!-- ══════════════════════════════════════════ -->
+    <div class="view" id="view-new-invoice">
+      <div class="view-inner">
+
+        <div class="page-header">
+          <div>
+            <div class="page-title">New Invoice</div>
+            <div class="page-subtitle">Fill in the details to generate a new invoice</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" onclick="nav('invoices', document.querySelectorAll('.nav-item')[1])">Cancel</button>
+            <button class="btn btn-ghost">Save Draft</button>
+            <button class="btn btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Send Invoice
+            </button>
+          </div>
+        </div>
+
+        <div class="form-wrap">
+
+          <!-- Client & Details -->
+          <div class="form-section">
+            <div class="form-section-header">Invoice Details</div>
+            <div class="form-body">
+              <div class="form-grid" style="margin-bottom:18px">
+                <div class="form-field">
+                  <label class="form-label">Client *</label>
+                  <select class="form-select">
+                    <option value="">Select a client…</option>
+                    <option>Acme Corp</option>
+                    <option>Globex Industries</option>
+                    <option>Initech</option>
+                    <option>Umbrella Corp</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Invoice Number</label>
+                  <input class="form-input" type="text" value="#INV-0043" placeholder="#INV-0043">
+                </div>
+              </div>
+              <div class="form-grid col3">
+                <div class="form-field">
+                  <label class="form-label">Issue Date *</label>
+                  <input class="form-input" type="text" placeholder="2026-05-22">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Due Date *</label>
+                  <input class="form-input" type="text" placeholder="2026-06-22">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Currency</label>
+                  <select class="form-select">
+                    <option>USD — US Dollar</option>
+                    <option>IDR — Indonesian Rupiah</option>
+                    <option>EUR — Euro</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Line Items -->
+          <div class="form-section">
+            <div class="form-section-header">Line Items</div>
+            <div style="padding:0 24px">
+              <table class="line-items">
+                <thead>
+                  <tr>
+                    <th style="width:40%">Description</th>
+                    <th>Qty</th>
+                    <th>Unit Price</th>
+                    <th>Tax %</th>
+                    <th>Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><input type="text" placeholder="Service description…"></td>
+                    <td><input type="number" placeholder="1" style="width:60px"></td>
+                    <td><input type="number" placeholder="0.00"></td>
+                    <td><input type="number" placeholder="11"></td>
+                    <td style="font-family:'DM Mono',monospace;font-size:13px;color:var(--text-2)">$0.00</td>
+                    <td><button style="border:none;background:none;cursor:pointer;color:var(--text-3);padding:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></td>
+                  </tr>
+                  <tr>
+                    <td><input type="text" placeholder="Service description…"></td>
+                    <td><input type="number" placeholder="1" style="width:60px"></td>
+                    <td><input type="number" placeholder="0.00"></td>
+                    <td><input type="number" placeholder="11"></td>
+                    <td style="font-family:'DM Mono',monospace;font-size:13px;color:var(--text-2)">$0.00</td>
+                    <td><button style="border:none;background:none;cursor:pointer;color:var(--text-3);padding:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></td>
+                  </tr>
+                </tbody>
+              </table>
+              <button class="add-row-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add line item
+              </button>
+            </div>
+            <!-- Totals -->
+            <div style="border-top:1px solid var(--border);padding:16px 24px;display:flex;justify-content:flex-end">
+              <div style="min-width:240px">
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-2);margin-bottom:6px"><span>Subtotal</span><span class="mono">$0.00</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-2);margin-bottom:10px"><span>Tax (11%)</span><span class="mono">$0.00</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;color:var(--text);border-top:1px solid var(--border);padding-top:10px"><span>Total</span><span class="mono">$0.00</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="form-section">
+            <div class="form-section-header">Notes & Terms</div>
+            <div class="form-body">
+              <div class="form-grid" style="margin-bottom:0">
+                <div class="form-field">
+                  <label class="form-label">Notes to Client</label>
+                  <textarea class="form-input" rows="3" placeholder="Thank you for your business…" style="resize:vertical"></textarea>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Payment Terms</label>
+                  <select class="form-select">
+                    <option>Net 30</option>
+                    <option>Net 14</option>
+                    <option>Due on receipt</option>
+                    <option>Net 60</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div><!-- /new-invoice -->
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+
+<script>
+  lucide.createIcons()
+
+  const breadcrumbs = {
+    dashboard: 'Dashboard',
+    invoices: 'Invoices',
+    'new-invoice': 'New Invoice',
+  }
+
+  function nav(viewName, btn) {
+    // Switch view
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'))
+    const target = document.getElementById('view-' + viewName)
+    if (target) target.classList.add('active')
+
+    // Update breadcrumb
+    document.getElementById('breadcrumb-label').textContent = breadcrumbs[viewName] || viewName
+
+    // Update nav items
+    if (btn) {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
+      btn.classList.add('active')
+    }
+  }
+</script>
+
+</body>
+</html>

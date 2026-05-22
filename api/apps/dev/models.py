@@ -1,5 +1,5 @@
 from typing import Optional
-from sqlalchemy import String, Text, Integer, DateTime
+from sqlalchemy import String, Text, Integer, DateTime, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
 from core import Aras
@@ -76,3 +76,26 @@ class HandoffRun(Aras.Model):
     # Git tracking
     commit_hash: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     commit_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+
+class TemplateAnnotation(Aras.Model):
+    """
+    Persists template layouts and AI annotations for the Template Builder dev tool.
+    """
+    __tablename__ = "dev_template_annotations"
+    __searchable_fields__ = ["template_name", "author"]
+    __display_fields__ = ("template_name",)
+    __layout__ = [
+        {
+            "title": "General",
+            "fields": ["template_name", "author", "created_at"]
+        },
+        {
+            "title": "Annotation Data",
+            "fields": ["sections"]
+        }
+    ]
+
+    template_name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    author: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    sections: Mapped[list] = mapped_column(JSON, default=list)

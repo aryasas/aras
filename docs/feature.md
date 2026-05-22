@@ -172,6 +172,9 @@ This file is used only to report if there are feature added
 - Settings seed uses single `IN` query
 - `MetadataService` in-memory cache with `clearCache()` / `invalidate()`
 
+### Developer Tools
+- Template Builder Persistence — `dev_template_annotations` table stores layout sections and AI annotations for system templates (Home, DynamicForm, etc.).
+
 ### Frontend Reliability
 - `cleanResourcePath()` — centralizes path normalization
 - API interceptor normalizes `{message}` and `{detail}` to `.detail`
@@ -311,3 +314,33 @@ This file is used only to report if there are feature added
 
 ## Docs sync, plan merge, reports sync, dev tools review, mock design proposals — revision (2026-05-19)
   - [GPT (codex)] Dashboard settings section and route; standalone ListView and FormView mock proposals; mock index entries
+## Modern ERP Real UI Redesign (2026-05-21)
+- [GPT-5.5] Added `ListViewActionBar` for one-bar list actions with Add New, search, filters, saved filters, view mode, columns, import/export, and archive controls.
+- [GPT-5.5] Reworked real ListView/FormView/InlineChildTable surfaces toward the `erp-modern-app` mock with glass island panels, separated titles/actions, icon-only child table controls, and per-line pencil editing.
+- [GPT-5.5] Revised DynamicForm field rendering from generic three-column grids to mock-style horizontal field rows, and changed InlineChildTable from a table grid to line-item rows matching the mock interaction pattern.
+- [GPT-5.5] Tuned real form proportions directly against `ui/public/mocks/erp-modern-app/form.html` and `ui/public/mocks/erp-modern/form.html`: 24px islands, compact section headers, p-5 section bodies, 14px field controls, date sections as two-column grids, and line-item width/spacing.
+
+## CSS prefix migration & dark mode input fixes (2026-05-21)
+- [Antigravity] Migrated styling system to generic app- prefix inside ui/src/index.css, establishing an aliased selector mapping for 100% legacy compatibility.
+- [Antigravity] Added Cross-Platform Design Token Dictionary mapping HSL colors for Expo/React Native sharing.
+- [Antigravity] Reorganized action alignment by placing primary Save button (DynamicForm) and Add New button (ListToolbar) on the far left.
+
+
+## CSS prefix migration & dark mode input fixes (2026-05-21)
+  - [Antigravity] Left-aligned save action, generic styling layer migration, cross-platform Expo HSL design tokens
+
+
+## Detailed Web Builder Styling & Inspector (2026-05-22)
+  - [Gemini] Added properties inspector to TemplateBuilder for margin, padding, colors, alignment. LiveDesignWrapper applies these styles at runtime.
+
+
+## In-Place WYSIWYG Design Mode (2026-05-22)
+  - [Gemini] Transitioned from a macro Template Builder to a true in-place WYSIWYG element editor. Added DesignContainer and DesignElement primitives that intercept clicks and allow drag-and-drop. Created a global DesignInspector sidebar. Applied wrappers to DynamicForm and ListView components.
+
+
+## In-Place WYSIWYG Design Mode (2026-05-22)
+  - [Gemini] Fixed TemplateDesignToggle visibility by correctly injecting it into the Header. Changed toggle icon to Wand2 to distinguish it from standard editing. Added flex-shrink-0 to DesignInspector so it does not collapse. Refactored Header to use DesignContainer and DesignElement.
+
+
+## Granular WYSIWYG & Dynamic Elements (2026-05-22)
+  - [Gemini] Added dynamic element support to Design Mode (Text Block, Button, Divider, nested Containers). Added Add Elements palette to DesignInspector. Restructured ListViewActionBar with granular DesignContainers and DesignElements allowing per-button layout styling.

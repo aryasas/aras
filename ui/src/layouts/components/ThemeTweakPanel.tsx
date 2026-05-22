@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
 import Combobox from '../../aras-core/components/Combobox'
@@ -14,6 +14,7 @@ const accentOptions = [
 
 export function ThemeTweakPanel() {
   const [open, setOpen] = useState(false)
+  const panelRef = useRef<HTMLDivElement>(null)
   const {
     themeMode,
     cornerMode,
@@ -27,12 +28,28 @@ export function ThemeTweakPanel() {
     setFontScale,
   } = useUIStore()
 
+  useEffect(() => {
+    if (!open) return
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (panelRef.current && !panelRef.current.contains(target)) {
+        // Don't close when interacting with Combobox portal dropdowns
+        if ((target as Element).closest?.('[data-combobox-dropdown]')) return
+        setOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open])
+
   return (
-    <div className="relative">
+    <div className="relative" ref={panelRef}>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="grid h-14 w-14 place-items-center text-[var(--aras-text)] transition-colors hover:bg-[var(--aras-panel-soft)] max-sm:h-12 max-sm:w-12"
+        className="flex items-center justify-center w-10 h-10 bg-[var(--aras-panel)] rounded-[var(--aras-radius)] shadow-sm border border-[var(--aras-border)] text-[var(--aras-muted)] hover:text-[var(--aras-accent)] hover:border-[var(--aras-accent)] transition-all"
         title="Tweak layout"
       >
         <SlidersHorizontal size={18} />
@@ -48,6 +65,7 @@ export function ThemeTweakPanel() {
             <label className="block">
               <span className="mb-1.5 block text-xs font-bold text-[var(--aras-muted)]">Theme</span>
               <Combobox
+                variant="simple"
                 options={[
                   { label: 'Light', value: 'light' },
                   { label: 'Normal', value: 'normal' },
@@ -62,6 +80,7 @@ export function ThemeTweakPanel() {
               <label className="block">
                 <span className="mb-1.5 block text-xs font-bold text-[var(--aras-muted)]">Corners</span>
                 <Combobox
+                  variant="simple"
                   options={[
                     { label: 'Rounded', value: 'rounded' },
                     { label: 'Square', value: 'square' }
@@ -74,6 +93,7 @@ export function ThemeTweakPanel() {
               <label className="block">
                 <span className="mb-1.5 block text-xs font-bold text-[var(--aras-muted)]">Layout</span>
                 <Combobox
+                  variant="simple"
                   options={[
                     { label: 'Compact', value: 'compact' },
                     { label: 'Regular', value: 'regular' },

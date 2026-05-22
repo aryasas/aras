@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Modern App Form (Cross-Platform ERP)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'], mono: ['"JetBrains Mono"', 'monospace'] },
+                    colors: {
+                        brand: { 50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 300: '#5eead4', 400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e', 800: '#115e59', 900: '#134e4a', 950: '#042f2e' },
+                        surface: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a', 950: '#020617' }
+                    },
+                    boxShadow: { 'floating': '0 10px 40px -10px rgba(0,0,0,0.08)' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f1f5f9; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 24px 24px; -webkit-tap-highlight-color: transparent; }
+        .glass-panel { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.9); }
+        .island { border-radius: 24px; box-shadow: var(--tw-shadow-floating); }
+        ::-webkit-scrollbar { display: none; }
+        * { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Sidebar Expansion Styles */
+        #desktop-sidebar { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s; width: 6rem; align-items: center; }
+        body.sidebar-expanded #desktop-sidebar { width: 16rem; padding-left: 1.5rem; padding-right: 1.5rem; align-items: stretch; }
+
+        .nav-btn { transition: all 0.2s; display: flex; align-items: center; border-radius: 1rem; }
+        #desktop-sidebar .nav-btn { flex-direction: column; justify-content: center; width: 3.5rem; height: 3.5rem; gap: 0.25rem; margin: 0 auto; }
+        body.sidebar-expanded #desktop-sidebar .nav-btn { flex-direction: row; width: 100%; justify-content: flex-start; padding-left: 1rem; height: 3.5rem; gap: 1rem; margin: 0; }
+
+        #desktop-sidebar .nav-text { font-size: 0.625rem; transition: font-size 0.2s; }
+        body.sidebar-expanded #desktop-sidebar .nav-text { font-size: 0.875rem; }
+
+        /* Centering Wrapper Styles */
+        @media (min-width: 768px) {
+            #content-wrapper { padding-left: 7.5rem; transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+            body.sidebar-expanded #content-wrapper { padding-left: 17.5rem; }
+        }
+    </style>
+</head>
+<body class="text-surface-800 antialiased min-h-screen relative">
+
+    <!-- Desktop Side Rail (Fixed) -->
+    <aside id="desktop-sidebar" class="hidden md:flex fixed left-6 top-6 bottom-6 glass-panel island flex-col py-6 z-30 justify-between">
+        <div class="flex flex-col items-center gap-4 w-full">
+            <button onclick="toggleSidebar()" class="nav-btn w-12 h-12 bg-surface-900 hover:bg-black text-brand-400 font-bold shadow-md mb-4 group shrink-0" style="border-radius:1rem;">
+                <i data-lucide="panel-left-open" class="w-5 h-5 group-hover:scale-110 transition-transform hidden sidebar-expanded:block"></i>
+                <i data-lucide="hexagon" class="w-6 h-6 group-hover:scale-110 transition-transform block sidebar-expanded:hidden"></i>
+            </button>
+            
+            <a href="index.html" class="nav-btn text-surface-400 hover:text-surface-800 hover:bg-white w-full shrink-0 cursor-pointer">
+                <i data-lucide="layout-dashboard" class="w-6 h-6 shrink-0"></i>
+                <span class="nav-text font-bold">Home</span>
+            </a>
+            <button class="nav-btn text-brand-600 bg-brand-50 w-full shrink-0">
+                <i data-lucide="file-text" class="w-6 h-6 shrink-0"></i>
+                <span class="nav-text font-bold">Invoices</span>
+            </button>
+        </div>
+        <div class="flex flex-col items-center gap-4 w-full shrink-0 mt-8">
+            <button class="nav-btn text-surface-400 hover:text-surface-800 hover:bg-white w-full">
+                <i data-lucide="settings-2" class="w-6 h-6 shrink-0"></i>
+                <span class="nav-text font-bold text-center">Settings</span>
+            </button>
+            <img src="https://ui-avatars.com/api/?name=Aras&background=1e293b&color=fff&bold=true" alt="User" class="w-10 h-10 md:w-12 md:h-12 rounded-2xl shadow-sm border border-white shrink-0 mx-auto">
+        </div>
+    </aside>
+
+    <!-- App Content Wrapper -->
+    <div id="content-wrapper" class="w-full min-h-screen flex flex-col">
+        <!-- Main Scrollable Content -->
+        <main id="main-content" class="flex-1 p-4 md:p-6 pb-28 md:pb-6 relative w-full max-w-5xl mx-auto transition-all">
+            
+            <!-- Header Island (Stack Header on Mobile, Page Header on Desktop) -->
+            <!-- Header Island (Stack Header on Mobile, Page Header on Desktop) -->
+            <header class="glass-panel island px-4 py-3 md:px-5 md:py-4 mb-6 flex items-center justify-between sticky top-4 z-20">
+                <div class="flex items-center gap-3 md:gap-4">
+                    <a href="index.html" class="w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm border border-surface-200 text-surface-600 hover:text-surface-900">
+                        <i data-lucide="chevron-left" class="w-6 h-6 -ml-0.5"></i>
+                    </a>
+                    
+                    <button class="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 md:px-5 md:py-2.5 rounded-xl text-sm font-bold transition-all shadow-md border border-brand-600">
+                        <i data-lucide="save" class="w-4 h-4 hidden md:block"></i>
+                        Save
+                    </button>
+                    
+                    <!-- App Module Menu (Optional in forms, keeping it for consistency if desired, or omitting for cleaner header) -->
+                    <div class="hidden md:flex items-center gap-2 md:gap-3 bg-white/60 hover:bg-white px-2 py-1.5 md:px-3 md:py-2 rounded-xl shadow-sm border border-surface-200 transition-all cursor-pointer mr-2">
+                        <div class="w-7 h-7 bg-brand-500 rounded-lg flex items-center justify-center text-white shadow-inner shrink-0">
+                            <i data-lucide="briefcase" class="w-4 h-4"></i>
+                        </div>
+                        <i data-lucide="chevrons-up-down" class="w-3 h-3 md:w-4 md:h-4 text-surface-400"></i>
+                    </div>
+
+                    <div>
+                        <h1 class="text-lg md:text-xl font-bold text-surface-900 leading-none">INV-24-092</h1>
+                        <p class="text-[10px] md:text-xs font-medium text-surface-500 mt-1 uppercase tracking-wider">Editing Draft</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 md:gap-3">
+                    <button class="hidden md:block px-5 py-2.5 bg-white text-surface-700 rounded-xl text-sm font-bold transition-all shadow-sm border border-surface-200 hover:bg-surface-50">Cancel</button>
+                    <!-- Tweak Panel Toggle -->
+                    <button onclick="toggleTweak()" class="hidden md:flex items-center justify-center w-10 h-10 bg-white rounded-xl shadow-sm border border-surface-200 text-surface-600 hover:text-brand-600 hover:border-brand-200 transition-all">
+                        <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left Column / Form Sections -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Client Details -->
+                    <div class="glass-panel island overflow-hidden">
+                        <div class="px-5 py-4 border-b border-surface-200/50 bg-white/40">
+                            <h3 class="text-sm font-bold text-surface-400 uppercase tracking-widest">Client Information</h3>
+                        </div>
+                        <div class="p-5 space-y-4">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                                <label class="text-sm font-bold text-surface-700 md:w-1/3">Customer</label>
+                                <div class="relative md:flex-1">
+                                    <select class="w-full pl-4 pr-10 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold focus:bg-white focus:ring-2 focus:ring-brand-500/20 outline-none appearance-none cursor-pointer">
+                                        <option>Acme Corporation</option>
+                                        <option>Global Tech</option>
+                                    </select>
+                                    <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none"></i>
+                                </div>
+                            </div>
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                                <label class="text-sm font-bold text-surface-700 md:w-1/3">Contact Email</label>
+                                <input type="email" value="billing@acme.corp" class="w-full md:flex-1 px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-semibold focus:bg-white focus:ring-2 focus:ring-brand-500/20 outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dates -->
+                    <div class="glass-panel island overflow-hidden">
+                        <div class="px-5 py-4 border-b border-surface-200/50 bg-white/40">
+                            <h3 class="text-sm font-bold text-surface-400 uppercase tracking-widest">Dates & Terms</h3>
+                        </div>
+                        <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold text-surface-700 mb-2">Issue Date</label>
+                                <input type="date" value="2024-10-24" class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-mono font-semibold focus:bg-white focus:ring-2 focus:ring-brand-500/20 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-surface-700 mb-2">Due Date</label>
+                                <input type="date" value="2024-11-24" class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm font-mono font-semibold focus:bg-white focus:ring-2 focus:ring-brand-500/20 outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Line Items (Adaptive Card List) -->
+                    <div class="glass-panel island overflow-hidden">
+                        <div class="px-5 py-4 border-b border-surface-200/50 bg-white/40 flex justify-between items-center">
+                            <h3 class="text-sm font-bold text-surface-400 uppercase tracking-widest">Line Items</h3>
+                            <button class="text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1.5 rounded-lg flex items-center"><i data-lucide="plus" class="w-3 h-3 mr-1"></i> Add Row</button>
+                        </div>
+                        
+                        <div class="divide-y divide-surface-200/50">
+                            <div class="hidden md:flex px-5 py-2 bg-surface-50/50 text-xs font-bold text-surface-400 uppercase tracking-wider">
+                                <div class="flex-1">Description</div>
+                                <div class="w-24 text-center">Qty</div>
+                                <div class="w-32 text-right">Price</div>
+                                <div class="w-32 text-right">Total</div>
+                            </div>
+
+                            <div class="p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-3 md:gap-0">
+                                <div class="md:flex-1">
+                                    <input type="text" value="Enterprise License" class="w-full text-[15px] md:text-sm font-bold md:font-semibold text-surface-900 bg-transparent outline-none">
+                                </div>
+                                <div class="flex items-center justify-between md:justify-end gap-4 md:w-[22rem]">
+                                    <div class="flex items-center gap-2 md:w-24 md:justify-center">
+                                        <span class="text-xs font-bold text-surface-400 uppercase md:hidden">Qty:</span>
+                                        <input type="number" value="1" class="w-16 md:w-12 bg-surface-50 border border-surface-200 rounded-lg text-center px-2 py-1.5 md:py-1 outline-none text-sm font-mono font-bold focus:bg-white">
+                                    </div>
+                                    <div class="flex items-center gap-2 md:w-32 md:justify-end">
+                                        <span class="text-xs font-bold text-surface-400 uppercase md:hidden">Price:</span>
+                                        <input type="text" value="$3,500.00" class="w-24 text-right outline-none text-sm font-mono font-bold text-surface-900 bg-transparent">
+                                    </div>
+                                    <div class="hidden md:block w-32 text-right font-mono font-extrabold text-brand-600">
+                                        $3,500.00
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-3 md:gap-0">
+                                <div class="md:flex-1">
+                                    <input type="text" value="Support Hours" class="w-full text-[15px] md:text-sm font-bold md:font-semibold text-surface-900 bg-transparent outline-none">
+                                </div>
+                                <div class="flex items-center justify-between md:justify-end gap-4 md:w-[22rem]">
+                                    <div class="flex items-center gap-2 md:w-24 md:justify-center">
+                                        <span class="text-xs font-bold text-surface-400 uppercase md:hidden">Qty:</span>
+                                        <input type="number" value="5" class="w-16 md:w-12 bg-surface-50 border border-surface-200 rounded-lg text-center px-2 py-1.5 md:py-1 outline-none text-sm font-mono font-bold focus:bg-white">
+                                    </div>
+                                    <div class="flex items-center gap-2 md:w-32 md:justify-end">
+                                        <span class="text-xs font-bold text-surface-400 uppercase md:hidden">Price:</span>
+                                        <input type="text" value="$140.00" class="w-24 text-right outline-none text-sm font-mono font-bold text-surface-900 bg-transparent">
+                                    </div>
+                                    <div class="hidden md:block w-32 text-right font-mono font-extrabold text-brand-600">
+                                        $700.00
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column / Totals -->
+                <div class="space-y-6">
+                    <div class="glass-panel island p-6 bg-surface-900 text-white relative overflow-hidden">
+                        <div class="absolute -right-10 -top-10 w-32 h-32 bg-brand-500 rounded-full mix-blend-screen blur-2xl opacity-30"></div>
+                        
+                        <h3 class="text-sm font-bold text-surface-400 uppercase tracking-widest mb-6 relative z-10">Financial Summary</h3>
+                        
+                        <div class="space-y-3 mb-6 relative z-10 text-sm font-medium text-surface-300">
+                            <div class="flex justify-between">
+                                <span>Subtotal</span>
+                                <span class="font-mono text-white">$4,200.00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Tax (0%)</span>
+                                <span class="font-mono text-white">$0.00</span>
+                            </div>
+                            <div class="flex justify-between pt-4 mt-2 border-t border-white/10 text-base text-white">
+                                <span class="font-bold">Total Amount</span>
+                                <span class="font-mono font-extrabold text-brand-400">$4,200.00</span>
+                            </div>
+                        </div>
+
+                        <button class="hidden lg:block w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-3 rounded-xl transition-colors relative z-10 shadow-md">Post Invoice</button>
+                    </div>
+
+                    <!-- Native destructive action -->
+                    <div class="lg:hidden pb-4">
+                        <button class="w-full glass-panel island p-4 text-center text-red-500 font-bold text-[15px] shadow-sm active:scale-95 transition-transform">
+                            Delete Invoice
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Mobile Bottom Tab Navigation -->
+    <nav class="md:hidden fixed bottom-6 left-6 right-6 glass-panel island p-2 flex justify-around items-center z-30 shadow-2xl border border-white">
+        <a href="index.html" class="w-14 h-14 flex flex-col items-center justify-center gap-1 text-surface-400 hover:text-surface-800 rounded-2xl cursor-pointer">
+            <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
+            <span class="text-[10px] font-bold">Home</span>
+        </a>
+        <button class="w-14 h-14 flex flex-col items-center justify-center gap-1 text-surface-400 hover:text-surface-800 rounded-2xl">
+            <i data-lucide="search" class="w-6 h-6"></i>
+            <span class="text-[10px] font-bold">Search</span>
+        </button>
+        <button class="w-14 h-14 flex flex-col items-center justify-center gap-1 text-surface-400 hover:text-surface-800 rounded-2xl relative">
+            <i data-lucide="bell" class="w-6 h-6"></i>
+            <span class="absolute top-2 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+            <span class="text-[10px] font-bold">Alerts</span>
+        </button>
+        <div class="w-14 h-14 flex flex-col items-center justify-center gap-1 text-brand-600 bg-brand-50 rounded-2xl">
+            <i data-lucide="file-text" class="w-6 h-6"></i>
+            <span class="text-[10px] font-bold">Invoices</span>
+        </div>
+    </nav>
+
+    <!-- Mobile Simulator Button -->
+    <button onclick="window.open(window.location.href, 'MobileSimulator', 'width=390,height=844,resizable=no,scrollbars=yes')" 
+            class="hidden md:flex fixed bottom-6 right-6 bg-surface-900 hover:bg-black text-white px-5 py-3 rounded-2xl font-bold shadow-2xl items-center gap-2 z-40 border border-surface-700 transition-all hover:-translate-y-1">
+        <i data-lucide="smartphone" class="w-5 h-5 text-brand-400"></i>
+        Preview as App
+    </button>
+
+    <!-- Tweak Panel -->
+    <div id="tweak-panel" class="fixed right-0 top-0 bottom-0 w-80 glass-panel bg-white/90 border-l border-white/40 z-[60] transform translate-x-full transition-transform duration-300 p-6 flex flex-col shadow-2xl">
+        <div class="flex justify-between items-center mb-6 border-b border-surface-200/50 pb-4">
+            <h2 class="text-lg font-bold">Appearance</h2>
+            <button onclick="toggleTweak()" class="p-2 hover:bg-surface-100 rounded-xl"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        
+        <div class="space-y-6 flex-1 overflow-y-auto hide-scroll">
+            <div>
+                <h3 class="text-xs font-bold text-surface-400 uppercase tracking-widest mb-3">Theme</h3>
+                <div class="grid grid-cols-3 gap-2">
+                    <button class="bg-surface-100 border-2 border-brand-500 rounded-xl py-2 text-sm font-bold text-surface-900">Light</button>
+                    <button class="bg-surface-900 border-2 border-transparent rounded-xl py-2 text-sm font-bold text-white">Dark</button>
+                    <button class="bg-orange-50 border-2 border-transparent rounded-xl py-2 text-sm font-bold text-orange-900">Warm</button>
+                </div>
+            </div>
+            <div>
+                <h3 class="text-xs font-bold text-surface-400 uppercase tracking-widest mb-3">Accent Color</h3>
+                <div class="flex gap-2">
+                    <button class="w-8 h-8 rounded-full bg-teal-500 ring-2 ring-offset-2 ring-brand-500"></button>
+                    <button class="w-8 h-8 rounded-full bg-blue-500"></button>
+                    <button class="w-8 h-8 rounded-full bg-indigo-500"></button>
+                    <button class="w-8 h-8 rounded-full bg-rose-500"></button>
+                </div>
+            </div>
+            <div>
+                <h3 class="text-xs font-bold text-surface-400 uppercase tracking-widest mb-3">Corner Radius</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button class="bg-surface-100 border-2 border-brand-500 rounded-2xl py-2 text-sm font-bold text-surface-900">Rounded</button>
+                    <button class="bg-surface-100 border-2 border-transparent rounded-md py-2 text-sm font-bold text-surface-500">Square</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function toggleSidebar() {
+            document.body.classList.toggle('sidebar-expanded');
+            
+            const icons = document.querySelectorAll('.nav-btn i');
+            icons.forEach(i => {
+                if (document.body.classList.contains('sidebar-expanded')) {
+                    i.classList.remove('sidebar-expanded:hidden');
+                } else {
+                    i.classList.add('sidebar-expanded:hidden');
+                }
+            });
+        }
+
+        function toggleTweak() {
+            document.getElementById('tweak-panel').classList.toggle('translate-x-full');
+        }
+    </script>
+</body>
+</html>

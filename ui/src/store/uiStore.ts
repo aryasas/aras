@@ -20,6 +20,14 @@ interface PanelState {
   width: string;
 }
 
+export interface CustomElementDef {
+  id: string;
+  type: 'text' | 'button' | 'divider' | 'container' | 'html';
+  parentId: string;
+  content?: string;
+  props?: Record<string, any>;
+}
+
 interface UIStore {
   dialog: DialogState;
   panel: PanelState;
@@ -29,6 +37,15 @@ interface UIStore {
   density: 'compact' | 'regular' | 'comfy';
   accentColor: string;
   fontScale: number;
+  sidebarCollapsed: boolean;
+  templateBuilderEnabled: boolean; // Legacy, but keeping for compatibility
+  designMode: boolean;
+  activeElementId: string | null;
+  designData: {
+    styles: Record<string, any>;
+    orders: Record<string, string[]>;
+    customElements: Record<string, CustomElementDef>;
+  };
   pageTitle: string;
   pageSubtitle: string;
   breadcrumbs: string;
@@ -41,11 +58,21 @@ interface UIStore {
   closePanel: () => void;
   setPageTitle: (title: string, subtitle?: string, breadcrumbs?: string) => void;
   toggleDarkMode: () => void;
+  toggleSidebar: () => void;
   setThemeMode: (themeMode: UIStore['themeMode']) => void;
   setCornerMode: (cornerMode: UIStore['cornerMode']) => void;
   setDensity: (density: UIStore['density']) => void;
   setAccentColor: (accentColor: string) => void;
   setFontScale: (fontScale: number) => void;
+  toggleTemplateBuilder: () => void;
+  toggleDesignMode: () => void;
+  setActiveDesignElement: (id: string | null) => void;
+  updateElementStyle: (id: string, styles: any) => void;
+  updateElementOrder: (containerId: string, order: string[]) => void;
+  addCustomElement: (element: CustomElementDef) => void;
+  updateCustomElement: (id: string, updates: Partial<CustomElementDef>) => void;
+  removeCustomElement: (id: string) => void;
+  setDesignData: (data: { styles: Record<string, any>; orders: Record<string, string[]>; customElements?: Record<string, CustomElementDef> }) => void;
 }
 
 const defaultDialog: DialogState = {
@@ -73,6 +100,11 @@ export const useUIStore = create<UIStore>()(
       density: 'regular',
       accentColor: '#7a2e2e',
       fontScale: 100,
+      sidebarCollapsed: false,
+      templateBuilderEnabled: false,
+      designMode: false,
+      activeElementId: null,
+      designData: { styles: {}, orders: {}, customElements: {} },
       pageTitle: '',
       pageSubtitle: '',
       breadcrumbs: '',
@@ -104,6 +136,7 @@ export const useUIStore = create<UIStore>()(
         document.documentElement.classList.toggle('dark', next)
         set({ darkMode: next, themeMode: next ? 'dark' : 'normal' })
       },
+      toggleSidebar: () => set({ sidebarCollapsed: !get().sidebarCollapsed }),
       setThemeMode: (themeMode) => {
         document.documentElement.classList.toggle('dark', themeMode === 'dark')
         set({ themeMode, darkMode: themeMode === 'dark' })
@@ -112,6 +145,55 @@ export const useUIStore = create<UIStore>()(
       setDensity: (density) => set({ density }),
       setAccentColor: (accentColor) => set({ accentColor }),
       setFontScale: (fontScale) => set({ fontScale }),
+      toggleTemplateBuilder: () => set({ templateBuilderEnabled: !get().templateBuilderEnabled }),
+      toggleDesignMode: () => set({ designMode: !get().designMode, activeElementId: null }),
+      setActiveDesignElement: (id) => set({ activeElementId: id }),
+      updateElementStyle: (id, styles) => set((state) => ({
+        designData: {
+          ...state.designData,
+          styles: { ...state.designData.styles, [id]: { ...state.designData.styles[id], ...styles } }
+        }
+      })),
+      updateElementOrder: (containerId, order) => set((state) => ({
+        designData: {
+          ...state.designData,
+          orders: { ...state.designData.orders, [containerId]: order }
+        }
+      })),
+      addCustomElement: (element) => set((state) => {
+        const parentOrder = state.designData.orders[element.parentId] || [];
+        return {
+          designData: {
+            ...state.designData,
+            customElements: { ...state.designData.customElements, [element.id]: element },
+            orders: { ...state.designData.orders, [element.parentId]: [...parentOrder, element.id] }
+          }
+        };
+      }),
+      updateCustomElement: (id, updates) => set((state) => {
+        const el = state.designData.customElements[id];
+        if (!el) return state;
+        return {
+          designData: {
+            ...state.designData,
+            customElements: { ...state.designData.customElements, [id]: { ...el, ...updates } }
+          }
+        };
+      }),
+      removeCustomElement: (id) => set((state) => {
+        const newElements = { ...state.designData.customElements };
+        const el = newElements[id];
+        if (!el) return state;
+        delete newElements[id];
+        const newOrders = { ...state.designData.orders };
+        if (newOrders[el.parentId]) {
+          newOrders[el.parentId] = newOrders[el.parentId].filter(eid => eid !== id);
+        }
+        return {
+          designData: { ...state.designData, customElements: newElements, orders: newOrders }
+        };
+      }),
+      setDesignData: (data) => set({ designData: { styles: data.styles || {}, orders: data.orders || {}, customElements: data.customElements || {} } }),
     }),
     {
       name: 'aras-ui-prefs',
@@ -122,6 +204,8 @@ export const useUIStore = create<UIStore>()(
         density: s.density,
         accentColor: s.accentColor,
         fontScale: s.fontScale,
+        sidebarCollapsed: s.sidebarCollapsed,
+        templateBuilderEnabled: s.templateBuilderEnabled,
       }),
       onRehydrateStorage: () => (state) => {
         if (state?.themeMode === 'dark' || state?.darkMode) document.documentElement.classList.add('dark')

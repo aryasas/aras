@@ -19,6 +19,7 @@ class FieldModel(Model):
     is_required: Mapped[bool] = mapped_column(default=False)
     is_read_only: Mapped[bool] = mapped_column(default=False)
     is_hidden: Mapped[bool] = mapped_column(default=False)
+    is_list_hidden: Mapped[bool] = mapped_column(default=False)
     is_searchable: Mapped[bool] = mapped_column(default=True)
     is_override: Mapped[bool] = mapped_column(default=False) # True if modified via GUI
 
@@ -29,3 +30,9 @@ class FieldModel(Model):
     # Lookup Metadata
     link_column: Mapped[str] = mapped_column(String(100), nullable=True) # e.g. "id" or "name"
     display_column: Mapped[str] = mapped_column(String(100), nullable=True) # e.g. "name"
+
+    # Layout Overrides
+    tab: Mapped[str] = mapped_column(String(100), nullable=True)
+    section: Mapped[str] = mapped_column(String(100), nullable=True)
+    foldable: Mapped[bool] = mapped_column(default=False)
+    default_folded: Mapped[bool] = mapped_column(default=False)

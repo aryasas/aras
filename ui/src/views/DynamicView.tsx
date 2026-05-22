@@ -8,9 +8,19 @@ export default function DynamicView() {
   const location = useLocation()
   
   // Resolve resource path and ID from segments
-  // allSegments = [segment1, ...splat]
   const splat = params['*'] || ''
-  const segments = [params.segment1, ...splat.split('/').filter(Boolean)].filter(Boolean) as string[]
+  const { app, model, segment1, id: paramId } = params
+
+  let segments: string[] = []
+
+  if (segment1) {
+    // Catch-all style: /erp/accounting/accounts
+    segments = [segment1, ...splat.split('/').filter(Boolean)].filter(Boolean) as string[]
+  } else if (app && model) {
+    // Explicit style: /dev/table/dev/template-annotations
+    segments = [app, model]
+    if (paramId) segments.push(paramId)
+  }
   
   if (segments.length < 2) {
     return <div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200">Invalid resource path.</div>
@@ -42,7 +52,7 @@ export default function DynamicView() {
         onSave={() => navigate(basePath)}
         onCancel={() => navigate(basePath)}
         onDelete={() => navigate(basePath)}
-        onNavigate={(newId) => navigate(`${basePath}/${newId}`)}
+        onNavigate={(newId: string | number) => navigate(`${basePath}/${newId}`)}
       />
     )
   }

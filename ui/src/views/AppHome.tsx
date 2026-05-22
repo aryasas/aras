@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router-dom'
+import { ArrowRight } from 'lucide-react'
 import api from '../lib/api'
 import { useUIStore } from '../store/uiStore'
 import type { SidebarItem, AppMenuData, MenuItem } from '../layouts/types'
@@ -91,58 +92,76 @@ export default function AppHome() {
     sub_apps: []
   }
 
-  const renderTile = (item: MenuItem, groupLabel?: string) => {
+  const moduleItems = (appInfo.sub_apps || []).filter(isVisibleMenuItem)
+
+  const resourceItems = filterMenuElements(appInfo.menu || []).flatMap((element: any) => {
+    if (element.type === 'group') {
+      return filterMenuItems(element.items).map((item: MenuItem) => ({
+        ...item,
+        groupLabel: element.label
+      }))
+    }
+    return [{ ...element, groupLabel: 'Resource' }]
+  })
+
+  const hasContent = moduleItems.length > 0 || resourceItems.length > 0
+
+  const renderTile = (
+    item: MenuItem & { groupLabel?: string }
+  ) => {
     const ItemIcon = resolveIcon(item.icon || 'FileText')
+    const label = vocabulary.get(item.label || item.name)
+    const eyebrow = vocabulary.get(item.groupLabel || 'Resource')
+
     return (
       <Link
         key={item.name}
         to={item.path}
-        className="group flex min-h-28 items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-indigo-200 hover:shadow-md"
+        className="aras-app-card group"
       >
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500 transition-colors group-hover:bg-indigo-50 group-hover:text-indigo-600">
-          <ItemIcon size={24} />
+        <div className="aras-app-card__icon">
+          <ItemIcon size={20} strokeWidth={2.15} />
         </div>
-        <div className="min-w-0">
-          <h2 className="truncate text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{vocabulary.get(item.label || item.name)}</h2>
-          <p className="mt-0.5 text-xs text-slate-500 font-medium uppercase tracking-wider">{groupLabel ? vocabulary.get(groupLabel) : 'Resource'}</p>
+        <div className="aras-app-card__content">
+          <h2>{label}</h2>
+          <p>{eyebrow}</p>
         </div>
+        <ArrowRight className="aras-app-card__arrow" size={18} strokeWidth={2.2} />
       </Link>
     )
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-        {/* Render Sub-Apps first if any */}
-        {appInfo.sub_apps?.filter(isVisibleMenuItem).map((sub: any) => {
-          const SubIcon = resolveIcon(sub.icon)
-          return (
-            <Link
-              key={sub.name}
-              to={sub.path}
-              className="group flex min-h-28 items-center gap-4 rounded-xl border border-indigo-100 bg-indigo-50/40 p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-indigo-300 hover:shadow-md"
-            >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-indigo-600 shadow-sm transition-colors group-hover:bg-indigo-600 group-hover:text-white">
-                <SubIcon size={24} />
-              </div>
-              <div className="min-w-0">
-                <h2 className="truncate text-base font-bold text-slate-900">{vocabulary.get(sub.label)}</h2>
-                <p className="mt-0.5 text-xs text-indigo-600 font-bold uppercase tracking-wider">Module</p>
-              </div>
-            </Link>
-          )
-        })}
+    <div className="aras-app-home animate-in fade-in slide-in-from-bottom-2 duration-300">
+      {moduleItems.length > 0 && (
+        <section className="aras-app-section" aria-labelledby="app-home-modules">
+          <div className="aras-app-section__heading">
+            <div>
+              <p>{vocabulary.get(appInfo.app_label || appPath)}</p>
+              <h2 id="app-home-modules">Modules</h2>
+            </div>
+          </div>
+          <div className="aras-app-grid">
+            {moduleItems.map((sub: any) => renderTile({ ...sub, groupLabel: 'Module' }))}
+          </div>
+        </section>
+      )}
 
-        {/* Render items from menu groups */}
-        {filterMenuElements(appInfo.menu || []).map((element: any) => {
-           if (element.type === 'group') {
-              return filterMenuItems(element.items).map((item: MenuItem) => renderTile(item, element.label))
-           }
-           return renderTile(element)
-        })}
-      </div>
+      {resourceItems.length > 0 && (
+        <section className="aras-app-section" aria-labelledby="app-home-resources">
+          <div className="aras-app-section__heading">
+            <div>
+              <p>Work objects</p>
+              <h2 id="app-home-resources">Resources</h2>
+            </div>
+          </div>
+          <div className="aras-app-grid">
+            {resourceItems.map((item) => renderTile(item))}
+          </div>
+        </section>
+      )}
 
-      {(!appInfo.menu || appInfo.menu.length === 0) && (!appInfo.sub_apps || appInfo.sub_apps.length === 0) && (
+      {!hasContent && (
          <EmptyState title="No resources available" description="This application has no visible resources." />
       )}
     </div>

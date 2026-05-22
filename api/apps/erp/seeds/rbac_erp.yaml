@@ -39,7 +39,7 @@ roles:
       # Stock
       - resource: erp_stock_categories
         actions: [READ, CREATE, UPDATE, DELETE]
-      - resource: erp_stock_items
+      - resource: erp_stock_products
         actions: [READ, CREATE, UPDATE, DELETE]
       - resource: erp_stock_item_accounts
         actions: [READ, CREATE, UPDATE, DELETE]
@@ -181,7 +181,7 @@ roles:
       # Stock (read items/categories, write movements and delivery)
       - resource: erp_stock_categories
         actions: [READ]
-      - resource: erp_stock_items
+      - resource: erp_stock_products
         actions: [READ]
       - resource: erp_stock_item_uoms
         actions: [READ]
@@ -270,7 +270,7 @@ roles:
       - resource: erp_accounting_grn_lines
         actions: [READ, CREATE, UPDATE, DELETE]
       # Read-only: stock, parties, config, reports
-      - resource: erp_stock_items
+      - resource: erp_stock_products
         actions: [READ]
       - resource: erp_stock_categories
         actions: [READ]
@@ -326,7 +326,7 @@ roles:
       - resource: erp_party_contacts
         actions: [READ, CREATE, UPDATE]
       # Products/pricing (read-only)
-      - resource: erp_stock_items
+      - resource: erp_stock_products
         actions: [READ]
       - resource: erp_stock_categories
         actions: [READ]
@@ -381,7 +381,7 @@ roles:
       # Stock (items read; movements write for receiving)
       - resource: erp_stock_categories
         actions: [READ]
-      - resource: erp_stock_items
+      - resource: erp_stock_products
         actions: [READ, CREATE, UPDATE]
       - resource: erp_stock_item_uoms
         actions: [READ, CREATE, UPDATE]
@@ -417,7 +417,7 @@ roles:
       # Stock (full)
       - resource: erp_stock_categories
         actions: [READ, CREATE, UPDATE, DELETE]
-      - resource: erp_stock_items
+      - resource: erp_stock_products
         actions: [READ, CREATE, UPDATE, DELETE]
       - resource: erp_stock_item_accounts
         actions: [READ, CREATE, UPDATE, DELETE]
@@ -490,7 +490,7 @@ roles:
         actions: [READ, CREATE, UPDATE]
       - resource: erp_pot_payment_lines
         actions: [READ, CREATE]
-      - resource: erp_stock_items
+      - resource: erp_stock_products
         actions: [READ]
       - resource: erp_stock_pricelists
         actions: [READ]
@@ -532,7 +532,7 @@ roles:
         actions: [READ]
       - resource: erp_stock_categories
         actions: [READ]
-      - resource: erp_stock_items
+      - resource: erp_stock_products
         actions: [READ]
       - resource: erp_stock_locations
         actions: [READ]

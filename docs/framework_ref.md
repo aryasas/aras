@@ -82,6 +82,18 @@ from core import Aras
 | `__soft_delete__` | bool | enable soft delete |
 | `__serialize_relations__` | dict | `{key: (rel_attr, rel_field)}` for `to_dict()` |
 
+## Field/Column Metadata (`column.info`)
+| Property | Type | Purpose |
+|---|---|---|
+| `hidden` | bool | hide from both form and list |
+| `form_hidden` | bool | hide from form only |
+| `list_hidden` | bool | hide from list only (default for textarea/bridge/child_table) |
+| `read_only` | bool | make field non-editable |
+| `choices` | list | dropdown options `["A", "B"]` or `[{"label": "X", "value": 1}]` |
+| `ui_type` | str | force UI widget (e.g. `textarea`, `currency`, `image`, `file`) |
+| `pattern` | str | regex validation pattern |
+| `fk_filter` | dict | filter lookup options against other fields `{org_id: id}` |
+
 > **`__title__` is removed** — do NOT set it on models. Use a `View` subclass with `title = "..."` instead. Auto-derived from class name when no View exists.
 
 **Auto-provided base columns** (never declare): `id`, `created_at`, `updated_at`, `created_by`, `updated_by`

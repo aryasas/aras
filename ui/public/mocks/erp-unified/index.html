@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1C1917">
+<title>Aras ERP — Unified</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+<style>
+  :root {
+    --ink: #1C1917;
+    --ink-2: #292524;
+    --ink-3: #44403C;
+    --paper: #FAFAF7;
+    --paper-2: #F5F5F0;
+    --border: #E7E5E4;
+    --border-2: #D6D3D1;
+    --amber: #D97706;
+    --amber-light: #FEF3C7;
+    --amber-dim: #92400E;
+    --green: #15803D;
+    --green-light: #DCFCE7;
+    --red: #B91C1C;
+    --red-light: #FEE2E2;
+    --text: #1C1917;
+    --text-2: #57534E;
+    --text-3: #A8A29E;
+    --sidebar-w: 220px;
+    --rail-w: 60px;
+    --header-h: 52px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--paper);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ---- NOISE TEXTURE ---- */
+  .noise::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: 150px;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0.5;
+  }
+
+  /* ---- SIDEBAR ---- */
+  #sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-w);
+    background: var(--ink);
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    overflow: hidden;
+  }
+
+  .sidebar-brand {
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-mark {
+    width: 32px; height: 32px;
+    background: var(--amber);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Instrument Serif', serif;
+    font-size: 16px;
+    color: white;
+    font-style: italic;
+    flex-shrink: 0;
+  }
+
+  .brand-text {
+    font-size: 15px;
+    font-weight: 600;
+    color: #FAFAF7;
+    letter-spacing: -0.01em;
+    transition: opacity 0.2s;
+  }
+
+  .sidebar-section-label {
+    padding: 16px 16px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+    transition: opacity 0.2s;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    margin: 1px 8px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.55);
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .nav-item:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85); }
+
+  .nav-item.active {
+    background: rgba(217,119,6,0.15);
+    color: #FDE68A;
+  }
+
+  .nav-item.active .nav-icon { color: var(--amber); }
+
+  .nav-icon { width: 16px; height: 16px; flex-shrink: 0; }
+
+  .nav-label { transition: opacity 0.2s, width 0.2s; }
+
+  .nav-badge {
+    margin-left: auto;
+    background: var(--amber);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 99px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 12px 8px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .user-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 8px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .user-row:hover { background: rgba(255,255,255,0.06); }
+
+  .avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--amber);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .user-info { transition: opacity 0.2s; overflow: hidden; }
+  .user-name { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.85); white-space: nowrap; }
+  .user-role { font-size: 11px; color: rgba(255,255,255,0.35); white-space: nowrap; }
+
+  /* ---- TABLET RAIL ---- */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    #sidebar { width: var(--rail-w); }
+    .brand-text, .sidebar-section-label, .nav-label, .nav-badge, .user-info { opacity: 0; width: 0; pointer-events: none; }
+    .sidebar-brand { justify-content: center; padding: 20px 0 16px; }
+    .nav-item { justify-content: center; padding: 10px; margin: 2px 8px; }
+    .user-row { justify-content: center; }
+  }
+
+  /* ---- LAYOUT SHELL ---- */
+  #app {
+    display: flex;
+    min-height: 100dvh;
+  }
+
+  #main-wrap {
+    flex: 1;
+    margin-left: var(--sidebar-w);
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+
+  @media (min-width: 768px) and (max-width: 1023px) {
+    #main-wrap { margin-left: var(--rail-w); }
+  }
+
+  @media (max-width: 767px) {
+    #sidebar { display: none; }
+    #main-wrap { margin-left: 0; }
+  }
+
+  /* ---- HEADER ---- */
+  #header {
+    position: sticky;
+    top: 0;
+    height: var(--header-h);
+    background: var(--paper);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 12px;
+    z-index: 50;
+    backdrop-filter: blur(8px);
+    background: rgba(250,250,247,0.92);
+  }
+
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-3);
+    flex: 1;
+  }
+
+  .breadcrumb-active { color: var(--text); font-weight: 500; }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--paper-2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: 13px;
+    color: var(--text-3);
+    cursor: text;
+    transition: border-color 0.15s;
+    width: 200px;
+  }
+
+  .search-box:hover { border-color: var(--border-2); }
+
+  .header-btn {
+    width: 32px; height: 32px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--paper);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--text-2);
+    transition: background 0.15s, border-color 0.15s;
+    position: relative;
+  }
+
+  .header-btn:hover { background: var(--paper-2); border-color: var(--border-2); }
+
+  .notif-dot {
+    position: absolute;
+    top: 5px; right: 5px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--amber);
+    border: 1.5px solid var(--paper);
+  }
+
+  @media (max-width: 767px) {
+    #header { display: none; }
+  }
+
+  /* ---- MOBILE STATUS BAR ---- */
+  #mobile-status {
+    display: none;
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    background: var(--ink);
+    padding-top: var(--safe-top);
+  }
+
+  .status-bar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 16px;
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .status-icons { display: flex; align-items: center; gap: 4px; }
+
+  @media (max-width: 767px) {
+    #mobile-status { display: block; }
+  }
+
+  /* ---- CONTENT ---- */
+  #content {
+    flex: 1;
+    padding: 24px;
+    display: flex;
+    gap: 24px;
+  }
+
+  #content-main { flex: 1; min-width: 0; }
+
+  #activity-panel {
+    width: 280px;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 1279px) {
+    #activity-panel { display: none; }
+  }
+
+  @media (max-width: 767px) {
+    #content { padding: 16px 16px 100px; flex-direction: column; }
+  }
+
+  /* ---- MOBILE PAGE HEADER ---- */
+  .mobile-page-header {
+    display: none;
+    padding: 16px 0 12px;
+    margin-bottom: 4px;
+  }
+
+  .mobile-greeting { font-size: 11px; font-weight: 500; color: var(--text-3); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 2px; }
+  .mobile-title { font-size: 22px; font-weight: 600; color: var(--text); letter-spacing: -0.02em; }
+
+  @media (max-width: 767px) {
+    .mobile-page-header { display: block; }
+  }
+
+  /* ---- DESKTOP GREETING (in header) ---- */
+  .desktop-greeting {
+    font-size: 13px;
+    color: var(--text-2);
+    font-weight: 400;
+    white-space: nowrap;
+  }
+
+  /* ---- KPI CARDS ---- */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 767px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+  }
+
+  .kpi-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+
+  .kpi-card:hover { border-color: var(--border-2); }
+
+  .kpi-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-3);
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  @media (max-width: 767px) {
+    .kpi-value { font-size: 24px; }
+  }
+
+  .kpi-delta {
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .delta-up { color: var(--green); }
+  .delta-neutral { color: var(--text-3); }
+
+  .kpi-icon {
+    position: absolute;
+    bottom: 12px; right: 12px;
+    color: var(--border-2);
+    opacity: 0.6;
+  }
+
+  /* ---- SECTION HEADER ---- */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .section-link {
+    font-size: 12px;
+    color: var(--amber);
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.15s;
+  }
+
+  .section-link:hover { opacity: 0.75; }
+
+  /* ---- INVOICE LIST ---- */
+  .invoice-list {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  /* Desktop table */
+  .invoice-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .invoice-table th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-3);
+    border-bottom: 1px solid var(--border);
+    background: var(--paper-2);
+  }
+
+  .invoice-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: middle;
+  }
+
+  .invoice-table tr:last-child td { border-bottom: none; }
+  .invoice-table tr:hover td { background: var(--paper-2); }
+
+  /* Status border — left accent */
+  .invoice-row-paid td:first-child { border-left: 3px solid var(--green); }
+  .invoice-row-pending td:first-child { border-left: 3px solid var(--amber); }
+  .invoice-row-overdue td:first-child { border-left: 3px solid var(--red); }
+
+  .status-text-paid { color: var(--green); font-weight: 500; font-size: 12px; }
+  .status-text-pending { color: var(--amber); font-weight: 500; font-size: 12px; }
+  .status-text-overdue { color: var(--red); font-weight: 500; font-size: 12px; }
+
+  .inv-id {
+    font-family: 'Instrument Serif', serif;
+    font-size: 13px;
+    color: var(--text-2);
+    font-style: italic;
+  }
+
+  @media (max-width: 767px) {
+    .invoice-table { display: none; }
+  }
+
+  /* Mobile card rows */
+  .invoice-mobile-rows { display: none; }
+
+  @media (max-width: 767px) {
+    .invoice-mobile-rows { display: block; }
+  }
+
+  .inv-mobile-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+
+  .inv-mobile-row:last-child { border-bottom: none; }
+
+  .inv-status-bar {
+    width: 3px;
+    border-radius: 2px;
+    align-self: stretch;
+    flex-shrink: 0;
+  }
+
+  .bar-paid { background: var(--green); }
+  .bar-pending { background: var(--amber); }
+  .bar-overdue { background: var(--red); }
+
+  .inv-mobile-info { flex: 1; min-width: 0; }
+  .inv-client { font-size: 14px; font-weight: 500; color: var(--text); }
+  .inv-meta { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+  .inv-amount { font-family: 'Instrument Serif', serif; font-size: 16px; color: var(--text); text-align: right; }
+  .inv-status-mobile { font-size: 11px; font-weight: 500; text-align: right; margin-top: 2px; }
+
+  /* ---- QUICK ACTIONS (mobile only) ---- */
+  .quick-actions {
+    display: none;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 767px) {
+    .quick-actions { display: flex; }
+  }
+
+  .qa-btn {
+    flex: 1;
+    padding: 14px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--paper);
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .qa-btn:active { transform: scale(0.97); background: var(--paper-2); }
+
+  .qa-btn.primary {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: white;
+  }
+
+  .qa-btn.primary:active { background: var(--ink-2); }
+  .qa-btn .qa-icon { opacity: 0.7; }
+  .qa-btn.primary .qa-icon { opacity: 0.8; }
+
+  /* ---- ACTIVITY PANEL ---- */
+  .activity-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .activity-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 16px;
+    letter-spacing: -0.01em;
+  }
+
+  .activity-item {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  .activity-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 13px;
+    top: 28px;
+    bottom: -12px;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .activity-dot {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--paper-2);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    color: var(--text-3);
+  }
+
+  .activity-dot.amber { background: var(--amber-light); border-color: #FDE68A; color: var(--amber-dim); }
+  .activity-dot.green { background: var(--green-light); border-color: #BBF7D0; color: var(--green); }
+  .activity-dot.red { background: var(--red-light); border-color: #FECACA; color: var(--red); }
+
+  .activity-text { font-size: 13px; color: var(--text-2); line-height: 1.5; }
+  .activity-text strong { color: var(--text); font-weight: 500; }
+  .activity-time { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+  /* ---- BOTTOM NAV (mobile) ---- */
+  #bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 200;
+    background: var(--ink);
+    border-radius: 9999px;
+    padding: 8px 6px;
+    display: none;
+    align-items: center;
+    gap: 2px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
+    border: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(16px);
+    padding-bottom: calc(8px + var(--safe-bottom));
+  }
+
+  @media (max-width: 767px) {
+    #bottom-nav { display: flex; }
+  }
+
+  .bn-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 16px;
+    border-radius: 9999px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.4);
+    font-size: 10px;
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .bn-item:active { transform: scale(0.92); }
+  .bn-item.active { background: rgba(217,119,6,0.2); color: #FDE68A; }
+
+  .bn-new {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: var(--amber);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 4px;
+    color: white;
+    box-shadow: 0 2px 8px rgba(217,119,6,0.5);
+    transition: transform 0.1s, box-shadow 0.1s;
+    flex-shrink: 0;
+  }
+
+  .bn-new:active { transform: scale(0.9); box-shadow: 0 1px 4px rgba(217,119,6,0.3); }
+
+  /* ---- CHART (desktop activity) ---- */
+  .mini-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 48px;
+    margin-top: 12px;
+    padding: 0 2px;
+  }
+
+  .chart-bar {
+    flex: 1;
+    background: var(--border);
+    border-radius: 3px 3px 0 0;
+    transition: background 0.15s;
+    cursor: default;
+    position: relative;
+  }
+
+  .chart-bar:hover { background: var(--amber); }
+  .chart-bar.current { background: var(--amber); opacity: 0.7; }
+
+  .chart-labels {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+    padding: 0 2px;
+  }
+
+  .chart-lbl {
+    flex: 1;
+    text-align: center;
+    font-size: 9px;
+    color: var(--text-3);
+    font-weight: 500;
+    letter-spacing: 0.03em;
+  }
+
+  /* ---- UTILITY ---- */
+  .paper-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .text-serif { font-family: 'Instrument Serif', serif; }
+  .text-mono { font-family: 'Instrument Serif', serif; font-style: italic; }
+
+  .tag-amber { background: var(--amber-light); color: var(--amber-dim); font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 4px; }
+  .tag-green { background: var(--green-light); color: var(--green); font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 4px; }
+
+  /* ---- SCROLLBAR ---- */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 10px; }
+
+  /* ---- NEW INVOICE PANEL (hidden by default) ---- */
+  #new-invoice-panel {
+    display: none;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  #new-invoice-panel.open { display: block; }
+
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-size: 12px; font-weight: 500; color: var(--text-2); margin-bottom: 5px; letter-spacing: 0.02em; }
+  .form-input {
+    width: 100%;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 8px 10px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus { border-color: var(--amber); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } }
+
+  .btn-primary {
+    background: var(--ink);
+    color: white;
+    border: none;
+    border-radius: 7px;
+    padding: 9px 16px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .btn-primary:hover { background: var(--ink-2); }
+  .btn-primary:active { transform: scale(0.98); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 16px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-right: 8px;
+  }
+  .btn-ghost:hover { background: var(--paper-2); }
+</style>
+</head>
+<body>
+
+<!-- ===== MOBILE STATUS BAR ===== -->
+<div id="mobile-status">
+  <div class="status-bar-inner">
+    <span>9:41</span>
+    <div class="status-icons">
+      <svg width="16" height="11" viewBox="0 0 16 11" fill="none">
+        <rect x="0" y="4" width="3" height="7" rx="0.5" fill="white" opacity="0.4"/>
+        <rect x="4.5" y="2.5" width="3" height="8.5" rx="0.5" fill="white" opacity="0.6"/>
+        <rect x="9" y="0.5" width="3" height="10.5" rx="0.5" fill="white"/>
+        <rect x="13.5" y="1" width="2" height="5" rx="0.5" fill="none" stroke="white" stroke-width="0.8" opacity="0.4"/>
+        <rect x="14.2" y="2.2" width="0.6" height="2.6" rx="0.3" fill="white" opacity="0.4"/>
+      </svg>
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="none">
+        <path d="M7.5 2.5C9.2 2.5 10.7 3.2 11.8 4.3L13 3.1C11.6 1.7 9.7 0.8 7.5 0.8C5.3 0.8 3.4 1.7 2 3.1L3.2 4.3C4.3 3.2 5.8 2.5 7.5 2.5Z" fill="white" opacity="0.4"/>
+        <path d="M7.5 5C8.7 5 9.8 5.5 10.6 6.3L11.8 5.1C10.7 4 9.2 3.3 7.5 3.3C5.8 3.3 4.3 4 3.2 5.1L4.4 6.3C5.2 5.5 6.3 5 7.5 5Z" fill="white" opacity="0.7"/>
+        <circle cx="7.5" cy="9" r="1.2" fill="white"/>
+      </svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none">
+        <rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="white" stroke-opacity="0.35"/>
+        <rect x="2" y="2" width="17" height="8" rx="2" fill="white"/>
+        <path d="M22.5 4.5V7.5C23.3 7.2 23.3 4.8 22.5 4.5Z" fill="white" opacity="0.4"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ===== APP SHELL ===== -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="noise">
+    <div class="sidebar-brand">
+      <div class="brand-mark">A</div>
+      <span class="brand-text">Aras ERP</span>
+    </div>
+
+    <div class="sidebar-section-label">Overview</div>
+    <a class="nav-item active" onclick="navigate('dashboard', this)">
+      <i data-lucide="layout-dashboard" class="nav-icon"></i>
+      <span class="nav-label">Dashboard</span>
+    </a>
+    <a class="nav-item" onclick="navigate('invoices', this)">
+      <i data-lucide="file-text" class="nav-icon"></i>
+      <span class="nav-label">Invoices</span>
+      <span class="nav-badge">3</span>
+    </a>
+    <a class="nav-item" onclick="navigate('dashboard', this)">
+      <i data-lucide="users" class="nav-icon"></i>
+      <span class="nav-label">Clients</span>
+    </a>
+    <a class="nav-item" onclick="navigate('dashboard', this)">
+      <i data-lucide="package" class="nav-icon"></i>
+      <span class="nav-label">Products</span>
+    </a>
+
+    <div class="sidebar-section-label">Finance</div>
+    <a class="nav-item" onclick="navigate('dashboard', this)">
+      <i data-lucide="trending-up" class="nav-icon"></i>
+      <span class="nav-label">Reports</span>
+    </a>
+    <a class="nav-item" onclick="navigate('dashboard', this)">
+      <i data-lucide="receipt" class="nav-icon"></i>
+      <span class="nav-label">Payments</span>
+    </a>
+    <a class="nav-item" onclick="navigate('dashboard', this)">
+      <i data-lucide="landmark" class="nav-icon"></i>
+      <span class="nav-label">Accounting</span>
+    </a>
+
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="avatar">A</div>
+        <div class="user-info">
+          <div class="user-name">Aras</div>
+          <div class="user-role">Administrator</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN WRAP -->
+  <div id="main-wrap">
+
+    <!-- HEADER (desktop/tablet) -->
+    <header id="header">
+      <div class="breadcrumb">
+        <span>Aras ERP</span>
+        <i data-lucide="chevron-right" style="width:12px;height:12px;color:var(--border-2)"></i>
+        <span class="breadcrumb-active" id="breadcrumb-label">Dashboard</span>
+      </div>
+      <div class="desktop-greeting">Good morning, Aras &nbsp;·&nbsp; Thu 22 May 2026</div>
+      <div class="search-box">
+        <i data-lucide="search" style="width:13px;height:13px;flex-shrink:0"></i>
+        <span>Search...</span>
+        <span style="margin-left:auto;font-size:11px;background:var(--border);border-radius:3px;padding:1px 5px;">⌘K</span>
+      </div>
+      <div class="header-btn" title="Notifications">
+        <i data-lucide="bell" style="width:15px;height:15px"></i>
+        <span class="notif-dot"></span>
+      </div>
+      <div class="header-btn" title="Settings">
+        <i data-lucide="settings" style="width:15px;height:15px"></i>
+      </div>
+      <div class="header-btn" style="background:var(--amber);border-color:var(--amber);color:white;" onclick="toggleNewInvoice()">
+        <i data-lucide="plus" style="width:15px;height:15px"></i>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main id="content">
+      <div id="content-main">
+
+        <!-- Mobile page header -->
+        <div class="mobile-page-header">
+          <div class="mobile-greeting">Good morning</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div class="mobile-title">Dashboard</div>
+            <button onclick="toggleNewInvoice()" style="background:var(--ink);color:white;border:none;border-radius:8px;padding:8px 14px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;-webkit-tap-highlight-color:transparent;">
+              <i data-lucide="plus" style="width:14px;height:14px"></i> New
+            </button>
+          </div>
+          <div style="font-size:12px;color:var(--text-3);margin-top:4px;">Thursday, 22 May 2026</div>
+        </div>
+
+        <!-- New Invoice Quick Panel -->
+        <div id="new-invoice-panel">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <div style="font-size:15px;font-weight:600;color:var(--text);">New Invoice</div>
+            <button onclick="toggleNewInvoice()" style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:4px;">
+              <i data-lucide="x" style="width:16px;height:16px"></i>
+            </button>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Client</label>
+              <input class="form-input" type="text" placeholder="Select client…">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Due Date</label>
+              <input class="form-input" type="date">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Amount</label>
+              <input class="form-input" type="number" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Reference</label>
+              <input class="form-input" type="text" placeholder="PO-…">
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+            <button class="btn-ghost" onclick="toggleNewInvoice()">Cancel</button>
+            <button class="btn-primary">Create Invoice</button>
+          </div>
+        </div>
+
+        <!-- KPI Grid -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Revenue</div>
+            <div class="kpi-value">$142.5k</div>
+            <div class="kpi-delta delta-up">
+              <i data-lucide="trending-up" style="width:12px;height:12px"></i>
+              +12% this month
+            </div>
+            <div class="kpi-icon"><i data-lucide="bar-chart-2" style="width:32px;height:32px"></i></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Orders</div>
+            <div class="kpi-value">248</div>
+            <div class="kpi-delta delta-up">
+              <i data-lucide="trending-up" style="width:12px;height:12px"></i>
+              +8 this week
+            </div>
+            <div class="kpi-icon"><i data-lucide="shopping-cart" style="width:32px;height:32px"></i></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Outstanding</div>
+            <div class="kpi-value">$18.2k</div>
+            <div class="kpi-delta delta-neutral">
+              <i data-lucide="minus" style="width:12px;height:12px"></i>
+              3 overdue
+            </div>
+            <div class="kpi-icon"><i data-lucide="clock" style="width:32px;height:32px"></i></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Clients</div>
+            <div class="kpi-value">64</div>
+            <div class="kpi-delta delta-up">
+              <i data-lucide="trending-up" style="width:12px;height:12px"></i>
+              +4 this month
+            </div>
+            <div class="kpi-icon"><i data-lucide="users" style="width:32px;height:32px"></i></div>
+          </div>
+        </div>
+
+        <!-- Recent Invoices -->
+        <div class="section-header">
+          <div class="section-title">Recent Invoices</div>
+          <a class="section-link">View all →</a>
+        </div>
+
+        <div class="invoice-list">
+          <!-- Desktop table -->
+          <table class="invoice-table">
+            <thead>
+              <tr>
+                <th style="width:180px;">Client</th>
+                <th>Invoice</th>
+                <th>Issued</th>
+                <th>Due</th>
+                <th style="text-align:right;">Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="invoice-row-paid">
+                <td style="font-weight:500;">Meridian Studio</td>
+                <td><span class="inv-id">INV-2026-041</span></td>
+                <td style="color:var(--text-3);font-size:12px;">May 15</td>
+                <td style="color:var(--text-3);font-size:12px;">May 29</td>
+                <td style="text-align:right;font-family:'Instrument Serif',serif;font-size:15px;">$4,200</td>
+                <td><span class="status-text-paid">Paid</span></td>
+              </tr>
+              <tr class="invoice-row-pending">
+                <td style="font-weight:500;">Halcyon Labs</td>
+                <td><span class="inv-id">INV-2026-040</span></td>
+                <td style="color:var(--text-3);font-size:12px;">May 12</td>
+                <td style="color:var(--text-3);font-size:12px;">Jun 1</td>
+                <td style="text-align:right;font-family:'Instrument Serif',serif;font-size:15px;">$9,800</td>
+                <td><span class="status-text-pending">Pending</span></td>
+              </tr>
+              <tr class="invoice-row-overdue">
+                <td style="font-weight:500;">Tero Collective</td>
+                <td><span class="inv-id">INV-2026-039</span></td>
+                <td style="color:var(--text-3);font-size:12px;">Apr 28</td>
+                <td style="color:var(--text-3);font-size:12px;">May 12</td>
+                <td style="text-align:right;font-family:'Instrument Serif',serif;font-size:15px;">$2,150</td>
+                <td><span class="status-text-overdue">Overdue</span></td>
+              </tr>
+              <tr class="invoice-row-paid">
+                <td style="font-weight:500;">Vanta Systems</td>
+                <td><span class="inv-id">INV-2026-038</span></td>
+                <td style="color:var(--text-3);font-size:12px;">Apr 20</td>
+                <td style="color:var(--text-3);font-size:12px;">May 5</td>
+                <td style="text-align:right;font-family:'Instrument Serif',serif;font-size:15px;">$6,500</td>
+                <td><span class="status-text-paid">Paid</span></td>
+              </tr>
+              <tr class="invoice-row-pending">
+                <td style="font-weight:500;">Okto Design Co.</td>
+                <td><span class="inv-id">INV-2026-037</span></td>
+                <td style="color:var(--text-3);font-size:12px;">Apr 18</td>
+                <td style="color:var(--text-3);font-size:12px;">May 18</td>
+                <td style="text-align:right;font-family:'Instrument Serif',serif;font-size:15px;">$3,350</td>
+                <td><span class="status-text-pending">Pending</span></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Mobile rows -->
+          <div class="invoice-mobile-rows">
+            <div class="inv-mobile-row">
+              <div class="inv-status-bar bar-paid"></div>
+              <div class="inv-mobile-info">
+                <div class="inv-client">Meridian Studio</div>
+                <div class="inv-meta">INV-2026-041 · May 29</div>
+              </div>
+              <div>
+                <div class="inv-amount">$4,200</div>
+                <div class="inv-status-mobile status-text-paid">Paid</div>
+              </div>
+            </div>
+            <div class="inv-mobile-row">
+              <div class="inv-status-bar bar-pending"></div>
+              <div class="inv-mobile-info">
+                <div class="inv-client">Halcyon Labs</div>
+                <div class="inv-meta">INV-2026-040 · Jun 1</div>
+              </div>
+              <div>
+                <div class="inv-amount">$9,800</div>
+                <div class="inv-status-mobile status-text-pending">Pending</div>
+              </div>
+            </div>
+            <div class="inv-mobile-row">
+              <div class="inv-status-bar bar-overdue"></div>
+              <div class="inv-mobile-info">
+                <div class="inv-client">Tero Collective</div>
+                <div class="inv-meta">INV-2026-039 · May 12</div>
+              </div>
+              <div>
+                <div class="inv-amount">$2,150</div>
+                <div class="inv-status-mobile status-text-overdue">Overdue</div>
+              </div>
+            </div>
+            <div class="inv-mobile-row">
+              <div class="inv-status-bar bar-paid"></div>
+              <div class="inv-mobile-info">
+                <div class="inv-client">Vanta Systems</div>
+                <div class="inv-meta">INV-2026-038 · May 5</div>
+              </div>
+              <div>
+                <div class="inv-amount">$6,500</div>
+                <div class="inv-status-mobile status-text-paid">Paid</div>
+              </div>
+            </div>
+            <div class="inv-mobile-row">
+              <div class="inv-status-bar bar-pending"></div>
+              <div class="inv-mobile-info">
+                <div class="inv-client">Okto Design Co.</div>
+                <div class="inv-meta">INV-2026-037 · May 18</div>
+              </div>
+              <div>
+                <div class="inv-amount">$3,350</div>
+                <div class="inv-status-mobile status-text-pending">Pending</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions (mobile only) -->
+        <div class="quick-actions">
+          <button class="qa-btn primary" onclick="toggleNewInvoice()">
+            <i data-lucide="file-plus" class="qa-icon" style="width:20px;height:20px"></i>
+            New Invoice
+          </button>
+          <button class="qa-btn">
+            <i data-lucide="credit-card" class="qa-icon" style="width:20px;height:20px;color:var(--text-3)"></i>
+            Record Payment
+          </button>
+        </div>
+
+      </div><!-- /content-main -->
+
+      <!-- ACTIVITY PANEL (desktop only) -->
+      <aside id="activity-panel">
+        <div class="activity-card">
+          <div class="activity-title">Activity</div>
+
+          <div class="activity-item">
+            <div class="activity-dot green"><i data-lucide="check" style="width:12px;height:12px"></i></div>
+            <div>
+              <div class="activity-text"><strong>Meridian Studio</strong> paid INV-2026-041</div>
+              <div class="activity-time">2 hours ago</div>
+            </div>
+          </div>
+
+          <div class="activity-item">
+            <div class="activity-dot amber"><i data-lucide="file-text" style="width:12px;height:12px"></i></div>
+            <div>
+              <div class="activity-text">Invoice <strong>INV-2026-040</strong> sent to Halcyon Labs</div>
+              <div class="activity-time">Yesterday, 4:30 PM</div>
+            </div>
+          </div>
+
+          <div class="activity-item">
+            <div class="activity-dot red"><i data-lucide="alert-circle" style="width:12px;height:12px"></i></div>
+            <div>
+              <div class="activity-text"><strong>Tero Collective</strong> invoice overdue by 10 days</div>
+              <div class="activity-time">May 12</div>
+            </div>
+          </div>
+
+          <div class="activity-item">
+            <div class="activity-dot"><i data-lucide="user-plus" style="width:12px;height:12px"></i></div>
+            <div>
+              <div class="activity-text">New client <strong>Okto Design Co.</strong> added</div>
+              <div class="activity-time">May 10</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mini revenue chart -->
+        <div class="paper-card" style="margin-top:12px;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;">Monthly Revenue</div>
+          <div style="font-size:11px;color:var(--text-3);">Last 7 months</div>
+          <div class="mini-chart">
+            <div class="chart-bar" style="height:55%"></div>
+            <div class="chart-bar" style="height:42%"></div>
+            <div class="chart-bar" style="height:68%"></div>
+            <div class="chart-bar" style="height:50%"></div>
+            <div class="chart-bar" style="height:75%"></div>
+            <div class="chart-bar" style="height:60%"></div>
+            <div class="chart-bar current" style="height:88%"></div>
+          </div>
+          <div class="chart-labels">
+            <div class="chart-lbl">Nov</div>
+            <div class="chart-lbl">Dec</div>
+            <div class="chart-lbl">Jan</div>
+            <div class="chart-lbl">Feb</div>
+            <div class="chart-lbl">Mar</div>
+            <div class="chart-lbl">Apr</div>
+            <div class="chart-lbl">May</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;font-size:12px;">
+            <span style="color:var(--text-3);">Total YTD</span>
+            <span style="font-family:'Instrument Serif',serif;font-size:16px;color:var(--text);">$142.5k</span>
+          </div>
+        </div>
+
+        <!-- Outstanding summary -->
+        <div class="paper-card" style="margin-top:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;">Outstanding</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:8px;height:8px;border-radius:2px;background:var(--amber);flex-shrink:0;"></div>
+                <span style="font-size:13px;color:var(--text-2);">Pending</span>
+              </div>
+              <span style="font-family:'Instrument Serif',serif;font-size:14px;">$13,150</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:8px;height:8px;border-radius:2px;background:var(--red);flex-shrink:0;"></div>
+                <span style="font-size:13px;color:var(--text-2);">Overdue</span>
+              </div>
+              <span style="font-family:'Instrument Serif',serif;font-size:14px;">$5,050</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+    </main><!-- /content -->
+  </div><!-- /main-wrap -->
+</div><!-- /app -->
+
+<!-- ===== BOTTOM NAV (mobile) ===== -->
+<nav id="bottom-nav">
+  <div class="bn-item active" onclick="bnNav('home', this)">
+    <i data-lucide="layout-dashboard" style="width:18px;height:18px"></i>
+    <span>Home</span>
+  </div>
+  <div class="bn-item" onclick="bnNav('invoices', this)">
+    <i data-lucide="file-text" style="width:18px;height:18px"></i>
+    <span>Invoices</span>
+  </div>
+  <div class="bn-new" onclick="toggleNewInvoice()">
+    <i data-lucide="plus" style="width:20px;height:20px"></i>
+  </div>
+  <div class="bn-item" onclick="bnNav('clients', this)">
+    <i data-lucide="users" style="width:18px;height:18px"></i>
+    <span>Clients</span>
+  </div>
+  <div class="bn-item" onclick="bnNav('more', this)">
+    <i data-lucide="more-horizontal" style="width:18px;height:18px"></i>
+    <span>More</span>
+  </div>
+</nav>
+
+<script>
+  lucide.createIcons();
+
+  function navigate(view, el) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('breadcrumb-label').textContent =
+      el.querySelector('.nav-label')?.textContent || view;
+  }
+
+  function bnNav(view, el) {
+    document.querySelectorAll('.bn-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function toggleNewInvoice() {
+    const panel = document.getElementById('new-invoice-panel');
+    panel.classList.toggle('open');
+    if (panel.classList.contains('open')) {
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  // Re-run lucide after any dynamic changes
+  document.querySelectorAll('[data-lucide]').forEach(() => lucide.createIcons());
+</script>
+</body>
+</html>

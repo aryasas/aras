@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mobile-First ERP (Expo Ready)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        ios: {
+                            bg: '#F2F2F7',
+                            card: '#FFFFFF',
+                            blue: '#007AFF',
+                            gray: '#8E8E93',
+                            border: '#C6C6C8',
+                            text: '#000000',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F2F2F7; -webkit-tap-highlight-color: transparent; }
+        
+        /* Hide scrollbar for clean app feel */
+        ::-webkit-scrollbar { display: none; }
+        * { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Simulating safe areas for notches if needed */
+        .safe-top { padding-top: env(safe-area-inset-top, 0px); }
+        .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 20px); }
+    </style>
+</head>
+<body class="text-ios-text antialiased h-screen flex justify-center bg-gray-900 overflow-hidden">
+
+    <!-- App Container (Simulating a mobile screen on desktop, full width on mobile) -->
+    <div class="w-full max-w-md h-full bg-ios-bg relative flex flex-col shadow-2xl overflow-hidden sm:border-x sm:border-gray-800">
+        
+        <!-- Header (Native Large Title Style) -->
+        <header class="bg-ios-bg pt-12 pb-4 px-4 sticky top-0 z-20 shrink-0">
+            <div class="flex items-center justify-between mb-1">
+                <!-- Status bar placeholder space would go here in actual native -->
+            </div>
+            <div class="flex items-center justify-between">
+                <h1 class="text-[34px] font-bold tracking-tight leading-none">Dashboard</h1>
+                <button class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-ios-blue">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <!-- Native-style segmented control -->
+            <div class="flex bg-gray-200/80 p-0.5 rounded-lg mt-4">
+                <button class="flex-1 py-1.5 bg-white shadow-sm rounded-md text-[13px] font-semibold text-center">Overview</button>
+                <button class="flex-1 py-1.5 text-gray-500 rounded-md text-[13px] font-medium text-center">Activity</button>
+            </div>
+        </header>
+
+        <!-- Scrollable Content -->
+        <main class="flex-1 overflow-y-auto pb-24 px-4 space-y-5">
+            
+            <!-- Summary Cards (Horizontal Scroll / Swipe) -->
+            <section class="mb-2">
+                <div class="flex gap-4 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pb-2">
+                    <!-- Card 1 -->
+                    <div class="snap-center shrink-0 w-72 bg-ios-blue text-white rounded-2xl p-5 shadow-sm">
+                        <div class="flex justify-between items-center mb-6">
+                            <span class="text-white/80 font-medium text-sm">Total Balance</span>
+                            <i data-lucide="wallet" class="w-5 h-5 text-white/80"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold mb-1">$42,500</h2>
+                        <p class="text-white/80 text-sm flex items-center"><i data-lucide="arrow-up-right" class="w-4 h-4 mr-1"></i> 12.5% this month</p>
+                    </div>
+                    
+                    <!-- Card 2 -->
+                    <div class="snap-center shrink-0 w-72 bg-white rounded-2xl p-5 shadow-sm border border-black/5">
+                        <div class="flex justify-between items-center mb-6">
+                            <span class="text-gray-500 font-medium text-sm">Pending Orders</span>
+                            <i data-lucide="package" class="w-5 h-5 text-gray-400"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold mb-1 text-black">124</h2>
+                        <p class="text-gray-500 text-sm flex items-center"><i data-lucide="clock" class="w-4 h-4 mr-1"></i> Requires attention</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Action Grid (Easy touch targets) -->
+            <section>
+                <h3 class="text-lg font-bold mb-3">Quick Actions</h3>
+                <div class="grid grid-cols-4 gap-3">
+                    <button class="flex flex-col items-center gap-2">
+                        <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-ios-blue shadow-sm active:scale-95 transition-transform">
+                            <i data-lucide="file-plus" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-xs font-medium text-gray-600">Invoice</span>
+                    </button>
+                    <button class="flex flex-col items-center gap-2">
+                        <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-orange-500 shadow-sm active:scale-95 transition-transform">
+                            <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-xs font-medium text-gray-600">Order</span>
+                    </button>
+                    <button class="flex flex-col items-center gap-2">
+                        <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-green-500 shadow-sm active:scale-95 transition-transform">
+                            <i data-lucide="users" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-xs font-medium text-gray-600">Client</span>
+                    </button>
+                    <button class="flex flex-col items-center gap-2">
+                        <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-purple-500 shadow-sm active:scale-95 transition-transform">
+                            <i data-lucide="scan-barcode" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-xs font-medium text-gray-600">Scan</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- List View (Card based instead of tables for mobile) -->
+            <section>
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-lg font-bold">Recent Invoices</h3>
+                    <button class="text-ios-blue text-sm font-medium">See All</button>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden divide-y divide-gray-100">
+                    
+                    <!-- List Item 1 -->
+                    <a href="#" class="flex items-center p-4 active:bg-gray-50 transition-colors">
+                        <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 shrink-0 font-semibold text-sm">
+                            AC
+                        </div>
+                        <div class="ml-3 flex-1 min-w-0">
+                            <h4 class="text-[15px] font-semibold text-black truncate">Acme Corporation</h4>
+                            <p class="text-[13px] text-gray-500">INV-2024-001 • Today</p>
+                        </div>
+                        <div class="text-right ml-2">
+                            <p class="text-[15px] font-semibold text-black">$1,200.00</p>
+                            <p class="text-[13px] text-green-600 font-medium">Paid</p>
+                        </div>
+                    </a>
+
+                    <!-- List Item 2 -->
+                    <a href="#" class="flex items-center p-4 active:bg-gray-50 transition-colors">
+                        <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 shrink-0 font-semibold text-sm">
+                            GT
+                        </div>
+                        <div class="ml-3 flex-1 min-w-0">
+                            <h4 class="text-[15px] font-semibold text-black truncate">Global Tech</h4>
+                            <p class="text-[13px] text-gray-500">INV-2024-002 • Yesterday</p>
+                        </div>
+                        <div class="text-right ml-2">
+                            <p class="text-[15px] font-semibold text-black">$850.50</p>
+                            <p class="text-[13px] text-orange-500 font-medium">Pending</p>
+                        </div>
+                    </a>
+
+                    <!-- List Item 3 -->
+                    <a href="#" class="flex items-center p-4 active:bg-gray-50 transition-colors">
+                        <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 shrink-0 font-semibold text-sm">
+                            SW
+                        </div>
+                        <div class="ml-3 flex-1 min-w-0">
+                            <h4 class="text-[15px] font-semibold text-black truncate">Stark Wayne LLC</h4>
+                            <p class="text-[13px] text-gray-500">INV-2024-003 • Oct 24</p>
+                        </div>
+                        <div class="text-right ml-2">
+                            <p class="text-[15px] font-semibold text-black">$4,500.00</p>
+                            <p class="text-[13px] text-red-500 font-medium">Overdue</p>
+                        </div>
+                    </a>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Bottom Tab Navigation (Standard Mobile Pattern) -->
+        <nav class="absolute bottom-0 w-full bg-white/90 backdrop-blur-md border-t border-gray-200 safe-bottom">
+            <div class="flex justify-around items-center h-[52px]">
+                <button class="flex flex-col items-center justify-center w-full h-full text-ios-blue">
+                    <i data-lucide="layout-dashboard" class="w-[22px] h-[22px] mb-0.5"></i>
+                    <span class="text-[10px] font-medium">Home</span>
+                </button>
+                <button class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-gray-600">
+                    <i data-lucide="search" class="w-[22px] h-[22px] mb-0.5"></i>
+                    <span class="text-[10px] font-medium">Search</span>
+                </button>
+                <button class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-gray-600 relative">
+                    <i data-lucide="bell" class="w-[22px] h-[22px] mb-0.5"></i>
+                    <span class="absolute top-1 right-1/4 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                    <span class="text-[10px] font-medium">Alerts</span>
+                </button>
+                <button class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-gray-600">
+                    <i data-lucide="menu" class="w-[22px] h-[22px] mb-0.5"></i>
+                    <span class="text-[10px] font-medium">Menu</span>
+                </button>
+            </div>
+        </nav>
+
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ERP — Expo Native Reference</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Berkeley+Mono:ital,wght@0,100..700;1,100..700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --brand: #6366F1;
+      --brand-light: #EEF2FF;
+      --brand-dark: #4338CA;
+      --surface: #FFFFFF;
+      --bg: #F1F5F9;
+      --muted: #94A3B8;
+      --border: #E2E8F0;
+      --text: #0F172A;
+      --text-2: #475569;
+      --green: #10B981;
+      --amber: #F59E0B;
+      --red: #EF4444;
+      --code-bg: #0F172A;
+      --code-text: #E2E8F0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    code, pre, .mono { font-family: 'Berkeley Mono', 'Fira Code', 'Cascadia Code', monospace; }
+
+    /* ── LAYOUT ─────────────────────────────────────────── */
+    .workspace {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    .left-col {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      gap: 20px;
+      min-width: 480px;
+      background: linear-gradient(160deg, #EEF2FF 0%, #F1F5F9 60%, #E0E7FF 100%);
+      position: relative;
+    }
+
+    .left-col::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle at 1px 1px, #C7D2FE 1px, transparent 0);
+      background-size: 28px 28px;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .right-col {
+      flex: 1;
+      background: var(--code-bg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── DEVICE FRAME ────────────────────────────────────── */
+    .phone-wrap {
+      position: relative;
+      z-index: 1;
+    }
+
+    .phone-bezel {
+      width: 375px;
+      height: 740px;
+      background: #1C1C1E;
+      border-radius: 54px;
+      padding: 14px;
+      box-shadow:
+        0 0 0 1px #3A3A3C,
+        inset 0 0 0 1px #48484A,
+        0 40px 80px rgba(0,0,0,0.35),
+        0 8px 24px rgba(0,0,0,0.2);
+      position: relative;
+    }
+
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      background: #F8FAFC;
+      border-radius: 42px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Dynamic island */
+    .dynamic-island {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 34px;
+      background: #1C1C1E;
+      border-radius: 20px;
+      z-index: 100;
+    }
+
+    /* Side buttons */
+    .phone-bezel::before {
+      content: '';
+      position: absolute;
+      right: -4px;
+      top: 140px;
+      width: 4px;
+      height: 68px;
+      background: #2C2C2E;
+      border-radius: 0 3px 3px 0;
+      box-shadow: 0 80px 0 #2C2C2E;
+    }
+
+    .phone-bezel::after {
+      content: '';
+      position: absolute;
+      left: -4px;
+      top: 120px;
+      width: 4px;
+      height: 40px;
+      background: #2C2C2E;
+      border-radius: 3px 0 0 3px;
+      box-shadow: 0 54px 0 #2C2C2E, 0 106px 0 #2C2C2E;
+    }
+
+    /* ── APP CHROME ──────────────────────────────────────── */
+    .app-root {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: #F8FAFC;
+    }
+
+    .status-bar {
+      height: 54px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 0 22px 8px;
+      flex-shrink: 0;
+    }
+
+    .status-time { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
+    .status-icons { display: flex; align-items: center; gap: 6px; }
+    .status-icons svg { width: 16px; height: 16px; }
+
+    .screen-body {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Screens */
+    .screen { display: none; flex-direction: column; height: 100%; }
+    .screen.active { display: flex; }
+
+    /* ── DASHBOARD SCREEN ────────────────────────────────── */
+    .screen-header {
+      padding: 16px 20px 12px;
+      flex-shrink: 0;
+    }
+
+    .screen-title { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; color: #0F172A; }
+    .screen-subtitle { font-size: 13px; color: #94A3B8; margin-top: 2px; }
+
+    .scroll-x {
+      display: flex;
+      overflow-x: auto;
+      gap: 12px;
+      padding: 4px 20px 8px;
+      flex-shrink: 0;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .scroll-x::-webkit-scrollbar { display: none; }
+
+    .kpi-card {
+      flex-shrink: 0;
+      width: 160px;
+      border-radius: 20px;
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card.primary { background: var(--brand); color: white; }
+    .kpi-card.white { background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+
+    .kpi-label { font-size: 11px; font-weight: 500; opacity: 0.75; text-transform: uppercase; letter-spacing: 0.5px; }
+    .kpi-value { font-size: 28px; font-weight: 700; letter-spacing: -1px; margin-top: 8px; }
+    .kpi-change { font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 3px; }
+    .kpi-card.white .kpi-label { color: #94A3B8; }
+    .kpi-card.white .kpi-value { color: #0F172A; }
+    .kpi-card.white .kpi-change { color: #10B981; }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #64748B;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding: 12px 20px 8px;
+      flex-shrink: 0;
+    }
+
+    .scroll-y {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 20px 8px;
+      scrollbar-width: none;
+    }
+    .scroll-y::-webkit-scrollbar { display: none; }
+
+    .activity-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid #F1F5F9;
+    }
+
+    .activity-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .activity-icon svg { width: 18px; height: 18px; }
+
+    .activity-info { flex: 1; min-width: 0; }
+    .activity-name { font-size: 13px; font-weight: 600; color: #0F172A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .activity-meta { font-size: 11px; color: #94A3B8; margin-top: 1px; }
+    .activity-amount { font-size: 13px; font-weight: 600; }
+
+    /* ── INVOICES SCREEN ─────────────────────────────────── */
+    .search-bar {
+      margin: 8px 20px 12px;
+      background: white;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      flex-shrink: 0;
+    }
+
+    .search-bar input {
+      border: none;
+      outline: none;
+      font-family: inherit;
+      font-size: 14px;
+      color: #0F172A;
+      flex: 1;
+      background: transparent;
+    }
+
+    .search-bar input::placeholder { color: #CBD5E1; }
+    .search-bar svg { width: 16px; height: 16px; color: #94A3B8; flex-shrink: 0; }
+
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      padding: 0 20px 12px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      flex-shrink: 0;
+    }
+    .filter-row::-webkit-scrollbar { display: none; }
+
+    .filter-chip {
+      flex-shrink: 0;
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+    }
+
+    .filter-chip.active { background: var(--brand); color: white; }
+    .filter-chip.inactive { background: white; color: #64748B; box-shadow: 0 1px 3px rgba(0,0,0,0.07); }
+
+    .invoice-item {
+      background: white;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+
+    .invoice-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--brand-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .invoice-icon svg { width: 18px; height: 18px; color: var(--brand); }
+    .invoice-info { flex: 1; }
+    .invoice-client { font-size: 13px; font-weight: 600; color: #0F172A; }
+    .invoice-id { font-size: 11px; color: #94A3B8; margin-top: 1px; }
+    .invoice-right { text-align: right; }
+    .invoice-amount { font-size: 13px; font-weight: 700; color: #0F172A; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 600;
+      margin-top: 3px;
+    }
+
+    .badge-green { background: #DCFCE7; color: #166534; }
+    .badge-amber { background: #FEF9C3; color: #854D0E; }
+    .badge-red { background: #FEE2E2; color: #991B1B; }
+    .badge-blue { background: #EEF2FF; color: #3730A3; }
+
+    /* ── NEW INVOICE SCREEN ──────────────────────────────── */
+    .form-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 20px 20px;
+      scrollbar-width: none;
+    }
+    .form-scroll::-webkit-scrollbar { display: none; }
+
+    .form-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #94A3B8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      margin-top: 14px;
+      display: block;
+    }
+
+    .form-input {
+      width: 100%;
+      background: white;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-family: inherit;
+      font-size: 14px;
+      color: #0F172A;
+      outline: none;
+    }
+
+    .form-input:focus { border-color: var(--brand); }
+    .form-input::placeholder { color: #CBD5E1; }
+
+    .form-select {
+      width: 100%;
+      background: white;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-family: inherit;
+      font-size: 14px;
+      color: #0F172A;
+      outline: none;
+      appearance: none;
+      cursor: pointer;
+    }
+
+    .select-wrap { position: relative; }
+    .select-wrap svg {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      color: #94A3B8;
+      pointer-events: none;
+    }
+
+    .form-row { display: flex; gap: 10px; }
+    .form-row > * { flex: 1; }
+
+    .submit-btn {
+      width: 100%;
+      background: var(--brand);
+      color: white;
+      border: none;
+      border-radius: 14px;
+      padding: 14px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 20px;
+      letter-spacing: -0.2px;
+    }
+
+    /* ── TAB BAR ─────────────────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      background: rgba(255,255,255,0.95);
+      border-top: 1px solid #F1F5F9;
+      padding: 8px 0 20px;
+      flex-shrink: 0;
+    }
+
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 4px 0;
+    }
+
+    .tab-item svg { width: 22px; height: 22px; }
+    .tab-item span { font-size: 10px; font-weight: 600; }
+    .tab-item.active svg { color: var(--brand); }
+    .tab-item.active span { color: var(--brand); }
+    .tab-item:not(.active) svg { color: #94A3B8; }
+    .tab-item:not(.active) span { color: #94A3B8; }
+
+    .tab-item.tab-add .add-circle {
+      width: 44px;
+      height: 44px;
+      background: var(--brand);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: -16px;
+      box-shadow: 0 4px 16px rgba(99,102,241,0.45);
+    }
+
+    .tab-item.tab-add .add-circle svg { color: white; width: 22px; height: 22px; }
+    .tab-item.tab-add span { color: var(--brand); font-size: 10px; font-weight: 600; }
+
+    /* ── RIGHT PANEL ─────────────────────────────────────── */
+    .panel-header {
+      background: #1E293B;
+      padding: 20px 28px 16px;
+      border-bottom: 1px solid #1E2A3A;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel-title {
+      font-family: 'Berkeley Mono', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: #E2E8F0;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-title .dot {
+      width: 8px; height: 8px;
+      background: #6366F1;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #6366F1;
+    }
+
+    .active-tab-badge {
+      font-family: 'Berkeley Mono', monospace;
+      font-size: 11px;
+      background: #334155;
+      color: #94A3B8;
+      padding: 3px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 28px;
+      scrollbar-width: thin;
+      scrollbar-color: #334155 transparent;
+    }
+
+    .panel-body::-webkit-scrollbar { width: 4px; }
+    .panel-body::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+    .comp-section { margin-bottom: 32px; }
+
+    .comp-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .comp-chip {
+      font-family: 'Berkeley Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 6px;
+      letter-spacing: 0.3px;
+    }
+
+    .chip-blue { background: #1E3A5F; color: #60A5FA; }
+    .chip-purple { background: #2D1B69; color: #A78BFA; }
+    .chip-green { background: #0D3320; color: #34D399; }
+    .chip-amber { background: #3D2308; color: #FCD34D; }
+    .chip-pink { background: #3B0F2A; color: #F472B6; }
+
+    .comp-divider {
+      height: 1px;
+      background: #1E293B;
+      flex: 1;
+    }
+
+    pre.code-block {
+      background: #0A0F1A;
+      border: 1px solid #1E293B;
+      border-radius: 10px;
+      padding: 16px;
+      font-size: 12px;
+      line-height: 1.65;
+      color: #CBD5E1;
+      overflow-x: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #334155 transparent;
+      white-space: pre;
+    }
+
+    pre.code-block::-webkit-scrollbar { height: 4px; }
+    pre.code-block::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+    .kw { color: #C084FC; }
+    .fn { color: #60A5FA; }
+    .str { color: #34D399; }
+    .prop { color: #F472B6; }
+    .cmt { color: #475569; font-style: italic; }
+    .num { color: #FB923C; }
+    .tag { color: #60A5FA; }
+    .attr { color: #F472B6; }
+    .val { color: #34D399; }
+    .imp { color: #C084FC; }
+
+    .compat-note {
+      font-family: 'Berkeley Mono', monospace;
+      font-size: 11px;
+      color: #64748B;
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: #0D1829;
+      border-left: 2px solid #334155;
+      border-radius: 0 6px 6px 0;
+      line-height: 1.5;
+    }
+
+    .compat-note .warn { color: #FBBF24; }
+    .compat-note .ok { color: #34D399; }
+
+    /* Sections are hidden/shown per tab */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    @media (max-width: 1023px) {
+      .right-col { display: none; }
+      .left-col { min-width: unset; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="workspace">
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- LEFT: PHONE PREVIEW                                   -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="left-col">
+
+    <div style="z-index:1; text-align:center; margin-bottom:4px;">
+      <div style="font-family:'Berkeley Mono',monospace; font-size:11px; color:#6366F1; letter-spacing:1.5px; text-transform:uppercase; font-weight:700;">Expo Native Preview</div>
+      <div style="font-size:12px; color:#94A3B8; margin-top:3px;">React Native — flex-only layout</div>
+    </div>
+
+    <div class="phone-wrap">
+      <div class="phone-bezel">
+        <div class="phone-screen">
+          <div class="dynamic-island"></div>
+
+          <div class="app-root">
+            <!-- Status Bar -->
+            <div class="status-bar">
+              <span class="status-time">9:41</span>
+              <div class="status-icons">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+                <svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M22 11v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+              </div>
+            </div>
+
+            <!-- Screens -->
+            <div class="screen-body">
+
+              <!-- ── DASHBOARD ── -->
+              <div class="screen active" id="screen-dashboard">
+                <div class="screen-header">
+                  <div class="screen-title">Dashboard</div>
+                  <div class="screen-subtitle">Good morning, Aras</div>
+                </div>
+
+                <!-- KPI Cards — horizontal ScrollView -->
+                <div class="scroll-x">
+                  <div class="kpi-card primary">
+                    <div class="kpi-label">Revenue</div>
+                    <div class="kpi-value">$42.5k</div>
+                    <div class="kpi-change">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:12px;height:12px"><path d="m18 15-6-6-6 6"/></svg>
+                      +12.5% this month
+                    </div>
+                  </div>
+                  <div class="kpi-card white">
+                    <div class="kpi-label">Orders</div>
+                    <div class="kpi-value" style="color:#0F172A">124</div>
+                    <div class="kpi-change">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:12px;height:12px;color:#F59E0B"><path d="m18 15-6-6-6 6"/></svg>
+                      <span style="color:#F59E0B">8 pending</span>
+                    </div>
+                  </div>
+                  <div class="kpi-card white">
+                    <div class="kpi-label">Clients</div>
+                    <div class="kpi-value" style="color:#0F172A">48</div>
+                    <div class="kpi-change">+4 new</div>
+                  </div>
+                </div>
+
+                <div class="section-title">Recent Activity</div>
+
+                <!-- Activity List — FlatList -->
+                <div class="scroll-y">
+                  <div class="activity-item">
+                    <div class="activity-icon" style="background:#EEF2FF">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    </div>
+                    <div class="activity-info">
+                      <div class="activity-name">Invoice #INV-0042</div>
+                      <div class="activity-meta">Acme Corp · 2h ago</div>
+                    </div>
+                    <div class="activity-amount" style="color:#10B981">+$3,200</div>
+                  </div>
+                  <div class="activity-item">
+                    <div class="activity-icon" style="background:#FEF9C3">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                    </div>
+                    <div class="activity-info">
+                      <div class="activity-name">PO #PO-0019</div>
+                      <div class="activity-meta">Pending approval · 4h ago</div>
+                    </div>
+                    <div class="activity-amount" style="color:#F59E0B">$1,840</div>
+                  </div>
+                  <div class="activity-item">
+                    <div class="activity-icon" style="background:#DCFCE7">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="1"/></svg>
+                    </div>
+                    <div class="activity-info">
+                      <div class="activity-name">Payment received</div>
+                      <div class="activity-meta">Globex · Yesterday</div>
+                    </div>
+                    <div class="activity-amount" style="color:#10B981">+$8,500</div>
+                  </div>
+                  <div class="activity-item">
+                    <div class="activity-icon" style="background:#FEE2E2">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    </div>
+                    <div class="activity-info">
+                      <div class="activity-name">Invoice overdue</div>
+                      <div class="activity-meta">Initech · 3 days ago</div>
+                    </div>
+                    <div class="activity-amount" style="color:#EF4444">$650</div>
+                  </div>
+                  <div class="activity-item">
+                    <div class="activity-icon" style="background:#EEF2FF">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div class="activity-info">
+                      <div class="activity-name">New client added</div>
+                      <div class="activity-meta">Umbrella Corp · 5 days ago</div>
+                    </div>
+                    <div class="activity-amount" style="color:#6366F1">CRM</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ── INVOICES ── -->
+              <div class="screen" id="screen-invoices">
+                <div class="screen-header">
+                  <div class="screen-title">Invoices</div>
+                </div>
+                <div class="search-bar">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                  <input type="text" placeholder="Search invoices…">
+                </div>
+                <div class="filter-row">
+                  <button class="filter-chip active">All</button>
+                  <button class="filter-chip inactive">Paid</button>
+                  <button class="filter-chip inactive">Pending</button>
+                  <button class="filter-chip inactive">Overdue</button>
+                </div>
+                <div class="scroll-y" style="padding-top:4px">
+                  <div class="invoice-item">
+                    <div class="invoice-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                    <div class="invoice-info">
+                      <div class="invoice-client">Acme Corp</div>
+                      <div class="invoice-id">#INV-0042</div>
+                    </div>
+                    <div class="invoice-right">
+                      <div class="invoice-amount">$3,200</div>
+                      <div class="badge badge-green">Paid</div>
+                    </div>
+                  </div>
+                  <div class="invoice-item">
+                    <div class="invoice-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                    <div class="invoice-info">
+                      <div class="invoice-client">Globex Industries</div>
+                      <div class="invoice-id">#INV-0041</div>
+                    </div>
+                    <div class="invoice-right">
+                      <div class="invoice-amount">$1,850</div>
+                      <div class="badge badge-amber">Pending</div>
+                    </div>
+                  </div>
+                  <div class="invoice-item">
+                    <div class="invoice-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                    <div class="invoice-info">
+                      <div class="invoice-client">Initech</div>
+                      <div class="invoice-id">#INV-0040</div>
+                    </div>
+                    <div class="invoice-right">
+                      <div class="invoice-amount">$650</div>
+                      <div class="badge badge-red">Overdue</div>
+                    </div>
+                  </div>
+                  <div class="invoice-item">
+                    <div class="invoice-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                    <div class="invoice-info">
+                      <div class="invoice-client">Umbrella Corp</div>
+                      <div class="invoice-id">#INV-0039</div>
+                    </div>
+                    <div class="invoice-right">
+                      <div class="invoice-amount">$12,400</div>
+                      <div class="badge badge-blue">Draft</div>
+                    </div>
+                  </div>
+                  <div class="invoice-item">
+                    <div class="invoice-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                    <div class="invoice-info">
+                      <div class="invoice-client">Cyberdyne Systems</div>
+                      <div class="invoice-id">#INV-0038</div>
+                    </div>
+                    <div class="invoice-right">
+                      <div class="invoice-amount">$5,300</div>
+                      <div class="badge badge-green">Paid</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ── NEW INVOICE ── -->
+              <div class="screen" id="screen-new">
+                <div class="screen-header">
+                  <div class="screen-title">New Invoice</div>
+                  <div class="screen-subtitle">Fill in the details below</div>
+                </div>
+                <div class="form-scroll">
+                  <label class="form-label">Client</label>
+                  <div class="select-wrap">
+                    <select class="form-select">
+                      <option>Select client…</option>
+                      <option>Acme Corp</option>
+                      <option>Globex</option>
+                    </select>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+
+                  <label class="form-label">Invoice Number</label>
+                  <input class="form-input" type="text" placeholder="INV-0043" value="">
+
+                  <div class="form-row">
+                    <div>
+                      <label class="form-label">Issue Date</label>
+                      <input class="form-input" type="text" placeholder="2026-05-22">
+                    </div>
+                    <div>
+                      <label class="form-label">Due Date</label>
+                      <input class="form-input" type="text" placeholder="2026-06-22">
+                    </div>
+                  </div>
+
+                  <label class="form-label">Description</label>
+                  <input class="form-input" type="text" placeholder="Services rendered…">
+
+                  <div class="form-row">
+                    <div>
+                      <label class="form-label">Quantity</label>
+                      <input class="form-input" type="number" placeholder="1">
+                    </div>
+                    <div>
+                      <label class="form-label">Unit Price</label>
+                      <input class="form-input" type="number" placeholder="0.00">
+                    </div>
+                  </div>
+
+                  <label class="form-label">Notes</label>
+                  <input class="form-input" type="text" placeholder="Optional notes…">
+
+                  <button class="submit-btn">Create Invoice</button>
+                </div>
+              </div>
+
+            </div><!-- /screen-body -->
+
+            <!-- Tab Bar -->
+            <div class="tab-bar">
+              <button class="tab-item active" onclick="switchTab('dashboard', this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                <span>Home</span>
+              </button>
+              <button class="tab-item" onclick="switchTab('invoices', this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <span>Invoices</span>
+              </button>
+              <button class="tab-item tab-add" onclick="switchTab('new', this)">
+                <div class="add-circle">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </div>
+                <span>New</span>
+              </button>
+              <button class="tab-item" onclick="switchTab('invoices', this)" style="pointer-events:none; opacity:0.4">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                <span>Clients</span>
+              </button>
+              <button class="tab-item" onclick="switchTab('invoices', this)" style="pointer-events:none; opacity:0.4">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+                <span>More</span>
+              </button>
+            </div>
+
+          </div><!-- /app-root -->
+        </div><!-- /phone-screen -->
+      </div><!-- /phone-bezel -->
+    </div><!-- /phone-wrap -->
+
+  </div><!-- /left-col -->
+
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- RIGHT: COMPONENT MAP                                  -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="right-col">
+
+    <div class="panel-header">
+      <div class="panel-title">
+        <div class="dot"></div>
+        Expo Component Map
+      </div>
+      <div class="active-tab-badge" id="active-tab-label">screen: dashboard</div>
+    </div>
+
+    <div class="panel-body" id="component-map">
+
+      <!-- ── DASHBOARD MAP ── -->
+      <div class="tab-content active" id="map-dashboard">
+
+        <div class="comp-section">
+          <div class="comp-header">
+            <span class="comp-chip chip-blue">SafeAreaView + Stack</span>
+            <div class="comp-divider"></div>
+          </div>
+<pre class="code-block"><span class="imp">import</span> { <span class="fn">SafeAreaView</span>, <span class="fn">View</span>, <span class="fn">Text</span> } <span class="imp">from</span> <span class="str">'react-native'</span>
+<span class="imp">import</span> { <span class="fn">SafeAreaProvider</span> } <span class="imp">from</span> <span class="str">'react-native-safe-area-context'</span>
+
+<span class="kw">export default function</span> <span class="fn">DashboardScreen</span>() {
+  <span class="kw">return</span> (
+    <span class="tag">&lt;SafeAreaView</span> <span class="attr">style</span>=<span class="val">{{ flex: 1, backgroundColor: '#F8FAFC' }}</span><span class="tag">&gt;</span>
+      <span class="tag">&lt;View</span> <span class="attr">style</span>=<span class="val">{ styles.header }</span><span class="tag">&gt;</span>
+        <span class="tag">&lt;Text</span> <span class="attr">style</span>=<span class="val">{ styles.title }</span><span class="tag">&gt;</span>Dashboard<span class="tag">&lt;/Text&gt;</span>
+        <span class="tag">&lt;Text</span> <span class="attr">style</span>=<span class="val">{ styles.subtitle }</span><span class="tag">&gt;</span>Good morning, Aras<span class="tag">&lt;/Text&gt;</span>
+      <span class="tag">&lt;/View&gt;</span>
+      <span class="cmt">// ... KPI cards + activity list</span>
+    <span class="tag">&lt;/SafeAreaView&gt;</span>
+  )
+}</pre>
+          <div class="compat-note"><span class="ok">✓</span> Use <code>SafeAreaProvider</code> at root. <code>SafeAreaView</code> handles notch + home bar on both iOS/Android. Avoid hardcoding top padding.</div>
+        </div>
+
+        <div class="comp-section">
+          <div class="comp-header">
+            <span class="comp-chip chip-purple">KPI Cards — ScrollView horizontal</span>
+            <div class="comp-divider"></div>
+          </div>
+<pre class="code-block"><span class="imp">import</span> { <span class="fn">ScrollView</span>, <span class="fn">View</span>, <span class="fn">Text</span> } <span class="imp">from</span> <span class="str">'react-native'</span>
+
+<span class="tag">&lt;ScrollView</span>
+  <span class="attr">horizontal</span>
+  <span class="attr">showsHorizontalScrollIndicator</span>=<span class="val">{false}</span>
+  <span class="attr">contentContainerStyle</span>=<span class="val">{{ paddingHorizontal: 20, gap: 12 }}</span>
+<span class="tag">&gt;</span>
+  <span class="tag">&lt;KpiCard</span>
+    <span class="attr">label</span>=<span class="val">"Revenue"</span>
+    <span class="attr">value</span>=<span class="val">"$42.5k"</span>
+    <span class="attr">variant</span>=<span class="val">"primary"</span>
+  <span class="tag">/&gt;</span>
+  <span class="tag">&lt;KpiCard</span> <span class="attr">label</span>=<span class="val">"Orders"</span> <span class="attr">value</span>=<span class="val">"124"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;KpiCard</span> <span class="attr">label</span>=<span class="val">"Clients"</span> <span class="attr">value</span>=<span class="val">"48"</span> <span class="tag">/&gt;</span>
+<span class="tag">&lt;/ScrollView&gt;</span>
+
+<span class="cmt">// KpiCard component</span>
+<span class="kw">const</span> <span class="fn">KpiCard</span> = ({ label, value, variant }) =&gt; (
+  <span class="tag">&lt;View</span> <span class="attr">style</span>=<span class="val">{[styles.card, variant === 'primary' &amp;&amp; styles.cardPrimary]}</span><span class="tag">&gt;</span>
+    <span class="tag">&lt;Text</span> <span class="attr">style</span>=<span class="val">{ styles.cardLabel }</span><span class="tag">&gt;</span>{label}<span class="tag">&lt;/Text&gt;</span>
+    <span class="tag">&lt;Text</span> <span class="attr">style</span>=<span class="val">{ styles.cardValue }</span><span class="tag">&gt;</span>{value}<span class="tag">&lt;/Text&gt;</span>
+  <span class="tag">&lt;/View&gt;</span>
+)</pre>
+          <div class="compat-note"><span class="warn">⚠</span> <code>gap</code> in <code>contentContainerStyle</code> requires RN 0.71+. Use <code>marginRight</code> for older versions. <code>snap</code> → use <code>snapToInterval</code> + <code>decelerationRate="fast"</code>.</div>
+        </div>
+
+        <div class="comp-section">
+          <div class="comp-header">
+            <span class="comp-chip chip-green">Activity List — FlatList</span>
+            <div class="comp-divider"></div>
+          </div>
+<pre class="code-block"><span class="imp">import</span> { <span class="fn">FlatList</span>, <span class="fn">View</span>, <span class="fn">Text</span> } <span class="imp">from</span> <span class="str">'react-native'</span>
+
+<span class="kw">const</span> activities = [
+  { id: <span class="str">'1'</span>, name: <span class="str">'Invoice #INV-0042'</span>, amount: <span class="str">'+$3,200'</span>, color: <span class="str">'#10B981'</span> },
+  <span class="cmt">// ...</span>
+]
+
+<span class="tag">&lt;FlatList</span>
+  <span class="attr">data</span>=<span class="val">{activities}</span>
+  <span class="attr">keyExtractor</span>=<span class="val">{item =&gt; item.id}</span>
+  <span class="attr">renderItem</span>=<span class="val">{({ item }) =&gt; &lt;ActivityRow item={item} /&gt;}</span>
+  <span class="attr">showsVerticalScrollIndicator</span>=<span class="val">{false}</span>
+  <span class="attr">contentContainerStyle</span>=<span class="val">{{ paddingHorizontal: 20 }}</span>
+  <span class="attr">ItemSeparatorComponent</span>=<span class="val">{() =&gt; &lt;View style={{ height: 1, backgroundColor: '#F1F5F9' }} /&gt;}</span>
+<span class="tag">/&gt;</span></pre>
+          <div class="compat-note"><span class="ok">✓</span> Prefer <code>FlatList</code> over <code>ScrollView + map()</code> for lists — virtualized, better for 50+ items. Use <code>ScrollView</code> only for small, static lists. <code>ItemSeparatorComponent</code> replaces CSS border-bottom.</div>
+        </div>
+
+        <div class="comp-section">
+          <div class="comp-header">
+            <span class="comp-chip chip-amber">StyleSheet.create</span>
+            <div class="comp-divider"></div>
+          </div>
+<pre class="code-block"><span class="imp">import</span> { <span class="fn">StyleSheet</span> } <span class="imp">from</span> <span class="str">'react-native'</span>
+
+<span class="kw">const</span> styles = <span class="fn">StyleSheet</span>.<span class="fn">create</span>({
+  header: {
+    <span class="prop">paddingHorizontal</span>: <span class="num">20</span>,
+    <span class="prop">paddingTop</span>: <span class="num">16</span>,
+    <span class="prop">paddingBottom</span>: <span class="num">12</span>,
+  },
+  title: {
+    <span class="prop">fontSize</span>: <span class="num">26</span>,
+    <span class="prop">fontWeight</span>: <span class="str">'700'</span>,
+    <span class="prop">letterSpacing</span>: <span class="num">-0.5</span>,
+    <span class="prop">color</span>: <span class="str">'#0F172A'</span>,
+  },
+  card: {
+    <span class="prop">width</span>: <span class="num">160</span>,
+    <span class="prop">borderRadius</span>: <span class="num">20</span>,
+    <span class="prop">padding</span>: <span class="num">16</span>,
+    <span class="prop">backgroundColor</span>: <span class="str">'#FFFFFF'</span>,
+    <span class="prop">elevation</span>: <span class="num">2</span>,         <span class="cmt">// Android shadow</span>
+    <span class="prop">shadowColor</span>: <span class="str">'#000'</span>,  <span class="cmt">// iOS shadow</span>
+    <span class="prop">shadowOpacity</span>: <span class="num">0.07</span>,
+    <span class="prop">shadowRadius</span>: <span class="num">8</span>,
+    <span class="prop">shadowOffset</span>: { <span class="prop">width</span>: <span class="num">0</span>, <span class="prop">height</span>: <span class="num">2</span> },
+  },
+})</pre>
+          <div class="compat-note"><span class="ok">✓</span> <code>StyleSheet.create</code> validates and freezes styles at startup — slight perf win over inline objects. <span class="warn">⚠</span> No CSS shorthand: use <code>paddingHorizontal</code>/<code>paddingVertical</code>, not <code>padding: '8px 16px'</code>.</div>
+        </div>
+
+      </div><!-- /map-dashboard -->
+
+
+      <!-- ── INVOICES MAP ── -->
+      <div class="tab-content" id="map-invoices">
+
+        <div class="comp-section">
+          <div class="comp-header">
+            <span class="comp-chip chip-blue">Search — TextInput + state</span>
+            <div class="comp-divider"></div>
+          </div>
+<pre class="code-block"><span class="imp">import</span> { <span class="fn">TextInput</span>, <span class="fn">View</span> } <span class="imp">from</span> <span class="str">'react-native'</span>
+<span class="imp">import</span> { <span class="fn">useState</span> } <span class="imp">from</span> <span class="str">'react'</span>
+
+<span class="kw">const</span> [query, setQuery] = <span class="fn">useState</span>(<span class="str">''</span>)
+
+<span class="tag">&lt;View</span> <span class="attr">style</span>=<span class="val">{ styles.searchBar }</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;SearchIcon</span> <span class="attr">size</span>=<span class="val">{16}</span> <span class="attr">color</span>=<span class="val">"#94A3B8"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;TextInput</span>
+    <span class="attr">style</span>=<span class="val">{ styles.searchInput }</span>
+    <span class="attr">placeholder</span>=<span class="val">"Search invoices…"</span>
+    <span class="attr">placeholderTextColor</span>=<span class="val">"#CBD5E1"</span>
+    <span class="attr">value</span>=<span class="val">{query}</span>
+    <span class="attr">onChangeText</span>=<span class="val">{setQuery}</span>
+    <span class="attr">returnKeyType</span>=<span class="val">"search"</span>
+    <span class="attr">autoCorrect</span>=<span class="val">{false}</span>
+    <span class="attr">autoCapitalize</span>=<span class="val">"none"</span>
+  <span class="tag">/&gt;</span>
+<span class="tag">&lt;/View&gt;</span>
+
+<span class="cmt">// Filter data</span>
+<span class="kw">const</span> filtered = invoices.<span class="fn">filter</span>(inv =&gt;
+  inv.client.<span class="fn">toLowerCase</span>().<span class="fn">includes</span>(query.<span class="fn">toLowerCase</span>())
+)</pre>
+          <div class="compat-note"><span class="warn">⚠</span> Always set <code>placeholderTextColor</code> — it defaults to system gray which differs per OS. <code>autoCapitalize="none"</code> is essential for search/email fields.</div>
+        </div>
+
+        <div class="comp-section">
+          <div class="comp-header">
+            <span class="comp-chip chip-purple">Filter Chips — ScrollView horizontal</span>
+            <div class="comp-divider"></div>
+          </div>
+<pre class="code-block"><span class="kw">const</span> filters = [<span class="str">'All'</span>, <span class="str">'Paid'</span>, <span class="str">'Pending'</span>, <span class="str">'Overdue'</span>]
+<span class="kw">const</span> [active, setActive] = <span class="fn">useState</span>(<span class="str">'All'</span>)
+
+<span class="tag">&lt;ScrollView</span>
+  <span class="attr">horizontal</span>
+  <span class="attr">showsHorizontalScrollIndicator</span>=<span class="val">{false}</span>
+  <span class="attr">contentContainerStyle</span>=<span class="val">{{ paddingHorizontal: 20, gap: 8 }}</span>
+<span class="tag">&gt;</span>
+  {filters.<span class="fn">map</span>(f =&gt; (
+    <span class="tag">&lt;Pressable</span>
+      <span class="attr">key</span>=<span class="val">{f}</span>
+      <span class="attr">onPress</span>=<span class="val">{() =&gt; setActive(f)}</span>
+      <span class="attr">style</span>=<span class="val">{[styles.chip, active === f &amp;&amp; styles.chipActive]}</span>
+    <span class="tag">&gt;</span>
+      <span class="tag">&lt;Text</span> <span class="attr">style</span>=<span class="val">{[styles.chipText, active === f &amp;&amp; styles.chipTextActive]}</span><span class="tag">&gt;</span>
+        {f}
+      <span class="tag">&lt;/Text&gt;</span>
+    <span class="tag">&lt;/Pressable&gt;</span>
+  ))}
+<span class="tag">&lt;/ScrollView&gt;</span></pre>
+          <div class="compat-note"><span class="ok">✓</span> Use <code>Pressable</code> over <code>TouchableOpacity</code> for new code — supports <code>android_ripple</code> and style callbacks. <code>TouchableOpacity</code> still works but is legacy.</div>
+        </div>
+
+        <div class="comp-section">
+          <div class="comp-header">
+            <span class="comp-chip chip-green">Status Badge — conditional style</span>
+            <div class="comp-divider"></div>
+          </div>
+<pre class="code-block"><span class="kw">const</span> badgeConfig = {
+  <span class="prop">Paid</span>:    { <span class="prop">bg</span>: <span class="str">'#DCFCE7'</span>, <span class="prop">text</span>: <span class="str">'#166534'</span> },
+  <span class="prop">Pending</span>: { <span class="prop">bg</span>: <span class="str">'#FEF9C3'</span>, <span class="prop">text</span>: <span class="str">'#854D0E'</span> },
+  <span class="prop">Overdue</span>: { <span class="prop">bg</span>: <span class="str">'#FEE2E2'</span>, <span class="prop">text</span>: <span class="str">'#991B1B'</span> },
+  <span class="prop">Draft</span>:   { <span class="prop">bg</span>: <span class="str">'#EEF2FF'</span>, <span class="prop">text</span>: <span class="str">'#3730A3'</span> },
+}
+
+<span class="kw">const</span> <span class="fn">StatusBadge</span> = ({ status }) =&gt; {
+  <span class="kw">const</span> { bg, text } = badgeConfig[status]
+  <span class="kw">return</span> (
+    <span class="tag">&lt;View</span> <span class="attr">style</span>=<span class="val">{[styles.badge, { backgroundColor: bg }]}</span><span class="tag">&gt;</span>
+      <span class="tag">&lt;Text</span> <span class="attr">style</span>=<span class="val">{[styles.badgeText, { color: text }]}</span><span class="tag">&gt;</span>
+        {status}
+      <span class="tag">&lt;/Text&gt;</span>
+    <span class="tag">&lt;/View&gt;</span>
+  )
+}</pre>
+          <div class="compat-note"><span class="ok">✓</span> Dynamic background via inline style object — safe in RN. Mixing <code>StyleSheet</code> base styles with inline overrides for dynamic values is the standard pattern.</div>
+        </div>
+
+        <div class="comp-section">
+          <div class="comp-header">
+            <span class="comp-chip chip-amber">FlatList vs ScrollView tradeoffs</span>
+            <div class="comp-divider"></div>
+          </div>
+<pre class="code-block"><span class="cmt">// USE FlatList when:</span>
+<span class="cmt">// - List can grow (pagination, remote data)</span>
+<span class="cmt">// - Items > ~20</span>
+<span class="cmt">// - Need pull-to-refresh, onEndReached</span>
+
+<span class="tag">&lt;FlatList</span>
+  <span class="attr">data</span>=<span class="val">{filtered}</span>
+  <span class="attr">keyExtractor</span>=<span class="val">{item =&gt; item.id}</span>
+  <span class="attr">renderItem</span>=<span class="val">{({ item }) =&gt; &lt;InvoiceRow item={item} /&gt;}</span>
+  <span class="attr">refreshing</span>=<span class="val">{loading}</span>
+  <span class="attr">onRefresh</span>=<span class="val">{fetchInvoices}</span>
+  <span class="attr">onEndReached</span>=<span class="val">{loadMore}</span>
+  <span class="attr">onEndReachedThreshold</span>=<span class="val">{0.3}</span>
+<span class="tag">/&gt;</span>
+
+<span class="cmt">// USE ScrollView when:</span>
+<span class="cmt">// - Content is static or &lt; 15 items</span>
+<span class="cmt">// - You need mixed content (not just rows)</span>
+<span class="cmt">// - Dashboard-style layouts</span></pre>
+          <div class="compat-note"><span class="warn">⚠</span> Never nest a <code>FlatList</code> inside a <code>ScrollView</code> with the same scroll axis — this disables virtualization. Use <code>ListHeaderComponent</code> / <code>ListFooterComponent</code> to embed static content instead.</div>
+        </div>
+
+      </div><!-- /map-invoices -->
+
+
+      <!-- ── NEW INVOICE MAP ── -->
+      <div class="tab-content" id="map-new">
+
+        <div class="comp-section">
+          <div class="comp-header">
+            <span class="comp-chip chip-blue">KeyboardAvoidingView</span>
+            <div class="comp-divider"></div>
+          </div>
+<pre class="code-block"><span class="imp">import</span> {
+  <span class="fn">KeyboardAvoidingView</span>,
+  <span class="fn">ScrollView</span>,
+  <span class="fn">Platform</span>,
+} <span class="imp">from</span> <span class="str">'react-native'</span>
+
+<span class="tag">&lt;KeyboardAvoidingView</span>
+  <span class="attr">style</span>=<span class="val">{{ flex: 1 }}</span>
+  <span class="attr">behavior</span>=<span class="val">{Platform.OS === 'ios' ? 'padding' : 'height'}</span>
+  <span class="attr">keyboardVerticalOffset</span>=<span class="val">{Platform.OS === 'ios' ? 88 : 0}</span>
+<span class="tag">&gt;</span>
+  <span class="tag">&lt;ScrollView</span>
+    <span class="attr">contentContainerStyle</span>=<span class="val">{{ padding: 20 }}</span>
+    <span class="attr">keyboardShouldPersistTaps</span>=<span class="val">"handled"</span>
+    <span class="attr">showsVerticalScrollIndicator</span>=<span class="val">{false}</span>
+  <span class="tag">&gt;</span>
+    <span class="cmt">// form fields here</span>
+  <span class="tag">&lt;/ScrollView&gt;</span>
+<span class="tag">&lt;/KeyboardAvoidingView&gt;</span></pre>
+          <div class="compat-note"><span class="warn">⚠</span> <code>behavior</code> must differ by platform — <code>'padding'</code> on iOS, <code>'height'</code> on Android. The <code>keyboardVerticalOffset</code> accounts for header height in stack navigators. <code>keyboardShouldPersistTaps="handled"</code> lets taps dismiss keyboard via buttons.</div>
+        </div>
+
+        <div class="comp-section">
+          <div class="comp-header">
+            <span class="comp-chip chip-purple">TextInput — controlled form fields</span>
+            <div class="comp-divider"></div>
+          </div>
+<pre class="code-block"><span class="kw">const</span> [form, setForm] = <span class="fn">useState</span>({
+  <span class="prop">invoiceNumber</span>: <span class="str">''</span>,
+  <span class="prop">description</span>: <span class="str">''</span>,
+  <span class="prop">quantity</span>: <span class="str">''</span>,
+  <span class="prop">unitPrice</span>: <span class="str">''</span>,
+})
+
+<span class="kw">const</span> <span class="fn">update</span> = (field, value) =&gt;
+  <span class="fn">setForm</span>(prev =&gt; ({ ...prev, [field]: value }))
+
+<span class="cmt">// Invoice Number field</span>
+<span class="tag">&lt;TextInput</span>
+  <span class="attr">style</span>=<span class="val">{ styles.input }</span>
+  <span class="attr">value</span>=<span class="val">{form.invoiceNumber}</span>
+  <span class="attr">onChangeText</span>=<span class="val">{v =&gt; update('invoiceNumber', v)}</span>
+  <span class="attr">placeholder</span>=<span class="val">"INV-0043"</span>
+  <span class="attr">placeholderTextColor</span>=<span class="val">"#CBD5E1"</span>
+  <span class="attr">returnKeyType</span>=<span class="val">"next"</span>
+  <span class="attr">onSubmitEditing</span>=<span class="val">{() =&gt; descRef.current?.focus()}</span>
+<span class="tag">/&gt;</span>
+
+<span class="cmt">// Price field — numeric keyboard</span>
+<span class="tag">&lt;TextInput</span>
+  <span class="attr">keyboardType</span>=<span class="val">"decimal-pad"</span>
+  <span class="attr">value</span>=<span class="val">{form.unitPrice}</span>
+  <span class="attr">onChangeText</span>=<span class="val">{v =&gt; update('unitPrice', v)}</span>
+<span class="tag">/&gt;</span></pre>
+          <div class="compat-note"><span class="ok">✓</span> Chain fields with <code>ref</code> + <code>onSubmitEditing</code> to advance focus on "Next" key tap. Use <code>keyboardType="decimal-pad"</code> for prices, <code>"number-pad"</code> for integers — avoids manual numeric validation.</div>
+        </div>
+
+        <div class="comp-section">
+          <div class="comp-header">
+            <span class="comp-chip chip-green">Picker (Select) — @react-native-picker</span>
+            <div class="comp-divider"></div>
+          </div>
+<pre class="code-block"><span class="cmt">// Install: npx expo install @react-native-picker/picker</span>
+<span class="imp">import</span> { <span class="fn">Picker</span> } <span class="imp">from</span> <span class="str">'@react-native-picker/picker'</span>
+
+<span class="kw">const</span> [clientId, setClientId] = <span class="fn">useState</span>(<span class="str">''</span>)
+
+<span class="tag">&lt;Picker</span>
+  <span class="attr">selectedValue</span>=<span class="val">{clientId}</span>
+  <span class="attr">onValueChange</span>=<span class="val">{setClientId}</span>
+  <span class="attr">style</span>=<span class="val">{ styles.picker }</span>
+<span class="tag">&gt;</span>
+  <span class="tag">&lt;Picker.Item</span> <span class="attr">label</span>=<span class="val">"Select client…"</span> <span class="attr">value</span>=<span class="val">""</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;Picker.Item</span> <span class="attr">label</span>=<span class="val">"Acme Corp"</span> <span class="attr">value</span>=<span class="val">"acme"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;Picker.Item</span> <span class="attr">label</span>=<span class="val">"Globex"</span> <span class="attr">value</span>=<span class="val">"globex"</span> <span class="tag">/&gt;</span>
+<span class="tag">&lt;/Picker&gt;</span>
+
+<span class="cmt">// Alternative: custom modal Picker</span>
+<span class="cmt">// Better UX for long lists + custom styling</span></pre>
+          <div class="compat-note"><span class="warn">⚠</span> Native <code>Picker</code> renders differently on iOS (wheel) vs Android (dialog/dropdown). For consistent cross-platform UX, many teams build a custom bottom sheet modal. Consider <code>react-native-bottom-sheet</code> for production.</div>
+        </div>
+
+        <div class="comp-section">
+          <div class="comp-header">
+            <span class="comp-chip chip-amber">Row layout — flex row</span>
+            <div class="comp-divider"></div>
+          </div>
+<pre class="code-block"><span class="cmt">// CSS: display: flex; gap: 10px;
+// RN equivalent:</span>
+
+<span class="tag">&lt;View</span> <span class="attr">style</span>=<span class="val">{{ flexDirection: 'row', gap: 10 }}</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;View</span> <span class="attr">style</span>=<span class="val">{{ flex: 1 }}</span><span class="tag">&gt;</span>
+    <span class="tag">&lt;Text</span> <span class="attr">style</span>=<span class="val">{ styles.label }</span><span class="tag">&gt;</span>Quantity<span class="tag">&lt;/Text&gt;</span>
+    <span class="tag">&lt;TextInput</span> <span class="attr">keyboardType</span>=<span class="val">"number-pad"</span> <span class="attr">...</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;/View&gt;</span>
+  <span class="tag">&lt;View</span> <span class="attr">style</span>=<span class="val">{{ flex: 1 }}</span><span class="tag">&gt;</span>
+    <span class="tag">&lt;Text</span> <span class="attr">style</span>=<span class="val">{ styles.label }</span><span class="tag">&gt;</span>Unit Price<span class="tag">&lt;/Text&gt;</span>
+    <span class="tag">&lt;TextInput</span> <span class="attr">keyboardType</span>=<span class="val">"decimal-pad"</span> <span class="attr">...</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;/View&gt;</span>
+<span class="tag">&lt;/View&gt;</span></pre>
+          <div class="compat-note"><span class="ok">✓</span> <code>flexDirection: 'row'</code> + <code>flex: 1</code> on children = equal-width columns. No CSS grid in RN — all layout is flex. Default <code>flexDirection</code> is <code>'column'</code> (opposite of CSS default).</div>
+        </div>
+
+        <div class="comp-section">
+          <div class="comp-header">
+            <span class="comp-chip chip-pink">Tab Navigator — Expo Router</span>
+            <div class="comp-divider"></div>
+          </div>
+<pre class="code-block"><span class="cmt">// app/(tabs)/_layout.tsx  (Expo Router v3+)</span>
+<span class="imp">import</span> { <span class="fn">Tabs</span> } <span class="imp">from</span> <span class="str">'expo-router'</span>
+<span class="imp">import</span> { <span class="fn">Chrome</span>, <span class="fn">FileText</span>, <span class="fn">Plus</span> } <span class="imp">from</span> <span class="str">'lucide-react-native'</span>
+
+<span class="kw">export default function</span> <span class="fn">TabLayout</span>() {
+  <span class="kw">return</span> (
+    <span class="tag">&lt;Tabs</span>
+      <span class="attr">screenOptions</span>=<span class="val">{{
+        tabBarActiveTintColor: '#6366F1',
+        tabBarStyle: { backgroundColor: '#FFFFFF' },
+        headerShown: false,
+      }}</span>
+    <span class="tag">&gt;</span>
+      <span class="tag">&lt;Tabs.Screen</span> <span class="attr">name</span>=<span class="val">"index"</span>
+        <span class="attr">options</span>=<span class="val">{{ title: 'Home', tabBarIcon: ({ color }) =&gt; &lt;Chrome color={color} size={22} /&gt; }}</span>
+      <span class="tag">/&gt;</span>
+      <span class="tag">&lt;Tabs.Screen</span> <span class="attr">name</span>=<span class="val">"invoices"</span>
+        <span class="attr">options</span>=<span class="val">{{ title: 'Invoices', tabBarIcon: ({ color }) =&gt; &lt;FileText color={color} size={22} /&gt; }}</span>
+      <span class="tag">/&gt;</span>
+      <span class="tag">&lt;Tabs.Screen</span> <span class="attr">name</span>=<span class="val">"new"</span>
+        <span class="attr">options</span>=<span class="val">{{
+          title: 'New',
+          tabBarIcon: () =&gt; (
+            &lt;View style={styles.fabTab}&gt;&lt;Plus color="white" size={22} /&gt;&lt;/View&gt;
+          ),
+        }}</span>
+      <span class="tag">/&gt;</span>
+    <span class="tag">&lt;/Tabs&gt;</span>
+  )
+}</pre>
+          <div class="compat-note"><span class="ok">✓</span> Expo Router v3 uses file-based routing. The <code>(tabs)</code> folder = tab group. Each file inside = one tab. The custom FAB-style center tab uses a <code>View</code> override for the icon. <span class="warn">⚠</span> <code>lucide-react-native</code> requires <code>react-native-svg</code>: <code>npx expo install react-native-svg</code>.</div>
+        </div>
+
+      </div><!-- /map-new -->
+
+    </div><!-- /panel-body -->
+  </div><!-- /right-col -->
+
+</div><!-- /workspace -->
+
+<script>
+  lucide.createIcons()
+
+  const screens = { dashboard: 'dashboard', invoices: 'invoices', new: 'new' }
+  const tabLabels = { dashboard: 'screen: dashboard', invoices: 'screen: invoices', new: 'screen: new invoice' }
+
+  function switchTab(name, btn) {
+    // Update screens
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
+    document.getElementById('screen-' + name)?.classList.add('active')
+
+    // Update tab buttons
+    document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'))
+    btn.classList.add('active')
+
+    // Update component map
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'))
+    document.getElementById('map-' + name)?.classList.add('active')
+
+    // Update label
+    document.getElementById('active-tab-label').textContent = tabLabels[name] || 'screen: ' + name
+  }
+</script>
+
+</body>
+</html>

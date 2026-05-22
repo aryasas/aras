@@ -43,7 +43,8 @@ async def get_resource_metadata(
         from ..aras import Aras
         core_list = [
             Aras.User, Aras.Role, Aras.Permission, Aras.ActivityLog, Aras.ArasSetting,
-            Aras.AppModel, Aras.ResourceModel, Aras.FieldModel, Aras.LinkModel, Aras.TranslationModel
+            Aras.AppModel, Aras.ResourceModel, Aras.FieldModel, Aras.LinkModel, Aras.TranslationModel,
+            Aras.WidgetModel, Aras.DashboardLayoutModel
         ]
         for m in core_list:
             if m.__tablename__ == tablename:

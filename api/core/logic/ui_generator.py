@@ -97,8 +97,17 @@ class UIGenerator(Service):
             
             final_ui_type = db_field.ui_type if db_field and db_field.ui_type else ui_type
             is_hidden = db_field.is_hidden if db_field and db_field.is_hidden is not None else column.info.get("hidden", False)
+            is_list_hidden = db_field.is_list_hidden if db_field and hasattr(db_field, "is_list_hidden") and db_field.is_list_hidden is not None else \
+                             column.info.get("list_hidden", False)
             is_read_only = db_field.is_read_only if db_field and db_field.is_read_only is not None else column.info.get("read_only", False)
             is_searchable = db_field.is_searchable if db_field and db_field.is_searchable is not None else column.info.get("searchable", True)
+
+            # Heuristic for default list visibility
+            if not is_list_hidden and not (db_field and db_field.is_override):
+                if final_ui_type in ["textarea", "file", "image", "json", "object"]:
+                    is_list_hidden = True
+                elif any(s in column.name for s in ["notes", "description", "comment", "content", "remark"]):
+                    is_list_hidden = True
 
             # Determine if the field is required for the UI
             is_required = db_field.is_required if db_field and db_field.is_required is not None else \
@@ -114,6 +123,7 @@ class UIGenerator(Service):
                 "target_resource": target_resource,
                 "options": ui_options,
                 "hidden": is_hidden,
+                "list_hidden": is_list_hidden,
                 "read_only": is_read_only,
                 "searchable": is_searchable,
                 "form_hidden": form_hidden,
@@ -124,12 +134,17 @@ class UIGenerator(Service):
                 "link_column": db_field.link_column if db_field and db_field.link_column else column.info.get("link_column"),
                 "display_column": db_field.display_column if db_field and db_field.display_column else column.info.get("display_column"),
                 "fk_filter": column.info.get("fk_filter"),
-                "fk_filter_fallback": column.info.get("fk_filter_fallback")
+                "fk_filter_fallback": column.info.get("fk_filter_fallback"),
+                "tab": db_field.tab if db_field and db_field.tab else column.info.get("tab"),
+                "section": db_field.section if db_field and db_field.section else column.info.get("section"),
+                "foldable": db_field.foldable if db_field and db_field.foldable is not None else column.info.get("foldable", False),
+                "default_folded": db_field.default_folded if db_field and db_field.default_folded is not None else column.info.get("default_folded", False)
             }
             fields.append(field_info)
 
         # Helper: resolve REST API path for any table name
         from ..base.app import App as _App
+        from ..aras import Aras as _Aras
         def resolve_api_path(tablename: str) -> Optional[str]:
             for a in _App._registry.values():
                 for m in a.models:
@@ -143,6 +158,16 @@ class UIGenerator(Service):
                         elif a.parent_name and seg.startswith(f"{a.parent_name}_"):
                             seg = seg[len(a.parent_name)+1:]
                         return f"{a._get_clean_path()}/{seg.replace('_', '-')}".lstrip("/")
+            
+            # Check core models
+            core_models = [
+                _Aras.User, _Aras.Role, _Aras.Permission, _Aras.ActivityLog, _Aras.ArasSetting,
+                _Aras.AppModel, _Aras.ResourceModel, _Aras.FieldModel, _Aras.LinkModel, _Aras.TranslationModel,
+                _Aras.WidgetModel, _Aras.DashboardLayoutModel
+            ]
+            for m in core_models:
+                if getattr(m, "__tablename__", None) == tablename:
+                    return tablename
             return None
 
         # 4. Include Many-to-Many (Bridge) and Child Table Fields
@@ -166,6 +191,7 @@ class UIGenerator(Service):
                         "target_resource": target_res.name,
                         "options": None,
                         "hidden": False,
+                        "list_hidden": True,
                         "read_only": False,
                         "searchable": False,
                         "depends_on": None,
@@ -202,6 +228,7 @@ class UIGenerator(Service):
                         "fk_column": fk_col,
                         "options": None,
                         "hidden": False,
+                        "list_hidden": True,
                         "read_only": False,
                         "searchable": False,
                         "depends_on": None,
@@ -224,6 +251,7 @@ class UIGenerator(Service):
                         "fk_column": child_entry.get("fk_column"),
                         "options": None,
                         "hidden": False,
+                        "list_hidden": True,
                         "read_only": False,
                         "searchable": False,
                         "depends_on": None,
@@ -241,6 +269,7 @@ class UIGenerator(Service):
                     "target_resource": defs.get("target_resource"),
                     "options": None,
                     "hidden": False,
+                    "list_hidden": True,
                     "read_only": False,
                     "searchable": False,
                     "depends_on": None,
@@ -259,6 +288,7 @@ class UIGenerator(Service):
                     "fk_column": child_entry.get("fk_column"),
                     "options": None,
                     "hidden": False,
+                    "list_hidden": True,
                     "read_only": False,
                     "searchable": False
                 })
@@ -274,6 +304,7 @@ class UIGenerator(Service):
                 "target_resource": None,
                 "options": None,
                 "hidden": False,
+                "list_hidden": False,
                 "read_only": True, # Already true
                 "searchable": False,
                 "depends_on": None,

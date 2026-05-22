@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern ERP Dashboard - Island Layout</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                            950: '#042f2e',
+                        },
+                        surface: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    },
+                    boxShadow: {
+                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.05)',
+                        'floating': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f1f5f9; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 24px 24px; }
+        .glass-panel { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.9); }
+        .island { border-radius: 24px; box-shadow: var(--tw-shadow-floating); }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="text-surface-800 antialiased h-screen flex p-4 md:p-6 gap-6 overflow-hidden">
+
+    <!-- Floating Sidebar Island -->
+    <aside class="w-20 lg:w-64 flex flex-col justify-between glass-panel island hidden md:flex transition-all duration-300 relative z-20">
+        <div class="p-4 flex flex-col h-full">
+            <!-- Logo -->
+            <div class="h-12 flex items-center justify-center lg:justify-start lg:px-4 mb-8">
+                <div class="w-10 h-10 bg-surface-900 rounded-xl flex items-center justify-center text-white font-bold shadow-md shrink-0">
+                    <i data-lucide="box" class="w-5 h-5 text-brand-400"></i>
+                </div>
+                <span class="font-bold text-xl tracking-tight text-surface-900 ml-3 hidden lg:block">Nexus</span>
+            </div>
+
+            <!-- Nav -->
+            <nav class="space-y-2 flex-1 hide-scroll overflow-y-auto">
+                <div class="px-2 text-xs font-bold text-surface-400 uppercase tracking-widest mb-2 mt-4 hidden lg:block">Workspace</div>
+                <a href="#" class="group flex items-center gap-3 p-3 lg:px-4 bg-white text-brand-600 rounded-2xl font-semibold shadow-sm border border-surface-100 transition-all">
+                    <i data-lucide="layout-grid" class="w-5 h-5 shrink-0"></i>
+                    <span class="hidden lg:block">Dashboard</span>
+                </a>
+                <a href="#" class="group flex items-center gap-3 p-3 lg:px-4 text-surface-500 hover:bg-white hover:text-surface-900 rounded-2xl font-medium hover:shadow-sm hover:border hover:border-surface-100 transition-all border border-transparent">
+                    <i data-lucide="activity" class="w-5 h-5 shrink-0 group-hover:text-brand-500 transition-colors"></i>
+                    <span class="hidden lg:block">Insights</span>
+                </a>
+                
+                <div class="px-2 text-xs font-bold text-surface-400 uppercase tracking-widest mb-2 mt-8 hidden lg:block">Operations</div>
+                <a href="#" class="group flex items-center gap-3 p-3 lg:px-4 text-surface-500 hover:bg-white hover:text-surface-900 rounded-2xl font-medium hover:shadow-sm hover:border hover:border-surface-100 transition-all border border-transparent">
+                    <i data-lucide="briefcase" class="w-5 h-5 shrink-0 group-hover:text-brand-500 transition-colors"></i>
+                    <span class="hidden lg:block">Inventory</span>
+                </a>
+                <a href="#" class="group flex items-center justify-between p-3 lg:px-4 text-surface-500 hover:bg-white hover:text-surface-900 rounded-2xl font-medium hover:shadow-sm hover:border hover:border-surface-100 transition-all border border-transparent">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="shopping-cart" class="w-5 h-5 shrink-0 group-hover:text-brand-500 transition-colors"></i>
+                        <span class="hidden lg:block">Orders</span>
+                    </div>
+                    <span class="bg-brand-100 text-brand-700 py-0.5 px-2 rounded-lg text-xs font-bold hidden lg:block border border-brand-200">24</span>
+                </a>
+                <a href="#" class="group flex items-center gap-3 p-3 lg:px-4 text-surface-500 hover:bg-white hover:text-surface-900 rounded-2xl font-medium hover:shadow-sm hover:border hover:border-surface-100 transition-all border border-transparent">
+                    <i data-lucide="users" class="w-5 h-5 shrink-0 group-hover:text-brand-500 transition-colors"></i>
+                    <span class="hidden lg:block">Partners</span>
+                </a>
+            </nav>
+
+            <!-- User bottom -->
+            <div class="mt-4 pt-4 border-t border-surface-200/50">
+                <a href="#" class="group flex items-center gap-3 p-3 lg:px-4 text-surface-500 hover:bg-white hover:text-surface-900 rounded-2xl font-medium hover:shadow-sm hover:border hover:border-surface-100 transition-all border border-transparent mb-2">
+                    <i data-lucide="settings-2" class="w-5 h-5 shrink-0 group-hover:text-brand-500 transition-colors"></i>
+                    <span class="hidden lg:block">Settings</span>
+                </a>
+                <div class="flex items-center gap-3 p-2 bg-surface-100/50 rounded-2xl border border-surface-200/50 cursor-pointer hover:bg-white transition-colors">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=1e293b&color=fff&bold=true" alt="User" class="w-10 h-10 rounded-xl shrink-0 object-cover">
+                    <div class="flex-col hidden lg:flex">
+                        <span class="text-sm font-bold text-surface-900 leading-tight">A. Aras</span>
+                        <span class="text-xs font-medium text-surface-500">System Admin</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col min-w-0 h-full gap-6">
+        
+        <!-- Floating Header -->
+        <header class="h-20 glass-panel island shrink-0 flex items-center justify-between px-6 z-10">
+            <div class="flex items-center gap-4 w-full max-w-2xl">
+                <button class="md:hidden text-surface-500 hover:text-surface-900 bg-white p-2 rounded-xl border border-surface-200 shadow-sm">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+                <button class="hidden sm:flex items-center gap-2 bg-surface-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md hover:shadow-lg border border-surface-800 shrink-0">
+                    <i data-lucide="plus" class="w-4 h-4 text-brand-400"></i>
+                    Create New
+                </button>
+                <div class="relative w-full group">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-4 top-1/2 transform -translate-y-1/2 text-surface-400 group-focus-within:text-brand-500 transition-colors"></i>
+                    <input type="text" placeholder="Search commands, records, or partners..." class="w-full pl-11 pr-4 py-3 bg-surface-100/50 border border-surface-200 rounded-xl text-sm font-medium focus:bg-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none transition-all placeholder:text-surface-400 text-surface-900">
+                    <div class="absolute right-3 top-1/2 transform -translate-y-1/2 hidden sm:flex items-center gap-1">
+                        <kbd class="font-mono text-[10px] font-bold bg-white border border-surface-200 text-surface-400 px-1.5 py-0.5 rounded shadow-sm">⌘</kbd>
+                        <kbd class="font-mono text-[10px] font-bold bg-white border border-surface-200 text-surface-400 px-1.5 py-0.5 rounded shadow-sm">K</kbd>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 sm:gap-4 shrink-0">
+                <button class="relative p-2.5 text-surface-500 hover:text-surface-900 bg-white rounded-xl border border-surface-200 shadow-sm hover:shadow transition-all group">
+                    <i data-lucide="bell" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i>
+                    <span class="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Scrollable Dashboard Content -->
+        <div class="flex-1 overflow-y-auto hide-scroll pb-6">
+            <div class="max-w-7xl mx-auto space-y-6">
+                
+                <!-- Welcome Section -->
+                <div class="glass-panel island p-8 relative overflow-hidden">
+                    <div class="absolute -right-20 -top-20 w-64 h-64 bg-brand-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+                    <div class="absolute -left-20 -bottom-20 w-64 h-64 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+                    
+                    <div class="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                        <div>
+                            <h1 class="text-3xl font-extrabold text-surface-900 tracking-tight mb-2">Good morning, Aras.</h1>
+                            <p class="text-surface-500 font-medium max-w-md">Your operational overview is ready. Fulfillment rates are up 2.4% this week.</p>
+                        </div>
+                        <div class="flex items-center gap-2 bg-white/50 backdrop-blur border border-surface-200 p-1.5 rounded-xl shadow-sm self-start md:self-auto">
+                            <button class="px-4 py-1.5 text-sm font-bold bg-white text-surface-900 rounded-lg shadow-sm border border-surface-100">1W</button>
+                            <button class="px-4 py-1.5 text-sm font-bold text-surface-500 hover:text-surface-900 rounded-lg transition-colors">1M</button>
+                            <button class="px-4 py-1.5 text-sm font-bold text-surface-500 hover:text-surface-900 rounded-lg transition-colors">1Y</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI Bento Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- KPI 1 -->
+                    <div class="glass-panel island p-6 group hover:border-brand-300 transition-colors">
+                        <div class="flex items-start justify-between mb-8">
+                            <div class="w-12 h-12 bg-white rounded-2xl border border-surface-200 shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <i data-lucide="banknote" class="w-6 h-6 text-surface-900"></i>
+                            </div>
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                <i data-lucide="trending-up" class="w-3 h-3 mr-1"></i> +14.2%
+                            </span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-surface-400 uppercase tracking-widest mb-1">Net Revenue</p>
+                            <h3 class="text-3xl font-extrabold text-surface-900 tracking-tight font-mono">$124,500.00</h3>
+                        </div>
+                    </div>
+
+                    <!-- KPI 2 -->
+                    <div class="glass-panel island p-6 group hover:border-brand-300 transition-colors">
+                        <div class="flex items-start justify-between mb-8">
+                            <div class="w-12 h-12 bg-white rounded-2xl border border-surface-200 shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <i data-lucide="package-check" class="w-6 h-6 text-surface-900"></i>
+                            </div>
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                <i data-lucide="trending-up" class="w-3 h-3 mr-1"></i> +2.4%
+                            </span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-surface-400 uppercase tracking-widest mb-1">Fulfillment Rate</p>
+                            <h3 class="text-3xl font-extrabold text-surface-900 tracking-tight font-mono">98.8%</h3>
+                        </div>
+                    </div>
+
+                    <!-- KPI 3 -->
+                    <div class="glass-panel island p-6 group hover:border-brand-300 transition-colors">
+                        <div class="flex items-start justify-between mb-8">
+                            <div class="w-12 h-12 bg-white rounded-2xl border border-surface-200 shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <i data-lucide="clock" class="w-6 h-6 text-surface-900"></i>
+                            </div>
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                                <i data-lucide="trending-down" class="w-3 h-3 mr-1"></i> -0.8%
+                            </span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-surface-400 uppercase tracking-widest mb-1">Pending Orders</p>
+                            <h3 class="text-3xl font-extrabold text-surface-900 tracking-tight font-mono">142</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity Table / Split Layout -->
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    
+                    <!-- Table Section -->
+                    <div class="xl:col-span-2 glass-panel island overflow-hidden flex flex-col">
+                        <div class="p-6 border-b border-surface-200/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/40">
+                            <div>
+                                <h2 class="text-xl font-bold text-surface-900">Recent Transactions</h2>
+                                <p class="text-sm font-medium text-surface-500 mt-1">Latest inbound and outflow records.</p>
+                            </div>
+                            <button class="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-surface-200 rounded-xl text-sm font-bold text-surface-700 hover:bg-surface-50 transition-colors shadow-sm">
+                                <i data-lucide="sliders-horizontal" class="w-4 h-4"></i> Filter
+                            </button>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-surface-50/50 text-xs uppercase tracking-widest font-bold text-surface-400 border-b border-surface-200/50">
+                                        <th class="px-6 py-4 whitespace-nowrap">ID / Date</th>
+                                        <th class="px-6 py-4 whitespace-nowrap">Entity</th>
+                                        <th class="px-6 py-4 whitespace-nowrap">Amount</th>
+                                        <th class="px-6 py-4 whitespace-nowrap">Status</th>
+                                        <th class="px-6 py-4 whitespace-nowrap text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-surface-100/50 bg-white/20">
+                                    
+                                    <tr class="hover:bg-white/60 transition-colors group">
+                                        <td class="px-6 py-4">
+                                            <div class="font-mono text-sm font-bold text-surface-900">#INV-24-092</div>
+                                            <div class="text-xs font-medium text-surface-500 mt-1">Today, 09:42 AM</div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0">AC</div>
+                                                <span class="font-bold text-sm text-surface-800">Acme Corporation</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="font-mono text-sm font-bold text-surface-900">$4,200.00</span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center gap-2">
+                                                <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                                <span class="text-xs font-bold text-surface-700">Paid</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-right">
+                                            <button class="p-2 text-surface-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+
+                                    <tr class="hover:bg-white/60 transition-colors group">
+                                        <td class="px-6 py-4">
+                                            <div class="font-mono text-sm font-bold text-surface-900">#SO-24-118</div>
+                                            <div class="text-xs font-medium text-surface-500 mt-1">Yesterday, 14:20</div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-8 h-8 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs shrink-0">GT</div>
+                                                <span class="font-bold text-sm text-surface-800">Global Tech Inc.</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="font-mono text-sm font-bold text-surface-900">$1,850.50</span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center gap-2">
+                                                <div class="w-2 h-2 rounded-full bg-amber-400"></div>
+                                                <span class="text-xs font-bold text-surface-700">Pending</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-right">
+                                            <button class="p-2 text-surface-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+
+                                    <tr class="hover:bg-white/60 transition-colors group">
+                                        <td class="px-6 py-4">
+                                            <div class="font-mono text-sm font-bold text-surface-900">#PO-24-044</div>
+                                            <div class="text-xs font-medium text-surface-500 mt-1">Oct 12, 11:05 AM</div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">SL</div>
+                                                <span class="font-bold text-sm text-surface-800">Starlight Logistics</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="font-mono text-sm font-bold text-surface-900">$8,900.00</span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center gap-2">
+                                                <div class="w-2 h-2 rounded-full bg-surface-300"></div>
+                                                <span class="text-xs font-bold text-surface-700">Draft</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-right">
+                                            <button class="p-2 text-surface-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+
+                                    <tr class="hover:bg-white/60 transition-colors group">
+                                        <td class="px-6 py-4">
+                                            <div class="font-mono text-sm font-bold text-surface-900">#INV-24-091</div>
+                                            <div class="text-xs font-medium text-surface-500 mt-1">Oct 10, 08:30 AM</div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-8 h-8 rounded-lg bg-pink-100 text-pink-700 flex items-center justify-center font-bold text-xs shrink-0">OR</div>
+                                                <span class="font-bold text-sm text-surface-800">Orion Systems</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="font-mono text-sm font-bold text-surface-900">$640.00</span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center gap-2">
+                                                <div class="w-2 h-2 rounded-full bg-rose-500"></div>
+                                                <span class="text-xs font-bold text-surface-700">Overdue</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-right">
+                                            <button class="p-2 text-surface-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="p-4 bg-white/40 border-t border-surface-200/50 text-center">
+                            <a href="#" class="text-sm font-bold text-brand-600 hover:text-brand-700">View All Transactions</a>
+                        </div>
+                    </div>
+
+                    <!-- Right Column Action Widget -->
+                    <div class="glass-panel island p-6 bg-surface-900 text-white relative overflow-hidden flex flex-col justify-between min-h-[300px]">
+                        <!-- Decorative bg -->
+                        <div class="absolute -right-10 -top-10 w-40 h-40 bg-brand-500 rounded-full mix-blend-screen filter blur-3xl opacity-40"></div>
+                        <div class="absolute -left-10 -bottom-10 w-40 h-40 bg-blue-600 rounded-full mix-blend-screen filter blur-3xl opacity-30"></div>
+
+                        <div class="relative z-10">
+                            <div class="w-10 h-10 bg-white/10 backdrop-blur rounded-xl flex items-center justify-center mb-6 border border-white/10">
+                                <i data-lucide="zap" class="w-5 h-5 text-brand-300"></i>
+                            </div>
+                            <h3 class="text-xl font-bold mb-2">Quick Actions</h3>
+                            <p class="text-surface-400 text-sm font-medium mb-6">Create new documents rapidly without leaving the dashboard.</p>
+                            
+                            <div class="space-y-3">
+                                <button class="w-full flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all group">
+                                    <div class="flex items-center gap-3">
+                                        <i data-lucide="file-text" class="w-5 h-5 text-surface-300 group-hover:text-white transition-colors"></i>
+                                        <span class="font-bold text-sm">New Invoice</span>
+                                    </div>
+                                    <i data-lucide="plus" class="w-4 h-4 text-surface-500 group-hover:text-white"></i>
+                                </button>
+                                <button class="w-full flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all group">
+                                    <div class="flex items-center gap-3">
+                                        <i data-lucide="user-plus" class="w-5 h-5 text-surface-300 group-hover:text-white transition-colors"></i>
+                                        <span class="font-bold text-sm">Add Customer</span>
+                                    </div>
+                                    <i data-lucide="plus" class="w-4 h-4 text-surface-500 group-hover:text-white"></i>
+                                </button>
+                                <button class="w-full flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all group">
+                                    <div class="flex items-center gap-3">
+                                        <i data-lucide="package-plus" class="w-5 h-5 text-surface-300 group-hover:text-white transition-colors"></i>
+                                        <span class="font-bold text-sm">Receive Stock</span>
+                                    </div>
+                                    <i data-lucide="plus" class="w-4 h-4 text-surface-500 group-hover:text-white"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>

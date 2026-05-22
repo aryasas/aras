@@ -1,24 +1,15 @@
-import { Moon, Sun } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { useUIStore } from '../../store/uiStore'
-import NotificationHistory from '../../aras-core/components/NotificationHistory'; // Import NotificationHistory
+import NotificationHistory from '../../aras-core/components/NotificationHistory';
 import { ThemeTweakPanel } from './ThemeTweakPanel'
+import { TemplateDesignToggle } from './TemplateDesignToggle'
 
 export function HeaderActions() {
-  const { darkMode, toggleDarkMode } = useUIStore()
-
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2 md:gap-3">
+      <TemplateDesignToggle />
       <ThemeTweakPanel />
-      <button
-        onClick={toggleDarkMode}
-        className="grid h-14 w-14 place-items-center text-[var(--aras-text)] transition-colors hover:bg-[var(--aras-panel-soft)] max-sm:h-12 max-sm:w-12"
-        title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-      >
-        {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-      </button>
-      <NotificationHistory /> {/* Replaced existing bell button with NotificationHistory */}
-      <Link to="/profile" className="block h-7 w-7 cursor-pointer rounded-full border-2 border-white shadow-md transition-transform hover:scale-105" style={{ background: 'linear-gradient(135deg, var(--aras-accent), var(--aras-button))' }}></Link>
+      <NotificationHistory />
+      <Link to="/profile" className="block h-10 w-10 md:h-12 md:w-12 cursor-pointer rounded-2xl shadow-sm border-2 border-white transition-transform hover:scale-105" style={{ background: 'linear-gradient(135deg, var(--aras-accent), var(--aras-button))' }}></Link>
     </div>
   )
 }

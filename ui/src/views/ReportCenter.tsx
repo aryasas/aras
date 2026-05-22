@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from 'react'
 import api from '../lib/api'
-import { FileText, Play, Search, Loader2, ChevronLeft } from 'lucide-react'
+import { FileText, Play, Search, Loader2 } from 'lucide-react'
 import GenericReport from '../aras-core/components/GenericReport'
 import { useAras } from '../aras-core/hooks/useAras'
 import { useUIStore } from '../store/uiStore'
@@ -41,11 +41,6 @@ export default function ReportCenter() {
   const [loading, setLoading] = useState(true)
   const setPageTitle = useUIStore(state => state.setPageTitle)
 
-  useEffect(() => {
-    setPageTitle('Report Center', 'Browse and execute system reports across all modules.', 'ANALYTICS')
-    return () => setPageTitle('', '', '')
-  }, [setPageTitle])
-
   const [search, setSearch] = useState('')
   const [activeModule, setActiveModule] = useState<string | null>(null)
   const [runningReport, setRunningReport] = useState<number | null>(null)
@@ -54,25 +49,6 @@ export default function ReportCenter() {
   const [reportFilters, setReportFilters] = useState<ReportFilter[]>([])
   const [reportParams, setReportParams] = useState<Record<string, FilterValue>>({})
   const { notify } = useAras()
-
-  const fetchReports = useCallback(async () => {
-    try {
-      setLoading(true)
-      const res = await api.get('erp/report/reports')
-      setReports(res.data.items)
-    } catch {
-      notify("Failed to load reports", "error")
-    } finally {
-      setLoading(false)
-    }
-  }, [notify])
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      fetchReports()
-    }, 0)
-    return () => window.clearTimeout(timer)
-  }, [fetchReports])
 
   const parseFilters = (filters: Report['filters_json']): ReportFilter[] => {
     if (!filters) return []
@@ -95,26 +71,7 @@ export default function ReportCenter() {
     }, {})
   )
 
-  const loadReportForRun = async (report: Report) => {
-    try {
-      const detailRes = await api.get(`erp/report/reports/${report.id}`)
-      const reportDetail = { ...report, ...detailRes.data }
-      const filters = parseFilters(reportDetail.filters_json)
-
-      if (filters.length === 0) {
-        await runReport(reportDetail, {})
-        return
-      }
-
-      setActiveReport(reportDetail)
-      setReportFilters(filters)
-      setReportParams(defaultParamsFor(filters))
-    } catch (err) {
-      notify(getErrorDetail(err, "Failed to load report filters"), "error")
-    }
-  }
-
-  const runReport = async (report: Report, params = reportParams) => {
+  const runReport = useCallback(async (report: Report, params: Record<string, FilterValue>) => {
     try {
       setRunningReport(report.id)
       const res = await api.post(`erp/report/reports/${report.id}/action/generate_report`, { params })
@@ -131,13 +88,62 @@ export default function ReportCenter() {
     } finally {
       setRunningReport(null)
     }
-  }
+  }, [notify])
 
-  const modules = Array.from(new Set(reports.map(r => r.module))).sort()
+  const handleSelectReport = useCallback(async (report: Report) => {
+    setReportResult(null)
+    setActiveReport(report)
+    
+    try {
+      const detailRes = await api.get(`erp/report/reports/${report.id}`)
+      const reportDetail = { ...report, ...detailRes.data }
+      const filters = parseFilters(reportDetail.filters_json)
+      
+      setReportFilters(filters)
+      const params = defaultParamsFor(filters)
+      setReportParams(params)
+
+      // If no filters, auto-run
+      if (filters.length === 0) {
+        await runReport(reportDetail, params)
+      }
+    } catch (err) {
+      notify(getErrorDetail(err, "Failed to load report filters"), "error")
+    }
+  }, [notify, runReport])
+
+  const fetchReports = useCallback(async () => {
+    try {
+      setLoading(true)
+      const res = await api.get('erp/report/reports')
+      const items = res.data?.items || []
+      setReports(items)
+      
+      // Auto-select first report if none active
+      if (items.length > 0) {
+        handleSelectReport(items[0])
+      }
+    } catch {
+      notify("Failed to load reports", "error")
+    } finally {
+      setLoading(false)
+    }
+  }, [notify, handleSelectReport])
+
+  useEffect(() => {
+    setPageTitle('Report Center', 'Browse and execute system reports across all modules.', 'ANALYTICS')
+    return () => setPageTitle('', '', '')
+  }, [setPageTitle])
+
+  useEffect(() => {
+    fetchReports()
+  }, [fetchReports])
+
+  const modules = Array.from(new Set((reports || []).map(r => r.module))).sort()
   
-  const filteredReports = reports.filter(r => {
-    const matchesSearch = r.name.toLowerCase().includes(search.toLowerCase()) || 
-                          r.code.toLowerCase().includes(search.toLowerCase())
+  const filteredReports = (reports || []).filter(r => {
+    const matchesSearch = (r.name || '').toLowerCase().includes(search.toLowerCase()) || 
+                          (r.code || '').toLowerCase().includes(search.toLowerCase())
     const matchesModule = !activeModule || r.module === activeModule
     return matchesSearch && matchesModule
   })
@@ -178,147 +184,156 @@ export default function ReportCenter() {
     )
   }
 
-  if (reportResult) {
-    return (
-      <div className="space-y-4 animate-in fade-in duration-300">
-        <button 
-          onClick={() => setReportResult(null)}
-          className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors"
-        >
-          <ChevronLeft size={18} />
-          Back to Report Center
-        </button>
-        <GenericReport 
-          title={reportResult.title}
-          data={reportResult.data}
-          columns={reportResult.columns}
-          onBack={() => setReportResult(null)}
-        />
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <div className="flex flex-col md:flex-row md:items-center justify-end gap-4">
-        <div className="flex items-center gap-3">
+    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-180px)] overflow-hidden animate-in fade-in duration-300">
+      {/* Sidebar: Report List */}
+      <div className="w-full lg:w-80 flex flex-col bg-white border border-slate-200 rounded-3xl overflow-hidden shrink-0">
+        <div className="p-4 border-b border-slate-100 space-y-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input 
               type="text"
               placeholder="Search reports..."
-              className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all w-64"
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-        </div>
-      </div>
-
-      {/* Module Filter */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        <button
-          onClick={() => setActiveModule(null)}
-          className={`px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
-            activeModule === null 
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' 
-              : 'bg-white text-slate-600 border border-slate-200 hover:border-indigo-200 hover:text-indigo-600'
-          }`}
-        >
-          All Modules
-        </button>
-        {modules.map(mod => (
-          <button
-            key={mod}
-            onClick={() => setActiveModule(mod)}
-            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
-              activeModule === mod 
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' 
-                : 'bg-white text-slate-600 border border-slate-200 hover:border-indigo-200 hover:text-indigo-600'
-            }`}
-          >
-            {mod}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-          <Loader2 className="animate-spin mb-4" size={40} />
-          <p className="text-sm font-medium">Loading report catalog...</p>
-        </div>
-      ) : filteredReports.length === 0 ? (
-        <div className="p-20 text-center bg-white rounded-3xl border border-dashed border-slate-200">
-          <FileText size={48} className="mx-auto mb-4 text-slate-200" />
-          <h3 className="text-lg font-bold text-slate-900">No reports found</h3>
-          <p className="text-slate-500 max-w-xs mx-auto mt-1">Try adjusting your search or module filter to find what you're looking for.</p>
-        </div>
-      ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredReports.map(report => (
-            <div 
-              key={report.id}
-              className="group relative bg-white border border-slate-200 rounded-2xl p-6 shadow-sm transition-all hover:shadow-xl hover:border-indigo-200 flex flex-col h-full"
+          
+          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide text-nowrap">
+            <button
+              onClick={() => setActiveModule(null)}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                activeModule === null ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+              }`}
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="p-3 rounded-xl bg-slate-50 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-                  <FileText size={24} />
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 bg-slate-100 text-slate-500 rounded-lg">
-                  {report.report_type}
-                </span>
-              </div>
-              
-              <div className="flex-1">
-                <h3 className="text-lg font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors mb-1">
-                  {report.name}
-                </h3>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-tight">
-                  {report.module} • {report.linked_doctype || 'Custom'}
-                </p>
-              </div>
+              All
+            </button>
+            {modules.map(mod => (
+              <button
+                key={mod}
+                onClick={() => setActiveModule(mod)}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+                  activeModule === mod ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                }`}
+              >
+                {mod}
+              </button>
+            ))}
+          </div>
+        </div>
 
-              <div className="mt-6 pt-6 border-t border-slate-50">
-                {activeReport?.id === report.id && reportFilters.length > 0 && (
-                  <div className="mb-5 w-full space-y-4">
-                    <div className="grid gap-3">
-                      {reportFilters.map(renderFilterInput)}
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+              <Loader2 className="animate-spin mb-2" size={24} />
+              <p className="text-[10px] font-bold uppercase tracking-widest">Loading catalog...</p>
+            </div>
+          ) : filteredReports.length === 0 ? (
+            <div className="py-10 text-center text-slate-400 text-xs italic">No reports found</div>
+          ) : (
+            filteredReports.map(report => (
+              <button
+                key={report.id}
+                onClick={() => handleSelectReport(report)}
+                className={`w-full text-left p-3 rounded-2xl transition-all group ${
+                  activeReport?.id === report.id 
+                    ? 'bg-indigo-50 border-indigo-100' 
+                    : 'hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-xl shrink-0 ${
+                    activeReport?.id === report.id ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200'
+                  }`}>
+                    <FileText size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className={`text-sm font-bold truncate ${activeReport?.id === report.id ? 'text-indigo-900' : 'text-slate-700'}`}>
+                      {report.name}
+                    </div>
+                    <div className="text-[10px] font-black uppercase tracking-tight text-slate-400">
+                      {report.module} • {report.report_type}
                     </div>
                   </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <button
-                    disabled={runningReport !== null}
-                    onClick={() => activeReport?.id === report.id ? runReport(report) : loadReportForRun(report)}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-indigo-100"
-                  >
-                    {runningReport === report.id ? (
-                      <Loader2 className="animate-spin" size={16} />
-                    ) : (
-                      <Play size={16} fill="currentColor" />
-                    )}
-                    {runningReport === report.id ? 'Generating...' : 'Generate'}
-                  </button>
-
-                  <span className="text-[10px] font-bold text-slate-400">
-                    ID: {report.code}
-                  </span>
                 </div>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Main Content: Active Report */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {activeReport ? (
+          <div className="flex flex-col h-full gap-4">
+            {/* Report Header & Filters */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm shrink-0">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">{activeReport.name}</h2>
+                  <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">{activeReport.module} Report — {activeReport.code}</p>
+                </div>
+                <button
+                  disabled={runningReport !== null}
+                  onClick={() => runReport(activeReport, reportParams)}
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-extrabold rounded-2xl transition-all shadow-lg shadow-indigo-100 active:scale-[0.98]"
+                >
+                  {runningReport === activeReport.id ? (
+                    <Loader2 className="animate-spin" size={18} />
+                  ) : (
+                    <Play size={18} fill="currentColor" />
+                  )}
+                  {runningReport === activeReport.id ? 'Generating...' : 'Generate Report'}
+                </button>
               </div>
-              {runningReport === report.id && (
-                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl p-6 animate-pulse">
-                  <div className="h-6 w-32 bg-slate-200 rounded mb-4" />
-                  <div className="space-y-3">
-                    <div className="h-4 w-full bg-slate-100 rounded" />
-                    <div className="h-4 w-5/6 bg-slate-100 rounded" />
-                    <div className="h-10 w-full bg-slate-100 rounded-xl mt-6" />
+
+              {reportFilters.length > 0 && (
+                <div className="pt-6 border-t border-slate-50">
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {reportFilters.map(renderFilterInput)}
                   </div>
                 </div>
               )}
             </div>
-          ))}
-        </div>
-      )}
+
+            {/* Report Results */}
+            <div className="flex-1 bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm relative">
+              {runningReport ? (
+                <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center animate-in fade-in duration-300">
+                  <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4" />
+                  <p className="text-sm font-black text-slate-900 uppercase tracking-widest">Generating Report...</p>
+                  <p className="text-xs text-slate-400 mt-2">This may take a few seconds depending on the data size.</p>
+                </div>
+              ) : null}
+
+              {reportResult ? (
+                <div className="h-full overflow-y-auto">
+                  <GenericReport 
+                    title={reportResult.title}
+                    data={reportResult.data}
+                    columns={reportResult.columns}
+                  />
+                </div>
+              ) : !runningReport ? (
+                <div className="h-full flex flex-col items-center justify-center p-12 text-center text-slate-300">
+                  <Play size={64} className="mb-4 opacity-20" />
+                  <h3 className="text-xl font-black uppercase tracking-tight">Ready to Generate</h3>
+                  <p className="max-w-xs mt-2 text-sm font-medium">Click the "Generate Report" button above to fetch the latest data for this report.</p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 bg-white border border-slate-200 border-dashed rounded-3xl flex flex-col items-center justify-center p-12 text-center">
+            <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-200 mb-6">
+              <FileText size={40} />
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Select a Report</h2>
+            <p className="text-slate-500 max-w-sm mt-2 font-medium">Choose a report from the catalog on the left to view its details and generate data.</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

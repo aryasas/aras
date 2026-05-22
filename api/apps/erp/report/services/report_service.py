@@ -61,7 +61,7 @@ class ReportService(Aras.Service):
                 params.update(filters)
                 
                 params.update({"today": date.today().isoformat()})
-                result = db.execute(text(script), params)
+                result = db.execute(text(report.script), params)
                 columns = [{"field": k, "label": k.replace("_", " ").title()} for k in result.keys()]
                 
                 # If report has predefined columns_json, use those labels

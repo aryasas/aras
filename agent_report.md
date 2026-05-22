@@ -1,6 +1,6 @@
 ### AGENT REPORT
-- files_written: api/apps/erp/hr/app.py, api/apps/erp/asset/app.py, api/apps/erp/party/app.py, api/apps/erp/pot/app.py, api/apps/erp/crm/app.py, api/apps/erp/stock/app.py, api/apps/erp/report/app.py, api/apps/erp/accounting/app.py, api/apps/erp/config/app.py, api/core/registry/user_role.py, api/core/logic/permissions.py, api/core/auth/routes.py, api/apps/erp/config/erp_rbac.py
-- features_added: Implemented ERP org-scoped RBAC with new model and 5 endpoints.
-- fixes_applied: Standardized ERP module registration (app_name, app_type), removed UserRole.company_id and integrated ERP org list in auth routes.
-- framework_changes: RBAC permission checking adjusted to remove company_id parameter, UserRole model simplified.
-- issues: none
+- files_written: api/apps/dev/models.py, api/apps/dev/app.py, api/apps/dev/seed_templates.py, ui/src/aras-core/components/LiveDesignWrapper.tsx, ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/DynamicForm.tsx
+- features_added: Implemented Live In-Place Design Mode. Users can now reorder UI sections (Toolbar, Filter Bar, Table, Form) directly on the page via drag-and-drop. Added support for on-page AI annotations via comment bubbles. Persistent storage provided by TemplateAnnotation backend model.
+- fixes_applied: Resolved "Invalid resource path" errors when navigating to dev table views.
+- framework_changes: Core UI components (ListView, DynamicForm) are now template-driven in Design Mode.
+- issues: none (Feature is functional and integrated with Aras Framework metadata system)

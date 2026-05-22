@@ -58,6 +58,8 @@ export default function DevTools() {
   const navigate = useNavigate()
   const { notify } = useAras()
 
+  const { designMode, toggleDesignMode, templateBuilderEnabled, toggleTemplateBuilder } = useUIStore()
+
   const fetchData = async () => {
     try {
       const [infoRes, statsRes] = await Promise.all([
@@ -146,6 +148,40 @@ export default function DevTools() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <TenantSwitcher />
 
+          {/* Builder Control */}
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-pink-50 text-pink-600 rounded-2xl">
+                <Layout size={24} />
+              </div>
+              <h2 className="text-xl font-black text-slate-900">Design Mode</h2>
+            </div>
+            
+            <p className="text-sm text-slate-500 mb-6 font-medium">
+              Enable "Design Mode" to show a pencil icon in the top bar of every page, allowing you to reorder sections and edit styles in-place.
+            </p>
+
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <span className="font-bold text-slate-700">Design Mode Toggle Icon {templateBuilderEnabled ? 'Enabled' : 'Disabled'}</span>
+              <div 
+                onClick={toggleTemplateBuilder}
+                className={`w-12 h-7 rounded-full p-1 cursor-pointer transition-colors duration-300 flex items-center ${templateBuilderEnabled ? 'bg-pink-500' : 'bg-slate-300'}`}
+              >
+                <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 ${templateBuilderEnabled ? 'translate-x-5' : 'translate-x-0'}`}></div>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 mt-4">
+              <span className="font-bold text-slate-700">Active Design Mode {designMode ? 'Enabled' : 'Disabled'}</span>
+              <div 
+                onClick={toggleDesignMode}
+                className={`w-12 h-7 rounded-full p-1 cursor-pointer transition-colors duration-300 flex items-center ${designMode ? 'bg-pink-500' : 'bg-slate-300'}`}
+              >
+                <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 ${designMode ? 'translate-x-5' : 'translate-x-0'}`}></div>
+              </div>
+            </div>
+          </div>
+
           {/* Framework Info */}
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
             <div className="flex items-center gap-3 mb-6">
@@ -221,57 +257,64 @@ export default function DevTools() {
               title="App Registry"
               count={info?.apps_discovered.length || 0}
               icon={<Box size={24} />}
-              to="/dev/table/registry/aras_apps"
+              to="/dev/apps"
               color="indigo"
             />
             <RegistryCard
               title="Resource Registry"
               count={stats.find(s => s.table === 'aras_resources')?.rows as number || 0}
               icon={<Layout size={24} />}
-              to="/dev/table/registry/aras_resources"
+              to="/dev/resources"
               color="purple"
             />
             <RegistryCard
               title="Field Registry"
               count={stats.find(s => s.table === 'aras_fields')?.rows as number || 0}
               icon={<Table size={24} />}
-              to="/dev/table/registry/aras_fields"
+              to="/dev/fields"
               color="blue"
             />
             <RegistryCard
               title="Link Registry"
               count={stats.find(s => s.table === 'aras_links')?.rows as number || 0}
               icon={<LinkIcon size={24} />}
-              to="/dev/table/registry/aras_links"
+              to="/dev/links"
               color="emerald"
             />
             <RegistryCard
               title="Activity Audit Trail"
               count={stats.find(s => s.table === 'aras_activity_logs')?.rows as number || 0}
               icon={<Terminal size={24} />}
-              to="/dev/table/registry/aras_activity_logs"
+              to="/dev/activity-logs"
               color="slate"
             />
             <RegistryCard
               title="System Users"
               count={stats.find(s => s.table === 'auth_users')?.rows as number || 0}
               icon={<Users size={24} />}
-              to="/dev/table/registry/auth_users"
+              to="/dev/users"
               color="indigo"
             />
             <RegistryCard
               title="System Settings"
               count={stats.find(s => s.table === 'sys_settings')?.rows as number || 0}
               icon={<Settings size={24} />}
-              to="/dev/table/registry/sys_settings"
+              to="/dev/settings"
               color="slate"
             />
             <RegistryCard
               title="Handoff Runs"
               count={stats.find(s => s.table === 'dev_handoff_runs')?.rows as number || 0}
               icon={<GitBranch size={24} />}
-              to="/dev/table/registry/dev_handoff_runs"
+              to="/dev/handoff-runs"
               color="purple"
+            />
+            <RegistryCard
+              title="Template Annotations"
+              count={stats.find(s => s.table === 'dev_template_annotations')?.rows as number || 0}
+              icon={<Layout size={24} />}
+              to="/dev/template-annotations"
+              color="blue"
             />
           </div>
 
@@ -282,6 +325,23 @@ export default function DevTools() {
                <p className="text-slate-400 mb-8 font-medium">Deep dive into framework internals and runtime state.</p>
 
                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                  <button
+                    onClick={() => navigate('/dev/template-builder')}
+                    className="p-4 bg-slate-800 hover:bg-slate-700 rounded-2xl border border-slate-700 transition-all flex flex-col items-center gap-2 group"
+                  >
+                    <div className="p-2 bg-pink-500/20 text-pink-400 rounded-lg group-hover:scale-110 transition-transform relative">
+                      <Layout size={20} />
+                      <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
+                      </span>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-sm">Builder</div>
+                      <div className="text-[10px] text-slate-500">Layout Annotator</div>
+                    </div>
+                  </button>
+
                   <button
                     onClick={() => navigate('/dev/routes')}
                     className="p-4 bg-slate-800 hover:bg-slate-700 rounded-2xl border border-slate-700 transition-all flex flex-col items-center gap-2 group"

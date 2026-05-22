@@ -171,3 +171,14 @@ This file is used only to report if there are fix
 
 ## Phase 4 — License enforcement + apps/saas/ MVP — revision (2026-05-19)
   - [GPT (codex)] Fixed ContactView type-only React import for TypeScript build
+## POS session list response normalization and sidebar active precision (2026-05-21)
+- [GPT-5.5] Normalized POS list responses so `/erp/pot/pos` accepts framework paginated `{items}` payloads instead of crashing on `openSessions.map`.
+- [GPT-5.5] Fixed sidebar active-state precision by removing over-wide fixed nav item widths and using a consistent active indicator inset.
+
+## Dark-mode input styling and text legibility fixes (2026-05-21)
+- [Antigravity] Replaced hardcoded inputs background (#f8fafc) and border (#dfe5ee) with CSS custom properties so that they respond dynamically to dark mode.
+- [Antigravity] Fixed muddy-grey hardcoded text/label colors (#334155, #0f172a) in form controls using CSS variables, dramatically improving contrast and legibility under obsidian theme.
+
+
+## CSS prefix migration & dark mode input fixes (2026-05-21)
+  - [Antigravity] Dark mode form input background/border colors, hardcoded label/line text colors

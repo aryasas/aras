@@ -174,14 +174,8 @@ app.include_router(ws_router, prefix="/api/v1")
 # Dynamic App Discovery & Route Registration
 Aras.logic.discovery.register_app_routes(app, prefix="/api/v1")
 
-# Register Core Models at Root for UI Compatibility
-core_models = [
-    Aras.User, Aras.Role, Aras.Permission, Aras.ActivityLog, Aras.ArasSetting,
-    Aras.AppModel, Aras.ResourceModel, Aras.FieldModel, Aras.LinkModel, Aras.TranslationModel,
-    Aras.WidgetModel, Aras.DashboardLayoutModel,
-    Aras.logic.discovery.load_class("core.registry.series.Series")
-]
-for model in core_models:
+# Register All Models at Root for Dashboard & UI Compatibility
+for model in Aras.Model._registry.values():
     # Ensure RouterFactory has access to Aras
     router = Aras.logic.router_factory.RouterFactory.create_router(model)
     app.include_router(router, prefix="/api/v1")

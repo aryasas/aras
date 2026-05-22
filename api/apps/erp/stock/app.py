@@ -32,7 +32,7 @@ class Stock(ERP):
         {
             "label": "Master Data",
             "icon": "Database",
-            "models": ["erp_stock_items", "erp_stock_categories", "erp_stock_locations"]
+            "models": ["erp_stock_products", "erp_stock_categories", "erp_stock_locations"]
         },
         {
             "label": "Operations",

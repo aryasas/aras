@@ -397,3 +397,14 @@ Login: `admin` / `admin`
   - [Claude Sonnet 4.6] `model.py`: `db.add(self)` moved before `before_save()` — `object_session(self)` was returning None for new objects, causing `DocumentBase.before_save` to skip number generation entirely. All new documents now get series numbers on creation.
   - [Claude Sonnet 4.6] `ItemAccount` switched from `LineItemBase` → `ErpBase` (removes unneeded qty/amount/sequence). `ItemLocation.min_qty`/`max_qty` removed. `Item.sku` removal and `ItemBundle.notes`/`amount` cleanup deferred to handoff run_id 15.
   - [Claude Sonnet 4.6] ERP series seeded via `python apps/erp/config/seed_series.py` (10 series entries).
+
+---
+## Framework Change: Migrate styling system to generic app- prefix & fix dark mode input bugs (2026-05-21)
+  - [Antigravity] Completely renamed custom CSS variables and class selectors in `ui/src/index.css` to use a generic prefix (`--app-` / `.app-`), while mapping legacy `--aras-` tokens and `.aras-` selectors to guarantee 100% backward-compatibility for active React components.
+  - [Antigravity] Corrected the dark-mode input styling bug by replacing hardcoded background (`#f8fafc`) and border (`#dfe5ee`) colors with theme-aware `var(--app-panel-soft)` and `var(--app-border)` variables, ensuring forms render beautifully in obsidian-indigo theme.
+  - [Antigravity] Replaced hardcoded dark colors on line items, labels, and text with `var(--app-text)` so they are perfectly legible in dark mode.
+
+
+---
+## Framework Change: CSS prefix migration & dark mode input fixes (2026-05-21)
+  - [Antigravity] Renamed CSS prefixes to app- with legacy alias compatibility mappings

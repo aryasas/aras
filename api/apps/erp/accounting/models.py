@@ -227,7 +227,7 @@ class InflowInvoiceLine(LineItemBase):
     __parent__ = "erp_accounting_inflow_invoices"
 
     invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_inflow_invoices.id"))
-    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"), info={"display_column": "name"})
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"), info={"display_column": "name"})
     qty: Mapped[float] = mapped_column(Float, default=1.0)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True, info={"display_column": "name", "depends_on": "item_id", "default_from": "uom_sales_id"})
     unit_price: Mapped[float] = mapped_column(Float, default=0, info={"depends_on": "item_id", "default_from": "default_sale_price"})
@@ -381,7 +381,7 @@ class OutflowInvoiceLine(LineItemBase):
     __parent__ = "erp_accounting_outflow_invoices"
 
     invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_outflow_invoices.id"))
-    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"), info={"display_column": "name"})
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"), info={"display_column": "name"})
     qty: Mapped[float] = mapped_column(Float, default=1.0)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True, info={"display_column": "name", "depends_on": "item_id", "default_from": "uom_purchase_id"})
     unit_price: Mapped[float] = mapped_column(Float, default=0, info={"depends_on": "item_id", "default_from": "default_purchase_price"})
@@ -557,7 +557,7 @@ class GoodsReceiptLine(LineItemBase):
     __parent__ = "erp_accounting_grns"
 
     grn_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_grns.id"))
-    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))
     quantity_received: Mapped[float] = mapped_column(Numeric, default=0)
     unit_cost: Mapped[float] = mapped_column(Numeric, default=0)
 

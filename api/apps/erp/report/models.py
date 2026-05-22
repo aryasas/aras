@@ -18,7 +18,7 @@ class Report(MasterDataBase):
     linked_doctype: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
     @Aras.model_action(name="generate_report", permission="read", label="Generate Report", icon="pi pi-play")
-    def generate_report(self):
+    def generate_report(self, db):
         """
         Action to execute the report logic.
         """

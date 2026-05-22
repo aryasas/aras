@@ -12,6 +12,7 @@ interface Field {
   label: string
   type: string
   hidden?: boolean
+  list_hidden?: boolean
 }
 
 export default function ArchivedView() {
@@ -34,7 +35,7 @@ export default function ArchivedView() {
       const meta = res.data?.data ?? res.data
       setResourceTitle(meta?.title ?? cleanResource)
       const cols: Field[] = (meta?.fields ?? []).filter(
-        (f: Field) => !f.hidden && f.type !== 'child_table'
+        (f: Field) => !f.hidden && !f.list_hidden && f.type !== 'child_table'
       ).slice(0, 6)
       setColumns(cols)
     } catch {

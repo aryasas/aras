@@ -56,6 +56,7 @@ const normalizeVocabulary = (data: unknown): Partial<VocabularyLabels> => {
 }
 
 export const translateVocabularyText = (text: string, vocabulary: VocabularyLabels) => {
+  if (typeof text !== 'string') return text || ''
   return text
     .replace(/\bPoint of Sale\b/g, vocabulary.pot)
     .replace(/\bPOS\b/g, 'POT')

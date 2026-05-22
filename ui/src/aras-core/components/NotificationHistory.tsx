@@ -41,14 +41,12 @@ const NotificationHistory: React.FC = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors"
+        className="relative flex items-center justify-center w-10 h-10 bg-[var(--aras-panel)] rounded-[var(--aras-radius)] shadow-sm border border-[var(--aras-border)] text-[var(--aras-muted)] hover:text-[var(--aras-accent)] hover:border-[var(--aras-accent)] transition-all"
         title="Notifications"
       >
-        <Bell size={20} />
+        <Bell size={18} />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
-            {unreadCount}
-          </span>
+          <span className="absolute -top-1 -right-1 inline-flex w-3 h-3 bg-red-500 rounded-full border-2 border-[var(--aras-panel)]"></span>
         )}
       </button>
 

@@ -1,5 +1,5 @@
 from core import Aras
-from .models import HandoffRun
+from .models import HandoffRun, TemplateAnnotation
 
 
 class Dev(Aras.App):
@@ -24,6 +24,7 @@ class Dev(Aras.App):
         Aras.WidgetModel,
         Aras.DashboardLayoutModel,
         HandoffRun,
+        TemplateAnnotation,
     ]
 
     menu_groups = [
@@ -41,5 +42,10 @@ class Dev(Aras.App):
             "label": "Agent Runs",
             "icon": "GitBranch",
             "models": ["dev_handoff_runs"]
+        },
+        {
+            "label": "Templates",
+            "icon": "Layout",
+            "models": ["dev_template_annotations"]
         }
     ]

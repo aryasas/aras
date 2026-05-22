@@ -23,7 +23,7 @@ class ItemCategory(MasterDataBase):
 
 
 class Item(MasterDataBase):
-    __tablename__ = "erp_stock_items"
+    __tablename__ = "erp_stock_products"
     __unique_together__ = [("org_id", "code")]
     __soft_delete__ = True
 
@@ -76,9 +76,9 @@ class Item(MasterDataBase):
 
 class ItemAccount(ErpBase):
     __tablename__ = "erp_stock_item_accounts"
-    __parent__ = "erp_stock_items"
+    __parent__ = "erp_stock_products"
     __scoped_by__ = [("org_id", "erp_config_organizations")]
-    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))
     org_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_organizations.id"), nullable=True)
     account_income_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
     account_cogs_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
@@ -89,9 +89,9 @@ class ItemAccount(ErpBase):
 
 class ItemUom(ErpBase):
     __tablename__ = "erp_stock_item_uoms"
-    __parent__ = "erp_stock_items"
+    __parent__ = "erp_stock_products"
     __scoped_by__ = [("org_id", "erp_config_organizations")]
-    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))
     org_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_organizations.id"), nullable=True)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), info={"display_column": "name"})
     factor: Mapped[float] = mapped_column(Float, default=1.0)
@@ -101,10 +101,10 @@ class ItemUom(ErpBase):
 
 class PriceList(MasterDataBase):
     __tablename__ = "erp_stock_pricelists"
-    __parent__ = "erp_stock_items"
+    __parent__ = "erp_stock_products"
     name: Mapped[str] = mapped_column(String(200), nullable=True, default="-", info={"hidden": True})
     price_type_id: Mapped[int] = mapped_column(ForeignKey("erp_config_price_types.id"))
-    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"), nullable=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"), nullable=True)
     product_category_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_categories.id"), nullable=True)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
     min_qty: Mapped[float] = mapped_column(Float, default=0.0)
@@ -130,7 +130,7 @@ class PromoBundleItem(LineItemBase):
     __tablename__ = "erp_stock_promo_items"
     __parent__ = "erp_stock_promo_bundles"
     bundle_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_promo_bundles.id"))
-    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))
     qty: Mapped[float] = mapped_column(Float, default=1.0)
     promo_price: Mapped[float] = mapped_column(Float, nullable=True)
     discount_pct: Mapped[float] = mapped_column(Float, nullable=True)
@@ -173,7 +173,7 @@ class DeliveryNoteLine(LineItemBase):
     __tablename__ = "erp_stock_delivery_note_lines"
     __parent__ = "erp_stock_delivery_notes"
     delivery_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_delivery_notes.id"))
-    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))
     qty: Mapped[float] = mapped_column(Float, default=1.0)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
     
@@ -215,7 +215,7 @@ class StockMovementLine(LineItemBase):
     __soft_delete__ = True
     __parent__ = "erp_stock_movements"
     movement_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_movements.id"))
-    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))
     qty: Mapped[float] = mapped_column(Float, default=1.0)
     uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True)
     unit_cost: Mapped[float] = mapped_column(Float, default=0.0)
@@ -230,9 +230,9 @@ class StockMovementLine(LineItemBase):
 
 class ItemBundle(ErpBase):
     __tablename__ = "erp_stock_item_bundles"
-    __parent__ = "erp_stock_items"
-    bundle_item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))     # bundle being defined
-    component_item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))  # ingredient
+    __parent__ = "erp_stock_products"
+    bundle_item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))     # bundle being defined
+    component_item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))  # ingredient
     qty: Mapped[float] = mapped_column(Float, default=1.0)
     uom_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True, info={"display_column": "name", "depends_on": "component_item_id", "default_from": "uom_id"})
 
@@ -241,7 +241,7 @@ class ItemBundle(ErpBase):
 
 class ItemLocation(ErpBase):
     __tablename__ = "erp_stock_item_locations"
-    __parent__ = "erp_stock_items"
-    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
+    __parent__ = "erp_stock_products"
+    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_products.id"))
     location_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_locations.id"))
 

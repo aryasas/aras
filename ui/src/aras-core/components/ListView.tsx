@@ -1,25 +1,24 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../../lib/api'
 import { cleanResourcePath } from '../../lib/resourceUtils'
 import {
-  Search, Plus, ChevronLeft, ChevronRight,
-  CheckSquare, Square, X, Check,
-  ChevronDown, ChevronUp, Trash2
+  Plus, ChevronLeft, ChevronRight,
+  CheckSquare, Square, X,
+  ChevronDown, ChevronUp, Trash2, Search
 } from 'lucide-react'
 import { resolveFieldComponent, resolveFilterComponent } from '../SchemaRegistry'
 import { useAras } from '../hooks/useAras'
 import { useUIStore } from '../../store/uiStore'
 import { useAuthStore } from '../../store/authStore'
-import { ImportMapping } from './ImportMapping'
 import Combobox from './Combobox'
 
-import ListToolbar from './ListToolbar'
-import type { ViewMode } from './ListToolbar'
-import TreeView from './TreeView'
-import GenericReport from './GenericReport'
+import ListViewActionBar from './ListViewActionBar'
+import type { ViewMode } from './ListViewActionBar'
 import { useVocabulary } from '../../context/VocabularyContext'
 import { FormattingService } from '../services/FormattingService'
+import { DesignContainer } from './design/DesignContainer'
+import { DesignElement } from './design/DesignElement'
 
 interface Field {
   name: string
@@ -28,6 +27,7 @@ interface Field {
   required: boolean
   read_only: boolean
   hidden: boolean
+  list_hidden: boolean
   searchable: boolean
   target_resource?: string
   options?: { label: string; value: any }[]
@@ -38,6 +38,7 @@ interface Metadata {
   api_path?: string | null
   title: string
   fields: Field[]
+  is_auditable?: boolean
 }
 
 interface FilterRule {
@@ -54,19 +55,6 @@ interface SavedFilter {
   is_default: boolean;
 }
 
-interface LinkedDoc {
-  label: string;
-  resource: string;
-  id: number;
-  number: string;
-}
-
-const normalizeLinkedDocs = (value: any): LinkedDoc[] => {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-  return [];
-}
-
 const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   resource: string,
   onRowClick?: (id: string | number) => void,
@@ -76,12 +64,11 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const vocabulary = useVocabulary()
   const navigate = useNavigate()
   const { activeOrgId } = useAuthStore()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const [metadata, setMetadata] = useState<Metadata | null>(null)
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const { notify, confirm, appName } = useAras()
+  const { notify, confirm } = useAras()
   const setPageTitle = useUIStore(state => state.setPageTitle)
 
   // Query State
@@ -101,8 +88,6 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([])
   const [visibleColumns, setVisibleColumns] = useState<string[]>([])
-  const [dragCol, setDragCol] = useState<string | null>(null)
-  const [columnOrder, setColumnOrder] = useState<string[]>([])
   const [isColumnPickerOpen, setIsColumnPickerOpen] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [bulkEditOpen, setBulkEditOpen] = useState(false)
@@ -111,9 +96,76 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const [bulkEditing, setBulkEditing] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
 
-  // Inline editing: { rowId, fieldName, value }
-  const [inlineEdit, setInlineEdit] = useState<{ rowId: string | number; field: string; value: any } | null>(null)
-  const inlineInputRef = useRef<HTMLInputElement>(null)
+  const roleFilter = searchParams.get('role') || 'all'
+  const isPartyResource = useMemo(() => /(^|\/)(parties|party)$/.test(cleanResourcePath(resource)), [resource])
+  const resourceApiPath = useMemo(
+    () => cleanResourcePath(metadata?.api_path || resource),
+    [metadata?.api_path, resource]
+  )
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true)
+      const cleanResource = cleanResourcePath(resource)
+      const resourceApiPath = metadata?.api_path || cleanResource
+
+      const params: any = {
+        page,
+        per_page: perPage,
+        sort: orderBy,
+        order: desc ? 'desc' : 'asc',
+      }
+
+      if (search) params.search = search
+      
+      const allFilters = [...filters]
+      if (fixedFilters) {
+        Object.entries(fixedFilters).forEach(([field, value]) => {
+          allFilters.push({ field, op: '=', value })
+        })
+      }
+      
+      if (activeOrgId) {
+        allFilters.push({ field: 'org_id', op: '=', value: activeOrgId })
+      }
+
+      if (isPartyResource && roleFilter !== 'all') {
+        allFilters.push({ field: 'role', op: '=', value: roleFilter })
+      }
+
+      if (allFilters.length > 0) {
+        params.filters = JSON.stringify(allFilters)
+      }
+
+      const res = await api.get(`/${resourceApiPath}`, { params })
+      setData(res.data.items || [])
+      setTotal(res.data.total || 0)
+      setTotalPages(res.data.pages || 0)
+    } catch (err: any) {
+      notify(err.response?.data?.detail || "Failed to fetch data", "error")
+    } finally {
+      setLoading(false)
+    }
+  }, [resource, metadata, page, perPage, orderBy, desc, search, filters, fixedFilters, activeOrgId, isPartyResource, roleFilter, notify])
+
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      try {
+        const cleanResource = cleanResourcePath(resource)
+        const metaRes = await api.get(`/metadata/${cleanResource}`)
+        const meta = metaRes.data
+        setMetadata(meta)
+        
+        const defaultVisible = meta.fields
+          .filter((f: any) => !f.list_hidden && !f.hidden)
+          .map((f: any) => f.name)
+        setVisibleColumns(defaultVisible)
+      } catch (err: any) {
+        notify(err.response?.data?.detail || "Failed to load metadata", "error")
+      }
+    }
+    fetchMetadata()
+  }, [resource, notify])
 
   useEffect(() => {
     if (metadata) {
@@ -133,273 +185,103 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     return () => setPageTitle('', '', '')
   }, [metadata, resource, vocabulary, setPageTitle])
 
-  const showPanel = useUIStore(state => state.showPanel)
-  const closePanel = useUIStore(state => state.closePanel)
-  const roleFilter = searchParams.get('role') || 'all'
-  const isPartyResource = useMemo(() => /(^|\/)(parties|party)$/.test(cleanResourcePath(resource)), [resource])
-  const resourceApiPath = useMemo(
-    () => cleanResourcePath(metadata?.api_path || resource),
-    [metadata?.api_path, resource]
-  )
-
-  const hasTreeSupport = useMemo(() => {
-    if (!metadata) return false;
-    return metadata.fields.some((f: any) => f.name === 'parent_id');
-  }, [metadata]);
-
-  const fetchLinkedDocs = async (id: string | number): Promise<LinkedDoc[]> => {
-    try {
-      const res = await api.get(`/${resourceApiPath}/${id}/linked-documents`)
-      return normalizeLinkedDocs(res.data)
-    } catch {
-      return []
-    }
-  }
-
-  const linkedDocsDeleteMessage = (count: number, docs: LinkedDoc[]) => {
-    if (docs.length === 0) {
-      return count === 1
-        ? 'Are you sure you want to delete this item? This action cannot be undone.'
-        : `Are you sure you want to delete ${count} items? This action cannot be undone.`
-    }
-    const preview = docs.slice(0, 5).map(doc => `${doc.label} ${doc.number || `#${doc.id}`}`).join(', ')
-    const suffix = docs.length > 5 ? `, and ${docs.length - 5} more` : ''
-    return `Delete ${count === 1 ? 'this item' : `${count} items`} and ${docs.length} related document${docs.length === 1 ? '' : 's'}? Related documents will also be deleted: ${preview}${suffix}. This action cannot be undone.`
-  }
-
-  // Fetch Metadata & Initial Data
   useEffect(() => {
-    const fetchMetadataAndSavedFilters = async () => {
+    if (metadata) fetchData()
+  }, [fetchData, metadata])
+
+  const fetchSavedFilters = useCallback(async () => {
+    try {
+      const cleanResource = cleanResourcePath(resource)
+      const res = await api.get(`/sys_filters`, {
+        params: { filters: JSON.stringify([{ field: 'resource', op: '=', value: cleanResource }]) }
+      });
+      setSavedFilters(res.data.items || []);
+    } catch (e) { console.warn("Failed to fetch saved filters", e); }
+  }, [resource]);
+
+  useEffect(() => {
+    fetchSavedFilters();
+  }, [fetchSavedFilters]);
+
+  const handleApplySavedFilter = (id: string) => {
+    const sf = savedFilters.find(f => f.id === id);
+    if (sf) {
       try {
-        const cleanResource = cleanResourcePath(resource)
-        const [metadataRes, savedFiltersRes] = await Promise.all([
-          api.get(`/metadata/${cleanResource}`),
-          api.get(`/erp/saved-filters`, { params: { resource: cleanResource } })
-        ]);
-        setMetadata(metadataRes.data)
-        setSavedFilters(savedFiltersRes.data)
-
-        const localStorageKey = `${appName}.${cleanResource}.columnVisibility`;
-        const storedVisibleColumns = localStorage.getItem(localStorageKey);
-        const colOrderKey = `${resource}_col_order`;
-        const storedColumnOrder = localStorage.getItem(colOrderKey);
-
-        const scopedCols = new Set((metadataRes.data.scoped_by ?? []).map((pair: string[]) => pair[0]));
-        const defaultCols = metadataRes.data.fields
-          .filter((f: Field) => !f.hidden && !scopedCols.has(f.name) && f.type !== 'child_table')
-          .map((f: Field) => f.name);
-
-        if (storedVisibleColumns) {
-          const stored: string[] = JSON.parse(storedVisibleColumns);
-          const fieldNames = new Set(metadataRes.data.fields.map((f: Field) => f.name));
-          const valid = stored.filter(col => fieldNames.has(col));
-          setVisibleColumns(valid.length > 0 ? valid : defaultCols);
-        } else {
-          setVisibleColumns(defaultCols);
-        }
-
-        if (storedColumnOrder) {
-          const stored: string[] = JSON.parse(storedColumnOrder);
-          const fieldNames = new Set(metadataRes.data.fields.map((f: Field) => f.name));
-          setColumnOrder(stored.filter(col => fieldNames.has(col)));
-        } else {
-          setColumnOrder([]);
-        }
-      } catch (err: any) {
-        notify("Failed to load resource metadata or saved filters", "error")
-      }
+        setFilters(JSON.parse(sf.filters_json));
+        setPage(1);
+      } catch (e) { notify("Invalid filter data", "error"); }
     }
-    fetchMetadataAndSavedFilters()
-  }, [resource, notify, appName])
-  // Persist visibleColumns to localStorage
-  useEffect(() => {
-    if (metadata && visibleColumns.length > 0) { // Ensure metadata is loaded before saving
-      const cleanResource = cleanResourcePath(resource);
-      const localStorageKey = `${appName}.${cleanResource}.columnVisibility`;
-      localStorage.setItem(localStorageKey, JSON.stringify(visibleColumns));
-    }
-  }, [visibleColumns, metadata, resource, appName]);
+  };
 
-  useEffect(() => {
-    if (metadata && columnOrder.length > 0) {
-      localStorage.setItem(`${resource}_col_order`, JSON.stringify(columnOrder));
-    }
-  }, [columnOrder, metadata, resource]);
-
-  const fetchData = useCallback(async () => {
-    if (!metadata) return
+  const handleDeleteSavedFilter = async (id: string) => {
+    if (!await confirm({ title: "Delete Filter", message: "Remove this saved filter?", type: 'danger' })) return;
     try {
-      setLoading(true)
-      
-      // Merge user filters with fixed filters
-      const finalFilters = [...filters]
-      if (fixedFilters) {
-        Object.entries(fixedFilters).forEach(([field, value]) => {
-          finalFilters.push({ field, op: '=', value })
-        })
-      }
-      if (isPartyResource && roleFilter !== 'all') {
-        finalFilters.push({ field: 'role', op: '=', value: roleFilter })
-      }
+      await api.delete(`/sys_filters/${id}`);
+      fetchSavedFilters();
+    } catch (e) { notify("Delete failed", "error"); }
+  };
 
-      const params = {
-        page,
-        per_page: perPage,
-        search: search || undefined,
-        filters: finalFilters.length > 0 ? JSON.stringify(finalFilters) : undefined,
-        order_by: orderBy,
-        desc
-      }
-      const res = await api.get(`${resourceApiPath}/`, { params })
-      setData(res.data.items)
-      setTotal(res.data.total)
-      setTotalPages(res.data.pages)
-      setError(null)
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to fetch data")
-    } finally {
-      setLoading(false)
-    }
-  }, [resourceApiPath, metadata, page, perPage, search, filters, fixedFilters, orderBy, desc, isPartyResource, roleFilter, activeOrgId])
-
-  useEffect(() => {
-    fetchData()
-  }, [fetchData])
-
-  // Handlers
   const handleSelectAll = () => {
-    if (selectedIds.length === data.length) {
-      setSelectedIds([])
-    } else {
-      setSelectedIds(data.map(item => item.id))
-    }
+    if (selectedIds.length === data.length) setSelectedIds([])
+    else setSelectedIds(data.map(item => item.id))
   }
 
   const handleSelectOne = (id: string | number) => {
-    setSelectedIds(prev =>
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    )
+    if (selectedIds.includes(id)) setSelectedIds(selectedIds.filter(i => i !== id))
+    else setSelectedIds([...selectedIds, id])
   }
 
-  const handleDeleteBulk = async () => {
-    const relatedDocs = (await Promise.all(selectedIds.map(id => fetchLinkedDocs(id)))).flat()
+  const handleBulkDelete = async () => {
     const ok = await confirm({
-      title: 'Delete Items',
-      message: linkedDocsDeleteMessage(selectedIds.length, relatedDocs),
-      type: 'danger',
-      confirmText: 'Delete Now'
+      title: 'Bulk Delete',
+      message: `Are you sure you want to delete ${selectedIds.length} records?`,
+      confirmText: 'Delete All',
+      type: 'danger'
     })
-    
-    if (ok) {
-      try {
-        const res = await api.post(`/${resourceApiPath}/bulk-delete`, selectedIds)
-        const deletedCount = res.data?.deleted_count ?? selectedIds.length
-        const requestedCount = res.data?.requested_count ?? selectedIds.length
-        setSelectedIds([])
-        if (deletedCount === requestedCount) {
-          notify(`Successfully deleted ${deletedCount} items`, 'success')
-        } else {
-          notify(`Deleted ${deletedCount} of ${requestedCount} items`, 'info')
-        }
-        await fetchData()
-      } catch (err: any) {
-        notify(err.response?.data?.message || err.response?.data?.detail || "Failed to delete items", 'error')
-      }
-    }
-  }
-
-  const handleDeleteOne = async (item: any) => {
-    const relatedDocs = await fetchLinkedDocs(item.id)
-    const ok = await confirm({
-      title: 'Delete',
-      message: linkedDocsDeleteMessage(1, relatedDocs),
-      type: 'danger',
-      confirmText: 'Delete'
-    })
-
     if (!ok) return
-
     try {
-      await api.delete(`/${resourceApiPath}/${item.id}`)
-      notify('Item deleted successfully', 'success')
-      setSelectedIds(prev => prev.filter(id => id !== item.id))
-      await fetchData()
+      await api.post(`/${resourceApiPath}/batch-delete`, { ids: selectedIds })
+      notify(`${selectedIds.length} records deleted`, "success")
+      setSelectedIds([])
+      fetchData()
     } catch (err: any) {
-      notify(err.response?.data?.message || err.response?.data?.detail || 'Failed to delete item', 'error')
+      notify(err.response?.data?.detail || "Bulk delete failed", "error")
     }
   }
 
   const handleBulkEditSubmit = async () => {
-    if (!bulkEditField) { notify('Select a field to edit', 'error'); return }
     setBulkEditing(true)
     try {
-      const operations = selectedIds.map(id => ({
+      const ops = selectedIds.map(id => ({
         action: 'update',
         id,
         data: { [bulkEditField]: bulkEditValue }
       }))
-      await api.post(`/${cleanResourcePath(resource)}/batch`, operations)
-      notify(`Updated ${selectedIds.length} records`, 'success')
+      await api.post(`/${resourceApiPath}/batch`, ops)
+      notify(`Updated ${selectedIds.length} records`, "success")
       setBulkEditOpen(false)
-      setBulkEditField('')
-      setBulkEditValue('')
       setSelectedIds([])
       fetchData()
     } catch (err: any) {
-      notify(err.response?.data?.detail || 'Bulk update failed', 'error')
+      notify(err.response?.data?.detail || "Bulk update failed", "error")
     } finally {
       setBulkEditing(false)
     }
   }
 
-  const handleInlineSave = async () => {
-    if (!inlineEdit) return
-    try {
-      await api.patch(`/${cleanResourcePath(resource)}/${inlineEdit.rowId}`, { [inlineEdit.field]: inlineEdit.value })
-      setInlineEdit(null)
-      fetchData()
-    } catch (err: any) {
-      notify(err.response?.data?.detail || 'Save failed', 'error')
-    }
-  }
-
   const handleExport = async () => {
+    setIsExporting(true)
     try {
-      setIsExporting(true)
-      const finalFilters = [...filters]
-      if (fixedFilters) {
-        Object.entries(fixedFilters).forEach(([field, value]) => {
-          finalFilters.push({ field, op: '=', value })
-        })
-      }
-      if (isPartyResource && roleFilter !== 'all') {
-        finalFilters.push({ field: 'role', op: '=', value: roleFilter })
-      }
-
-      const params = {
-        page,
-        per_page: perPage,
-        search: search || undefined,
-        filters: finalFilters.length > 0 ? JSON.stringify(finalFilters) : undefined,
-        order_by: orderBy,
-        desc
-      }
-      const cleanResource = cleanResourcePath(resource)
-      const res = await api.get(`${cleanResource}/`, {
-        params,
-        responseType: 'blob'
-      })
-
+      const res = await api.get(`/${resourceApiPath}/export`, { responseType: 'blob' })
       const url = window.URL.createObjectURL(new Blob([res.data]))
       const link = document.createElement('a')
       link.href = url
-      link.setAttribute('download', `${cleanResource}_export_${new Date().toISOString().split('T')[0]}.csv`)
+      link.setAttribute('download', `${resource.replace(/\//g, '_')}_export.csv`)
       document.body.appendChild(link)
       link.click()
       link.remove()
-      notify("Data exported successfully", "success")
     } catch (err: any) {
-      notify("Failed to export data", "error")
+      notify("Export failed", "error")
     } finally {
       setIsExporting(false)
     }
@@ -408,62 +290,30 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      const lines = text.split('\n').filter(l => l.trim());
-      const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-      const csvData = lines.slice(1).map(line => line.split(',').map(c => c.trim().replace(/^"|"$/g, '')));
-
-      showPanel(
-        `Import Mapping: ${metadata?.title}`,
-        <ImportMapping
-          csvHeaders={headers}
-          csvData={csvData}
-          resourceFields={metadata?.fields.filter(f => !f.read_only).map(f => ({
-            name: f.name,
-            label: f.label,
-            type: f.type || 'text',
-            required: !!(f as any).required,
-          })) || []}
-          onCancel={closePanel}
-          onImport={async (validatedData, _importAll) => {
-            closePanel();
-            await executeImportData(validatedData);
-          }}
-        />,
-        'max-w-2xl'
-      );
-    };
-    reader.readAsText(file);
-    
-    // Reset input so same file can be selected again
-    e.target.value = '';
-  }
-
-  const executeImportData = async (rows: any[]) => {
+    const formData = new FormData()
+    formData.append('file', file)
     try {
-      setLoading(true)
-      const cleanResource = cleanResourcePath(resource)
-      await api.post(`/${cleanResource}/import`, { rows })
-      notify('Import successful', 'success')
+      await api.post(`/${resourceApiPath}/import`, formData)
+      notify("Import successful", "success")
       fetchData()
     } catch (err: any) {
-      notify(err.response?.data?.detail || 'Import failed', 'error')
-    } finally {
-      setLoading(false)
+      notify("Import failed", "error")
+    }
+  }
+
+  const handleDeleteOne = async (item: any) => {
+    if (!await confirm({ title: 'Delete record', message: `Are you sure you want to delete this record?`, type: 'danger' })) return
+    try {
+      await api.delete(`/${resourceApiPath}/${item.id}`)
+      notify("Record deleted", "success")
+      fetchData()
+    } catch (err: any) {
+      notify("Delete failed", "error")
     }
   }
 
   const addFilter = () => {
-    if (!metadata) return
-    const firstField = metadata.fields[0].name
-    setFilters([...filters, { field: firstField, op: '=', value: '' }])
-  }
-
-  const removeFilter = (index: number) => {
-    setFilters(filters.filter((_, i) => i !== index))
+    setFilters([...filters, { field: metadata?.fields[0]?.name || 'id', op: '=', value: '' }])
   }
 
   const updateFilter = (index: number, key: keyof FilterRule, value: any) => {
@@ -472,547 +322,232 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     setFilters(newFilters)
   }
 
-  const fetchSavedFilters = useCallback(async () => {
-    try {
-      const cleanResource = cleanResourcePath(resource);
-      const res = await api.get(`/erp/saved-filters`, { params: { resource: cleanResource } });
-      setSavedFilters(res.data);
-    } catch (err: any) {
-      notify("Failed to load saved filters", "error");
-    }
-  }, [resource, notify]);
-
-  const handleSaveFilter = async () => {
-    if (filters.length === 0) {
-      notify("Cannot save an empty filter.", "info");
-      return;
-    }
-    const filterName = prompt("Enter a name for this filter:");
-    if (!filterName) return;
-
-    try {
-      await api.post(`/erp/saved-filters`, {
-        resource: cleanResourcePath(resource),
-        name: filterName,
-        filters_json: JSON.stringify(filters),
-        is_default: false, // Or allow user to choose
-      });
-      notify("Filter saved successfully!", "success");
-      fetchSavedFilters();
-    } catch (err: any) {
-      notify(err.response?.data?.detail || "Failed to save filter", "error");
-    }
-  };
-
-  const handleApplySavedFilter = async (filterId: string) => {
-    try {
-      const savedFilter = savedFilters.find(sf => sf.id === filterId);
-      if (savedFilter) {
-        setFilters(JSON.parse(savedFilter.filters_json));
-        setPage(1);
-        await fetchData(); // Changed: Added await here
-        notify(`Applied filter: ${savedFilter.name}`, "success");
-      }
-    } catch (err: any) {
-      notify("Failed to apply saved filter", "error");
-    }
-  };
-
-  const handleDeleteSavedFilter = async (filterId: string) => {
-    const ok = await confirm({
-      title: 'Delete Saved Filter',
-      message: 'Are you sure you want to delete this saved filter?',
-      type: 'danger',
-      confirmText: 'Delete'
-    });
-    if (!ok) return;
-
-    try {
-      await api.delete(`/erp/saved-filters/${filterId}`);
-      notify("Saved filter deleted.", "success");
-      fetchSavedFilters();
-    } catch (err: any) {
-      notify(err.response?.data?.detail || "Failed to delete saved filter", "error");
-    }
-  };
-
-  if (error) return <div className="p-8 text-red-500 bg-red-50 rounded-xl border border-red-100">{error}</div>
-  if (!metadata) return <div className="p-8 animate-pulse text-slate-400">Initializing {resource}...</div>
-
-  const fields = metadata.fields
-  const nonHiddenFields = fields.filter(f => !f.hidden && f.type !== 'child_table')
-  const visibleFields = visibleColumns.length > 0
-    ? fields.filter(f => visibleColumns.includes(f.name))
-    : nonHiddenFields
-  const orderedFields = columnOrder.length > 0
-    ? [...visibleFields].sort((a, b) => {
-        const ai = columnOrder.indexOf(a.name);
-        const bi = columnOrder.indexOf(b.name);
-        if (ai === -1) return 1;
-        if (bi === -1) return -1;
-        return ai - bi;
-      })
-    : visibleFields
-  const toolbarFields = fields.map(field => ({ ...field, label: vocabulary.get(field.label) }))
-  const title = vocabulary.get(metadata.title)
-  const roleTabs = [
-    { value: 'all', label: 'All' },
-    { value: 'customer', label: 'Customer' },
-    { value: 'supplier', label: 'Supplier' },
-    { value: 'member', label: 'Member' },
-    { value: 'student', label: 'Student' },
-    { value: 'patient', label: 'Patient' },
-    { value: 'donor', label: 'Donor' },
-    { value: 'citizen', label: 'Citizen' },
-    { value: 'other', label: 'Other' },
-  ]
-
-  const setRoleFilter = (role: string) => {
-    const next = new URLSearchParams(searchParams)
-    if (role === 'all') next.delete('role')
-    else next.set('role', role)
-    setSearchParams(next, { replace: true })
-    setPage(1)
+  const removeFilter = (index: number) => {
+    setFilters(filters.filter((_, i) => i !== index))
   }
 
-  return (
-    <>
-    <div className="aras-list-view flex flex-col h-full bg-transparent overflow-hidden">
-      {/* ── Toolbar ────────────────────────────────────────────────────────── */}
-      <ListToolbar
-        title={title}
-        search={search}
-        onSearchChange={setSearch}
-        isFilterOpen={isFilterOpen}
-        onFilterToggle={() => setIsFilterOpen(!isFilterOpen)}
-        filterCount={filters.length}
-        selectedCount={selectedIds.length}
-        onBulkEdit={() => setBulkEditOpen(true)}
-        onBulkDelete={handleDeleteBulk}
-        onExport={handleExport}
-        isExporting={isExporting}
-        onImport={handleImport}
-        onColumnPickerToggle={() => setIsColumnPickerOpen(!isColumnPickerOpen)}
-        isColumnPickerOpen={isColumnPickerOpen}
-        onAdd={() => onAdd ? onAdd() : null}
-        onArchive={() => navigate(`/archive/${cleanResourcePath(resource)}`)}
-        fields={toolbarFields}
-        visibleColumns={visibleColumns}
-        onVisibleColumnsChange={setVisibleColumns}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        hasTreeSupport={hasTreeSupport}
-        onSaveFilter={handleSaveFilter}
-        onApplySavedFilter={handleApplySavedFilter}
-        onDeleteSavedFilter={handleDeleteSavedFilter}
-        savedFilters={savedFilters}
-      />
+  if (!metadata) return <div className="p-8 text-center text-slate-400">Loading component...</div>
 
-        {/* ── Advanced Filter Builder ────────────────────────────────────── */}
+  const fields = metadata.fields
+  const orderedFields = fields.filter(f => !f.hidden)
+  const listColumns = orderedFields
+    .filter(f => visibleColumns.includes(f.name))
+    .map(f => ({
+      key: f.name,
+      label: vocabulary.get(f.label),
+      field: f,
+      align: (f.type === 'number' || f.type === 'currency') ? 'right' : 'left',
+      primary: f.name === 'name' || f.name === 'number' || f.name === 'title'
+    }))
+
+  const gridTemplateColumns = `48px ${listColumns.map(() => 'minmax(120px, 1fr)').join(' ')} 100px`
+  const listMinWidth = 150 * listColumns.length + 150
+
+  const getFieldValue = (item: any, field: Field) => {
+    const val = item[field.name]
+    if (field.type === 'lookup' && typeof val === 'object' && val !== null) {
+      return val.name || val.title || val.number || val.id
+    }
+    return val
+  }
+
+  const title = vocabulary.get(metadata.title)
+
+  return (
+    <div className="aras-list-view flex flex-col h-full animate-in fade-in duration-500">
+      <DesignContainer id="list-view-layout" className="flex flex-col h-full w-full">
+        
+        <DesignElement id="toolbar" className="w-full">
+          <ListViewActionBar
+            title={title}
+            search={search}
+            onSearchChange={setSearch}
+            isFilterOpen={isFilterOpen}
+            onFilterToggle={() => setIsFilterOpen(!isFilterOpen)}
+            filterCount={filters.length}
+            selectedCount={selectedIds.length}
+            onBulkEdit={() => setBulkEditOpen(true)}
+            onBulkDelete={handleBulkDelete}
+            onExport={handleExport}
+            isExporting={isExporting}
+            onImport={handleImport}
+            onColumnPickerToggle={() => setIsColumnPickerOpen(!isColumnPickerOpen)}
+            isColumnPickerOpen={isColumnPickerOpen}
+            onAdd={onAdd || (() => navigate(`${resourceApiPath}/new`))}
+            onArchive={metadata?.is_auditable ? () => navigate(`/${resourceApiPath}/archived`) : undefined}
+            fields={orderedFields}
+            visibleColumns={visibleColumns}
+            onVisibleColumnsChange={setVisibleColumns}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            hasTreeSupport={false}
+            onSaveFilter={() => {}}
+            onApplySavedFilter={handleApplySavedFilter}
+            onDeleteSavedFilter={handleDeleteSavedFilter}
+            savedFilters={savedFilters}
+          />
+        </DesignElement>
+
         {isFilterOpen && (
-          <div id="filter-conditions-panel" className="bg-[var(--aras-panel-soft)] p-4 rounded-[var(--aras-radius)] border border-[var(--aras-border)] space-y-3">
-            <div className="flex items-center justify-between">
+          <DesignElement id="filter-bar" className="w-full bg-[var(--aras-panel-soft)] p-4 rounded-[var(--aras-radius)] border border-[var(--aras-border)] mb-4">
+            <div className="flex items-center justify-between mb-3">
               <span className="text-[11px] font-semibold text-[var(--aras-muted)] uppercase tracking-wider">Filter Conditions</span>
               <button onClick={addFilter} className="text-xs font-semibold text-[var(--aras-accent)] hover:underline flex items-center gap-1">
                 <Plus size={14} /> Add Rule
               </button>
             </div>
-
-            {/* Saved Filters Display */}
-            {savedFilters.length > 0 && (
-              <div className="space-y-2 pb-4 border-b border-[var(--aras-border)] mb-4">
-                <h4 className="text-[11px] font-semibold text-[var(--aras-muted)] uppercase tracking-wider mb-2">Saved Filters</h4>
-                <div className="flex flex-wrap gap-2">
-                  {savedFilters.map(sf => (
-                    <div key={sf.id} className="inline-flex items-center bg-[var(--aras-panel)] text-[var(--aras-accent)] text-xs font-semibold px-3 py-1.5 rounded-[var(--aras-radius)] border border-[var(--aras-border-strong)]">
-                      <span className="mr-2">{sf.name}</span>
-                      <button
-                        onClick={() => handleApplySavedFilter(sf.id)}
-                        className="p-1 -my-1 rounded-[var(--aras-radius)] hover:bg-[var(--aras-panel-soft)] transition-colors"
-                        title="Apply Filter"
-                      >
-                        <Check size={12} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteSavedFilter(sf.id)}
-                        className="ml-1 p-1 -my-1 rounded-[var(--aras-radius)] hover:bg-rose-50 text-rose-600 transition-colors"
-                        title="Delete Filter"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {filters.length === 0 ? (
-              <p className="text-sm text-[var(--aras-muted)] italic">No filters applied. Add a rule to refine results.</p>
-            ) : (              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {filters.map((f, i) => (
-                  <div key={i} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-[var(--aras-panel)] p-3 rounded-[var(--aras-radius)] border border-[var(--aras-border)]">
-                    <div className="flex-1 min-w-[120px]">
-                      <Combobox
-                        options={fields.map(field => ({ label: vocabulary.get(field.label), value: field.name }))}
-                        value={f.field}
-                        onChange={(val) => updateFilter(i, 'field', val)}
-                        placeholder="Field..."
-                      />
-                    </div>
-                    <div className="w-[80px] flex-shrink-0">
-                      <Combobox
-                        options={[
-                          { label: 'is', value: '=' },
-                          { label: 'is not', value: '!=' },
-                          { label: 'is greater than', value: '>' },
-                          { label: 'is less than', value: '<' },
-                          { label: 'contains', value: 'ilike' },
-                          { label: 'does not contain', value: 'not_ilike' },
-                          { label: 'is one of', value: 'in' },
-                          { label: 'is not one of', value: 'not_in' },
-                          { label: 'is empty', value: 'is_null' },
-                          { label: 'is not empty', value: 'is_not_null' }
-                        ]}
-                        value={f.op}
-                        onChange={(val) => updateFilter(i, 'op', val)}
-                        placeholder="Op..."
-                      />
-                    </div>
-                    <div className="flex-1">
-                      {(() => {
-                        const fieldDef = fields.find(fd => fd.name === f.field);
-                        if (!fieldDef) return null;
-                        const FilterComponent = resolveFilterComponent(fieldDef);
-                        return (
-                          <FilterComponent
-                            field={fieldDef}
-                            value={f.value}
-                            onChange={(val) => updateFilter(i, 'value', val)}
-                            formData={{}} // Not relevant for filter component
-                            disabled={false}
-                          />
-                        );
-                      })()}
-                    </div>
-                    <button onClick={() => removeFilter(i)} className="flex-shrink-0 p-2 text-[var(--aras-muted)] hover:text-rose-500 hover:bg-rose-50 rounded-[var(--aras-radius)] transition-colors">
-                      <X size={14} />
-                    </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {filters.map((f, i) => (
+                <div key={i} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-[var(--aras-panel)] p-3 rounded-[var(--aras-radius)] border border-[var(--aras-border)]">
+                  <div className="flex-1 min-w-[120px]">
+                    <Combobox
+                      options={fields.map(field => ({ label: vocabulary.get(field.label), value: field.name }))}
+                      value={f.field}
+                      onChange={(val) => updateFilter(i, 'field', String(val))}
+                      placeholder="Field..."
+                    />
                   </div>
-
-                ))}
-              </div>
-            )}
-            <div className="flex justify-end pt-2">
-               <button
-                 onClick={() => { setFilters([]); setPage(1); }}
-                 className="text-xs font-semibold text-[var(--aras-muted)] hover:text-[var(--aras-text)] mr-4"
-               >
-                 Reset All
-               </button>
-               <button
-                 onClick={() => { setPage(1); fetchData(); }}
-                 className="px-4 py-2 bg-[var(--aras-accent)] text-white text-xs font-semibold rounded-[var(--aras-radius)] hover:opacity-90"
-               >
-                 Apply Filters
-               </button>
-            </div>
-          </div>
-        )}
-
-      {/* ── Content View ─────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-auto rounded-[var(--aras-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)] mt-4">
-        {isPartyResource && (
-          <div className="flex flex-wrap gap-1 border-b border-[var(--aras-border)] bg-[var(--aras-panel-soft)] px-4 py-2">
-            {roleTabs.map(tab => (
-              <button
-                key={tab.value}
-                type="button"
-                onClick={() => setRoleFilter(tab.value)}
-                className={`rounded-[var(--aras-radius)] px-3 py-1.5 text-xs font-medium transition-colors ${
-                  roleFilter === tab.value
-                    ? 'bg-[var(--aras-panel)] text-[var(--aras-accent)] border border-[var(--aras-border-strong)]'
-                    : 'text-[var(--aras-muted)] hover:text-[var(--aras-text)] hover:bg-[var(--aras-panel)]'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        )}
-        {viewMode === 'list' && (
-          <table className="w-full text-left border-collapse min-w-[800px]">
-            <thead className="sticky top-0 z-10">
-              <tr className="bg-[var(--aras-table-head)] border-b border-[var(--aras-border)]">
-                <th className="px-6 py-4 w-10" scope="col">
-                  <button onClick={handleSelectAll} className="text-[var(--aras-muted)] hover:text-[var(--aras-accent)] transition-colors">
-                    {selectedIds.length === data.length && data.length > 0 ? <CheckSquare size={18} className="text-[var(--aras-accent)]" /> : <Square size={18} />}
+                  <div className="flex-1">
+                    {(() => {
+                      const fieldDef = fields.find(fd => fd.name === f.field);
+                      if (!fieldDef) return null;
+                      const FilterComponent = resolveFilterComponent(fieldDef);
+                      return (
+                        <FilterComponent
+                          field={fieldDef}
+                          value={f.value}
+                          onChange={(val) => updateFilter(i, 'value', val)}
+                          formData={{}}
+                          disabled={false}
+                        />
+                      );
+                    })()}
+                  </div>
+                  <button onClick={() => removeFilter(i)} className="flex-shrink-0 p-2 text-[var(--aras-muted)] hover:text-rose-500 rounded-xl transition-colors">
+                    <X size={14} />
                   </button>
-                </th>
-                {orderedFields.map(field => (
-                  <th
-                    key={field.name}
-                    draggable
-                    onDragStart={() => setDragCol(field.name)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => {
-                      if (!dragCol || dragCol === field.name) return;
-                      const cols = orderedFields.map(x => x.name);
-                      const from = cols.indexOf(dragCol);
-                      const to = cols.indexOf(field.name);
-                      const next = [...cols];
-                      next.splice(from, 1);
-                      next.splice(to, 0, dragCol);
-                      setColumnOrder(next);
-                      setDragCol(null);
-                    }}
-                    onDragEnd={() => setDragCol(null)}
-                    className="px-6 py-4 text-[13px] font-semibold text-[var(--aras-text)] cursor-grab active:cursor-grabbing hover:bg-[var(--aras-panel-soft)] transition-colors"
-                    onClick={() => {
-                      if (orderBy === field.name) setDesc(!desc)
-                      else { setOrderBy(field.name); setDesc(true); }
-                    }}
-                    scope="col"
-                  >
-                    <div className="flex items-center gap-2">
-                      {vocabulary.get(field.label)}
-                      {orderBy === field.name && (desc ? <ChevronDown size={14} className="text-[var(--aras-accent)]" /> : <ChevronUp size={14} className="text-[var(--aras-accent)]" />)}
-                    </div>
-                  </th>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end pt-2">
+              <button onClick={() => { setFilters([]); setPage(1); }} className="text-xs font-semibold text-[var(--aras-muted)] mr-4">Reset</button>
+              <button onClick={() => { setPage(1); fetchData(); }} className="px-4 py-2 bg-[var(--aras-accent)] text-white text-xs font-semibold rounded-[var(--aras-radius)] hover:opacity-90">Apply</button>
+            </div>
+          </DesignElement>
+        )}
+
+        <DesignElement id="table" className="glass-panel island flex-1 overflow-auto w-full mt-4">
+          {isPartyResource && (
+            <div className="flex flex-wrap gap-1 border-b border-[var(--aras-border)] bg-[var(--aras-panel-soft)] px-4 py-2">
+               <span className="text-[10px] font-black uppercase text-slate-400 px-3">Role filtering active</span>
+            </div>
+          )}
+          {viewMode === 'list' && (
+            <div className="overflow-x-auto">
+              <div className="aras-list-table" style={{ minWidth: listMinWidth }}>
+              <div className="aras-list-header hidden md:grid" style={{ gridTemplateColumns }}>
+                <div><button onClick={handleSelectAll} className="hover:text-[var(--aras-accent)]">{selectedIds.length === data.length && data.length > 0 ? <CheckSquare size={16} className="text-[var(--aras-accent)]" /> : <Square size={16} />}</button></div>
+                {listColumns.map((column) => (
+                  <div key={column.key} className={`aras-list-header__cell ${column.align === 'right' ? 'justify-end text-right' : ''}`} onClick={() => { if (orderBy === column.field.name) setDesc(!desc); else { setOrderBy(column.field.name); setDesc(true); } }}>
+                    {column.label}
+                    {orderBy === column.field.name && (desc ? <ChevronDown size={14} className="text-[var(--aras-accent)]" /> : <ChevronUp size={14} className="text-[var(--aras-accent)]" />)}
+                  </div>
                 ))}
-                <th className="px-6 py-5 w-12"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--aras-border)]">
+                <div className="text-right">Action</div>
+              </div>
+
               {loading ? (
-                [...Array(5)].map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="px-6 py-4"><div className="w-5 h-5 bg-[var(--aras-panel-soft)] rounded"></div></td>
-                    {orderedFields.map(f => <td key={f.name} className="px-6 py-4"><div className="h-4 bg-[var(--aras-panel-soft)] rounded w-3/4"></div></td>)}
-                    <td className="px-6 py-4"><div className="w-8 h-8 bg-[var(--aras-panel-soft)] rounded"></div></td>
-                  </tr>
-                ))
+                <div className="p-20 text-center animate-pulse text-[var(--aras-muted)]">Fetching records...</div>
               ) : data.length === 0 ? (
-                <tr>
-                  <td colSpan={orderedFields.length + 2} className="px-6 py-16 text-center">
-                    <div className="max-w-xs mx-auto flex flex-col items-center text-[var(--aras-muted)]">
-                      {search || filters.length > 0 ? (
-                        <>
-                          <Search size={40} className="mb-3 opacity-20" />
-                          <p className="text-sm font-medium">No records match your search.</p>
-                          <button onClick={() => {setSearch(''); setFilters([]);}} className="mt-2 text-xs text-[var(--aras-accent)] font-semibold hover:underline">Clear filters</button>
-                        </>
-                      ) : (
-                        <>
-                          <Plus size={40} className="mb-3 opacity-20" />
-                          <p className="text-sm font-medium text-[var(--aras-muted)]">No records yet.</p>
-                          {onAdd && (
-                            <button onClick={onAdd} className="mt-3 px-4 py-2 text-xs font-semibold bg-[var(--aras-accent)] text-white rounded-[var(--aras-radius)] hover:opacity-90 transition">
-                              Add New
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+                <div className="px-6 py-20 text-center">
+                  <Search size={48} className="mb-4 opacity-20 mx-auto" />
+                  <p className="text-[15px] font-bold text-[var(--aras-text)]">No records found.</p>
+                </div>
               ) : (
                 data.map((item) => (
-                  <tr
-                    key={item.id}
-                    className={`hover:bg-[var(--aras-panel-soft)] transition-colors cursor-pointer group ${selectedIds.includes(item.id) ? 'bg-[var(--aras-panel-soft)]' : ''}`}
-                    onClick={() => onRowClick ? onRowClick(item.id) : null}
-                  >
-                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => handleSelectOne(item.id)} className={`${selectedIds.includes(item.id) ? 'text-[var(--aras-accent)]' : 'text-[var(--aras-faint)] group-hover:text-[var(--aras-muted)]'}`}>
-                        {selectedIds.includes(item.id) ? <CheckSquare size={18} /> : <Square size={18} />}
-                      </button>
-                    </td>
-                    {orderedFields.map(field => {
-                      const isInline = inlineEdit?.rowId === item.id && inlineEdit?.field === field.name
-                      const inlineTypes = ['text', 'string', 'number', 'integer', 'email', 'url']
-                    const canInline = !field.read_only && inlineTypes.includes(field.type)
-                    return (
-                      <td
-                        key={field.name}
-                        className="px-6 py-4 text-sm text-[var(--aras-muted)] font-medium"
-                        onDoubleClick={(e) => {
-                          if (!canInline) return
-                          e.stopPropagation()
-                          setInlineEdit({ rowId: item.id, field: field.name, value: item[field.name] ?? '' })
-                          setTimeout(() => inlineInputRef.current?.select(), 30)
-                        }}
-                      >
-                        {isInline ? (
-                          <input
-                            ref={inlineInputRef}
-                            type={field.type === 'number' || field.type === 'integer' ? 'number' : 'text'}
-                            className="w-full border border-[var(--aras-accent)] bg-[var(--aras-panel)] rounded-[var(--aras-radius)] px-2 py-1 text-sm outline-none text-[var(--aras-text)]"
-                            value={inlineEdit.value}
-                            onChange={e => setInlineEdit(prev => prev ? { ...prev, value: e.target.value } : prev)}
-                            onBlur={handleInlineSave}
-                            onKeyDown={e => { if (e.key === 'Enter') handleInlineSave(); if (e.key === 'Escape') setInlineEdit(null); }}
-                            onClick={e => e.stopPropagation()}
-                          />
-                        ) : (
-                          <span title={canInline ? 'Double-click to edit' : undefined} className={canInline ? 'cursor-text' : ''}>
-                            {renderCellValue(item[`${field.name}_label`] ?? item[field.name], field.type, field.name)}
-                          </span>
-                        )}
-                      </td>
-                    )
-                  })}
-                    <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDeleteOne(item)
-                        }}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--aras-radius)] text-[var(--aras-muted)] transition-colors hover:bg-rose-50 hover:text-rose-600 focus:outline-none"
-                        title="Delete"
-                        aria-label="Delete row"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                  <div key={item.id} className={`aras-list-row grid items-center group ${selectedIds.includes(item.id) ? 'is-selected' : ''}`} style={{ gridTemplateColumns }} onClick={() => onRowClick?.(item.id)}>
+                    <div onClick={(e) => e.stopPropagation()}><button onClick={() => handleSelectOne(item.id)} className={`${selectedIds.includes(item.id) ? 'text-[var(--aras-accent)]' : 'text-[var(--aras-border-strong)]'}`}>{selectedIds.includes(item.id) ? <CheckSquare size={18} /> : <Square size={18} />}</button></div>
+                    {listColumns.map((column) => {
+                      const value = getFieldValue(item, column.field)
+                      return (
+                        <div key={column.key} className={`min-w-0 ${column.align === 'right' ? 'text-right' : ''}`}>
+                          <div className={`${column.primary ? 'font-extrabold text-[var(--aras-foreground)]' : 'font-semibold text-[var(--aras-muted)]'} truncate text-sm`}>
+                            {renderCellValue(value, column.field.type, column.field.name)}
+                          </div>
+                        </div>
+                      )
+                    })}
+                    <div className="flex items-center justify-end gap-1">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteOne(item); }} className="p-2 text-[var(--aras-muted)] hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-colors"><Trash2 size={16} /></button>
+                      <ChevronRight size={18} className="text-[var(--aras-muted)]" />
+                    </div>
+                  </div>
+                ))
+              )}
+              </div>
+            </div>
+          )}
+        </DesignElement>
+
+        {viewMode === 'list' && (
+          <DesignElement id="pagination" className="mt-3 aras-island p-3 flex flex-wrap items-center justify-between gap-3 w-full">
+            <div className="flex items-center gap-4">
+              <span className="text-xs font-medium text-[var(--aras-muted)]">Showing {(page-1)*perPage + 1} to {Math.min(page*perPage, total)} of {total}</span>
+              <div className="min-w-[120px]">
+                <Combobox
+                  options={[
+                    { label: '10 per page', value: 10 },
+                    { label: '20 per page', value: 20 },
+                    { label: '50 per page', value: 50 },
+                    { label: '100 per page', value: 100 }
+                  ]}
+                  value={perPage}
+                  onChange={(val) => { setPerPage(Number(val)); setPage(1); }}
+                />
+              </div>
+            </div>
+            <div className="flex items-center border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] overflow-hidden">
+              <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="px-3 py-2 text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)] border-r border-[var(--aras-border)]"><ChevronLeft size={16} /></button>
+              <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} className="px-3 py-2 text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)]"><ChevronRight size={16} /></button>
+            </div>
+          </DesignElement>
         )}
 
-        {viewMode === 'tree' && (
-          <TreeView resource={resource} onRowClick={onRowClick} />
-        )}
+      </DesignContainer>
 
-        {viewMode === 'report' && metadata && (
-          <GenericReport
-            title={`${title} Report`}
-            data={data}
-            columns={orderedFields.map(f => ({ field: f.name, label: vocabulary.get(f.label), type: f.type }))}
-            onBack={() => setViewMode('list')}
-          />
-        )}
-      </div>
-
-      {/* ── Footer / Pagination ────────────────────────────────────────────── */}
-      {viewMode === 'list' && (
-      <div className="mt-0 p-3 bg-[var(--aras-panel)] border border-t-0 border-[var(--aras-border)] flex flex-wrap items-center justify-between gap-3 rounded-b-[var(--aras-radius)]">
-        <div className="flex items-center gap-4">
-          <span className="text-xs font-medium text-[var(--aras-muted)]">
-            Showing <span className="text-[var(--aras-text)] font-semibold">{(page-1)*perPage + 1}</span> to <span className="text-[var(--aras-text)] font-semibold">{Math.min(page*perPage, total)}</span> of <span className="text-[var(--aras-text)] font-semibold">{total}</span>
-          </span>
-          <div className="min-w-[120px]">
-            <Combobox
-              options={[
-                { label: '10 per page', value: 10 },
-                { label: '20 per page', value: 20 },
-                { label: '50 per page', value: 50 },
-                { label: '100 per page', value: 100 },
-                { label: 'All', value: 999999 }
-              ]}
-              value={perPage}
-              onChange={(val) => { setPerPage(Number(val)); setPage(1); }}
-            />
+      {/* Bulk Edit Modal */}
+      {bulkEditOpen && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-[var(--aras-panel)] rounded-[var(--aras-radius)] border border-[var(--aras-border)] w-full max-w-md p-6 space-y-5">
+            <h3 className="text-lg font-semibold">Bulk Edit — {selectedIds.length} rows</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold mb-1 block">Field</label>
+                <Combobox
+                  options={(metadata?.fields ?? []).filter(f => !f.read_only && !f.hidden).map(f => ({ label: vocabulary.get(f.label), value: f.name }))}
+                  value={bulkEditField}
+                  onChange={val => { setBulkEditField(String(val)); setBulkEditValue(''); }}
+                  placeholder="Select field..."
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold mb-1 block">New Value</label>
+                {(() => {
+                  const field = metadata?.fields.find(f => f.name === bulkEditField);
+                  if (!field) return null;
+                  const FieldComponent = resolveFieldComponent(field);
+                  return <FieldComponent field={field} value={bulkEditValue} onChange={setBulkEditValue} formData={{}} disabled={false} />;
+                })()}
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setBulkEditOpen(false)} className="flex-1 px-4 py-2 border rounded-xl">Cancel</button>
+              <button onClick={handleBulkEditSubmit} disabled={bulkEditing || !bulkEditField} className="flex-1 px-4 py-2 bg-[var(--aras-accent)] text-white rounded-xl">{bulkEditing ? 'Saving...' : 'Apply'}</button>
+            </div>
           </div>
         </div>
-
-        <div className="flex items-center border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] overflow-hidden">
-          <button
-            disabled={page === 1}
-            onClick={() => setPage(p => p - 1)}
-            className="px-3 py-2 text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)] disabled:opacity-30 disabled:hover:bg-transparent border-r border-[var(--aras-border)]"
-          >
-            <ChevronLeft size={16} />
-          </button>
-
-          {[...Array(Math.min(5, totalPages))].map((_, i) => {
-            let p = page <= 3 ? i + 1 : page + i - 2
-            if (p > totalPages) return null
-            return (
-              <button
-                key={p}
-                onClick={() => setPage(p)}
-                className={`w-9 h-9 flex items-center justify-center text-xs font-semibold border-r border-[var(--aras-border)] last:border-r-0 transition-colors ${page === p ? 'bg-[var(--aras-panel-soft)] text-[var(--aras-accent)]' : 'text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)]'}`}
-              >
-                {p}
-              </button>
-            )
-          })}
-
-          <button
-            disabled={page === totalPages}
-            onClick={() => setPage(p => p + 1)}
-            className="px-3 py-2 text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)] disabled:opacity-30 disabled:hover:bg-transparent border-l border-[var(--aras-border)]"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      </div>
       )}
     </div>
-
-    {/* Bulk Edit Modal */}
-    {bulkEditOpen && (
-      <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-        <div className="bg-[var(--aras-panel)] rounded-[var(--aras-radius)] border border-[var(--aras-border)] w-full max-w-md p-6 space-y-5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-[var(--aras-text)]">Bulk Edit — {selectedIds.length} rows</h3>
-            <button onClick={() => setBulkEditOpen(false)} className="p-1.5 rounded-[var(--aras-radius)] hover:bg-[var(--aras-panel-soft)] text-[var(--aras-muted)] transition-colors">
-              <X size={18} />
-            </button>
-          </div>
-          <p className="text-sm text-[var(--aras-muted)]">Choose a field and set a new value for all selected rows.</p>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-semibold text-[var(--aras-text)] mb-1 block">Field</label>
-              <Combobox
-                options={(metadata?.fields ?? [])
-                  .filter(f => !f.read_only && !f.hidden && !['id','created_at','updated_at','created_by','updated_by'].includes(f.name))
-                  .map(f => ({ label: vocabulary.get(f.label), value: f.name }))}
-                value={bulkEditField}
-                onChange={val => {
-                  setBulkEditField(String(val))
-                  setBulkEditValue('')
-                }}
-                placeholder="Select field to edit..."
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-[var(--aras-text)] mb-1 block">New Value</label>
-              {(() => {
-                const field = metadata?.fields.find(f => f.name === bulkEditField);
-                if (!field) return null;
-                const FieldComponent = resolveFieldComponent(field);
-                return (
-                  <FieldComponent
-                    field={field}
-                    value={bulkEditValue}
-                    onChange={setBulkEditValue}
-                    formData={{}} // Not relevant for bulk edit
-                    disabled={false}
-                  />
-                );
-              })()}
-            </div>
-          </div>
-          <div className="flex gap-3 pt-1">
-            <button onClick={() => setBulkEditOpen(false)} className="flex-1 px-4 py-2 border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] text-sm font-semibold text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)] transition-colors">
-              Cancel
-            </button>
-            <button
-              onClick={handleBulkEditSubmit}
-              disabled={bulkEditing || !bulkEditField}
-              className="flex-1 px-4 py-2 bg-[var(--aras-accent)] text-white rounded-[var(--aras-radius)] text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
-            >
-              {bulkEditing ? 'Saving…' : 'Apply'}
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
-    </>
   )
 }
 
@@ -1020,61 +555,31 @@ const roleColors: Record<string, string> = {
   customer: 'bg-sky-50 text-sky-700 border-sky-100',
   supplier: 'bg-amber-50 text-amber-700 border-amber-100',
   member: 'bg-violet-50 text-violet-700 border-violet-100',
-  student: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-  patient: 'bg-rose-50 text-rose-700 border-rose-100',
-  donor: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100',
-  citizen: 'bg-cyan-50 text-cyan-700 border-cyan-100',
   other: 'bg-slate-50 text-slate-600 border-slate-100',
 }
 
 const statusColors: Record<string, string> = {
-  draft:       'bg-slate-100 text-slate-600',
-  posted:      'bg-green-100 text-green-700',
-  active:      'bg-green-100 text-green-700',
-  approved:    'bg-green-100 text-green-700',
-  cancelled:   'bg-red-100 text-red-600',
-  rejected:    'bg-red-100 text-red-600',
-  inactive:    'bg-red-100 text-red-600',
-  pending:     'bg-amber-100 text-amber-700',
-  in_progress: 'bg-amber-100 text-amber-700',
+  draft: 'bg-slate-300',
+  posted: 'bg-emerald-500',
+  active: 'bg-emerald-500',
+  cancelled: 'bg-rose-500',
 }
 
 const renderCellValue = (value: any, type: string, fieldName?: string) => {
   if (value === null || value === undefined) return <span className="text-slate-300">-</span>
-  if (fieldName === 'status' || fieldName === 'workflow_status') {
-    const key = String(value).toLowerCase()
-    const cls = statusColors[key] || 'bg-slate-100 text-slate-500'
-    return (
-      <span className={`px-2 py-0.5 text-xs rounded-full font-medium capitalize ${cls}`}>
-        {String(value).replace(/_/g, ' ')}
-      </span>
-    )
+  if (fieldName === 'status' || type === 'boolean') {
+    const rawLabel = typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)
+    const dotClass = statusColors[String(rawLabel).toLowerCase()] || 'bg-slate-300'
+    return <span className="inline-flex items-center gap-2 text-sm font-bold capitalize"><span className={`h-2 w-2 rounded-full ${dotClass}`} />{rawLabel}</span>
   }
   if (fieldName === 'role') {
-    const role = String(value)
-    const roleLabel = role.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
-    return (
-      <span className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${roleColors[role] || roleColors.other}`}>
-        {roleLabel}
-      </span>
-    )
+    return <span className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${roleColors[String(value)] || roleColors.other}`}>{String(value)}</span>
   }
-  
   switch (type) {
-    case 'currency':
-      return <span className="text-slate-900 font-bold">{FormattingService.formatCurrency(value)}</span>
-    case 'number':
-      return <span className="text-slate-900">{FormattingService.formatNumber(value)}</span>
-    case 'boolean':
-      return value ? <span className="px-2 py-0.5 bg-green-50 text-green-600 text-[10px] font-bold rounded uppercase">Active</span> : <span className="px-2 py-0.5 bg-slate-50 text-slate-400 text-[10px] font-bold rounded uppercase">Inactive</span>
+    case 'currency': return <span className="text-slate-900 font-bold">{FormattingService.formatCurrency(value)}</span>
     case 'date':
-    case 'datetime':
-      return FormattingService.formatDate(value)
-    case 'email':
-      return <span className="text-indigo-600 underline">{value}</span>
-    default:
-      if (typeof value === 'object') return <span className="text-[10px] font-mono text-slate-400 truncate block max-w-[200px]">{JSON.stringify(value)}</span>
-      return String(value)
+    case 'datetime': return FormattingService.formatDate(value)
+    default: return String(value)
   }
 }
 

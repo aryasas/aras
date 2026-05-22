@@ -36,6 +36,13 @@ interface QuickInvoiceResult {
 
 const getItemPrice = (item: PosItem) => Number(item.price ?? item.default_sale_price ?? item.default_purchase_price ?? 0)
 const today = () => new Date().toISOString().slice(0, 10)
+const normalizeList = <T,>(value: any): T[] => {
+  if (Array.isArray(value)) return value
+  if (Array.isArray(value?.items)) return value.items
+  if (Array.isArray(value?.data)) return value.data
+  if (Array.isArray(value?.data?.items)) return value.data.items
+  return []
+}
 
 export default function PosView() {
   const { id } = useParams()
@@ -77,7 +84,7 @@ export default function PosView() {
         filters: JSON.stringify([{ field: 'status', op: '=', value: 'Open' }])
       }
     })
-      .then(res => setOpenSessions(res.data as PosSession[]))
+      .then(res => setOpenSessions(normalizeList<PosSession>(res.data)))
       .catch(err => notify(err.response?.data?.detail || 'Failed to load sessions', 'error'))
       .finally(() => setSessionsLoading(false))
   }, [id])
@@ -86,7 +93,7 @@ export default function PosView() {
     if (!id) return
     setLoading(true)
     api.get(`/erp/pot/sessions/${id}/items`, { params: { mode: posMode } })
-      .then(res => setItems(res.data as PosItem[]))
+      .then(res => setItems(normalizeList<PosItem>(res.data)))
       .catch(err => notify(err.response?.data?.detail || 'Failed to load items', 'error'))
       .finally(() => setLoading(false))
   }, [id, posMode])

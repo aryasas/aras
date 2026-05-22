@@ -14,28 +14,28 @@ const SHORTCUTS = [
 ]
 
 const ShortcutMap: React.FC<{ onClose: () => void }> = ({ onClose }) => (
-  <div className="fixed inset-0 z-[110] flex items-center justify-center px-4 bg-slate-900/60 backdrop-blur-sm">
-    <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
-      <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100">
-        <h2 className="text-lg font-extrabold text-slate-900">Keyboard Shortcuts</h2>
-        <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-500 transition-all">
+  <div className="fixed inset-0 z-[110] flex items-center justify-center px-4 bg-black/50 backdrop-blur-sm">
+    <div className="bg-[var(--aras-panel)] rounded-2xl shadow-2xl border border-[var(--aras-border)] w-full max-w-md overflow-hidden">
+      <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[var(--aras-border)]">
+        <h2 className="text-base font-extrabold text-[var(--aras-text)]">Keyboard Shortcuts</h2>
+        <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-[var(--aras-panel-soft)] text-[var(--aras-muted)] transition-all">
           <LucideIcons.X size={18} />
         </button>
       </div>
       <div className="p-6 space-y-3">
         {SHORTCUTS.map((s, i) => (
           <div key={i} className="flex items-center justify-between">
-            <span className="text-sm text-slate-600">{s.description}</span>
+            <span className="text-sm text-[var(--aras-text)]">{s.description}</span>
             <div className="flex items-center gap-1">
               {s.keys.map((k, ki) => (
-                <kbd key={ki} className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-0.5 text-xs font-bold text-slate-700 shadow-sm">{k}</kbd>
+                <kbd key={ki} className="bg-[var(--aras-panel-soft)] border border-[var(--aras-border)] rounded-lg px-2 py-0.5 text-xs font-bold text-[var(--aras-text)] shadow-sm">{k}</kbd>
               ))}
             </div>
           </div>
         ))}
       </div>
       <div className="px-6 pb-5 text-center">
-        <span className="text-xs text-slate-400">Press <kbd className="bg-slate-50 border border-slate-200 rounded px-1 text-xs">Esc</kbd> or <kbd className="bg-slate-50 border border-slate-200 rounded px-1 text-xs">?</kbd> to close</span>
+        <span className="text-xs text-[var(--aras-muted)]">Press <kbd className="bg-[var(--aras-panel-soft)] border border-[var(--aras-border)] rounded px-1 text-xs">Esc</kbd> or <kbd className="bg-[var(--aras-panel-soft)] border border-[var(--aras-border)] rounded px-1 text-xs">?</kbd> to close</span>
       </div>
     </div>
     <div className="fixed inset-0 -z-10" onClick={onClose} />
@@ -109,14 +109,14 @@ export const CommandPalette: React.FC = () => {
       {shortcutsOpen && <ShortcutMap onClose={() => setShortcutsOpen(false)} />}
 
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-start justify-center pt-24 px-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[100] flex items-start justify-center pt-24 px-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl bg-[var(--aras-panel)] rounded-2xl shadow-2xl border border-[var(--aras-border)] overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="relative">
-              <LucideIcons.Search className="absolute left-6 top-6 text-slate-400" size={20} />
+              <LucideIcons.Search className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--aras-muted)]" size={18} />
               <input
                 ref={inputRef}
                 type="text"
-                className="w-full pl-16 pr-6 py-6 text-lg border-none focus:ring-0 text-slate-900 placeholder-slate-400 font-medium"
+                className="w-full pl-14 pr-5 py-5 text-base border-none focus:ring-0 bg-transparent text-[var(--aras-text)] placeholder:text-[var(--aras-muted)] font-medium outline-none"
                 placeholder="Search records, apps, and actions... (CMD+K)"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -125,45 +125,45 @@ export const CommandPalette: React.FC = () => {
             </div>
 
             {results.length > 0 && (
-              <div className="max-h-96 overflow-y-auto border-t border-slate-100 p-2">
+              <div className="max-h-80 overflow-y-auto border-t border-[var(--aras-border)] p-2">
                 {results.map((result, idx) => (
                   <div
                     key={`${result.resource}-${result.id}`}
-                    className={`flex items-center gap-4 px-4 py-3 rounded-2xl cursor-pointer transition-all ${
-                      idx === selectedIndex ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl cursor-pointer transition-all ${
+                      idx === selectedIndex ? 'bg-[var(--aras-accent)] text-white' : 'text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]'
                     }`}
                     onClick={() => handleSelect(result)}
                   >
-                    <div className={`p-2 rounded-xl ${idx === selectedIndex ? 'bg-indigo-100' : 'bg-slate-100'}`}>
-                      <LucideIcons.Box size={18} />
+                    <div className={`p-1.5 rounded-lg ${idx === selectedIndex ? 'bg-white/20' : 'bg-[var(--aras-panel-soft)]'}`}>
+                      <LucideIcons.Box size={16} />
                     </div>
                     <div className="flex-1">
-                      <div className="font-bold text-sm">{result.label}</div>
-                      <div className="text-xs opacity-60 uppercase tracking-widest font-black">{result.type}</div>
+                      <div className="font-semibold text-sm">{result.label}</div>
+                      <div className="text-xs opacity-60 uppercase tracking-wider font-bold">{result.type}</div>
                     </div>
-                    <LucideIcons.ChevronRight size={16} className="opacity-40" />
+                    <LucideIcons.ChevronRight size={14} className="opacity-40" />
                   </div>
                 ))}
               </div>
             )}
 
             {query.length >= 2 && results.length === 0 && (
-              <div className="p-12 text-center text-slate-400 border-t border-slate-100">
+              <div className="p-10 text-center text-[var(--aras-muted)] border-t border-[var(--aras-border)]">
                 No results found for "{query}"
               </div>
             )}
 
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
+            <div className="px-4 py-3 bg-[var(--aras-panel-soft)] border-t border-[var(--aras-border)] flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-[var(--aras-muted)]">
               <div className="flex gap-4">
-                <span className="flex items-center gap-1"><kbd className="bg-white px-1.5 py-0.5 rounded border border-slate-200 shadow-sm">↑↓</kbd> Navigate</span>
-                <span className="flex items-center gap-1"><kbd className="bg-white px-1.5 py-0.5 rounded border border-slate-200 shadow-sm">Enter</kbd> Select</span>
+                <span className="flex items-center gap-1"><kbd className="bg-[var(--aras-panel)] px-1.5 py-0.5 rounded border border-[var(--aras-border)] shadow-sm">↑↓</kbd> Navigate</span>
+                <span className="flex items-center gap-1"><kbd className="bg-[var(--aras-panel)] px-1.5 py-0.5 rounded border border-[var(--aras-border)] shadow-sm">Enter</kbd> Select</span>
               </div>
               <button
                 onClick={() => setShortcutsOpen(true)}
-                className="flex items-center gap-1 hover:text-slate-600 transition-colors"
+                className="flex items-center gap-1 hover:text-[var(--aras-text)] transition-colors"
                 title="Show all shortcuts"
               >
-                <kbd className="bg-white px-1.5 py-0.5 rounded border border-slate-200 shadow-sm">?</kbd> All shortcuts
+                <kbd className="bg-[var(--aras-panel)] px-1.5 py-0.5 rounded border border-[var(--aras-border)] shadow-sm">?</kbd> All shortcuts
               </button>
             </div>
           </div>

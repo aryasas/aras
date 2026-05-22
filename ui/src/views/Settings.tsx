@@ -30,7 +30,7 @@ function Settings() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center justify-end mb-8">
-        <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-500 text-sm font-medium shadow-sm">
+        <div className="flex items-center gap-2 px-4 py-2 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-xl text-[var(--aras-muted)] text-sm font-medium shadow-sm">
           <SettingsIcon size={16} />
           <span>Version 1.0.0</span>
         </div>
@@ -40,20 +40,20 @@ function Settings() {
         {visibleSections.map(section => {
           const cardContent = (
             <div className="flex items-start gap-4">
-              <div className="p-4 bg-slate-50 rounded-2xl group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors text-slate-400">
+              <div className="p-4 bg-[var(--aras-panel-soft)] rounded-2xl transition-colors text-[var(--aras-muted)] group-hover:text-[var(--aras-accent)]">
                 {section.icon}
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-bold text-slate-900 mb-1 group-hover:text-indigo-600 transition-colors">{section.label}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">{section.description}</p>
-                <div className="mt-4 flex items-center text-indigo-600 text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                <h3 className="text-lg font-bold text-[var(--aras-text)] mb-1 group-hover:text-[var(--aras-accent)] transition-colors">{section.label}</h3>
+                <p className="text-[var(--aras-muted)] text-sm leading-relaxed">{section.description}</p>
+                <div className="mt-4 flex items-center text-[var(--aras-accent)] text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity">
                   <span>{section.external ? 'Open Mocks' : 'Manage Settings'}</span>
                   <span className="ml-1 group-hover:translate-x-1 transition-transform">→</span>
                 </div>
               </div>
             </div>
           )
-          const cls = "bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group cursor-pointer"
+          const cls = "aras-island p-5 md:p-6 transition-all group cursor-pointer hover:-translate-y-0.5 hover:border-[var(--aras-border-strong)]"
           return section.external ? (
             <a key={section.id} href={section.path} target="_blank" rel="noopener noreferrer" className={cls}>{cardContent}</a>
           ) : (
@@ -62,23 +62,19 @@ function Settings() {
         })}
       </div>
 
-      <div className="mt-12 bg-indigo-900 rounded-[2.5rem] p-12 relative overflow-hidden shadow-2xl shadow-indigo-200">
+      <div className="mt-12 aras-island bg-[var(--aras-button)] p-8 md:p-10 relative overflow-hidden text-[var(--aras-button-text)]">
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="text-center md:text-left">
             <h2 className="text-2xl font-bold text-white mb-2">Need to adjust advanced settings?</h2>
-            <p className="text-indigo-200">Access the raw configuration table to modify system-level variables directly.</p>
+            <p className="text-white/70">Access the raw configuration table to modify system-level variables directly.</p>
           </div>
           <Link 
             to="/settings/global"
-            className="px-8 py-4 bg-white text-indigo-900 rounded-2xl font-black hover:bg-indigo-50 transition-all shadow-xl whitespace-nowrap"
+            className="px-6 py-3 bg-white text-slate-900 rounded-2xl font-black hover:bg-slate-50 transition-all shadow-xl whitespace-nowrap"
           >
             Open Settings Table
           </Link>
         </div>
-        
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
       </div>
     </div>
   )

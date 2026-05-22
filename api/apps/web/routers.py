@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from core.lib.database import get_db
 from .models import WebPage, WebMenuItem, SiteSetting, ContactSubmission
 
-router = APIRouter(prefix="/web", tags=["Web"])
+router = APIRouter(prefix="", tags=["Web"])
 
 class ContactRequest(Validation):
     name: str

@@ -84,5 +84,93 @@ class View(Aras):
                 if missing and layout and "fields" in layout[0]:
                     layout[0]["fields"] = missing + list(layout[0]["fields"])
             metadata["layout"] = layout
+        else:
+            # Auto-generate layout from field-level tab/section metadata
+            tabs_map = {} # tab_name -> {section_name -> [field_names]}
+            default_sections = {} # section_name -> [field_names]
+            section_props = {} # (tab_name, section_name) -> {"foldable": bool, "default_folded": bool}
+            standalone_fields = []
+
+            for f in metadata["fields"]:
+                if f.get("hidden") or f.get("form_hidden"):
+                    continue
+                tab_name = f.get("tab")
+                section_name = f.get("section") or ""
+                
+                # Collect section properties
+                prop_key = (tab_name, section_name)
+                if prop_key not in section_props:
+                    section_props[prop_key] = {"foldable": False, "default_folded": False}
+                if f.get("foldable"):
+                    section_props[prop_key]["foldable"] = True
+                if f.get("default_folded"):
+                    section_props[prop_key]["default_folded"] = True
+
+                if tab_name:
+                    if tab_name not in tabs_map:
+                        tabs_map[tab_name] = {}
+                    if section_name not in tabs_map[tab_name]:
+                        tabs_map[tab_name][section_name] = []
+                    tabs_map[tab_name][section_name].append(f["name"])
+                elif section_name:
+                    if section_name not in default_sections:
+                        default_sections[section_name] = []
+                    default_sections[section_name].append(f["name"])
+                else:
+                    standalone_fields.append(f["name"])
+
+            generated_layout = []
+            
+            # 1. Main sections (no tab)
+            for s_name, f_names in default_sections.items():
+                props = section_props.get((None, s_name), {})
+                generated_layout.append({
+                    "title": s_name,
+                    "fields": f_names,
+                    "type": "section",
+                    "foldable": props.get("foldable", False),
+                    "default_folded": props.get("default_folded", False)
+                })
+            
+            # 2. Tabs
+            if tabs_map:
+                tab_entries = []
+                for t_name, sections in tabs_map.items():
+                    for s_name, s_f_names in sections.items():
+                        props = section_props.get((t_name, s_name), {})
+                        tab_entries.append({
+                            "title": f"{t_name} - {s_name}" if s_name else t_name,
+                            "fields": s_f_names,
+                            "type": "tab",
+                            "foldable": props.get("foldable", False),
+                            "default_folded": props.get("default_folded", False)
+                        })
+                
+                if tab_entries:
+                    generated_layout.append({
+                        "type": "tabs",
+                        "tabs": tab_entries
+                    })
+
+            # 3. Catch-all for standalone fields if no layout was generated yet
+            if not generated_layout and standalone_fields:
+                generated_layout.append({
+                    "title": "General",
+                    "fields": standalone_fields,
+                    "type": "section"
+                })
+            elif standalone_fields:
+                # Add to the first section or create a new one
+                if generated_layout and "fields" in generated_layout[0]:
+                    generated_layout[0]["fields"] = standalone_fields + generated_layout[0]["fields"]
+                else:
+                    generated_layout.insert(0, {
+                        "title": "General",
+                        "fields": standalone_fields,
+                        "type": "section"
+                    })
+
+            if generated_layout:
+                metadata["layout"] = generated_layout
 
         return metadata

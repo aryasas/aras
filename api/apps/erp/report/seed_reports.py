@@ -12,9 +12,9 @@ REPORTS = [
   si.number as invoice_no,
   cu.name as customer,
   si.doc_date as date,
-  si.subtotal,
-  si.total_charge as tax,
-  si.total_amount as total,
+  0 as subtotal,
+  0 as tax,
+  0 as total,
   si.status
 FROM erp_accounting_inflow_invoices si
 JOIN erp_party_parties cu ON cu.id = si.party_id
@@ -50,9 +50,9 @@ ORDER BY si.doc_date DESC""",
   pi.number as invoice_no,
   s.name as vendor,
   pi.doc_date as date,
-  pi.subtotal,
-  pi.total_charge as tax,
-  pi.total_amount as total,
+  0 as subtotal,
+  0 as tax,
+  0 as total,
   pi.status
 FROM erp_accounting_outflow_invoices pi
 JOIN erp_party_parties s ON s.id = pi.party_id
@@ -89,7 +89,7 @@ ORDER BY pi.doc_date DESC""",
         a.name as account_name,
         SUM(jl.debit) as total_debit,
         SUM(jl.credit) as total_credit
-    FROM erp_accounting_journal_lines jl
+    FROM erp_accounting_entry_lines jl
     JOIN erp_accounting_accounts a ON a.id = jl.account_id
     JOIN erp_accounting_entries je ON je.id = jl.entry_id
     WHERE je.status = 'Posted' AND je.org_id = :org_id
@@ -120,7 +120,7 @@ ORDER BY pi.doc_date DESC""",
             a.account_type,
             a.name AS account_name,
             SUM(jl.credit) - SUM(jl.debit) AS balance
-        FROM erp_accounting_journal_lines jl
+        FROM erp_accounting_entry_lines jl
         JOIN erp_accounting_accounts a ON jl.account_id = a.id
         JOIN erp_accounting_entries je ON jl.entry_id = je.id
         WHERE

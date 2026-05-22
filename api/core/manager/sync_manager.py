@@ -164,7 +164,7 @@ class SyncManager(Manager):
                 "name": "total_customers",
                 "title": "Total Customers",
                 "widget_type": "stat",
-                "resource_name": "erp_crm_customers",
+                "resource_name": "erp_party_parties",
                 "config_json": {"icon": "Users", "color": "indigo"},
                 "size": "col-span-1",
                 "order": 5
@@ -244,7 +244,7 @@ class SyncManager(Manager):
             db.flush()
         else:
             resource_db.title = title
-            resource_db.features = getattr(model_cls, "__features__", []),
+            resource_db.features = getattr(model_cls, "__features__", [])
             resource_db.scoped_by = scoped_by
             resource_db.layout = layout
             resource_db.is_active = True
@@ -285,6 +285,7 @@ class SyncManager(Manager):
                 "is_required": meta.get("required", not column.nullable),
                 "is_read_only": meta.get("read_only", column.info.get("read_only", False)),
                 "is_hidden": meta.get("hidden", column.info.get("hidden", False)),
+                "is_list_hidden": meta.get("list_hidden", column.info.get("list_hidden", False)),
                 "is_searchable": meta.get("searchable", column.info.get("searchable", True)),
                 "link_column": meta.get("link_column", column.info.get("link_column")),
                 "display_column": meta.get("display_column", column.info.get("display_column"))

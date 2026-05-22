@@ -1526,5 +1526,707 @@
       "issues": "none"
     },
     "verdict": "APPROVED"
+  },
+  {
+    "id": 121,
+    "date": "2026-05-21",
+    "feature": "Refine default generic list view visible columns",
+    "revision_count": 0,
+    "tokens": 0,
+    "backend": {
+      "files_written": "api/core/registry/field_model.py, api/core/logic/ui_generator.py, api/core/manager/sync_manager.py",
+      "features_added": "Added is_list_hidden to FieldModel; implemented heuristic in UIGenerator to hide complex fields (textarea, bridge, file, image) from lists by default; updated SyncManager to persist is_list_hidden.",
+      "fixes_applied": "none",
+      "framework_changes": "Introduced list_hidden metadata property to distinguish between global field visibility and list-view specific visibility.",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/InlineChildTable.tsx, ui/src/views/ArchivedView.tsx",
+      "features_added": "ListView and InlineChildTable now respect list_hidden metadata for default column visibility, resulting in cleaner and more relevant list views.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED",
+    "mode": "full",
+    "status": "success",
+    "notes": ""
+  },
+  {
+    "id": 122,
+    "date": "2026-05-21",
+    "feature": "Modern ERP Layout Mock",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/erp-modern/index.html, ui/public/mocks/index.html",
+      "features_added": "Moved to ui/public/mocks/erp-modern/index.html and restyled as a floating island layout with glassmorphism to differentiate from standard layouts.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 123,
+    "date": "2026-05-21",
+    "feature": "Mobile-First ERP Layout Mock (Expo Ready)",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/erp-mobile/index.html, ui/public/mocks/index.html",
+      "features_added": "Created a mobile-first ERP layout designed to simulate a React Native/Expo app, featuring bottom tab navigation, swipeable summary cards, touch-friendly action grids, and list items optimized for narrow screens.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 124,
+    "date": "2026-05-21",
+    "feature": "Expo Web Responsive Mock",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/erp-expo-web/index.html, ui/public/mocks/index.html",
+      "features_added": "Created a responsive adaptation of the mobile-first mock to demonstrate an Expo Web layout. Includes responsive shifting from bottom tabs to a side rail, and swipeable cards to CSS grids.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 125,
+    "date": "2026-05-21",
+    "feature": "Form layout samples for Modern, Mobile, and Expo-Web",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/erp-modern/form.html, ui/public/mocks/erp-mobile/form.html, ui/public/mocks/erp-expo-web/form.html",
+      "features_added": "Created form/detail view pages for the three new layouts. The Mobile/Expo mocks use native stack header navigation, while the Modern Island mock uses a card-based layout.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 126,
+    "date": "2026-05-21",
+    "feature": "Modern App (Cross-Platform ERP) Mock",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/erp-modern-app/index.html, ui/public/mocks/erp-modern-app/form.html, ui/public/mocks/index.html",
+      "features_added": "Combined the Neo-glassmorphism aesthetic of erp-modern with the mobile-native app structure (bottom tabs, stack headers, card lists) of the Expo mock. Added a Preview as App button to instantly launch the design in a constrained mobile-sized browser window.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 127,
+    "date": "2026-05-21",
+    "feature": "Modern App Mock - Interactivity Enhancements",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/erp-modern-app/index.html, ui/public/mocks/erp-modern-app/form.html",
+      "features_added": "Added an interactive Tweak Panel for appearance settings. Implemented an expandable desktop side rail using robust CSS state classes on the body. Added an App Module selector menu in the top bar to mirror the current project layout capabilities while maintaining the cross-platform aesthetic.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 128,
+    "date": "2026-05-21",
+    "feature": "Modern App Mock - Centered Layout Architecture",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/erp-modern-app/index.html, ui/public/mocks/erp-modern-app/form.html",
+      "features_added": "Restructured the cross-platform app layout to sit within a centered max-w-[1600px] flex wrapper. Converted the desktop side rail from fixed to sticky so it flows dynamically with the centered layout on ultrawide displays. This provides a perfectly balanced, optical-center UX. Fixed form.html to perfectly match index.html with fixed sidebar.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 129,
+    "date": "2026-05-21",
+    "feature": "Implement Modern App ERP Layout into main project",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/MainLayout.tsx, ui/src/layouts/components/Sidebar.tsx, ui/src/layouts/components/Header.tsx, ui/src/components/PageHeader.tsx, ui/src/aras-core/components/ListToolbar.tsx, ui/src/layouts/components/HeaderActions.tsx, ui/src/layouts/components/ThemeTweakPanel.tsx, ui/src/aras-core/components/NotificationHistory.tsx",
+      "features_added": "Replaced default grid layout with floating island aesthetic. Added global Command+K search button. Migrated PageHeader into global Header. Added React Portal target for ListToolbar to reposition Add New button into global Header.",
+      "fixes_applied": "Removed dotted background requirement.",
+      "framework_changes": "Updated Layout components to allow control portaling.",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 130,
+    "date": "2026-05-21",
+    "feature": "Total Redesign - Modern ERP Island Aesthetic",
+    "revision_count": 1,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/index.css, ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "Total redesign of core views. ListView now uses a modern card-stack layout with floating glass islands. DynamicForm portaled all header actions (Save, Cancel, Utility) into the global layout header. Updated index.css with comprehensive island and glass panel styling for all form sections and inputs.",
+      "fixes_applied": "Removed unused variables and props (onNavigate, prevId, nextId, dragCol) to fix TypeScript build errors after redesign.",
+      "framework_changes": "Migrated standard table-based lists to flex-based modern stack cards globally.",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 131,
+    "date": "2026-05-21",
+    "feature": "Modern ERP real UI redesign and POS list fix",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListViewActionBar.tsx, ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/DynamicForm.tsx, ui/src/aras-core/components/InlineChildTable.tsx, ui/src/layouts/components/SidebarNavItem.tsx, ui/src/views/PosView.tsx, ui/src/index.css, docs/feature.md, docs/fix.md, docs/reports.json",
+      "features_added": "Introduced a dedicated one-bar ListView action bar for Add New, search, filters, saved filters, view modes, columns, import/export, and archive. Reworked form/list/child-table surfaces toward the erp-modern-app glass island design with separated titles/actions and icon-only child table controls.",
+      "fixes_applied": "Normalized POS list endpoint payloads so openSessions.map no longer crashes on paginated framework responses. Fixed sidebar selected-state precision by removing over-wide fixed nav item sizing.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 132,
+    "date": "2026-05-21",
+    "feature": "Match DynamicForm field and child table structure to modern app mock",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/DynamicForm.tsx, ui/src/aras-core/components/InlineChildTable.tsx, ui/src/index.css, docs/feature.md, docs/reports.json",
+      "features_added": "Changed DynamicForm section bodies from generic three-column grids to mock-style horizontal field rows with left labels and right controls. Replaced InlineChildTable table markup with line-item rows that keep first fields flexible, numeric/action fields compact, and per-line pencil/trash controls visible in the row pattern.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 133,
+    "date": "2026-05-21",
+    "feature": "Refine real form proportions against ERP modern mock files",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/DynamicForm.tsx, ui/src/aras-core/components/InlineChildTable.tsx, ui/src/index.css, docs/feature.md, docs/reports.json",
+      "features_added": "Matched real form/card/field/child-table proportions to ui/public/mocks/erp-modern-app/form.html and ui/public/mocks/erp-modern/form.html, including 24px island radius, compact section headers, p-5 section bodies, 14px field controls, date sections as two-column grids, and line-item table widths.",
+      "fixes_applied": "Removed invalid plain-CSS @extend usage introduced by overlapping edits and replaced it with explicit selectors.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 134,
+    "date": "2026-05-21",
+    "feature": "Refine current app sidebar, module shortcuts, and card surfaces",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/MainLayout.tsx, ui/src/layouts/components/Header.tsx, ui/src/layouts/components/TopbarAppMenu.tsx, ui/src/layouts/components/Sidebar.tsx, ui/src/layouts/components/SidebarNavItem.tsx, ui/src/index.css, ui/src/views/Settings.tsx, docs/reports.json",
+      "features_added": "Moved app/module shortcuts into the sticky header as direct horizontal actions, refined the fixed desktop sidebar and mobile bottom navigation for cross-platform use, and updated settings cards plus shared island surfaces to use theme tokens and calmer shadows.",
+      "fixes_applied": "Aligned content padding with the new sidebar widths and removed hardcoded settings card colors so cards work across theme modes.",
+      "framework_changes": "none",
+      "issues": "Browser screenshot verification was not run because the in-app browser automation tool was unavailable in this session; production build passed."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 135,
+    "date": "2026-05-21",
+    "feature": "Simplify module shortcuts and convert list rows into reusable cards",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/components/TopbarAppMenu.tsx, ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/ListViewActionBar.tsx, ui/src/index.css, docs/reports.json",
+      "features_added": "Changed module shortcuts with submenus into split actions where the label opens the module directly and the chevron opens deeper resources. Converted list rows from divided table-like rows into separated card surfaces with selected, hover, and avatar states suitable for web and standalone mobile shells.",
+      "fixes_applied": "Replaced hardcoded white action-bar controls with theme-token panel colors for better cross-platform theme sharing.",
+      "framework_changes": "none",
+      "issues": "Browser screenshot verification was not run because the in-app browser automation tool was unavailable in this session; production build passed."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 136,
+    "date": "2026-05-21",
+    "feature": "Fix combobox, child table headers, module cards, and top shortcut overflow",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/Combobox.tsx, ui/src/aras-core/components/InlineChildTable.tsx, ui/src/layouts/components/TopbarAppMenu.tsx, ui/src/views/Home.tsx, ui/src/index.css, docs/reports.json",
+      "features_added": "Redesigned Combobox trigger and dropdown styling to match the modern form controls. Capped top app/module shortcuts with a direct visible row plus a More menu. Refined home module cards into compact cross-platform app tiles.",
+      "fixes_applied": "Removed the duplicate nested child-table title by replacing the inner child table section header with an add-row toolbar. Reduced hardcoded styling in child table headers and empty states.",
+      "framework_changes": "none",
+      "issues": "Browser screenshot verification was not run because the in-app browser automation tool was unavailable in this session; production build passed."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 137,
+    "date": "2026-05-21",
+    "feature": "Reposition app navigation and command bars around real workflow",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/components/AppSwitcher.tsx, ui/src/layouts/MainLayout.tsx, ui/src/layouts/components/Header.tsx, ui/src/layouts/components/TopbarAppMenu.tsx, ui/src/aras-core/components/ListViewActionBar.tsx, ui/src/aras-core/components/DynamicForm.tsx, docs/reports.json",
+      "features_added": "Added a real AppSwitcher in the header for app/module selection, changed TopbarAppMenu into a scoped current-module resource strip, reorganized the generic list action bar around Add/Search/Filter/View with contextual bulk actions, and reduced form header actions to Back, Save, and More.",
+      "fixes_applied": "Removed the crowded all-modules top header behavior and moved lower-frequency form actions like duplicate, history, print, customize, and delete into a record More menu.",
+      "framework_changes": "none",
+      "issues": "Browser screenshot verification was not run because the in-app browser automation tool was unavailable in this session; production build passed."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 138,
+    "date": "2026-05-21",
+    "feature": "Fix portal theme inheritance and child table column overlap",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/MainLayout.tsx, ui/src/aras-core/components/InlineChildTable.tsx, ui/src/index.css, docs/reports.json",
+      "features_added": "Propagated active app theme tokens to document.documentElement so portaled controls such as Combobox dropdowns inherit the correct light/dark surface variables. Added dynamic child-table minimum column widths based on field type and label length.",
+      "fixes_applied": "Fixed Combobox dropdowns rendering with the wrong theme outside the app shell and prevented child table header labels from overlapping by switching line-item tables to auto layout with explicit min widths and horizontal overflow.",
+      "framework_changes": "none",
+      "issues": "Browser screenshot verification was not run because the in-app browser automation tool was unavailable in this session; production build passed."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 139,
+    "date": "2026-05-21",
+    "feature": "Redesign generic list rows into stable scan columns",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListView.tsx, docs/reports.json",
+      "features_added": "Replaced the broken metadata-dump list header with a stable generic column model that selects ID, date, primary/entity, detail, amount, status, and action columns when available. Rows now use a consistent grid layout with avatar treatment on the primary column and horizontal overflow when needed.",
+      "fixes_applied": "Prevented one-field resources from rendering as a useless single RESOURCE header by adding synthetic ID/action structure and metadata-aware fallbacks.",
+      "framework_changes": "none",
+      "issues": "Browser screenshot verification was not run because the in-app browser automation tool was unavailable in this session; production build passed."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 140,
+    "date": "2026-05-21",
+    "feature": "Tighten command search, app menu density, and list actions",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/components/HeaderActions.tsx, ui/src/views/Home.tsx, ui/src/aras-core/components/ListView.tsx, docs/reports.json",
+      "features_added": "Reduced home app module tiles to a denser app-menu grid, refined the command search button into a cleaner icon plus keyboard hint control, and made list row action affordance visible to match the Action header.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "Browser screenshot verification was not run because the in-app browser automation tool was unavailable in this session; production build passed."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 141,
+    "date": "2026-05-21",
+    "feature": "Align child table section structure to ERP modern form sample",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/InlineChildTable.tsx, ui/src/aras-core/components/DynamicForm.tsx, docs/reports.json",
+      "features_added": "InlineChildTable now owns a single sample-style section header with title and Add Row action. DynamicForm skips the extra parent section wrapper when a layout section contains only child tables.",
+      "fixes_applied": "Removed the duplicate child-table section title/empty toolbar effect while keeping mixed field sections supported.",
+      "framework_changes": "none",
+      "issues": "Browser screenshot verification was not run because the in-app browser automation tool was unavailable in this session; production build passed."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 142,
+    "date": "2026-05-21",
+    "feature": "Move form save actions out of global title header and compact app tiles",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/DynamicForm.tsx, ui/src/views/Home.tsx, ui/src/index.css, docs/reports.json",
+      "features_added": "Moved form Back/Save/More actions from the global title/header portal into a local record command bar above the form content. Reduced app launcher tiles to a denser operational grid with smaller icons, lower card height, and muted module labels.",
+      "fixes_applied": "Removed createPortal usage for form command actions so the global title section stays informational.",
+      "framework_changes": "none",
+      "issues": "Browser screenshot verification was not run because the in-app browser automation tool was unavailable in this session; production build passed."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 143,
+    "date": "2026-05-21",
+    "feature": "Redesign actual app home module launcher",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/AppHome.tsx, ui/src/index.css, docs/reports.json",
+      "features_added": "Changed the actual AppHome module/resource launcher from oversized sample cards into grouped Modules and Resources sections with compact, responsive navigation tiles and clearer click affordance.",
+      "fixes_applied": "Fixed the app home page targeted by the user's screenshot instead of only changing the global home page.",
+      "framework_changes": "none",
+      "issues": "Browser screenshot verification was not run because the in-app browser automation tool was unavailable in this session; production build passed."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 144,
+    "date": "2026-05-21",
+    "feature": "Refine generic list view into sample-style table rows",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListView.tsx, ui/src/index.css, docs/reports.json",
+      "features_added": "Changed the generic list renderer from separated rounded record cards to a single table surface with a shared header band, flat rows, aligned action column, and sample-style status dot labels.",
+      "fixes_applied": "Boolean fields now render context-aware labels such as Active/Inactive or Shared/Private instead of always showing an Active pill.",
+      "framework_changes": "none",
+      "issues": "Browser screenshot verification was not run because the in-app browser automation tool was unavailable in this session; production build passed."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 145,
+    "date": "2026-05-21",
+    "feature": "CSS prefix migration & dark mode input fixes",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/index.css, ui/src/aras-core/components/DynamicForm.tsx, ui/src/aras-core/components/ListToolbar.tsx, docs/aras.md",
+      "features_added": "Migrated styling system to generic app- prefix inside ui/src/index.css, establishing an aliased selector mapping for 100% legacy compatibility; added Cross-Platform Design Token Dictionary mapping HSL colors for Expo/React Native sharing; relocated primary Save button (DynamicForm) and Add New button (ListToolbar) to the far left of their respective headers/bars.",
+      "fixes_applied": "Replaced hardcoded inputs background (#f8fafc) and border (#dfe5ee) with dynamic CSS properties to respond correctly to dark mode; fixed muddy-grey hardcoded text/label colors (#334155, #0f172a) in form controls using dynamic text variables.",
+      "framework_changes": "Renamed custom CSS variables and class selectors in ui/src/index.css to generic app- prefixes, mapped legacy --aras- tokens and .aras- selectors for full backward-compatibility.",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 146,
+    "date": "2026-05-21",
+    "feature": "Cleanup Header component: remove min-w-0 shrink-0 from moduleMenu wrapper",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/components/Header.tsx",
+      "features_added": "none",
+      "fixes_applied": "Removed min-w-0 and shrink-0 classes from the top bar section (moduleMenu wrapper) to allow natural width and shrinking behavior.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 147,
+    "date": "2026-05-21",
+    "feature": "Move command palette to left side of topbar",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/components/Header.tsx, ui/src/layouts/components/HeaderActions.tsx, ui/src/layouts/components/CommandPaletteTrigger.tsx",
+      "features_added": "Extracted command palette trigger into CommandPaletteTrigger component and moved it to the left side of the header next to PageHeader.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 148,
+    "date": "2026-05-21",
+    "feature": "Remove workspace dashboard section in top bar",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/MainLayout.tsx",
+      "features_added": "none",
+      "fixes_applied": "Removed AppSwitcher component from the Header moduleMenu prop, effectively removing the Workspace Dashboard section from the top bar.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 149,
+    "date": "2026-05-21",
+    "feature": "Remove consolidated badge in top bar",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/MainLayout.tsx",
+      "features_added": "none",
+      "fixes_applied": "Removed the 'CONSOLIDATED' / 'ALL ORGS' status badge from the organization switcher in the header.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 150,
+    "date": "2026-05-21",
+    "feature": "Make search bar in generic listview smaller and align to right",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListViewActionBar.tsx",
+      "features_added": "none",
+      "fixes_applied": "Moved the listview search bar into the right-aligned action buttons container, reduced its height from h-11 to h-10, and set a fixed max-width on desktop (lg:w-64) to make it more compact.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 151,
+    "date": "2026-05-21",
+    "feature": "Widen command palette and add click-outside to Layout Tweaks",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/CommandPalette.tsx, ui/src/layouts/components/ThemeTweakPanel.tsx",
+      "features_added": "increased command palette max-width from max-w-2xl to max-w-4xl for better visibility of search results.",
+      "fixes_applied": "Implemented click-outside logic in ThemeTweakPanel using useRef and useEffect to automatically close the Layout Tweaks dialog when the user clicks anywhere else on the screen.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 152,
+    "date": "2026-05-21",
+    "feature": "Remove item icons (avatars) from generic listview",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListView.tsx",
+      "features_added": "none",
+      "fixes_applied": "Removed the record avatar/initials icon from the generic listview rows to achieve a cleaner, text-only appearance for the primary column.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 153,
+    "date": "2026-05-21",
+    "feature": "Unify and stabilize application launcher cards",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/Home.tsx, ui/src/views/AppHome.tsx, ui/src/index.css",
+      "features_added": "Standardized the card structure across Home and AppHome views using a single BEM-style template; unified grid column widths for all modules and resources to prevent layout shifts.",
+      "fixes_applied": "Removed inconsistent sizing and color overrides for modules vs resources in CSS; fixed Home.tsx to use the standard aras-app-card structure instead of hardcoded Tailwind flex containers.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 154,
+    "date": "2026-05-21",
+    "feature": "Redesign Report Center into two-column direct view",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/ReportCenter.tsx, ui/src/aras-core/components/GenericReport.tsx",
+      "features_added": "Replaced the card-based report catalog with a two-column layout featuring a report sidebar and a main content area for direct report viewing. The system now automatically selects and generates the first report in the list upon loading.",
+      "fixes_applied": "Renamed the 'Run Report' action to 'Generate Report' and streamlined the generation workflow by removing the intermediate card selection step.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 155,
+    "date": "2026-05-21",
+    "feature": "Generic tab and foldable section support in form view",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/registry/field_model.py, api/core/logic/ui_generator.py, api/core/base/view.py",
+      "features_added": "Added tab, section, foldable, and default_folded properties to FieldModel and field metadata. Implemented auto-generation of form layout based on field-level metadata if no explicit layout is defined in the View.",
+      "fixes_applied": "none",
+      "framework_changes": "Enhanced View.render_metadata to support field-driven layout grouping.",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "Implemented foldable sections with expand/collapse logic and Chevron icons. Added aras-form-main-wrapper for better layout grouping. Supported field-level tab and section metadata in dynamic form rendering.",
+      "fixes_applied": "none",
+      "framework_changes": "Updated LayoutSection and LayoutGroup interfaces and rendering logic.",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 156,
+    "date": "2026-05-21",
+    "feature": "Fix Internal Server Error (500) and API Prefix Duplication (404)",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/erp/crm/models.py, api/apps/erp/report/models.py, api/apps/erp/report/routers.py, api/apps/erp/saas/routers.py, api/apps/erp/web/routers.py, api/core/manager/sync_manager.py, api/apps/erp/report/services/report_service.py, api/apps/erp/report/seed_reports.py",
+      "features_added": "none",
+      "fixes_applied": "Fixed 500 Internal Server Error in CRM and Report model actions by adding missing 'db' parameter to method signatures; fixed 404 errors in Report, SaaS, and Web apps by removing redundant router prefixes; fixed SQL error in ReportService by defining missing 'script' variable; fixed DB constraint error in Lead conversion by providing default 'code'; fixed syntax bug in SyncManager that converted feature list to tuple; corrected table names and missing columns in seeded report SQL.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 157,
+    "date": "2026-05-21",
+    "feature": "Fix Dashboard Registry Error and Model Routing",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/api/registry.py, ui/src/views/Home.tsx, api/core/logic/ui_generator.py, api/main.py, api/apps/erp/stock/models.py, api/apps/erp/stock/app.py, api/apps/erp/accounting/models.py, api/apps/erp/pot/models.py",
+      "features_added": "Registered all models at the API root (/api/v1/<tablename>) for dashboard compatibility and dynamic lookups.",
+      "fixes_applied": "Fixed 404 error when accessing 'aras_widgets' metadata by adding WidgetModel to the core registry list; fixed 'Your Apps' grid being shown on the dashboard by removing it from HomeView; renamed 'erp_stock_items' to 'erp_stock_products' across the entire codebase for consistency; updated resolve_api_path to correctly handle core models.",
+      "framework_changes": "Enhanced main.py to automatically expose all registered models at the root API level.",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/views/Home.tsx",
+      "features_added": "Removed the redundant 'Your Apps' grid from the Dashboard home view.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 158,
+    "date": "2026-05-21",
+    "feature": "Fix frontend TS6133 errors and Report Center runtime crash",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/Home.tsx, ui/src/layouts/MainLayout.tsx, ui/src/aras-core/components/GenericReport.tsx, ui/src/views/ReportCenter.tsx",
+      "features_added": "Display active organization name in Header when only one organization is available.",
+      "fixes_applied": "Removed unused useState import in Home.tsx. Fixed unused activeOrganization variable in MainLayout.tsx. Added defensive null/undefined checks in GenericReport and ReportCenter to prevent 'Cannot read properties of undefined (reading map)' runtime errors on the reports page.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 159,
+    "date": "2026-05-22",
+    "feature": "UI/UX audit and fixes: ThemeTweakPanel combobox bug, dark mode tokens, layout precision",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/Combobox.tsx, ui/src/layouts/components/ThemeTweakPanel.tsx, ui/src/layouts/MainLayout.tsx, ui/src/layouts/components/Sidebar.tsx, ui/src/aras-core/components/CommandPalette.tsx, ui/src/aras-core/components/GenericReport.tsx, ui/src/aras-core/components/DynamicForm.tsx, ui/src/index.css",
+      "features_added": "none",
+      "fixes_applied": "ThemeTweakPanel: added data-combobox-dropdown attr on Combobox portal + closest() guard so panel stays open when selecting options. Removed duplicate ThemeTweakPanel from MainLayout. Fixed --aras-radius 24px\u21928px. Removed max-w-7xl from main content. Fixed mobile Sidebar hash <a> links to React Router <Link>. Fixed missing group class on logout button for group-hover animation. CommandPalette: replaced all hardcoded slate-* with --aras-* tokens including ShortcutMap modal. GenericReport: replaced all slate-* with --aras-* tokens. DynamicForm: foldable section hover and tab hover fixed for dark mode. aras-line-description/price: added visible :focus ring. aras-line-qty: width 48px\u219264px. aras-list-row: min-height 82px\u219258px. Fixed --app-* token refs in line inputs and list rows to --aras-*.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 160,
+    "date": "2026-05-22",
+    "feature": "Island layout, 2-row header, compact density, rounded-lg tokens",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/MainLayout.tsx, ui/src/layouts/components/Sidebar.tsx, ui/src/layouts/components/Header.tsx, ui/src/layouts/components/TopbarAppMenu.tsx, ui/src/index.css",
+      "features_added": "Island layout (h-screen overflow-hidden, p-3 outer padding, fixed sidebar at left-3/top-3/bottom-3); --aras-radius-lg: 24px token for outer containers; 2-row header (row1: page title + actions, row2: module menu); compact density applied to list row min-height via calc(58px * var(--aras-density)); mobile nav uses --aras-radius-lg",
+      "fixes_applied": "Sidebar radius changed to --aras-radius-lg; TopbarAppMenu moved inside Header as moduleMenu prop; removed outer nav wrapper from TopbarAppMenu; --aras-radius default corrected to 8px in CSS root",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 161,
+    "date": "2026-05-22",
+    "feature": "Sidebar group labels, user profile card, + Create New header button",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/components/Sidebar.tsx, ui/src/aras-core/components/ListView.tsx",
+      "features_added": "Sidebar section labels (Workspace/Operations/System) rendered above groups of nav items; user profile card at sidebar bottom (avatar initials, full_name, role, logout button); + Create New button portaled from ListView into header-actions-portal div when onAdd is provided",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 162,
+    "date": "2026-05-22",
+    "feature": "Header redesign: minimal single-row floating bar matching mock",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/components/Header.tsx, ui/src/layouts/components/CommandPaletteTrigger.tsx",
+      "features_added": "none",
+      "fixes_applied": "Header redesigned to minimal floating bar \u2014 removed panel background/border/shadow, search bar now full-width, portal-based Create New button leftmost. CommandPaletteTrigger made full-width with placeholder text.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 163,
+    "date": "2026-05-22",
+    "feature": "Template Builder Persistence",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/dev/models.py, api/apps/dev/app.py, api/apps/dev/seed_templates.py",
+      "features_added": "Persistent backend storage for Template Builder annotations with auto-seeded presets.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 164,
+    "date": "2026-05-22",
+    "feature": "Implementation prototype template refinement",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/implementation-prototype/index.html, docs/reports.json",
+      "features_added": "Rebuilt the implementation prototype mock with a new premium visual system, stronger typography, hero summary cards, clearer list/form view framing, and responsive polish for the static template.",
+      "fixes_applied": "Moved the form's primary save action to the lead position, improved toolbar hierarchy, upgraded table and form spacing, and corrected row action sizing after switching from icon-only controls to text buttons.",
+      "framework_changes": "none",
+      "issues": "In-app browser automation was not available in this session, so visual QA was limited to static inspection, Vite route verification, and a successful UI production build."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 165,
+    "date": "2026-05-22",
+    "feature": "Live In-Place Design Mode",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/dev/models.py, api/apps/dev/app.py, api/apps/dev/seed_templates.py",
+      "features_added": "Persistent backend storage for Template Builder annotations with auto-seeded presets.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/LiveDesignWrapper.tsx, ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/DynamicForm.tsx, ui/src/views/DevTools.tsx",
+      "features_added": "Live in-place reordering and AI annotations for ListView and DynamicForm via drag-and-drop.",
+      "fixes_applied": "Fixed routing for explicit dev resource paths and resolved 50+ build errors.",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
   }
 ]

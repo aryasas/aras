@@ -6,7 +6,7 @@ from .models import Subscription
 from .services.license_service import LicenseService
 from core.auth.license import verify_license_token
 
-router = APIRouter(prefix="/saas", tags=["SaaS Control Plane"])
+router = APIRouter(prefix="", tags=["SaaS Control Plane"])
 
 class RenewLicenseRequest(Validation):
     tenant_id: str

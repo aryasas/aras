@@ -27,6 +27,7 @@ interface ComboboxProps {
   disabled?: boolean;
   extraFilters?: Record<string, string | number | boolean>;
   field?: Field;
+  variant?: 'lookup' | 'simple';
 }
 
 const Combobox: React.FC<ComboboxProps> = ({
@@ -38,7 +39,8 @@ const Combobox: React.FC<ComboboxProps> = ({
   displayField = "name",
   disabled = false,
   extraFilters,
-  field
+  field,
+  variant = 'lookup'
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -53,6 +55,7 @@ const Combobox: React.FC<ComboboxProps> = ({
   const [dropdownStyles, setDropdownStyles] = useState<React.CSSProperties>({});
   const navigate = useNavigate();
   const targetResource = field?.target_resource || resource;
+  const isSimple = variant === 'simple';
 
   const optionToItem = (opt: Option): ComboboxItem => ({
     id: opt.value,
@@ -232,23 +235,26 @@ const Combobox: React.FC<ComboboxProps> = ({
       role="listbox"
       aria-labelledby={`combobox-button-${field?.name || resource}`}
       style={dropdownStyles}
-      className="bg-[var(--aras-panel)] border border-[var(--aras-border-strong)] rounded-lg shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 ring-1 ring-black/5"
+      data-combobox-dropdown
+      className="bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-[1rem] shadow-[0_18px_45px_-18px_rgba(15,23,42,0.35)] overflow-hidden animate-in fade-in zoom-in-95 duration-100"
     >
-      <div className="p-1.5 border-b border-[var(--aras-border)] bg-[var(--aras-panel-soft)]/50">
-        <div className="relative group">
-          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--aras-muted)]" />
-          <input 
-            ref={inputRef}
-            autoFocus
-            type="text"
-            placeholder="Search..."
-            className="w-full pl-8 pr-3 py-1.5 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-md text-xs outline-none focus:border-[var(--aras-accent)] transition-all text-[var(--aras-text)] placeholder:text-[var(--aras-muted)]"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
+      {!isSimple && (
+        <div className="p-2 border-b border-[var(--aras-border)] bg-[var(--aras-panel-soft)]/60">
+          <div className="relative group">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--aras-muted)]" />
+            <input 
+              ref={inputRef}
+              autoFocus
+              type="text"
+              placeholder="Search..."
+              className="w-full min-h-10 pl-8 pr-3 py-2 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-xl text-sm font-semibold outline-none focus:border-[var(--aras-accent)] transition-all text-[var(--aras-text)] placeholder:text-[var(--aras-muted)]"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="max-h-[240px] overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-[var(--aras-border-strong)] scrollbar-track-transparent">
         {loading ? (
@@ -272,7 +278,7 @@ const Combobox: React.FC<ComboboxProps> = ({
                   aria-selected={isSelected}
                   onClick={() => handleSelect(item)}
                   onMouseEnter={() => setActiveIndex(index)}
-                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-[var(--aras-radius)] cursor-pointer transition-all ${
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
                     isSelected 
                       ? 'bg-[var(--aras-accent)] text-white' 
                       : isActive 
@@ -280,7 +286,7 @@ const Combobox: React.FC<ComboboxProps> = ({
                         : 'text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]'
                   }`}
                 >
-                  <span className={`text-xs truncate ${isSelected ? 'font-bold' : 'font-medium'}`}>
+                  <span className={`text-sm truncate ${isSelected ? 'font-bold' : 'font-semibold'}`}>
                     {item[displayField] || item.id}
                   </span>
                   {isSelected && <Check size={14} className="shrink-0 ml-2" />}
@@ -291,12 +297,12 @@ const Combobox: React.FC<ComboboxProps> = ({
         )}
       </div>
 
-      {targetResource && !disabled && (
-        <div className="p-1 border-t border-[var(--aras-border)] bg-[var(--aras-panel-soft)]/30">
+      {!isSimple && targetResource && !disabled && (
+        <div className="p-2 border-t border-[var(--aras-border)] bg-[var(--aras-panel-soft)]/50">
           <button 
             type="button"
             onMouseDown={(e) => { e.preventDefault(); handleAddNew(); }}
-            className="flex items-center gap-1.5 w-full px-2.5 py-1.5 text-[10px] font-bold text-[var(--aras-accent)] hover:bg-[var(--aras-accent)] hover:text-white rounded-md transition-all"
+            className="flex items-center gap-2 w-full px-3 py-2 text-xs font-bold text-[var(--aras-accent)] hover:bg-[var(--aras-accent)] hover:text-white rounded-xl transition-all"
           >
             <Plus size={12} /> 
             Add New Record
@@ -317,34 +323,34 @@ const Combobox: React.FC<ComboboxProps> = ({
         tabIndex={disabled ? -1 : 0}
         onClick={() => !disabled && setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
-        className={`flex items-center justify-between w-full h-9 px-3 bg-[var(--aras-panel)] border rounded-[var(--aras-radius)] text-xs transition-all ${
+        className={`aras-combobox-trigger flex items-center justify-between w-full min-h-[46px] px-4 bg-[var(--aras-panel-soft)] border rounded-xl text-sm transition-all ${
           disabled 
             ? 'border-[var(--aras-border)] bg-[var(--aras-panel-soft)]' 
             : isOpen 
-              ? 'border-[var(--aras-accent)] ring-2 ring-[var(--aras-accent)]/10 cursor-pointer shadow-sm' 
+              ? 'border-[var(--aras-accent)] bg-[var(--aras-panel)] cursor-pointer shadow-[0_0_0_4px_color-mix(in_srgb,var(--aras-accent)_10%,transparent)]' 
               : 'border-[var(--aras-border)] hover:border-[var(--aras-border-strong)] cursor-pointer'
         }`}
       >
         <div className="flex-1 truncate text-left pr-2">
           {initialLoading ? (
             <div className="flex items-center gap-1.5">
-              <Loader2 size={12} className="animate-spin text-[var(--aras-accent)]" />
+              <Loader2 size={14} className="animate-spin text-[var(--aras-accent)]" />
               <span className="text-[var(--aras-muted)]">Loading...</span>
             </div>
           ) : selectedItem ? (
-            <span className="text-[var(--aras-text)] font-semibold">{selectedItem[displayField] || selectedItem.id}</span>
+            <span className={`text-[var(--aras-text)] ${isSimple ? 'font-medium' : 'font-semibold'}`}>{selectedItem[displayField] || selectedItem.id}</span>
           ) : (
             <span className="text-[var(--aras-muted)]">{placeholder}</span>
           )}
         </div>
         
         <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-          {value && targetResource && !isOpen && (
+          {!isSimple && value && targetResource && !isOpen && (
             <button
               type="button"
               tabIndex={-1}
               onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/${cleanResourcePath(targetResource)}/${value}`); }}
-              className="p-1 text-[var(--aras-muted)] hover:text-[var(--aras-accent)] rounded-md"
+              className="p-1 text-[var(--aras-muted)] hover:text-[var(--aras-accent)] rounded-lg"
               title="View Record"
             >
               <ExternalLink size={12} />
@@ -354,7 +360,7 @@ const Combobox: React.FC<ComboboxProps> = ({
             <button 
               tabIndex={-1}
               onClick={handleClear} 
-              className="p-1 text-[var(--aras-muted)] hover:text-red-500 rounded-md"
+              className="p-1 text-[var(--aras-muted)] hover:text-red-500 rounded-lg"
             >
               <X size={12} />
             </button>

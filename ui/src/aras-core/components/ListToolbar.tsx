@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Search, Filter, Plus, Edit3, Trash2,
-  Download, Upload, Settings, List, LayoutGrid, FileText, ChevronDown, X, MoreHorizontal
+  Search, Filter, Plus,
+  Download, Upload, Settings, List, FileText, X, MoreHorizontal
   , Archive
 } from 'lucide-react';
 
@@ -40,46 +40,19 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
   title,
   search,
   onSearchChange,
-  isFilterOpen,
   onFilterToggle,
   filterCount,
-  selectedCount,
-  onBulkEdit,
-  onBulkDelete,
   onExport,
   isExporting,
   onImport,
   onColumnPickerToggle,
-  isColumnPickerOpen,
   onAdd,
   onArchive,
-  fields,
-  visibleColumns,
-  onVisibleColumnsChange,
   viewMode = 'list',
-  onViewModeChange,
-  hasTreeSupport = false,
-  onSaveFilter,
-  onApplySavedFilter,
-  onDeleteSavedFilter,
-  savedFilters
+  onViewModeChange
 }) => {
-  const [isSavedFiltersOpen, setIsSavedFiltersOpen] = useState(false);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
-  const savedFiltersRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (savedFiltersRef.current && !savedFiltersRef.current.contains(event.target as Node)) {
-        setIsSavedFiltersOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -91,210 +64,111 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
   }, []);
 
   return (
-    <div className="aras-list-toolbar p-0 pb-4 space-y-4">
-      <div className="grid grid-cols-[auto_minmax(280px,1fr)_auto] items-center gap-3 max-lg:grid-cols-1">
+    <div className="aras-list-toolbar flex flex-col md:flex-row items-center gap-3 bg-[var(--aras-panel)]/85 backdrop-blur-[16px] border border-[var(--aras-border)] p-2 rounded-[24px] shadow-sm mb-6 transition-all">
+      {/* Add New Button on the left */}
+      <button
+        onClick={onAdd}
+        className="flex h-11 items-center gap-2 px-6 bg-[var(--aras-accent)] text-white rounded-[18px] font-bold text-sm shadow-md hover:brightness-110 active:scale-95 transition-all whitespace-nowrap shrink-0 max-md:w-full justify-center"
+      >
+        <Plus size={18} />
+        <span>Add New</span>
+      </button>
+
+      {/* Search Input Group */}
+      <div className="relative flex-1 w-full min-w-[200px]">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder={`Search ${title}...`}
+          className="w-full h-11 pl-12 pr-4 bg-slate-50/50 border border-transparent rounded-[18px] text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-[var(--aras-accent)] focus:ring-4 focus:ring-[var(--aras-accent)]/5 transition-all"
+        />
+        {search && (
+          <button onClick={() => onSearchChange('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 p-1">
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto hide-scroll pb-1 md:pb-0">
+        {/* Filter Trigger */}
         <button
-          onClick={onAdd}
-          className="flex h-[46px] items-center gap-2 px-5 bg-[var(--aras-accent)] hover:opacity-90 text-white rounded-[var(--aras-radius)] text-sm font-semibold outline-none transition-opacity"
+          onClick={onFilterToggle}
+          className={`flex h-11 items-center gap-2 px-5 rounded-[18px] border font-bold text-sm transition-all whitespace-nowrap ${
+            filterCount > 0
+              ? 'bg-[var(--aras-accent)]/10 border-[var(--aras-accent)] text-[var(--aras-accent)] shadow-sm'
+              : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+          }`}
         >
-          <Plus size={18} />
-          <span>Add New</span>
+          <Filter size={18} />
+          <span>Filters</span>
+          {filterCount > 0 && (
+            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--aras-accent)] px-1.5 text-[10px] font-black text-white">
+              {filterCount}
+            </span>
+          )}
         </button>
 
-        <div className="flex min-w-0 flex-wrap items-center gap-3">
-
-          {/* View Mode Switcher */}
-          {onViewModeChange && (
-            <div className="flex h-[46px] items-center border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] bg-[var(--aras-panel)] overflow-hidden">
-              <button
-                onClick={() => onViewModeChange('list')}
-                className={`h-full px-2.5 flex items-center transition-colors ${viewMode === 'list' ? 'bg-[var(--aras-panel-soft)] text-[var(--aras-accent)]' : 'text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)]'}`}
-                title="List View"
-                aria-pressed={viewMode === 'list'}
-              >
-                <List size={18} />
-              </button>
-              {hasTreeSupport && (
-                <button
-                  onClick={() => onViewModeChange('tree')}
-                  className={`h-full px-2.5 flex items-center border-l border-[var(--aras-border)] transition-colors ${viewMode === 'tree' ? 'bg-[var(--aras-panel-soft)] text-[var(--aras-accent)]' : 'text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)]'}`}
-                  title="Tree View"
-                  aria-pressed={viewMode === 'tree'}
-                >
-                  <LayoutGrid size={18} />
-                </button>
-              )}
-              <button
-                onClick={() => onViewModeChange('report')}
-                className={`h-full px-2.5 flex items-center border-l border-[var(--aras-border)] transition-colors ${viewMode === 'report' ? 'bg-[var(--aras-panel-soft)] text-[var(--aras-accent)]' : 'text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)]'}`}
-                title="Report View"
-                aria-pressed={viewMode === 'report'}
-              >
-                <FileText size={18} />
-              </button>
-            </div>
-          )}
-
-          <div className="relative min-w-[260px] flex-1 max-w-none group">
-            <label htmlFor="list-search-input" className="sr-only">Search in {title}</label>
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--aras-muted)]" size={18} />
-            <input
-              id="list-search-input"
-              type="text"
-              placeholder={`Search in ${title}...`}
-              className="h-[46px] w-full pl-10 pr-4 bg-[var(--aras-panel)] border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] text-[14px] text-[var(--aras-text)] placeholder:text-[var(--aras-muted)] focus:outline-none transition-colors"
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
-              aria-label={`Search in ${title}`}
-            />
+        {/* View Mode Switcher */}
+        {onViewModeChange && (
+          <div className="flex h-11 items-center border border-slate-200 rounded-[18px] bg-white overflow-hidden shrink-0">
+            <button
+              onClick={() => onViewModeChange('list')}
+              className={`h-full px-3 flex items-center transition-colors ${viewMode === 'list' ? 'bg-slate-50 text-[var(--aras-accent)]' : 'text-slate-400 hover:bg-slate-50'}`}
+              title="List View"
+            >
+              <List size={18} />
+            </button>
+            <button
+              onClick={() => onViewModeChange('report')}
+              className={`h-full px-3 flex items-center border-l border-slate-100 transition-colors ${viewMode === 'report' ? 'bg-slate-50 text-[var(--aras-accent)]' : 'text-slate-400 hover:bg-slate-50'}`}
+              title="Report View"
+            >
+              <FileText size={18} />
+            </button>
           </div>
+        )}
+
+        {/* More Actions Dropdown */}
+        <div className="relative shrink-0" ref={actionsRef}>
           <button
-            onClick={onFilterToggle}
-            className={`h-[46px] px-4 rounded-[var(--aras-radius)] border transition-colors flex items-center gap-2 text-sm font-medium ${isFilterOpen ? 'border-[var(--aras-accent)] text-[var(--aras-accent)] bg-[var(--aras-panel)]' : 'bg-[var(--aras-panel)] border-[var(--aras-border-strong)] text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]'}`}
-            aria-expanded={isFilterOpen}
-            aria-controls="filter-conditions-panel"
+            onClick={() => setIsActionsOpen(!isActionsOpen)}
+            className="flex h-11 items-center gap-1.5 border border-slate-200 rounded-[18px] bg-white px-4 text-slate-600 hover:border-slate-300 transition-all font-bold text-sm"
           >
-            <Filter size={18} />
-            <span>Filters {filterCount > 0 && `(${filterCount})`}</span>
+            <MoreHorizontal size={18} />
           </button>
-
-          {filterCount > 0 && (
-            <button
-              onClick={onSaveFilter}
-              className="h-[46px] px-4 rounded-[var(--aras-radius)] border transition-colors flex items-center gap-2 text-sm font-medium bg-[var(--aras-panel)] border-[var(--aras-border-strong)] text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]"
-            >
-              <Plus size={18} />
-              <span>Save Filter</span>
-            </button>
-          )}
-
-          {savedFilters && savedFilters.length > 0 && (
-            <div className="relative" ref={savedFiltersRef}>
-              <button
-                onClick={() => setIsSavedFiltersOpen(!isSavedFiltersOpen)}
-                className="h-[46px] px-4 rounded-[var(--aras-radius)] border transition-colors flex items-center gap-2 text-sm font-medium bg-[var(--aras-panel)] border-[var(--aras-border-strong)] text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]"
-              >
-                <span>Saved Filters</span>
-                <ChevronDown size={18} />
-              </button>
-              {isSavedFiltersOpen && (
-                <div
-                  className="absolute right-0 mt-2 w-64 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-[var(--aras-radius)] z-50 p-3"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <h4 className="text-[11px] font-semibold text-[var(--aras-muted)] uppercase tracking-wider mb-2 px-1">Saved Filters</h4>
-                  <div className="space-y-1 max-h-60 overflow-y-auto">
-                    {savedFilters.map(sf => (
-                      <div key={sf.id} className="flex items-center justify-between group">
-                        <button
-                          onClick={() => { onApplySavedFilter(sf.id); setIsSavedFiltersOpen(false); }}
-                          className="flex-1 text-left text-sm text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)] px-2 py-1.5 rounded-[var(--aras-radius)] transition-colors"
-                        >
-                          {sf.name} {sf.is_default && <span className="text-[10px] text-[var(--aras-muted)]">(default)</span>}
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onDeleteSavedFilter(sf.id); }}
-                          className="p-1 text-[var(--aras-muted)] hover:text-rose-500 rounded-[var(--aras-radius)] transition-colors opacity-0 group-hover:opacity-100"
-                          title="Delete saved filter"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {selectedCount > 0 && (
-            <>
-              <button
-                onClick={onBulkEdit}
-                className="flex h-[46px] items-center gap-2 px-4 rounded-[var(--aras-radius)] text-sm font-medium border border-[var(--aras-border-strong)] bg-[var(--aras-panel)] text-[var(--aras-accent)] hover:bg-[var(--aras-panel-soft)] transition-colors"
-              >
-                <Edit3 size={18} />
-                <span>Edit ({selectedCount})</span>
-              </button>
-              <button
-                onClick={onBulkDelete}
-                className="flex h-[46px] items-center gap-2 px-4 rounded-[var(--aras-radius)] text-sm font-medium border border-[var(--aras-border-strong)] bg-[var(--aras-panel)] text-rose-600 hover:bg-rose-50 transition-colors"
-              >
-                <Trash2 size={18} />
-                <span>Delete ({selectedCount})</span>
-              </button>
-            </>
-          )}
-
-          <div className="relative" ref={actionsRef}>
-            <button
-              onClick={() => setIsActionsOpen(v => !v)}
-              className="flex h-[46px] items-center gap-1.5 border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] px-4 text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)] text-sm"
-              title="Actions"
-            >
-              <MoreHorizontal size={18} />
-              <ChevronDown size={14} />
-            </button>
-            {isActionsOpen && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-[var(--aras-radius)] z-30 overflow-hidden">
-                <button
-                  onClick={() => { onExport(); setIsActionsOpen(false); }}
-                  disabled={isExporting}
-                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]"
-                >
-                  <Download size={15} /> Export CSV
-                </button>
-                <label className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)] cursor-pointer">
-                  <Upload size={15} /> Import CSV
+          {isActionsOpen && (
+            <div className="absolute right-0 top-full mt-3 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-1.5 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+               <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 mb-1">Actions</div>
+               <button onClick={() => { onExport(); setIsActionsOpen(false); }} disabled={isExporting} className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[13px] font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition-colors">
+                  <Download size={16} className="text-slate-400" /> Export CSV
+               </button>
+               <label className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[13px] font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer">
+                  <Upload size={16} className="text-slate-400" /> Import CSV
                   <input type="file" accept=".csv" className="hidden" onChange={(e) => { onImport(e); setIsActionsOpen(false); }} />
-                </label>
-                {onArchive && (
-                  <button
-                    onClick={() => { onArchive(); setIsActionsOpen(false); }}
-                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]"
-                  >
-                    <Archive size={15} /> View Archive
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+               </label>
+               {onArchive && (
+                <button onClick={() => { onArchive(); setIsActionsOpen(false); }} className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[13px] font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition-colors">
+                   <Archive size={16} className="text-slate-400" /> View Archive
+                </button>
+               )}
+               <div className="mt-1 border-t border-slate-50 pt-1">
+                 <button 
+                  onClick={() => { onColumnPickerToggle(); setIsActionsOpen(false); }} 
+                  className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[13px] font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
+                >
+                    <Settings size={16} className="text-slate-400" /> Columns
+                 </button>
+               </div>
 
-          <button
-            className="relative grid h-[46px] w-[46px] place-items-center border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]"
-            onClick={onColumnPickerToggle}
-          >
-            <Settings size={18} />
-            {isColumnPickerOpen && (
-              <div
-                className="absolute right-0 top-full mt-2 w-64 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-[var(--aras-radius)] z-50 p-3"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <h4 className="text-[11px] font-semibold text-[var(--aras-muted)] uppercase tracking-wider mb-2 px-1">Visible Columns</h4>
-                <div className="space-y-1 max-h-60 overflow-y-auto">
-                  {fields.map(f => (
-                    <label key={f.name} className="flex items-center gap-2 cursor-pointer hover:bg-[var(--aras-panel-soft)] px-2 py-1.5 rounded-[var(--aras-radius)]">
-                      <input
-                        type="checkbox"
-                        checked={visibleColumns.includes(f.name)}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          onVisibleColumnsChange(
-                            checked ? [...visibleColumns, f.name] : visibleColumns.filter(c => c !== f.name)
-                          )
-                        }}
-                        className="accent-[var(--aras-accent)]"
-                      />
-                      <span className="text-sm text-[var(--aras-text)]">{f.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-          </button>
+               <div className="absolute top-0 right-0 p-2 pointer-events-none">
+                  {/* Just some empty space or decoration */}
+               </div>
 
+               {/* Column Picker Overlay (within dropdown for simplicity or absolute?) */}
+            </div>
+          )}
         </div>
       </div>
     </div>
