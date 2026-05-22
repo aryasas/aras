@@ -37,6 +37,26 @@ TEMPLATE_PRESETS = {
     ],
 }
 
+ERP_MODERN_INVOICE_TREE = {
+    "ROOT": {
+        "type": "Box",
+        "isCanvas": True,
+        "props": {
+            "desktop": {
+                "bg": "radial-gradient(#cbd5e1 1px, transparent 1px)",
+                "backgroundSize": "24px 24px",
+                "direction": "row",
+                "padding": "0"
+            }
+        },
+        "displayName": "Box",
+        "custom": {},
+        "hidden": False,
+        "nodes": [],
+        "linkedNodes": {}
+    }
+}
+
 def run(db):
     for name, sections in TEMPLATE_PRESETS.items():
         # Ensure order is set for backend storage
@@ -51,10 +71,27 @@ def run(db):
             ann = TemplateAnnotation(
                 template_name=name,
                 sections=ordered_sections,
-                author="system"
+                author="system",
+                node_id="root",
+                node_kind="Template",
+                status="applied"
             )
             db.add(ann)
         else:
             # Optionally update if system preset changes? For now just skip.
             pass
+
+    # Seed erp-modern-invoice with initial craft tree
+    erp_invoice = db.query(TemplateAnnotation).filter_by(template_name="erp-modern-invoice").first()
+    if not erp_invoice:
+        ann = TemplateAnnotation(
+            template_name="erp-modern-invoice",
+            tree_json=ERP_MODERN_INVOICE_TREE,
+            author="system",
+            node_id="root",
+            node_kind="TreeSnapshot",
+            status="applied"
+        )
+        db.add(ann)
+
     db.commit()

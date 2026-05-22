@@ -344,3 +344,14 @@ This file is used only to report if there are feature added
 
 ## Granular WYSIWYG & Dynamic Elements (2026-05-22)
   - [Gemini] Added dynamic element support to Design Mode (Text Block, Button, Divider, nested Containers). Added Add Elements palette to DesignInspector. Restructured ListViewActionBar with granular DesignContainers and DesignElements allowing per-button layout styling.
+
+## Template Studio v3 (Craft.js) (2026-05-22)
+- **Backend**: Extended `TemplateAnnotation` model, added `/dev_template_trees` and `/dev_template_annotations` endpoints, seeded default `erp-modern-invoice` tree, synced schema.
+
+## Template Studio v3 (Craft.js) (2026-05-22)
+- [Codex/GPT-5.5] Rewrote `ui/src/views/TemplateBuilder.tsx` into a Craft.js editor shell with responsive viewport controls, palette/outline/inspector panels, per-node AI note persistence, and breakpoint-driven canvas serialization.
+- [Codex/GPT-5.5] Added Craft user-components and default serialized tree for the `erp-modern` invoice mock: responsive sidebar/header/islands, field grid + leaf controls, line-items composition, and dark summary/status islands.
+
+
+## Unknown (2026-05-22)
+  - [GPT (codex)] Craft.js Template Studio v3 matching the erp-modern invoice mock, with responsive viewport switching, default serialized tree loading, palette/outline/inspector/topbar panels, and per-node AI note persistence to dev template annotations.

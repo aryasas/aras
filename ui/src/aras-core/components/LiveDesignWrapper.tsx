@@ -3,7 +3,7 @@ import { GripVertical, Edit3, Save, Eye, EyeOff, Layout } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
 import api from '../../lib/api'
 import { useAras } from '../hooks/useAras'
-import type { TemplateSection } from '../../views/TemplateBuilder'
+import type { TemplateSection } from '../../views/TemplateBuilder.tsx'
 
 interface LiveDesignWrapperProps {
   templateName: string

@@ -1,5 +1,65 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from typing import Optional, Dict, Any
+from core.lib.database import get_db
 from core import Aras
 from .models import HandoffRun, TemplateAnnotation
+
+
+dev_api_router = APIRouter(prefix="/dev", tags=["Developer Templates"])
+
+@dev_api_router.get("/dev_template_trees")
+def get_template_tree(template_name: str, db: Session = Depends(get_db)):
+    # Return the latest tree_json for a template
+    ann = db.query(TemplateAnnotation).filter(
+        TemplateAnnotation.template_name == template_name,
+        TemplateAnnotation.tree_json.is_not(None)
+    ).order_by(TemplateAnnotation.id.desc()).first()
+    if not ann or not ann.tree_json:
+        return {"tree_json": None}
+    return {"tree_json": ann.tree_json}
+
+
+@dev_api_router.post("/dev_template_trees")
+def upsert_template_tree(payload: Dict[str, Any], db: Session = Depends(get_db)):
+    template_name = payload.get("template_name")
+    tree_json = payload.get("tree_json")
+    if not template_name:
+        raise HTTPException(status_code=400, detail="template_name is required")
+        
+    # We just create a new record for the tree snapshot
+    ann = TemplateAnnotation(
+        template_name=template_name,
+        tree_json=tree_json,
+        author="system",
+        node_id="root",
+        node_kind="TreeSnapshot",
+        status="applied"
+    )
+    db.add(ann)
+    db.commit()
+    return {"status": "ok"}
+
+
+@dev_api_router.post("/dev_template_annotations")
+def create_annotation(payload: Dict[str, Any], db: Session = Depends(get_db)):
+    # Accept the new payload manually just in case auto-generated route lacks support
+    # payload { template_name, node_id, node_kind, node_label, breakpoint, comment, status, tree_json? }
+    ann = TemplateAnnotation(
+        template_name=payload.get("template_name"),
+        node_id=payload.get("node_id"),
+        node_kind=payload.get("node_kind"),
+        node_label=payload.get("node_label"),
+        breakpoint=payload.get("breakpoint"),
+        comment=payload.get("comment"),
+        status=payload.get("status", "pending"),
+        tree_json=payload.get("tree_json"),
+        author="system"
+    )
+    db.add(ann)
+    db.commit()
+    db.refresh(ann)
+    return ann.to_dict()
 
 
 class Dev(Aras.App):
@@ -12,6 +72,8 @@ class Dev(Aras.App):
     description = "Framework inspection, metadata management, and database tools."
     icon = "Terminal"
     have_home = True
+
+    routers = [dev_api_router]
 
     models = [
         Aras.AppModel,

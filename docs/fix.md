@@ -182,3 +182,7 @@ This file is used only to report if there are fix
 
 ## CSS prefix migration & dark mode input fixes (2026-05-21)
   - [Antigravity] Dark mode form input background/border colors, hardcoded label/line text colors
+
+
+## Unknown (2026-05-22)
+  - [GPT (codex)] Kept TemplateSection compatibility for LiveDesignWrapper and verified `npx tsc --noEmit -p tsconfig.app.json` passes clean.

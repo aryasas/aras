@@ -2228,5 +2228,50 @@
       "issues": "none"
     },
     "verdict": "APPROVED"
+  },
+  {
+    "id": 166,
+    "date": "2026-05-22",
+    "feature": "Template Studio: full rewrite of dev tools template editor/builder",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/TemplateBuilder.tsx",
+      "features_added": "Three-pane visual drag-and-drop template editor matching erp-modern mock language: component palette, live canvas rendering full sidebar+header+islands tree, inspector with per-element AI instruction notes. HTML5 native DnD, undo/redo, zoom, edit/preview toggle, keyboard shortcuts, localStorage persistence, save flushes notes to /dev/dev_template_annotations.",
+      "fixes_applied": "Re-exported backward-compatible TemplateSection interface for LiveDesignWrapper; trimmed unused lucide-react imports.",
+      "framework_changes": "none",
+      "issues": "Note save uses soft-fail catch \u2014 backend may need new fields (section_kind, section_label, status) to persist new payload shape."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 167,
+    "date": "2026-05-22",
+    "feature": "Template Studio v3 (Craft.js) Backend setup",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/dev/models.py, api/apps/dev/app.py, api/apps/dev/seed_templates.py",
+      "features_added": "Extended TemplateAnnotation with Craft.js layout fields (node_id, node_kind, node_label, breakpoint, status, tree_json), added dev_api_router for /dev/dev_template_trees GET/POST and /dev/dev_template_annotations POST, seeded default erp-modern-invoice template tree JSON.",
+      "fixes_applied": "Removed unique constraint on template_name so multiple annotations per template can exist.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 168,
+    "date": "2026-05-22",
+    "feature": "Template Studio v3 (Craft.js) frontend rewrite",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/TemplateBuilder.tsx, ui/src/views/template-studio/components/Box.tsx, ui/src/views/template-studio/components/Sidebar.tsx, ui/src/views/template-studio/components/Header.tsx, ui/src/views/template-studio/components/Island.tsx, ui/src/views/template-studio/components/FieldGrid.tsx, ui/src/views/template-studio/components/Field.tsx, ui/src/views/template-studio/components/ButtonEl.tsx, ui/src/views/template-studio/components/SummaryRow.tsx, ui/src/views/template-studio/components/Text.tsx, ui/src/views/template-studio/panels/Palette.tsx, ui/src/views/template-studio/panels/Inspector.tsx, ui/src/views/template-studio/panels/Topbar.tsx, ui/src/views/template-studio/panels/Outline.tsx, ui/src/views/template-studio/lib/defaultTree.ts, ui/src/views/template-studio/lib/api.ts, ui/src/views/template-studio/lib/breakpoints.ts, ui/src/views/template-studio/lib/styles.css, ui/src/aras-core/components/LiveDesignWrapper.tsx, docs/feature.md",
+      "features_added": "Craft.js Template Studio v3 matching the erp-modern invoice mock, with responsive viewport switching, default serialized tree loading, palette/outline/inspector/topbar panels, and per-node AI note persistence to dev template annotations.",
+      "fixes_applied": "Kept TemplateSection compatibility for LiveDesignWrapper and verified the new frontend editor passes TypeScript compilation.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
   }
 ]

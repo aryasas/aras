@@ -83,8 +83,8 @@ class TemplateAnnotation(Aras.Model):
     Persists template layouts and AI annotations for the Template Builder dev tool.
     """
     __tablename__ = "dev_template_annotations"
-    __searchable_fields__ = ["template_name", "author"]
-    __display_fields__ = ("template_name",)
+    __searchable_fields__ = ["template_name", "author", "node_id", "node_kind", "status"]
+    __display_fields__ = ("template_name", "node_id", "status")
     __layout__ = [
         {
             "title": "General",
@@ -92,10 +92,23 @@ class TemplateAnnotation(Aras.Model):
         },
         {
             "title": "Annotation Data",
-            "fields": ["sections"]
+            "fields": ["node_id", "node_kind", "node_label", "breakpoint", "status", "comment"]
+        },
+        {
+            "title": "Tree Data",
+            "fields": ["tree_json", "sections"]
         }
     ]
 
-    template_name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    template_name: Mapped[str] = mapped_column(String(100), index=True)
     author: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     sections: Mapped[list] = mapped_column(JSON, default=list)
+
+    # New fields for Craft.js editor
+    node_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    node_kind: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    node_label: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    breakpoint: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    status: Mapped[str] = mapped_column(String(50), default="pending")
+    comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    tree_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
