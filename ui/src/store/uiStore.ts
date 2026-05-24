@@ -38,7 +38,7 @@ interface UIStore {
   accentColor: string;
   fontScale: number;
   sidebarCollapsed: boolean;
-  templateBuilderEnabled: boolean; // Legacy, but keeping for compatibility
+  topbarNavStyle: 'icon-text' | 'icon-only';
   designMode: boolean;
   activeElementId: string | null;
   designData: {
@@ -59,12 +59,12 @@ interface UIStore {
   setPageTitle: (title: string, subtitle?: string, breadcrumbs?: string) => void;
   toggleDarkMode: () => void;
   toggleSidebar: () => void;
+  setTopbarNavStyle: (style: UIStore['topbarNavStyle']) => void;
   setThemeMode: (themeMode: UIStore['themeMode']) => void;
   setCornerMode: (cornerMode: UIStore['cornerMode']) => void;
   setDensity: (density: UIStore['density']) => void;
   setAccentColor: (accentColor: string) => void;
   setFontScale: (fontScale: number) => void;
-  toggleTemplateBuilder: () => void;
   toggleDesignMode: () => void;
   setActiveDesignElement: (id: string | null) => void;
   updateElementStyle: (id: string, styles: any) => void;
@@ -101,7 +101,7 @@ export const useUIStore = create<UIStore>()(
       accentColor: '#7a2e2e',
       fontScale: 100,
       sidebarCollapsed: false,
-      templateBuilderEnabled: false,
+      topbarNavStyle: 'icon-text',
       designMode: false,
       activeElementId: null,
       designData: { styles: {}, orders: {}, customElements: {} },
@@ -137,6 +137,7 @@ export const useUIStore = create<UIStore>()(
         set({ darkMode: next, themeMode: next ? 'dark' : 'normal' })
       },
       toggleSidebar: () => set({ sidebarCollapsed: !get().sidebarCollapsed }),
+      setTopbarNavStyle: (topbarNavStyle) => set({ topbarNavStyle }),
       setThemeMode: (themeMode) => {
         document.documentElement.classList.toggle('dark', themeMode === 'dark')
         set({ themeMode, darkMode: themeMode === 'dark' })
@@ -145,7 +146,6 @@ export const useUIStore = create<UIStore>()(
       setDensity: (density) => set({ density }),
       setAccentColor: (accentColor) => set({ accentColor }),
       setFontScale: (fontScale) => set({ fontScale }),
-      toggleTemplateBuilder: () => set({ templateBuilderEnabled: !get().templateBuilderEnabled }),
       toggleDesignMode: () => set({ designMode: !get().designMode, activeElementId: null }),
       setActiveDesignElement: (id) => set({ activeElementId: id }),
       updateElementStyle: (id, styles) => set((state) => ({
@@ -205,7 +205,7 @@ export const useUIStore = create<UIStore>()(
         accentColor: s.accentColor,
         fontScale: s.fontScale,
         sidebarCollapsed: s.sidebarCollapsed,
-        templateBuilderEnabled: s.templateBuilderEnabled,
+        topbarNavStyle: s.topbarNavStyle,
       }),
       onRehydrateStorage: () => (state) => {
         if (state?.themeMode === 'dark' || state?.darkMode) document.documentElement.classList.add('dark')

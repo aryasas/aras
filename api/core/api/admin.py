@@ -3,7 +3,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from ..lib.database import get_db
-from ..auth.service import require_admin
+from ..auth.service import require_admin, get_current_user
 from ..logic.installer import AppInstaller
 from ..logic.discovery import discover_apps
 
@@ -74,3 +74,20 @@ async def uninstall_app(
         return {"status": "success", "message": f"App {app_name} uninstalled"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/apps/capabilities")
+async def get_app_capabilities(db: Session = Depends(get_db), _: Any = Depends(get_current_user)):
+    """Returns active app names and the merged optional_features map for all active apps.
+    Used by the UI to conditionally show/hide feature toggles in Organization config.
+    """
+    from ..registry.app_model import AppModel
+    active_apps = db.query(AppModel).filter(AppModel.is_active == True).all()
+    active_app_names = [a.name for a in active_apps]
+    optional_features: dict = {}
+    for app in active_apps:
+        optional_features.update(app.optional_features or {})
+    return {
+        "active_apps": active_app_names,
+        "optional_features": optional_features,
+    }

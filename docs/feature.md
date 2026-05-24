@@ -355,3 +355,16 @@ This file is used only to report if there are feature added
 
 ## Unknown (2026-05-22)
   - [GPT (codex)] Craft.js Template Studio v3 matching the erp-modern invoice mock, with responsive viewport switching, default serialized tree loading, palette/outline/inspector/topbar panels, and per-node AI note persistence to dev template annotations.
+
+## Core Model Refactoring & M2M Improvements (2026-05-23)
+  - [Gemini] Refactored `api/core/base/model.py` for improved readability and maintainability:
+    - Extracted `__init_subclass__` logic into dedicated helper methods (`_merge_inheritable_attributes`, `_register_model_and_validate_inheritance`, `_discover_child_relations`, `_discover_actions_and_computed_fields`, `_apply_unique_constraints`).
+    - Enhanced error handling across multiple methods (`_discover_child_relations`, `_apply_unique_constraints`, `apply_filters`, `resolve_labels`, `resolve_m2m`, `save`, `_fire_hooks`) by replacing broad `except Exception` blocks with more specific `logging.error` or `logging.warning` with contextual messages.
+    - Replaced raw SQL for Many-to-Many (M2M) operations in `resolve_m2m` and `save_m2m` with SQLAlchemy Core's `Table` objects, improving type safety and robustness.
+
+## Router Factory Improvements & Streaming Export (2026-05-23)
+  - [Gemini] Refactored `api/core/logic/router_factory.py` for improved modularity, error handling, and performance:
+    - **Streaming Export:** Modified the `/export` endpoint to stream data directly from the database, significantly reducing memory consumption for large exports.
+    - **Modular Child Operations:** Extracted complex child record synchronization logic from `_save_children` into dedicated module-level helper functions (`_update_or_create_child_record`, `_delete_orphaned_child_records`) for better readability and maintainability.
+    - **Dynamic Schema Generation:** Extracted dynamic Pydantic schema generation (`Schema`, `PatchSchema`) into a new module-level helper function (`_generate_pydantic_schemas`), making `create_router` cleaner and more focused.
+    - **Enhanced Error Handling:** Replaced generic `print` statements and broad `except Exception` blocks with specific `logging.warning` and `logging.error` calls across various endpoints and helper functions (e.g., custom actions, child hydration, bulk delete), providing more informative and actionable diagnostics.

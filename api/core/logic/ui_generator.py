@@ -151,7 +151,10 @@ class UIGenerator(Service):
                     if getattr(m, "__tablename__", None) == tablename:
                         seg = tablename
                         full_prefix = f"{a.parent_name}_{a.app_name}_" if a.parent_name and a.app_name else None
-                        if full_prefix and seg.startswith(full_prefix):
+                        table_prefix = f"{a.table_prefix}_" if a.table_prefix else None
+                        if table_prefix and seg.startswith(table_prefix):
+                            seg = seg[len(table_prefix):]
+                        elif full_prefix and seg.startswith(full_prefix):
                             seg = seg[len(full_prefix):]
                         elif a.app_name and seg.startswith(f"{a.app_name}_"):
                             seg = seg[len(a.app_name)+1:]

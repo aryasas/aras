@@ -26,6 +26,8 @@ export function ThemeTweakPanel() {
     setDensity,
     setAccentColor,
     setFontScale,
+    topbarNavStyle,
+    setTopbarNavStyle,
   } = useUIStore()
 
   useEffect(() => {
@@ -135,6 +137,19 @@ export function ThemeTweakPanel() {
                 ))}
               </div>
             </div>
+
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-bold text-[var(--aras-muted)]">Nav Labels</span>
+              <Combobox
+                variant="simple"
+                options={[
+                  { label: 'Icon + Label', value: 'icon-text' },
+                  { label: 'Icon Only', value: 'icon-only' },
+                ]}
+                value={topbarNavStyle}
+                onChange={(val) => setTopbarNavStyle(val as any)}
+              />
+            </label>
           </div>
         </div>
       )}

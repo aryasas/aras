@@ -107,7 +107,7 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
         <button
           type="button"
           onClick={addRow}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-bold hover:bg-emerald-100 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-[var(--aras-radius)] text-sm font-bold hover:bg-emerald-100 transition-colors"
         >
           <Plus size={16} />
           <span>Add Row</span>
@@ -172,7 +172,7 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
                             onChange={(event) => updateRow(idx, { [f.name]: event.target.value })}
                             className="aras-line-description"
                           />
-                          {f.name === 'description' && row.notes && <span className="text-[11px] text-slate-400">{row.notes}</span>}
+                          {f.name === 'description' && row.notes && <span className="text-[11px] text-[var(--aras-muted)]">{row.notes}</span>}
                         </div>
                       )}
                     </td>
@@ -183,14 +183,14 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
                       <button
                         type="button"
                         onClick={() => setEditingRow({ idx, data: { ...row } })}
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                        className="p-1.5 text-[var(--aras-muted)] hover:text-[var(--aras-accent)] hover:bg-[color-mix(in_srgb,var(--aras-accent)_10%,transparent)] rounded-[var(--aras-radius)] transition-all"
                       >
                         <Pencil size={14} />
                       </button>
                       <button
                         type="button"
                         onClick={() => deleteRow(idx)}
-                        className="p-1.5 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                        className="p-1.5 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-[var(--aras-radius)] transition-all"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -203,18 +203,18 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
       </div>
 
       {editingRow && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900">Edit Line Item</h3>
-              <button onClick={() => setEditingRow(null)} className="p-2 hover:bg-slate-200 rounded-xl transition-colors"><X size={18} /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--aras-text)]/20 backdrop-blur-sm p-4">
+          <div className="bg-[var(--aras-panel)] rounded-[var(--aras-radius-lg)] shadow-2xl border border-[var(--aras-border)] w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-[var(--aras-border)] bg-[var(--aras-panel-soft)]/50 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-[var(--aras-text)]">Edit Line Item</h3>
+              <button onClick={() => setEditingRow(null)} className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] transition-colors"><X size={18} /></button>
             </div>
             <div className="p-6 grid grid-cols-1 gap-5">
               {editableCols.map((f: any) => {
                 const Component = resolveFieldComponent(f);
                 return (
                   <div key={f.name} className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{f.label}</label>
+                    <label className="text-[11px] font-bold text-[var(--aras-muted)] uppercase tracking-wider">{f.label}</label>
                     <div className="aras-form-control-wrapper">
                       <Component
                         field={f}
@@ -228,14 +228,14 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
                 );
               })}
             </div>
-            <div className="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex justify-end gap-3">
-              <button onClick={() => setEditingRow(null)} className="px-5 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors">Cancel</button>
+            <div className="px-6 py-4 bg-[var(--aras-panel-soft)]/80 border-t border-[var(--aras-border)] flex justify-end gap-3">
+              <button onClick={() => setEditingRow(null)} className="px-5 py-2 text-sm font-bold text-[var(--aras-muted)] hover:text-[var(--aras-text)] transition-colors">Cancel</button>
               <button
                 onClick={() => {
                    updateRow(editingRow.idx, editingRow.data);
                    setEditingRow(null);
                 }}
-                className="px-6 py-2 bg-[var(--aras-accent)] text-white text-sm font-bold rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all"
+                className="px-6 py-2 bg-[var(--aras-accent)] text-white text-sm font-bold rounded-[var(--aras-radius)] shadow-md hover:brightness-110 active:scale-95 transition-all"
               >
                 Apply Changes
               </button>

@@ -6,6 +6,7 @@ import type { AppMenuData, MenuItem, SidebarApp, MenuElement } from '../types'
 import { useVocabulary } from '../../context/VocabularyContext'
 import { resolveIcon } from '../../lib/iconUtils'
 import { filterMenuElements, filterMenuItems, isVisibleMenuItem } from '../../lib/menuUtils'
+import { useUIStore } from '../../store/uiStore'
 
 const hiddenTopbarRoutes = new Set(['dashboard', 'settings'])
 
@@ -20,6 +21,8 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
   const [failedApp, setFailedApp] = useState<string | null>(null)
   const [moreOpen, setMoreOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const topbarNavStyle = useUIStore(state => state.topbarNavStyle)
+  const iconOnly = topbarNavStyle === 'icon-only'
 
   const appName = useMemo(() => {
     const [firstSegment] = location.pathname.split('/').filter(Boolean)
@@ -77,28 +80,46 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
     return null
   }
 
-  const renderMenuItem = (item: MenuItem, isDropdownItem = false) => {
+  const renderItem = (item: MenuItem, inDropdown = false) => {
     const isHome = item.path === `/${rootAppName}`
     const isActive = isHome
       ? location.pathname === item.path
       : location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
+    const Icon = resolveIcon(item.icon || 'FileText')
+    const label = vocabulary.get(item.label || item.name)
 
-    if (isDropdownItem) {
-      const Icon = resolveIcon(item.icon || 'FileText')
+    if (inDropdown) {
       return (
         <Link
           key={item.name}
           to={item.path}
           onClick={() => setMoreOpen(false)}
-          className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-all ${
-            isActive 
+          className={`flex items-center gap-3 rounded-[var(--aras-radius)] px-3 py-2 text-sm transition-all ${
+            isActive
               ? 'font-semibold'
               : 'text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)] hover:text-[var(--aras-text)]'
           }`}
           style={isActive ? { color: 'var(--aras-accent)', backgroundColor: 'color-mix(in srgb, var(--aras-accent) 10%, transparent)' } : undefined}
         >
-          <Icon size={18} className={isActive ? 'text-[var(--aras-accent)]' : 'text-[var(--aras-muted)]'} />
-          {vocabulary.get(item.label || item.name)}
+          <Icon size={16} />
+          {label}
+        </Link>
+      )
+    }
+
+    if (iconOnly) {
+      return (
+        <Link
+          key={item.name}
+          to={item.path}
+          title={label}
+          className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--aras-radius)] transition-all ${
+            isActive
+              ? 'bg-[var(--aras-accent)] text-white shadow-sm'
+              : 'text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)] hover:text-[var(--aras-text)]'
+          }`}
+        >
+          <Icon size={16} className="shrink-0" />
         </Link>
       )
     }
@@ -107,18 +128,14 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
       <Link
         key={item.name}
         to={item.path}
-        onClick={() => setMoreOpen(false)}
-        className={`relative flex h-10 shrink-0 items-center gap-2 px-3 rounded-xl text-[13px] font-bold transition-all ${
+        className={`relative flex shrink-0 flex-col items-center gap-1 px-3 py-1.5 rounded-[var(--aras-radius)] text-[11px] font-bold leading-tight transition-all ${
           isActive
             ? 'bg-[var(--aras-accent)] text-white shadow-sm'
             : 'text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)] hover:text-[var(--aras-text)]'
         }`}
       >
-        {item.icon && (() => {
-          const Icon = resolveIcon(item.icon)
-          return <Icon size={16} className="shrink-0" />
-        })()}
-        {vocabulary.get(item.label || item.name)}
+        <Icon size={16} className="shrink-0" />
+        <span className="max-w-[72px] truncate text-center">{label}</span>
       </Link>
     )
   }
@@ -143,25 +160,25 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
         <span className="px-3 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--aras-muted)]">
           {activeModule ? vocabulary.get(activeModule.label) : vocabulary.get(menuData.app_label)}
         </span>
-        {menuData.have_home && renderMenuItem({
+        {menuData.have_home && renderItem({
           type: 'model',
           name: '__home__',
           label: 'Home',
           path: `/${rootAppName}`
         })}
         
-        {visibleRootItems.map((element) => renderMenuItem(element))}
-        {visibleModuleItems.map((element) => renderMenuItem(element))}
+        {visibleRootItems.map((element) => renderItem(element))}
+        {visibleModuleItems.map((element) => renderItem(element))}
 
         {hasMore && (
           <div className="relative">
             <button
               type="button"
               onClick={() => setMoreOpen(!moreOpen)}
-              className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-[13px] font-bold text-[var(--aras-muted)] transition-all hover:bg-[var(--aras-panel-soft)] hover:text-[var(--aras-text)]"
+              className="flex h-10 shrink-0 items-center gap-1.5 rounded-[var(--aras-radius)] px-3 text-[13px] font-bold text-[var(--aras-muted)] transition-all hover:bg-[var(--aras-panel-soft)] hover:text-[var(--aras-text)]"
             >
               <MoreHorizontal size={16} />
-              More
+              {!iconOnly && 'More'}
               <ChevronDown size={14} className={`transition-transform duration-200 ${moreOpen ? 'rotate-180' : ''}`} />
             </button>
             {moreOpen && (
@@ -174,7 +191,7 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
                         {vocabulary.get(element.label)}
                       </div>
                       <div className="space-y-0.5">
-                        {filterMenuItems(element.items).map(item => renderMenuItem(item, true))}
+                        {filterMenuItems(element.items).map(item => renderItem(item, true))}
                       </div>
                     </div>
                   )
@@ -183,7 +200,7 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
                   <div className="mt-1 first:mt-0">
                     <div className="px-3 py-1.5 text-[10px] font-black text-[var(--aras-muted)] uppercase tracking-wider">Resources</div>
                     <div className="space-y-0.5">
-                      {overflowRootItems.map(item => renderMenuItem(item, true))}
+                      {overflowRootItems.map(item => renderItem(item, true))}
                     </div>
                   </div>
                 )}
@@ -191,7 +208,7 @@ export function TopbarAppMenu({ sidebarData = [] }: TopbarProps) {
                   <div className="mt-1 first:mt-0">
                     <div className="px-3 py-1.5 text-[10px] font-black text-[var(--aras-muted)] uppercase tracking-wider">More Resources</div>
                     <div className="space-y-0.5">
-                      {overflowModuleItems.map(item => renderMenuItem(item, true))}
+                      {overflowModuleItems.map(item => renderItem(item, true))}
                     </div>
                   </div>
                 )}

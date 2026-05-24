@@ -1,12 +1,16 @@
 import json
 import csv
 import io
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Request, status, Query, UploadFile, File
 from fastapi.responses import StreamingResponse, JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
 from typing import List, Type, Any, Optional
-from pydantic import create_model, BaseModel
+from pydantic import create_model, BaseModel, Field as PydanticField, ConfigDict
+from typing import Any, Optional, get_args, get_origin, Union, Literal as _Literal
+import re as _re
+
 
 from ..lib.database import get_db
 from ..auth.service import get_current_user
@@ -15,6 +19,9 @@ from ..logic.scope import ScopeContext
 from ..base.router import Router
 from ..exceptions import ArasException, ValidationException, ResourceNotFoundException, PermissionDeniedException, ConflictException
 from ..response import ok, err
+from ..base.model import Model as ArasModel
+from ..base.validation import Validation
+from pydantic.fields import FieldInfo
 
 
 def _scope_fields(model_class: Type[Any]) -> list[str]:
@@ -38,24 +45,14 @@ def _apply_scope_filters(model_class: Type[Any], request: Request, parsed_filter
     col_names = {c.name for c in model_class.__table__.columns}
     for field in _scope_fields(model_class):
         val = scope.get(field)
-        if val is not None and field in col_names:
-            if isinstance(val, list):
-                if "is_shared" in col_names:
-                    # Compound: own org always visible, other orgs only if is_shared=True
-                    direct_id = val[0]
-                    other_ids = val[1:]
-                    if other_ids:
-                        parsed_filters.append({
-                            "field": field,
-                            "op": "shared_scope",
-                            "value": {"direct": direct_id, "others": other_ids}
-                        })
-                    else:
-                        parsed_filters.append({"field": field, "op": "=", "value": direct_id})
-                else:
-                    parsed_filters.append({"field": field, "op": "in", "value": val})
-            else:
-                parsed_filters.append({"field": field, "op": "=", "value": val})
+        if val is None:
+            continue
+        item_val = getattr(item, field, None)
+        if isinstance(val, list):
+            if item_val not in val:
+                raise ResourceNotFoundException("Item not found")
+        elif item_val != val:
+            raise ResourceNotFoundException("Item not found")
     return parsed_filters
 
 
@@ -91,6 +88,24 @@ def _check_scope_ownership(model_class: Type[Any], request: Request, item: Any):
         elif item_val != val:
             raise ResourceNotFoundException("Item not found")
 
+def _update_or_create_child_record(db: Any, parent_item: Any, row_data: dict, child_model: Type[ArasModel], fk_column: str, user_id: int, existing_children_map: dict, incoming_payload_ids: set):
+    """Handles updating an existing child record or creating a new one."""
+    child_id = row_data.get("id")
+    row_data_cleaned = {k: v for k, v in row_data.items() if v is not None or k == fk_column}
+    row_data_cleaned[fk_column] = parent_item.id
+
+    if child_id is not None and str(child_id) in existing_children_map:
+        existing_child_instance = existing_children_map[str(child_id)]
+        existing_child_instance.update_self(db, row_data_cleaned, user_id=user_id)
+        incoming_payload_ids.add(str(child_id))
+    else:
+        child_model.create(db, row_data_cleaned, user_id=user_id)
+
+def _delete_orphaned_child_records(db: Any, existing_children_map: dict, incoming_payload_ids: set):
+    """Deletes child records that were in DB but are no longer in the incoming payload."""
+    for existing_id_str, existing_child_instance in existing_children_map.items():
+        if existing_id_str not in incoming_payload_ids:
+            db.delete(existing_child_instance)
 
 def _save_children(db: Any, parent_item: Any, payload: dict, user_id: int = None):
     """
@@ -104,77 +119,127 @@ def _save_children(db: Any, parent_item: Any, payload: dict, user_id: int = None
     record is created, updated, or patched. It ensures data consistency for child
     collections by synchronizing the database state with the incoming payload.
     """
-    from ..base.model import Model as ArasModel
-
-    # Retrieve child table definitions from the parent model's _child_map
     child_defs = ArasModel._child_map.get(parent_item.__tablename__, [])
 
     for child_def in child_defs:
         child_resource_name = child_def["resource"]
-        fk_column = child_def["fk_column"] # Foreign key column linking child to parent
+        fk_column = child_def["fk_column"]
 
-        # Skip if this child resource is not part of the incoming payload or if FK column is missing
         if child_resource_name not in payload or not fk_column:
             continue
 
-        # Get the list of child row data from the payload
         incoming_child_rows_data = payload[child_resource_name]
         if not isinstance(incoming_child_rows_data, list):
-            # If the incoming data is not a list, it's malformed or not meant for sync
             continue
 
         try:
-            # Dynamically get the child model class from the registry
             child_model = ArasModel.get_model(child_resource_name)
         except KeyError:
-            # Log a warning if the child model isn't registered, then skip
-            print(f"Warning: Child model {child_resource_name} not found in registry. Skipping child sync.")
+            logging.warning(f"Child model {child_resource_name} not found in registry. Skipping child sync.")
             continue
 
-        # Fetch all existing children linked to this parent from the database
         existing_children_db = db.query(child_model).filter(
             getattr(child_model, fk_column) == parent_item.id
         ).all()
         
-        # Map existing children by their 'id' for efficient lookup
-        # Convert IDs to strings for robust comparison with incoming payload IDs (which might be strings)
         existing_children_map = {str(row.id): row for row in existing_children_db if row.id is not None}
-        
-        # Keep track of IDs of children from the database that are still present in the incoming payload
-        # This helps identify which existing children need to be deleted (orphans)
         incoming_payload_ids = set()
 
-        # Iterate through the incoming child row data from the payload
         for row_data in incoming_child_rows_data:
             if not isinstance(row_data, dict):
-                # Skip malformed entries
                 continue
-            
-            child_id = row_data.get("id") # Get the ID of the child from the payload data
-
-            # Prepare the child data, removing None values where appropriate and setting the FK
-            row_data_cleaned = {k: v for k, v in row_data.items() if v is not None or k == fk_column}
-            row_data_cleaned[fk_column] = parent_item.id # Link child to its parent
-
-            if child_id is not None and str(child_id) in existing_children_map:
-                # Case 1: Child exists in DB and is present in incoming payload -> UPDATE
-                existing_child_instance = existing_children_map[str(child_id)]
-                existing_child_instance.update_self(db, row_data_cleaned, user_id=user_id)
-                incoming_payload_ids.add(str(child_id)) # Mark as processed
-            else:
-                # Case 2: Child is new (no ID or ID not found in existing DB records) -> CREATE
-                child_model.create(db, row_data_cleaned, user_id=user_id)
+            _update_or_create_child_record(db, parent_item, row_data, child_model, fk_column, user_id, existing_children_map, incoming_payload_ids)
         
-        # Case 3: Identify and DELETE children that were in DB but are no longer in the incoming payload
-        for existing_id_str, existing_child_instance in existing_children_map.items():
-            if existing_id_str not in incoming_payload_ids:
-                # This child was removed from the UI, so delete it from the DB
-                db.delete(existing_child_instance)
-        
-        # Flush the session to ensure all deletions, updates, and creations are
-        # registered with the database before the main transaction is committed.
+        _delete_orphaned_child_records(db, existing_children_map, incoming_payload_ids)
+
         db.flush()
 
+def _generate_pydantic_schemas(model_class: Type[Any]):
+    """
+    Generates Pydantic Schema and PatchSchema for a given model_class.
+    """
+    from ..aras import Aras
+    
+    # Check for Custom Schema Override
+    Schema = Aras.Schema.get_for_model(model_class.__tablename__)
+    
+    if not Schema:
+        # Auto-generate if no custom schema exists
+        fields = {}
+        # System fields that are never part of the request body
+        system_skip = {'id', 'created_at', 'updated_at', 'deleted_at', 'created_by', 'updated_by'}
+        # Scope fields are server-injected; accept them as optional so the frontend need not send them
+        scope_field_names = set(_scope_fields(model_class)) # Use module-level _scope_fields
+
+        for column in model_class.__table__.columns:
+            if column.name in system_skip:
+                continue
+
+            python_type = Any
+            try:
+                python_type = column.type.python_type
+            except:
+                python_type = str
+
+            # Pull declarative validation rules from Field(info={...})
+            info = column.info or {}
+
+            # Narrow to Literal[...] when info={"choices": [...]} is set.
+            _choices = info.get("choices")
+            if _choices:
+                python_type = _Literal[tuple(_choices)]  # type: ignore[valid-type]
+
+            # Determine if the field is required
+            is_form_hidden = info.get("form_hidden", False)
+            is_scope_field = column.name in scope_field_names
+            is_read_only = info.get("read_only", False)
+            has_default = (
+                column.nullable or
+                column.default is not None or
+                column.server_default is not None or
+                is_form_hidden or
+                is_scope_field or
+                is_read_only
+            )
+
+            pydantic_kwargs = {}
+            if info.get("min_length") is not None:
+                pydantic_kwargs["min_length"] = info["min_length"]
+            if info.get("max_length") is not None:
+                pydantic_kwargs["max_length"] = info["max_length"]
+            if info.get("min_value") is not None:
+                pydantic_kwargs["ge"] = info["min_value"]
+            if info.get("max_value") is not None:
+                pydantic_kwargs["le"] = info["max_value"]
+            if info.get("pattern") is not None:
+                pydantic_kwargs["pattern"] = info["pattern"]
+
+            default_val = PydanticField(None if has_default else ..., **pydantic_kwargs) if pydantic_kwargs else (None if has_default else ...)
+            fields[column.name] = (Optional[python_type] if has_default else python_type, default_val)
+
+        # Add child table fields as optional list[dict] so Pydantic accepts them
+        for child_def in ArasModel._child_map.get(model_class.__tablename__, []):
+            resource = child_def.get("resource")
+            if resource and resource not in fields:
+                fields[resource] = (Any, None)
+
+        Schema = create_model(f"{model_class.__name__}Schema", __base__=Validation, **fields)
+        Schema.model_config = ConfigDict(from_attributes=True)
+
+    # Partial schema for PATCH — every field is Optional
+    def _make_optional(annotation: Any) -> Any:
+        if get_origin(annotation) is Union:
+            return annotation  # already Optional / Union
+        return Optional[annotation]
+
+    patch_fields: dict[str, Any] = {
+        name: (_make_optional(info.annotation), FieldInfo(default=None))
+        for name, info in Schema.model_fields.items()
+    }
+    PatchSchema = create_model(f"{model_class.__name__}PatchSchema", __base__=Validation, **patch_fields)
+    PatchSchema.model_config = ConfigDict(from_attributes=True)
+
+    return Schema, PatchSchema
 
 
 class RouterFactory(Router):
@@ -195,99 +260,7 @@ class RouterFactory(Router):
             tags=[_api_tag]
         )
 
-
-        # ── 1. Dynamic Pydantic Schema Generation ─────────────────────────────
-        from ..aras import Aras
-        
-        # Check for Custom Schema Override
-        Schema = Aras.Schema.get_for_model(model_class.__tablename__)
-        
-        if not Schema:
-            # Auto-generate if no custom schema exists
-            fields = {}
-            # System fields that are never part of the request body
-            system_skip = {'id', 'created_at', 'updated_at', 'deleted_at', 'created_by', 'updated_by'}
-            # Scope fields are server-injected; accept them as optional so the frontend need not send them
-            scope_field_names = set(_scope_fields(model_class))
-
-            from pydantic import Field as PydanticField
-            import re as _re
-
-            for column in model_class.__table__.columns:
-                if column.name in system_skip:
-                    continue
-
-                python_type = Any
-                try:
-                    python_type = column.type.python_type
-                except:
-                    python_type = str
-
-                # Pull declarative validation rules from Field(info={...})
-                info = column.info or {}
-
-                # Narrow to Literal[...] when info={"choices": [...]} is set.
-                _choices = info.get("choices")
-                if _choices:
-                    from typing import Literal as _Literal
-                    python_type = _Literal[tuple(_choices)]  # type: ignore[valid-type]
-
-                # Determine if the field is required
-                is_form_hidden = info.get("form_hidden", False)
-                is_scope_field = column.name in scope_field_names
-                is_read_only = info.get("read_only", False)
-                has_default = (
-                    column.nullable or
-                    column.default is not None or
-                    column.server_default is not None or
-                    is_form_hidden or
-                    is_scope_field or
-                    is_read_only
-                )
-
-                pydantic_kwargs = {}
-                if info.get("min_length") is not None:
-                    pydantic_kwargs["min_length"] = info["min_length"]
-                if info.get("max_length") is not None:
-                    pydantic_kwargs["max_length"] = info["max_length"]
-                if info.get("min_value") is not None:
-                    pydantic_kwargs["ge"] = info["min_value"]
-                if info.get("max_value") is not None:
-                    pydantic_kwargs["le"] = info["max_value"]
-                if info.get("pattern") is not None:
-                    pydantic_kwargs["pattern"] = info["pattern"]
-
-                default_val = PydanticField(None if has_default else ..., **pydantic_kwargs) if pydantic_kwargs else (None if has_default else ...)
-                fields[column.name] = (Optional[python_type] if has_default else python_type, default_val)
-
-            # Add child table fields as optional list[dict] so Pydantic accepts them
-            from ..base.model import Model as _ArasModel
-            for child_def in _ArasModel._child_map.get(model_class.__tablename__, []):
-                resource = child_def.get("resource")
-                if resource and resource not in fields:
-                    fields[resource] = (Any, None)
-
-            from ..base.validation import Validation
-            from pydantic import ConfigDict
-            Schema = create_model(f"{model_class.__name__}Schema", __base__=Validation, **fields)
-            Schema.model_config = ConfigDict(from_attributes=True)
-
-        # Partial schema for PATCH — every field is Optional
-        from typing import get_args, get_origin, Union
-        from pydantic.fields import FieldInfo
-        def _make_optional(annotation: Any) -> Any:
-            if get_origin(annotation) is Union:
-                return annotation  # already Optional / Union
-            return Optional[annotation]
-
-        patch_fields: dict[str, Any] = {
-            name: (_make_optional(info.annotation), FieldInfo(default=None))
-            for name, info in Schema.model_fields.items()
-        }
-        from pydantic import ConfigDict as _ConfigDict
-        from ..base.validation import Validation as _Validation
-        PatchSchema = create_model(f"{model_class.__name__}PatchSchema", __base__=_Validation, **patch_fields)
-        PatchSchema.model_config = _ConfigDict(from_attributes=True)
+        Schema, PatchSchema = _generate_pydantic_schemas(model_class)
 
         # Determine Public Access
         allow_public = getattr(model_class, "__public_read__", False)
@@ -400,6 +373,7 @@ class RouterFactory(Router):
 
         @router.get("/export")
         async def export_items(
+            request: Request, # Add request for scope filters
             search: Optional[str] = None,
             filters: Optional[str] = None,
             order_by: Optional[str] = None,
@@ -413,6 +387,8 @@ class RouterFactory(Router):
                 try: parsed_filters = json.loads(filters)
                 except: raise ValidationException("Invalid filters format.")
 
+            parsed_filters = _apply_scope_filters(model_class, request, list(parsed_filters or []))
+
             # 1. Build Query
             stmt = model_class._q()
             stmt = model_class.apply_filters(stmt, parsed_filters)
@@ -421,21 +397,25 @@ class RouterFactory(Router):
             sort_col = getattr(model_class, order_by) if order_by and hasattr(model_class, order_by) else model_class.id
             stmt = stmt.order_by(sort_col.desc() if desc else sort_col.asc())
 
-            # 2. Fetch All (Warning: Large datasets might need chunking, but for MVP we fetch all)
-            items = db.scalars(stmt).all()
-            if not items:
-                raise ResourceNotFoundException("No items to export")
+            # 2. Define a generator to stream data
+            def generate():
+                # Write header
+                output = io.StringIO()
+                fieldnames = [c.name for c in model_class.__table__.columns if c.name not in model_class._SKIP]
+                writer = csv.DictWriter(output, fieldnames=fieldnames)
+                writer.writeheader()
+                yield output.getvalue()
+                output.seek(0) # Reset buffer
 
-            # 3. Create CSV in Memory
-            output = io.StringIO()
-            writer = csv.DictWriter(output, fieldnames=[c.name for c in model_class.__table__.columns])
-            writer.writeheader()
-            for item in items:
-                writer.writerow(item.to_dict())
-            
-            output.seek(0)
+                # Stream data row by row
+                for item in db.scalars(stmt).yield_per(100): # Yield in batches of 100 for efficiency
+                    output = io.StringIO()
+                    writer = csv.DictWriter(output, fieldnames=fieldnames)
+                    writer.writerow(item.to_dict())
+                    yield output.getvalue()
+
             return StreamingResponse(
-                iter([output.getvalue()]),
+                generate(),
                 media_type="text/csv",
                 headers={"Content-Disposition": f"attachment; filename={model_class.__tablename__}_export.csv"}
             )
@@ -566,7 +546,6 @@ class RouterFactory(Router):
             model_class.resolve_labels(db, [res])
 
             # Child Hydration
-            from ..base.model import Model as ArasModel # Import Model to access _child_map and get_model
             child_defs = ArasModel._child_map.get(model_class.__tablename__, [])
             for child_def in child_defs:
                 child_resource_name = child_def["resource"]
@@ -581,9 +560,9 @@ class RouterFactory(Router):
                         res[child_resource_name] = [rec.to_dict() for rec in child_records]
                         child_model_class.resolve_labels(db, res[child_resource_name])
                     except KeyError:
-                        print(f"Warning: Child model {child_resource_name} not found in registry.")
+                        logging.warning(f"Child model {child_resource_name} not found in registry.")
                     except Exception as e:
-                        print(f"Error fetching child records for {child_resource_name}: {e}")
+                        logging.error(f"Error fetching child records for {child_resource_name}: {e}", exc_info=True)
 
             return ok(res, "Item retrieved successfully.")
 
@@ -658,10 +637,10 @@ class RouterFactory(Router):
                 item = model_class.get(db, item_id)
                 if item:
                     try:
-                        item.delete_self(db, user_id=user.id)
+                        item.delete_self(db, user.id)
                         deleted_count += 1
                     except Exception as e:
-                        print(f"[Bulk Delete] Failed to delete item {item_id}: {e}")
+                        logging.error(f"[Bulk Delete] Failed to delete item {item_id}: {e}", exc_info=True)
             message = f"Successfully deleted {deleted_count} of {len(ids)} items."
             db.commit()
             return ok({"deleted_count": deleted_count, "requested_count": len(ids)}, message)
@@ -694,7 +673,6 @@ class RouterFactory(Router):
                         parent_item = model_class.create(db, parent_payload, user_id=user.id)
                     db.flush()
                     # Save each child group
-                    from ..base.model import Model as ArasModel
                     child_errors = []
                     for child_entry in children:
                         child_resource = child_entry.get("resource", "").replace("/", "_").lstrip("_")
@@ -799,7 +777,7 @@ class RouterFactory(Router):
                             raise
                         except Exception as e:
                             db.rollback()
-                            # Consider logging the full error e for debugging
+                            logging.error(f"Error running custom action '{name}' for {model_class.__tablename__}.{item_id}: {e}", exc_info=True)
                             raise ArasException("Internal Server Error", detail=str(e))
                 else:
                     @router.post(f"/{{item_id}}/action/{name}", response_model=dict)
@@ -823,7 +801,7 @@ class RouterFactory(Router):
                             raise
                         except Exception as e:
                             db.rollback()
-                            # Consider logging the full error e for debugging
+                            logging.error(f"Error running custom action '{name}' for {model_class.__tablename__}.{item_id}: {e}", exc_info=True)
                             raise ArasException("Internal Server Error", detail=str(e))
             
             create_action_route(action_name, model_action)

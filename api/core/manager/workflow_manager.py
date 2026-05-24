@@ -15,7 +15,7 @@ class WorkflowManager(Manager):
     def _load_db_template(cls, db: Session, document_type: str):
         """Returns active WorkflowTemplate for this document_type, or None."""
         try:
-            from apps.erp.config.workflow_models import WorkflowTemplate
+            from apps.config.workflow_models import WorkflowTemplate
             return db.query(WorkflowTemplate).filter(
                 WorkflowTemplate.document_type == document_type,
                 WorkflowTemplate.is_active == True,
@@ -30,7 +30,7 @@ class WorkflowManager(Manager):
         if db:
             template = cls._load_db_template(db, item.__tablename__)
             if template:
-                from apps.erp.config.workflow_models import WorkflowTransition, WorkflowState
+                from apps.config.workflow_models import WorkflowTransition, WorkflowState
                 transitions = (
                     db.query(WorkflowTransition)
                     .join(WorkflowState, WorkflowTransition.from_state_id == WorkflowState.id)
@@ -83,7 +83,7 @@ class WorkflowManager(Manager):
         template = cls._load_db_template(db, item.__tablename__)
 
         if template:
-            from apps.erp.config.workflow_models import WorkflowTransition, WorkflowState
+            from apps.config.workflow_models import WorkflowTransition, WorkflowState
             transition_row = (
                 db.query(WorkflowTransition)
                 .join(WorkflowState, WorkflowTransition.from_state_id == WorkflowState.id)

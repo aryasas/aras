@@ -5,7 +5,7 @@ Impact: Provides generic CRUD, serialization, and metadata logic.
 """
 from typing import Any, Dict, List, Optional, Type, TypeVar, Tuple, Callable
 from datetime import datetime, date, timezone
-from sqlalchemy import Column, Integer, Boolean, DateTime, func, String, select, or_, inspect, text, UniqueConstraint
+from sqlalchemy import Column, Integer, Boolean, DateTime, func, String, select, or_, inspect, text, UniqueConstraint, Table, MetaData
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session
 from decimal import Decimal
 from enum import Enum
@@ -31,13 +31,14 @@ class Model(Aras, Base):
     _actions: Dict[str, 'ModelAction'] = {} # Store registered model actions (Delayed Type)
     _computed: List[str] = [] # List of method names marked as computed fields
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-
-        # 0. Merge inheritable class attributes from MRO so concrete subclasses
-        #    pick up __features__, __scoped_by__, __unique_together__
-        #    from any abstract base (DocumentBase, MasterDataBase, ...) without
-        #    losing the child's own values. Child wins on conflict by appearing first.
+    @classmethod
+    def _merge_inheritable_attributes(cls):
+        """
+        Merges inheritable class attributes from MRO so concrete subclasses
+        pick up __features__, __scoped_by__, __unique_together__
+        from any abstract base (DocumentBase, MasterDataBase, ...) without
+        losing the child's own values. Child wins on conflict by appearing first.
+        """
         for attr, default in (
             ("__features__", []),
             ("__scoped_by__", []),
@@ -66,98 +67,127 @@ class Model(Aras, Base):
             if merged or attr in cls.__dict__:
                 setattr(cls, attr, merged)
 
+    @classmethod
+    def _register_model_and_validate_inheritance(cls):
+        """
+        Performs three-layer inheritance validation and registers the model
+        by its class name and tablename.
+        """
+        # Three-layer inheritance validation: a concrete model may inherit at
+        # most one Level-3a abstract base (DocumentBase OR LineItemBase, etc.).
+        # We filter to only 'leaf' abstract bases to allow multi-level abstract 
+        # inheritance (e.g. MasterDataBase -> ErpBase -> Model).
+        all_abstract_bases = [
+            b for b in cls.__mro__[1:]
+            if isinstance(b, type) and issubclass(b, Model) and b is not Model
+            and b.__dict__.get("__abstract__") is True
+        ]
+        leaf_abstract_bases = [
+            b for b in all_abstract_bases
+            if not any(issubclass(other, b) for other in all_abstract_bases if other is not b)
+        ]
+        if len(leaf_abstract_bases) > 1:
+            names = ", ".join(b.__name__ for b in leaf_abstract_bases)
+            raise TypeError(
+                f"{cls.__name__} inherits from multiple Level-3a abstract bases ({names}). "
+                f"Pick exactly one (DocumentBase | LineItemBase | MasterDataBase | ConfigBase)."
+            )
+
+        # Register by class name AND tablename
+        Model._registry[cls.__name__] = cls
+        if hasattr(cls, "__tablename__"):
+            Model._registry[cls.__tablename__] = cls
+
+    @classmethod
+    def _discover_child_relations(cls):
+        """
+        Handles Parent-Child Auto Discovery by detecting which local column FKs
+        to the parent table and updating the Model._child_map.
+        """
+        parent_table = getattr(cls, "__parent__", None)
+        if parent_table:
+            # Detect which local column FKs to the parent table (defer until columns exist)
+            fk_column = None
+            try:
+                for col in cls.__table__.columns:
+                    for fk in col.foreign_keys:
+                        target_table = getattr(fk, "_column_tokens", [None])[1] if hasattr(fk, "_column_tokens") else fk.target_fullname.split('.')[0]
+                        if target_table == parent_table:
+                            fk_column = col.name
+                            break
+                    if fk_column:
+                        break
+            except Exception:
+                logging.error(f"Failed to determine FK column for child relation in {cls.__tablename__}.", exc_info=True)
+                fk_column = None
+            Model._child_map.setdefault(parent_table, [])
+            if not any(c.get("resource") == cls.__tablename__ for c in Model._child_map[parent_table]):
+                Model._child_map[parent_table].append({
+                    "resource": cls.__tablename__,
+                    "fk_column": fk_column,
+                })
+
+    @classmethod
+    def _discover_actions_and_computed_fields(cls):
+        """
+        Discovers and registers custom actions and computed properties for the model.
+        """
+        from ..logic.model_actions import get_model_actions # Delayed import
+        cls._actions = get_model_actions(cls)
+
+        computed = []
+        for c in cls.__mro__:
+            for name, descriptor in vars(c).items():
+                if name in computed:
+                    continue
+                if isinstance(descriptor, property):
+                    if getattr(descriptor.fget, "_aras_computed", False):
+                        computed.append(name)
+                elif callable(descriptor) and getattr(descriptor, "_aras_computed", False):
+                    computed.append(name)
+        cls._computed = computed
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+        cls._merge_inheritable_attributes()
+
         # 1. Automatically register non-abstract subclasses
         if not cls.__dict__.get("__abstract__"):
-            # Three-layer inheritance validation: a concrete model may inherit at
-            # most one Level-3a abstract base (DocumentBase OR LineItemBase, etc.).
-            # We filter to only 'leaf' abstract bases to allow multi-level abstract 
-            # inheritance (e.g. MasterDataBase -> ErpBase -> Model).
-            all_abstract_bases = [
-                b for b in cls.__mro__[1:]
-                if isinstance(b, type) and issubclass(b, Model) and b is not Model
-                and b.__dict__.get("__abstract__") is True
-            ]
-            leaf_abstract_bases = [
-                b for b in all_abstract_bases
-                if not any(issubclass(other, b) for other in all_abstract_bases if other is not b)
-            ]
-            if len(leaf_abstract_bases) > 1:
-                names = ", ".join(b.__name__ for b in leaf_abstract_bases)
-                raise TypeError(
-                    f"{cls.__name__} inherits from multiple Level-3a abstract bases ({names}). "
-                    f"Pick exactly one (DocumentBase | LineItemBase | MasterDataBase | ConfigBase)."
-                )
-
-            # Register by class name AND tablename
-            Model._registry[cls.__name__] = cls
-            if hasattr(cls, "__tablename__"):
-                Model._registry[cls.__tablename__] = cls
+            cls._register_model_and_validate_inheritance()
 
             # 2. Handle Parent-Child Auto Discovery
-            parent_table = getattr(cls, "__parent__", None)
-            if parent_table:
-                # Detect which local column FKs to the parent table (defer until columns exist)
-                fk_column = None
-                try:
-                    for col in cls.__table__.columns:
-                        for fk in col.foreign_keys:
-                            target_table = getattr(fk, "_column_tokens", [None])[1] if hasattr(fk, "_column_tokens") else fk.target_fullname.split('.')[0]
-                            if target_table == parent_table:
-                                fk_column = col.name
-                                break
-                        if fk_column:
-                            break
-                except Exception as e:
-                    import traceback
-                    print(f"Error determining fk_column for {cls.__tablename__}: {e}")
-                    traceback.print_exc()
-                    fk_column = None
-
-                Model._child_map.setdefault(parent_table, [])
-                if not any(c.get("resource") == cls.__tablename__ for c in Model._child_map[parent_table]):
-                    Model._child_map[parent_table].append({
-                        "resource": cls.__tablename__,
-                        "fk_column": fk_column,
-                    })
+            cls._discover_child_relations()
 
             # 3. Discover and register custom actions
-            from ..logic.model_actions import get_model_actions # Delayed import
-            cls._actions = get_model_actions(cls)
-
             # 4. Discover computed properties
-            computed = []
-            for c in cls.__mro__:
-                for name, descriptor in vars(c).items():
-                    if name in computed:
-                        continue
-                    if isinstance(descriptor, property):
-                        if getattr(descriptor.fget, "_aras_computed", False):
-                            computed.append(name)
-                    elif callable(descriptor) and getattr(descriptor, "_aras_computed", False):
-                        computed.append(name)
-            cls._computed = computed
+            cls._discover_actions_and_computed_fields()
 
         # 5. Inject Generic Features (Traits)
         from ..logic.trait_injector import TraitInjector
         TraitInjector.inject(cls)
 
-        # 6. Apply __unique_together__ as composite UniqueConstraints. Only for
-        #    concrete (mapped) models — abstract bases have no __table__.
+        # 6. Apply __unique_together__ as composite UniqueConstraints.
+        #    Only for concrete (mapped) models — abstract bases have no __table__.
         if not cls.__dict__.get("__abstract__") and hasattr(cls, "__table__"):
-            ut = getattr(cls, "__unique_together__", None) or []
-            if ut:
-                tablename = cls.__tablename__
-                for cols in ut:
-                    cols = tuple(cols)
-                    name = f"uq_{tablename}_{'_'.join(cols)}"
-                    # Skip if already present (sync re-import safety)
-                    existing = {c.name for c in cls.__table__.constraints if c.name}
-                    if name in existing:
-                        continue
-                    try:
-                        cls.__table__.append_constraint(UniqueConstraint(*cols, name=name))
-                    except Exception as e:
-                        print(f"[Model] __unique_together__ skipped for {tablename}{cols}: {e}")
+            cls._apply_unique_constraints()
+    
+    @classmethod
+    def _apply_unique_constraints(cls):
+        ut = getattr(cls, "__unique_together__", None) or []
+        if ut:
+            tablename = cls.__tablename__
+            for cols in ut:
+                cols = tuple(cols)
+                name = f"uq_{tablename}_{'_'.join(cols)}"
+                # Skip if already present (sync re-import safety)
+                existing = {c.name for c in cls.__table__.constraints if c.name}
+                if name in existing:
+                    continue
+                try:
+                    cls.__table__.append_constraint(UniqueConstraint(*cols, name=name))
+                except Exception as e:
+                    logging.warning(f"[Model] UniqueConstraint application skipped for {tablename}{cols}: {e}")
 
     __soft_delete__: bool = False
     __serialize_relations__: dict = {}
@@ -210,6 +240,19 @@ class Model(Aras, Base):
         """
         if not filters:
             return stmt
+
+        # Map operators to SQLAlchemy methods
+        operators = {
+            "=": lambda col, val: col == val,
+            "!=": lambda col, val: col != val,
+            ">": lambda col, val: col > val,
+            ">=": lambda col, val: col >= val,
+            "<": lambda col, val: col < val,
+            "<=": lambda col, val: col <= val,
+            "ilike": lambda col, val: col.ilike(f"%{val}%"),
+            "between": lambda col, val: col.between(val[0], val[1]) if isinstance(val, list) and len(val) == 2 else None,
+            "in": lambda col, val: col.in_(val) if isinstance(val, list) else None,
+        }
             
         for f in filters:
             field = f.get("field")
@@ -220,18 +263,7 @@ class Model(Aras, Base):
             col = getattr(cls, field)
             
             try:
-                if op == "=": stmt = stmt.where(col == val)
-                elif op == "!=": stmt = stmt.where(col != val)
-                elif op == ">": stmt = stmt.where(col > val)
-                elif op == ">=": stmt = stmt.where(col >= val)
-                elif op == "<": stmt = stmt.where(col < val)
-                elif op == "<=": stmt = stmt.where(col <= val)
-                elif op == "ilike": stmt = stmt.where(col.ilike(f"%{val}%"))
-                elif op == "between" and isinstance(val, list) and len(val) == 2:
-                    stmt = stmt.where(col.between(val[0], val[1]))
-                elif op == "in" and isinstance(val, list):
-                    stmt = stmt.where(col.in_(val))
-                elif op == "shared_scope" and isinstance(val, dict):
+                if op == "shared_scope" and isinstance(val, dict):
                     direct_id = val["direct"]
                     other_ids = val["others"]
                     col_obj = getattr(cls, field)
@@ -246,8 +278,17 @@ class Model(Aras, Base):
                         )
                     else:
                         stmt = stmt.where(col_obj == direct_id)
+                elif op in operators:
+                    filter_func = operators[op]
+                    # Ensure the filter function returns a valid clause before applying
+                    clause = filter_func(col, val)
+                    if clause is not None:
+                        stmt = stmt.where(clause)
+                else:
+                    logging.warning(f"Unsupported filter operator '{op}' for field '{field}' in {cls.__name__}.")
+
             except Exception as e:
-                logging.warning("serialization skipped: %s", e)
+                logging.warning(f"Error applying filter '{field} {op} {val}' to {cls.__name__}: {e}")
                 continue
         return stmt
 
@@ -385,7 +426,7 @@ class Model(Aras, Base):
                     if val in mapping:
                         item[f"{col.name}_label"] = mapping[val]
             except Exception as e:
-                print(f"[Model] Warning: Failed to resolve labels for {cls.__tablename__}.{col.name}: {e}")
+                logging.error(f"[Model] Failed to resolve labels for {cls.__tablename__}.{col.name}: {e}", exc_info=True)
 
         # Auto-resolve remaining FK columns that still lack a _label
         already_resolved = {f"{col.name}_label" for col in cls.__table__.columns if col.info.get("display_column")}
@@ -420,8 +461,8 @@ class Model(Aras, Base):
                     val = item.get(col.name)
                     if val in mapping:
                         item[col_label_key] = mapping[val]
-            except Exception:
-                pass
+            except Exception as e:
+                logging.error(f"[Model] Failed to auto-resolve labels for {cls.__tablename__}.{col.name}: {e}", exc_info=True)
 
     @classmethod
     def resolve_m2m(cls, db: Session, items: List[dict]):
@@ -434,15 +475,19 @@ class Model(Aras, Base):
         if not item_ids: return
         
         for field_name, defs in m2m_defs.items():
-            bridge_table = defs.get("bridge_table")
+            bridge_table_name = defs.get("bridge_table")
             source_key = defs.get("source_key")
             target_key = defs.get("target_key")
-            if not all([bridge_table, source_key, target_key]): continue
+            if not all([bridge_table_name, source_key, target_key]): continue
             
             try:
-                # Use raw SQL to avoid requiring bridge models to be registered
-                query = text(f"SELECT {source_key}, {target_key} FROM {bridge_table} WHERE {source_key} IN :ids")
-                rows = db.execute(query, {"ids": tuple(item_ids)}).all()
+                # Use SQLAlchemy Core to interact with the bridge table
+                bridge_table_obj = Table(bridge_table_name, cls.metadata, autoload_with=db.connection())
+                
+                query = select(bridge_table_obj.c[source_key], bridge_table_obj.c[target_key]).where(
+                    bridge_table_obj.c[source_key].in_(item_ids)
+                )
+                rows = db.execute(query).all()
                 
                 mapping = {}
                 for s_id, t_id in rows:
@@ -452,7 +497,7 @@ class Model(Aras, Base):
                 for item in items:
                     item[field_name] = mapping.get(item["id"], [])
             except Exception as e:
-                print(f"[Model] Warning: Failed to resolve M2M for {cls.__tablename__}.{field_name}: {e}")
+                logging.error(f"[Model] Failed to resolve M2M for {cls.__tablename__}.{field_name}: {e}", exc_info=True)
 
     def save(self, db: Session, data: dict = None, *, user_id: int = None, is_new: bool = None):
         """Unified create/update logic with audit tracking and hooks."""
@@ -500,7 +545,7 @@ class Model(Aras, Base):
                             generated = SeriesManager.get_next(db, key=series_key, default_prefix=f_meta.series)
                             setattr(self, f_meta.name, generated)
             except Exception as e:
-                print(f"[Model] Series generation failed: {e}")
+                logging.error(f"[Model] Series generation failed for {self.__tablename__}: {e}", exc_info=True)
 
         # ── Code/name fallback for child rows: inherit from parent item name ──
         parent_table = getattr(self.__class__, "__parent__", None)
@@ -559,16 +604,21 @@ class Model(Aras, Base):
             
             source_id = self.id
             try:
+                # Use SQLAlchemy Core to interact with the bridge table
+                bridge_table_obj = Table(bridge_table_name, self.metadata, autoload_with=db.connection())
+
                 # Clear existing
-                db.execute(text(f"DELETE FROM {bridge_table} WHERE {source_key} = :s_id"), {"s_id": source_id})
+                delete_stmt = bridge_table_obj.delete().where(bridge_table_obj.c[source_key] == source_id)
+                db.execute(delete_stmt)
                 
                 # Insert new
-                for t_id in new_ids:
-                    if t_id is not None:
-                        db.execute(text(f"INSERT INTO {bridge_table} ({source_key}, {target_key}) VALUES (:s_id, :t_id)"), 
-                                   {"s_id": source_id, "t_id": t_id})
+                if new_ids: # Only insert if there are new IDs
+                    insert_values = [{source_key: source_id, target_key: t_id} for t_id in new_ids if t_id is not None]
+                    if insert_values:
+                        insert_stmt = bridge_table_obj.insert().values(insert_values)
+                        db.execute(insert_stmt)
             except Exception as e:
-                print(f"[Model] Warning: Failed to save M2M for {self.__tablename__}.{field_name}: {e}")
+                logging.error(f"[Model] Failed to save M2M for {self.__tablename__}.{field_name}: {e}", exc_info=True)
                 db.rollback()
                 raise e
 
@@ -604,7 +654,7 @@ class Model(Aras, Base):
                 try:
                     getattr(self, name)()
                 except Exception as e:
-                    print(f"[Model] Hook error in {self.__tablename__}.{name}: {e}")
+                    logging.error(f"[Model] Hook error in {self.__tablename__}.{name}: {e}", exc_info=True)
 
     def delete_self(self, db: Session, user_id: int = None):
         self._fire_hooks("on_delete")

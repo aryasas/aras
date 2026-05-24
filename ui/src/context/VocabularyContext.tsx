@@ -93,7 +93,7 @@ export function VocabularyProvider({ children }: { children: React.ReactNode }) 
       return
     }
 
-    api.get(`/erp/config/organizations/${activeOrgId}/vocabulary`)
+    api.get(`/config/organizations/${activeOrgId}/vocabulary`)
       .then((res) => {
         const normalized = normalizeVocabulary(res.data)
         vocabularyCache.set(activeOrgId, normalized)

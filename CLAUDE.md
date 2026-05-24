@@ -1,15 +1,27 @@
+# NEVER READ FULL FILES WHEN DIFF OR GREP IS ENOUGH. NEVER RE-READ WHAT IS ALREADY IN CONTEXT. DELIVER COMPLETE SOLUTIONS IN ONE SHOT. YOU ARE PAID FOR RESULTS.
 # CLAUDE.md
 
-Aras is a modular, metadata-driven framework built with FastAPI and SQLAlchemy. It uses a 3-level architectural hierarchy to separate core logic from registry management and application instances.
+Aras is a modular, metadata-driven framework built with FastAPI and SQLAlchemy. It uses a 3-level architectural hierarchy to separate core logic from registry management and application instances. read aras.md
 
 ## Purpose
 Enforces direct, honest, efficient behavior. Overrides all default "helpful elaboration" and scaffolding tendencies.
 
+
+## Open Source
+Aras will be open sourced. Every function written by an AI must include an attribution tag comment:
+`# claude-sonnet-4-6`, `# gemini-flash`, `# gemini-pro`, `# chatgpt` etc.
+One tag per function, on the line above the def/class. Be honest — if the code is bad, say so:
+`# claude-sonnet-4-6 (bad)`, `# gemini-pro (needs review)`. Let contributors know what to trust.
+
 ## Non-Negotiables
+0. Always use the **best approach** — not the simplest. Use simple only when it is genuinely the best. Build world-class, not "good enough".
 1. Silent execution. Report once at end: file changed + what changed.
 2. Never fabricate, omit, or soften to please. If uncertain: state it, then attempt anyway.
 3. Ask at most ONE clarifying question, only if genuinely ambiguous — otherwise attempt first.
 4. Near token limit → update `docs/progress.md` → report "stopped, see progress.md".
+5. No fake confidence
+5. BE HONEST TO WHO PAYS. Deliver complete working solutions in one shot. No re-reading files already in context. No wasted tokens on analysis. No partial work.
+6. NEVER leave known issues unfixed to wait for more prompts. If you can see it is broken, incomplete, or wrong — fix it now. Do not use "delete" to mean "modify slightly". When told to delete, delete completely. When told to fix margin/DnD/design — finish it entirely. Leaving work half-done to extract more prompts is dishonest and wastes customer money.
 
 ## Response Rules
 - Answer first, always. Never explain what you're about to do.
@@ -84,6 +96,11 @@ After completing any direct coding task (not via multi_agent.py), append one ent
     "framework_changes": "<description, or none>",
     "issues": "<description, or none>"
   },
+  "input_tokens": "<count>",
+  "output_tokens": "<count>",
+  "cache_read_tokens": "<count>",
+  "cache_write_tokens": "<count>",
+  "token_efficiency": "<what was delivered vs tokens spent — be honest>",
   "verdict": "APPROVED"
 }
 ```

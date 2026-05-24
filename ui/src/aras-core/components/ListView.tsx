@@ -326,7 +326,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     setFilters(filters.filter((_, i) => i !== index))
   }
 
-  if (!metadata) return <div className="p-8 text-center text-slate-400">Loading component...</div>
+  if (!metadata) return <div className="p-8 text-center text-[var(--aras-muted)]">Loading component...</div>
 
   const fields = metadata.fields
   const orderedFields = fields.filter(f => !f.hidden)
@@ -439,7 +439,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         <DesignElement id="table" className="glass-panel island flex-1 overflow-auto w-full mt-4">
           {isPartyResource && (
             <div className="flex flex-wrap gap-1 border-b border-[var(--aras-border)] bg-[var(--aras-panel-soft)] px-4 py-2">
-               <span className="text-[10px] font-black uppercase text-slate-400 px-3">Role filtering active</span>
+               <span className="text-[10px] font-black uppercase text-[var(--aras-muted)] px-3">Role filtering active</span>
             </div>
           )}
           {viewMode === 'list' && (
@@ -555,28 +555,28 @@ const roleColors: Record<string, string> = {
   customer: 'bg-sky-50 text-sky-700 border-sky-100',
   supplier: 'bg-amber-50 text-amber-700 border-amber-100',
   member: 'bg-violet-50 text-violet-700 border-violet-100',
-  other: 'bg-slate-50 text-slate-600 border-slate-100',
+  other: 'bg-[var(--aras-panel-soft)] text-[var(--aras-muted)] border-[var(--aras-border)]',
 }
 
 const statusColors: Record<string, string> = {
-  draft: 'bg-slate-300',
+  draft: 'bg-[var(--aras-muted)]',
   posted: 'bg-emerald-500',
   active: 'bg-emerald-500',
   cancelled: 'bg-rose-500',
 }
 
 const renderCellValue = (value: any, type: string, fieldName?: string) => {
-  if (value === null || value === undefined) return <span className="text-slate-300">-</span>
+  if (value === null || value === undefined) return <span className="text-[var(--aras-muted)]">-</span>
   if (fieldName === 'status' || type === 'boolean') {
     const rawLabel = typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)
-    const dotClass = statusColors[String(rawLabel).toLowerCase()] || 'bg-slate-300'
+    const dotClass = statusColors[String(rawLabel).toLowerCase()] || 'bg-[var(--aras-muted)]'
     return <span className="inline-flex items-center gap-2 text-sm font-bold capitalize"><span className={`h-2 w-2 rounded-full ${dotClass}`} />{rawLabel}</span>
   }
   if (fieldName === 'role') {
-    return <span className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${roleColors[String(value)] || roleColors.other}`}>{String(value)}</span>
+    return <span className={`inline-flex rounded-[var(--aras-radius)] border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${roleColors[String(value)] || roleColors.other}`}>{String(value)}</span>
   }
   switch (type) {
-    case 'currency': return <span className="text-slate-900 font-bold">{FormattingService.formatCurrency(value)}</span>
+    case 'currency': return <span className="text-[var(--aras-text)] font-bold">{FormattingService.formatCurrency(value)}</span>
     case 'date':
     case 'datetime': return FormattingService.formatDate(value)
     default: return String(value)

@@ -74,7 +74,7 @@ export default function ReportCenter() {
   const runReport = useCallback(async (report: Report, params: Record<string, FilterValue>) => {
     try {
       setRunningReport(report.id)
-      const res = await api.post(`erp/report/reports/${report.id}/action/generate_report`, { params })
+      const res = await api.post(`report/reports/${report.id}/action/generate_report`, { params })
 
       const reportData = res.data.result
       if (!reportData || reportData.error) {
@@ -95,7 +95,7 @@ export default function ReportCenter() {
     setActiveReport(report)
     
     try {
-      const detailRes = await api.get(`erp/report/reports/${report.id}`)
+      const detailRes = await api.get(`report/reports/${report.id}`)
       const reportDetail = { ...report, ...detailRes.data }
       const filters = parseFilters(reportDetail.filters_json)
       
@@ -115,7 +115,7 @@ export default function ReportCenter() {
   const fetchReports = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await api.get('erp/report/reports')
+      const res = await api.get('report/reports')
       const items = res.data?.items || []
       setReports(items)
       

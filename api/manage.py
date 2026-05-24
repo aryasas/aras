@@ -180,11 +180,11 @@ def main():
     elif args.command == "seed":
         # Imports here, specifically for the seed command
         from core.lib.database import SessionLocal
-        from apps.erp.config.seed_rbac import run_seed as seed_rbac
-        from apps.erp.accounting.seed_coa import seed_coa
-        from apps.erp.report.seed_reports import run_seed as seed_reports
-        from apps.erp.seed_demo import run_seed as seed_demo_data
-        from apps.erp.config.models import Organization
+        from apps.config.seed_rbac import run_seed as seed_rbac
+        from apps.accounting.seed_coa import seed_coa
+        from apps.report.seed_reports import run_seed as seed_reports
+        from apps.seed_demo import run_seed as seed_demo_data
+        from apps.config.models import Organization
 
         print("Discovering apps...")
         Aras.logic.discovery.discover_apps(package_path="apps")

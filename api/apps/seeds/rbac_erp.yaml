@@ -1,0 +1,558 @@
+# ERP RBAC seed — loaded by `manage.py seed` or ErpApp.seed().
+# Actions: READ | CREATE | UPDATE | DELETE
+# Resources match ERP model __tablename__ values.
+
+roles:
+
+  - name: "ERP Admin"
+    description: "Full access to all ERP resources"
+    permissions:
+      # Accounting
+      - resource: erp_accounting_accounts
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_fiscal_periods
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_entries
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_entry_lines
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_outflow_invoices
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_outflow_invoice_lines
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_outflow_invoice_charges
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_inflow_invoices
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_inflow_invoice_lines
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_inflow_invoice_charges
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_payments
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_payment_allocations
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_grns
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_grn_lines
+        actions: [READ, CREATE, UPDATE, DELETE]
+      # Stock
+      - resource: erp_stock_categories
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_items
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_item_accounts
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_item_uoms
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_pricelists
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_promo_bundles
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_promo_items
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_locations
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_delivery_notes
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_delivery_note_lines
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_movements
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_movement_lines
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_item_bundles
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_item_locations
+        actions: [READ, CREATE, UPDATE, DELETE]
+      # Config
+      - resource: erp_config_organizations
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_config_currencies
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_config_uoms
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_config_price_types
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_config_charges
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_config_exchange_rates
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_config_settings
+        actions: [READ, UPDATE]
+      - resource: erp_config_payment_modes
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_config_payment_accounts
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_config_print_templates
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_config_notifications
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_config_org_vocabulary
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_config_org_posting_rules
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_config_workflow_templates
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_config_workflow_states
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_config_workflow_transitions
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_config_workflow_actions
+        actions: [READ, CREATE, UPDATE, DELETE]
+      # CRM
+      - resource: erp_crm_pipelines
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_crm_stages
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_crm_leads
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_crm_activities
+        actions: [READ, CREATE, UPDATE, DELETE]
+      # Parties
+      - resource: erp_party_parties
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_party_contacts
+        actions: [READ, CREATE, UPDATE, DELETE]
+      # Assets
+      - resource: erp_asset_categories
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_asset_assets
+        actions: [READ, CREATE, UPDATE, DELETE]
+      # HR
+      - resource: erp_hr_departments
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_hr_positions
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_hr_employees
+        actions: [READ, CREATE, UPDATE, DELETE]
+      # POS
+      - resource: erp_pot_terminals
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_pot_sessions
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_pot_orders
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_pot_order_lines
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_pot_payment_lines
+        actions: [READ, CREATE, UPDATE, DELETE]
+      # Reports
+      - resource: erp_report_reports
+        actions: [READ, CREATE, UPDATE, DELETE]
+      # Misc
+      - resource: erp_base_saved_filters
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_user_access
+        actions: [READ, CREATE, UPDATE, DELETE]
+
+  - name: "ERP User"
+    description: "General ERP access — read/write on transactional data, read-only on config"
+    permissions:
+      # Accounting (transactional — no delete)
+      - resource: erp_accounting_accounts
+        actions: [READ]
+      - resource: erp_accounting_fiscal_periods
+        actions: [READ]
+      - resource: erp_accounting_entries
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_entry_lines
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_outflow_invoices
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_outflow_invoice_lines
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_outflow_invoice_charges
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_inflow_invoices
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_inflow_invoice_lines
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_inflow_invoice_charges
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_payments
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_payment_allocations
+        actions: [READ, CREATE]
+      - resource: erp_accounting_grns
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_grn_lines
+        actions: [READ, CREATE, UPDATE]
+      # Stock (read items/categories, write movements and delivery)
+      - resource: erp_stock_categories
+        actions: [READ]
+      - resource: erp_stock_items
+        actions: [READ]
+      - resource: erp_stock_item_uoms
+        actions: [READ]
+      - resource: erp_stock_pricelists
+        actions: [READ]
+      - resource: erp_stock_locations
+        actions: [READ]
+      - resource: erp_stock_delivery_notes
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_stock_delivery_note_lines
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_stock_movements
+        actions: [READ, CREATE]
+      - resource: erp_stock_movement_lines
+        actions: [READ, CREATE]
+      - resource: erp_stock_item_locations
+        actions: [READ]
+      # Config (read-only)
+      - resource: erp_config_currencies
+        actions: [READ]
+      - resource: erp_config_uoms
+        actions: [READ]
+      - resource: erp_config_price_types
+        actions: [READ]
+      - resource: erp_config_charges
+        actions: [READ]
+      - resource: erp_config_exchange_rates
+        actions: [READ]
+      - resource: erp_config_payment_modes
+        actions: [READ]
+      - resource: erp_config_payment_accounts
+        actions: [READ]
+      - resource: erp_config_print_templates
+        actions: [READ]
+      # CRM
+      - resource: erp_crm_pipelines
+        actions: [READ]
+      - resource: erp_crm_stages
+        actions: [READ]
+      - resource: erp_crm_leads
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_crm_activities
+        actions: [READ, CREATE, UPDATE]
+      # Parties
+      - resource: erp_party_parties
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_party_contacts
+        actions: [READ, CREATE, UPDATE]
+      # Reports
+      - resource: erp_report_reports
+        actions: [READ]
+      # Misc
+      - resource: erp_base_saved_filters
+        actions: [READ, CREATE, UPDATE, DELETE]
+
+  - name: "Accountant"
+    description: "Full accounting access; read-only on stock, parties, config"
+    permissions:
+      # Accounting (full)
+      - resource: erp_accounting_accounts
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_fiscal_periods
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_entries
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_entry_lines
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_outflow_invoices
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_outflow_invoice_lines
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_outflow_invoice_charges
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_inflow_invoices
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_inflow_invoice_lines
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_inflow_invoice_charges
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_payments
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_payment_allocations
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_grns
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_accounting_grn_lines
+        actions: [READ, CREATE, UPDATE, DELETE]
+      # Read-only: stock, parties, config, reports
+      - resource: erp_stock_items
+        actions: [READ]
+      - resource: erp_stock_categories
+        actions: [READ]
+      - resource: erp_party_parties
+        actions: [READ]
+      - resource: erp_party_contacts
+        actions: [READ]
+      - resource: erp_config_currencies
+        actions: [READ]
+      - resource: erp_config_exchange_rates
+        actions: [READ]
+      - resource: erp_config_payment_modes
+        actions: [READ]
+      - resource: erp_config_payment_accounts
+        actions: [READ]
+      - resource: erp_config_fiscal_periods
+        actions: [READ]
+      - resource: erp_report_reports
+        actions: [READ]
+      - resource: erp_base_saved_filters
+        actions: [READ, CREATE, UPDATE, DELETE]
+
+  - name: "Sales Manager"
+    description: "Sales: outflow invoices, payments, parties, CRM, reports"
+    permissions:
+      # Sales invoices (outflow)
+      - resource: erp_accounting_outflow_invoices
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_outflow_invoice_lines
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_outflow_invoice_charges
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_payments
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_payment_allocations
+        actions: [READ, CREATE]
+      - resource: erp_accounting_accounts
+        actions: [READ]
+      - resource: erp_accounting_fiscal_periods
+        actions: [READ]
+      # CRM (full)
+      - resource: erp_crm_pipelines
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_crm_stages
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_crm_leads
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_crm_activities
+        actions: [READ, CREATE, UPDATE, DELETE]
+      # Parties
+      - resource: erp_party_parties
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_party_contacts
+        actions: [READ, CREATE, UPDATE]
+      # Products/pricing (read-only)
+      - resource: erp_stock_items
+        actions: [READ]
+      - resource: erp_stock_categories
+        actions: [READ]
+      - resource: erp_stock_pricelists
+        actions: [READ]
+      - resource: erp_stock_item_uoms
+        actions: [READ]
+      # Config (read-only)
+      - resource: erp_config_currencies
+        actions: [READ]
+      - resource: erp_config_price_types
+        actions: [READ]
+      - resource: erp_config_charges
+        actions: [READ]
+      - resource: erp_config_payment_modes
+        actions: [READ]
+      - resource: erp_config_print_templates
+        actions: [READ]
+      # Reports
+      - resource: erp_report_reports
+        actions: [READ]
+      - resource: erp_base_saved_filters
+        actions: [READ, CREATE, UPDATE, DELETE]
+
+  - name: "Purchase Manager"
+    description: "Purchasing: inflow invoices, GRN, suppliers, stock items"
+    permissions:
+      # Purchase invoices (inflow) + GRN
+      - resource: erp_accounting_inflow_invoices
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_inflow_invoice_lines
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_inflow_invoice_charges
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_grns
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_grn_lines
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_payments
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_accounting_payment_allocations
+        actions: [READ, CREATE]
+      - resource: erp_accounting_accounts
+        actions: [READ]
+      - resource: erp_accounting_fiscal_periods
+        actions: [READ]
+      # Parties (suppliers)
+      - resource: erp_party_parties
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_party_contacts
+        actions: [READ, CREATE, UPDATE]
+      # Stock (items read; movements write for receiving)
+      - resource: erp_stock_categories
+        actions: [READ]
+      - resource: erp_stock_items
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_stock_item_uoms
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_stock_item_accounts
+        actions: [READ]
+      - resource: erp_stock_locations
+        actions: [READ]
+      - resource: erp_stock_movements
+        actions: [READ, CREATE]
+      - resource: erp_stock_movement_lines
+        actions: [READ, CREATE]
+      - resource: erp_stock_item_locations
+        actions: [READ]
+      # Config (read-only)
+      - resource: erp_config_currencies
+        actions: [READ]
+      - resource: erp_config_uoms
+        actions: [READ]
+      - resource: erp_config_charges
+        actions: [READ]
+      - resource: erp_config_payment_modes
+        actions: [READ]
+      - resource: erp_config_print_templates
+        actions: [READ]
+      - resource: erp_report_reports
+        actions: [READ]
+      - resource: erp_base_saved_filters
+        actions: [READ, CREATE, UPDATE, DELETE]
+
+  - name: "Inventory Manager"
+    description: "Stock and inventory management; read accounting and parties"
+    permissions:
+      # Stock (full)
+      - resource: erp_stock_categories
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_items
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_item_accounts
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_item_uoms
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_pricelists
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_promo_bundles
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_promo_items
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_locations
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_delivery_notes
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_delivery_note_lines
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_movements
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_movement_lines
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_item_bundles
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_stock_item_locations
+        actions: [READ, CREATE, UPDATE, DELETE]
+      # Read-only: parties, config, reports
+      - resource: erp_party_parties
+        actions: [READ]
+      - resource: erp_config_uoms
+        actions: [READ]
+      - resource: erp_config_price_types
+        actions: [READ]
+      - resource: erp_config_currencies
+        actions: [READ]
+      - resource: erp_report_reports
+        actions: [READ]
+      - resource: erp_base_saved_filters
+        actions: [READ, CREATE, UPDATE, DELETE]
+
+  - name: "HR Manager"
+    description: "Human resources: departments, positions, employees"
+    permissions:
+      # HR (full)
+      - resource: erp_hr_departments
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_hr_positions
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: erp_hr_employees
+        actions: [READ, CREATE, UPDATE, DELETE]
+      # Read-only support data
+      - resource: erp_party_parties
+        actions: [READ]
+      - resource: erp_config_organizations
+        actions: [READ]
+      - resource: erp_report_reports
+        actions: [READ]
+      - resource: erp_base_saved_filters
+        actions: [READ, CREATE, UPDATE, DELETE]
+
+  - name: "POS Cashier"
+    description: "Point-of-sale: open sessions, create orders, process payments"
+    permissions:
+      - resource: erp_pot_terminals
+        actions: [READ]
+      - resource: erp_pot_sessions
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_pot_orders
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_pot_order_lines
+        actions: [READ, CREATE, UPDATE]
+      - resource: erp_pot_payment_lines
+        actions: [READ, CREATE]
+      - resource: erp_stock_items
+        actions: [READ]
+      - resource: erp_stock_pricelists
+        actions: [READ]
+      - resource: erp_party_parties
+        actions: [READ]
+      - resource: erp_config_payment_modes
+        actions: [READ]
+
+  - name: "ERP Viewer"
+    description: "Read-only access to all ERP resources"
+    permissions:
+      - resource: erp_accounting_accounts
+        actions: [READ]
+      - resource: erp_accounting_fiscal_periods
+        actions: [READ]
+      - resource: erp_accounting_entries
+        actions: [READ]
+      - resource: erp_accounting_entry_lines
+        actions: [READ]
+      - resource: erp_accounting_outflow_invoices
+        actions: [READ]
+      - resource: erp_accounting_outflow_invoice_lines
+        actions: [READ]
+      - resource: erp_accounting_outflow_invoice_charges
+        actions: [READ]
+      - resource: erp_accounting_inflow_invoices
+        actions: [READ]
+      - resource: erp_accounting_inflow_invoice_lines
+        actions: [READ]
+      - resource: erp_accounting_inflow_invoice_charges
+        actions: [READ]
+      - resource: erp_accounting_payments
+        actions: [READ]
+      - resource: erp_accounting_payment_allocations
+        actions: [READ]
+      - resource: erp_accounting_grns
+        actions: [READ]
+      - resource: erp_accounting_grn_lines
+        actions: [READ]
+      - resource: erp_stock_categories
+        actions: [READ]
+      - resource: erp_stock_items
+        actions: [READ]
+      - resource: erp_stock_locations
+        actions: [READ]
+      - resource: erp_stock_movements
+        actions: [READ]
+      - resource: erp_stock_pricelists
+        actions: [READ]
+      - resource: erp_config_currencies
+        actions: [READ]
+      - resource: erp_config_uoms
+        actions: [READ]
+      - resource: erp_config_payment_modes
+        actions: [READ]
+      - resource: erp_crm_leads
+        actions: [READ]
+      - resource: erp_party_parties
+        actions: [READ]
+      - resource: erp_asset_assets
+        actions: [READ]
+      - resource: erp_hr_employees
+        actions: [READ]
+      - resource: erp_report_reports
+        actions: [READ]

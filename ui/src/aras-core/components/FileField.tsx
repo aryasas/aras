@@ -36,42 +36,42 @@ export const FileField: React.FC<FileFieldProps> = ({ value, onChange, label }) 
 
   return (
     <div className="space-y-2">
-      <label className="text-xs font-black text-slate-400 uppercase tracking-widest">{label}</label>
+      <label className="text-xs font-black text-[var(--aras-muted)] uppercase tracking-widest">{label}</label>
       <div className="relative group">
         {value ? (
-          <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200 group-hover:border-indigo-300 transition-all">
-            <div className="p-2 bg-white rounded-xl shadow-sm text-indigo-600">
+          <div className="flex items-center gap-4 p-4 bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius-lg)] border border-[var(--aras-border)] group-hover:border-[var(--aras-border-strong)] transition-all">
+            <div className="p-2 bg-[var(--aras-panel)] rounded-[var(--aras-radius)] shadow-sm text-[var(--aras-accent)]">
               <LucideIcons.File size={20} />
             </div>
-            <div className="flex-1 truncate text-sm font-medium text-slate-600">
+            <div className="flex-1 truncate text-sm font-medium text-[var(--aras-muted)]">
               {value.split('/').pop()}
             </div>
-            <button 
+            <button
               type="button"
               onClick={() => onChange('')}
-              className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+              className="p-2 text-rose-500 hover:bg-rose-50 rounded-[var(--aras-radius)] transition-colors"
             >
               <LucideIcons.Trash2 size={18} />
             </button>
           </div>
         ) : (
-          <label className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-200 rounded-3xl hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer group">
-            <div className="p-4 bg-slate-50 rounded-2xl group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors mb-4">
+          <label className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-[var(--aras-border)] rounded-[var(--aras-radius-lg)] hover:border-[var(--aras-accent)] hover:bg-[color-mix(in_srgb,var(--aras-accent)_10%,transparent)]/30 transition-all cursor-pointer group">
+            <div className="p-4 bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius-lg)] group-hover:bg-[color-mix(in_srgb,var(--aras-accent)_15%,transparent)] group-hover:text-[var(--aras-accent)] transition-colors mb-4">
               <LucideIcons.Upload size={24} />
             </div>
-            <p className="text-sm font-bold text-slate-500">Click to upload or drag & drop</p>
-            <p className="text-xs text-slate-400 mt-1 uppercase font-black tracking-widest">Any file up to 50MB</p>
-            <input 
-              type="file" 
-              className="hidden" 
-              onChange={handleFileChange} 
+            <p className="text-sm font-bold text-[var(--aras-muted)]">Click to upload or drag & drop</p>
+            <p className="text-xs text-[var(--aras-muted)] mt-1 uppercase font-black tracking-widest">Any file up to 50MB</p>
+            <input
+              type="file"
+              className="hidden"
+              onChange={handleFileChange}
               disabled={uploading}
             />
           </label>
         )}
         {uploading && (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-3xl flex items-center justify-center animate-pulse">
-             <span className="font-black text-xs text-indigo-600 uppercase tracking-widest">Uploading...</span>
+          <div className="absolute inset-0 bg-[var(--aras-panel)]/80 backdrop-blur-sm rounded-[var(--aras-radius-lg)] flex items-center justify-center animate-pulse">
+             <span className="font-black text-xs text-[var(--aras-accent)] uppercase tracking-widest">Uploading...</span>
           </div>
         )}
       </div>

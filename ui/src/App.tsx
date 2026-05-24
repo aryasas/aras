@@ -62,6 +62,7 @@ function App() {
   const token = useAuthStore((state) => state.token);
   const setUser = useAuthStore((state) => state.setUser);
   const setOrganizations = useAuthStore((state) => state.setOrganizations);
+  const setCapabilities = useAuthStore((state) => state.setCapabilities);
 
   useEffect(() => {
     if (token) {
@@ -82,8 +83,18 @@ function App() {
       }
     }
 
+    const fetchCapabilities = async () => {
+      try {
+        const response = await api.get('/admin/apps/capabilities')
+        setCapabilities(response.data.active_apps || [], response.data.optional_features || {})
+      } catch {
+        // non-admin users may get 403; ignore
+      }
+    }
+
     fetchCurrentUser()
-  }, [token, setUser, setOrganizations]);
+    fetchCapabilities()
+  }, [token, setUser, setOrganizations, setCapabilities]);
 
   useEffect(() => {
     // Override window.alert
@@ -149,7 +160,7 @@ function App() {
           <Route path="settings/rbac" element={<RBACManagerView />} />
           <Route path="admin/license" element={<LicenseStatusView />} />
           <Route path="preview/:slug" element={<WebPageView />} />
-          <Route path="erp/config/user-access" element={<ErpUserAccess />} />
+          <Route path="config/user-access" element={<ErpUserAccess />} />
           <Route path="dev" element={<DevToolsView />} />
           <Route path="dev/template-builder" element={<TemplateBuilderView />} />
           <Route path="dev/health" element={<HealthIntegrityView />} />
@@ -163,8 +174,8 @@ function App() {
           <Route path="profile" element={<ProfileView />} />
           <Route path="reports" element={<ReportCenterView />} />
           <Route path="archive/*" element={<ArchivedView />} />
-          <Route path="erp/pot/pos" element={<PosView />} />
-          <Route path="erp/pot/sessions/:id/pos" element={<PosView />} />
+          <Route path="pot/pos" element={<PosView />} />
+          <Route path="pot/sessions/:id/pos" element={<PosView />} />
           
           <Route path=":segment1/*" element={<SmartDispatcher />} />
 

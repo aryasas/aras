@@ -83,7 +83,7 @@ export function Sidebar({ sidebarData, currentPath, onLogout }: SidebarProps) {
   return (
     <>
       {/* Desktop Sidebar (Floating Island) */}
-      <aside className={`hidden md:flex fixed left-4 md:left-6 top-4 md:top-6 bottom-4 md:bottom-6 z-30 flex-col bg-[var(--aras-panel)]/90 backdrop-blur-[16px] border border-[var(--aras-border)] shadow-[0_18px_45px_-24px_rgba(15,23,42,0.34)] rounded-[var(--aras-radius-lg)] py-5 justify-between transition-[width,padding] duration-300 ease-in-out ${sidebarCollapsed ? 'w-[5.5rem] items-center px-0' : 'w-[15.5rem] items-stretch px-4'}`}>
+      <aside className={`hidden md:flex flex-col shrink-0 z-30 bg-[var(--aras-panel)]/90 backdrop-blur-[16px] border border-[var(--aras-border)] shadow-[0_18px_45px_-24px_rgba(15,23,42,0.34)] rounded-[var(--aras-radius-lg)] py-5 justify-between transition-[width,padding] duration-300 ease-in-out ${sidebarCollapsed ? 'w-[5.5rem] items-center px-0' : 'w-[15.5rem] items-stretch px-4'}`}>
         <div className={`flex min-h-0 flex-1 flex-col gap-4 w-full ${sidebarCollapsed ? 'items-center' : ''}`}>
           
           <button 
@@ -172,7 +172,7 @@ export function Sidebar({ sidebarData, currentPath, onLogout }: SidebarProps) {
             <Link
               key={item.name}
               to={appPath}
-              className={`w-14 h-14 flex flex-col items-center justify-center gap-1 rounded-2xl ${isActive ? 'text-[var(--aras-accent)]' : 'text-[var(--aras-muted)] hover:text-[var(--aras-text)]'}`}
+              className={`w-14 h-14 flex flex-col items-center justify-center gap-1 rounded-[var(--aras-radius)] ${isActive ? 'text-[var(--aras-accent)]' : 'text-[var(--aras-muted)] hover:text-[var(--aras-text)]'}`}
               style={isActive ? { backgroundColor: 'color-mix(in srgb, var(--aras-accent) 10%, transparent)' } : undefined}
             >
               <IconComponent size={24} className="shrink-0" />
@@ -182,7 +182,7 @@ export function Sidebar({ sidebarData, currentPath, onLogout }: SidebarProps) {
         })}
         <button 
           onClick={onLogout}
-          className="w-14 h-14 flex flex-col items-center justify-center gap-1 text-[var(--aras-muted)] hover:text-rose-500 rounded-2xl"
+          className="w-14 h-14 flex flex-col items-center justify-center gap-1 text-[var(--aras-muted)] hover:text-rose-500 rounded-[var(--aras-radius)]"
         >
           <LogOut size={24} className="shrink-0" />
           <span className="text-[10px] font-bold">Exit</span>

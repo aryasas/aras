@@ -15,7 +15,7 @@
 |---|---|
 | `Aras.Model` | SQLAlchemy model base (CRUD, audit, M2M, workflow, layout) |
 | `Aras.SoftModel` | `Model` subclass with soft-delete built-in |
-| `Aras.App` | App manifest base. Supports `parent_name`, `have_home`, `menu_groups` |
+| `Aras.App` | App manifest base. Supports `app_name`, `table_prefix`, `have_home`, `menu_groups` |
 | `Aras.Manager` | Orchestration — `Manager.Sync`, `Manager.Audit`, `Manager.Workflow` |
 | `Aras.View` | UI metadata config base. Title auto-derived if not set. |
 | `Aras.Schema` | Pydantic validation base |
@@ -337,21 +337,21 @@ class MyApp(Aras.App):
 
 ---
 
-## ERP Sub-Apps (`api/apps/erp/`)
+## ERP Apps (`api/apps/erp/`)
 
-`ERP` base class owns `SavedFilter` + `saved_filter_router`. Sub-apps inherit `ERP` — auto-sets `parent_name = "erp"`, `app_type = "module"`.
+Each ERP domain is a **standalone top-level `Aras.App`** — no parent `erp` class. DB tables keep `erp_*` prefix; routes are clean (e.g. `/accounting/accounts`). Use `table_prefix` to bridge the gap.
 
-| Dir | `app_name` | Key models |
-|---|---|---|
-| `accounting` | `erp_accounting` | Account, SalesInvoice, JournalEntry, GRN |
-| `stock` | `erp_stock` | Product, StockMovement, Warehouse |
-| `config` | `erp_config` | Currency, Uom, Charge, ModeOfPayment, PrintTemplate |
-| `crm` | `erp_crm` | Lead, Pipeline, Stage, Activity |
-| `hr` | `hr` | Department, Position, Employee |
-| `party` | `party` | Party, Contact |
-| `asset` | `asset` | AssetCategory, Asset |
-| `pot` | `pot` | PotTerminal, PotSession, PotOrder, PotOrderLine |
-| `report` | `erp_report` | Report |
+| Dir | `app_name` | `table_prefix` | Route prefix | Key models |
+|---|---|---|---|---|
+| `accounting` | `accounting` | `erp_accounting` | `/accounting/` | Account, SalesInvoice, JournalEntry, GRN |
+| `stock` | `stock` | `erp_stock` | `/stock/` | Product, StockMovement, Warehouse |
+| `config` | `config` | `erp_config` | `/config/` | Currency, Uom, Charge, ModeOfPayment, PrintTemplate |
+| `crm` | `crm` | `erp_crm` | `/crm/` | Lead, Pipeline, Stage, Activity |
+| `hr` | `hr` | `erp_hr` | `/hr/` | Department, Position, Employee |
+| `party` | `party` | `erp_party` | `/party/` | Party, Contact |
+| `asset` | `asset` | `erp_asset` | `/asset/` | AssetCategory, Asset |
+| `pot` | `pot` | `erp_pot` | `/pot/` | PotTerminal, PotSession, PotOrder, PotOrderLine |
+| `report` | `report` | `erp_report` | `/report/` | Report |
 
 ---
 

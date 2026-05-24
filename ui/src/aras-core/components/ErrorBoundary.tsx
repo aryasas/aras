@@ -23,10 +23,10 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="p-12 text-center">
           <h2 className="text-xl font-bold text-red-600 mb-2">Something went wrong</h2>
-          <p className="text-sm text-slate-500 mb-4">{this.state.error?.message}</p>
+          <p className="text-sm text-[var(--aras-muted)] mb-4">{this.state.error?.message}</p>
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700"
+            className="px-4 py-2 bg-[var(--aras-accent)] text-white rounded-[var(--aras-radius)] text-sm hover:brightness-110"
           >
             Try Again
           </button>

@@ -26,10 +26,10 @@ export const DesignContainer: React.FC<DesignContainerProps> = ({ id, children, 
         return <DesignElement key={el.id} id={el.id}>{el.content || 'New Text'}</DesignElement>
       }
       if (el.type === 'button') {
-        return <DesignElement key={el.id} id={el.id} tagName="button" className="px-4 py-2 bg-indigo-600 text-white rounded font-bold">{el.content || 'Button'}</DesignElement>
+        return <DesignElement key={el.id} id={el.id} tagName="button" className="px-4 py-2 bg-[var(--aras-accent)] text-white rounded-[var(--aras-radius)] font-bold">{el.content || 'Button'}</DesignElement>
       }
       if (el.type === 'divider') {
-        return <DesignElement key={el.id} id={el.id} tagName="hr" className="border-t border-slate-200 my-4" />
+        return <DesignElement key={el.id} id={el.id} tagName="hr" className="border-t border-[var(--aras-border)] my-4" />
       }
       if (el.type === 'container') {
         return (
@@ -98,10 +98,10 @@ export const DesignContainer: React.FC<DesignContainerProps> = ({ id, children, 
   }
 
   return (
-    <div className={`relative ${className} ${designMode ? 'outline-dashed outline-2 outline-slate-200/50 min-h-[50px] p-1 transition-all' : ''} ${dragOverIndex !== null ? 'bg-slate-50' : ''}`}>
+    <div className={`relative ${className} ${designMode ? 'outline-dashed outline-2 outline-[var(--aras-border)]/50 min-h-[50px] p-1 transition-all' : ''} ${dragOverIndex !== null ? 'bg-[var(--aras-panel-soft)]' : ''}`}>
       {designMode && (
-        <div 
-           className="absolute -top-4 -left-1 bg-slate-200 text-slate-500 text-[8px] font-black px-1.5 rounded uppercase tracking-widest pointer-events-none z-10"
+        <div
+           className="absolute -top-4 -left-1 bg-[var(--aras-panel-soft)] text-[var(--aras-muted)] text-[8px] font-black px-1.5 rounded-[var(--aras-radius)] uppercase tracking-widest pointer-events-none z-10"
         >
           {id}
         </div>

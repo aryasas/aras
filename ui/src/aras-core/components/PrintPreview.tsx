@@ -76,7 +76,7 @@ export const PrintPreview: React.FC<PrintPreviewProps> = ({ resource, id, onClos
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full text-center text-slate-600">
+        <div className="bg-[var(--aras-panel)] rounded-[var(--aras-radius-lg)] shadow-2xl p-8 max-w-2xl w-full text-center text-[var(--aras-muted)]">
           Loading print preview...
         </div>
       </div>
@@ -87,20 +87,20 @@ export const PrintPreview: React.FC<PrintPreviewProps> = ({ resource, id, onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-3xl w-full h-[90vh] flex flex-col print-container">
+      <div className="bg-[var(--aras-panel)] rounded-[var(--aras-radius-lg)] shadow-2xl p-8 max-w-3xl w-full h-[90vh] flex flex-col print-container">
         {/* Header - No Print */}
-        <div className="flex justify-between items-center pb-4 border-b border-slate-200 no-print">
-          <h2 className="text-xl font-bold text-slate-800">Print Preview: {printData.doc_number}</h2>
+        <div className="flex justify-between items-center pb-4 border-b border-[var(--aras-border)] no-print">
+          <h2 className="text-xl font-bold text-[var(--aras-text)]">Print Preview: {printData.doc_number}</h2>
           <div className="flex gap-2">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--aras-accent)] text-white rounded-[var(--aras-radius)] text-sm font-bold hover:brightness-110 transition-all"
             >
               <Printer size={18} /> Print
             </button>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 transition-colors"
+              className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] text-[var(--aras-muted)] transition-colors"
             >
               <X size={20} />
             </button>
@@ -109,7 +109,7 @@ export const PrintPreview: React.FC<PrintPreviewProps> = ({ resource, id, onClos
 
         {/* Printable Content */}
         <div className="flex-1 overflow-y-auto p-4 print-content">
-          <div className="min-h-full bg-white text-slate-900 font-sans text-sm">
+          <div className="min-h-full bg-[var(--aras-panel)] text-[var(--aras-text)] font-sans text-sm">
             {/* Top Section */}
             <div className="flex justify-between items-start mb-8">
               <div className="text-xl font-bold">{printData.org_name}</div>
@@ -159,7 +159,7 @@ export const PrintPreview: React.FC<PrintPreviewProps> = ({ resource, id, onClos
                 <h3 className="text-md font-bold mb-3">Charges:</h3>
                 <table className="w-full border-collapse mb-8">
                   <thead>
-                    <tr className="bg-slate-100">
+                    <tr className="bg-[var(--aras-panel-soft)]">
                       <th className="border p-2 text-left">Description</th>
                       <th className="border p-2 text-right w-24">Amount</th>
                     </tr>
@@ -179,17 +179,17 @@ export const PrintPreview: React.FC<PrintPreviewProps> = ({ resource, id, onClos
             {/* Totals */}
             <div className="flex justify-end">
               <div className="w-64">
-                <div className="flex justify-between border-b border-slate-200 py-1">
+                <div className="flex justify-between border-b border-[var(--aras-border)] py-1">
                   <span>Subtotal:</span>
                   <span className="font-semibold">{printData.subtotal.toFixed(2)}</span>
                 </div>
                 {printData.total_charge > 0 && (
-                  <div className="flex justify-between border-b border-slate-200 py-1">
+                  <div className="flex justify-between border-b border-[var(--aras-border)] py-1">
                     <span>Charges:</span>
                     <span className="font-semibold">{printData.total_charge.toFixed(2)}</span>
                   </div>
                 )}
-                <div className="flex justify-between border-b border-slate-200 py-1 text-lg font-bold">
+                <div className="flex justify-between border-b border-[var(--aras-border)] py-1 text-lg font-bold">
                   <span>Total Amount:</span>
                   <span>{printData.total_amount.toFixed(2)}</span>
                 </div>

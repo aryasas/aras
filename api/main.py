@@ -171,6 +171,10 @@ app.include_router(tenant_router, prefix="/api/v1")
 from core.api.websocket import router as ws_router
 app.include_router(ws_router, prefix="/api/v1")
 
+# Saved filters
+from apps.base.saved_filter_router import router as saved_filter_router
+app.include_router(saved_filter_router, prefix="/api/v1")
+
 # Dynamic App Discovery & Route Registration
 Aras.logic.discovery.register_app_routes(app, prefix="/api/v1")
 
@@ -246,7 +250,7 @@ async def get_sidebar_data(_: Any = Depends(get_current_user)):
     # 1. Main Navigation Links
     sidebar = [
         {"type": "link", "name": "dashboard", "label": "Dashboard", "icon": "LayoutDashboard", "path": "/dashboard", "have_home": False},
-        {"type": "link", "name": "pos", "label": "Point of Sale", "icon": "ShoppingCart", "path": "/erp/pot/pos", "have_home": False},
+        {"type": "link", "name": "pos", "label": "Point of Sale", "icon": "ShoppingCart", "path": "/pot/pos", "have_home": False},
         {"type": "link", "name": "reports", "label": "Report Center", "icon": "FileBarChart", "path": "/reports", "have_home": False},
         {"type": "link", "name": "settings", "label": "Settings", "icon": "Settings", "path": "/settings", "have_home": False},
         {"type": "link", "name": "help", "label": "Help", "icon": "HelpCircle", "path": "/help", "have_home": False},

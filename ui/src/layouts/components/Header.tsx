@@ -8,7 +8,7 @@ import NotificationHistory from '../../aras-core/components/NotificationHistory'
 import { Link } from 'react-router-dom'
 import { TemplateDesignToggle } from './TemplateDesignToggle'
 
-export function Header({ children, moduleMenu }: { children?: ReactNode; moduleMenu?: ReactNode }) {
+export function Header({ children }: { children?: ReactNode }) {
   return (
     <header className="sticky top-0 z-40 flex flex-col gap-2 shrink-0 bg-[var(--aras-panel)]/90 backdrop-blur-[16px] border border-[var(--aras-border)] shadow-[0_10px_32px_-16px_rgba(15,23,42,0.22)] rounded-[var(--aras-radius-lg)] px-4 py-3 md:px-5 md:py-4">
       <div className="flex items-center gap-3">
@@ -48,7 +48,7 @@ export function Header({ children, moduleMenu }: { children?: ReactNode; moduleM
             <DesignElement id="profile">
               <Link 
                 to="/profile" 
-                className="block h-10 w-10 md:h-12 md:w-12 cursor-pointer rounded-2xl shadow-sm border-2 border-white transition-transform hover:scale-105" 
+                className="block h-10 w-10 md:h-12 md:w-12 cursor-pointer rounded-[var(--aras-radius)] shadow-sm border-2 border-[var(--aras-panel)] transition-transform hover:scale-105" 
                 style={{ background: 'linear-gradient(135deg, var(--aras-accent), var(--aras-button))' }}
               />
             </DesignElement>
@@ -57,11 +57,6 @@ export function Header({ children, moduleMenu }: { children?: ReactNode; moduleM
         </div>
       </div>
 
-      {moduleMenu && (
-        <div className="max-sm:hidden">
-          {moduleMenu}
-        </div>
-      )}
     </header>
   )
 }

@@ -20,10 +20,14 @@ interface AuthState {
   token: string | null
   organizations: Organization[]
   activeOrgId: number | null
+  activeApps: string[]
+  // field_name → required_app_name, merged from all active apps' optional_features
+  optionalFeatures: Record<string, string>
   setUser: (user: User | null) => void
   setToken: (token: string | null) => void
   setOrganizations: (organizations: Organization[]) => void
   setActiveOrg: (id: number | null) => void
+  setCapabilities: (activeApps: string[], optionalFeatures: Record<string, string>) => void
   logout: () => void
 }
 
@@ -32,6 +36,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: localStorage.getItem('aras_token'),
   organizations: [],
   activeOrgId: Number(localStorage.getItem('org_id')) || null,
+  activeApps: [],
+  optionalFeatures: {},
   setUser: (user) => set({ user }),
   setToken: (token) => {
     if (token) localStorage.setItem('aras_token', token)
@@ -61,9 +67,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     else localStorage.setItem('org_id', String(id))
     set({ activeOrgId: id })
   },
+  setCapabilities: (activeApps, optionalFeatures) => set({ activeApps, optionalFeatures }),
   logout: () => {
     localStorage.removeItem('aras_token')
     localStorage.removeItem('org_id')
-    set({ user: null, token: null, organizations: [], activeOrgId: null })
+    set({ user: null, token: null, organizations: [], activeOrgId: null, activeApps: [], optionalFeatures: {} })
   },
 }))

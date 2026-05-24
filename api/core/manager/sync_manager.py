@@ -196,6 +196,8 @@ class SyncManager(Manager):
                 icon=manifest["icon"],
                 version=manifest["version"],
                 menu_groups=manifest.get("menu_groups", []),
+                requires=manifest.get("requires", []),
+                optional_features=manifest.get("optional_features", {}),
                 is_active=True
             )
             db.add(app_db)
@@ -208,6 +210,8 @@ class SyncManager(Manager):
             app_db.icon = manifest["icon"]
             app_db.version = manifest["version"]
             app_db.menu_groups = manifest.get("menu_groups", [])
+            app_db.requires = manifest.get("requires", [])
+            app_db.optional_features = manifest.get("optional_features", {})
             app_db.is_active = True
 
         # 2. Sync Models (Resources)

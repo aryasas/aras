@@ -9,7 +9,7 @@ export function HeaderActions() {
       <TemplateDesignToggle />
       <ThemeTweakPanel />
       <NotificationHistory />
-      <Link to="/profile" className="block h-10 w-10 md:h-12 md:w-12 cursor-pointer rounded-2xl shadow-sm border-2 border-white transition-transform hover:scale-105" style={{ background: 'linear-gradient(135deg, var(--aras-accent), var(--aras-button))' }}></Link>
+      <Link to="/profile" className="block h-10 w-10 md:h-12 md:w-12 cursor-pointer rounded-[var(--aras-radius)] shadow-sm border-2 border-[var(--aras-panel)] transition-transform hover:scale-105" style={{ background: 'linear-gradient(135deg, var(--aras-accent), var(--aras-button))' }}></Link>
     </div>
   )
 }

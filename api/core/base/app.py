@@ -24,11 +24,17 @@ class App(Aras):
     app_name: str = ""
     parent_name: str = "" # Reference to a parent app name
     app_type: str = "app"  # "framework" | "app" | "module"
+    table_prefix: str = ""  # Override for stripping tablename prefix (e.g. "erp_accounting" when app_name is "accounting")
     app_label: str = ""
     description: str = ""
     version: str = "1.0.0"
     icon: str = "Package"
     have_home: bool = False
+    requires: List[str] = []  # App names this app depends on (e.g. ["accounting"])
+    # Features that are off by default and require another app to be active.
+    # Key = org config field name, value = required app name.
+    # e.g. {"enable_perpetual_inventory": "accounting", "enable_auto_journal": "accounting"}
+    optional_features: Dict[str, str] = {}
     models: List[Any] = []
     menu_groups: List[Dict[str, Any]] = [] # [{"label": "Group", "icon": "Icon", "models": ["table_name"]}]
 
@@ -59,7 +65,9 @@ class App(Aras):
             # Model segment (strip longest matching prefix first)
             model_seg = model_name
             full_prefix = f"{cls.parent_name}_{cls.app_name}_" if cls.parent_name and cls.app_name else None
-            if full_prefix and model_seg.startswith(full_prefix):
+            if cls.table_prefix and model_seg.startswith(f"{cls.table_prefix}_"):
+                model_seg = model_seg[len(cls.table_prefix)+1:]
+            elif full_prefix and model_seg.startswith(full_prefix):
                 model_seg = model_seg[len(full_prefix):]
             elif cls.app_name and model_seg.startswith(f"{cls.app_name}_"):
                 model_seg = model_seg[len(cls.app_name)+1:]
@@ -179,6 +187,8 @@ class App(Aras):
             "version": cls.version,
             "icon": cls.icon,
             "have_home": cls.have_home,
+            "requires": cls.requires,
+            "optional_features": cls.optional_features,
             "models": [m.__tablename__ for m in cls.models if hasattr(m, "__tablename__")],
             "menu_groups": cls.menu_groups
         }

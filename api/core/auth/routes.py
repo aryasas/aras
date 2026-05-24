@@ -57,7 +57,7 @@ async def read_users_me(
 ):
     # Plugin integration point: ERP provides org list when installed
     try:
-        from apps.erp.config.erp_rbac import get_user_org_list
+        from apps.config.erp_rbac import get_user_org_list
         companies = get_user_org_list(db, current_user)
     except ImportError:
         companies = []

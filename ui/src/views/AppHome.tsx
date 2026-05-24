@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
 import api from '../lib/api'
 import { useUIStore } from '../store/uiStore'
 import type { SidebarItem, AppMenuData, MenuItem } from '../layouts/types'
@@ -22,7 +21,6 @@ export default function AppHome() {
   const [isLoading, setIsLoading] = useState(false)
   const setPageTitle = useUIStore(state => state.setPageTitle)
 
-  // Combine segments to get the full app path
   const appPath = useMemo(() => {
     const splat = params['*'] || ''
     return [params.segment1, ...splat.split('/').filter(Boolean)].filter(Boolean).join('/')
@@ -50,27 +48,16 @@ export default function AppHome() {
 
   useEffect(() => {
     let cancelled = false
-
     if (!appPath) {
       setRemoteMenu(null)
       return
     }
-
     setIsLoading(true)
     api.get(`/app-menu/${appPath}`)
-      .then((res) => {
-        if (!cancelled) setRemoteMenu(res.data)
-      })
-      .catch(() => {
-        if (!cancelled) setRemoteMenu(null)
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false)
-      })
-
-    return () => {
-      cancelled = true
-    }
+      .then((res) => { if (!cancelled) setRemoteMenu(res.data) })
+      .catch(() => { if (!cancelled) setRemoteMenu(null) })
+      .finally(() => { if (!cancelled) setIsLoading(false) })
+    return () => { cancelled = true }
   }, [appPath])
 
   if (!appPath || isLoading) {
@@ -80,9 +67,7 @@ export default function AppHome() {
   }
 
   if (!remoteMenu && !sidebarApp) {
-    return (
-      <EmptyState title="Application not found" />
-    )
+    return <EmptyState title="Application not found" />
   }
 
   const appInfo = remoteMenu || {
@@ -101,35 +86,34 @@ export default function AppHome() {
         groupLabel: element.label
       }))
     }
-    return [{ ...element, groupLabel: 'Resource' }]
+    return [{ ...element, groupLabel: 'Resources' }]
   })
 
   const hasContent = moduleItems.length > 0 || resourceItems.length > 0
 
-  const renderTile = (
-    item: MenuItem & { groupLabel?: string }
-  ) => {
+  const renderRow = (item: MenuItem & { groupLabel?: string }) => {
     const ItemIcon = resolveIcon(item.icon || 'FileText')
     const label = vocabulary.get(item.label || item.name)
-    const eyebrow = vocabulary.get(item.groupLabel || 'Resource')
-
     return (
       <Link
         key={item.name}
         to={item.path}
-        className="aras-app-card group"
+        className="aras-app-row group"
       >
-        <div className="aras-app-card__icon">
-          <ItemIcon size={20} strokeWidth={2.15} />
+        <div className="aras-app-row__icon">
+          <ItemIcon size={15} strokeWidth={2.2} />
         </div>
-        <div className="aras-app-card__content">
-          <h2>{label}</h2>
-          <p>{eyebrow}</p>
-        </div>
-        <ArrowRight className="aras-app-card__arrow" size={18} strokeWidth={2.2} />
+        <span className="aras-app-row__label">{label}</span>
       </Link>
     )
   }
+
+  const groupedResources = resourceItems.reduce<Record<string, typeof resourceItems>>((acc, item) => {
+    const key = item.groupLabel || 'Resources'
+    if (!acc[key]) acc[key] = []
+    acc[key].push(item)
+    return acc
+  }, {})
 
   return (
     <div className="aras-app-home animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -141,28 +125,28 @@ export default function AppHome() {
               <h2 id="app-home-modules">Modules</h2>
             </div>
           </div>
-          <div className="aras-app-grid">
-            {moduleItems.map((sub: any) => renderTile({ ...sub, groupLabel: 'Module' }))}
+          <div className="aras-app-list">
+            {moduleItems.map((sub: any) => renderRow({ ...sub, groupLabel: 'Module' }))}
           </div>
         </section>
       )}
 
-      {resourceItems.length > 0 && (
-        <section className="aras-app-section" aria-labelledby="app-home-resources">
+      {Object.entries(groupedResources).map(([groupLabel, items]) => (
+        <section key={groupLabel} className="aras-app-section" aria-labelledby={`group-${groupLabel}`}>
           <div className="aras-app-section__heading">
             <div>
-              <p>Work objects</p>
-              <h2 id="app-home-resources">Resources</h2>
+              <p>Work Objects</p>
+              <h2 id={`group-${groupLabel}`}>{vocabulary.get(groupLabel)}</h2>
             </div>
           </div>
-          <div className="aras-app-grid">
-            {resourceItems.map((item) => renderTile(item))}
+          <div className="aras-app-list">
+            {items.map((item) => renderRow(item))}
           </div>
         </section>
-      )}
+      ))}
 
       {!hasContent && (
-         <EmptyState title="No resources available" description="This application has no visible resources." />
+        <EmptyState title="No resources available" description="This application has no visible resources." />
       )}
     </div>
   )

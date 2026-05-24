@@ -10,6 +10,7 @@ import { useVocabulary } from '../../context/VocabularyContext';
 import { createDefaultRecord } from '../../lib/schemaUtils';
 import { DesignContainer } from './design/DesignContainer';
 import { DesignElement } from './design/DesignElement';
+import { useAuthStore } from '../../store/authStore';
 
 interface Field {
   name: string;
@@ -41,6 +42,8 @@ interface Metadata {
 
 export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any) => {
   const vocabulary = useVocabulary();
+  const activeApps = useAuthStore((s) => s.activeApps);
+  const optionalFeatures = useAuthStore((s) => s.optionalFeatures);
   const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [loading, setLoading] = useState(true);
@@ -91,12 +94,19 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
     }
   };
 
+  const isFieldVisible = (field: Field) => {
+    if (field.hidden || field.form_hidden) return false;
+    const requiredApp = optionalFeatures[field.name];
+    if (requiredApp && !activeApps.includes(requiredApp)) return false;
+    return true;
+  };
+
   const renderField = (field: Field) => {
-    if (field.hidden || field.form_hidden) return null;
+    if (!isFieldVisible(field)) return null;
     const Component = resolveFieldComponent(field);
     return (
       <DesignElement id={`field-${field.name}`} key={field.name} className="flex flex-col gap-1.5 w-full">
-        <label className="text-xs font-bold text-slate-500 uppercase">{vocabulary.get(field.label)}</label>
+        <label className="text-xs font-bold text-[var(--aras-muted)] uppercase tracking-wide">{vocabulary.get(field.label)}</label>
         <Component 
            field={field} 
            value={formData[field.name]} 
@@ -107,37 +117,37 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
     );
   };
 
-  if (loading || !metadata) return <div className="p-8 text-center text-slate-400">Loading form...</div>
+  if (loading || !metadata) return <div className="p-8 text-center text-[var(--aras-muted)]">Loading form...</div>
 
   return (
     <div className="aras-form-view mx-auto pb-20 space-y-6">
       <DesignContainer id="form-layout" className="flex flex-col gap-6">
         
-        <DesignElement id="command-bar" className="flex items-center justify-between p-4 bg-white rounded-2xl border shadow-sm">
+        <DesignElement id="command-bar" className="flex items-center justify-between p-4 bg-[var(--aras-panel)] rounded-[var(--aras-radius)] border border-[var(--aras-border)] shadow-sm">
           <DesignContainer id="command-bar-actions" className="flex items-center gap-4">
-            <DesignElement id="btn-cancel" tagName="button" className="p-2 hover:bg-slate-100 rounded-xl" style={{ border: 'none', background: 'transparent' }}>
+            <DesignElement id="btn-cancel" tagName="button" className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)]" style={{ border: 'none', background: 'transparent' }}>
               <span onClick={onCancel}><ArrowLeft size={18}/></span>
             </DesignElement>
-            <DesignElement id="btn-save" tagName="button" className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2">
+            <DesignElement id="btn-save" tagName="button" className="bg-[var(--aras-accent)] text-white px-6 py-2 rounded-[var(--aras-radius)] font-bold flex items-center gap-2">
               <span onClick={handleSubmit} className="flex items-center gap-2">
                  {saving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16}/>}
                  Save
               </span>
             </DesignElement>
-            <DesignElement id="form-title" tagName="h2" className="font-black text-slate-900 ml-2">
+            <DesignElement id="form-title" tagName="h2" className="font-black text-[var(--aras-text)] ml-2">
               {vocabulary.get(metadata.title)}
             </DesignElement>
           </DesignContainer>
         </DesignElement>
 
-        <DesignElement id="quick-actions" className="flex gap-2 p-4 bg-slate-50 rounded-2xl border border-dashed items-center">
+        <DesignElement id="quick-actions" className="flex gap-2 p-4 bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] border border-dashed border-[var(--aras-border)] items-center">
            <Zap size={14} className="text-amber-500" />
-           <span className="text-xs font-bold text-slate-400 uppercase">Quick Actions</span>
+           <span className="text-xs font-bold text-[var(--aras-muted)] uppercase">Quick Actions</span>
         </DesignElement>
 
-        <DesignElement id="form-body" className="bg-white p-8 rounded-3xl border shadow-sm">
+        <DesignElement id="form-body" className="bg-[var(--aras-panel)] p-8 rounded-[var(--aras-radius-lg)] border border-[var(--aras-border)] shadow-sm">
            <DesignContainer id="fields-grid" className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {metadata.fields.filter(f => !f.hidden).slice(0, 10).map(renderField)}
+              {metadata.fields.filter(isFieldVisible).slice(0, 10).map(renderField)}
            </DesignContainer>
         </DesignElement>
 

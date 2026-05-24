@@ -97,7 +97,7 @@ def _seed_framework_rbac(db: Session) -> None:
 
 def _seed_erp_rbac(db: Session) -> None:
     try:
-        from apps.erp.config.seed_rbac import run_seed
+        from apps.config.seed_rbac import run_seed
         run_seed(db)
     except ImportError:
         pass

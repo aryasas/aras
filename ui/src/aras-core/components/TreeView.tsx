@@ -69,28 +69,28 @@ export const TreeView: React.FC<TreeViewProps> = ({ resource, onRowClick }) => {
     return (
       <div key={node.id} className="select-none">
         <div 
-          className={`flex items-center gap-2 py-2 px-3 hover:bg-slate-50 cursor-pointer rounded-lg transition-colors ${level === 0 ? 'font-bold' : ''}`}
+          className={`flex items-center gap-2 py-2 px-3 hover:bg-[var(--aras-panel-soft)] cursor-pointer rounded-[var(--aras-radius)] transition-colors ${level === 0 ? 'font-bold' : ''}`}
           style={{ paddingLeft: `${level * 20 + 12}px` }}
           onClick={() => {
             if (hasChildren || node.is_group) toggleExpand(node.id);
             if (!node.is_group && onRowClick) onRowClick(node.id);
           }}
         >
-          <div className="w-5 h-5 flex items-center justify-center text-slate-400">
+          <div className="w-5 h-5 flex items-center justify-center text-[var(--aras-muted)]">
             {hasChildren || node.is_group ? (
               isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />
             ) : null}
           </div>
-          <div className={node.is_group ? 'text-indigo-600' : 'text-slate-600'}>
+          <div className={node.is_group ? 'text-[var(--aras-accent)]' : 'text-[var(--aras-muted)]'}>
             {node.is_group ? <Folder size={16} fill="currentColor" /> : <FileText size={16} />}
           </div>
           <div className="flex items-baseline gap-2">
-            {node.code && <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1 rounded">{node.code}</span>}
+            {node.code && <span className="text-[10px] font-mono text-[var(--aras-muted)] bg-[var(--aras-panel-soft)] px-1 rounded-[var(--aras-radius)]">{node.code}</span>}
             <span className="text-sm">{node.name}</span>
           </div>
         </div>
         {isExpanded && node.children && (
-          <div className="border-l border-slate-100 ml-4">
+          <div className="border-l border-[var(--aras-border)] ml-4">
             {node.children.map(child => renderNode(child, level + 1))}
           </div>
         )}
@@ -98,11 +98,11 @@ export const TreeView: React.FC<TreeViewProps> = ({ resource, onRowClick }) => {
     );
   };
 
-  if (loading) return <div className="p-8 text-center text-slate-400 animate-pulse">Loading Tree...</div>;
+  if (loading) return <div className="p-8 text-center text-[var(--aras-muted)] animate-pulse">Loading Tree...</div>;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-4">
-      {data.length > 0 ? data.map(node => renderNode(node)) : <div className="p-8 text-center text-slate-400">No data found.</div>}
+    <div className="bg-[var(--aras-panel)] rounded-[var(--aras-radius-lg)] border border-[var(--aras-border)] shadow-sm overflow-hidden p-4">
+      {data.length > 0 ? data.map(node => renderNode(node)) : <div className="p-8 text-center text-[var(--aras-muted)]">No data found.</div>}
     </div>
   );
 };

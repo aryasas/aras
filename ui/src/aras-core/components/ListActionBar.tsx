@@ -22,18 +22,18 @@ export const ListActionBar: React.FC<ListActionBarProps> = ({
     <div className="flex flex-wrap items-center gap-3 bg-[var(--aras-panel)]/85 backdrop-blur-[16px] border border-[var(--aras-border)] p-2 rounded-[20px] shadow-sm mb-6">
       {/* Search Input Group */}
       <div className="relative flex-1 min-w-[200px]">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--aras-muted)]" size={18} />
         <input
           type="text"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder={`Search ${resourceTitle}...`}
-          className="w-full h-11 pl-12 pr-4 bg-slate-50 border border-slate-100 rounded-[14px] text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-[var(--aras-accent)] focus:ring-4 focus:ring-[var(--aras-accent)]/5 transition-all"
+          className="w-full h-11 pl-12 pr-4 bg-[var(--aras-panel-soft)] border border-[var(--aras-border)] rounded-[14px] text-sm font-bold text-[var(--aras-text)] outline-none focus:bg-[var(--aras-panel)] focus:border-[var(--aras-accent)] focus:ring-4 focus:ring-[var(--aras-accent)]/5 transition-all"
         />
         {search && (
           <button
             onClick={() => onSearchChange('')}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 p-1"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--aras-muted)] hover:text-[var(--aras-text)] p-1"
           >
             <X size={14} />
           </button>
@@ -46,7 +46,7 @@ export const ListActionBar: React.FC<ListActionBarProps> = ({
         className={`flex h-11 items-center gap-2 px-5 rounded-[14px] border font-bold text-sm transition-all ${
           filterCount > 0
             ? 'bg-[var(--aras-accent)]/10 border-[var(--aras-accent)] text-[var(--aras-accent)]'
-            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+            : 'bg-[var(--aras-panel)] border-[var(--aras-border)] text-[var(--aras-muted)] hover:border-[var(--aras-border-strong)]'
         }`}
       >
         <Filter size={18} />

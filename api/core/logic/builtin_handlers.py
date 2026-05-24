@@ -8,8 +8,8 @@ from .handler_registry import HandlerRegistry
 
 @HandlerRegistry.register("post_stock_movement", "Create StockMovement lines from document lines")
 def post_stock_movement(db, item, params: dict):
-    from apps.erp.stock.services.stock import StockComputeService
-    from apps.erp.stock.models import StockMovement, StockMovementLine
+    from apps.stock.services.stock import StockComputeService
+    from apps.stock.models import StockMovement, StockMovementLine
 
     move_type = params.get("move_type", "Outgoing")
     location_field = params.get("location_field", "location_id")
@@ -18,7 +18,7 @@ def post_stock_movement(db, item, params: dict):
     org_id = getattr(item, "org_id", None)
     currency_id = getattr(item, "currency_id", None)
     if not currency_id and org_id:
-        from apps.erp.config.models import Organization
+        from apps.config.models import Organization
         org = db.get(Organization, org_id)
         currency_id = getattr(org, "base_currency_id", None) if org else None
 
@@ -61,10 +61,10 @@ def post_journal_entry(db, item, params: dict):
       account_credit_id: int (simple mode)
       use_product_category_accounts: bool
     """
-    from apps.erp.accounting.services.journal import JournalService
-    from apps.erp.stock.services.stock import StockComputeService
-    from apps.erp.stock.models import Product, ProductCategory
-    from apps.erp.config.models import Organization
+    from apps.accounting.services.journal import JournalService
+    from apps.stock.services.stock import StockComputeService
+    from apps.stock.models import Product, ProductCategory
+    from apps.config.models import Organization
 
     mode = params.get("mode", "simple")
     org_id = getattr(item, "org_id", None)
@@ -123,8 +123,8 @@ def post_journal_entry(db, item, params: dict):
 
 @HandlerRegistry.register("create_invoice_from_delivery", "Auto-create Sales Invoice from Delivery Note")
 def create_invoice_from_delivery(db, item, params: dict):
-    from apps.erp.accounting.models import InflowInvoice, InflowInvoiceLine
-    from apps.erp.stock.services.price import PriceService
+    from apps.accounting.models import InflowInvoice, InflowInvoiceLine
+    from apps.stock.services.price import PriceService
 
     invoice = InflowInvoice(
         org_id=getattr(item, "org_id", None),
@@ -150,7 +150,7 @@ def create_invoice_from_delivery(db, item, params: dict):
 
 @HandlerRegistry.register("send_notification", "Send in-app notification to a user or role")
 def send_notification(db, item, params: dict):
-    from apps.erp.config.models import Notification
+    from apps.config.models import Notification
 
     template = params.get("message_template", "Document {number} changed to {status}")
     message = template.format(

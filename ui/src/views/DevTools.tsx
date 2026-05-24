@@ -58,7 +58,7 @@ export default function DevTools() {
   const navigate = useNavigate()
   const { notify } = useAras()
 
-  const { designMode, toggleDesignMode, templateBuilderEnabled, toggleTemplateBuilder } = useUIStore()
+  const { designMode, toggleDesignMode } = useUIStore()
 
   const fetchData = async () => {
     try {
@@ -158,18 +158,9 @@ export default function DevTools() {
             </div>
             
             <p className="text-sm text-slate-500 mb-6 font-medium">
-              Enable "Design Mode" to show a pencil icon in the top bar of every page, allowing you to reorder sections and edit styles in-place.
+              Enable "Design Mode" to highlight editable elements on the current page. Click any element to inspect and adjust its styles.
             </p>
 
-            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-              <span className="font-bold text-slate-700">Design Mode Toggle Icon {templateBuilderEnabled ? 'Enabled' : 'Disabled'}</span>
-              <div 
-                onClick={toggleTemplateBuilder}
-                className={`w-12 h-7 rounded-full p-1 cursor-pointer transition-colors duration-300 flex items-center ${templateBuilderEnabled ? 'bg-pink-500' : 'bg-slate-300'}`}
-              >
-                <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 ${templateBuilderEnabled ? 'translate-x-5' : 'translate-x-0'}`}></div>
-              </div>
-            </div>
             
             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 mt-4">
               <span className="font-bold text-slate-700">Active Design Mode {designMode ? 'Enabled' : 'Disabled'}</span>

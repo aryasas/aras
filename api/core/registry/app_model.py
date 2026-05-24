@@ -21,6 +21,9 @@ class AppModel(Model):
     version: Mapped[str] = mapped_column(String(20), default="1.0.0")
     config: Mapped[dict] = mapped_column(JSON, default=dict)
     menu_groups: Mapped[list] = mapped_column(JSON, default=list) # [{label, icon, models: []}]
+    requires: Mapped[list] = mapped_column(JSON, default=list)  # ["accounting", "hr"] — app names this app depends on
+    # {"enable_perpetual_inventory": "accounting"} — config field → required app
+    optional_features: Mapped[dict] = mapped_column(JSON, default=dict)
     is_dynamic: Mapped[bool] = mapped_column(default=False)
     is_active: Mapped[bool] = mapped_column(default=True)
 

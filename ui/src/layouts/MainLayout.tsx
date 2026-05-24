@@ -8,9 +8,8 @@ import { Header } from './components/Header'
 import { Building2 } from 'lucide-react'
 import { useAras } from '../aras-core/hooks/useAras'
 import { useUIStore } from '../store/uiStore'
-import { TopbarAppMenu } from './components/TopbarAppMenu'
+import { HorizontalAppNav } from './components/HorizontalAppNav'
 import Combobox from '../aras-core/components/Combobox'
-import { DesignInspector } from '../aras-core/components/design/DesignInspector'
 
 export default function MainLayout() {
   const [sidebarData, setSidebarData] = useState<SidebarApp[]>([])
@@ -18,7 +17,7 @@ export default function MainLayout() {
   const location = useLocation()
   const activeOrganization = organizations.find((organization) => organization.id === activeOrgId)
   const { notify } = useAras()
-  const { closePanel, themeMode, cornerMode, density, accentColor, fontScale, sidebarCollapsed, designMode } = useUIStore()
+  const { closePanel, themeMode, cornerMode, density, accentColor, fontScale } = useUIStore()
 
   const themeTokens = {
     light: {
@@ -115,18 +114,18 @@ export default function MainLayout() {
   }, [notify])
 
   return (
-    <div className={`h-screen overflow-hidden flex ${designMode ? 'p-0 bg-slate-100' : 'p-4 md:p-6 bg-[var(--aras-bg-main)] gap-4 md:gap-6'} text-[var(--aras-text)] font-sans antialiased transition-all`} style={layoutStyle}>
-      <div className={`flex flex-1 overflow-hidden ${designMode ? 'p-4 md:p-6 gap-4 md:gap-6' : ''}`}>
+    <div className="h-screen overflow-hidden flex p-6 md:p-10 bg-[var(--aras-bg-main)] gap-8 md:gap-12 text-[var(--aras-text)] font-sans antialiased transition-all" style={layoutStyle}>
+
         <Sidebar
           sidebarData={sidebarData}
           currentPath={location.pathname}
           onLogout={logout}
         />
 
-        <div id="content-wrapper" className={`flex flex-col flex-1 min-w-0 h-full overflow-hidden transition-[margin,padding] duration-300 ease-in-out ${sidebarCollapsed ? 'md:ml-[8.5rem]' : 'md:ml-[18.5rem]'}`}>
-          <main id="main-content" className="flex-1 overflow-y-auto flex flex-col gap-3 md:gap-4 pb-20 md:pb-4 min-w-0">
+        <div id="content-wrapper" className={`flex flex-col flex-1 min-w-0 h-full overflow-hidden`}>
+          <main id="main-content" className="flex-1 overflow-y-auto flex flex-col gap-3 md:gap-4 pb-20 md:pb-4 min-w-0 px-8">
 
-            <Header moduleMenu={<TopbarAppMenu sidebarData={sidebarData} />}>
+            <Header>
               <div className="z-50 flex items-center gap-3 px-4 max-sm:hidden">
                 <div className="flex items-center gap-2">
                   <Building2 size={16} className="text-[var(--aras-muted)]" />
@@ -151,17 +150,15 @@ export default function MainLayout() {
               </div>
             </Header>
 
+            <HorizontalAppNav sidebarData={sidebarData} />
+
             {/* Content Area */}
-            <div className="flex-1 max-sm:overflow-visible relative">
+            <div className="flex-1 max-sm:overflow-visible relative px-1 md:px-2">
               <Outlet context={{ sidebarData }} />
             </div>
           </main>
         </div>
-      </div>
       
-      {designMode && (
-        <DesignInspector />
-      )}
     </div>
   )
 }

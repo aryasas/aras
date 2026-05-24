@@ -1,5 +1,6 @@
 import { Editor, Frame, useEditor, type SerializedNodes } from '@craftjs/core'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAras } from '../aras-core/hooks/useAras'
 import Box from './template-studio/components/Box'
 import Sidebar from './template-studio/components/Sidebar'
@@ -101,7 +102,9 @@ function EditorStateBridge({
 
 export default function TemplateBuilder() {
   const { notify } = useAras()
-  const [templateName, setTemplateName] = useState(DEFAULT_TEMPLATE_NAME)
+  const [searchParams] = useSearchParams()
+  const fromRoute = searchParams.get('from') || DEFAULT_TEMPLATE_NAME
+  const [templateName, setTemplateName] = useState(fromRoute)
   const [activeBreakpoint, setActiveBreakpoint] = useState<Breakpoint>('desktop')
   const [zoom, setZoom] = useState(100)
   const [loading, setLoading] = useState(true)
@@ -115,7 +118,7 @@ export default function TemplateBuilder() {
 
     const run = async () => {
       setLoading(true)
-      const tree = await loadTree(DEFAULT_TEMPLATE_NAME)
+      const tree = await loadTree(fromRoute)
       if (cancelled) return
       setFrameData(tree)
       setSerializedNodes(tree)
@@ -128,7 +131,7 @@ export default function TemplateBuilder() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [fromRoute])
 
   const handleTreeChange = useCallback((tree: SerializedNodes) => {
     setSerializedNodes(tree)

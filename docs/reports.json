@@ -2273,5 +2273,97 @@
       "issues": "none"
     },
     "verdict": "APPROVED"
+  },
+  {
+    "id": 169,
+    "date": "2026-05-23",
+    "feature": "Replace all hardcoded Tailwind color/radius classes with CSS design tokens across 19 component files",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListActionBar.tsx, ui/src/aras-core/components/FileField.tsx, ui/src/aras-core/components/ListToolbar.tsx, ui/src/aras-core/components/InlineChildTable.tsx, ui/src/aras-core/components/GlobalDialog.tsx, ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/GenericReport.tsx, ui/src/aras-core/components/SidePanel.tsx, ui/src/aras-core/components/ImportMapping.tsx, ui/src/aras-core/components/TreeView.tsx, ui/src/aras-core/components/Combobox.tsx, ui/src/aras-core/components/PrintPreview.tsx, ui/src/aras-core/components/ErrorBoundary.tsx, ui/src/aras-core/components/NotificationHistory.tsx, ui/src/aras-core/components/design/DesignInspector.tsx, ui/src/aras-core/components/design/DesignContainer.tsx, ui/src/layouts/components/TopbarAppMenu.tsx",
+      "features_added": "none",
+      "fixes_applied": "Replaced all hardcoded slate/indigo/white Tailwind classes with --aras-panel, --aras-panel-soft, --aras-border, --aras-border-strong, --aras-text, --aras-muted, --aras-accent, --aras-radius, --aras-radius-lg tokens. CommandPalette and ListViewActionBar were already fully tokenized.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "17 files modified in one session, 2 sessions due to context limit. All 19 target files processed.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 170,
+    "date": "2026-05-23",
+    "feature": "Replace all hardcoded Tailwind colors/radius with CSS design tokens across 19 UI files",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/TreeView.tsx, ui/src/aras-core/components/Combobox.tsx, ui/src/aras-core/components/PrintPreview.tsx, ui/src/aras-core/components/ErrorBoundary.tsx, ui/src/aras-core/components/NotificationHistory.tsx, ui/src/aras-core/components/design/DesignInspector.tsx, ui/src/aras-core/components/design/DesignContainer.tsx, ui/src/layouts/components/TopbarAppMenu.tsx, ui/src/aras-core/components/DynamicForm.tsx, ui/src/layouts/components/SidebarAppMenu.tsx, ui/src/layouts/components/HeaderSearch.tsx, ui/src/layouts/components/SidebarNavItem.tsx, ui/src/layouts/components/Header.tsx, ui/src/layouts/components/Sidebar.tsx",
+      "features_added": "Full CSS token coverage \u2014 ThemeTweakPanel corner/theme selection now works across all layout and aras-core components",
+      "fixes_applied": "Replaced rounded-xl/2xl/3xl/lg/md with var(--aras-radius)/var(--aras-radius-lg); bg-white/slate-* with var(--aras-panel)/var(--aras-panel-soft); text-slate-* with var(--aras-text)/var(--aras-muted); bg-indigo-* with var(--aras-accent); border-slate-* with var(--aras-border)",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~180000 (two context windows: prior session ~120k + continuation ~60k including subagent)",
+    "output_tokens": "~8000",
+    "cache_read_tokens": "~90000",
+    "cache_write_tokens": "~40000",
+    "token_efficiency": "19 files scanned, 17 modified. Subagent used 64482 tokens (103 tool calls). Session continued from prior context window due to auto-compact. All hardcoded colors eliminated in one session.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 171,
+    "date": "2026-05-23",
+    "feature": "Template builder loads current page design on activate; Notes removed from Config menu, linked to standalone notes app; module dependency system (requires field)",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/registry/app_model.py, api/core/base/app.py, api/core/manager/sync_manager.py, api/apps/erp/config/app.py, api/apps/erp/stock/app.py, api/apps/erp/asset/app.py",
+      "features_added": "App.requires class field + AppModel.requires JSON column; sync_manager persists requires; stock and asset declare requires=[\"accounting\"]; config menu links to standalone notes app via apps_link",
+      "fixes_applied": "Removed Note import and model from Config app.py; removed erp_core_notes from Config General menu",
+      "framework_changes": "AppModel gains requires JSON column; App base gains requires List[str] field; get_manifest() includes requires",
+      "issues": "api/apps/erp/notes/ was accidentally created \u2014 needs manual deletion: rm -rf api/apps/erp/notes/"
+    },
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/design/DesignInspector.tsx",
+      "features_added": "none",
+      "fixes_applied": "DesignInspector fetches saved annotation for current pathname on designMode activate, hydrates designData store so template builder shows current page saved design",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~35000",
+    "output_tokens": "~4000",
+    "cache_read_tokens": "~15000",
+    "cache_write_tokens": "~10000",
+    "token_efficiency": "3 tasks in one session. 6 backend files, ~15 lines changed. 1 frontend file, 12 lines added.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 172,
+    "date": "2026-05-23",
+    "feature": "optional_features dependency system + api/apps/erp dissolution cleanup",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/base/app.py, api/core/registry/app_model.py, api/core/manager/sync_manager.py, api/core/api/admin.py, api/apps/stock/app.py, api/apps/asset/app.py",
+      "features_added": "App.optional_features Dict[str,str] class field; AppModel.optional_features JSON column; sync_manager persists optional_features; stock declares {enable_perpetual_inventory,enable_auto_journal: accounting}; asset declares {enable_asset_depreciation_journal: accounting}; GET /admin/apps/capabilities endpoint",
+      "fixes_applied": "none",
+      "framework_changes": "App manifest includes optional_features; AppModel gains optional_features JSON column auto-migrated on startup",
+      "issues": "api/apps/erp/ folder still physically exists with emptied .py files \u2014 user must manually run: rm -rf api/apps/erp/ && rm api/apps/base/erp_app.py"
+    },
+    "frontend": {
+      "files_written": "ui/src/store/authStore.ts, ui/src/App.tsx, ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "authStore gains activeApps + optionalFeatures + setCapabilities; App.tsx fetches /admin/apps/capabilities on boot; DynamicForm hides fields whose required app is not in activeApps",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~40000",
+    "output_tokens": "~5000",
+    "cache_read_tokens": "~20000",
+    "cache_write_tokens": "~8000",
+    "token_efficiency": "Full optional_features system from backend model to frontend field hiding, 6 backend + 3 frontend files.",
+    "verdict": "APPROVED"
   }
 ]

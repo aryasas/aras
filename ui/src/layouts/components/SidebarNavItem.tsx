@@ -32,7 +32,7 @@ export function SidebarNavItem({ to, icon, label, active = false, collapsed = tr
         </span>
       )}
       {active && collapsed && (
-        <div className="absolute left-0 h-6 w-1 rounded-r-full bg-white" />
+        <div className="absolute left-0 h-6 w-1 rounded-r-full bg-[var(--aras-button-text)]" />
       )}
     </Link>
   )

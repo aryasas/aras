@@ -87,7 +87,7 @@ def run():
         db.commit()
 
         print("\n[2] UOM conversion test (Widget A)...")
-        from apps.erp.stock.services.uom import UomService
+        from apps.stock.services.uom import UomService
         wa = created_products["W-001"]
         if uom_box:
             converted = UomService.convert_qty(db, wa.id, qty=2, from_uom_id=uom_box.id, to_uom_id=uom_unit.id)
@@ -137,7 +137,7 @@ def run():
         print(f"  Outflow Invoice: {pinv.number} | Total: {pinv.total_amount:,.0f}")
 
         print("  Posting outflow invoice...")
-        from apps.erp.accounting.services.posting import InvoicePostingService
+        from apps.accounting.services.posting import InvoicePostingService
         result = InvoicePostingService.post_outflow_invoice(db, pinv)
         if result is True:
             print(f"  ✓ Posted | Status: {pinv.status}")
@@ -146,7 +146,7 @@ def run():
             return
 
         print("\n[5] Stock on hand after outflow:")
-        from apps.erp.stock.services.stock import StockComputeService
+        from apps.stock.services.stock import StockComputeService
         for code, prod in created_products.items():
             qty = StockComputeService.compute_qty(db, prod.id)
             print(f"  {code} ({prod.name}): {qty} units on hand")

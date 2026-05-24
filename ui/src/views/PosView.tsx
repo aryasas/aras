@@ -67,7 +67,7 @@ export default function PosView() {
 
   useEffect(() => {
     if (!id) return
-    api.get(`/erp/pot/sessions/${id}`)
+    api.get(`/pot/sessions/${id}`)
       .then(res => {
         const s = res.data as PosSession
         setSession(s)
@@ -79,7 +79,7 @@ export default function PosView() {
   useEffect(() => {
     if (id) return
     setSessionsLoading(true)
-    api.get('/erp/pot/sessions', {
+    api.get('/pot/sessions', {
       params: {
         filters: JSON.stringify([{ field: 'status', op: '=', value: 'Open' }])
       }
@@ -92,7 +92,7 @@ export default function PosView() {
   useEffect(() => {
     if (!id) return
     setLoading(true)
-    api.get(`/erp/pot/sessions/${id}/items`, { params: { mode: posMode } })
+    api.get(`/pot/sessions/${id}/items`, { params: { mode: posMode } })
       .then(res => setItems(normalizeList<PosItem>(res.data)))
       .catch(err => notify(err.response?.data?.detail || 'Failed to load items', 'error'))
       .finally(() => setLoading(false))
@@ -140,13 +140,13 @@ export default function PosView() {
   const createSession = async () => {
     setCreatingSession(true)
     try {
-      const res = await api.post('/erp/pot/sessions', {
+      const res = await api.post('/pot/sessions', {
         status: 'Open',
         mode: 'sales',
         doc_date: today()
       })
       const nextSession = res.data as PosSession
-      navigate(`/erp/pot/sessions/${nextSession.id}/pos`)
+      navigate(`/pot/sessions/${nextSession.id}/pos`)
     } catch (err: any) {
       notify(err.response?.data?.detail || 'Failed to create session', 'error')
     } finally {
@@ -160,7 +160,7 @@ export default function PosView() {
 
     setCharging(true)
     try {
-      const res = await api.post(`/erp/pot/sessions/${id}/quick_invoice`, {
+      const res = await api.post(`/pot/sessions/${id}/quick_invoice`, {
         party_id: partyId,
         payment_mode_id: isCreditMode ? null : paymentModeId,
         amount_paid: isCreditMode ? 0 : paid,
@@ -197,9 +197,9 @@ export default function PosView() {
 
     setClosing(true)
     try {
-      await api.post(`/erp/pot/sessions/${id}/action/close_session`, { closing_balance: 0 })
+      await api.post(`/pot/sessions/${id}/action/close_session`, { closing_balance: 0 })
       notify('Session closed', 'success')
-      navigate('/erp/pot/sessions')
+      navigate('/pot/sessions')
     } catch (err: any) {
       notify(err.response?.data?.detail || 'Failed to close session', 'error')
     } finally {
@@ -258,7 +258,7 @@ export default function PosView() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => navigate(`/erp/pot/sessions/${openSession.id}/pos`)}
+                  onClick={() => navigate(`/pot/sessions/${openSession.id}/pos`)}
                   className="mt-5 w-full px-4 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors"
                 >
                   Open
@@ -286,7 +286,7 @@ export default function PosView() {
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
-            onClick={() => navigate('/erp/pot/sessions')}
+            onClick={() => navigate('/pot/sessions')}
             className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
             title="Back"
           >
@@ -476,7 +476,7 @@ export default function PosView() {
               <label className="block">
                 <span className="block mb-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Party</span>
                 <Combobox
-                  resource="erp/party/parties"
+                  resource="party/parties"
                   value={partyId}
                   onChange={(value) => setPartyId(typeof value === 'number' ? value : value ? Number(value) : null)}
                   placeholder="Optional party"
@@ -485,7 +485,7 @@ export default function PosView() {
               <label className="block">
                 <span className="block mb-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Mode</span>
                 <Combobox
-                  resource="erp/config/payment-modes"
+                  resource="config/payment-modes"
                   value={paymentModeId}
                   onChange={(value) => setPaymentModeId(typeof value === 'number' ? value : value ? Number(value) : null)}
                   placeholder="Payment mode"

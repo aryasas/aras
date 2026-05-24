@@ -10,7 +10,7 @@
 | `rhf` | Review `docs/handoff.md` Agent Reports — verify files exist, append `## Claude Review` block with `APPROVED` or `NEEDS-FIX`. If NEEDS-FIX add `## Revision Tasks`. Run `cd api && python manage.py sync` if models changed. |
 | `mhl` | Run manual change log (see Change Logging below) |
 | `cmp` | Inspect project — review code, UI (ease, position, aesthetic), find repeatables to refactor. Report what to add/improve before building new apps. |
-| `ggc` | Give git commit command text for all changes — do NOT execute, user runs it |
+| `ggc` | Give git commit command text for all changes — do NOT execute, user runs it. always put ai name so later people know your quality | 
 | `updd` | Update `docs/feature.md` (add only) and `docs/aras.md` if framework changed |
 | `dde` | Don't do edit — no changes whatsoever |
 | `rrc` | Re-read CLAUDE.md rules 1-3 before anything else |
@@ -23,7 +23,7 @@ dont run multi_agent directly, i will run it
 > **Reading rule**: Never full-read `framework_ref.md` — use only the exact line range shown in each pointer below.
 > **Sync rule**: If line numbers in `aras.md` or `framework_ref.md` shift due to edits, update ALL affected `→ framework_ref.md L…` pointers in BOTH files immediately.
 
-Aras is a general-purpose, metadata-driven application framework — not an ERP. It provides a code-first model registry, auto-generated CRUD APIs, metadata-driven UI, RBAC, workflow engine, multi-tenancy, and a modular app system where each app is an independently installable unit. An app can contain sub-modules (via `parent_name`), each owning its own models and routes — ERP uses this to organize Accounting, Stock, CRM, and others as modules under one app. Any other standalone system can be built the same way: a hospital patient registry, a school management system, a property rental platform — each as its own app with whatever modules it needs.
+Aras is a general-purpose, metadata-driven application framework — not an ERP. It provides a code-first model registry, auto-generated CRUD APIs, metadata-driven UI, RBAC, workflow engine, multi-tenancy, and a modular app system where each app is an independently installable unit. Each app owns its own models and routes and appears directly in the sidebar. Any system can be built this way: a hospital patient registry, a school management system, a property rental platform — each as its own app. ERP domains (Accounting, Stock, CRM, etc.) are each their own top-level app, not sub-modules.
 
 ---
 
@@ -49,7 +49,7 @@ All classes accessed via unified namespace — `from core import Aras`. → `fra
 1. `api/apps/` is scanned at startup — any `Aras.App` subclass found is auto-registered.
 2. `python manage.py sync` must be run after any model/app change — writes to `aras_*` registry tables and runs `auto_migrate`.
 3. Routes are auto-mounted per app via `RouterFactory` — no manual router wiring needed.
-4. Apps are isolated by `app_name`; sub-modules set `parent_name` to nest under a parent app.
+4. Apps are isolated by `app_name`; `parent_name` is available but not used for ERP — all ERP domains are top-level apps.
 
 Full `manage.py` command list: → `framework_ref.md` L211–227
 
@@ -82,7 +82,7 @@ Every app needs three things to have visible resources in the UI:
 
 ## Model Rules
 
-- `__tablename__` — REQUIRED, `{app_name}_{table}` (e.g. `erp_accounting_accounts`)
+- `__tablename__` — REQUIRED, `{table_prefix}_{table}` where `table_prefix` matches the app's `table_prefix` attr (e.g. `erp_accounting_accounts` for app `accounting` with `table_prefix="erp_accounting"`)
 - `__features__` — `["audit"]`, `["audit", "workflow"]`, `["activatable"]`
 - `__scoped_by__` — `[(col, fk_table)]` — auto-injects FK col + WHERE filter per JWT scope
 - `__unique_together__` — `[("col_a", "col_b")]` — composite UniqueConstraint
@@ -109,9 +109,13 @@ the user must copy once (license tokens, API keys, one-time passwords).
 
 ---
 
+## Engineering Standard
+
+Always use the **best** approach — not the simplest. Use simple only when it is genuinely the best. Build world-class, not "good enough".
+
 ## Development Mandates
 
-1. Table naming: ALWAYS `{app_name}_{table}` (e.g. `erp_stock_products`, `erp_accounting_accounts`)
+1. Table naming: ALWAYS `{table_prefix}_{table}` — set `table_prefix` on the App class when it differs from `app_name` (e.g. app `stock` uses `table_prefix="erp_stock"`, tables are `erp_stock_products`)
 2. After changing `models.py` or `app.py`: run `python manage.py sync` from `api/`
 3. One file, one class — strict modularity
 4. Never run long-running servers as foreground
@@ -128,7 +132,7 @@ App patterns, file structure, `autodiscover_models`, `menu_groups`: → `framewo
 
 All routes prefixed `/api/v1/`. Underscores → hyphens. App/parent prefixes stripped from last path segment.
 
-Example: App `erp_accounting` (parent `erp`), model `erp_accounting_accounts` → `/api/v1/erp/accounting/accounts`
+Example: App `accounting` (`table_prefix="erp_accounting"`), model `erp_accounting_accounts` → `/api/v1/accounting/accounts`
 
 Full endpoint list: → `framework_ref.md` L118–137
 
@@ -162,9 +166,23 @@ Logic modules + Manager classes: → `framework_ref.md` L92–115
 
 ---
 
-## ERP App (`api/apps/erp/`)
+## ERP Apps (`api/apps/erp/`)
 
-ERP is the built-in example app. It uses a parent+module structure: `erp` (parent) owns `SavedFilter` and `saved_filter_router`; all sub-modules (`erp_accounting`, `erp_stock`, etc.) inherit from `ERP` which auto-sets `parent_name = "erp"`. ERP abstract bases (`DocumentBase`, `LineItemBase`, `MasterDataBase`, `ConfigBase`) are defined in `api/apps/erp/base/` and are ERP-specific — not framework primitives.
+ERP domains are top-level standalone apps — no parent app. Each inherits `Aras.App` directly and sets `table_prefix` to match its DB tables:
+
+| app_name | table_prefix | app_label |
+|---|---|---|
+| `accounting` | `erp_accounting` | Accounting |
+| `stock` | `erp_stock` | Stock |
+| `hr` | `erp_hr` | Human Resources |
+| `crm` | `erp_crm` | CRM |
+| `asset` | `erp_asset` | Fixed Assets |
+| `party` | `erp_party` | Parties |
+| `pot` | `erp_pot` | Point of Transaction |
+| `report` | `erp_report` | Reports |
+| `config` | `erp_config` | Configuration |
+
+Shared utilities live in `api/apps/erp/base/` (`saved_filter_router`, `series_router`, `SavedFilter`, ERP abstract bases). `config` app owns `SavedFilter` and `Note` models. ERP abstract bases (`DocumentBase`, `LineItemBase`, `MasterDataBase`, `ConfigBase`) are ERP-specific — not framework primitives.
 
 Full sub-app and base tables: → `framework_ref.md` L325–349
 
@@ -408,3 +426,10 @@ Login: `admin` / `admin`
 ---
 ## Framework Change: CSS prefix migration & dark mode input fixes (2026-05-21)
   - [Antigravity] Renamed CSS prefixes to app- with legacy alias compatibility mappings
+
+## Open Source
+Aras will be open sourced. AI attribution is required on every function.
+Tag format: `# claude-sonnet-4-6`, `# gemini-flash`, `# gemini-pro`, `# chatgpt` etc.
+Place the tag comment on the line above the function/class definition.
+Be honest about quality: `# claude-sonnet-4-6 (bad)`, `# gemini-pro (needs review)` — let contributors know what to trust.
+

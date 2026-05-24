@@ -65,9 +65,9 @@ export const GenericReport: React.FC<GenericReportProps> = ({ title, data = [], 
       {/* Actual Report Content */}
       <div className="space-y-6">
         <div className="text-center space-y-2 mb-10 hidden print:block">
-          <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">{title || 'Untitled Report'}</h1>
-          <p className="text-sm text-slate-500 font-medium">Generated on {new Date().toLocaleString()}</p>
-          <div className="h-1 w-24 bg-slate-900 mx-auto rounded-full" />
+          <h1 className="text-3xl font-black text-[var(--aras-text)] uppercase tracking-tighter">{title || 'Untitled Report'}</h1>
+          <p className="text-sm text-[var(--aras-muted)] font-medium">Generated on {new Date().toLocaleString()}</p>
+          <div className="h-1 w-24 bg-[var(--aras-text)] mx-auto rounded-full" />
         </div>
 
         <div className="overflow-x-auto border border-[var(--aras-border)] rounded-2xl print:border-none">
@@ -108,7 +108,7 @@ export const GenericReport: React.FC<GenericReportProps> = ({ title, data = [], 
           </div>
         )}
 
-        <div className="hidden print:block pt-12 text-[10px] text-slate-400 text-center border-t border-slate-200 mt-20">
+        <div className="hidden print:block pt-12 text-[10px] text-[var(--aras-muted)] text-center border-t border-[var(--aras-border)] mt-20">
           Aras Framework — Modular ERP System &copy; {new Date().getFullYear()}
         </div>
       </div>

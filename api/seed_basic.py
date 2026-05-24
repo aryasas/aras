@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from core.lib.database import SessionLocal
 from core import Aras
 from core.logic import discovery
-from apps.erp.accounting.seed_coa import seed_coa
+from apps.accounting.seed_coa import seed_coa
 
 def seed_basic_data():
     print("Discovering apps and registering models...")

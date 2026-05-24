@@ -32,8 +32,8 @@ const NotificationHistory: React.FC = () => {
       case 'success': return 'bg-emerald-50 text-emerald-700';
       case 'error': return 'bg-rose-50 text-rose-700';
       case 'warning': return 'bg-amber-50 text-amber-700';
-      case 'info': return 'bg-indigo-50 text-indigo-700';
-      default: return 'bg-slate-50 text-slate-700';
+      case 'info': return 'bg-[color-mix(in_srgb,var(--aras-accent)_10%,transparent)] text-[var(--aras-accent)]';
+      default: return 'bg-[var(--aras-panel-soft)] text-[var(--aras-text)]';
     }
   };
 
@@ -51,12 +51,12 @@ const NotificationHistory: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 bg-white border border-slate-200 shadow-xl rounded-2xl z-50 p-4">
+        <div className="absolute right-0 mt-3 w-80 bg-[var(--aras-panel)] border border-[var(--aras-border)] shadow-xl rounded-[var(--aras-radius-lg)] z-50 p-4">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-bold text-slate-800">Notifications</h4>
+            <h4 className="text-sm font-bold text-[var(--aras-text)]">Notifications</h4>
             <button
               onClick={clearHistory}
-              className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 disabled:opacity-50"
+              className="flex items-center gap-1 text-xs text-[var(--aras-muted)] hover:text-[var(--aras-text)] disabled:opacity-50"
               disabled={history.length === 0}
             >
               <Trash2 size={14} /> Clear All
@@ -64,10 +64,10 @@ const NotificationHistory: React.FC = () => {
           </div>
           <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
             {history.length === 0 ? (
-              <p className="text-sm text-slate-400 italic">No notifications yet.</p>
+              <p className="text-sm text-[var(--aras-muted)] italic">No notifications yet.</p>
             ) : (
               history.slice().reverse().map((notification) => ( // Reverse to show newest first
-                <div key={notification.id} className={`p-3 rounded-lg ${getTypeClasses(notification.type)}`}>
+                <div key={notification.id} className={`p-3 rounded-[var(--aras-radius)] ${getTypeClasses(notification.type)}`}>
                   <p className="text-sm font-medium">{notification.message}</p>
                   <p className="text-xs text-opacity-75 mt-1">{formatTimestamp(notification.timestamp)}</p>
                 </div>

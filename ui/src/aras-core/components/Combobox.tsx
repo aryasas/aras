@@ -247,7 +247,7 @@ const Combobox: React.FC<ComboboxProps> = ({
               autoFocus
               type="text"
               placeholder="Search..."
-              className="w-full min-h-10 pl-8 pr-3 py-2 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-xl text-sm font-semibold outline-none focus:border-[var(--aras-accent)] transition-all text-[var(--aras-text)] placeholder:text-[var(--aras-muted)]"
+              className="w-full min-h-10 pl-8 pr-3 py-2 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-[var(--aras-radius)] text-sm font-semibold outline-none focus:border-[var(--aras-accent)] transition-all text-[var(--aras-text)] placeholder:text-[var(--aras-muted)]"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -278,7 +278,7 @@ const Combobox: React.FC<ComboboxProps> = ({
                   aria-selected={isSelected}
                   onClick={() => handleSelect(item)}
                   onMouseEnter={() => setActiveIndex(index)}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-[var(--aras-radius)] cursor-pointer transition-all ${
                     isSelected 
                       ? 'bg-[var(--aras-accent)] text-white' 
                       : isActive 
@@ -302,7 +302,7 @@ const Combobox: React.FC<ComboboxProps> = ({
           <button 
             type="button"
             onMouseDown={(e) => { e.preventDefault(); handleAddNew(); }}
-            className="flex items-center gap-2 w-full px-3 py-2 text-xs font-bold text-[var(--aras-accent)] hover:bg-[var(--aras-accent)] hover:text-white rounded-xl transition-all"
+            className="flex items-center gap-2 w-full px-3 py-2 text-xs font-bold text-[var(--aras-accent)] hover:bg-[var(--aras-accent)] hover:text-white rounded-[var(--aras-radius)] transition-all"
           >
             <Plus size={12} /> 
             Add New Record
@@ -323,7 +323,7 @@ const Combobox: React.FC<ComboboxProps> = ({
         tabIndex={disabled ? -1 : 0}
         onClick={() => !disabled && setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
-        className={`aras-combobox-trigger flex items-center justify-between w-full min-h-[46px] px-4 bg-[var(--aras-panel-soft)] border rounded-xl text-sm transition-all ${
+        className={`aras-combobox-trigger flex items-center justify-between w-full min-h-[46px] px-4 bg-[var(--aras-panel-soft)] border rounded-[var(--aras-radius)] text-sm transition-all ${
           disabled 
             ? 'border-[var(--aras-border)] bg-[var(--aras-panel-soft)]' 
             : isOpen 

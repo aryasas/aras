@@ -184,5 +184,5 @@ This file is used only to report if there are fix
   - [Antigravity] Dark mode form input background/border colors, hardcoded label/line text colors
 
 
-## Unknown (2026-05-22)
-  - [GPT (codex)] Kept TemplateSection compatibility for LiveDesignWrapper and verified `npx tsc --noEmit -p tsconfig.app.json` passes clean.
+## Test Database Configuration Alignment (2026-05-23)
+  - [Gemini] Updated `tests/conftest.py` to allow `SQLALCHEMY_DATABASE_URI` to be overridden by an environment variable, defaulting to PostgreSQL. This aligns the testing environment with the project's "Hard Rules — Database" mandate, moving away from SQLite.

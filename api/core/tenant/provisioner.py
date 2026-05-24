@@ -87,11 +87,11 @@ def seed_tenant(tenant_id: str) -> Dict[str, Any]:
         seed_basic_data(db=db)
         seeded.append("basic")
 
-        from apps.erp.config.seed_series import run as seed_series
+        from apps.config.seed_series import run as seed_series
         seed_series(db=db)
         seeded.append("series")
 
-        from apps.erp.report.seed_reports import run_seed as seed_reports
+        from apps.report.seed_reports import run_seed as seed_reports
         from core.aras import Aras
         Org = Aras.Model._registry.get("Organization")
         if Org:
