@@ -31,6 +31,10 @@ const GlobalSettingsView = lazy(() => import('./views/GlobalSettings'))
 const LicenseStatusView = lazy(() => import('./views/LicenseStatus'))
 const WebPageView = lazy(() => import('./views/WebPageView'))
 const ContactView = lazy(() => import('./views/ContactView'))
+const PublicLanding = lazy(() => import('./views/PublicLanding'))
+const CustomerSignup = lazy(() => import('./views/CustomerSignup'))
+const CustomerPortal = lazy(() => import('./views/CustomerPortal'))
+const CustomerPortalSetup = lazy(() => import('./views/CustomerPortalSetup'))
 const InspectRoutesView = lazy(() => import('./views/InspectRoutes'))
 const HealthIntegrityView = lazy(() => import('./views/HealthIntegrity'))
 const ArchivedView = lazy(() => import('./views/ArchivedView'))
@@ -139,6 +143,10 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/p/:slug" element={<WebPageView />} />
         <Route path="/contact" element={<ContactView />} />
+        <Route path="/welcome" element={<PublicLanding />} />
+        <Route path="/signup" element={<CustomerSignup />} />
+        <Route path="/portal" element={<CustomerPortal />} />
+        <Route path="/portal/setup" element={<CustomerPortalSetup />} />
 
         {/* Authenticated Routes with MainLayout */}
         <Route 

@@ -68,7 +68,7 @@ class AppInstaller(Service):
     @classmethod
     def generate_python_files(cls, app_name: str, app_data: Dict[str, Any], tables_data: List[Dict[str, Any]]) -> Dict[str, str]:
         """
-        Generates the content for app.py and models.py.
+        Generates the content for app.py, models.py, and views.py.
         """
         files = {}
 
@@ -88,6 +88,7 @@ class AppInstaller(Service):
             \"\"\"
             from ..aras import Aras
             from .models import {imports_str}
+            from . import views
 
             class {cls._to_camel_case(app_name)}(Aras.App):
                 app_name = "{app_name}"
@@ -110,12 +111,10 @@ class AppInstaller(Service):
         for tbl in tables_data:
             class_name = cls._to_camel_case(tbl["name"])
             table_name = f"{app_name}_{tbl['name']}"
-            title = tbl.get("title", tbl["name"].replace("_", " ").title())
             
             model_lines += [
                 f"class {class_name}(Aras.Model):",
                 f"    __tablename__ = \"{table_name}\"",
-                f"    __title__ = \"{title}\"",
                 "",
             ]
 
@@ -135,6 +134,26 @@ class AppInstaller(Service):
             model_lines += ["", ""]
 
         files["models.py"] = "\n".join(model_lines)
+
+        # ── views.py ──────────────────────────────────────────────────────────
+        view_lines = [
+            "from ..aras import Aras",
+            f"from .models import {imports_str}",
+            "",
+        ]
+
+        for tbl in tables_data:
+            class_name = cls._to_camel_case(tbl["name"])
+            title = tbl.get("title", tbl["name"].replace("_", " ").title())
+            
+            view_lines += [
+                f"class {class_name}View(Aras.View):",
+                f"    model = {class_name}",
+                f"    title = \"{title}\"",
+                "",
+            ]
+        
+        files["views.py"] = "\n".join(view_lines)
 
         return files
 

@@ -1,9 +1,10 @@
 // claude-opus-4-7
-// ARC sidebar: single ARC card with brand at top, app list, optional submenu, profile/logout at bottom.
-// Collapsed mode shows just icons. Active state uses coral accent.
-import { useState, useEffect } from 'react'
-import { LogOut, Hexagon, ChevronRight } from 'lucide-react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+// ARC sidebar: 56px icon rail (apps) + 200px section panel (active app submenu).
+// Section panel items are user-reorderable via DnD (persisted in uiStore.submenuOrder).
+// Clicking an app navigates directly to its first submenu item (skips AppHome).
+import { useState, useEffect, useMemo } from 'react'
+import { Bell, ChevronRight, Hexagon, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import type { SidebarApp, MenuItem } from '../types'
 import { useVocabulary } from '../../context/VocabularyContext'
 import { resolveIcon } from '../../lib/iconUtils'
@@ -11,36 +12,44 @@ import { isVisibleMenuItem, filterMenuItems, filterMenuElements } from '../../li
 import { useUIStore } from '../../store/uiStore'
 import { useAuthStore } from '../../store/authStore'
 import api from '../../lib/api'
+import { SortableList, DragHandle } from '../../aras-core/components/SortableList'
 
 interface SidebarProps {
   sidebarData: SidebarApp[]
   currentPath: string
-  onLogout: () => void
 }
 
-export function Sidebar({ sidebarData, currentPath, onLogout }: SidebarProps) {
+interface FlatMenuItem extends MenuItem { id: string; groupLabel?: string }
+
+export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
   const vocabulary = useVocabulary()
-  const location = useLocation()
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  const { sidebarCollapsed, toggleSidebar } = useUIStore()
+  const submenuOrder = useUIStore((s) => s.submenuOrder)
+  const setSubmenuOrder = useUIStore((s) => s.setSubmenuOrder)
+  const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed)
+  const toggleSidebar = useUIStore((s) => s.toggleSidebar)
+  const iconRailCollapsed = useUIStore((s) => s.iconRailCollapsed)
+  const toggleIconRail = useUIStore((s) => s.toggleIconRail)
+  const mobileSidebarOpen = useUIStore((s) => s.mobileSidebarOpen)
+  const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen)
   const [activeApp, setActiveApp] = useState<SidebarApp | null>(null)
   const [menuData, setMenuData] = useState<any>(null)
-  const [panelOpen, setPanelOpen] = useState(true)
   const [isLoadingMenu, setIsLoadingMenu] = useState(false)
 
   const apps = sidebarData.filter(isVisibleMenuItem)
+  const initial = (user?.full_name || user?.username || 'A')[0].toUpperCase()
 
   useEffect(() => {
-    const [appName] = location.pathname.split('/').filter(Boolean)
+    const [appName] = currentPath.split('/').filter(Boolean)
     if (appName) {
       const app = apps.find((a) => a.name === appName)
-      if (app) setActiveApp(app)
+      if (app && app.name !== activeApp?.name) setActiveApp(app)
     }
-  }, [location.pathname, apps])
+  }, [currentPath, apps, activeApp?.name])
 
   useEffect(() => {
-    if (!activeApp) return
+    if (!activeApp) { setMenuData(null); return }
     setIsLoadingMenu(true)
     api.get(`/app-menu/${activeApp.name}`)
       .then((res) => setMenuData(res.data))
@@ -48,158 +57,207 @@ export function Sidebar({ sidebarData, currentPath, onLogout }: SidebarProps) {
       .finally(() => setIsLoadingMenu(false))
   }, [activeApp])
 
+  // Flatten menu groups into a single ordered list (id = path) for DnD.
+  const flatItems = useMemo<FlatMenuItem[]>(() => {
+    if (!menuData) return []
+    const groups = filterMenuElements(menuData.menu || []).filter((g: any) => {
+      const label = (g.label || '').toLowerCase()
+      const name = (g.name || '').toLowerCase()
+      return !label.includes('setting') && !name.includes('setting') && !label.includes('admin') && !name.includes('admin')
+    })
+    const items: FlatMenuItem[] = []
+    groups.forEach((g: any) => {
+      filterMenuItems(g.items || []).forEach((i: MenuItem) => {
+        const il = (i.label || '').toLowerCase()
+        const inm = (i.name || '').toLowerCase()
+        if (il.includes('setting') || inm.includes('setting') || il.includes('admin') || inm.includes('admin')) return
+        items.push({ ...i, id: i.path || i.name, groupLabel: g.label })
+      })
+    })
+    return items
+  }, [menuData])
+
+  // Apply persisted order for this app.
+  const orderedItems = useMemo<FlatMenuItem[]>(() => {
+    if (!activeApp) return []
+    const saved = submenuOrder[activeApp.name]
+    if (!saved || !saved.length) return flatItems
+    const byId = new Map(flatItems.map((it) => [it.id, it]))
+    const reordered: FlatMenuItem[] = []
+    saved.forEach((id) => { const it = byId.get(id); if (it) { reordered.push(it); byId.delete(id) } })
+    byId.forEach((it) => reordered.push(it))
+    return reordered
+  }, [flatItems, submenuOrder, activeApp])
+
+  // Auto-navigate to first item when app changes and current path is just /<app>.
+  useEffect(() => {
+    if (!activeApp || !orderedItems.length) return
+    const segs = currentPath.split('/').filter(Boolean)
+    if (segs.length <= 1 && segs[0] === activeApp.name) {
+      navigate(orderedItems[0].path)
+    }
+  }, [activeApp, orderedItems, currentPath, navigate])
+
   const handleAppClick = (app: SidebarApp) => {
     setActiveApp(app)
-    if (!panelOpen) setPanelOpen(true)
-    navigate(app.path || `/${app.name}`)
+    const saved = submenuOrder[app.name]
+    const target = saved?.[0] || app.path || `/${app.name}`
+    if (target === currentPath) {
+      navigate(target, { replace: true, state: { _t: Date.now() } })
+    } else {
+      navigate(target)
+    }
   }
 
-  const groups = menuData
-    ? filterMenuElements(menuData.menu || [])
-        .filter((g: any) => {
-          const label = (g.label || '').toLowerCase()
-          const name = (g.name || '').toLowerCase()
-          return !label.includes('setting') && !name.includes('setting') && !label.includes('admin') && !name.includes('admin')
-        })
-        .map((g: any) => ({
-          ...g,
-          items: (g.items || []).filter((i: any) => {
-            const il = (i.label || '').toLowerCase()
-            const inm = (i.name || '').toLowerCase()
-            return !il.includes('setting') && !inm.includes('setting') && !il.includes('admin') && !inm.includes('admin')
-          }),
-        }))
-        .filter((g: any) => g.items.length > 0 || g.type !== 'group')
-    : []
+  // Auto-close mobile drawer on route change.
+  useEffect(() => {
+    if (mobileSidebarOpen) setMobileSidebarOpen(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPath])
 
-  const initial = (user?.full_name || user?.username || 'A')[0].toUpperCase()
+  const handleReorder = (next: FlatMenuItem[]) => {
+    if (!activeApp) return
+    setSubmenuOrder(activeApp.name, next.map((it) => it.id))
+  }
 
   return (
-    <div className="flex h-full gap-2 transition-all duration-200">
-      {/* App rail */}
-      <aside className={`flex flex-col shrink-0 z-40 arc-card overflow-hidden transition-[width] duration-200 ${sidebarCollapsed ? 'w-[58px]' : 'w-[208px]'}`}>
-        {/* Brand */}
-        <div className={`h-[52px] min-h-[52px] shrink-0 flex items-center border-b border-[var(--line)] ${sidebarCollapsed ? 'justify-center' : 'px-3 justify-between'}`}>
-          <button
-            onClick={toggleSidebar}
-            aria-label="Toggle sidebar"
-            className={`flex items-center group gap-2 ${sidebarCollapsed ? 'w-9 h-9 justify-center rounded-[var(--radius)] hover:bg-[var(--surface-2)]' : 'w-full h-9 px-2 rounded-[var(--radius)] hover:bg-[var(--surface-2)]'}`}
-          >
-            <Hexagon size={18} className="text-[var(--accent)] group-hover:rotate-180 transition-transform duration-500" />
-            {!sidebarCollapsed && <span className="text-[14px] font-semibold tracking-tight text-[var(--text)]">Aras</span>}
-            {!sidebarCollapsed && <span className="arc-id arc-dim2 ml-auto">v1.2</span>}
-          </button>
+    <>
+      {/* Mobile backdrop */}
+      {mobileSidebarOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/40"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+    <div
+      className={`flex h-full max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:shadow-xl max-md:transition-transform max-md:duration-200 ${mobileSidebarOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'}`}
+    >
+      {/* 56px icon rail */}
+      <aside
+        className="flex flex-col shrink-0 z-40"
+        style={{
+          width: iconRailCollapsed ? 0 : 56,
+          background: 'var(--bg-2)',
+          borderRight: iconRailCollapsed ? 'none' : '1px solid var(--line)',
+          overflow: iconRailCollapsed ? 'hidden' : undefined,
+        }}
+      >
+        <div
+          className="flex items-center justify-center"
+          style={{ height: 52, borderBottom: '1px solid var(--line)' }}
+        >
+          <Hexagon size={20} className="text-[var(--accent)]" />
         </div>
 
-        {/* App list */}
-        <div className={`flex flex-col gap-0.5 w-full overflow-y-auto arc-scroll flex-1 ${sidebarCollapsed ? 'p-2' : 'p-2'}`}>
+        <div className="flex-1 flex flex-col items-center gap-1 py-3 overflow-y-auto arc-scroll">
           {apps.map((item) => {
             const Icon = resolveIcon(item.icon)
             const isActive = activeApp?.name === item.name
-            const label = vocabulary.get(item.label)
             return (
               <button
                 key={item.name}
                 onClick={() => handleAppClick(item)}
-                title={sidebarCollapsed ? label : undefined}
-                className={`flex items-center transition-colors relative group shrink-0 rounded-[var(--radius)] ${
-                  sidebarCollapsed ? 'w-9 h-9 justify-center mx-auto' : 'w-full px-2.5 h-9 gap-2.5'
-                } ${
-                  isActive
-                    ? 'bg-[color-mix(in_oklch,var(--accent)_14%,var(--surface))] text-[var(--accent)]'
-                    : 'text-[var(--text-2)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]'
-                }`}
+                title={vocabulary.get(item.label)}
+                className="relative flex items-center justify-center transition-colors"
+                style={{
+                  width: 38, height: 38, borderRadius: 'var(--radius)',
+                  background: isActive ? 'var(--surface-2)' : 'transparent',
+                  border: isActive ? '1px solid var(--line)' : '1px solid transparent',
+                  color: isActive ? 'var(--text)' : 'var(--text-3)',
+                }}
               >
-                <Icon size={15} strokeWidth={isActive ? 2.2 : 1.8} className="shrink-0" />
-                {!sidebarCollapsed && <span className="text-[12.5px] font-medium truncate">{label}</span>}
-                {isActive && !sidebarCollapsed && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />}
+                <Icon size={17} />
+                {isActive && (
+                  <span style={{
+                    position: 'absolute', left: -8, top: 8, bottom: 8, width: 2,
+                    background: 'var(--accent)', borderRadius: 2,
+                  }} />
+                )}
               </button>
             )
           })}
         </div>
 
-        {/* User / logout */}
-        <div className={`shrink-0 border-t border-[var(--line)] flex items-center ${sidebarCollapsed ? 'flex-col gap-2 py-3 justify-center' : 'gap-2 p-2.5'}`}>
-          {sidebarCollapsed ? (
-            <>
-              <div className="arc-av" style={{ background: 'color-mix(in oklch, var(--accent) 16%, var(--surface))', color: 'var(--accent)', borderColor: 'var(--line)' }}>
-                <span className="arc-mono">{initial}</span>
-              </div>
-              <button onClick={onLogout} aria-label="Logout" className="arc-btn ghost" style={{ height: 28, width: 28, padding: 0, justifyContent: 'center' }}>
-                <LogOut size={13} />
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="arc-av" style={{ background: 'color-mix(in oklch, var(--accent) 16%, var(--surface))', color: 'var(--accent)', borderColor: 'var(--line)' }}>
-                <span className="arc-mono">{initial}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[12px] font-medium text-[var(--text)] truncate">{user?.full_name || 'Admin'}</div>
-                <div className="arc-id arc-dim2 truncate">{user?.username || '—'}</div>
-              </div>
-              <button onClick={onLogout} aria-label="Logout" className="arc-btn ghost" style={{ height: 28, width: 28, padding: 0, justifyContent: 'center' }}>
-                <LogOut size={13} />
-              </button>
-            </>
-          )}
+        <div className="flex flex-col items-center gap-2 py-3" style={{ borderTop: '1px solid var(--line)' }}>
+          <button
+            onClick={toggleIconRail}
+            aria-label="Hide sidebar"
+            className="flex items-center justify-center hover:text-[var(--text)] text-[var(--text-3)] transition-colors"
+            style={{ width: 32, height: 32, borderRadius: 8 }}
+          >
+            <Menu size={16} />
+          </button>
+          <button
+            onClick={toggleSidebar}
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="flex items-center justify-center hover:text-[var(--text)] text-[var(--text-3)] transition-colors"
+            style={{ width: 32, height: 32, borderRadius: 8 }}
+          >
+            {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          </button>
+          <Bell size={17} className="text-[var(--text-3)]" />
+          <div className="arc-av" style={{
+            width: 28, height: 28,
+            background: 'color-mix(in oklch, var(--accent) 22%, var(--surface))',
+            color: 'var(--accent)',
+            boxShadow: '0 0 0 1.5px var(--accent), 0 0 0 3px var(--bg)',
+          }}>
+            <span className="arc-mono">{initial}</span>
+          </div>
         </div>
       </aside>
 
-      {/* Submenu panel */}
-      {activeApp && panelOpen && (
-        <aside className="w-[212px] flex flex-col shrink-0 z-30 arc-card overflow-hidden">
-          <div className="h-[52px] min-h-[52px] shrink-0 px-3 border-b border-[var(--line)] flex items-center justify-between">
-            <div className="min-w-0">
-              <div className="arc-id"><b>app</b>/{activeApp.name}</div>
-              <div className="text-[13px] font-medium text-[var(--text)] truncate">{vocabulary.get(activeApp.label)}</div>
+      {/* 200px Section panel — hidden on phones unless drawer open */}
+      {activeApp && !sidebarCollapsed && !iconRailCollapsed && (
+        <aside
+          className={`flex-col shrink-0 z-30 ${mobileSidebarOpen ? 'flex' : 'max-md:hidden flex'}`}
+          style={{ width: 200, background: 'var(--bg-2)', borderRight: '1px solid var(--line)' }}
+        >
+          <div style={{ padding: '20px 14px 12px' }}>
+            <div className="arc-id arc-dim2" style={{ textTransform: 'uppercase', letterSpacing: '.16em', paddingLeft: 4, fontSize: 10 }}>
+              Sections
             </div>
-            <button onClick={() => setPanelOpen(false)} aria-label="Collapse panel" className="arc-btn ghost" style={{ height: 24, width: 24, padding: 0, justifyContent: 'center' }}>
-              <ChevronRight className="rotate-180" size={13} />
-            </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto arc-scroll p-2 flex flex-col gap-3">
+          <div className="flex-1 overflow-y-auto arc-scroll" style={{ padding: '0 8px 12px' }}>
             {isLoadingMenu ? (
-              <div className="py-6 text-center">
-                <div className="arc-id arc-dim2">loading…</div>
-              </div>
-            ) : groups.length > 0 ? (
-              groups.map((group: any) => (
-                <div key={group.label} className="flex flex-col gap-0.5">
-                  <div className="px-2 pb-1">
-                    <span className="arc-id arc-dim2">{vocabulary.get(group.label).toLowerCase().replace(/\s+/g, '-')}</span>
-                  </div>
-                  {filterMenuItems(group.items || []).map((item: MenuItem) => {
-                    const ItemIcon = resolveIcon(item.icon || 'FileText')
-                    const isActive = currentPath === item.path || currentPath.startsWith(`${item.path}/`)
-                    return (
-                      <Link
-                        key={item.name}
-                        to={item.path}
-                        className={`flex items-center gap-2 px-2.5 h-8 rounded-[var(--radius)] transition-colors ${
-                          isActive
-                            ? 'bg-[color-mix(in_oklch,var(--accent)_12%,var(--surface))] text-[var(--accent)]'
-                            : 'text-[var(--text-2)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]'
-                        }`}
-                      >
-                        <ItemIcon size={13} strokeWidth={isActive ? 2.2 : 1.8} className="shrink-0" />
-                        <span className="text-[12.5px] truncate">{vocabulary.get(item.label || item.name)}</span>
-                      </Link>
-                    )
-                  })}
-                </div>
-              ))
+              <div className="py-6 text-center"><div className="arc-id arc-dim2">loading…</div></div>
+            ) : orderedItems.length === 0 ? (
+              <div className="py-6 text-center"><div className="arc-id arc-dim2">empty</div></div>
             ) : (
-              <div className="py-6 text-center flex flex-col items-center gap-2">
-                <span className="arc-id arc-dim2">empty</span>
-                <p className="arc-dim text-[12px]">No sub-modules.</p>
-                <Link to={`/${activeApp.name}`} className="arc-btn sm">Open app home</Link>
-              </div>
+              <SortableList
+                items={orderedItems}
+                onReorder={handleReorder}
+                renderItem={(item) => {
+                  const isActive = currentPath === item.path || currentPath.startsWith(`${item.path}/`)
+                  const n = String(orderedItems.findIndex((i) => i.id === item.id) + 1).padStart(2, '0')
+                  return (
+                    <button
+                      onClick={() => navigate(item.path)}
+                      className="group w-full flex items-center gap-2 text-left transition-colors relative"
+                      style={{
+                        padding: '8px 10px', borderRadius: 'var(--radius)',
+                        background: isActive ? 'var(--surface)' : 'transparent',
+                        border: isActive ? '1px solid var(--line)' : '1px solid transparent',
+                        color: isActive ? 'var(--text)' : 'var(--text-2)',
+                        fontSize: 13, fontWeight: 500,
+                      }}
+                    >
+                      <span className="arc-mono" style={{ fontSize: 10.5, color: isActive ? 'var(--accent)' : 'var(--text-3)' }}>{n}</span>
+                      <span className="truncate flex-1">{vocabulary.get(item.label || item.name)}</span>
+                      {isActive && <ChevronRight size={13} className="text-[var(--text-3)]" />}
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <DragHandle />
+                      </span>
+                    </button>
+                  )
+                }}
+              />
             )}
           </div>
         </aside>
       )}
     </div>
+    </>
   )
 }

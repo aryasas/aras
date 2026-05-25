@@ -1,8 +1,11 @@
+import logging
 from core import Aras
 from core.lib.query_builder import QueryBuilder
 from sqlalchemy.orm import Session, object_session
 from sqlalchemy import text
 from datetime import date
+
+logger = logging.getLogger(__name__)
 
 class ReportService(Aras.Service):
     @classmethod
@@ -61,7 +64,7 @@ class ReportService(Aras.Service):
                 params.update(filters)
                 
                 params.update({"today": date.today().isoformat()})
-                result = db.execute(text(script), params)
+                result = db.execute(text(report.script), params)
                 columns = [{"field": k, "label": k.replace("_", " ").title()} for k in result.keys()]
                 
                 # If report has predefined columns_json, use those labels
@@ -77,9 +80,10 @@ class ReportService(Aras.Service):
                     "data": data,
                     "columns": report.columns_json or columns
                 }
-            except Exception as e:
+            except Exception:
+                logger.exception("report sql failed")
                 return {
-                    "error": f"SQL Error: {str(e)}",
+                    "error": "Report execution failed",
                     "data": [],
                     "columns": []
                 }

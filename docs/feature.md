@@ -186,9 +186,14 @@ This file is used only to report if there are feature added
 
 ---
 
-## 9. Infrastructure
-- PostgreSQL (`psycopg2`, port 5432)
-- Multi-tenant: per-tenant DB provisioning, `auto_migrate`, soft-delete via DB rename
+## 10. SaaS & Marketing
+- **Customer Signups** — public `/signup` endpoint with email uniqueness check and `CustomerSignup` model.
+- **Automated Provisioning** — `approve` action on `CustomerSignup` creates a `Subscription` with 14-day trial and auto-generated `tenant_id`.
+- **Public Plan API** — `GET /plans/public` returns active plans ordered by price.
+- **Customer Portal** — dedicated `/portal` for tenants to view subscription details and license tokens.
+- **SaaS Portal Auth** — short-lived JWT issuance for tenants via `/portal/login`.
+- **Marketing Content CMS** — `LandingSection` model for managing structured landing page content (hero, features, CTA, etc.) via admin UI.
+- **Public Landing API** — `GET /landing` returns visible landing sections ordered by `sort_order`.
 
 ---
 
@@ -371,3 +376,7 @@ This file is used only to report if there are feature added
 
 ## Mobile App — Metadata-Driven Expo — revision (2026-05-24)
   - [GPT (codex)] Metadata-driven Expo mobile app shell with auth, dynamic app/resource navigation, dynamic list view, and dynamic create/edit form rendering
+
+
+## Production hardening — Customer SaaS portal + admin-controlled marketing pages + sidebar toggle stability — revision (2026-05-25)
+  - [GPT (codex)] Public landing page, customer signup form, customer portal, public routes, login footer links, and full icon-rail collapse/restore control

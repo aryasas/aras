@@ -3,7 +3,7 @@ from sqlalchemy import String, Integer, Boolean, JSON, ForeignKey, DateTime
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from core import Aras
 from core.response import ok
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class Plan(Aras.Model):
     __tablename__ = "saas_plan"
@@ -15,16 +15,86 @@ class Plan(Aras.Model):
     features: Mapped[dict] = mapped_column(JSON, default=dict)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
+# claude-opus-4-7
 class Subscription(Aras.Model):
     __tablename__ = "saas_subscription"
-    tenant_id: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
-    plan_id: Mapped[int] = mapped_column(ForeignKey("saas_plan.id"))
-    status: Mapped[str] = mapped_column(String(20), default="trial", info={"choices": ["trial", "active", "suspended", "cancelled"]})
+    __admin_only__ = True
+    # Signup-time fields (filled on /signup, before approval)
+    email: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
+    company_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    full_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    # Tenant identity (assigned on approve)
+    tenant_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, unique=True)
+    plan_id: Mapped[Optional[int]] = mapped_column(ForeignKey("saas_plan.id"), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="pending", info={"choices": ["pending", "trial", "active", "suspended", "cancelled", "rejected"]})
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     auto_renew: Mapped[bool] = mapped_column(Boolean, default=True)
+    notes: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
     plan = relationship("Plan")
+
+    # claude-opus-4-7
+    @Aras.model_action(name="approve", permission="edit", label="Approve & Provision", icon="UserCheck")
+    def approve(self, db):
+        """Approve pending signup: assign tenant_id, create User, start trial, issue setup link."""
+        from core.lib.helpers import slugify
+        from core.auth.models import User
+        from core.auth.service import create_access_token
+        import secrets
+
+        if self.status != "pending":
+            return ok({}, message=f"Cannot approve: status is '{self.status}'.")
+        if not self.plan_id:
+            return ok({}, message="Cannot approve: no plan selected.")
+
+        slug = slugify(self.company_name)
+        self.tenant_id = f"{slug}-{self.id}"
+        now = datetime.now()
+        self.started_at = now
+        self.expires_at = now + timedelta(days=14)
+        self.status = "trial"
+
+        # Create User with random password — customer sets via setup link
+        existing_user = db.query(User).filter_by(email=self.email).first()
+        if not existing_user:
+            random_pw = secrets.token_urlsafe(24)
+            user = User(
+                username=self.email,
+                email=self.email,
+                password_hash=User.hash_password(random_pw),
+                is_active=True,
+                is_admin=False,
+            )
+            db.add(user)
+
+        # One-time setup token (1h) — customer clicks to set password
+        setup_token = create_access_token(
+            {"sub": self.email, "purpose": "portal_setup", "tenant": self.tenant_id},
+            expires_delta=timedelta(hours=1),
+        )
+        setup_link = f"/portal/setup?token={setup_token}"
+
+        # Issue trial license (14 days)
+        from .services.license_service import LicenseService
+        try:
+            license_token = LicenseService.issue_license(db, self.id, days=14)
+        except Exception:
+            license_token = None
+
+        return ok(
+            {"display_token": setup_link, "license_token": license_token},
+            message=f"Approved. Send this setup link to {self.email} (expires in 1h). License issued.",
+        )
+
+    # claude-opus-4-7
+    @Aras.model_action(name="reject", permission="edit", label="Reject", icon="X")
+    def reject(self, db):
+        if self.status != "pending":
+            return ok({}, message=f"Cannot reject: status is '{self.status}'.")
+        self.status = "rejected"
+        return ok({}, message="Signup rejected.")
 
     @Aras.model_action(name="issue_license", permission="edit", label="Issue License", icon="Key")
     def issue_license(self, db):
@@ -50,6 +120,7 @@ class Subscription(Aras.Model):
 
 class LicenseToken(Aras.Model):
     __tablename__ = "saas_license_token"
+    __admin_only__ = True
     subscription_id: Mapped[int] = mapped_column(ForeignKey("saas_subscription.id"))
     token: Mapped[str] = mapped_column(String(1000), nullable=False)
     issued_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -60,8 +131,10 @@ class LicenseToken(Aras.Model):
 
 class ActivationRequest(Aras.Model):
     __tablename__ = "saas_activation_request"
+    __admin_only__ = True
     tenant_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     instance_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="pending", info={"choices": ["pending", "approved", "rejected"]})
     requested_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+

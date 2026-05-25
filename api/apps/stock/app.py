@@ -9,10 +9,12 @@ from sqlalchemy.orm import Session
 from core.lib.database import get_db
 from core.response import ok
 
+from core.auth.service import get_current_user
+
 stock_extra_router = APIRouter()
 
 @stock_extra_router.get("/items/{item_id}/stock")
-def get_item_stock(item_id: int, db: Session = Depends(get_db)):
+def get_item_stock(item_id: int, db: Session = Depends(get_db), _user=Depends(get_current_user)):
     from .services.stock import StockComputeService
     return ok({
         "total": StockComputeService.compute_qty(db, item_id),

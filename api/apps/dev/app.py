@@ -6,7 +6,9 @@ from core import Aras
 from .models import HandoffRun, TemplateAnnotation
 
 
-dev_api_router = APIRouter(prefix="/dev", tags=["Developer Templates"])
+from core.auth.service import require_admin
+
+dev_api_router = APIRouter(prefix="/dev", tags=["Developer Templates"], dependencies=[Depends(require_admin)])
 
 @dev_api_router.get("/dev_template_trees")
 def get_template_tree(template_name: str, db: Session = Depends(get_db)):
@@ -62,6 +64,9 @@ def create_annotation(payload: Dict[str, Any], db: Session = Depends(get_db)):
     return ann.to_dict()
 
 
+from . import views  # noqa: F401
+from core.logic.discovery import autodiscover_models
+
 class Dev(Aras.App):
     """
     Advanced Developer Tools for framework maintenance and inspection.
@@ -85,9 +90,7 @@ class Dev(Aras.App):
         Aras.ArasSetting,
         Aras.WidgetModel,
         Aras.DashboardLayoutModel,
-        HandoffRun,
-        TemplateAnnotation,
-    ]
+    ] + autodiscover_models(__name__, ["models"])
 
     menu_groups = [
         {

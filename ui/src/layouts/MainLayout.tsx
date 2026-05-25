@@ -7,19 +7,19 @@ import api from '../lib/api'
 import type { SidebarApp } from './types'
 import { Sidebar } from './components/Sidebar'
 import { Header } from './components/Header'
-import { Building2 } from 'lucide-react'
+import { Building2, ChevronRight } from 'lucide-react'
 import { useAras } from '../aras-core/hooks/useAras'
 import { useUIStore } from '../store/uiStore'
-import Combobox from '../aras-core/components/Combobox'
-import { PageHeader } from '../components/PageHeader'
+import SimpleCombobox from '../aras-core/components/SimpleCombobox'
+import TweaksPanel from '../aras-core/components/TweaksPanel'
 
 export default function MainLayout() {
   const [sidebarData, setSidebarData] = useState<SidebarApp[]>([])
-  const { organizations, activeOrgId, setActiveOrg, logout } = useAuthStore()
+  const { organizations, activeOrgId, setActiveOrg } = useAuthStore()
   const location = useLocation()
   const activeOrganization = organizations.find((organization) => organization.id === activeOrgId)
   const { notify } = useAras()
-  const { closePanel, themeMode, cornerMode, density, fontScale, accentColor } = useUIStore()
+  const { closePanel, themeMode, cornerMode, density, fontScale, accentColor, iconRailCollapsed, toggleIconRail } = useUIStore()
 
   const layoutStyle = {
     '--accent': accentColor,
@@ -67,30 +67,48 @@ export default function MainLayout() {
   }, [notify])
 
   return (
-    <div className="arc arc-bg arc-dotgrid h-screen w-full overflow-hidden flex font-sans antialiased p-3 gap-3" style={layoutStyle}>
+    <div className="arc arc-bg arc-dotgrid h-screen w-full overflow-hidden flex font-sans antialiased" style={layoutStyle}>
       <Sidebar
         sidebarData={sidebarData}
         currentPath={location.pathname}
-        onLogout={logout}
       />
+      {iconRailCollapsed && (
+        <button
+          onClick={toggleIconRail}
+          aria-label="Show sidebar"
+          className="fixed left-0 top-1/2 -translate-y-1/2 flex items-center justify-center text-[var(--text-3)] hover:text-[var(--text)] transition-colors"
+          style={{
+            width: 14,
+            height: 56,
+            background: 'var(--bg-2)',
+            border: '1px solid var(--line)',
+            borderLeft: 'none',
+            borderRadius: '0 8px 8px 0',
+            zIndex: 60,
+            cursor: 'pointer',
+          }}
+        >
+          <ChevronRight size={12} />
+        </button>
+      )}
 
+      <TweaksPanel />
       <div id="content-wrapper"
-           className="flex flex-col flex-1 min-w-0 h-full overflow-hidden arc-card relative z-10">
+           className="flex flex-col flex-1 min-w-0 h-full overflow-hidden relative z-10">
         <Header>
           <div className="z-50 flex items-center gap-2 max-sm:hidden">
             <Building2 size={13} className="text-[var(--text-3)]" />
             {organizations.length > 1 ? (
-              <div className="min-w-[180px]">
-                <Combobox
-                  options={[
-                    { label: 'All Organizations', value: -1 },
-                    ...organizations.map((org) => ({ label: org.name, value: org.id })),
-                  ]}
-                  value={activeOrgId ?? -1}
-                  onChange={(val) => setActiveOrg(Number(val))}
-                  placeholder="Select Organization"
-                />
-              </div>
+              <SimpleCombobox
+                width={180}
+                options={[
+                  { label: 'All Organizations', value: -1 },
+                  ...organizations.map((org) => ({ label: org.name, value: org.id })),
+                ]}
+                value={activeOrgId ?? -1}
+                onChange={(val) => setActiveOrg(Number(val))}
+                placeholder="Select Organization"
+              />
             ) : (
               <span className="arc-id"><b>{activeOrganization?.name || 'org'}</b></span>
             )}
@@ -98,10 +116,7 @@ export default function MainLayout() {
         </Header>
 
         <main id="main-content" className="flex-1 overflow-y-auto min-w-0 relative flex flex-col arc-scroll">
-          <div className="px-5 sm:px-7 lg:px-10 py-[calc(20px*var(--app-density))] flex-1 flex flex-col gap-[calc(24px*var(--app-density))]">
-            <div className="pt-1">
-              <PageHeader />
-            </div>
+          <div className="flex-1 flex flex-col">
             <div className="flex-1 max-sm:overflow-visible relative">
               <Outlet context={{ sidebarData }} />
             </div>

@@ -3,7 +3,7 @@ from core.base.validation import Validation
 from typing import Optional
 from sqlalchemy.orm import Session
 from core.lib.database import get_db
-from .models import WebPage, WebMenuItem, SiteSetting, ContactSubmission
+from .models import WebPage, WebMenuItem, SiteSetting, ContactSubmission, LandingSection
 
 router = APIRouter(prefix="", tags=["Web"])
 
@@ -68,3 +68,18 @@ def submit_contact(data: ContactRequest, db: Session = Depends(get_db)):
     db.add(submission)
     db.commit()
     return {"success": True}
+
+
+# gemini-flash
+@router.get("/landing")
+def get_landing(db: Session = Depends(get_db)):
+    sections = db.query(LandingSection).filter_by(is_visible=True).order_by(LandingSection.sort_order).all()
+    return [{
+        "key": s.key,
+        "title": s.title,
+        "subtitle": s.subtitle,
+        "body": s.body,
+        "image_url": s.image_url,
+        "cta_label": s.cta_label,
+        "cta_url": s.cta_url
+    } for s in sections]

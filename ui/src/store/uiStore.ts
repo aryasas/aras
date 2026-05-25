@@ -38,6 +38,7 @@ interface UIStore {
   accentColor: string;
   fontScale: number;
   sidebarCollapsed: boolean;
+  iconRailCollapsed: boolean;
   topbarNavStyle: 'icon-text' | 'icon-only';
   designMode: boolean;
   activeElementId: string | null;
@@ -59,6 +60,7 @@ interface UIStore {
   setPageTitle: (title: string, subtitle?: string, breadcrumbs?: string) => void;
   toggleDarkMode: () => void;
   toggleSidebar: () => void;
+  toggleIconRail: () => void;
   setTopbarNavStyle: (style: UIStore['topbarNavStyle']) => void;
   setThemeMode: (themeMode: UIStore['themeMode']) => void;
   setCornerMode: (cornerMode: UIStore['cornerMode']) => void;
@@ -73,6 +75,10 @@ interface UIStore {
   updateCustomElement: (id: string, updates: Partial<CustomElementDef>) => void;
   removeCustomElement: (id: string) => void;
   setDesignData: (data: { styles: Record<string, any>; orders: Record<string, string[]>; customElements?: Record<string, CustomElementDef> }) => void;
+  submenuOrder: Record<string, string[]>;
+  setSubmenuOrder: (appName: string, order: string[]) => void;
+  mobileSidebarOpen: boolean;
+  setMobileSidebarOpen: (open: boolean) => void;
 }
 
 const defaultDialog: DialogState = {
@@ -101,6 +107,7 @@ export const useUIStore = create<UIStore>()(
       accentColor: '#4F46E5',
       fontScale: 100,
       sidebarCollapsed: false,
+      iconRailCollapsed: false,
       topbarNavStyle: 'icon-text',
       designMode: false,
       activeElementId: null,
@@ -137,6 +144,7 @@ export const useUIStore = create<UIStore>()(
         set({ darkMode: next, themeMode: next ? 'dark' : 'normal' })
       },
       toggleSidebar: () => set({ sidebarCollapsed: !get().sidebarCollapsed }),
+      toggleIconRail: () => set({ iconRailCollapsed: !get().iconRailCollapsed }),
       setTopbarNavStyle: (topbarNavStyle) => set({ topbarNavStyle }),
       setThemeMode: (themeMode) => {
         document.documentElement.classList.toggle('dark', themeMode === 'dark')
@@ -194,6 +202,10 @@ export const useUIStore = create<UIStore>()(
         };
       }),
       setDesignData: (data) => set({ designData: { styles: data.styles || {}, orders: data.orders || {}, customElements: data.customElements || {} } }),
+      submenuOrder: {},
+      setSubmenuOrder: (appName, order) => set((s) => ({ submenuOrder: { ...s.submenuOrder, [appName]: order } })),
+      mobileSidebarOpen: false,
+      setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
     }),
     {
       name: 'aras-ui-prefs',
@@ -205,7 +217,9 @@ export const useUIStore = create<UIStore>()(
         accentColor: s.accentColor,
         fontScale: s.fontScale,
         sidebarCollapsed: s.sidebarCollapsed,
+        iconRailCollapsed: s.iconRailCollapsed,
         topbarNavStyle: s.topbarNavStyle,
+        submenuOrder: s.submenuOrder,
       }),
       onRehydrateStorage: () => (state) => {
         if (state?.themeMode === 'dark' || state?.darkMode) document.documentElement.classList.add('dark')

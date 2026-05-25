@@ -1,7 +1,16 @@
 from core import Aras
 from apps.base.document import DOC_LAYOUT_HEADER, DOC_LAYOUT_NOTES
 from .models import ItemCategory, Item, Location, StockMovement, PriceList, PromoBundle, \
-    ItemUom, ItemBundle, ItemLocation, PromoBundleItem, StockMovementLine, DeliveryNote
+    ItemUom, ItemBundle, ItemLocation, PromoBundleItem, StockMovementLine, DeliveryNote, \
+    ItemAccount, DeliveryNoteLine
+
+class ItemAccountView(Aras.View):
+    model = ItemAccount
+    title = "Item Accounts"
+
+class DeliveryNoteLineView(Aras.View):
+    model = DeliveryNoteLine
+    title = "Delivery Note Lines"
 
 class ItemCategoryView(Aras.View):
     model = ItemCategory

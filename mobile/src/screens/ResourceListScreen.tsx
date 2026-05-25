@@ -1,12 +1,16 @@
 // claude-opus-4-7
-// ARC mobile resource list: dense rows with mono ID, primary "New" action LEFT.
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator, TextInput } from 'react-native';
-import { Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react-native';
+// ARC mobile list: search pill + filter chips + grouped sections with status
+// glyph + ARC mono-id rows.
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, FlatList } from 'react-native';
+import { Search, Filter, Plus, ChevronRight } from 'lucide-react-native';
 import { theme } from '../lib/theme';
+import { MobileShell, MonoId, Avatar, StatusGlyph } from '../components/MobileShell';
 import api from '../lib/api';
 
-const C = theme.arc.light;
+const C = theme.arc.dark;
+
+const FILTERS = ['Open', 'Mine', 'Parts', 'Changes', 'M4 program', 'Last 7d'];
 
 export const ResourceListScreen = ({ route, navigation }: any) => {
   const { resourceName, resourceTitle } = route.params;
@@ -14,14 +18,14 @@ export const ResourceListScreen = ({ route, navigation }: any) => {
   const [metadata, setMetadata] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('Open');
 
   useEffect(() => { fetchAll(); }, [resourceName]);
 
   const fetchAll = async () => {
     try {
       setLoading(true);
-      const clean = resourceName.replace(/\//g, '_');
-      const [m, d] = await Promise.all([api.get(`/metadata/${resourceName}`), api.get(`/${clean}`)]);
+      const [m, d] = await Promise.all([api.get(`/metadata/${resourceName}`), api.get(`/${resourceName}`)]);
       setMetadata(m.data);
       setData(Array.isArray(d.data.items) ? d.data.items : Array.isArray(d.data) ? d.data : []);
     } catch (e) { console.error(e); }
@@ -29,95 +33,143 @@ export const ResourceListScreen = ({ route, navigation }: any) => {
   };
 
   const primary = metadata?.primary_field || 'name';
+  const prefix = (resourceName.split('/').pop() || 'ARC').toUpperCase().slice(0, 3);
 
-  const renderItem = ({ item }: { item: any }) => {
-    const title = item[primary] || item.name || item.id;
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return data.filter((it) => !q || JSON.stringify(it).toLowerCase().includes(q));
+  }, [data, search]);
+
+  const groups = useMemo(() => {
+    const map = new Map<string, any[]>();
+    filtered.forEach((it) => {
+      const k = String(it.status ?? it.state ?? 'all');
+      if (!map.has(k)) map.set(k, []);
+      map.get(k)!.push(it);
+    });
+    return Array.from(map.entries()).map(([k, items]) => ({ key: k, label: k.replace(/_/g, ' ').toUpperCase(), items }));
+  }, [filtered]);
+
+  const right = (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+      <Filter size={17} color={C.text3} />
+      <TouchableOpacity onPress={() => navigation.navigate('ResourceForm', { resourceName, resourceTitle, metadata })}>
+        <Plus size={19} color={C.text2} />
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderRow = (item: any) => {
+    const rev = item.revision || item.rev;
+    const ownerInit = (item.owner_name || item.owner || 'NA').slice(0, 2).toUpperCase();
+    const cls = item.classification || item.category || metadata?.label || resourceTitle;
+    const updated = item.updated_at ? formatAgo(item.updated_at) : '';
     return (
       <TouchableOpacity
+        key={item.id}
         style={s.row}
         activeOpacity={0.7}
         onPress={() => navigation.navigate('ResourceForm', { resourceName, resourceTitle, id: item.id, metadata })}
       >
-        <View style={{ flex: 1 }}>
-          <Text style={s.title}>{title}</Text>
-          <Text style={s.id}>#{item.id}</Text>
+        <View style={{ paddingTop: 3 }}><StatusGlyph value={item.status ?? item.state} /></View>
+        <View style={{ flex: 1, gap: 4 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <MonoId prefix={prefix} code={item.code || item.number || item.id} />
+            {rev && <Text style={s.rev}>rev {rev}</Text>}
+          </View>
+          <Text style={s.title} numberOfLines={1}>{item[primary] || item.name || `#${item.id}`}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Avatar initials={ownerInit} size={18} />
+            <Text style={s.meta}>{cls}{updated ? ` · ${updated}` : ''}</Text>
+          </View>
         </View>
-        <ChevronRight size={14} color={C.text3} />
+        <ChevronRight size={15} color={C.text3} />
       </TouchableOpacity>
     );
   };
 
-  const filtered = data.filter((it) => JSON.stringify(it).toLowerCase().includes(search.toLowerCase()));
-
-  if (loading && \!metadata) return <View style={s.centered}><ActivityIndicator color={theme.arc.accent} /></View>;
+  if (loading && !metadata) {
+    return <MobileShell active="items" title="Items" headerRight={right}><View style={s.centered}><ActivityIndicator color={theme.arc.accent} /></View></MobileShell>;
+  }
 
   return (
-    <SafeAreaView style={s.root}>
-      <View style={s.header}>
-        <View style={s.headerTop}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={s.iconBtn}>
-            <ChevronLeft size={20} color={C.text} />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={s.idTop}><Text style={s.idBold}>res</Text>/{resourceName}</Text>
-            <Text style={s.h1}>{resourceTitle}</Text>
-          </View>
+    <MobileShell active="items" title={resourceTitle || 'Items'} headerRight={right} onTabPress={(t) => { if (t === 'home') navigation.navigate('AppHome'); }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 4 }}>
+        <View style={s.searchPill}>
+          <Search size={14} color={C.text3} />
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Find by ID, name, or owner"
+            placeholderTextColor={C.text3}
+            style={s.searchInput}
+          />
+          <View style={s.kbd}><Text style={s.kbdText}>⌘K</Text></View>
         </View>
 
-        <View style={s.actionBar}>
-          <TouchableOpacity
-            style={s.btnPrimary}
-            activeOpacity={0.85}
-            onPress={() => navigation.navigate('ResourceForm', { resourceName, resourceTitle, metadata })}
-          >
-            <Plus size={14} color={theme.arc.accentInk} />
-            <Text style={s.btnPrimaryText}>New</Text>
-          </TouchableOpacity>
-          <View style={s.searchWrap}>
-            <Search size={14} color={C.text3} />
-            <TextInput
-              style={s.searchInput}
-              placeholder="Search"
-              placeholderTextColor={C.text3}
-              value={search}
-              onChangeText={setSearch}
-            />
-          </View>
-        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>
+          {FILTERS.map((f) => {
+            const active = f === filter;
+            return (
+              <TouchableOpacity key={f} onPress={() => setFilter(f)} activeOpacity={0.7} style={[s.chip, active && s.chipActive]}>
+                <Text style={[s.chipText, active && s.chipTextActive]}>{f}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       <FlatList
-        data={filtered}
-        keyExtractor={(i) => String(i.id)}
-        renderItem={renderItem}
-        ItemSeparatorComponent={() => <View style={s.sep} />}
+        data={groups}
+        keyExtractor={(g) => g.key}
         refreshing={loading}
         onRefresh={fetchAll}
+        contentContainerStyle={{ paddingBottom: 110 }}
         ListEmptyComponent={<View style={s.empty}><Text style={s.emptyText}>No records</Text></View>}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        renderItem={({ item: g }) => (
+          <View>
+            <View style={s.groupHead}>
+              <StatusGlyph value={g.key} />
+              <Text style={s.groupLabel}>{g.label}</Text>
+              <Text style={s.groupCount}>· {g.items.length}</Text>
+            </View>
+            {g.items.map(renderRow)}
+          </View>
+        )}
       />
-    </SafeAreaView>
+    </MobileShell>
   );
 };
 
+function formatAgo(iso: string): string {
+  const d = new Date(iso);
+  const diff = Date.now() - d.getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const days = Math.floor(h / 24);
+  return `${days}d`;
+}
+
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg },
-  header: { padding: 14, paddingTop: 20, backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.line },
-  headerTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  iconBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 8 },
-  idTop: { fontFamily: 'Menlo', fontSize: 11, color: C.text3 },
-  idBold: { color: C.text, fontWeight: '700' },
-  h1: { ...theme.typography.h3, color: C.text, marginTop: 2 },
-  actionBar: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
-  btnPrimary: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 32, paddingHorizontal: 12, borderRadius: 8, backgroundColor: theme.arc.accent },
-  btnPrimaryText: { color: theme.arc.accentInk, fontSize: 13, fontWeight: '600' },
-  searchWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, height: 32, paddingHorizontal: 10, borderRadius: 8, borderWidth: 1, borderColor: C.line, backgroundColor: C.bg },
-  searchInput: { flex: 1, color: C.text, fontSize: 13, padding: 0, fontFamily: 'PlusJakartaSans_400Regular' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 12, backgroundColor: C.surface },
-  title: { ...theme.typography.bodyStrong, color: C.text },
-  id: { fontFamily: 'Menlo', fontSize: 11, color: C.text3, marginTop: 2 },
-  sep: { height: 1, backgroundColor: C.line, marginLeft: 18 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: C.bg },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  searchPill: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 40, paddingHorizontal: 14, borderRadius: 999, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line },
+  searchInput: { flex: 1, color: C.text, fontSize: 13.5, padding: 0, fontFamily: 'PlusJakartaSans_400Regular' },
+  kbd: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: C.surface2, borderWidth: 1, borderColor: C.line },
+  kbdText: { color: C.text3, fontSize: 10, fontFamily: 'Menlo', fontWeight: '700' },
+  chips: { gap: 8, paddingVertical: 14 },
+  chip: { height: 32, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: C.line, justifyContent: 'center' },
+  chipActive: { borderColor: theme.arc.accent },
+  chipText: { color: C.text3, fontSize: 12.5, fontWeight: '500' },
+  chipTextActive: { color: theme.arc.accent, fontWeight: '700' },
+  groupHead: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingTop: 18, paddingBottom: 8, borderTopWidth: 1, borderTopColor: C.line, marginTop: 6 },
+  groupLabel: { color: C.text3, fontSize: 11, fontWeight: '700', letterSpacing: 1.2, fontFamily: 'Menlo' },
+  groupCount: { color: C.text3, fontSize: 11, fontFamily: 'Menlo' },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.line },
+  title: { color: C.text, fontSize: 15.5, fontWeight: '600' },
+  rev: { color: C.text3, fontSize: 11, fontFamily: 'Menlo' },
+  meta: { color: C.text3, fontSize: 11.5 },
   empty: { padding: 40, alignItems: 'center' },
   emptyText: { color: C.text3, fontSize: 13 },
 });

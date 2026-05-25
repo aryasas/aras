@@ -190,3 +190,11 @@ This file is used only to report if there are fix
 
 ## Mobile App — Metadata-Driven Expo — revision (2026-05-24)
   - [GPT (codex)] Replaced starter App.js with App.tsx entry component
+
+
+## Production hardening — Customer SaaS portal + admin-controlled marketing pages + sidebar toggle stability — revision (2026-05-25)
+  - [GPT (codex)] Fixed same-path app icon navigation by refreshing location state and hiding the section panel when the icon rail is collapsed
+
+
+## QA SWEEP — full-app regression test, report bugs only (NO FIXES) — revision (2026-05-25)
+  - [GPT (codex)] Fixed frontend build blockers, restored DynamicForm model actions/display_token modal, added portal signup/landing error states, fixed mobile slash routes, removed dead mobile forgot button

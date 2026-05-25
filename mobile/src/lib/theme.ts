@@ -36,7 +36,7 @@ const ARC = {
   info:       '#7AB6FF',
 } as const;
 
-const palette = ARC.light;
+const palette = ARC.dark;
 
 export const theme = {
   arc: ARC,

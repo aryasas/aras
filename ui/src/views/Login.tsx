@@ -117,8 +117,14 @@ const Login = () => {
           </div>
         </form>
 
-        <div className="px-8 pb-8 pt-4 border-t border-[var(--line)] arc-dim2 text-[11.5px]">
-          Contact your administrator for access.
+        <div className="px-8 pb-8 pt-4 border-t border-[var(--line)] arc-dim2 text-[11.5px] flex flex-col gap-1.5">
+          <span>Contact your administrator for access.</span>
+          <Link to="/portal" className="text-[var(--text-3)] hover:text-[var(--accent)]">
+            Customer? Sign in to your portal →
+          </Link>
+          <Link to="/welcome" className="text-[var(--text-3)] hover:text-[var(--accent)]">
+            New here? Start your free trial →
+          </Link>
         </div>
       </div>
     </div>

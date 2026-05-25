@@ -66,10 +66,6 @@ export const LoginScreen = () => {
                   </>
                 )}
               </TouchableOpacity>
-              <View style={{ flex: 1 }} />
-              <TouchableOpacity style={s.btnGhost} activeOpacity={0.7}>
-                <Text style={s.btnGhostText}>Forgot?</Text>
-              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -92,6 +88,4 @@ const s = StyleSheet.create({
   actionBar: { flexDirection: 'row', alignItems: 'center', marginTop: 22, gap: 8 },
   btnPrimary: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 14, borderRadius: 8, backgroundColor: theme.arc.accent },
   btnPrimaryText: { color: theme.arc.accentInk, fontWeight: '600', fontSize: 13 },
-  btnGhost: { height: 36, paddingHorizontal: 12, justifyContent: 'center' },
-  btnGhostText: { color: C.text2, fontSize: 13 },
 });

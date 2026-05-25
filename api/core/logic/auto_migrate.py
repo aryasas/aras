@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MigrationReport(Service):
     created_tables:  list[str] = field(default_factory=list)
+    dropped_tables:  list[str] = field(default_factory=list)
     added_columns:   list[str] = field(default_factory=list)
     dropped_columns: list[str] = field(default_factory=list)
     added_indexes:   list[str] = field(default_factory=list)
@@ -20,7 +21,7 @@ class MigrationReport(Service):
 
     def has_changes(self) -> bool:
         return any([
-            self.created_tables, self.added_columns, self.dropped_columns,
+            self.created_tables, self.dropped_tables, self.added_columns, self.dropped_columns,
             self.added_indexes, self.widened_columns, self.errors
         ])
 
@@ -30,6 +31,8 @@ class MigrationReport(Service):
             
         if self.created_tables:
             print(f"[auto_migrate] created tables: {self.created_tables}")
+        if self.dropped_tables:
+            print(f"[auto_migrate] dropped tables: {self.dropped_tables}")
         if self.added_columns:
             print(f"[auto_migrate] added columns: {self.added_columns}")
         if self.dropped_columns:
@@ -65,7 +68,7 @@ def _safe_default_sql(col) -> Optional[str]:
             return f"'{v}'"
     return None
 
-def run(engine, metadata) -> MigrationReport:
+def run(engine, metadata, drop_orphaned_tables: bool = False) -> MigrationReport:
     report = MigrationReport()
     
     try:
@@ -84,7 +87,25 @@ def run(engine, metadata) -> MigrationReport:
             except Exception as e:
                 report.errors.append(f"create {tname}: {e}")
 
-        # 2. Diff existing tables
+        # 2. Drop orphaned tables
+        if drop_orphaned_tables:
+            for tname in sorted(db_tables - model_tables):
+                # Protect core tables
+                core_tables = {
+                    "aras_apps", "aras_resources", "aras_fields", "aras_links",
+                    "aras_translations", "aras_activity_logs", "auth_roles",
+                    "auth_permissions", "auth_user_roles", "auth_users", "sys_settings"
+                }
+                if tname in core_tables or tname.startswith("aras_"):
+                    continue
+                try:
+                    with engine.begin() as conn:
+                        conn.execute(text(f"DROP TABLE IF EXISTS {_quote(tname)} CASCADE"))
+                    report.dropped_tables.append(tname)
+                except Exception as e:
+                    report.errors.append(f"drop table {tname}: {e}")
+
+        # 3. Diff existing tables
         for tname in sorted(model_tables & db_tables):
             tbl = metadata.tables[tname]
             live_cols = {c["name"]: c for c in insp.get_columns(tname)}

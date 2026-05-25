@@ -1,0 +1,120 @@
+# Handoff Spec
+
+> Written by: Claude Code (claude-opus-4-7)
+> Date: 2026-05-25
+> Feature: Production hardening — Customer SaaS portal + admin-controlled marketing pages + sidebar toggle stability
+
+---
+
+## Context
+Prepare Aras for production. Three problems to fix in one run:
+(1) SaaS app has admin control-plane only — no customer-facing portal where tenants sign up, view their subscription, see their license token, or land on a marketing page.
+(2) Marketing/landing pages are not controllable from inside the admin app — the `web` CMS exists but there's no model + admin UI for the structured landing-page sections that customers see.
+(3) Sidebar bug: clicking an app icon does not change the page when the saved-first-item path equals the current path (React Router skips re-render for same-key navigation); also there is no toggle to fully collapse the main 56px icon rail itself — only the 200px section panel can hide.
+
+---
+
+## Backend Tasks
+
+- UPDATE `api/apps/saas/models.py` — add new model `CustomerSignup` (table `saas_customer_signup`): fields `email: str(255) unique indexed`, `company_name: str(255)`, `full_name: str(255)`, `phone: Optional[str](50)`, `plan_id: Optional[FK(saas_plan.id)]`, `status: str(20) choices=["pending","approved","provisioned","rejected"] default="pending"`, `tenant_id: Optional[str](100)` (filled after provisioning), `notes: Optional[str](500)`. Add `@Aras.model_action` `approve(self, db)` — sets `status="approved"`, creates a `Subscription` row with `tenant_id = slugified_company_name + "-" + str(self.id)`, `plan_id=self.plan_id`, `status="trial"`, `started_at=now`, `expires_at=now+14d`; writes the new `tenant_id` back to `self.tenant_id` and sets `self.status="provisioned"`; returns `ok({}, message="Customer approved and tenant provisioned.")`. Add `reject(self, db)` — sets `status="rejected"`, returns `ok({}, message="Signup rejected.")`.
+
+- UPDATE `api/apps/saas/views.py` — add `CustomerSignupView(Aras.View)` with `model=CustomerSignup`, `title="Customer Signups"`, `icon="pi pi-user-plus"`.
+
+- UPDATE `api/apps/saas/routers.py` — add the following PUBLIC (no auth) endpoints on the existing router:
+  - `POST /signup` — body `{email, company_name, full_name, phone?, plan_id?}`. Creates a `CustomerSignup` row with `status="pending"`. Returns `{success: True, signup_id}`. If email already exists, return HTTP 409 `{success: False, error: "Email already registered."}`.
+  - `GET /plans/public` — returns `[{id, name, price, currency, max_users, max_branches, features}]` for `Plan` rows where `is_active=True`, ordered by `price`.
+  - `POST /portal/login` — body `{tenant_id, email}`. Looks up `Subscription` by `tenant_id` with status in `["trial","active"]`. If found, issue a short-lived JWT (use `core.auth.service.create_access_token` if available — `sub=tenant_id`, expires in 1h; otherwise fall back to `verify_license_token`'s sibling `issue_license_token` and note the chosen path in `issues`). Returns `{success: True, token, tenant_id, expires_in}`. On failure return HTTP 401 `{success: False, error: "..."}`.
+  - `GET /portal/subscription` — requires `Authorization: Bearer <token>` from `/portal/login`. Decode the token (mirror logic used by `/license/renew`), resolve `tenant_id`, load `Subscription` + related `Plan` + latest non-revoked `LicenseToken`. Return `{tenant_id, plan: {id,name,price,currency}, status, started_at, expires_at, auto_renew, latest_token: {token, expires_at, revoked} | null}`. 401 if token invalid/expired.
+
+- UPDATE `api/apps/web/models.py` — add new model `LandingSection` (table `web_landing_section`): fields `key: str(50) unique` (e.g. `"hero"`, `"features"`, `"pricing_intro"`, `"cta"`, `"footer"`), `title: str(255)`, `subtitle: Optional[str](500)`, `body: Text`, `image_url: Optional[str](500)`, `cta_label: Optional[str](100)`, `cta_url: Optional[str](500)`, `sort_order: int default=0`, `is_visible: bool default=True`. Admins edit these via the auto-generated CRUD form in the `web` app.
+
+- UPDATE `api/apps/web/views.py` — add `LandingSectionView(Aras.View)` with `title="Landing Sections"`, `icon="pi pi-images"`.
+
+- UPDATE `api/apps/web/routers.py` — add PUBLIC endpoint `GET /landing` → returns ordered list of `LandingSection` where `is_visible=True` (ordered by `sort_order`), shape `[{key, title, subtitle, body, image_url, cta_label, cta_url}]`.
+
+- In the AGENT REPORT `issues` field, explicitly note: "Run `cd api && python manage.py sync` to create the new tables `saas_customer_signup` and `web_landing_section`."
+
+---
+
+## Frontend Tasks
+
+- UPDATE `ui/src/store/uiStore.ts` — add `iconRailCollapsed: boolean` (default `false`) to state and actions, plus `toggleIconRail: () => set({ iconRailCollapsed: !get().iconRailCollapsed })`. Add `iconRailCollapsed` to the existing zustand `persist`/`partialize` block next to `sidebarCollapsed`.
+
+- UPDATE `ui/src/layouts/components/Sidebar.tsx` — two fixes:
+  1. **Click-doesn't-change-page bug** in `handleAppClick`: when computed `target` path equals `currentPath`, `navigate(target)` is a no-op so the section panel never refreshes. New logic: always call `setActiveApp(app)` FIRST; then compute `target = saved?.[0] || app.path || \`/${app.name}\``; if `target === currentPath` call `navigate(target, { replace: true, state: { _t: Date.now() } })` to force a location-key change; otherwise normal `navigate(target)`.
+  2. **Main icon-rail toggle**: import `Menu` from `lucide-react`, read `iconRailCollapsed` + `toggleIconRail` from `useUIStore`. In the bottom footer of the 56px icon rail, add a new button ABOVE the existing `toggleSidebar` button that calls `toggleIconRail` (icon: `<Menu size={16} />`, same styling as the existing collapse button, `aria-label="Hide sidebar"`). When `iconRailCollapsed === true`, the entire 56px `<aside>` must render with `width: 0, borderRight: 'none', overflow: 'hidden'` (or be skipped entirely) AND the 200px section panel must also be hidden regardless of `sidebarCollapsed`.
+
+- UPDATE `ui/src/layouts/MainLayout.tsx` — when `iconRailCollapsed` is true, render a fixed floating restore button: `position: fixed; left: 0; top: 50%; transform: translateY(-50%); width: 14px; height: 56px; background: var(--bg-2); border: 1px solid var(--line); border-left: none; border-radius: 0 8px 8px 0; z-index: 60; cursor: pointer;` containing a chevron-right icon (`<ChevronRight size={12} />` from lucide-react). Clicking it calls `toggleIconRail` from `useUIStore` to restore the sidebar. Only render when `iconRailCollapsed === true`.
+
+- NEW FILE `ui/src/views/PublicLanding.tsx` — public marketing/landing page. Fetches `GET /api/v1/web/landing` and `GET /api/v1/saas/plans/public` in parallel (use plain `fetch`, no auth headers). Renders sections by `key` convention: `hero` (large title + subtitle + primary CTA button → `/signup`), `features` (3-column card grid using body as markdown-ish text — split body on `\n\n`), pricing block (grid of plan cards: name, price + currency/mo, max_users, max_branches, “Get Started” button → `/signup?plan={id}`), `cta` (full-width call-to-action), `footer` (centered). Use existing CSS tokens (`var(--bg)`, `var(--text)`, `var(--accent)`, `var(--surface)`, `var(--line)`, `var(--radius)`). Mobile-responsive via Tailwind. No auth required, no MainLayout.
+
+- NEW FILE `ui/src/views/CustomerSignup.tsx` — public signup form. Fields: email, company_name, full_name, phone, plan_id (select populated from `GET /api/v1/saas/plans/public`; reads `?plan=` query param via `useSearchParams` to preselect). On submit `POST /api/v1/saas/signup`. On success show a confirmation card: "Your signup is pending approval. We'll email you at {email} with login details." with a link back to `/welcome`. On HTTP 409 show inline error "An account with this email already exists." Style consistent with `ContactView.tsx`.
+
+- NEW FILE `ui/src/views/CustomerPortal.tsx` — customer-facing tenant portal at `/portal`. Two-state:
+  - When `localStorage['portal_token']` is missing: render login form (tenant_id + email) → `POST /api/v1/saas/portal/login`. On success store `token` in `localStorage['portal_token']` and `tenant_id` in `localStorage['portal_tenant']`, then re-render in logged-in state.
+  - When token present: `GET /api/v1/saas/portal/subscription` with `Authorization: Bearer <token>` header. Render a subscription card containing: plan name + formatted price (`${price} ${currency}/mo`), status badge (color: active=green, trial=amber, suspended/cancelled=red), `started_at` and `expires_at` formatted as dates, days-remaining computed from `expires_at`, latest license token shown masked by default (`{token.slice(0,12)}…{token.slice(-6)}`) with an eye-icon toggle to reveal full token and a copy-to-clipboard button. Logout button clears both localStorage keys and re-renders. On 401 from the subscription endpoint, auto-clear localStorage and show login form again.
+
+- UPDATE `ui/src/App.tsx` — add three new PUBLIC routes alongside `/p/:slug` and `/contact` (OUTSIDE the `ProtectedRoute`-wrapped tree). Lazy-import the three new views following the existing `lazy(() => import(...))` pattern:
+  - `<Route path="/welcome" element={<PublicLanding />} />`
+  - `<Route path="/signup" element={<CustomerSignup />} />`
+  - `<Route path="/portal" element={<CustomerPortal />} />`
+
+- UPDATE `ui/src/views/Login.tsx` — add two small footer links below the existing form, stacked or comma-separated, using muted text styling (`var(--text-3)` or equivalent existing class):
+  - "Customer? Sign in to your portal →" linking to `/portal`
+  - "New here? Start your free trial →" linking to `/welcome`
+
+---
+<!-- ── Below this line is filled automatically by multi_agent.py + Claude ── -->
+
+## Agent Reports (2026-05-25)
+
+### Backend (Gemini 2.5 Flash)
+- files_written: api/apps/saas/models.py, api/apps/saas/views.py, api/apps/saas/routers.py, api/apps/web/models.py, api/apps/web/views.py, api/apps/web/routers.py
+- features_added: CustomerSignup model and views for SaaS app; LandingSection model and views for Web app; Public endpoints for signup, public plans, portal login/subscription, and landing page content.
+- fixes_applied: none
+- framework_changes: none
+- issues: Run `cd api && python manage.py sync` to create the new tables `saas_customer_signup` and `web_landing_section`.
+
+### Frontend (Codex GPT-5.5)
+- files_written: <!-- filled by agent -->
+- features_added: <!-- filled by agent -->
+- fixes_applied: <!-- filled by agent -->
+- framework_changes: <!-- filled by agent -->
+- issues: <!-- filled by agent -->
+
+## Claude Review
+- verdict: <!-- APPROVED / NEEDS-FIX -->
+- reviewed_by: Claude Code
+- date: <!-- fill -->
+- notes: <!-- none or describe -->
+
+## Revision Tasks
+<!-- If verdict is NEEDS-FIX, list tasks here -->
+
+
+---
+## Agent Reports (revision (2026-05-25))
+
+### Backend (Gemini (gemini-2.5-flash))
+- files_written: none
+- features_added: none
+- fixes_applied: none
+- framework_changes: none
+- issues: none
+
+### Frontend (GPT (codex))
+- files_written: ui/src/store/uiStore.ts, ui/src/layouts/components/Sidebar.tsx, ui/src/layouts/MainLayout.tsx, ui/src/App.tsx, ui/src/views/Login.tsx, ui/src/views/PublicLanding.tsx, ui/src/views/CustomerSignup.tsx, ui/src/views/CustomerPortal.tsx
+- features_added: Public landing page, customer signup form, customer portal, public routes, login footer links, and full icon-rail collapse/restore control
+- fixes_applied: Fixed same-path app icon navigation by refreshing location state and hiding the section panel when the icon rail is collapsed
+- framework_changes: none
+- issues: Run `cd api && python manage.py sync` to create the new tables `saas_customer_signup` and `web_landing_section`. `npm run build` is blocked by existing unused-variable errors in `ui/src/aras-core/components/ListView.tsx` lines 521, 523, and 524.
+
+## Claude Review
+- verdict: <!-- APPROVED / NEEDS-FIX -->
+- reviewed_by: Claude Code
+- date: <!-- fill -->
+- notes: <!-- none or describe -->
+
+## Revision Tasks
+<!-- If verdict is NEEDS-FIX, list tasks here then re-run multi_agent.py -->
+<!-- Delete this section if APPROVED -->

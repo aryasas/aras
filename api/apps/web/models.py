@@ -60,3 +60,17 @@ class SiteSetting(Aras.Model):
     value: Mapped[str] = mapped_column(Text, nullable=False)
     label: Mapped[str] = mapped_column(String(255), nullable=False)
     group: Mapped[str] = mapped_column(String(50), default="general", info={"choices": ["general", "seo", "social", "contact"]})
+
+
+# gemini-flash
+class LandingSection(Aras.Model):
+    __tablename__ = "web_landing_section"
+    key: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    subtitle: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    image_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    cta_label: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    cta_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    is_visible: Mapped[bool] = mapped_column(Boolean, default=True)

@@ -116,7 +116,10 @@ api.interceptors.response.use(
     }
     if (error.response?.status === 401) {
       localStorage.removeItem('aras_token');
-      if (window.location.pathname !== '/login') {
+      const path = window.location.pathname;
+      const publicPaths = ['/login', '/welcome', '/signup', '/portal', '/portal/setup', '/forgot-password', '/reset-password', '/contact'];
+      const isPublic = publicPaths.some((p) => path === p || path.startsWith(p + '/')) || path.startsWith('/p/');
+      if (!isPublic) {
         window.location.href = '/login';
       }
     }

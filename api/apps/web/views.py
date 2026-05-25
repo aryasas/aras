@@ -1,5 +1,5 @@
 from core import Aras
-from .models import WebPage, WebMenuItem, ContactSubmission, SiteSetting
+from .models import WebPage, WebMenuItem, ContactSubmission, SiteSetting, LandingSection
 
 
 class WebPageView(Aras.View):
@@ -24,3 +24,10 @@ class SiteSettingView(Aras.View):
     model = SiteSetting
     title = "Site Settings"
     icon = "pi pi-cog"
+
+
+# gemini-flash
+class LandingSectionView(Aras.View):
+    model = LandingSection
+    title = "Landing Sections"
+    icon = "pi pi-images"

@@ -8,6 +8,7 @@ class PlanView(Aras.View):
     icon = "pi pi-tag"
 
 
+# claude-opus-4-7
 class SubscriptionView(Aras.View):
     model = Subscription
     title = "Subscriptions"

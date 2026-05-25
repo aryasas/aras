@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../../lib/api'
 import { cleanResourcePath } from '../../lib/resourceUtils'
 import {
-  Plus, ChevronLeft, ChevronRight,
+  Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   CheckSquare, Square, X,
   ChevronDown, ChevronUp, Trash2, Search
 } from 'lucide-react'
@@ -95,6 +95,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const [bulkEditValue, setBulkEditValue] = useState<any>('')
   const [bulkEditing, setBulkEditing] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [groupField, setGroupField] = useState<string | null>(null)
 
   const roleFilter = searchParams.get('role') || 'all'
   const isPartyResource = useMemo(() => /(^|\/)(parties|party)$/.test(cleanResourcePath(resource)), [resource])
@@ -160,6 +161,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           .filter((f: any) => !f.list_hidden && !f.hidden)
           .map((f: any) => f.name)
         setVisibleColumns(defaultVisible)
+        const statusField = meta.fields.find((f: any) => f.name === 'status' || f.name === 'state')
+        if (statusField) setGroupField(statusField.name)
       } catch (err: any) {
         notify(err.response?.data?.detail || "Failed to load metadata", "error")
       }
@@ -353,6 +356,24 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
 
   const title = vocabulary.get(metadata.title)
 
+  const groupableFields = orderedFields
+    .filter(f => f.name === 'status' || f.name === 'state' || f.type === 'select' || f.type === 'lookup' || f.type === 'boolean')
+    .map(f => ({ name: f.name, label: vocabulary.get(f.label) }))
+
+  const groupedRows: { key: string; label: string; items: any[] }[] = (() => {
+    if (!groupField) return [{ key: '__all', label: '', items: data }]
+    const fieldDef = fields.find(f => f.name === groupField)
+    if (!fieldDef) return [{ key: '__all', label: '', items: data }]
+    const groups = new Map<string, any[]>()
+    for (const item of data) {
+      const raw = getFieldValue(item, fieldDef)
+      const k = raw == null || raw === '' ? '—' : String(raw)
+      if (!groups.has(k)) groups.set(k, [])
+      groups.get(k)!.push(item)
+    }
+    return Array.from(groups.entries()).map(([key, items]) => ({ key, label: key, items }))
+  })()
+
   return (
     <div className="aras-list-view flex flex-col h-full animate-in fade-in duration-500">
       <DesignContainer id="list-view-layout" className="flex flex-col h-full w-full">
@@ -385,6 +406,14 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
             onApplySavedFilter={handleApplySavedFilter}
             onDeleteSavedFilter={handleDeleteSavedFilter}
             savedFilters={savedFilters}
+            groupField={groupField}
+            onGroupFieldChange={setGroupField}
+            groupableFields={groupableFields}
+            page={page}
+            perPage={perPage}
+            total={total}
+            totalPages={totalPages}
+            onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
           />
         </DesignElement>
 
@@ -436,24 +465,24 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           </DesignElement>
         )}
 
-        <DesignElement id="table" className="bg-[var(--app-panel)] rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-[var(--shadow-premium)] flex-1 overflow-auto w-full mt-6">
+        <DesignElement id="table" className="border-t border-[var(--line)] flex-1 overflow-auto w-full mt-2">
           {isPartyResource && (
             <div className="flex flex-wrap gap-1 border-b border-[var(--app-border)] bg-[var(--app-panel-soft)] px-4 py-2">
                <span className="text-[10px] font-black uppercase text-[var(--app-muted)] px-3">Role filtering active</span>
             </div>
           )}
           {viewMode === 'list' && (
-            <div className="overflow-x-auto">
-              <div className="aras-list-table" style={{ minWidth: listMinWidth }}>
-              <div className="aras-list-header hidden md:grid bg-[var(--app-table-head)] sticky top-0 z-10 border-b border-[var(--app-border)]" style={{ gridTemplateColumns }}>
+            <div className="md:overflow-x-auto">
+              <div className="aras-list-table md:[min-width:var(--list-min-width)]" style={{ ['--list-min-width' as any]: typeof listMinWidth === 'number' ? `${listMinWidth}px` : listMinWidth }}>
+              <div className="aras-list-header hidden md:grid sticky top-0 z-10 border-b border-[var(--line)] bg-[var(--surface)]/80 backdrop-blur" style={{ gridTemplateColumns }}>
                 <div className="px-[calc(16px*var(--app-density))] py-[calc(18px*var(--app-density))]"><button onClick={handleSelectAll} className="hover:text-[var(--app-accent)]">{selectedIds.length === data.length && data.length > 0 ? <CheckSquare size={18} className="text-[var(--app-accent)]" /> : <Square size={18} className="text-[var(--app-muted)]" />}</button></div>
                 {listColumns.map((column) => (
-                  <div key={column.key} className={`px-[calc(6px*var(--app-density))] py-[calc(18px*var(--app-density))] flex items-center gap-2 text-[calc(11px*var(--app-font-scale))] font-extrabold text-[var(--app-muted)] uppercase tracking-wider cursor-pointer hover:text-[var(--app-text)] transition-colors ${column.align === 'right' ? 'justify-end text-right' : ''}`} onClick={() => { if (orderBy === column.field.name) setDesc(!desc); else { setOrderBy(column.field.name); setDesc(true); } }}>
+                  <div key={column.key} className={`px-[calc(6px*var(--app-density))] py-2.5 flex items-center gap-1.5 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-[0.14em] cursor-pointer hover:text-[var(--text)] transition-colors ${column.align === 'right' ? 'justify-end text-right' : ''}`} onClick={() => { if (orderBy === column.field.name) setDesc(!desc); else { setOrderBy(column.field.name); setDesc(true); } }}>
                     {column.label}
                     {orderBy === column.field.name && (desc ? <ChevronDown size={14} className="text-[var(--app-accent)]" /> : <ChevronUp size={14} className="text-[var(--app-accent)]" />)}
                   </div>
                 ))}
-                <div className="px-[calc(16px*var(--app-density))] py-[calc(18px*var(--app-density))] text-right text-[calc(11px*var(--app-font-scale))] font-extrabold text-[var(--app-muted)] uppercase tracking-wider">Action</div>
+                <div className="px-[calc(16px*var(--app-density))] py-2.5 text-right text-[10px] font-bold text-[var(--text-3)] uppercase tracking-[0.14em]">&nbsp;</div>
               </div>
 
               {loading ? (
@@ -464,23 +493,86 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                   <p className="text-[calc(15px*var(--app-font-scale))] font-extrabold text-[var(--app-text)]">No records found.</p>
                 </div>
               ) : (
-                data.map((item) => (
-                  <div key={item.id} className={`aras-list-row grid items-center group border-b border-[var(--app-border)] hover:bg-[var(--app-panel-soft)] transition-colors cursor-pointer ${selectedIds.includes(item.id) ? 'bg-[var(--app-primary-action)]/5' : ''}`} style={{ gridTemplateColumns }} onClick={() => onRowClick?.(item.id)}>
-                    <div className="px-[calc(16px*var(--app-density))] py-[calc(8px*var(--app-density))]" onClick={(e) => e.stopPropagation()}><button onClick={() => handleSelectOne(item.id)} className={`${selectedIds.includes(item.id) ? 'text-[var(--app-primary-action)]' : 'text-[var(--app-border-strong)]'}`}>{selectedIds.includes(item.id) ? <CheckSquare size={20} /> : <Square size={20} />}</button></div>
-                    {listColumns.map((column) => {
-                      const value = getFieldValue(item, column.field)
+                groupedRows.map((group) => (
+                  <div key={group.key}>
+                    {groupField && (
+                      <div className="md:hidden flex items-center gap-2 px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-3)]">
+                        <StatusGlyph value={group.key} />
+                        <span>{group.label}</span>
+                        <span>·</span>
+                        <span>{group.items.length}</span>
+                      </div>
+                    )}
+                    {groupField && (
+                      <div className="hidden md:grid items-center" style={{ gridTemplateColumns }}>
+                        <div className="px-[calc(16px*var(--app-density))] py-2 flex items-center">
+                          <StatusGlyph value={group.key} />
+                        </div>
+                        <div className="col-span-full px-2 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-3)] flex items-center gap-2" style={{ gridColumn: `2 / -1` }}>
+                          <span>{group.label}</span>
+                          <span>·</span>
+                          <span>{group.items.length}</span>
+                        </div>
+                      </div>
+                    )}
+                    {group.items.map((item) => {
+                      const prefix = (resource.split('/').pop() || '').toUpperCase().slice(0, 3) || 'ARC'
                       return (
-                        <div key={column.key} className={`px-[calc(6px*var(--app-density))] py-[calc(8px*var(--app-density))] min-w-0 ${column.align === 'right' ? 'text-right' : ''}`}>
-                          <div className={`${column.primary ? 'font-extrabold text-[var(--app-text)]' : 'font-semibold text-[var(--app-muted)]'} truncate text-[calc(14px*var(--app-font-scale))]`}>
-                            {renderCellValue(value, column.field.type, column.field.name)}
+                      <div key={item.id} className={`aras-list-row hidden md:grid items-center group border-b border-[var(--line)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer ${selectedIds.includes(item.id) ? 'bg-[var(--accent)]/8' : ''}`} style={{ gridTemplateColumns }} onClick={() => onRowClick?.(item.id)}>
+                        <div className="px-[calc(16px*var(--app-density))] py-[calc(8px*var(--app-density))]" onClick={(e) => e.stopPropagation()}>
+                          <button onClick={() => handleSelectOne(item.id)} className={`${selectedIds.includes(item.id) ? 'text-[var(--accent)]' : 'text-[var(--text-3)]'}`}>
+                            {selectedIds.includes(item.id) ? <CheckSquare size={15} /> : <Square size={15} />}
+                          </button>
+                        </div>
+                        {listColumns.map((column, colIdx) => {
+                          const value = getFieldValue(item, column.field)
+                          const isIdCol = colIdx === 0 && (column.field.name === 'id' || column.field.name === 'number' || column.field.name === 'code')
+                          return (
+                            <div key={column.key} className={`px-[calc(6px*var(--app-density))] py-[calc(8px*var(--app-density))] min-w-0 ${column.align === 'right' ? 'text-right' : ''}`}>
+                              {isIdCol ? (
+                                <span className="arc-id text-[12px]">
+                                  <b>{prefix}</b> · <b>{String(value)}</b>
+                                </span>
+                              ) : (
+                                <div className={`${column.primary ? 'font-semibold text-[var(--text)]' : 'text-[var(--text-2)]'} truncate text-[calc(13px*var(--app-font-scale))]`}>
+                                  {renderCellValue(value, column.field.type, column.field.name)}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                        <div className="px-[calc(16px*var(--app-density))] py-[calc(8px*var(--app-density))] flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteOne(item); }} className="p-1.5 text-[var(--text-3)] hover:text-rose-500 rounded transition-colors"><Trash2 size={14} /></button>
+                          <ChevronRight size={14} className="text-[var(--text-3)]" />
+                        </div>
+                      </div>
+                      )
+                    })}
+                    {/* Mobile cards */}
+                    {group.items.map((item) => {
+                      const prefix = (resource.split('/').pop() || '').toUpperCase().slice(0, 3) || 'ARC'
+                      const idField = listColumns.find((c, i) => i === 0 && (c.field.name === 'id' || c.field.name === 'number' || c.field.name === 'code'))
+                      const idValue = idField ? getFieldValue(item, idField.field) : item.id
+                      const primaryCol = listColumns.find((c) => c.primary) || listColumns[1] || listColumns[0]
+                      const primaryValue = primaryCol ? getFieldValue(item, primaryCol.field) : ''
+                      const statusValue = item.status ?? item.state
+                      return (
+                        <div
+                          key={`m-${item.id}`}
+                          className={`md:hidden flex items-start gap-3 px-4 py-3 border-b border-[var(--line)] active:bg-[var(--surface-2)] cursor-pointer ${selectedIds.includes(item.id) ? 'bg-[var(--accent)]/8' : ''}`}
+                          onClick={() => onRowClick?.(item.id)}
+                        >
+                          <div className="pt-0.5"><StatusGlyph value={statusValue} /></div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="arc-id text-[11.5px]"><b>{prefix}</b> · <b>{String(idValue)}</b></span>
+                            </div>
+                            <div className="mt-0.5 truncate text-[13.5px] font-semibold text-[var(--text)]">{String(primaryValue ?? '')}</div>
                           </div>
+                          <ChevronRight size={15} className="text-[var(--text-3)] shrink-0 mt-1" />
                         </div>
                       )
                     })}
-                    <div className="px-[calc(16px*var(--app-density))] py-[calc(8px*var(--app-density))] flex items-center justify-end gap-1">
-                      <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteOne(item); }} className="p-2 text-[var(--app-muted)] hover:text-rose-500 hover:bg-rose-50 rounded-[var(--app-radius)] transition-colors"><Trash2 size={18} /></button>
-                      <ChevronRight size={20} className="text-[var(--app-muted)]" />
-                    </div>
                   </div>
                 ))
               )}
@@ -489,31 +581,66 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           )}
         </DesignElement>
 
-        {viewMode === 'list' && (
-          <DesignElement id="pagination" className="mt-6 bg-[var(--app-panel)] border border-[var(--app-border)] shadow-[var(--shadow-premium)] rounded-[var(--app-radius-lg)] p-[calc(16px*var(--app-density))] flex flex-wrap items-center justify-between gap-4 w-full">
-            <div className="flex items-center gap-4">
-              <span className="text-[calc(13px*var(--app-font-scale))] font-bold text-[var(--app-muted)]">Showing {(page-1)*perPage + 1} to {Math.min(page*perPage, total)} of {total}</span>
-              <div className="min-w-[140px]">
-                <Combobox
-                  options={[
-                    { label: '10 per page', value: 10 },
-                    { label: '20 per page', value: 20 },
-                    { label: '50 per page', value: 50 },
-                    { label: '100 per page', value: 100 }
-                  ]}
-                  value={perPage}
-                  onChange={(val) => { setPerPage(Number(val)); setPage(1); }}
-                />
-              </div>
-            </div>
-            <div className="flex items-center border border-[var(--app-border-strong)] rounded-[var(--app-radius)] overflow-hidden bg-[var(--app-panel)]">
-              <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="px-4 py-2.5 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-panel-soft)] border-r border-[var(--app-border-strong)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><ChevronLeft size={18} /></button>
-              <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} className="px-4 py-2.5 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-panel-soft)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><ChevronRight size={18} /></button>
-            </div>
+        {viewMode === 'list' && totalPages > 1 && (
+          <DesignElement id="pagination" className="mt-2 px-5 sm:px-7 lg:px-8 py-2 flex items-center justify-center gap-1 w-full">
+            <button
+              disabled={page === 1}
+              onClick={() => setPage(1)}
+              className="h-7 w-7 grid place-items-center rounded-full text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="First page"
+            >
+              <ChevronsLeft size={14} />
+            </button>
+            <button
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+              className="h-7 w-7 grid place-items-center rounded-full text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Previous page"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <span className="px-3 text-[11.5px] tabular-nums text-[var(--text-2)]">
+              <b>{page}</b> <span className="text-[var(--text-3)]">/ {totalPages}</span>
+            </span>
+            <button
+              disabled={page === totalPages}
+              onClick={() => setPage((p) => p + 1)}
+              className="h-7 w-7 grid place-items-center rounded-full text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Next page"
+            >
+              <ChevronRight size={14} />
+            </button>
+            <button
+              disabled={page === totalPages}
+              onClick={() => setPage(totalPages)}
+              className="h-7 w-7 grid place-items-center rounded-full text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Last page"
+            >
+              <ChevronsRight size={14} />
+            </button>
           </DesignElement>
         )}
 
       </DesignContainer>
+
+      {/* Bottom status footer */}
+      <div className="flex items-center justify-between border-t border-[var(--line)] py-2 px-5 sm:px-7 lg:px-8 text-[11px] text-[var(--text-3)]">
+        <div>
+          {selectedIds.length > 0
+            ? <><span className="arc-id"><b>{selectedIds.length}</b></span> selected</>
+            : <>{total} {total === 1 ? 'record' : 'records'}</>}
+        </div>
+        <div className="flex items-center gap-3">
+          <span>↑↓ navigate</span>
+          <span>·</span>
+          <span>Enter open</span>
+          <span>·</span>
+          <span>/ search</span>
+          <span>·</span>
+          <span className="arc-kbd">⌘K</span>
+          <span>commands</span>
+        </div>
+      </div>
 
       {/* Bulk Edit Modal */}
       {bulkEditOpen && (
@@ -558,19 +685,35 @@ const roleColors: Record<string, string> = {
   other: 'bg-[var(--aras-panel-soft)] text-[var(--aras-muted)] border-[var(--aras-border)]',
 }
 
-const statusColors: Record<string, string> = {
-  draft: 'bg-[var(--aras-muted)]',
-  posted: 'bg-emerald-500',
-  active: 'bg-emerald-500',
-  cancelled: 'bg-rose-500',
+// claude-opus-4-7
+const STATUS_GLYPH: Record<string, { ch: string; color: string }> = {
+  in_progress: { ch: '◐', color: 'var(--accent)' },
+  'in progress': { ch: '◐', color: 'var(--accent)' },
+  draft:       { ch: '○', color: 'var(--text-3)' },
+  open:        { ch: '○', color: 'var(--text-3)' },
+  in_review:   { ch: '△', color: '#d97706' },
+  'in review': { ch: '△', color: '#d97706' },
+  pending:     { ch: '△', color: '#d97706' },
+  released:    { ch: '●', color: '#059669' },
+  active:      { ch: '●', color: '#059669' },
+  posted:      { ch: '●', color: '#059669' },
+  approved:    { ch: '●', color: '#059669' },
+  blocked:     { ch: '✕', color: '#e11d48' },
+  cancelled:   { ch: '✕', color: '#e11d48' },
+  rejected:    { ch: '✕', color: '#e11d48' },
+}
+// claude-opus-4-7
+function StatusGlyph({ value }: { value: any }) {
+  const key = String(value ?? '').toLowerCase().trim()
+  const g = STATUS_GLYPH[key] || { ch: '○', color: 'var(--text-3)' }
+  return <span style={{ color: g.color, fontFamily: 'Geist Mono, ui-monospace, monospace', fontSize: 13 }}>{g.ch}</span>
 }
 
 const renderCellValue = (value: any, type: string, fieldName?: string) => {
   if (value === null || value === undefined) return <span className="text-[var(--aras-muted)]">-</span>
-  if (fieldName === 'status' || type === 'boolean') {
+  if (fieldName === 'status' || fieldName === 'state' || type === 'boolean') {
     const rawLabel = typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)
-    const dotClass = statusColors[String(rawLabel).toLowerCase()] || 'bg-[var(--aras-muted)]'
-    return <span className="inline-flex items-center gap-2 text-sm font-bold capitalize"><span className={`h-2 w-2 rounded-full ${dotClass}`} />{rawLabel}</span>
+    return <span className="inline-flex items-center gap-2 text-[13px] font-medium capitalize text-[var(--text-2)]"><StatusGlyph value={rawLabel} />{rawLabel.replace(/_/g, ' ')}</span>
   }
   if (fieldName === 'role') {
     return <span className={`inline-flex rounded-[var(--aras-radius)] border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${roleColors[String(value)] || roleColors.other}`}>{String(value)}</span>

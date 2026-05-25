@@ -3,7 +3,7 @@ from sqlalchemy import String, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from apps.base import ErpBase
 
-class Note(ErpBase):
+class DocumentNote(ErpBase):
     __tablename__ = "erp_core_notes"
     __features__ = ["audit"]
 
