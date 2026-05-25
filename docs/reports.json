@@ -2550,5 +2550,359 @@
     "cache_write_tokens": "n/a",
     "token_efficiency": "Heavy CSS aliasing avoided ~25 view rewrites; ~17 files touched delivers entire visual migration. Wasted ~3 retries fighting zsh histexpand.",
     "verdict": "APPROVED"
+  },
+  {
+    "id": 184,
+    "date": "2026-05-25",
+    "feature": "Layout shape aligned to ArasStudio sample: 56px icon rail + 200px reorderable section panel; AppHome bypassed (clicking an app jumps to first submenu item)",
+    "revision_count": 1,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/components/Sidebar.tsx, ui/src/layouts/components/Header.tsx, ui/src/layouts/MainLayout.tsx, ui/src/views/SmartDispatcher.tsx, ui/src/store/uiStore.ts",
+      "features_added": "Per-app submenu reordering with DnD (persisted in uiStore.submenuOrder via zustand persist); SmartDispatcher redirects /<app> and 2-segment app paths to the first ordered submenu item; sample-accurate topbar with title+breadcrumb left, centered command bar, Live indicator + actions right",
+      "fixes_applied": "Removed extraneous outer p-3 gap-3 wrapper and content arc-card so rails sit flush like sample; dropped Sidebar onLogout prop (logout will move into user menu)",
+      "framework_changes": "Routing behavior: AppHome no longer rendered from SmartDispatcher; user lands directly on first submenu page when entering an app",
+      "issues": "Repeated zsh histexpand corruption of \\! to backslash-bang; resolved by passing both search and replacement as base64 to python -c"
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Five file edits delivered shape change + reorderable submenu + direct-to-page routing in one cycle.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 185,
+    "date": "2026-05-25",
+    "feature": "Ported ArasStudio Tweaks panel into ui/ as a live theme inspector",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/TweaksPanel.tsx, ui/src/layouts/MainLayout.tsx",
+      "features_added": "Floating coral FAB (bottom-right) opens a draggable glassmorphism panel bound to uiStore (themeMode, accentColor, density, cornerMode, fontScale, sidebarCollapsed). Segmented controls, slider, color picker, toggle. Dark-mode-aware styling via [data-theme=dark] selectors.",
+      "fixes_applied": "Replaced the original host-message activation protocol with a self-contained FAB so the panel works locally without ArasStudio host.",
+      "framework_changes": "None",
+      "issues": "TypeScript path issue (initial wrong relative import) caught by build; fixed in one edit."
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Ported ~530-line source down to a focused ~250-line TSX bound to existing store; single file added + one import line in MainLayout.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 186,
+    "date": "2026-05-25",
+    "feature": "Removed page-body PageHeader; page title + breadcrumb now live in topbar only (sample-accurate)",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/MainLayout.tsx",
+      "features_added": "Page body now starts directly with the page filter/action bar, matching the sample list view. Header already reads pageTitle + breadcrumbs from uiStore, which views (incl. ListView) populate via setPageTitle.",
+      "fixes_applied": "Dropped PageHeader render block; reduced vertical padding/gap so content sits flush with topbar.",
+      "framework_changes": "PageHeader component is no longer mounted by MainLayout. Individual views still set title via uiStore.setPageTitle.",
+      "issues": "None"
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "One edit + import removal.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 187,
+    "date": "2026-05-25",
+    "feature": "Topbar full-width above rails; ListView de-carded; sidebar collapse toggle.",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/MainLayout.tsx, ui/src/layouts/components/Sidebar.tsx, ui/src/aras-core/components/ListView.tsx",
+      "features_added": "Sidebar collapse chevron toggle (PanelLeftClose/Open) in bottom of icon rail.",
+      "fixes_applied": "MainLayout restructured to column: Header spans full width on top, then 56px rail + 200px section panel + content below it (matches sample). ListView table + pagination card wrappers stripped; thin border-t separators only, toolbar hugs top close to rows.",
+      "framework_changes": "none",
+      "issues": "DynamicForm refinement still pending."
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Targeted edits only.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 188,
+    "date": "2026-05-25",
+    "feature": "ListView full ARC visual match: chip toolbar, status glyphs, group-by dropdown, mono ID prefix, status footer.",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListViewActionBar.tsx, ui/src/aras-core/components/ListView.tsx",
+      "features_added": "Group-by dropdown (auto-defaults to status/state field if present); status glyphs (\u25cb \u25d0 \u25b3 \u25cf \u2715); grouped section headers (label \u00b7 count); mono ID prefix `ARC \u00b7 code`; bottom status footer with keyboard hints (\u2318K).",
+      "fixes_applied": "ListViewActionBar rewritten as ARC chip strip (Filter chip + active filter chips + New + right cluster: search/Group/Columns/view-mode/more). Action column header label hidden; row actions only visible on hover. Table header lightened (no heavy bg).",
+      "framework_changes": "ListViewActionBar gained optional props groupField/onGroupFieldChange/groupableFields/filterChips.",
+      "issues": "DynamicForm refinement still pending."
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Targeted edits + one full toolbar rewrite (necessary scope change).",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 189,
+    "date": "2026-05-25",
+    "feature": "Layout: rail full-height with logo on top + topbar to right of rail (sample-accurate); ListView edges flush; Sections header label.",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/MainLayout.tsx, ui/src/layouts/components/Sidebar.tsx, ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/ListViewActionBar.tsx",
+      "features_added": "Section panel: 'SECTIONS' uppercase header; right chevron on active item.",
+      "fixes_applied": "MainLayout reverted to horizontal flex (rail on left, content column on right with topbar inside). Removed outer content gutters so ListView rows bleed to edges; toolbar+footer carry their own px-5/sm:px-7/lg:px-8 padding to match sample.",
+      "framework_changes": "none",
+      "issues": "DynamicForm refinement still pending."
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Targeted edits only.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 190,
+    "date": "2026-05-25",
+    "feature": "Pagination split: range+per-page in top toolbar; first/prev/next/last refined buttons in bottom; topbar+command palette refined.",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListViewActionBar.tsx, ui/src/aras-core/components/ListView.tsx, ui/src/layouts/components/Header.tsx, ui/src/layouts/components/CommandPaletteTrigger.tsx",
+      "features_added": "Top toolbar now shows '<start>-<end> of <total>' tabular nums + native per-page select (10/20/50/100). Bottom pagination redesigned as 4 round icon buttons (first / prev / next / last) with 'page X / Y' in the middle, all centered with side gutter padding.",
+      "fixes_applied": "Topbar shrunk to 52px, wider 520px command pill with paired \u2318+K kbds, Live indicator gets compact label, avatar refined to 26px circle with subtle border. Bottom pagination only renders when totalPages > 1.",
+      "framework_changes": "ListViewActionBar gained optional page/perPage/total/onPerPageChange props.",
+      "issues": "DynamicForm refinement still pending."
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Targeted edits only.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 191,
+    "date": "2026-05-25",
+    "feature": "SimpleCombobox for outside-form usage; org switcher + listview per-page select wired to it.",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/SimpleCombobox.tsx, ui/src/layouts/MainLayout.tsx, ui/src/aras-core/components/ListViewActionBar.tsx",
+      "features_added": "New SimpleCombobox component: pill-shaped dropdown, no search/no-add-new, props (options/value/onChange/placeholder/size/align/width/title/disabled). Used by org switcher in topbar and ListView per-page select.",
+      "fixes_applied": "Replaced full-feature Combobox in org switcher (no longer overkill); replaced native <select> in toolbar per-page picker with SimpleCombobox for visual consistency.",
+      "framework_changes": "Two-tier combobox convention: SimpleCombobox (chrome/switchers) vs Combobox (form fields with async/add-new).",
+      "issues": "DynamicForm refinement still pending."
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "One new component + 2 small swaps.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 192,
+    "date": "2026-05-25",
+    "feature": "DynamicForm fully rebuilt to match ARC sample form layout.",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "Action band (kicker chip + status glyph + tag + share/more + Defer/Approve\u2014primary on RIGHT this time per sample); large title row with mono ID prefix `ARC \u00b7 code` next to record title; meta strip (owner/created/target_rev/severity/cost/updated); numbered sections built from metadata.layout (or fallback to single Overview); conditional right rail with Lifecycle stages, Approvers list, Watchers \u2014 only renders when model has those fields.",
+      "fixes_applied": "Replaced sticky card-wrapped command bar + 2-col centered form. Borders use --line tokens; section panel (left) preserved as global submenu, not in-form. Edge-to-edge layout; rail sits to the right.",
+      "framework_changes": "DynamicForm now consumes metadata.layout for section grouping; falls back gracefully when layout is empty.",
+      "issues": "none"
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "One scoped rewrite.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 193,
+    "date": "2026-05-25",
+    "feature": "Web responsive Phase 1: off-canvas mobile sidebar + ListView card variant under md",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/store/uiStore.ts, ui/src/layouts/components/Header.tsx, ui/src/layouts/components/Sidebar.tsx, ui/src/aras-core/components/ListView.tsx",
+      "features_added": "Hamburger button in Header (md:hidden); Sidebar off-canvas drawer with backdrop on phones; ListView mobile card rows (StatusGlyph + MonoId + primary field + chevron) replacing grid columns under md; mobile group header label",
+      "fixes_applied": "Removed forced min-width horizontal scroll on phones; auto-close drawer on route change",
+      "framework_changes": "mobileSidebarOpen state added to uiStore (transient, not persisted)",
+      "issues": "none"
+    },
+    "input_tokens": "~1500",
+    "output_tokens": "~3200",
+    "cache_read_tokens": "~120000",
+    "cache_write_tokens": "~2000",
+    "token_efficiency": "targeted edits only, no re-reads of large files",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 194,
+    "date": "2026-05-25",
+    "feature": "Mobile (Expo) Phase 2: ARC parity \u2014 MobileShell + Home/List/Form screens",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "mobile/src/lib/theme.ts, mobile/src/components/MobileShell.tsx, mobile/src/screens/AppHomeScreen.tsx, mobile/src/screens/ResourceListScreen.tsx, mobile/src/screens/ResourceFormScreen.tsx, mobile/src/navigation/AppNavigator.tsx",
+      "features_added": "Dark ARC palette default; MobileShell with ArcMark top bar + floating glass 5-tab bottom bar; StatusGlyph/MonoId/Avatar atoms; Home screen with greeting + 2x2 stat tiles + Awaiting/Pinned sections; List screen with pill search + filter chips + grouped status sections + ARC mono-id rows; Form screen with header card (kind chip + status + mono id + title + meta strip), tab strip, summary/meta grid/lifecycle/affected blocks, sticky Defer/Approve action bar",
+      "fixes_applied": "Removed react-navigation bottom Tab.Navigator (replaced by in-shell tab bar); stripped zsh histexpand backslash-bang corruption across all written files",
+      "framework_changes": "Navigator simplified to single stack; bottom tab presentation owned by MobileShell",
+      "issues": "Tab navigation between Home/Items/Inbox/Threads/You only wires home<->items; Inbox/Threads/You are visual stubs"
+    },
+    "input_tokens": "~2200",
+    "output_tokens": "~6400",
+    "cache_read_tokens": "~140000",
+    "cache_write_tokens": "~3000",
+    "token_efficiency": "targeted writes; no full re-reads; one round of bang-corruption sweep",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 195,
+    "date": "2026-05-25",
+    "feature": "Production hardening \u2014 Customer SaaS portal + admin-controlled marketing pages",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/saas/models.py, api/apps/saas/views.py, api/apps/saas/routers.py, api/apps/web/models.py, api/apps/web/views.py, api/apps/web/routers.py",
+      "features_added": "CustomerSignup model and views for SaaS app; LandingSection model and views for Web app; Public endpoints for signup, public plans, portal login/subscription, and landing page content.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "Run `cd api && python manage.py sync` to create the new tables `saas_customer_signup` and `web_landing_section`."
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 196,
+    "date": "2026-05-25",
+    "feature": "QA SWEEP \u2014 Backend QA \u2014 Half A (Exhaustive)",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "docs/qa_backend_a.md",
+      "features_added": "none",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "CRITICAL: Missing __init__.py in core packages; duplicate Note models. HIGH: JWT purpose verification gap; CRM/Asset apps missing discovery/views. Verified SaaS/Web consistency."
+    },
+    "frontend": null,
+    "verdict": "APPROVED",
+    "mode": "backend-only",
+    "status": "success",
+    "notes": "Backend QA pass covering framework core and apps: saas, web, accounting, asset, base, config, core, crm."
+  },
+  {
+    "id": 197,
+    "date": "2026-05-25",
+    "feature": "Fix public routes redirecting to /login",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/main.tsx, ui/src/lib/api.ts",
+      "features_added": "none",
+      "fixes_applied": "Removed unconditional FormattingService.init() in main.tsx that called /sys_settings/query without auth and triggered 401 interceptor; api.ts 401 handler now skips redirect when on a public route (/welcome, /signup, /portal, /portal/setup, /forgot-password, /reset-password, /contact, /p/*).",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Two targeted edits; root cause found via grep for /login redirects.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 198,
+    "date": "2026-05-25",
+    "feature": "Full Project Audit (Backend, Frontend, Security, Multi-Platform)",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "docs/gemini_audit_report_20260525.md",
+      "features_added": "none",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "Identified critical security risk (X-Org-ID trust), performance risk (sync DB in async routes), and architecture issues (migration on import)."
+    },
+    "frontend": {
+      "files_written": "none",
+      "features_added": "none",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "Identified iOS auto-zoom risk (14px font) and redundant API calls in Layout/Dispatcher."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 199,
+    "date": "2026-05-25",
+    "feature": "GPT full project audit report",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "docs/gpt_audit_report_20260525.md",
+      "features_added": "Structured audit report covering code quality, reusability, bugs, security, performance, multi-platform UI/UX, production readiness, and testing gaps.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "Audit only; no application code changed."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 200,
+    "date": "2026-05-25",
+    "feature": "Combined audit report summary",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "docs/audit_report_summary_20260525.md",
+      "features_added": "Consolidated summary from Gemini and GPT audit reports with consensus blockers, product risks, testing gaps, priority actions, and implementation phases.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "Documentation summary only; no application code changed."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 201,
+    "date": "2026-05-25",
+    "feature": "Audit summary handoff update",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "docs/handoff.md",
+      "features_added": "Replaced stale QA handoff with a concise handoff for the combined audit summary work, using the handoff template structure and completed Codex frontend report.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "Documentation handoff only; no application code changed."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 202,
+    "date": "2026-05-25",
+    "feature": "Production hardening agent handoff",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "docs/handoff.md",
+      "features_added": "Converted the audit summary into an implementation handoff for backend and frontend agents, split into security/isolation/report fixes, runtime integrity fixes, generated UI robustness, PWA/mobile readiness, and verification steps.",
+      "fixes_applied": "Replaced the completed-work handoff with agent-executable tasks sourced from docs/audit_report_summary_20260525.md.",
+      "framework_changes": "none",
+      "issues": "Handoff only; no application code changed."
+    },
+    "verdict": "APPROVED"
   }
 ]
