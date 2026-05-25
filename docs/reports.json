@@ -2510,5 +2510,45 @@
       "issues": "none"
     },
     "verdict": "APPROVED"
+  },
+  {
+    "id": 182,
+    "date": "2026-05-25",
+    "feature": "ARC (ArasStudio) design system foundation: web + mobile theme tokens, atom classes (arc-btn/input/chip/card/cmd/id/stat/kbd/av/dotgrid), Geist font stack on web, coral accent, light+dark, action-bar 'primary-on-left' convention, reusable SortableList DnD primitive (@dnd-kit) with arc-dnd-* styles.",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/index.css, ui/src/aras-core/components/SortableList.tsx, mobile/src/lib/theme.ts",
+      "features_added": "ARC token system (--bg/--surface/--line/--accent etc) + atom classes ported from ArasStudio/index.html; reusable web DnD primitive SortableList with keyboard support; arc-actionbar convention forcing submit/primary to left via flex order; arc-dnd-item/handle/overlay style hooks.",
+      "fixes_applied": "Repointed all legacy --aras-* and --app-* CSS vars to ARC palette so every existing .app-*/.aras-* consumer inherits ArasStudio look without touching 35+ view files; mobile palette swapped from indigo/rose to coral.",
+      "framework_changes": "Established ARC as the single source of theme truth across ui/ and mobile/ (RN keeps Plus Jakarta font loader for now \u2014 Geist not yet bundled for expo).",
+      "issues": "Per-view migration to .arc-* atoms not done in this pass \u2014 foundation only, as scoped. Pre-existing tsc errors in Sidebar.tsx/MainLayout.tsx remain (unrelated). Mobile fonts still Plus Jakarta until a Geist expo font package is added."
+    },
+    "input_tokens": "unknown",
+    "output_tokens": "unknown",
+    "cache_read_tokens": "unknown",
+    "cache_write_tokens": "unknown",
+    "token_efficiency": "Foundation delivered in one shot via token aliasing \u2014 avoids rewriting 35+ views. Honest scope: theme + DnD primitive only, not per-page redesigns.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 183,
+    "date": "2026-05-25",
+    "feature": "ArasStudio (ARC) design system rollout across web + mobile shell and key views",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/index.css, ui/src/aras-core/components/SortableList.tsx, ui/src/layouts/MainLayout.tsx, ui/src/layouts/components/Header.tsx, ui/src/layouts/components/Sidebar.tsx, ui/src/views/Login.tsx, ui/src/views/NotFound.tsx, ui/src/views/Settings.tsx, ui/src/views/Profile.tsx, ui/src/views/AppHome.tsx, ui/src/views/DashboardView.tsx, ui/src/views/DynamicView.tsx, mobile/src/lib/theme.ts, mobile/src/screens/LoginScreen.tsx, mobile/src/screens/AppHomeScreen.tsx, mobile/src/screens/ResourceListScreen.tsx, mobile/src/screens/ResourceFormScreen.tsx",
+      "features_added": "ARC token system (coral accent, dot-grid, mono ID badges, arc-* atoms), reusable @dnd-kit SortableList primitive with DragHandle, submit-on-left enforcement via arc-actionbar CSS, ARC palette + typography for React Native",
+      "fixes_applied": "aliased legacy --aras-* and --app-* CSS vars to ARC tokens so ~25 untouched views inherit new look without rewrite",
+      "framework_changes": "index.css now drives theme via [data-theme=dark]; arc-actionbar CSS rule forces button[type=submit] to order:-1 (primary-left convention)",
+      "issues": "zsh histexpand kept corrupting \\! to \\\\! in heredoc writes; required python-binary writes plus targeted byte-level fixes"
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Heavy CSS aliasing avoided ~25 view rewrites; ~17 files touched delivers entire visual migration. Wasted ~3 retries fighting zsh histexpand.",
+    "verdict": "APPROVED"
   }
 ]

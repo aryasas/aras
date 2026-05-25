@@ -1,6 +1,8 @@
+// claude-opus-4-7
+// ARC profile: account meta on left, password form on right. Submit on the LEFT.
 import React, { useState, useEffect } from 'react'
 import api from '../lib/api'
-import { User, Mail, Shield, Lock, Save, AlertCircle, CheckCircle } from 'lucide-react'
+import { Mail, Shield, Lock, Save, AlertCircle, CheckCircle, User } from 'lucide-react'
 import { useAras } from '../aras-core/hooks/useAras'
 import { useUIStore } from '../store/uiStore'
 
@@ -13,8 +15,7 @@ const Profile = () => {
     setPageTitle('Your Profile', 'Manage your account details and security settings.', 'PROFILE')
     return () => setPageTitle('', '', '')
   }, [setPageTitle])
-  
-  // Password change state
+
   const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -41,27 +42,19 @@ const Profile = () => {
     e.preventDefault()
     setPassError('')
     setPassSuccess('')
-
     if (newPassword !== confirmPassword) {
       setPassError('New passwords do not match')
       notify('New passwords do not match', 'error')
       return
     }
-
     setPassLoading(true)
     try {
-      await api.post('/auth/change-password', {
-        old_password: oldPassword,
-        new_password: newPassword
-      })
+      await api.post('/auth/change-password', { old_password: oldPassword, new_password: newPassword })
       setPassSuccess('Password updated successfully')
-      setOldPassword('')
-      setNewPassword('')
-      setConfirmPassword('')
+      setOldPassword(''); setNewPassword(''); setConfirmPassword('')
     } catch (err: any) {
       const message = err.response?.data?.message || 'Failed to update password'
-      setPassError(message)
-      notify(message, 'error')
+      setPassError(message); notify(message, 'error')
     } finally {
       setPassLoading(false)
     }
@@ -69,131 +62,104 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="arc arc-card p-8 flex items-center justify-center">
+        <div className="arc-id">loading…</div>
       </div>
     )
   }
 
+  const initial = (userInfo?.full_name || userInfo?.username || 'A')[0].toUpperCase()
+
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Profile Info */}
-        <div className="md:col-span-1 space-y-6">
-          <div className="bg-[var(--app-panel)] p-6 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-sm">
-            <h3 className="text-lg font-bold text-[var(--app-text)] mb-6 flex items-center gap-2">
-              <User size={18} className="text-[var(--app-accent)]" />
-              Account Details
-            </h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-[var(--app-muted)] uppercase tracking-wider">Username</label>
-                <p className="text-[var(--app-text)] font-medium">{userInfo?.username}</p>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-[var(--app-muted)] uppercase tracking-wider">Email Address</label>
-                <p className="text-[var(--app-text)] font-medium flex items-center gap-2">
-                  <Mail size={14} className="text-[var(--app-muted)]" />
-                  {userInfo?.email}
-                </p>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-[var(--app-muted)] uppercase tracking-wider">Role</label>
-                <p className="text-[var(--app-text)] font-medium flex items-center gap-2">
-                  <Shield size={14} className="text-[var(--app-muted)]" />
-                  {userInfo?.is_admin ? 'Administrator' : 'User'}
-                </p>
-              </div>
+    <div className="arc grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl mx-auto">
+      {/* Account meta */}
+      <aside className="arc-card p-5 flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <div className="arc-av" style={{ width: 40, height: 40, fontSize: 14, background: 'color-mix(in oklch, var(--accent) 16%, var(--surface))', color: 'var(--accent)', borderColor: 'var(--accent)' }}>
+            {initial}
+          </div>
+          <div className="min-w-0">
+            <div className="arc-id"><b>user</b>/{userInfo?.id ?? '—'}</div>
+            <div className="text-[14px] font-medium text-[var(--text)] truncate">{userInfo?.full_name || userInfo?.username}</div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 pt-3 border-t border-[var(--line)]">
+          <div className="flex items-start gap-2">
+            <User size={13} className="text-[var(--text-3)] mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="arc-id arc-dim2">username</div>
+              <div className="arc-mono text-[12.5px] text-[var(--text)] truncate">{userInfo?.username}</div>
+            </div>
+          </div>
+          <div className="flex items-start gap-2">
+            <Mail size={13} className="text-[var(--text-3)] mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="arc-id arc-dim2">email</div>
+              <div className="text-[12.5px] text-[var(--text)] truncate">{userInfo?.email}</div>
+            </div>
+          </div>
+          <div className="flex items-start gap-2">
+            <Shield size={13} className="text-[var(--text-3)] mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="arc-id arc-dim2">role</div>
+              <div className="text-[12.5px]"><span className={`arc-chip ${userInfo?.is_admin ? 'active' : ''}`}>{userInfo?.is_admin ? 'admin' : 'user'}</span></div>
             </div>
           </div>
         </div>
+      </aside>
 
-        {/* Change Password Form */}
-        <div className="md:col-span-2">
-          <div className="bg-[var(--app-panel)] p-8 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-sm">
-            <h3 className="text-lg font-bold text-[var(--app-text)] mb-6 flex items-center gap-2">
-              <Lock size={18} className="text-[var(--app-accent)]" />
-              Change Password
+      {/* Password form */}
+      <section className="md:col-span-2 arc-card p-5 flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="arc-id"><b>auth</b>/change-password</div>
+            <h3 className="text-[15px] font-semibold text-[var(--text)] mt-0.5 flex items-center gap-2">
+              <Lock size={14} className="text-[var(--accent)]" /> Change password
             </h3>
-
-            {passError && (
-              <div className="mb-6 bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-[var(--app-radius)] flex items-center gap-3 text-sm">
-                <AlertCircle size={18} />
-                <span>{passError}</span>
-              </div>
-            )}
-
-            {passSuccess && (
-              <div className="mb-6 bg-emerald-50 border border-emerald-100 text-emerald-600 px-4 py-3 rounded-[var(--app-radius)] flex items-center gap-3 text-sm">
-                <CheckCircle size={18} />
-                <span>{passSuccess}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleChangePassword} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-[var(--app-text)] ml-1">Current Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" size={18} />
-                  <input 
-                    type="password"
-                    required
-                    value={oldPassword}
-                    onChange={(e) => setOldPassword(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 bg-[var(--app-panel-soft)] border border-[var(--app-border)] rounded-[var(--app-radius)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none"
-                    placeholder="••••••••"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-[var(--app-text)] ml-1">New Password</label>
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" size={18} />
-                    <input 
-                      type="password"
-                      required
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full pl-12 pr-4 py-3 bg-[var(--app-panel-soft)] border border-[var(--app-border)] rounded-[var(--app-radius)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none"
-                      placeholder="••••••••"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-[var(--app-text)] ml-1">Confirm New Password</label>
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" size={18} />
-                    <input 
-                      type="password"
-                      required
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full pl-12 pr-4 py-3 bg-[var(--app-panel-soft)] border border-[var(--app-border)] rounded-[var(--app-radius)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none"
-                      placeholder="••••••••"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <button 
-                  type="submit"
-                  disabled={passLoading}
-                  className={`flex items-center justify-center gap-2 px-8 py-3 bg-[var(--app-accent)] text-white rounded-[var(--app-radius)] font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all transform hover:-translate-y-1 active:translate-y-0
-                    ${passLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  <Save size={18} />
-                  {passLoading ? 'Updating...' : 'Update Password'}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
-      </div>
+
+        {passError && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius)] border text-[12.5px]"
+               style={{ background: 'color-mix(in oklch, var(--danger) 10%, var(--surface))', borderColor: 'color-mix(in oklch, var(--danger) 28%, var(--line))', color: 'var(--danger)' }}>
+            <AlertCircle size={14} /><span>{passError}</span>
+          </div>
+        )}
+        {passSuccess && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius)] border text-[12.5px]"
+               style={{ background: 'color-mix(in oklch, #10B981 12%, var(--surface))', borderColor: 'color-mix(in oklch, #10B981 28%, var(--line))', color: '#10B981' }}>
+            <CheckCircle size={14} /><span>{passSuccess}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1.5">
+            <span className="arc-id">old.password</span>
+            <input type="password" required value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} className="arc-input" placeholder="••••••••" />
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="arc-id">new.password</span>
+              <input type="password" required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="arc-input" placeholder="••••••••" />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="arc-id">confirm</span>
+              <input type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="arc-input" placeholder="••••••••" />
+            </label>
+          </div>
+
+          {/* Submit on the LEFT */}
+          <div className="flex items-center gap-2 pt-2">
+            <button type="submit" disabled={passLoading} className="arc-btn primary">
+              <Save size={14} />
+              {passLoading ? 'Updating…' : 'Update password'}
+            </button>
+            <span className="flex-1" />
+            <span className="arc-kbd">⌘↵</span>
+          </div>
+        </form>
+      </section>
     </div>
   )
 }

@@ -1,4 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+/* claude-opus-4-7
+ * Aras UI theme — ARC (ArasStudio) design system.
+ * Tokens come from ArasStudio/index.html. All legacy `--aras-*` / `--app-*`
+ * aliases are preserved as pointers into the ARC palette so every existing
+ * `.app-*` / `.aras-*` consumer inherits the new look without per-view edits.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Manrope:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 @variant dark (&:where(.dark, .dark *));
@@ -8,56 +15,87 @@
   --shadow-card-lift: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   ARC tokens — default Light. Dark mode is opt-in via `.dark` class on <html>.
+   Mirror of ArasStudio/index.html so the two surfaces stay 1:1.
+   ───────────────────────────────────────────────────────────────────────────── */
 :root {
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  /* core arc palette (light) */
+  --bg:        #FBFAF7;
+  --bg-2:      #F4F2EC;
+  --surface:   #FFFFFF;
+  --surface-2: #F7F5EF;
+  --line:      #E7E3D9;
+  --line-2:    #D3CEC0;
+  --text:      #1A1D23;
+  --text-2:    #5A6373;
+  --text-3:    #8B95A6;
+  --mute:      #BDC3CC;
+  --accent:    #E89B6C;     /* coral */
+  --accent-d:  #FFFFFF;
+  --warn:      #F2C56C;
+  --danger:    #FF6B7A;
+  --info:      #7AB6FF;
+  --radius:    8px;
+  --radius-sm: 5px;
+  --radius-lg: 14px;
+  --row-h:     36px;
+  --pad:       12px;
+  --pad-sm:    8px;
+  --pad-lg:    18px;
+  --font-sans: "Geist", "Manrope", system-ui, sans-serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  --grid:      rgba(0,0,0,.04);
+
+  /* aras/app aliases — every legacy class consumes these. Repoint, don't rename. */
+  --aras-accent:           var(--accent);
+  --aras-accent-strong:    #D5874F;
+  --aras-accent-glow:      color-mix(in oklch, var(--accent) 22%, transparent);
+  --aras-primary-action:   var(--accent);
+  --aras-primary-action-strong: #D5874F;
+  --aras-button:           var(--accent);
+  --aras-button-text:      var(--accent-d);
+  --aras-radius:           var(--radius);
+  --aras-radius-lg:        var(--radius-lg);
+  --aras-density:          1;
+  --aras-font-scale:       1;
+
+  --aras-border:           var(--line);
+  --aras-border-strong:    var(--line-2);
+  --aras-bg-main:          var(--bg);
+  --aras-panel:            var(--surface);
+  --aras-panel-soft:       var(--surface-2);
+  --aras-table-head:       var(--surface-2);
+  --aras-text:             var(--text);
+  --aras-muted:            var(--text-2);
+  --aras-faint:            var(--line);
+
+  --app-accent:                 var(--aras-accent);
+  --app-accent-strong:          var(--aras-accent-strong);
+  --app-accent-glow:            var(--aras-accent-glow);
+  --app-primary-action:         var(--aras-primary-action);
+  --app-primary-action-strong:  var(--aras-primary-action-strong);
+  --app-button:                 var(--aras-button);
+  --app-button-text:            var(--aras-button-text);
+  --app-radius:                 var(--aras-radius);
+  --app-radius-lg:              var(--aras-radius-lg);
+  --app-density:                var(--aras-density);
+  --app-font-scale:             var(--aras-font-scale);
+  --app-border:                 var(--aras-border);
+  --app-border-strong:          var(--aras-border-strong);
+  --app-bg-main:                var(--aras-bg-main);
+  --app-panel:                  var(--aras-panel);
+  --app-panel-soft:             var(--aras-panel-soft);
+  --app-table-head:             var(--aras-table-head);
+  --app-text:                   var(--aras-text);
+  --app-muted:                  var(--aras-muted);
+  --app-faint:                  var(--aras-faint);
+
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11", "tnum";
   line-height: 1.5;
   font-weight: 400;
   color-scheme: light dark;
-  
-  --aras-accent: #4F46E5;
-  --aras-accent-strong: #4338CA;
-  --aras-accent-glow: rgba(79, 70, 229, 0.15);
-  --aras-primary-action: var(--aras-accent);
-  --aras-primary-action-strong: var(--aras-accent-strong);
-  --aras-button: #111827;
-  --aras-button-text: #FFFFFF;
-  --aras-radius: 12px;
-  --aras-radius-lg: 20px;
-  --aras-density: 1;
-  --aras-font-scale: 1;
-  
-  --aras-border: #E5E7EB;
-  --aras-border-strong: #D1D5DB;
-  --aras-bg-main: #F4F5F7; /* Slightly darker light bg for contrast against pure white panels */
-  --aras-panel: #FFFFFF;
-  --aras-panel-soft: #F9FAFB;
-  --aras-table-head: #F9FAFB;
-  --aras-text: #111827;
-  --aras-muted: #6B7280;
-  --aras-faint: #E5E7EB;
-  
-  --app-accent: var(--aras-accent);
-  --app-accent-strong: var(--aras-accent-strong);
-  --app-accent-glow: var(--aras-accent-glow);
-  --app-primary-action: var(--aras-primary-action);
-  --app-primary-action-strong: var(--aras-primary-action-strong);
-  --app-button: var(--aras-button);
-  --app-button-text: var(--aras-button-text);
-  --app-radius: var(--aras-radius);
-  --app-radius-lg: var(--aras-radius-lg);
-  --app-density: var(--aras-density);
-  --app-font-scale: var(--aras-font-scale);
-  
-  --app-border: var(--aras-border);
-  --app-border-strong: var(--aras-border-strong);
-  --app-bg-main: var(--aras-bg-main);
-  --app-panel: var(--aras-panel);
-  --app-panel-soft: var(--aras-panel-soft);
-  --app-table-head: var(--aras-table-head);
-  --app-text: var(--aras-text);
-  --app-muted: var(--aras-muted);
-  --app-faint: var(--aras-faint);
-  
   color: var(--app-text);
   background-color: var(--app-bg-main);
   font-synthesis: none;
@@ -66,29 +104,42 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-.dark {
-  color: #F9FAFB;
-  background-color: #0B0F19; /* Very deep modern dark bg */
-  
-  --aras-border: rgba(255, 255, 255, 0.06);
-  --aras-border-strong: rgba(255, 255, 255, 0.12);
-  --aras-bg-main: #0B0F19;
-  --aras-panel: #111827;
-  --aras-panel-soft: #1F2937;
-  --aras-table-head: #1F2937;
-  --aras-text: #F9FAFB;
-  --aras-muted: #9CA3AF;
-  --aras-faint: rgba(255, 255, 255, 0.04);
-  --aras-accent-glow: rgba(244, 63, 94, 0.25);
-  
-  /* Reset button colors for dark mode */
-  --aras-button: #FFFFFF;
-  --aras-button-text: #111827;
+/* ARC dark — coral on near-black. Activates when <html class="dark"> or `[data-theme="dark"]`. */
+.dark,
+:root[data-theme="dark"] {
+  --bg:        #0E1116;
+  --bg-2:      #11151B;
+  --surface:   #161B23;
+  --surface-2: #1C2330;
+  --line:      #262E3B;
+  --line-2:    #323B4B;
+  --text:      #E7E9EE;
+  --text-2:    #98A0AE;
+  --text-3:    #5E6877;
+  --mute:      #3B4452;
+  --accent-d:  #1A120C;
+  --grid:      rgba(255,255,255,.03);
+
+  --aras-accent-glow: color-mix(in oklch, var(--accent) 28%, transparent);
+  color: var(--text);
+  background-color: var(--bg);
+}
+
+/* Subtle-strength: primary reads as outlined / tinted, reserving accent fill for highlights. */
+:root[data-strength="subtle"] .arc-btn.primary,
+:root[data-strength="subtle"] button[type="submit"]:not(.no-subtle) {
+  background: color-mix(in oklch, var(--accent) 14%, var(--surface));
+  color: var(--accent);
+  border-color: color-mix(in oklch, var(--accent) 35%, var(--line));
+}
+:root[data-strength="subtle"] .arc-btn.primary:hover {
+  background: color-mix(in oklch, var(--accent) 22%, var(--surface));
+  filter: none;
 }
 
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 body {
@@ -96,27 +147,189 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background-color: var(--app-bg-main);
-  color: var(--app-muted);
-  font-size: calc(14px * var(--app-font-scale));
+  color: var(--app-text);
+  font-family: var(--font-sans);
+  font-size: calc(13px * var(--app-font-scale));
   -webkit-tap-highlight-color: transparent;
   animation: fadeInUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--app-border) transparent;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  scrollbar-color: var(--app-border-strong) transparent;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
 }
-
-*::-webkit-scrollbar { width: 4px; height: 4px; }
+*::-webkit-scrollbar { width: 6px; height: 6px; }
 *::-webkit-scrollbar-track { background: transparent; }
-*::-webkit-scrollbar-thumb { background: var(--app-border); border-radius: 4px; }
-*::-webkit-scrollbar-thumb:hover { background: var(--app-border-strong); }
+*::-webkit-scrollbar-thumb { background: var(--app-border-strong); border-radius: 3px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--app-muted); }
 
-input, select, textarea, button {
-  font-family: inherit;
+input, select, textarea, button { font-family: inherit; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ARC atom classes — ports of ArasStudio/index.html `.arc-*` rules.
+   Use these in new code; legacy `.app-*` / `.aras-*` continue to work below.
+   ───────────────────────────────────────────────────────────────────────────── */
+.arc        { color: var(--text); font-family: var(--font-sans); font-feature-settings: "ss01","cv11","tnum"; }
+.arc-mono   { font-family: var(--font-mono); font-feature-settings: "tnum","zero"; }
+.arc-tnum   { font-variant-numeric: tabular-nums; }
+.arc-dim    { color: var(--text-2); }
+.arc-dim2   { color: var(--text-3); }
+.arc-bg     { background: var(--bg); }
+.arc-surface{ background: var(--surface); }
+
+.arc-id     { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .02em; color: var(--text-2); white-space: nowrap; }
+.arc-id b   { color: var(--accent); font-weight: 500; }
+
+.arc-stat   { font-family: var(--font-mono); font-size: 13px; width: 14px; display: inline-block; text-align: center; }
+.arc-stat.s-released { color: var(--accent); }
+.arc-stat.s-progress { color: var(--accent); }
+.arc-stat.s-draft    { color: var(--text-3); }
+.arc-stat.s-review   { color: var(--warn); }
+.arc-stat.s-blocked  { color: var(--danger); }
+
+.arc-btn {
+  height: var(--row-h);
+  padding: 0 14px;
+  display: inline-flex; align-items: center; gap: 8px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+  cursor: pointer; user-select: none;
+  transition: background .12s, border-color .12s, transform .06s;
+}
+.arc-btn:hover  { background: var(--surface); border-color: var(--line-2); }
+.arc-btn:active { transform: translateY(.5px); }
+.arc-btn.primary {
+  background: var(--accent); color: var(--accent-d); border-color: var(--accent);
+}
+.arc-btn.primary:hover { filter: brightness(1.05); }
+.arc-btn.ghost { background: transparent; border-color: transparent; }
+.arc-btn.ghost:hover { background: var(--surface-2); }
+.arc-btn.sm    { height: calc(var(--row-h) - 8px); padding: 0 10px; font-size: 12px; }
+
+.arc-input {
+  height: var(--row-h);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 0 12px;
+  font-family: var(--font-sans); font-size: 13px;
+  outline: none;
+  width: 100%;
+}
+.arc-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 18%, transparent);
+}
+.arc-input.mono { font-family: var(--font-mono); }
+
+.arc-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 24px; padding: 0 9px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 999px;
+  font-size: 11.5px; color: var(--text-2);
+  font-family: var(--font-sans);
+}
+.arc-chip.active { color: var(--text); border-color: var(--accent); background: color-mix(in oklch, var(--accent) 12%, var(--surface)); }
+.arc-chip .x     { opacity: .5; margin-left: 2px; }
+.arc-chip.solid  { background: var(--surface-2); border-color: var(--line); color: var(--text); }
+
+.arc-card     { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.arc-divider  { background: var(--line); }
+
+.arc-kbd {
+  font-family: var(--font-mono); font-size: 10.5px;
+  padding: 2px 5px; border-radius: 4px;
+  background: var(--surface-2); color: var(--text-2);
+  border: 1px solid var(--line);
+  line-height: 1;
 }
 
+.arc-av {
+  width: 24px; height: 24px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: 500;
+  color: var(--text); border: 1.5px solid var(--bg);
+  flex-shrink: 0;
+}
+
+.arc-cmd {
+  height: 38px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 14px 0 16px;
+  color: var(--text-2);
+  transition: border-color .12s;
+}
+.arc-cmd:hover         { border-color: var(--line-2); }
+.arc-cmd:focus-within  { border-color: var(--accent); }
+
+.arc-dotgrid {
+  background-image: radial-gradient(circle at 1px 1px, var(--grid) 1px, transparent 0);
+  background-size: 18px 18px;
+}
+
+.arc-scroll { overflow: auto; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+.arc-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.arc-scroll::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
+.arc-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Action-bar convention: primary action (Add/Submit/Save) lives on the LEFT.
+   Any form footer should use `.arc-actionbar` and put primary first.
+   ───────────────────────────────────────────────────────────────────────────── */
+.arc-actionbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+.arc-actionbar .arc-actionbar__primary,
+.arc-actionbar button[type="submit"] {
+  order: -1;            /* force submit/primary to the left */
+  margin-right: auto;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   DnD primitive hooks (works with @dnd-kit). The `.arc-dnd-*` classes are
+   styling-only — sortable behavior is in components/SortableList.tsx.
+   ───────────────────────────────────────────────────────────────────────────── */
+.arc-dnd-item {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  transition: box-shadow .12s, border-color .12s, transform .04s;
+}
+.arc-dnd-item.is-dragging {
+  border-color: var(--accent);
+  box-shadow: 0 8px 24px -10px color-mix(in oklch, var(--accent) 40%, transparent);
+  z-index: 50;
+}
+.arc-dnd-handle {
+  cursor: grab;
+  color: var(--text-3);
+  padding: 0 6px;
+}
+.arc-dnd-handle:active { cursor: grabbing; }
+.arc-dnd-handle:hover  { color: var(--accent); }
+.arc-dnd-overlay {
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px -10px color-mix(in oklch, var(--accent) 45%, transparent);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Legacy `.app-*` / `.aras-*` — preserved verbatim, now reading ARC tokens.
+   ───────────────────────────────────────────────────────────────────────────── */
 .app-island,
 .aras-island,
 .app-form-section,
@@ -152,46 +365,44 @@ input, select, textarea, button {
 }
 
 .app-form-section,
-.aras-form-section {
-  margin-bottom: 16px;
-}
+.aras-form-section { margin-bottom: 16px; }
 
 .app-section-header,
 .aras-section-header {
-  min-height: calc(57px * var(--app-density));
-  padding: calc(16px * var(--app-density)) 20px;
+  min-height: calc(48px * var(--app-density));
+  padding: calc(12px * var(--app-density)) 18px;
   border-bottom: 1px solid var(--app-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  background: color-mix(in srgb, var(--app-panel) 72%, transparent);
+  background: color-mix(in srgb, var(--app-panel) 78%, transparent);
 }
 
 .app-section-header h3,
 .aras-section-header h3 {
-  font-size: calc(13px * var(--app-font-scale)) !important;
-  font-weight: 800 !important;
+  font-size: calc(11.5px * var(--app-font-scale)) !important;
+  font-weight: 700 !important;
   color: var(--app-muted) !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.15em !important;
+  letter-spacing: 0.14em !important;
   margin: 0 !important;
   line-height: 1.1 !important;
 }
 
 .app-section-body,
 .aras-section-body {
-  padding: calc(20px * var(--app-density));
+  padding: calc(18px * var(--app-density));
   display: flex;
   flex-direction: column;
-  gap: calc(16px * var(--app-density));
+  gap: calc(14px * var(--app-density));
 }
 
 .app-section-body--grid,
 .aras-section-body--grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 14px;
 }
 
 .app-section-body--grid .app-form-field,
@@ -199,7 +410,7 @@ input, select, textarea, button {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 14px;
+  gap: 8px;
 }
 
 .app-form-field,
@@ -207,24 +418,21 @@ input, select, textarea, button {
   display: grid;
   grid-template-columns: minmax(150px, 0.33fr) minmax(0, 1fr);
   align-items: center;
-  gap: calc(16px * var(--app-density));
+  gap: calc(14px * var(--app-density));
 }
 
 .app-form-label,
 .aras-form-label {
   color: var(--app-text) !important;
-  opacity: 0.88;
-  font-size: calc(14px * var(--app-font-scale)) !important;
-  font-weight: 800 !important;
+  opacity: 0.85;
+  font-size: calc(12.5px * var(--app-font-scale)) !important;
+  font-weight: 600 !important;
   line-height: 1.25 !important;
   margin: 0 !important;
 }
 
 .app-form-control-wrapper,
-.aras-form-control-wrapper {
-  flex: 1;
-  min-width: 0;
-}
+.aras-form-control-wrapper { flex: 1; min-width: 0; }
 
 .app-form-view input,
 .aras-form-view input,
@@ -234,17 +442,18 @@ input, select, textarea, button {
 .aras-form-view textarea,
 .app-form-view .aras-combobox-trigger,
 .aras-form-view .aras-combobox-trigger {
-  min-height: calc(46px * var(--app-density)) !important;
+  min-height: calc(var(--row-h) * var(--app-density)) !important;
   width: 100% !important;
-  padding: calc(10px * var(--app-density)) 16px !important;
-  background-color: var(--app-panel-soft) !important;
+  padding: calc(8px * var(--app-density)) 12px !important;
+  background-color: var(--app-panel) !important;
   border: 1px solid var(--app-border) !important;
   border-radius: var(--app-radius) !important;
   color: var(--app-text) !important;
-  font-size: calc(14px * var(--app-font-scale)) !important;
-  font-weight: 600 !important;
+  font-family: var(--font-sans) !important;
+  font-size: calc(13px * var(--app-font-scale)) !important;
+  font-weight: 500 !important;
   box-shadow: none !important;
-  transition: all 0.2s ease !important;
+  transition: all 0.15s ease !important;
 }
 
 .app-form-view input:focus,
@@ -256,76 +465,65 @@ input, select, textarea, button {
 .app-form-view .aras-combobox-trigger:focus,
 .aras-form-view .aras-combobox-trigger:focus {
   background-color: var(--app-panel) !important;
-  border-color: var(--app-accent-strong) !important;
-  box-shadow: 0 0 0 4px var(--app-accent-glow) !important;
+  border-color: var(--app-accent) !important;
+  box-shadow: 0 0 0 3px var(--app-accent-glow) !important;
   outline: none !important;
 }
 
 .app-line-items-table,
-.aras-line-items-table {
-  table-layout: auto;
-}
+.aras-line-items-table { table-layout: auto; }
 
 .app-line-items-table tbody tr,
-.aras-line-items-table tbody tr {
-  min-height: 58px;
-}
+.aras-line-items-table tbody tr { min-height: 44px; }
 
 .app-line-description,
 .aras-line-description,
 .app-line-price,
 .aras-line-price {
-  min-height: 36px !important;
+  min-height: 32px !important;
   padding: 0 !important;
   background: transparent !important;
   border-color: transparent !important;
   border-radius: 0 !important;
   color: var(--aras-text) !important;
-  font-size: calc(14px * var(--aras-font-scale, 1)) !important;
-  font-weight: 700 !important;
+  font-size: calc(13px * var(--aras-font-scale, 1)) !important;
+  font-weight: 500 !important;
   box-shadow: none !important;
 }
-
 .app-line-description:focus,
 .aras-line-description:focus,
 .app-line-price:focus,
 .aras-line-price:focus {
   border-color: var(--aras-accent) !important;
   border-radius: 4px !important;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--aras-accent) 15%, transparent) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--aras-accent) 18%, transparent) !important;
   outline: none !important;
 }
-
 .app-line-price,
 .aras-line-price {
   text-align: right;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-mono);
 }
-
 .app-line-qty,
 .aras-line-qty {
-  min-height: 34px !important;
-  width: 64px !important;
-  padding: 4px 8px !important;
+  min-height: 30px !important;
+  width: 60px !important;
+  padding: 2px 6px !important;
   background: var(--aras-panel-soft) !important;
   border: 1px solid var(--aras-border) !important;
-  border-radius: 8px !important;
+  border-radius: 6px !important;
   text-align: center;
   color: var(--aras-text) !important;
-  font-size: calc(14px * var(--aras-font-scale, 1)) !important;
-  font-weight: 800 !important;
+  font-size: calc(13px * var(--aras-font-scale, 1)) !important;
+  font-weight: 600 !important;
+  font-variant-numeric: tabular-nums;
 }
 
 .app-list-view,
-.aras-list-view {
-  min-height: calc(100vh - 220px);
-}
+.aras-list-view { min-height: calc(100vh - 220px); }
 
 .app-list-table,
-.aras-list-table {
-  display: flex;
-  flex-direction: column;
-}
+.aras-list-table { display: flex; flex-direction: column; }
 
 .app-list-header,
 .aras-list-header {
@@ -337,224 +535,163 @@ input, select, textarea, button {
   border-bottom: 1px solid var(--app-border);
   color: var(--app-muted);
   font-size: calc(10.5px * var(--app-font-scale));
-  font-weight: 850;
-  letter-spacing: 0.05em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   line-height: 1;
   text-transform: uppercase;
 }
-
 .app-list-header__cell,
 .aras-list-header__cell {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 3px;
-  cursor: pointer;
-  transition: color 140ms ease;
+  display: flex; min-width: 0; align-items: center; gap: 3px;
+  cursor: pointer; transition: color 140ms ease;
 }
-
 .app-list-header__cell:hover,
-.aras-list-header__cell:hover {
-  color: var(--app-text);
-}
+.aras-list-header__cell:hover { color: var(--app-text); }
 
 .app-list-row,
 .aras-list-row {
   border-bottom: 1px solid color-mix(in srgb, var(--aras-border) 72%, transparent);
-  background: color-mix(in srgb, var(--aras-panel) 94%, transparent);
+  background: color-mix(in srgb, var(--aras-panel) 96%, transparent);
   cursor: pointer;
   transition: background-color 140ms ease;
 }
-
 .app-list-row:hover,
 .aras-list-row:hover {
-  background: color-mix(in srgb, var(--aras-accent) 4%, var(--aras-panel));
+  background: color-mix(in srgb, var(--aras-accent) 5%, var(--aras-panel));
 }
-
 .app-list-row.is-selected,
 .aras-list-row.is-selected {
-  background: color-mix(in srgb, var(--aras-accent) 8%, var(--aras-panel));
+  background: color-mix(in srgb, var(--aras-accent) 10%, var(--aras-panel));
 }
 
 .app-record-card,
 .aras-record-card {
-  background: color-mix(in srgb, var(--app-panel) 88%, transparent);
+  background: color-mix(in srgb, var(--app-panel) 92%, transparent);
   border: 1px solid color-mix(in srgb, var(--app-border) 86%, transparent);
-  border-radius: calc(var(--app-radius) * 0.72);
-  box-shadow: 0 8px 22px -18px rgba(15, 23, 42, 0.24);
+  border-radius: var(--app-radius);
+  box-shadow: 0 4px 14px -10px rgba(15, 23, 42, 0.18);
 }
-
 .app-record-card:hover,
 .aras-record-card:hover {
   background: var(--app-panel);
   border-color: var(--app-border-strong);
   transform: translateY(-1px);
 }
-
 .app-record-card.is-selected,
 .aras-record-card.is-selected {
   background: color-mix(in srgb, var(--app-accent) 8%, var(--app-panel));
   border-color: color-mix(in srgb, var(--app-accent) 36%, var(--app-border));
 }
-
 .app-record-avatar,
 .aras-record-avatar {
   background: color-mix(in srgb, var(--app-accent) 12%, var(--app-panel));
   color: var(--app-accent);
+  font-family: var(--font-mono);
 }
 
 .app-app-home,
-.aras-app-home {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-}
+.aras-app-home { display: flex; flex-direction: column; gap: 22px; }
 
 .app-app-section,
-.aras-app-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+.aras-app-section { display: flex; flex-direction: column; gap: 10px; }
 
 .app-app-section__heading,
 .aras-app-section__heading {
-  display: flex;
-  min-height: 48px;
-  align-items: flex-end;
-  justify-content: space-between;
+  display: flex; min-height: 40px;
+  align-items: flex-end; justify-content: space-between;
   padding: 0 4px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
-
 .app-app-section__heading p,
 .aras-app-section__heading p {
   color: var(--app-muted);
-  font-size: calc(11px * var(--app-font-scale));
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  line-height: 1;
-  text-transform: uppercase;
+  font-size: calc(10.5px * var(--app-font-scale));
+  font-weight: 700; letter-spacing: 0.14em;
+  line-height: 1; text-transform: uppercase;
 }
-
 .app-app-section__heading h2,
 .aras-app-section__heading h2 {
-  margin-top: 5px;
+  margin-top: 4px;
   color: var(--app-text);
-  font-size: calc(18px * var(--app-font-scale));
-  font-weight: 850;
-  line-height: 1.1;
+  font-size: calc(17px * var(--app-font-scale));
+  font-weight: 700; line-height: 1.1;
 }
 
 .app-app-grid,
 .aras-app-grid {
-  display: grid;
-  gap: 24px;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
 
 .app-app-card,
 .aras-app-card {
-  display: flex;
-  flex-direction: column;
-  min-height: 140px;
-  justify-content: space-between;
-  padding: 20px;
+  display: flex; flex-direction: column;
+  min-height: 120px; justify-content: space-between;
+  padding: 16px;
   background: var(--app-panel);
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-lg);
+  border-radius: var(--app-radius);
   box-shadow: var(--shadow-premium);
-  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
   position: relative;
   overflow: hidden;
   text-decoration: none;
 }
-
 .app-app-card:hover,
 .aras-app-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-2px);
   border-color: var(--app-accent);
   box-shadow: var(--shadow-card-lift);
 }
-
 .app-app-card::before,
 .aras-app-card::before {
   content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 4px;
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 2px;
   background: var(--app-accent);
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  opacity: 0; transition: opacity 0.2s ease;
 }
-
 .app-app-card:hover::before,
-.aras-app-card:hover::before {
-  opacity: 1;
-}
+.aras-app-card:hover::before { opacity: 1; }
 
 .app-app-card__icon,
 .aras-app-card__icon {
-  display: flex;
-  width: 48px;
-  height: 48px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--app-accent) 8%, var(--app-panel));
+  display: flex; width: 40px; height: 40px;
+  align-items: center; justify-content: center;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--app-accent) 10%, var(--app-panel));
   color: var(--app-accent);
-  margin-bottom: 12px;
-  transition: transform 0.3s ease;
+  margin-bottom: 10px;
+  transition: transform 0.2s ease;
 }
-
 .app-app-card:hover .app-app-card__icon,
-.aras-app-card:hover .aras-app-card__icon {
-  transform: scale(1.1) rotate(-3deg);
-}
+.aras-app-card:hover .aras-app-card__icon { transform: scale(1.06) rotate(-3deg); }
 
 .app-app-card__content,
-.aras-app-card__content {
-  flex: 1;
-}
-
+.aras-app-card__content { flex: 1; }
 .app-app-card__content h2,
 .aras-app-card__content h2 {
   color: var(--app-text);
-  font-size: calc(16px * var(--app-font-scale));
-  font-weight: 800;
-  line-height: 1.2;
-  margin: 0;
+  font-size: calc(15px * var(--app-font-scale));
+  font-weight: 700; line-height: 1.2; margin: 0;
 }
-
 .app-app-card__content p,
 .aras-app-card__content p {
   color: var(--app-muted);
   font-size: calc(10px * var(--app-font-scale));
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: 4px;
+  font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; margin-bottom: 4px;
 }
-
 .app-app-card__arrow,
 .aras-app-card__arrow {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  color: var(--app-muted);
-  opacity: 0.4;
-  transition: all 0.3s ease;
+  position: absolute; bottom: 14px; right: 14px;
+  color: var(--app-muted); opacity: 0.4;
+  transition: all 0.2s ease;
 }
-
 .app-app-card:hover .app-app-card__arrow,
 .aras-app-card:hover .aras-app-card__arrow {
-  opacity: 1;
-  color: var(--app-accent);
-  transform: translateX(4px);
+  opacity: 1; color: var(--app-accent); transform: translateX(3px);
 }
-
 
 .app-list-action-bar input,
 .aras-list-action-bar input,
@@ -563,202 +700,122 @@ input, select, textarea, button {
 .app-form-view button,
 .aras-form-view button,
 .app-child-table button,
-.aras-child-table button {
-  box-shadow: none !important;
-}
-
+.aras-child-table button { box-shadow: none !important; }
 
 .aras-app-list {
-  display: flex;
-  flex-direction: column;
+  display: flex; flex-direction: column;
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius);
   overflow: hidden;
-  background: color-mix(in srgb, var(--app-panel) 90%, transparent);
+  background: color-mix(in srgb, var(--app-panel) 94%, transparent);
 }
-
 .aras-app-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
   border-bottom: 1px solid color-mix(in srgb, var(--app-border) 60%, transparent);
   text-decoration: none;
   transition: background-color 120ms ease;
 }
-
-.aras-app-row:last-child {
-  border-bottom: none;
-}
-
+.aras-app-row:last-child { border-bottom: none; }
 .aras-app-row:hover {
   background: color-mix(in srgb, var(--app-accent) 6%, var(--app-panel));
 }
-
 .aras-app-row__icon {
-  display: flex;
-  width: 28px;
-  height: 28px;
-  align-items: center;
-  justify-content: center;
-  border-radius: calc(var(--app-radius) * 0.6);
+  display: flex; width: 26px; height: 26px;
+  align-items: center; justify-content: center;
+  border-radius: 6px;
   background: color-mix(in srgb, var(--app-accent) 8%, var(--app-panel));
   color: var(--app-accent);
   flex-shrink: 0;
 }
-
 .aras-app-row__label {
-  font-size: calc(13.5px * var(--app-font-scale));
-  font-weight: 700;
+  font-size: calc(13px * var(--app-font-scale));
+  font-weight: 600;
   color: var(--app-text);
   line-height: 1.2;
 }
 
-.hide-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.hide-scroll {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+.hide-scroll::-webkit-scrollbar { display: none; }
+.hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   LOGIN SCREEN DARK MODE OVERRIDES
+   Login overrides (dark)
    ───────────────────────────────────────────────────────────────────────────── */
-
 .dark .min-h-screen.bg-slate-50 {
   background-color: var(--app-bg-main) !important;
   background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px) !important;
   background-size: 24px 24px !important;
 }
-
 .dark .min-h-screen.bg-slate-50 > .bg-white {
   background-color: var(--app-panel) !important;
   border-color: var(--app-border) !important;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
 }
-
-.dark .min-h-screen.bg-slate-50 h1 {
-  color: var(--app-text) !important;
-}
-
-.dark .min-h-screen.bg-slate-50 p {
-  color: var(--app-muted) !important;
-}
-
-.dark .min-h-screen.bg-slate-50 label {
-  color: var(--app-text) !important;
-}
-
-.dark .min-h-screen.bg-slate-50 input {
+.dark .min-h-screen.bg-slate-50 h1     { color: var(--app-text) !important; }
+.dark .min-h-screen.bg-slate-50 p      { color: var(--app-muted) !important; }
+.dark .min-h-screen.bg-slate-50 label  { color: var(--app-text) !important; }
+.dark .min-h-screen.bg-slate-50 input  {
   background-color: var(--app-panel-soft) !important;
   border-color: var(--app-border) !important;
   color: var(--app-text) !important;
 }
-
 .dark .min-h-screen.bg-slate-50 input:focus {
   background-color: var(--app-panel) !important;
   border-color: var(--app-accent) !important;
   box-shadow: 0 0 0 3px var(--app-accent-glow) !important;
 }
-
 .dark .min-h-screen.bg-slate-50 button[type="submit"] {
   background-color: var(--app-accent) !important;
+  color: var(--app-button-text) !important;
   box-shadow: 0 10px 15px -3px var(--app-accent-glow) !important;
 }
-
 .dark .min-h-screen.bg-slate-50 button[type="submit"]:hover {
   background-color: var(--app-accent-strong) !important;
 }
-
-.dark .min-h-screen.bg-slate-50 a {
-  color: var(--app-accent) !important;
-}
-
-.dark .min-h-screen.bg-slate-50 a:hover {
-  color: var(--app-accent-strong) !important;
-}
+.dark .min-h-screen.bg-slate-50 a       { color: var(--app-accent) !important; }
+.dark .min-h-screen.bg-slate-50 a:hover { color: var(--app-accent-strong) !important; }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   RESPONSIVE OVERRIDES
+   Responsive (mobile web)
    ───────────────────────────────────────────────────────────────────────────── */
-
 @media (max-width: 760px) {
   .app-list-header,
-  .aras-list-header {
-    display: none !important;
-  }
+  .aras-list-header { display: none !important; }
 
   .app-list-row,
-  .aras-list-row {
-    min-height: 76px;
-    padding: 0 16px;
-  }
+  .aras-list-row { min-height: 68px; padding: 0 14px; }
 
   .app-app-home,
-  .aras-app-home {
-    gap: 18px;
-  }
+  .aras-app-home { gap: 16px; }
 
   .app-app-grid,
-  .aras-app-grid {
-    grid-template-columns: 1fr;
-  }
+  .aras-app-grid { grid-template-columns: 1fr; }
 
   .app-app-card,
   .aras-app-card {
-    flex-direction: row;
-    min-height: 80px;
-    align-items: center;
-    gap: 16px;
-    padding: 16px;
+    flex-direction: row; min-height: 72px;
+    align-items: center; gap: 14px; padding: 14px;
   }
-
   .app-app-card__icon,
-  .aras-app-card__icon {
-    width: 44px;
-    height: 44px;
-    margin-bottom: 0;
-  }
-
-  .app-app-card__arrow {
-    position: static;
-    opacity: 0.6;
-  }
-
+  .aras-app-card__icon { width: 40px; height: 40px; margin-bottom: 0; }
+  .app-app-card__arrow { position: static; opacity: 0.6; }
 
   .app-section-header,
-  .aras-section-header {
-    min-height: 68px;
-    padding: 20px 24px;
-  }
-
+  .aras-section-header { min-height: 56px; padding: 16px 18px; }
   .app-section-header h3,
-  .aras-section-header h3 {
-    font-size: calc(16px * var(--app-font-scale)) !important;
-  }
+  .aras-section-header h3 { font-size: calc(13px * var(--app-font-scale)) !important; }
 
   .app-section-body,
   .aras-section-body,
   .app-section-body--grid,
   .aras-section-body--grid {
-    display: flex;
-    flex-direction: column;
-    padding: 24px;
-    gap: 20px;
+    display: flex; flex-direction: column;
+    padding: 18px; gap: 16px;
   }
-
   .app-form-field,
-  .aras-form-field {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
-  }
-
+  .aras-form-field { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .app-form-label,
-  .aras-form-label {
-    font-size: calc(15px * var(--app-font-scale)) !important;
-  }
+  .aras-form-label { font-size: calc(13px * var(--app-font-scale)) !important; }
 
   .app-form-view input,
   .aras-form-view input,
@@ -768,9 +825,9 @@ input, select, textarea, button {
   .aras-form-view textarea,
   .app-form-view .aras-combobox-trigger,
   .aras-form-view .aras-combobox-trigger {
-    min-height: 48px !important;
-    padding: 12px 16px !important;
-    font-size: calc(15px * var(--app-font-scale)) !important;
+    min-height: 42px !important;
+    padding: 10px 14px !important;
+    font-size: calc(14px * var(--app-font-scale)) !important;
     border-radius: var(--app-radius) !important;
   }
 }

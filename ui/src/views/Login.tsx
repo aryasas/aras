@@ -1,3 +1,5 @@
+// claude-opus-4-7
+// ARC-styled login. Dot-grid backdrop, coral accent, mono ID badge, submit on the LEFT.
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
@@ -10,7 +12,7 @@ const Login = () => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  
+
   const setToken = useAuthStore((state) => state.setToken)
   const setUser = useAuthStore((state) => state.setUser)
   const setOrganizations = useAuthStore((state) => state.setOrganizations)
@@ -21,15 +23,12 @@ const Login = () => {
     e.preventDefault()
     setError('')
     setLoading(true)
-
     try {
       const formData = new FormData()
       formData.append('username', username)
       formData.append('password', password)
-
       const response = await api.post('/auth/token', formData)
       setToken(response.data.access_token)
-
       const me = await api.get('/auth/me')
       const organizations = me.data.organizations || []
       const defaultOrgId = me.data.default_org_id || (organizations.length > 0 ? organizations[0].id : null)
@@ -49,78 +48,77 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--app-bg-main)] flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-[var(--app-panel)] rounded-[var(--app-radius-lg)] shadow-[var(--shadow-premium)] border border-[var(--app-border)] overflow-hidden">
-        <div className="p-8 pb-0 flex flex-col items-center">
-          <div className="mb-6">
-            <ArasLogo size="lg" />
+    <div className="arc arc-bg arc-dotgrid min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-md arc-card overflow-hidden" style={{ background: 'var(--surface)' }}>
+        <div className="px-8 pt-8 pb-2 flex items-start gap-4">
+          <ArasLogo size="lg" />
+          <div className="flex-1 min-w-0">
+            <div className="arc-id"><b>arc</b>/auth/<b>login</b></div>
+            <h1 className="text-[22px] font-semibold text-[var(--text)] tracking-tight mt-1">Welcome back</h1>
+            <p className="arc-dim text-[12.5px] mt-0.5">Sign in to your Aras workspace.</p>
           </div>
-          <h1 className="text-[calc(24px*var(--app-font-scale))] font-extrabold text-[var(--app-text)] tracking-tight">Welcome Back</h1>
-          <p className="text-[var(--app-muted)] mt-2 text-[calc(14px*var(--app-font-scale))]">Sign in to your Aras Dashboard</p>
         </div>
 
-        <form onSubmit={handleLogin} className="p-8 space-y-6">
+        <form onSubmit={handleLogin} className="px-8 py-6 flex flex-col gap-5">
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-[var(--app-radius)] flex items-center gap-3 text-sm animate-shake">
-              <AlertCircle size={18} />
+            <div className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius)] border text-[12.5px]"
+                 style={{ background: 'color-mix(in oklch, var(--danger) 10%, var(--surface))', borderColor: 'color-mix(in oklch, var(--danger) 30%, var(--line))', color: 'var(--danger)' }}>
+              <AlertCircle size={15} />
               <span>{error}</span>
             </div>
           )}
 
-          <div className="space-y-2">
-            <label className="text-[calc(12px*var(--app-font-scale))] font-bold text-[var(--app-text)] uppercase tracking-wider ml-1">Email / Username</label>
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" size={18} />
-              <input 
+          <label className="flex flex-col gap-1.5">
+            <span className="arc-id">user</span>
+            <span className="relative">
+              <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-3)]" />
+              <input
                 type="text"
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full h-[52px] pl-11 pr-4 bg-[var(--app-panel-soft)] border border-[var(--app-border)] rounded-[var(--app-radius)] text-[var(--app-text)] text-[calc(14px*var(--app-font-scale))] focus:bg-[var(--app-panel)] focus:border-[var(--app-accent-strong)] focus:ring-[4px] focus:ring-[var(--app-accent-glow)] transition-all outline-none"
-                placeholder="Enter your email"
+                className="arc-input"
+                style={{ paddingLeft: 32 }}
+                placeholder="username or email"
+                autoFocus
               />
-            </div>
-          </div>
+            </span>
+          </label>
 
-          <div className="space-y-2">
-            <div className="flex justify-between items-center ml-1">
-              <label className="text-[calc(12px*var(--app-font-scale))] font-bold text-[var(--app-text)] uppercase tracking-wider">Password</label>
-              <Link to="/forgot-password" className="text-xs text-[var(--app-primary-action)] hover:text-[var(--app-primary-action-strong)] font-bold">
-                Forgot password?
+          <label className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <span className="arc-id">pass</span>
+              <Link to="/forgot-password" className="text-[11.5px] font-medium text-[var(--accent)] hover:underline">
+                forgot?
               </Link>
             </div>
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" size={18} />
-              <input 
+            <span className="relative">
+              <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-3)]" />
+              <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-[52px] pl-11 pr-4 bg-[var(--app-panel-soft)] border border-[var(--app-border)] rounded-[var(--app-radius)] text-[var(--app-text)] text-[calc(14px*var(--app-font-scale))] focus:bg-[var(--app-panel)] focus:border-[var(--app-accent-strong)] focus:ring-[4px] focus:ring-[var(--app-accent-glow)] transition-all outline-none"
+                className="arc-input"
+                style={{ paddingLeft: 32 }}
                 placeholder="••••••••"
               />
-            </div>
-          </div>
+            </span>
+          </label>
 
-          <button 
-            type="submit"
-            disabled={loading}
-            className={`w-full h-[52px] flex items-center justify-center gap-2 bg-[var(--app-primary-action)] text-white rounded-[var(--app-radius)] font-bold text-[calc(16px*var(--app-font-scale))] hover:bg-[var(--app-primary-action-strong)] transition-all transform hover:-translate-y-0.5 active:translate-y-0 shadow-lg shadow-[var(--app-accent-glow)]
-              ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-          >
-            {loading ? 'Authenticating...' : (
-              <>
-                <LogIn size={20} />
-                <span>Sign In</span>
-              </>
-            )}
-          </button>
+          {/* Action bar: primary on the LEFT */}
+          <div className="flex items-center gap-2 pt-2">
+            <button type="submit" disabled={loading} className="arc-btn primary" style={{ height: 38, paddingInline: 18 }}>
+              <LogIn size={15} />
+              <span>{loading ? 'Signing in…' : 'Sign in'}</span>
+            </button>
+            <span className="flex-1" />
+            <span className="arc-kbd">↵</span>
+          </div>
         </form>
 
-        <div className="px-8 pb-8 text-center border-t border-[var(--app-border)] pt-6 mx-8">
-          <p className="text-[var(--app-muted)] text-[calc(12px*var(--app-font-scale))]">
-            Contact your administrator for credentials.
-          </p>
+        <div className="px-8 pb-8 pt-4 border-t border-[var(--line)] arc-dim2 text-[11.5px]">
+          Contact your administrator for access.
         </div>
       </div>
     </div>

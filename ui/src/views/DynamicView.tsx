@@ -1,3 +1,4 @@
+// claude-opus-4-7
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { DynamicForm } from '../aras-core/components/DynamicForm'
 import ListView from '../aras-core/components/ListView'
@@ -6,33 +7,31 @@ export default function DynamicView() {
   const params = useParams()
   const navigate = useNavigate()
   const location = useLocation()
-  
-  // Resolve resource path and ID from segments
+
   const splat = params['*'] || ''
   const { app, model, segment1, id: paramId } = params
 
   let segments: string[] = []
-
   if (segment1) {
-    // Catch-all style: /erp/accounting/accounts
     segments = [segment1, ...splat.split('/').filter(Boolean)].filter(Boolean) as string[]
   } else if (app && model) {
-    // Explicit style: /dev/table/dev/template-annotations
     segments = [app, model]
     if (paramId) segments.push(paramId)
   }
-  
+
   if (segments.length < 2) {
-    return <div className="p-12 text-center text-[var(--app-muted)] bg-[var(--app-panel)] rounded-[var(--app-radius-lg)] border border-dashed border-[var(--app-border)]">Invalid resource path.</div>
+    return (
+      <div className="arc arc-card p-10 text-center border-dashed">
+        <div className="arc-id"><b>error</b>/invalid-path</div>
+        <p className="arc-dim text-[13px] mt-2">Invalid resource path.</p>
+      </div>
+    )
   }
 
   let resource = ""
   let id: string | undefined = undefined
-
-  // Logic: if the last segment is numeric or 'new', it's an ID.
   const lastSegment = segments[segments.length - 1]
   const isId = !isNaN(Number(lastSegment)) || lastSegment === 'new'
-
   if (isId) {
     id = lastSegment
     resource = segments.slice(0, -1).join('/')
@@ -40,7 +39,6 @@ export default function DynamicView() {
     resource = segments.join('/')
   }
 
-  // Ensure absolute path for navigation
   const basePath = `/${resource}`
 
   if (id) {
@@ -58,12 +56,12 @@ export default function DynamicView() {
   }
 
   return (
-    <div className="h-full flex flex-col">
-       <ListView 
-          resource={resource} 
-          onRowClick={(rowId) => navigate(`${basePath}/${rowId}`)}
-          onAdd={() => navigate(`${basePath}/new`)}
-       />
+    <div className="arc h-full flex flex-col">
+      <ListView
+        resource={resource}
+        onRowClick={(rowId) => navigate(`${basePath}/${rowId}`)}
+        onAdd={() => navigate(`${basePath}/new`)}
+      />
     </div>
   )
 }

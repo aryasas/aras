@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ARC — Composable enterprise framework</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Manrope:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+/>
+
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; }
+  body { font-family: var(--font-sans, "Geist", "Manrope", system-ui, sans-serif); }
+  *, *::before, *::after { box-sizing: border-box; }
+
+  /* Default ARC tokens — Dark + Coral. Overridden by tweaks via ThemeApplier. */
+  :root {
+    --bg:       #0E1116;
+    --bg-2:     #11151B;
+    --surface:  #161B23;
+    --surface-2:#1C2330;
+    --line:     #262E3B;
+    --line-2:   #323B4B;
+    --text:     #E7E9EE;
+    --text-2:   #98A0AE;
+    --text-3:   #5E6877;
+    --mute:     #3B4452;
+    --accent:   #E89B6C;
+    --accent-d: #1A120C;
+    --warn:     #F2C56C;
+    --danger:   #FF6B7A;
+    --info:     #7AB6FF;
+    --radius:   8px;
+    --radius-sm:5px;
+    --radius-lg:14px;
+    --row-h:    36px;
+    --pad:      12px;
+    --pad-sm:   8px;
+    --pad-lg:   18px;
+    --font-sans: "Geist", "Manrope", system-ui, sans-serif;
+    --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+    --grid: rgba(255,255,255,.03);
+  }
+  :root[data-theme="light"] {
+    --bg:       #FBFAF7;
+    --bg-2:     #F4F2EC;
+    --surface:  #FFFFFF;
+    --surface-2:#F7F5EF;
+    --line:     #E7E3D9;
+    --line-2:   #D3CEC0;
+    --text:     #1A1D23;
+    --text-2:   #5A6373;
+    --text-3:   #8B95A6;
+    --mute:     #BDC3CC;
+    --accent-d: #FFFFFF;
+    --grid: rgba(0,0,0,.04);
+  }
+
+  /* ── Reusable atoms scoped via .arc class ────────────────────────────── */
+  .arc { color: var(--text); font-family: var(--font-sans); font-feature-settings: "ss01","cv11","tnum"; }
+  .arc-mono { font-family: var(--font-mono); font-feature-settings: "tnum","zero"; }
+  .arc-tnum { font-variant-numeric: tabular-nums; }
+  .arc-dim  { color: var(--text-2); }
+  .arc-dim2 { color: var(--text-3); }
+
+  .arc-bg { background: var(--bg); }
+  .arc-surface { background: var(--surface); }
+
+  .arc-id     { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .02em; color: var(--text-2); white-space: nowrap; }
+  .arc-id b   { color: var(--accent); font-weight: 500; }
+
+  /* Status glyph cell */
+  .arc-stat   { font-family: var(--font-mono); font-size: 13px; width: 14px; display: inline-block; text-align: center; }
+  .arc-stat.s-released  { color: var(--accent); }
+  .arc-stat.s-progress  { color: var(--accent); }
+  .arc-stat.s-draft     { color: var(--text-3); }
+  .arc-stat.s-review    { color: var(--warn); }
+  .arc-stat.s-blocked   { color: var(--danger); }
+
+  /* Buttons */
+  .arc-btn {
+    height: var(--row-h);
+    padding: 0 14px;
+    display: inline-flex; align-items: center; gap: 8px;
+    border-radius: var(--radius);
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--line);
+    font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+    cursor: pointer; user-select: none;
+    transition: background .12s, border-color .12s, transform .06s;
+  }
+  .arc-btn:hover { background: var(--surface); border-color: var(--line-2); }
+  .arc-btn:active { transform: translateY(.5px); }
+  .arc-btn.primary {
+    background: var(--accent); color: var(--accent-d); border-color: var(--accent);
+  }
+  .arc-btn.primary:hover { filter: brightness(1.05); }
+
+  /* Subtle strength — primary reads as outlined / tinted, reserving the
+     accent fill for highlights, status, and focus rings only. */
+  :root[data-strength="subtle"] .arc-btn.primary {
+    background: color-mix(in oklch, var(--accent) 14%, var(--surface));
+    color: var(--accent);
+    border-color: color-mix(in oklch, var(--accent) 35%, var(--line));
+  }
+  :root[data-strength="subtle"] .arc-btn.primary:hover {
+    background: color-mix(in oklch, var(--accent) 22%, var(--surface));
+    filter: none;
+  }
+  .arc-btn.ghost { background: transparent; border-color: transparent; }
+  .arc-btn.ghost:hover { background: var(--surface-2); }
+  .arc-btn.sm { height: calc(var(--row-h) - 8px); padding: 0 10px; font-size: 12px; }
+
+  /* Input */
+  .arc-input {
+    height: var(--row-h);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: var(--radius);
+    padding: 0 12px;
+    font-family: var(--font-sans); font-size: 13px;
+    outline: none;
+    width: 100%;
+  }
+  .arc-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 18%, transparent); }
+  .arc-input.mono { font-family: var(--font-mono); }
+
+  /* Chip / Pill */
+  .arc-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 24px; padding: 0 9px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 999px;
+    font-size: 11.5px; color: var(--text-2);
+    font-family: var(--font-sans);
+  }
+  .arc-chip.active { color: var(--text); border-color: var(--accent); background: color-mix(in oklch, var(--accent) 12%, var(--surface)); }
+  .arc-chip .x { opacity: .5; margin-left: 2px; }
+  .arc-chip.solid { background: var(--surface-2); border-color: var(--line); color: var(--text); }
+
+  .arc-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .arc-divider { background: var(--line); }
+
+  /* KBD hint */
+  .arc-kbd {
+    font-family: var(--font-mono); font-size: 10.5px;
+    padding: 2px 5px; border-radius: 4px;
+    background: var(--surface-2); color: var(--text-2);
+    border: 1px solid var(--line);
+    line-height: 1;
+  }
+
+  /* Avatar */
+  .arc-av {
+    width: 24px; height: 24px; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 500;
+    color: var(--text); border: 1.5px solid var(--bg);
+    flex-shrink: 0;
+  }
+
+  /* Tooltip-style focus ring for command bar */
+  .arc-cmd {
+    height: 38px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 14px 0 16px;
+    color: var(--text-2);
+    transition: border-color .12s;
+  }
+  .arc-cmd:hover { border-color: var(--line-2); }
+  .arc-cmd:focus-within { border-color: var(--accent); }
+
+  /* dot grid texture (subtle) */
+  .arc-dotgrid {
+    background-image: radial-gradient(circle at 1px 1px, var(--grid) 1px, transparent 0);
+    background-size: 18px 18px;
+  }
+
+  /* hide native scrollbar */
+  .arc-scroll { overflow: auto; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+  .arc-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+  .arc-scroll::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
+  .arc-scroll::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+  // Seed the design canvas with a fit-to-overview initial zoom on first
+  // visit. A separate sentinel key (not the viewport key the canvas itself
+  // writes to) lets us seed exactly once per build — bump SEED_V to re-seed.
+  (function () {
+    var SEED_V = 'arc-seed-v3';
+    var key = 'dc-viewport:' + location.pathname;
+    try {
+      if (!localStorage.getItem(SEED_V)) {
+        localStorage.setItem(key, JSON.stringify({ x: 40, y: 20, scale: 0.28 }));
+        localStorage.setItem(SEED_V, '1');
+      }
+    } catch (e) {}
+  })();
+</script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="browser-window.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+
+<script type="text/babel" src="data.jsx"></script>
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel" src="primitives.jsx"></script>
+<script type="text/babel" src="desktop.jsx"></script>
+<script type="text/babel" src="mobile.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+</body>
+</html>

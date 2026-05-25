@@ -1,3 +1,6 @@
+// claude-opus-4-7
+// ARC dashboard: bento grid of widgets. Drag-reorder using @dnd-kit through DnDGrid.
+// Stat widgets are mono-readout; charts keep their data viz but live inside arc-cards.
 import React, { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../lib/api'
@@ -6,6 +9,13 @@ import { resolveIcon } from '../lib/iconUtils'
 import { LoadingState } from '../components/LoadingState'
 import { EmptyState } from '../components/EmptyState'
 import { useUIStore } from '../store/uiStore'
+import {
+  DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import { SortableContext, arrayMove, rectSortingStrategy, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { GripVertical } from 'lucide-react'
 
 interface Widget {
   id: number
@@ -18,28 +28,51 @@ interface Widget {
 }
 
 type WidgetComponent = React.FC<{ widget: Widget }>
-
 const registry = new Map<string, WidgetComponent>()
-
 export const WidgetRegistry = {
-  register(type: string, Component: WidgetComponent) {
-    registry.set(type, Component)
-  },
-  get(type: string) {
-    return registry.get(type)
+  register(type: string, Component: WidgetComponent) { registry.set(type, Component) },
+  get(type: string) { return registry.get(type) },
+}
+
+function SortableTile({ widget }: { widget: Widget }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: widget.id })
+  const Component = WidgetRegistry.get(widget.widget_type)
+  if (!Component) return null
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
   }
+  return (
+    <div ref={setNodeRef} style={style} className={`relative ${widget.size || 'col-span-1'}`}>
+      <button
+        {...attributes}
+        {...(listeners as any)}
+        aria-label="Drag to reorder"
+        className="arc-dnd-handle absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-[var(--surface)] border border-[var(--line)] rounded-[var(--radius-sm)]"
+      >
+        <GripVertical size={14} />
+      </button>
+      <div className="group h-full">
+        <Component widget={widget} />
+      </div>
+    </div>
+  )
 }
 
 export const DashboardView: React.FC = () => {
   const [widgets, setWidgets] = useState<Widget[]>([])
   const [loading, setLoading] = useState(true)
-  const [dragIndex, setDragIndex] = useState<number | null>(null)
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const { notify } = useAras()
   const setPageTitle = useUIStore((state) => state.setPageTitle)
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
   useEffect(() => {
-    setPageTitle('Dashboard', 'Real-time overview of your operations and performance.')
+    setPageTitle('Dashboard', 'Real-time overview of your operations and performance.', 'HOME')
     return () => setPageTitle('', '', '')
   }, [setPageTitle])
 
@@ -54,66 +87,32 @@ export const DashboardView: React.FC = () => {
     }
   }, [notify])
 
-  useEffect(() => {
-    loadWidgets()
-  }, [loadWidgets])
+  useEffect(() => { loadWidgets() }, [loadWidgets])
 
-  const saveLayout = (newOrder: number[]) => {
-    api.post('/dashboard/layout', { widget_order: newOrder }).catch((e) => {
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = widgets.findIndex((w) => w.id === active.id)
+    const newIndex = widgets.findIndex((w) => w.id === over.id)
+    if (oldIndex < 0 || newIndex < 0) return
+    const next = arrayMove(widgets, oldIndex, newIndex)
+    setWidgets(next)
+    api.post('/dashboard/layout', { widget_order: next.map((w) => w.id) }).catch((e) => {
       notify(e.message || 'Failed to save dashboard layout', 'error')
     })
   }
 
-  const handleDrop = (dropIndex: number) => {
-    if (dragIndex === null || dragIndex === dropIndex) {
-      setDragIndex(null)
-      setDragOverIndex(null)
-      return
-    }
-
-    const nextWidgets = [...widgets]
-    ;[nextWidgets[dragIndex], nextWidgets[dropIndex]] = [nextWidgets[dropIndex], nextWidgets[dragIndex]]
-    setWidgets(nextWidgets)
-    saveLayout(nextWidgets.map((widget) => widget.id))
-    setDragIndex(null)
-    setDragOverIndex(null)
-  }
-
-  if (loading) return <LoadingState label="Loading dashboard..." className="p-12" />
+  if (loading) return <LoadingState label="Loading dashboard..." className="arc-card p-12" />
   if (widgets.length === 0) return <EmptyState title="No dashboard widgets" description="Dashboard widgets will appear here when configured." />
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-      {widgets.map((widget, index) => {
-        const Component = WidgetRegistry.get(widget.widget_type)
-        if (!Component) return null
-
-        return (
-          <div
-            key={widget.id}
-            draggable={true}
-            onDragStart={() => setDragIndex(index)}
-            onDragOver={(event) => {
-              event.preventDefault()
-              setDragOverIndex(index)
-            }}
-            onDragLeave={() => {
-              if (dragOverIndex === index) setDragOverIndex(null)
-            }}
-            onDrop={() => handleDrop(index)}
-            onDragEnd={() => {
-              setDragIndex(null)
-              setDragOverIndex(null)
-            }}
-            className={`${widget.size || 'col-span-1'} cursor-grab transition-transform ${
-              dragIndex === index ? 'opacity-50 scale-95' : ''
-            } ${dragOverIndex === index && dragIndex !== index ? 'ring-2 ring-indigo-400' : ''}`}
-          >
-            <Component widget={widget} />
-          </div>
-        )
-      })}
-    </div>
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={widgets.map((w) => w.id)} strategy={rectSortingStrategy}>
+        <div className="arc grid grid-cols-1 md:grid-cols-4 gap-4">
+          {widgets.map((widget) => <SortableTile key={widget.id} widget={widget} />)}
+        </div>
+      </SortableContext>
+    </DndContext>
   )
 }
 
@@ -128,73 +127,57 @@ const ChartWidget: WidgetComponent = ({ widget }) => {
       const items = res.data.items || res.data || []
       const groupBy = config.group_by || 'status'
       const counts: Record<string, number> = {}
-
       items.forEach((item: any) => {
         const key = item[groupBy] || 'Other'
         counts[key] = (counts[key] || 0) + 1
       })
-
       setData(Object.entries(counts).map(([name, value]) => ({ name, value })))
       setLoading(false)
-    }).catch((e) => {
-      notify(e.message, 'error')
-      setLoading(false)
-    })
+    }).catch((e) => { notify(e.message, 'error'); setLoading(false) })
   }, [widget.resource_name, config.group_by, notify])
 
-  if (loading) return <div className="bg-[var(--app-panel)] p-6 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] h-64 animate-pulse" />
+  if (loading) return <div className="arc-card p-6 h-64 animate-pulse" />
 
-  const maxValue = Math.max(...data.map(d => d.value), 1)
+  const maxValue = Math.max(...data.map((d) => d.value), 1)
   const total = data.reduce((sum, curr) => sum + curr.value, 0) || 1
-  const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
+  const colors = ['var(--accent)', '#10b981', 'var(--warn)', 'var(--danger)', 'var(--info)', '#a78bfa']
 
   return (
-    <div className="bg-[var(--app-panel)] rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-[var(--shadow-premium)] overflow-hidden h-full flex flex-col">
-      <div className="p-6 border-b border-[var(--app-border)] flex items-center justify-between bg-[var(--app-panel-soft)]">
-        <h2 className="font-extrabold text-[calc(18px*var(--app-font-scale))] text-[var(--app-text)]">{widget.title}</h2>
+    <div className="arc-card overflow-hidden h-full flex flex-col">
+      <div className="px-4 py-2.5 border-b border-[var(--line)] flex items-center justify-between" style={{ background: 'var(--surface-2)' }}>
+        <span className="arc-id"><b>chart</b>/{widget.resource_name}</span>
+        <span className="text-[12.5px] font-medium text-[var(--text)]">{widget.title}</span>
       </div>
-      <div className="p-6 flex-1 flex items-end gap-2 min-h-[200px] bg-[var(--app-panel)]">
+      <div className="p-5 flex-1 flex items-end gap-2 min-h-[180px]">
         {config.chart_type === 'pie' ? (
-          <div className="w-full flex justify-center">
-            <svg viewBox="0 0 32 32" className="w-32 h-32 -rotate-90">
+          <div className="w-full flex justify-center items-center gap-5">
+            <svg viewBox="0 0 32 32" className="w-28 h-28 -rotate-90">
               {data.map((d, i) => {
                 const percentage = (d.value / total) * 100
                 const previousTotal = data.slice(0, i).reduce((sum, curr) => sum + curr.value, 0)
                 const strokeDashoffset = -((previousTotal / total) * 100)
                 return (
-                  <circle
-                    key={i}
-                    cx="16" cy="16" r="16"
-                    fill="transparent"
-                    stroke={colors[i % colors.length]}
-                    strokeWidth="32"
-                    strokeDasharray={`${percentage} 100`}
-                    strokeDashoffset={String(strokeDashoffset)}
-                  />
+                  <circle key={i} cx="16" cy="16" r="16" fill="transparent"
+                          stroke={colors[i % colors.length]} strokeWidth="32"
+                          strokeDasharray={`${percentage} 100`} strokeDashoffset={String(strokeDashoffset)} />
                 )
               })}
             </svg>
-            <div className="ml-6 flex flex-col justify-center gap-2">
+            <div className="flex flex-col gap-1.5">
               {data.map((d, i) => (
-                <div key={i} className="flex items-center gap-2 text-[calc(12px*var(--app-font-scale))] font-bold text-[var(--app-muted)]">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colors[i % colors.length] }} />
-                  {d.name}: {d.value}
+                <div key={i} className="flex items-center gap-2 text-[11.5px] arc-dim arc-mono">
+                  <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: colors[i % colors.length] }} />
+                  {d.name}: <span className="text-[var(--text)]">{d.value}</span>
                 </div>
               ))}
             </div>
           </div>
         ) : (
           data.map((d, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-              <div
-                className="w-full rounded-t-[var(--app-radius)] transition-all hover:brightness-110 relative"
-                style={{ height: `${(d.value / maxValue) * 150}px`, backgroundColor: colors[i % colors.length] }}
-              >
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[var(--app-text)] text-[var(--app-bg-main)] text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                  {d.value} units
-                </div>
-              </div>
-              <span className="text-[10px] text-[var(--app-muted)] font-bold uppercase truncate w-full text-center">{d.name}</span>
+            <div key={i} className="flex-1 flex flex-col items-center gap-1.5 group">
+              <div className="w-full rounded-t-[var(--radius-sm)] transition-all hover:brightness-110"
+                   style={{ height: `${(d.value / maxValue) * 140}px`, backgroundColor: colors[i % colors.length] }} />
+              <span className="arc-id arc-dim2 truncate w-full text-center">{d.name}</span>
             </div>
           ))
         )}
@@ -204,7 +187,7 @@ const ChartWidget: WidgetComponent = ({ widget }) => {
 }
 
 const StatWidget: WidgetComponent = ({ widget }) => {
-  const [value, setValue] = useState<string | number>('...')
+  const [value, setValue] = useState<string | number>('…')
   const config = widget.config_json || {}
   const Icon = resolveIcon(config.icon || 'Activity')
   const navigate = useNavigate()
@@ -217,22 +200,22 @@ const StatWidget: WidgetComponent = ({ widget }) => {
   }, [widget.resource_name, notify])
 
   return (
-    <div
-      className="bg-[var(--app-panel)] p-7 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-[var(--shadow-premium)] hover:border-[var(--app-border-strong)] transition-all group h-full cursor-pointer"
-      title="Click to view all records"
+    <button
+      className="arc-card p-5 text-left w-full h-full hover:border-[var(--accent)] transition-colors flex flex-col gap-3"
       onClick={() => navigate(`/${widget.resource_name.replace(/_/g, '-')}`)}
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className={`p-3 rounded-[var(--app-radius)] transition-colors ${
-          config.color === 'indigo' ? 'bg-[var(--app-primary-action)]/10 text-[var(--app-primary-action)]' :
-          config.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-[var(--app-panel-soft)] text-[var(--app-muted)]'
-        }`}>
-          <Icon size={20} />
+      <div className="flex items-center justify-between">
+        <div className="grid place-items-center w-9 h-9 rounded-[var(--radius)]"
+             style={{ background: 'color-mix(in oklch, var(--accent) 12%, var(--surface))', color: 'var(--accent)' }}>
+          <Icon size={16} />
         </div>
+        <span className="arc-id arc-dim2">/{widget.resource_name}</span>
       </div>
-      <p className="text-[var(--app-muted)] text-[calc(14px*var(--app-font-scale))] font-bold mb-1 uppercase tracking-wide">{widget.title}</p>
-      <h3 className="text-[calc(28px*var(--app-font-scale))] font-extrabold text-[var(--app-text)] tracking-tight">{value}</h3>
-    </div>
+      <div>
+        <div className="arc-dim text-[10.5px] uppercase tracking-[0.12em] font-medium">{widget.title}</div>
+        <div className="arc-mono arc-tnum text-[26px] font-medium text-[var(--text)] tracking-tight mt-1">{value}</div>
+      </div>
+    </button>
   )
 }
 
@@ -249,31 +232,26 @@ const ListWidget: WidgetComponent = ({ widget }) => {
   }, [widget.resource_name, config.limit, notify])
 
   return (
-    <div className="bg-[var(--app-panel)] rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-[var(--shadow-premium)] overflow-hidden h-full flex flex-col">
-      <div className="p-6 border-b border-[var(--app-border)] flex items-center justify-between bg-[var(--app-panel-soft)]">
-        <h2 className="font-extrabold text-[calc(18px*var(--app-font-scale))] text-[var(--app-text)]">{widget.title}</h2>
+    <div className="arc-card overflow-hidden h-full flex flex-col">
+      <div className="px-4 py-2.5 border-b border-[var(--line)] flex items-center justify-between" style={{ background: 'var(--surface-2)' }}>
+        <span className="arc-id"><b>recent</b>/{widget.resource_name}</span>
+        <span className="text-[12.5px] font-medium text-[var(--text)]">{widget.title}</span>
       </div>
-      <div className="flex-1 overflow-y-auto bg-[var(--app-panel)]">
+      <div className="flex-1 overflow-y-auto">
         {items.length === 0 ? (
           <EmptyState title="No recent activity" />
         ) : (
-          <div className="divide-y divide-[var(--app-border)]">
-            {items.map((item, idx) => (
-              <div
-                key={idx}
-                className="p-4 hover:bg-[var(--app-panel-soft)] transition-colors flex items-center gap-4 cursor-pointer"
-                onClick={() => navigate(`/${widget.resource_name.replace(/_/g, '-')}/${item.id}`)}
-              >
-                <div className="w-2 h-2 rounded-full bg-[var(--app-primary-action)]" />
-                <div className="flex-1 text-[calc(14px*var(--app-font-scale))] text-[var(--app-text)] truncate font-bold">
-                  {item.description || item.name || item.id}
-                </div>
-                <div className="text-[10px] text-[var(--app-muted)] font-bold uppercase">
-                  {item.created_at ? new Date(item.created_at).toLocaleTimeString() : ''}
-                </div>
-              </div>
-            ))}
-          </div>
+          items.map((item, idx) => (
+            <button
+              key={idx}
+              className={`group w-full text-left flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--surface-2)] transition-colors ${idx > 0 ? 'border-t border-[var(--line)]' : ''}`}
+              onClick={() => navigate(`/${widget.resource_name.replace(/_/g, '-')}/${item.id}`)}
+            >
+              <span className="arc-stat s-released">●</span>
+              <span className="text-[12.5px] text-[var(--text)] truncate flex-1">{item.description || item.name || item.id}</span>
+              <span className="arc-id arc-dim2 arc-tnum">{item.created_at ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+            </button>
+          ))
         )}
       </div>
     </div>
