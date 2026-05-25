@@ -148,13 +148,13 @@ export default function AppManager() {
         <button 
           onClick={handleSync}
           disabled={syncing}
-          className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-bold hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-3 bg-[var(--app-panel)] border border-[var(--app-border)] text-[var(--app-text)] rounded-[var(--app-radius-lg)] font-bold hover:bg-[var(--app-panel-soft)] transition-all shadow-sm disabled:opacity-50"
         >
           <RefreshCw className={syncing ? 'animate-spin' : ''} size={18} />
           {syncing ? 'Syncing...' : 'Sync Registry'}
         </button>
         <button 
-          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
+          className="flex items-center gap-2 px-6 py-3 bg-[var(--app-accent)] text-white rounded-[var(--app-radius-lg)] font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
           onClick={() => setInstallModalOpen(true)}
         >
           <Plus size={18} />
@@ -173,52 +173,52 @@ export default function AppManager() {
         
         {/* Placeholder for "Add New" */}
         <div 
-          className="border-2 border-dashed border-slate-200 rounded-[2.5rem] p-8 flex flex-col items-center justify-center text-center group hover:border-indigo-300 transition-all cursor-pointer"
+          className="border-2 border-dashed border-[var(--app-border)] rounded-[2.5rem] p-8 flex flex-col items-center justify-center text-center group hover:border-indigo-300 transition-all cursor-pointer"
           onClick={() => setInstallModalOpen(true)}
         >
-          <div className="p-4 bg-slate-50 rounded-2xl mb-4 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+          <div className="p-4 bg-[var(--app-panel-soft)] rounded-[var(--app-radius-lg)] mb-4 group-hover:bg-[var(--app-accent-glow)] group-hover:text-[var(--app-accent)] transition-colors">
             <Plus size={32} />
           </div>
-          <h3 className="text-lg font-bold text-slate-900">Custom Extension</h3>
-          <p className="text-slate-500 text-sm mt-1">Develop your own app and drop it into the <code>apps/</code> folder.</p>
+          <h3 className="text-lg font-bold text-[var(--app-text)]">Custom Extension</h3>
+          <p className="text-[var(--app-muted)] text-sm mt-1">Develop your own app and drop it into the <code>apps/</code> folder.</p>
         </div>
       </div>
 
       {/* Installation Modal */}
       {installModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-300">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div className="bg-[var(--app-panel)] rounded-[2.5rem] w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-300">
+            <div className="p-6 border-b border-[var(--app-border)] flex items-center justify-between bg-[var(--app-panel-soft)]">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                <div className="p-2 bg-[var(--app-accent-glow)] text-[var(--app-accent)] rounded-[var(--app-radius)]">
                   <Plus size={20} />
                 </div>
-                <h2 className="text-xl font-black text-slate-900">Install New Application</h2>
+                <h2 className="text-xl font-black text-[var(--app-text)]">Install New Application</h2>
               </div>
               <button 
                 onClick={() => setInstallModalOpen(false)}
                 className="p-2 hover:bg-slate-200 rounded-full transition-colors"
               >
-                <X size={20} className="text-slate-400" />
+                <X size={20} className="text-[var(--app-muted)]" />
               </button>
             </div>
             
-            <div className="flex bg-slate-100 p-1 m-6 rounded-xl">
+            <div className="flex bg-[var(--app-panel-soft)] p-1 m-6 rounded-[var(--app-radius)]">
               <button 
                 onClick={() => setInstallMode('yaml')}
-                className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${installMode === 'yaml' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`flex-1 py-2 rounded-[var(--app-radius)] font-bold text-sm transition-all ${installMode === 'yaml' ? 'bg-[var(--app-panel)] text-[var(--app-accent)] shadow-sm' : 'text-[var(--app-muted)] hover:text-[var(--app-text)]'}`}
               >
                 YAML Code
               </button>
               <button 
                 onClick={() => setInstallMode('json')}
-                className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${installMode === 'json' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`flex-1 py-2 rounded-[var(--app-radius)] font-bold text-sm transition-all ${installMode === 'json' ? 'bg-[var(--app-panel)] text-[var(--app-accent)] shadow-sm' : 'text-[var(--app-muted)] hover:text-[var(--app-text)]'}`}
               >
                 JSON Code
               </button>
               <button 
                 onClick={() => setInstallMode('upload')}
-                className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${installMode === 'upload' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`flex-1 py-2 rounded-[var(--app-radius)] font-bold text-sm transition-all ${installMode === 'upload' ? 'bg-[var(--app-panel)] text-[var(--app-accent)] shadow-sm' : 'text-[var(--app-muted)] hover:text-[var(--app-text)]'}`}
               >
                 File Upload
               </button>
@@ -228,7 +228,7 @@ export default function AppManager() {
               {installMode === 'upload' ? (
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-slate-200 rounded-3xl p-12 flex flex-col items-center justify-center text-center hover:border-indigo-300 transition-all cursor-pointer bg-slate-50 group"
+                  className="border-2 border-dashed border-[var(--app-border)] rounded-[var(--app-radius-lg)] p-12 flex flex-col items-center justify-center text-center hover:border-indigo-300 transition-all cursor-pointer bg-[var(--app-panel-soft)] group"
                 >
                   <input 
                     type="file" 
@@ -237,13 +237,13 @@ export default function AppManager() {
                     onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                     accept=".zip,.yaml,.yml,.json"
                   />
-                  <div className="p-6 bg-white rounded-2xl mb-4 group-hover:scale-110 transition-transform shadow-sm">
-                    <Upload size={40} className="text-indigo-600" />
+                  <div className="p-6 bg-[var(--app-panel)] rounded-[var(--app-radius-lg)] mb-4 group-hover:scale-110 transition-transform shadow-sm">
+                    <Upload size={40} className="text-[var(--app-accent)]" />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900">
+                  <h3 className="text-lg font-bold text-[var(--app-text)]">
                     {selectedFile ? selectedFile.name : 'Choose a file...'}
                   </h3>
-                  <p className="text-slate-500 text-sm mt-1 max-w-xs">
+                  <p className="text-[var(--app-muted)] text-sm mt-1 max-w-xs">
                     Support for .zip (Python apps), .yaml, or .json definitions.
                   </p>
                 </div>
@@ -252,34 +252,34 @@ export default function AppManager() {
                   <textarea
                     value={installMode === 'yaml' ? yamlContent : jsonContent}
                     onChange={(e) => installMode === 'yaml' ? setYamlContent(e.target.value) : setJsonContent(e.target.value)}
-                    className="w-full h-80 p-4 bg-slate-900 text-indigo-300 font-mono text-sm rounded-2xl border-0 focus:ring-2 focus:ring-indigo-500 resize-none"
+                    className="w-full h-80 p-4 bg-slate-900 text-indigo-300 font-mono text-sm rounded-[var(--app-radius-lg)] border-0 focus:ring-2 focus:ring-indigo-500 resize-none"
                     spellCheck={false}
                   />
-                  <div className="absolute top-4 right-4 text-slate-500">
+                  <div className="absolute top-4 right-4 text-[var(--app-muted)]">
                     <Code size={16} />
                   </div>
                 </div>
               )}
 
               {error && (
-                <div className="mt-4 p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-3 text-sm font-bold border border-red-100">
+                <div className="mt-4 p-4 bg-red-50 text-red-600 rounded-[var(--app-radius)] flex items-center gap-3 text-sm font-bold border border-red-100">
                   <AlertCircle size={18} />
                   {error}
                 </div>
               )}
             </div>
 
-            <div className="p-6 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
+            <div className="p-6 border-t border-[var(--app-border)] flex justify-end gap-3 bg-[var(--app-panel-soft)]">
               <button 
                 onClick={() => setInstallModalOpen(false)}
-                className="px-6 py-3 text-slate-500 font-bold hover:text-slate-700 transition-colors"
+                className="px-6 py-3 text-[var(--app-muted)] font-bold hover:text-[var(--app-text)] transition-colors"
               >
                 Cancel
               </button>
               <button 
                 onClick={handleInstall}
                 disabled={installing || (installMode === 'upload' && !selectedFile)}
-                className="flex items-center gap-2 px-8 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50"
+                className="flex items-center gap-2 px-8 py-3 bg-[var(--app-accent)] text-white rounded-[var(--app-radius-lg)] font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50"
               >
                 {installing ? <RefreshCw className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
                 {installing ? 'Installing...' : 'Install App'}
@@ -298,51 +298,51 @@ function AppCard({ app, subModules }: { app: AppManifest; subModules: AppManifes
   const isActive = app.is_active !== false
   
   return (
-    <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all group">
+    <div className="bg-[var(--app-panel)] rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-sm overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all group">
       <div className="p-8">
         <div className="flex items-start justify-between mb-6">
-          <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl group-hover:scale-110 transition-transform">
+          <div className="p-4 bg-[var(--app-accent-glow)] text-[var(--app-accent)] rounded-[var(--app-radius-lg)] group-hover:scale-110 transition-transform">
             <Icon size={28} />
           </div>
           <div className="flex flex-col items-end">
-            <span className={`px-3 py-1 ${isActive ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100'} text-[10px] font-black uppercase tracking-widest rounded-full flex items-center gap-1 border`}>
+            <span className={`px-3 py-1 ${isActive ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-[var(--app-panel-soft)] text-[var(--app-muted)] border-[var(--app-border)]'} text-[10px] font-black uppercase tracking-widest rounded-full flex items-center gap-1 border`}>
               {isActive ? <CheckCircle2 size={10} /> : <Icons.Circle size={10} />}
               {isActive ? 'Active' : 'Inactive'}
             </span>
-            <span className="text-xs font-bold text-slate-400 mt-2">v{app.version}</span>
+            <span className="text-xs font-bold text-[var(--app-muted)] mt-2">v{app.version}</span>
           </div>
         </div>
         
-        <h3 className="text-xl font-black text-slate-900 mb-2 flex items-center gap-2">
+        <h3 className="text-xl font-black text-[var(--app-text)] mb-2 flex items-center gap-2">
           {app.label}
         </h3>
-        <p className="text-slate-500 text-sm leading-relaxed mb-6 line-clamp-2">
+        <p className="text-[var(--app-muted)] text-sm leading-relaxed mb-6 line-clamp-2">
           {app.description || 'No description provided for this application.'}
         </p>
         
         <div className="space-y-3">
           <div className="flex items-center justify-between text-xs font-bold">
-            <span className="text-slate-400 uppercase tracking-wider">Models</span>
-            <span className="text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">{app.models.length}</span>
+            <span className="text-[var(--app-muted)] uppercase tracking-wider">Models</span>
+            <span className="text-[var(--app-text)] bg-[var(--app-panel-soft)] px-2 py-0.5 rounded-md">{app.models.length}</span>
           </div>
           <div className="flex flex-wrap gap-1">
             {app.models.slice(0, 3).map(m => (
-              <span key={m} className="px-2 py-0.5 bg-slate-50 text-slate-500 text-[10px] font-bold rounded-md border border-slate-100">
+              <span key={m} className="px-2 py-0.5 bg-[var(--app-panel-soft)] text-[var(--app-muted)] text-[10px] font-bold rounded-md border border-[var(--app-border)]">
                 {m}
               </span>
             ))}
             {app.models.length > 3 && (
-              <span className="px-2 py-0.5 bg-slate-50 text-slate-400 text-[10px] font-bold rounded-md">
+              <span className="px-2 py-0.5 bg-[var(--app-panel-soft)] text-[var(--app-muted)] text-[10px] font-bold rounded-md">
                 +{app.models.length - 3} more
               </span>
             )}
           </div>
           {subModules.length > 0 && (
-            <div className="pt-3 border-t border-slate-100">
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Sub-modules</div>
+            <div className="pt-3 border-t border-[var(--app-border)]">
+              <div className="text-xs font-bold text-[var(--app-muted)] uppercase tracking-wider mb-2">Sub-modules</div>
               <div className="flex flex-wrap gap-1">
                 {subModules.map(sub => (
-                  <span key={sub.name} className="px-2 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-md border border-indigo-100">
+                  <span key={sub.name} className="px-2 py-1 bg-[var(--app-accent-glow)] text-[var(--app-accent)] text-[10px] font-bold rounded-md border border-indigo-100">
                     {sub.label || sub.name}
                   </span>
                 ))}
@@ -352,8 +352,8 @@ function AppCard({ app, subModules }: { app: AppManifest; subModules: AppManifes
         </div>
       </div>
       
-      <div className="px-8 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-        <button className="text-indigo-600 text-sm font-black hover:text-indigo-700 transition-colors">
+      <div className="px-8 py-4 bg-[var(--app-panel-soft)] border-t border-[var(--app-border)] flex items-center justify-between">
+        <button className="text-[var(--app-accent)] text-sm font-black hover:text-indigo-700 transition-colors">
           Configure
         </button>
         <button className="p-2 text-slate-300 hover:text-red-500 transition-colors">

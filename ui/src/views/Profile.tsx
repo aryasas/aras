@@ -80,28 +80,28 @@ const Profile = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Profile Info */}
         <div className="md:col-span-1 space-y-6">
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-              <User size={18} className="text-indigo-600" />
+          <div className="bg-[var(--app-panel)] p-6 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-sm">
+            <h3 className="text-lg font-bold text-[var(--app-text)] mb-6 flex items-center gap-2">
+              <User size={18} className="text-[var(--app-accent)]" />
               Account Details
             </h3>
             
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Username</label>
-                <p className="text-slate-900 font-medium">{userInfo?.username}</p>
+                <label className="text-xs font-bold text-[var(--app-muted)] uppercase tracking-wider">Username</label>
+                <p className="text-[var(--app-text)] font-medium">{userInfo?.username}</p>
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Email Address</label>
-                <p className="text-slate-900 font-medium flex items-center gap-2">
-                  <Mail size={14} className="text-slate-400" />
+                <label className="text-xs font-bold text-[var(--app-muted)] uppercase tracking-wider">Email Address</label>
+                <p className="text-[var(--app-text)] font-medium flex items-center gap-2">
+                  <Mail size={14} className="text-[var(--app-muted)]" />
                   {userInfo?.email}
                 </p>
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Role</label>
-                <p className="text-slate-900 font-medium flex items-center gap-2">
-                  <Shield size={14} className="text-slate-400" />
+                <label className="text-xs font-bold text-[var(--app-muted)] uppercase tracking-wider">Role</label>
+                <p className="text-[var(--app-text)] font-medium flex items-center gap-2">
+                  <Shield size={14} className="text-[var(--app-muted)]" />
                   {userInfo?.is_admin ? 'Administrator' : 'User'}
                 </p>
               </div>
@@ -111,21 +111,21 @@ const Profile = () => {
 
         {/* Change Password Form */}
         <div className="md:col-span-2">
-          <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-              <Lock size={18} className="text-indigo-600" />
+          <div className="bg-[var(--app-panel)] p-8 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-sm">
+            <h3 className="text-lg font-bold text-[var(--app-text)] mb-6 flex items-center gap-2">
+              <Lock size={18} className="text-[var(--app-accent)]" />
               Change Password
             </h3>
 
             {passError && (
-              <div className="mb-6 bg-rose-50 border border-rose-100 text-rose-600 px-4 py-3 rounded-xl flex items-center gap-3 text-sm">
+              <div className="mb-6 bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-[var(--app-radius)] flex items-center gap-3 text-sm">
                 <AlertCircle size={18} />
                 <span>{passError}</span>
               </div>
             )}
 
             {passSuccess && (
-              <div className="mb-6 bg-emerald-50 border border-emerald-100 text-emerald-600 px-4 py-3 rounded-xl flex items-center gap-3 text-sm">
+              <div className="mb-6 bg-emerald-50 border border-emerald-100 text-emerald-600 px-4 py-3 rounded-[var(--app-radius)] flex items-center gap-3 text-sm">
                 <CheckCircle size={18} />
                 <span>{passSuccess}</span>
               </div>
@@ -133,15 +133,15 @@ const Profile = () => {
 
             <form onSubmit={handleChangePassword} className="space-y-6">
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 ml-1">Current Password</label>
+                <label className="text-sm font-semibold text-[var(--app-text)] ml-1">Current Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" size={18} />
                   <input 
                     type="password"
                     required
                     value={oldPassword}
                     onChange={(e) => setOldPassword(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none"
+                    className="w-full pl-12 pr-4 py-3 bg-[var(--app-panel-soft)] border border-[var(--app-border)] rounded-[var(--app-radius)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none"
                     placeholder="••••••••"
                   />
                 </div>
@@ -149,30 +149,30 @@ const Profile = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700 ml-1">New Password</label>
+                  <label className="text-sm font-semibold text-[var(--app-text)] ml-1">New Password</label>
                   <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" size={18} />
                     <input 
                       type="password"
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none"
+                      className="w-full pl-12 pr-4 py-3 bg-[var(--app-panel-soft)] border border-[var(--app-border)] rounded-[var(--app-radius)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none"
                       placeholder="••••••••"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700 ml-1">Confirm New Password</label>
+                  <label className="text-sm font-semibold text-[var(--app-text)] ml-1">Confirm New Password</label>
                   <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" size={18} />
                     <input 
                       type="password"
                       required
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none"
+                      className="w-full pl-12 pr-4 py-3 bg-[var(--app-panel-soft)] border border-[var(--app-border)] rounded-[var(--app-radius)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none"
                       placeholder="••••••••"
                     />
                   </div>
@@ -183,7 +183,7 @@ const Profile = () => {
                 <button 
                   type="submit"
                   disabled={passLoading}
-                  className={`flex items-center justify-center gap-2 px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all transform hover:-translate-y-1 active:translate-y-0
+                  className={`flex items-center justify-center gap-2 px-8 py-3 bg-[var(--app-accent)] text-white rounded-[var(--app-radius)] font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all transform hover:-translate-y-1 active:translate-y-0
                     ${passLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
                   <Save size={18} />

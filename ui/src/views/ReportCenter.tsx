@@ -151,12 +151,12 @@ export default function ReportCenter() {
   const renderFilterInput = (filter: ReportFilter) => {
     const value = reportParams[filter.field] ?? ''
     const label = filter.label || filter.field.replace(/_/g, ' ')
-    const baseClass = "w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+    const baseClass = "w-full px-3 py-2 bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius)] text-sm font-medium text-[var(--app-text)] focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
 
     if (filter.type === 'select') {
       return (
         <label key={filter.field} className="space-y-1.5 block">
-          <span className="block text-xs font-black text-slate-400 uppercase tracking-wider">{label}</span>
+          <span className="block text-xs font-black text-[var(--app-muted)] uppercase tracking-wider">{label}</span>
           <Combobox
             options={(filter.options || []).map((option) => {
               const optionValue = Array.isArray(option) ? option[0] : option.value
@@ -173,7 +173,7 @@ export default function ReportCenter() {
 
     return (
       <label key={filter.field} className="space-y-1.5">
-        <span className="block text-xs font-black text-slate-400 uppercase tracking-wider">{label}</span>
+        <span className="block text-xs font-black text-[var(--app-muted)] uppercase tracking-wider">{label}</span>
         <input
           type={filter.type === 'date' ? 'date' : 'text'}
           className={baseClass}
@@ -187,14 +187,14 @@ export default function ReportCenter() {
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-180px)] overflow-hidden animate-in fade-in duration-300">
       {/* Sidebar: Report List */}
-      <div className="w-full lg:w-80 flex flex-col bg-white border border-slate-200 rounded-3xl overflow-hidden shrink-0">
-        <div className="p-4 border-b border-slate-100 space-y-3">
+      <div className="w-full lg:w-80 flex flex-col bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius-lg)] overflow-hidden shrink-0">
+        <div className="p-4 border-b border-[var(--app-border)] space-y-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" size={16} />
             <input 
               type="text"
               placeholder="Search reports..."
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+              className="w-full pl-9 pr-4 py-2 bg-[var(--app-panel-soft)] border-none rounded-[var(--app-radius)] text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -203,8 +203,8 @@ export default function ReportCenter() {
           <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide text-nowrap">
             <button
               onClick={() => setActiveModule(null)}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                activeModule === null ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+              className={`px-3 py-1.5 rounded-[var(--app-radius)] text-[10px] font-black uppercase tracking-widest transition-all ${
+                activeModule === null ? 'bg-[var(--app-accent)] text-white' : 'bg-[var(--app-panel-soft)] text-[var(--app-muted)] hover:bg-slate-200'
               }`}
             >
               All
@@ -213,8 +213,8 @@ export default function ReportCenter() {
               <button
                 key={mod}
                 onClick={() => setActiveModule(mod)}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
-                  activeModule === mod ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                className={`px-3 py-1.5 rounded-[var(--app-radius)] text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+                  activeModule === mod ? 'bg-[var(--app-accent)] text-white' : 'bg-[var(--app-panel-soft)] text-[var(--app-muted)] hover:bg-slate-200'
                 }`}
               >
                 {mod}
@@ -225,34 +225,34 @@ export default function ReportCenter() {
 
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+            <div className="flex flex-col items-center justify-center py-10 text-[var(--app-muted)]">
               <Loader2 className="animate-spin mb-2" size={24} />
               <p className="text-[10px] font-bold uppercase tracking-widest">Loading catalog...</p>
             </div>
           ) : filteredReports.length === 0 ? (
-            <div className="py-10 text-center text-slate-400 text-xs italic">No reports found</div>
+            <div className="py-10 text-center text-[var(--app-muted)] text-xs italic">No reports found</div>
           ) : (
             filteredReports.map(report => (
               <button
                 key={report.id}
                 onClick={() => handleSelectReport(report)}
-                className={`w-full text-left p-3 rounded-2xl transition-all group ${
+                className={`w-full text-left p-3 rounded-[var(--app-radius-lg)] transition-all group ${
                   activeReport?.id === report.id 
-                    ? 'bg-indigo-50 border-indigo-100' 
-                    : 'hover:bg-slate-50'
+                    ? 'bg-[var(--app-accent-glow)] border-indigo-100' 
+                    : 'hover:bg-[var(--app-panel-soft)]'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-xl shrink-0 ${
-                    activeReport?.id === report.id ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200'
+                  <div className={`p-2 rounded-[var(--app-radius)] shrink-0 ${
+                    activeReport?.id === report.id ? 'bg-[var(--app-accent)] text-white' : 'bg-[var(--app-panel-soft)] text-[var(--app-muted)] group-hover:bg-slate-200'
                   }`}>
                     <FileText size={16} />
                   </div>
                   <div className="min-w-0">
-                    <div className={`text-sm font-bold truncate ${activeReport?.id === report.id ? 'text-indigo-900' : 'text-slate-700'}`}>
+                    <div className={`text-sm font-bold truncate ${activeReport?.id === report.id ? 'text-indigo-900' : 'text-[var(--app-text)]'}`}>
                       {report.name}
                     </div>
-                    <div className="text-[10px] font-black uppercase tracking-tight text-slate-400">
+                    <div className="text-[10px] font-black uppercase tracking-tight text-[var(--app-muted)]">
                       {report.module} • {report.report_type}
                     </div>
                   </div>
@@ -268,16 +268,16 @@ export default function ReportCenter() {
         {activeReport ? (
           <div className="flex flex-col h-full gap-4">
             {/* Report Header & Filters */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm shrink-0">
+            <div className="bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius-lg)] p-6 shadow-sm shrink-0">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">{activeReport.name}</h2>
-                  <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">{activeReport.module} Report — {activeReport.code}</p>
+                  <h2 className="text-2xl font-black text-[var(--app-text)] tracking-tight">{activeReport.name}</h2>
+                  <p className="text-sm font-bold text-[var(--app-muted)] uppercase tracking-wider">{activeReport.module} Report — {activeReport.code}</p>
                 </div>
                 <button
                   disabled={runningReport !== null}
                   onClick={() => runReport(activeReport, reportParams)}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-extrabold rounded-2xl transition-all shadow-lg shadow-indigo-100 active:scale-[0.98]"
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-[var(--app-accent)] hover:bg-indigo-700 disabled:bg-slate-300 text-white font-extrabold rounded-[var(--app-radius-lg)] transition-all shadow-lg shadow-indigo-100 active:scale-[0.98]"
                 >
                   {runningReport === activeReport.id ? (
                     <Loader2 className="animate-spin" size={18} />
@@ -298,12 +298,12 @@ export default function ReportCenter() {
             </div>
 
             {/* Report Results */}
-            <div className="flex-1 bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm relative">
+            <div className="flex-1 bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius-lg)] overflow-hidden shadow-sm relative">
               {runningReport ? (
-                <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center animate-in fade-in duration-300">
+                <div className="absolute inset-0 z-10 bg-[var(--app-panel)]/60 backdrop-blur-[2px] flex flex-col items-center justify-center animate-in fade-in duration-300">
                   <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4" />
-                  <p className="text-sm font-black text-slate-900 uppercase tracking-widest">Generating Report...</p>
-                  <p className="text-xs text-slate-400 mt-2">This may take a few seconds depending on the data size.</p>
+                  <p className="text-sm font-black text-[var(--app-text)] uppercase tracking-widest">Generating Report...</p>
+                  <p className="text-xs text-[var(--app-muted)] mt-2">This may take a few seconds depending on the data size.</p>
                 </div>
               ) : null}
 
@@ -325,12 +325,12 @@ export default function ReportCenter() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 bg-white border border-slate-200 border-dashed rounded-3xl flex flex-col items-center justify-center p-12 text-center">
-            <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-200 mb-6">
+          <div className="flex-1 bg-[var(--app-panel)] border border-[var(--app-border)] border-dashed rounded-[var(--app-radius-lg)] flex flex-col items-center justify-center p-12 text-center">
+            <div className="w-20 h-20 bg-[var(--app-panel-soft)] rounded-[var(--app-radius-lg)] flex items-center justify-center text-slate-200 mb-6">
               <FileText size={40} />
             </div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Select a Report</h2>
-            <p className="text-slate-500 max-w-sm mt-2 font-medium">Choose a report from the catalog on the left to view its details and generate data.</p>
+            <h2 className="text-2xl font-black text-[var(--app-text)] tracking-tight">Select a Report</h2>
+            <p className="text-[var(--app-muted)] max-w-sm mt-2 font-medium">Choose a report from the catalog on the left to view its details and generate data.</p>
           </div>
         )}
       </div>

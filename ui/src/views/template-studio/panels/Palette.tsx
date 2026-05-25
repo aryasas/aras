@@ -173,9 +173,9 @@ export function Palette() {
                 create(ref, item.element())
               }}
               type="button"
-              className="flex w-full cursor-grab items-center gap-3 rounded-2xl border border-[var(--ts-surface-200)] bg-white px-3 py-3 text-left transition-all hover:border-[var(--ts-brand-300)] hover:shadow-sm active:cursor-grabbing"
+              className="flex w-full cursor-grab items-center gap-3 rounded-[var(--app-radius-lg)] border border-[var(--ts-surface-200)] bg-[var(--app-panel)] px-3 py-3 text-left transition-all hover:border-[var(--ts-brand-300)] hover:shadow-sm active:cursor-grabbing"
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--ts-surface-100)] text-[var(--ts-surface-600)]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--app-radius)] bg-[var(--ts-surface-100)] text-[var(--ts-surface-600)]">
                 <Icon className="h-5 w-5" />
               </div>
               <div className="min-w-0">

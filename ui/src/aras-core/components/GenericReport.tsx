@@ -38,7 +38,7 @@ export const GenericReport: React.FC<GenericReportProps> = ({ title, data = [], 
       <div className="flex items-center justify-between mb-8 print:hidden">
         <div className="flex items-center gap-4">
           {onBack && (
-            <button onClick={onBack} className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-xl transition-colors text-[var(--aras-text)]">
+            <button onClick={onBack} className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--app-radius)] transition-colors text-[var(--aras-text)]">
               <ArrowLeft size={20} />
             </button>
           )}
@@ -47,14 +47,14 @@ export const GenericReport: React.FC<GenericReportProps> = ({ title, data = [], 
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportCSV}
-            className="flex items-center gap-2 px-4 py-2 border border-[var(--aras-border)] rounded-xl text-sm font-bold text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)] transition-all"
+            className="flex items-center gap-2 px-4 py-2 border border-[var(--aras-border)] rounded-[var(--app-radius)] text-sm font-bold text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)] transition-all"
           >
             <Download size={18} />
             <span>Export CSV</span>
           </button>
           <button
             onClick={handlePrint}
-            className="flex items-center gap-2 px-6 py-2 bg-[var(--aras-accent)] text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all shadow-md"
+            className="flex items-center gap-2 px-6 py-2 bg-[var(--aras-accent)] text-white rounded-[var(--app-radius)] text-sm font-bold hover:opacity-90 transition-all shadow-md"
           >
             <Printer size={18} />
             <span>Print Report</span>
@@ -70,10 +70,10 @@ export const GenericReport: React.FC<GenericReportProps> = ({ title, data = [], 
           <div className="h-1 w-24 bg-[var(--aras-text)] mx-auto rounded-full" />
         </div>
 
-        <div className="overflow-x-auto border border-[var(--aras-border)] rounded-2xl print:border-none">
+        <div className="overflow-x-auto border border-[var(--aras-border)] rounded-[var(--app-radius-lg)] print:border-none">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[var(--aras-panel-soft)] border-b border-[var(--aras-border)] print:bg-white">
+              <tr className="bg-[var(--aras-panel-soft)] border-b border-[var(--aras-border)] print:bg-[var(--app-panel)]">
                 {(columns || []).map(col => (
                   <th key={col.field} className="px-6 py-4 text-xs font-black text-[var(--aras-muted)] uppercase tracking-widest">
                     {col.label}

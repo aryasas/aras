@@ -186,3 +186,7 @@ This file is used only to report if there are fix
 
 ## Test Database Configuration Alignment (2026-05-23)
   - [Gemini] Updated `tests/conftest.py` to allow `SQLALCHEMY_DATABASE_URI` to be overridden by an environment variable, defaulting to PostgreSQL. This aligns the testing environment with the project's "Hard Rules — Database" mandate, moving away from SQLite.
+
+
+## Mobile App — Metadata-Driven Expo — revision (2026-05-24)
+  - [GPT (codex)] Replaced starter App.js with App.tsx entry component

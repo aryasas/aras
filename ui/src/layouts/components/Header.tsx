@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { PageHeader } from '../../components/PageHeader'
 import { CommandPaletteTrigger } from './CommandPaletteTrigger'
 import { DesignContainer } from '../../aras-core/components/design/DesignContainer'
 import { DesignElement } from '../../aras-core/components/design/DesignElement'
@@ -10,16 +9,19 @@ import { TemplateDesignToggle } from './TemplateDesignToggle'
 
 export function Header({ children }: { children?: ReactNode }) {
   return (
-    <header className="sticky top-0 z-40 flex flex-col gap-2 shrink-0 bg-[var(--aras-panel)]/90 backdrop-blur-[16px] border border-[var(--aras-border)] shadow-[0_10px_32px_-16px_rgba(15,23,42,0.22)] rounded-[var(--aras-radius-lg)] px-4 py-3 md:px-5 md:py-4">
-      <div className="flex items-center gap-3">
-        {/* Left: title */}
-        <div className="flex-1 min-w-0">
-          <PageHeader />
+    <div className="z-40 flex items-center shrink-0 bg-[var(--app-panel)] border-b border-[var(--app-border)] px-4 sm:px-8 lg:px-12 h-[64px] min-h-[64px] max-h-[64px] box-border">
+      <div className="flex items-center gap-6 w-full">
+        {/* Left: Search & Brand */}
+        <div className="flex items-center gap-4">
+          <CommandPaletteTrigger />
         </div>
 
+        {/* Center/Right Spacer */}
+        <div className="flex-1" />
+
         {/* Right: Granular Items */}
-        <div className="flex items-center gap-2 shrink-0">
-          <DesignContainer id="topbar-items" className="flex items-center gap-2">
+        <div className="flex items-center gap-4 shrink-0">
+          <DesignContainer id="topbar-items" className="flex items-center gap-4">
             
             <DesignElement id="page-portal">
               <div id="header-actions-portal" className="flex items-center gap-2" />
@@ -33,10 +35,6 @@ export function Header({ children }: { children?: ReactNode }) {
               <TemplateDesignToggle />
             </DesignElement>
             
-            <DesignElement id="search">
-              <CommandPaletteTrigger />
-            </DesignElement>
-            
             <DesignElement id="theme-switch">
               <ThemeTweakPanel />
             </DesignElement>
@@ -48,8 +46,8 @@ export function Header({ children }: { children?: ReactNode }) {
             <DesignElement id="profile">
               <Link 
                 to="/profile" 
-                className="block h-10 w-10 md:h-12 md:w-12 cursor-pointer rounded-[var(--aras-radius)] shadow-sm border-2 border-[var(--aras-panel)] transition-transform hover:scale-105" 
-                style={{ background: 'linear-gradient(135deg, var(--aras-accent), var(--aras-button))' }}
+                className="block h-9 w-9 cursor-pointer rounded-full shadow-sm border border-[var(--app-border-strong)] transition-transform hover:scale-105" 
+                style={{ background: 'linear-gradient(135deg, var(--app-accent), var(--app-primary-action-strong))' }}
               />
             </DesignElement>
 
@@ -57,6 +55,6 @@ export function Header({ children }: { children?: ReactNode }) {
         </div>
       </div>
 
-    </header>
+    </div>
   )
 }

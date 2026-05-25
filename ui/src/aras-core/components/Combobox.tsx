@@ -350,7 +350,7 @@ const Combobox: React.FC<ComboboxProps> = ({
               type="button"
               tabIndex={-1}
               onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/${cleanResourcePath(targetResource)}/${value}`); }}
-              className="p-1 text-[var(--aras-muted)] hover:text-[var(--aras-accent)] rounded-lg"
+              className="p-1 text-[var(--aras-muted)] hover:text-[var(--aras-accent)] rounded-[var(--app-radius)]"
               title="View Record"
             >
               <ExternalLink size={12} />
@@ -360,7 +360,7 @@ const Combobox: React.FC<ComboboxProps> = ({
             <button 
               tabIndex={-1}
               onClick={handleClear} 
-              className="p-1 text-[var(--aras-muted)] hover:text-red-500 rounded-lg"
+              className="p-1 text-[var(--aras-muted)] hover:text-red-500 rounded-[var(--app-radius)]"
             >
               <X size={12} />
             </button>

@@ -78,7 +78,7 @@ const BooleanInput: React.FC<FieldProps> = ({ value, onChange, disabled }) => (
         disabled={disabled}
       />
       <div className="w-8 h-4.5 bg-slate-200 rounded-full peer-checked:bg-[var(--aras-accent)] transition-all"></div>
-      <div className="absolute left-0.5 top-0.5 w-3.5 h-3.5 bg-white rounded-full transition-all peer-checked:left-4 shadow-sm"></div>
+      <div className="absolute left-0.5 top-0.5 w-3.5 h-3.5 bg-[var(--app-panel)] rounded-full transition-all peer-checked:left-4 shadow-sm"></div>
     </div>
     <span className="text-xs font-semibold text-[var(--aras-muted)] group-hover:text-[var(--aras-accent)] transition-colors">
       {value ? 'Yes' : 'No'}

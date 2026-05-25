@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
 import {
-  Save, ArrowLeft, RefreshCw, Zap
+  Save, ArrowLeft, RefreshCw
 } from 'lucide-react';
 import { resolveFieldComponent } from '../SchemaRegistry';
 import { useAras } from '../hooks/useAras';
@@ -120,34 +120,33 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
   if (loading || !metadata) return <div className="p-8 text-center text-[var(--aras-muted)]">Loading form...</div>
 
   return (
-    <div className="aras-form-view mx-auto pb-20 space-y-6">
+    <div className="aras-form-view mx-auto pb-20 space-y-6 max-w-5xl">
       <DesignContainer id="form-layout" className="flex flex-col gap-6">
         
-        <DesignElement id="command-bar" className="flex items-center justify-between p-4 bg-[var(--aras-panel)] rounded-[var(--aras-radius)] border border-[var(--aras-border)] shadow-sm">
-          <DesignContainer id="command-bar-actions" className="flex items-center gap-4">
-            <DesignElement id="btn-cancel" tagName="button" className="p-2 hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)]" style={{ border: 'none', background: 'transparent' }}>
-              <span onClick={onCancel}><ArrowLeft size={18}/></span>
+        <DesignElement id="command-bar" className="flex items-center justify-between px-6 py-4 bg-[var(--app-panel)] rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-[var(--shadow-premium)] sticky top-4 z-20">
+          <DesignContainer id="command-bar-actions" className="flex items-center gap-4 w-full">
+            <DesignElement id="btn-cancel" tagName="button" className="p-2 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-panel-soft)] rounded-[var(--app-radius)] transition-colors" style={{ border: 'none', background: 'transparent' }}>
+              <span onClick={onCancel} className="cursor-pointer flex"><ArrowLeft size={20}/></span>
             </DesignElement>
-            <DesignElement id="btn-save" tagName="button" className="bg-[var(--aras-accent)] text-white px-6 py-2 rounded-[var(--aras-radius)] font-bold flex items-center gap-2">
-              <span onClick={handleSubmit} className="flex items-center gap-2">
-                 {saving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16}/>}
-                 Save
-              </span>
-            </DesignElement>
-            <DesignElement id="form-title" tagName="h2" className="font-black text-[var(--aras-text)] ml-2">
+            <DesignElement id="form-title" tagName="h2" className="flex-1 font-extrabold text-[calc(18px*var(--app-font-scale))] text-[var(--app-text)] truncate">
               {vocabulary.get(metadata.title)}
+            </DesignElement>
+            <DesignElement id="btn-save" tagName="button" className="bg-[var(--app-primary-action)] hover:bg-[var(--app-primary-action-strong)] text-white px-8 py-2.5 rounded-[var(--app-radius)] font-bold text-[calc(14px*var(--app-font-scale))] flex items-center gap-2 transition-transform hover:-translate-y-0.5 shadow-lg shadow-[var(--app-accent-glow)]">
+              <span onClick={handleSubmit} className="flex items-center gap-2 cursor-pointer">
+                 {saving ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18}/>}
+                 Save Changes
+              </span>
             </DesignElement>
           </DesignContainer>
         </DesignElement>
 
-        <DesignElement id="quick-actions" className="flex gap-2 p-4 bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] border border-dashed border-[var(--aras-border)] items-center">
-           <Zap size={14} className="text-amber-500" />
-           <span className="text-xs font-bold text-[var(--aras-muted)] uppercase">Quick Actions</span>
-        </DesignElement>
-
-        <DesignElement id="form-body" className="bg-[var(--aras-panel)] p-8 rounded-[var(--aras-radius-lg)] border border-[var(--aras-border)] shadow-sm">
-           <DesignContainer id="fields-grid" className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {metadata.fields.filter(isFieldVisible).slice(0, 10).map(renderField)}
+        <DesignElement id="form-body" className="bg-[var(--app-panel)] p-8 md:p-12 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-[var(--shadow-premium)]">
+           <div className="mb-8 border-b border-[var(--app-border)] pb-4">
+             <h3 className="text-[calc(16px*var(--app-font-scale))] font-extrabold text-[var(--app-text)]">General Information</h3>
+             <p className="text-[calc(13px*var(--app-font-scale))] text-[var(--app-muted)] mt-1">Fill in the details for this record below.</p>
+           </div>
+           <DesignContainer id="fields-grid" className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
+              {metadata.fields.filter(isFieldVisible).map(renderField)}
            </DesignContainer>
         </DesignElement>
 

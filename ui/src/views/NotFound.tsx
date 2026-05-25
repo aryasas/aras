@@ -7,7 +7,7 @@ const NotFound: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] bg-slate-50 text-slate-700 p-8">
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] bg-[var(--app-panel-soft)] text-[var(--app-text)] p-8">
       <h1 className="text-9xl font-extrabold text-slate-300">404</h1>
       <p className="text-3xl font-bold mb-4">Page Not Found</p>
       <p className="text-lg text-center mb-8 max-w-md">
@@ -15,12 +15,12 @@ const NotFound: React.FC = () => {
       </p>
       <button
         onClick={() => navigate('/')}
-        className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-lg font-semibold hover:bg-indigo-700 transition-colors shadow-md"
+        className="px-6 py-3 bg-[var(--app-accent)] text-white rounded-[var(--app-radius)] text-lg font-semibold hover:bg-indigo-700 transition-colors shadow-md"
       >
         Go to Home
       </button>
       {appName && (
-        <p className="mt-12 text-sm text-slate-400">
+        <p className="mt-12 text-sm text-[var(--app-muted)]">
           You are currently in the <span className="font-bold">{appName}</span> application.
         </p>
       )}

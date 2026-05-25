@@ -142,18 +142,18 @@ const ChartWidget: WidgetComponent = ({ widget }) => {
     })
   }, [widget.resource_name, config.group_by, notify])
 
-  if (loading) return <div className="bg-white p-6 rounded-3xl border border-slate-200 h-64 animate-pulse" />
+  if (loading) return <div className="bg-[var(--app-panel)] p-6 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] h-64 animate-pulse" />
 
   const maxValue = Math.max(...data.map(d => d.value), 1)
   const total = data.reduce((sum, curr) => sum + curr.value, 0) || 1
   const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden h-full flex flex-col">
-      <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/20">
-        <h2 className="font-bold text-lg text-slate-900">{widget.title}</h2>
+    <div className="bg-[var(--app-panel)] rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-[var(--shadow-premium)] overflow-hidden h-full flex flex-col">
+      <div className="p-6 border-b border-[var(--app-border)] flex items-center justify-between bg-[var(--app-panel-soft)]">
+        <h2 className="font-extrabold text-[calc(18px*var(--app-font-scale))] text-[var(--app-text)]">{widget.title}</h2>
       </div>
-      <div className="p-6 flex-1 flex items-end gap-2 min-h-[200px]">
+      <div className="p-6 flex-1 flex items-end gap-2 min-h-[200px] bg-[var(--app-panel)]">
         {config.chart_type === 'pie' ? (
           <div className="w-full flex justify-center">
             <svg viewBox="0 0 32 32" className="w-32 h-32 -rotate-90">
@@ -176,7 +176,7 @@ const ChartWidget: WidgetComponent = ({ widget }) => {
             </svg>
             <div className="ml-6 flex flex-col justify-center gap-2">
               {data.map((d, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                <div key={i} className="flex items-center gap-2 text-[calc(12px*var(--app-font-scale))] font-bold text-[var(--app-muted)]">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colors[i % colors.length] }} />
                   {d.name}: {d.value}
                 </div>
@@ -187,14 +187,14 @@ const ChartWidget: WidgetComponent = ({ widget }) => {
           data.map((d, i) => (
             <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
               <div
-                className="w-full bg-indigo-500 rounded-t-lg transition-all hover:bg-indigo-600 relative"
+                className="w-full rounded-t-[var(--app-radius)] transition-all hover:brightness-110 relative"
                 style={{ height: `${(d.value / maxValue) * 150}px`, backgroundColor: colors[i % colors.length] }}
               >
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[var(--app-text)] text-[var(--app-bg-main)] text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                   {d.value} units
                 </div>
               </div>
-              <span className="text-[10px] text-slate-400 font-bold uppercase truncate w-full text-center">{d.name}</span>
+              <span className="text-[10px] text-[var(--app-muted)] font-bold uppercase truncate w-full text-center">{d.name}</span>
             </div>
           ))
         )}
@@ -218,20 +218,20 @@ const StatWidget: WidgetComponent = ({ widget }) => {
 
   return (
     <div
-      className="bg-white p-7 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group h-full cursor-pointer"
+      className="bg-[var(--app-panel)] p-7 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-[var(--shadow-premium)] hover:border-[var(--app-border-strong)] transition-all group h-full cursor-pointer"
       title="Click to view all records"
       onClick={() => navigate(`/${widget.resource_name.replace(/_/g, '-')}`)}
     >
       <div className="flex items-start justify-between mb-4">
-        <div className={`p-3 rounded-2xl transition-colors ${
-          config.color === 'indigo' ? 'bg-indigo-50 text-indigo-600' :
-          config.color === 'emerald' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'
+        <div className={`p-3 rounded-[var(--app-radius)] transition-colors ${
+          config.color === 'indigo' ? 'bg-[var(--app-primary-action)]/10 text-[var(--app-primary-action)]' :
+          config.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-[var(--app-panel-soft)] text-[var(--app-muted)]'
         }`}>
           <Icon size={20} />
         </div>
       </div>
-      <p className="text-slate-500 text-sm font-medium mb-1 uppercase tracking-wide">{widget.title}</p>
-      <h3 className="text-3xl font-black text-slate-900 tracking-tight">{value}</h3>
+      <p className="text-[var(--app-muted)] text-[calc(14px*var(--app-font-scale))] font-bold mb-1 uppercase tracking-wide">{widget.title}</p>
+      <h3 className="text-[calc(28px*var(--app-font-scale))] font-extrabold text-[var(--app-text)] tracking-tight">{value}</h3>
     </div>
   )
 }
@@ -249,26 +249,26 @@ const ListWidget: WidgetComponent = ({ widget }) => {
   }, [widget.resource_name, config.limit, notify])
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden h-full flex flex-col">
-      <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/20">
-        <h2 className="font-bold text-lg text-slate-900">{widget.title}</h2>
+    <div className="bg-[var(--app-panel)] rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-[var(--shadow-premium)] overflow-hidden h-full flex flex-col">
+      <div className="p-6 border-b border-[var(--app-border)] flex items-center justify-between bg-[var(--app-panel-soft)]">
+        <h2 className="font-extrabold text-[calc(18px*var(--app-font-scale))] text-[var(--app-text)]">{widget.title}</h2>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto bg-[var(--app-panel)]">
         {items.length === 0 ? (
           <EmptyState title="No recent activity" />
         ) : (
-          <div className="divide-y divide-slate-50">
+          <div className="divide-y divide-[var(--app-border)]">
             {items.map((item, idx) => (
               <div
                 key={idx}
-                className="p-4 hover:bg-slate-50 transition-colors flex items-center gap-4 cursor-pointer"
+                className="p-4 hover:bg-[var(--app-panel-soft)] transition-colors flex items-center gap-4 cursor-pointer"
                 onClick={() => navigate(`/${widget.resource_name.replace(/_/g, '-')}/${item.id}`)}
               >
-                <div className="w-2 h-2 rounded-full bg-indigo-400" />
-                <div className="flex-1 text-sm text-slate-600 truncate font-medium">
+                <div className="w-2 h-2 rounded-full bg-[var(--app-primary-action)]" />
+                <div className="flex-1 text-[calc(14px*var(--app-font-scale))] text-[var(--app-text)] truncate font-bold">
                   {item.description || item.name || item.id}
                 </div>
-                <div className="text-[10px] text-slate-400 font-bold uppercase">
+                <div className="text-[10px] text-[var(--app-muted)] font-bold uppercase">
                   {item.created_at ? new Date(item.created_at).toLocaleTimeString() : ''}
                 </div>
               </div>

@@ -368,3 +368,6 @@ This file is used only to report if there are feature added
     - **Modular Child Operations:** Extracted complex child record synchronization logic from `_save_children` into dedicated module-level helper functions (`_update_or_create_child_record`, `_delete_orphaned_child_records`) for better readability and maintainability.
     - **Dynamic Schema Generation:** Extracted dynamic Pydantic schema generation (`Schema`, `PatchSchema`) into a new module-level helper function (`_generate_pydantic_schemas`), making `create_router` cleaner and more focused.
     - **Enhanced Error Handling:** Replaced generic `print` statements and broad `except Exception` blocks with specific `logging.warning` and `logging.error` calls across various endpoints and helper functions (e.g., custom actions, child hydration, bulk delete), providing more informative and actionable diagnostics.
+
+## Mobile App — Metadata-Driven Expo — revision (2026-05-24)
+  - [GPT (codex)] Metadata-driven Expo mobile app shell with auth, dynamic app/resource navigation, dynamic list view, and dynamic create/edit form rendering

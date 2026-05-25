@@ -202,7 +202,7 @@ export const DesignInspector: React.FC = () => {
 
                   <div>
                     <h4 className="text-xs font-bold text-[var(--aras-text)] mb-3 border-t border-[var(--aras-border)] pt-4">Advanced</h4>
-                    <InputField label="Custom CSS Classes" field="customClasses" placeholder="e.g., shadow-lg hover:bg-slate-50" />
+                    <InputField label="Custom CSS Classes" field="customClasses" placeholder="e.g., shadow-lg hover:bg-[var(--app-panel-soft)]" />
                   </div>
                 </>
               )

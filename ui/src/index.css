@@ -1,89 +1,41 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
-/* Enable class-based dark mode so the toggle in uiStore works */
 @variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-brand-indigo: #6366f1;
-  --color-brand-slate: #64748b;
-  --spacing-hero-base: 170px;
-  --spacing-hero-framework-top: 34px;
-  --spacing-hero-vite-top: 107px;
-  --shadow-premium: 0 25px 50px -12px rgba(15, 23, 42, 0.12), 0 12px 24px -16px rgba(15, 23, 42, 0.08);
-  --shadow-card-lift: 0 20px 35px -15px rgba(99, 102, 241, 0.15), 0 10px 20px -20px rgba(15, 23, 42, 0.1);
+  --shadow-premium: 0 4px 20px -4px rgba(0, 0, 0, 0.05), 0 2px 8px -2px rgba(0, 0, 0, 0.02);
+  --shadow-card-lift: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
 }
-
-/*
-================================================================================
-CROSS-PLATFORM DESIGN TOKENS (REACT NATIVE EXPO & WEB SHARING)
---------------------------------------------------------------------------------
-These design tokens are defined using HSL/RGBA scales for easy conversion to 
-React Native stylesheets or Expo theme systems.
-
-JSON representation for mobile app synchronization:
-{
-  "theme": {
-    "light": {
-      "accent": "hsl(238, 82%, 66%)",
-      "accentStrong": "hsl(238, 82%, 59%)",
-      "bgMain": "hsl(210, 40%, 96%)",
-      "panel": "hsl(0, 0%, 100%)",
-      "panelSoft": "hsl(210, 40%, 98%)",
-      "border": "hsla(222, 47%, 9%, 0.08)",
-      "borderStrong": "hsla(222, 47%, 9%, 0.15)",
-      "text": "hsl(222, 47%, 9%)",
-      "muted": "hsl(215, 16%, 47%)",
-      "radius": "24px"
-    },
-    "dark": {
-      "accent": "hsl(238, 82%, 66%)",
-      "accentStrong": "hsl(238, 82%, 59%)",
-      "bgMain": "hsl(222, 41%, 6%)",
-      "panel": "hsl(224, 36%, 10%)",
-      "panelSoft": "hsl(228, 38%, 14%)",
-      "border": "hsla(0, 0%, 100%, 0.08)",
-      "borderStrong": "hsla(0, 0%, 100%, 0.16)",
-      "text": "hsl(210, 40%, 98%)",
-      "muted": "hsl(215, 20%, 65%)",
-      "radius": "24px"
-    }
-  }
-}
-================================================================================
-*/
 
 :root {
-  font-family: 'Plus Jakarta Sans', 'Outfit', Inter, system-ui, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   line-height: 1.5;
   font-weight: 400;
   color-scheme: light dark;
   
-  /* Curated Harmonious Palette (Default Light Values) */
-  --aras-accent: #6366f1;
-  --aras-accent-strong: #4f46e5;
-  --aras-accent-glow: rgba(99, 102, 241, 0.15);
-  --aras-primary-action: #6366f1;
-  --aras-primary-action-strong: #4f46e5;
-  --aras-button: #0f172a;
-  --aras-button-text: #ffffff;
-  --aras-radius: 8px;
-  --aras-radius-lg: 24px;
+  --aras-accent: #4F46E5;
+  --aras-accent-strong: #4338CA;
+  --aras-accent-glow: rgba(79, 70, 229, 0.15);
+  --aras-primary-action: var(--aras-accent);
+  --aras-primary-action-strong: var(--aras-accent-strong);
+  --aras-button: #111827;
+  --aras-button-text: #FFFFFF;
+  --aras-radius: 12px;
+  --aras-radius-lg: 20px;
   --aras-density: 1;
   --aras-font-scale: 1;
   
-  /* Light Theme Surfaces & Borders */
-  --aras-border: rgba(15, 23, 42, 0.08);
-  --aras-border-strong: rgba(15, 23, 42, 0.15);
-  --aras-bg-main: #f1f5f9;
-  --aras-panel: #ffffff;
-  --aras-panel-soft: #f8fafc;
-  --aras-table-head: #f1f5f9;
-  --aras-text: #0f172a;
-  --aras-muted: #64748b;
-  --aras-faint: #cbd5e1;
+  --aras-border: #E5E7EB;
+  --aras-border-strong: #D1D5DB;
+  --aras-bg-main: #F4F5F7; /* Slightly darker light bg for contrast against pure white panels */
+  --aras-panel: #FFFFFF;
+  --aras-panel-soft: #F9FAFB;
+  --aras-table-head: #F9FAFB;
+  --aras-text: #111827;
+  --aras-muted: #6B7280;
+  --aras-faint: #E5E7EB;
   
-  /* App aliases mapping to aras variables dynamically (Reactive Aliases) */
   --app-accent: var(--aras-accent);
   --app-accent-strong: var(--aras-accent-strong);
   --app-accent-glow: var(--aras-accent-glow);
@@ -92,6 +44,7 @@ JSON representation for mobile app synchronization:
   --app-button: var(--aras-button);
   --app-button-text: var(--aras-button-text);
   --app-radius: var(--aras-radius);
+  --app-radius-lg: var(--aras-radius-lg);
   --app-density: var(--aras-density);
   --app-font-scale: var(--aras-font-scale);
   
@@ -114,31 +67,28 @@ JSON representation for mobile app synchronization:
 }
 
 .dark {
-  color: #f8fafc;
-  background-color: #090d16;
+  color: #F9FAFB;
+  background-color: #0B0F19; /* Very deep modern dark bg */
   
-  /* Curated Dark Theme Colors set on --aras- variables so aliases map reactively */
-  --aras-border: rgba(255, 255, 255, 0.08);
-  --aras-border-strong: rgba(255, 255, 255, 0.16);
-  --aras-bg-main: #090d16;
-  --aras-panel: #111625;
-  --aras-panel-soft: #161b30;
-  --aras-table-head: #161b30;
-  --aras-text: #f8fafc;
-  --aras-muted: #94a3b8;
-  --aras-accent-glow: rgba(99, 102, 241, 0.25);
+  --aras-border: rgba(255, 255, 255, 0.06);
+  --aras-border-strong: rgba(255, 255, 255, 0.12);
+  --aras-bg-main: #0B0F19;
+  --aras-panel: #111827;
+  --aras-panel-soft: #1F2937;
+  --aras-table-head: #1F2937;
+  --aras-text: #F9FAFB;
+  --aras-muted: #9CA3AF;
+  --aras-faint: rgba(255, 255, 255, 0.04);
+  --aras-accent-glow: rgba(244, 63, 94, 0.25);
+  
+  /* Reset button colors for dark mode */
+  --aras-button: #FFFFFF;
+  --aras-button-text: #111827;
 }
 
-/* Custom Premium Animations */
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 body {
@@ -146,24 +96,26 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background-color: var(--app-bg-main);
-  background-image: radial-gradient(color-mix(in srgb, var(--app-text) 8%, transparent) 1px, transparent 1px);
-  background-size: 24px 24px;
   color: var(--app-muted);
-  font-size: calc(16px * var(--app-font-scale));
+  font-size: calc(14px * var(--app-font-scale));
   -webkit-tap-highlight-color: transparent;
-  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeInUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--app-border) transparent;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar { width: 4px; height: 4px; }
 *::-webkit-scrollbar-track { background: transparent; }
-*::-webkit-scrollbar-thumb { background: var(--app-border); border-radius: 3px; }
+*::-webkit-scrollbar-thumb { background: var(--app-border); border-radius: 4px; }
 *::-webkit-scrollbar-thumb:hover { background: var(--app-border-strong); }
+
+input, select, textarea, button {
+  font-family: inherit;
+}
 
 .app-island,
 .aras-island,
@@ -201,13 +153,13 @@ body {
 
 .app-form-section,
 .aras-form-section {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .app-section-header,
 .aras-section-header {
-  min-height: 57px;
-  padding: 16px 20px;
+  min-height: calc(57px * var(--app-density));
+  padding: calc(16px * var(--app-density)) 20px;
   border-bottom: 1px solid var(--app-border);
   display: flex;
   align-items: center;
@@ -229,10 +181,10 @@ body {
 
 .app-section-body,
 .aras-section-body {
-  padding: 20px;
+  padding: calc(20px * var(--app-density));
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: calc(16px * var(--app-density));
 }
 
 .app-section-body--grid,
@@ -255,7 +207,7 @@ body {
   display: grid;
   grid-template-columns: minmax(150px, 0.33fr) minmax(0, 1fr);
   align-items: center;
-  gap: 16px;
+  gap: calc(16px * var(--app-density));
 }
 
 .app-form-label,
@@ -282,12 +234,12 @@ body {
 .aras-form-view textarea,
 .app-form-view .aras-combobox-trigger,
 .aras-form-view .aras-combobox-trigger {
-  min-height: 46px !important;
+  min-height: calc(46px * var(--app-density)) !important;
   width: 100% !important;
-  padding: 12px 16px !important;
+  padding: calc(10px * var(--app-density)) 16px !important;
   background-color: var(--app-panel-soft) !important;
   border: 1px solid var(--app-border) !important;
-  border-radius: 12px !important;
+  border-radius: var(--app-radius) !important;
   color: var(--app-text) !important;
   font-size: calc(14px * var(--app-font-scale)) !important;
   font-weight: 600 !important;
@@ -366,7 +318,7 @@ body {
 
 .app-list-view,
 .aras-list-view {
-  min-height: calc(100vh - 170px);
+  min-height: calc(100vh - 220px);
 }
 
 .app-list-table,
@@ -381,15 +333,12 @@ body {
   top: 0;
   z-index: 10;
   align-items: center;
-  min-height: 64px;
-  gap: 18px;
-  padding: 0 24px;
   background: var(--app-table-head);
   border-bottom: 1px solid var(--app-border);
   color: var(--app-muted);
-  font-size: calc(12px * var(--app-font-scale));
+  font-size: calc(10.5px * var(--app-font-scale));
   font-weight: 850;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.05em;
   line-height: 1;
   text-transform: uppercase;
 }
@@ -399,7 +348,7 @@ body {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 6px;
+  gap: 3px;
   cursor: pointer;
   transition: color 140ms ease;
 }
@@ -411,9 +360,6 @@ body {
 
 .app-list-row,
 .aras-list-row {
-  min-height: calc(58px * var(--aras-density, 1));
-  gap: 18px;
-  padding: 0 24px;
   border-bottom: 1px solid color-mix(in srgb, var(--aras-border) 72%, transparent);
   background: color-mix(in srgb, var(--aras-panel) 94%, transparent);
   cursor: pointer;
@@ -474,10 +420,11 @@ body {
 .app-app-section__heading,
 .aras-app-section__heading {
   display: flex;
-  min-height: 34px;
+  min-height: 48px;
   align-items: flex-end;
   justify-content: space-between;
-  padding: 0 2px;
+  padding: 0 4px;
+  margin-bottom: 8px;
 }
 
 .app-app-section__heading p,
@@ -502,90 +449,112 @@ body {
 .app-app-grid,
 .aras-app-grid {
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
+  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
 
 .app-app-card,
 .aras-app-card {
-  display: grid;
-  min-height: 76px;
-  grid-template-columns: 42px minmax(0, 1fr) 20px;
-  align-items: center;
-  gap: 13px;
+  display: flex;
+  flex-direction: column;
+  min-height: 140px;
+  justify-content: space-between;
+  padding: 20px;
+  background: var(--app-panel);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  box-shadow: var(--shadow-premium);
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  position: relative;
   overflow: hidden;
-  padding: 14px 15px;
-  background: color-mix(in srgb, var(--app-panel) 90%, transparent);
-  border: 1px solid color-mix(in srgb, var(--app-border) 86%, transparent);
-  border-radius: 12px;
-  box-shadow: 0 6px 16px -16px rgba(15, 23, 42, 0.28);
-  transition: transform 150ms ease, border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+  text-decoration: none;
 }
 
 .app-app-card:hover,
 .aras-app-card:hover {
-  background: var(--app-panel);
-  border-color: color-mix(in srgb, var(--app-accent) 30%, var(--app-border));
-  box-shadow: 0 12px 26px -22px rgba(15, 23, 42, 0.36);
-  transform: translateY(-1px);
+  transform: translateY(-4px);
+  border-color: var(--app-accent);
+  box-shadow: var(--shadow-card-lift);
+}
+
+.app-app-card::before,
+.aras-app-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: var(--app-accent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.app-app-card:hover::before,
+.aras-app-card:hover::before {
+  opacity: 1;
 }
 
 .app-app-card__icon,
 .aras-app-card__icon {
   display: flex;
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: 12px;
   background: color-mix(in srgb, var(--app-accent) 8%, var(--app-panel));
   color: var(--app-accent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app-border) 72%, transparent);
+  margin-bottom: 12px;
+  transition: transform 0.3s ease;
+}
+
+.app-app-card:hover .app-app-card__icon,
+.aras-app-card:hover .aras-app-card__icon {
+  transform: scale(1.1) rotate(-3deg);
 }
 
 .app-app-card__content,
 .aras-app-card__content {
-  min-width: 0;
+  flex: 1;
 }
 
 .app-app-card__content h2,
 .aras-app-card__content h2 {
-  overflow: hidden;
   color: var(--app-text);
-  font-size: calc(15px * var(--app-font-scale));
-  font-weight: 820;
+  font-size: calc(16px * var(--app-font-scale));
+  font-weight: 800;
   line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  margin: 0;
 }
 
 .app-app-card__content p,
 .aras-app-card__content p {
-  margin-top: 4px;
-  overflow: hidden;
   color: var(--app-muted);
-  font-size: calc(11px * var(--app-font-scale));
-  font-weight: 750;
-  letter-spacing: 0.08em;
-  line-height: 1.15;
-  text-overflow: ellipsis;
+  font-size: calc(10px * var(--app-font-scale));
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  white-space: nowrap;
+  margin-bottom: 4px;
 }
 
 .app-app-card__arrow,
 .aras-app-card__arrow {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
   color: var(--app-muted);
-  opacity: 0;
-  transform: translateX(-4px);
-  transition: opacity 150ms ease, transform 150ms ease;
+  opacity: 0.4;
+  transition: all 0.3s ease;
 }
 
 .app-app-card:hover .app-app-card__arrow,
 .aras-app-card:hover .aras-app-card__arrow {
-  opacity: 0.75;
-  transform: translateX(0);
+  opacity: 1;
+  color: var(--app-accent);
+  transform: translateX(4px);
 }
+
 
 .app-list-action-bar input,
 .aras-list-action-bar input,
@@ -602,10 +571,10 @@ body {
 .aras-app-list {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--aras-border, #e2e8f0);
-  border-radius: 10px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
   overflow: hidden;
-  background: color-mix(in srgb, var(--aras-panel, #fff) 90%, transparent);
+  background: color-mix(in srgb, var(--app-panel) 90%, transparent);
 }
 
 .aras-app-row {
@@ -613,7 +582,7 @@ body {
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  border-bottom: 1px solid color-mix(in srgb, var(--aras-border, #e2e8f0) 60%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--app-border) 60%, transparent);
   text-decoration: none;
   transition: background-color 120ms ease;
 }
@@ -623,7 +592,7 @@ body {
 }
 
 .aras-app-row:hover {
-  background: color-mix(in srgb, var(--aras-accent, #7a2e2e) 6%, var(--aras-panel, #fff));
+  background: color-mix(in srgb, var(--app-accent) 6%, var(--app-panel));
 }
 
 .aras-app-row__icon {
@@ -632,16 +601,16 @@ body {
   height: 28px;
   align-items: center;
   justify-content: center;
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--aras-accent, #7a2e2e) 8%, var(--aras-panel, #fff));
-  color: var(--aras-accent, #7a2e2e);
+  border-radius: calc(var(--app-radius) * 0.6);
+  background: color-mix(in srgb, var(--app-accent) 8%, var(--app-panel));
+  color: var(--app-accent);
   flex-shrink: 0;
 }
 
 .aras-app-row__label {
-  font-size: calc(13.5px * var(--aras-font-scale, 1));
+  font-size: calc(13.5px * var(--app-font-scale));
   font-weight: 700;
-  color: var(--aras-text, #0f172a);
+  color: var(--app-text);
   line-height: 1.2;
 }
 
@@ -696,7 +665,7 @@ body {
 
 .dark .min-h-screen.bg-slate-50 button[type="submit"] {
   background-color: var(--app-accent) !important;
-  box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4) !important;
+  box-shadow: 0 10px 15px -3px var(--app-accent-glow) !important;
 }
 
 .dark .min-h-screen.bg-slate-50 button[type="submit"]:hover {
@@ -739,16 +708,25 @@ body {
 
   .app-app-card,
   .aras-app-card {
-    min-height: 70px;
-    grid-template-columns: 40px minmax(0, 1fr) 18px;
-    padding: 12px 13px;
+    flex-direction: row;
+    min-height: 80px;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
   }
 
   .app-app-card__icon,
   .aras-app-card__icon {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
+    margin-bottom: 0;
   }
+
+  .app-app-card__arrow {
+    position: static;
+    opacity: 0.6;
+  }
+
 
   .app-section-header,
   .aras-section-header {
@@ -793,6 +771,6 @@ body {
     min-height: 48px !important;
     padding: 12px 16px !important;
     font-size: calc(15px * var(--app-font-scale)) !important;
-    border-radius: 16px !important;
+    border-radius: var(--app-radius) !important;
   }
 }

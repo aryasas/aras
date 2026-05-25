@@ -21,11 +21,11 @@ const ACTION_META = {
 }
 
 function DiffCell({ from, to }: { from: any; to: any }) {
-  const fmt = (v: any) => (v === null || v === undefined ? <span className="italic text-slate-400">null</span> : <span>{String(v)}</span>)
+  const fmt = (v: any) => (v === null || v === undefined ? <span className="italic text-[var(--app-muted)]">null</span> : <span>{String(v)}</span>)
   return (
     <span className="flex items-center gap-1.5 text-xs">
-      <span className="line-through text-slate-400">{fmt(from)}</span>
-      <ArrowRight size={10} className="text-slate-400 shrink-0" />
+      <span className="line-through text-[var(--app-muted)]">{fmt(from)}</span>
+      <ArrowRight size={10} className="text-[var(--app-muted)] shrink-0" />
       <span className="font-semibold text-slate-800">{fmt(to)}</span>
     </span>
   )
@@ -42,7 +42,7 @@ function LogCard({ entry }: { entry: LogEntry }) {
     <div className="flex gap-4">
       {/* Timeline dot */}
       <div className="flex flex-col items-center">
-        <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${meta.color}`}>
+        <div className={`w-9 h-9 rounded-[var(--app-radius)] border flex items-center justify-center shrink-0 ${meta.color}`}>
           <Icon size={16} />
         </div>
         <div className="w-px flex-1 bg-slate-200 mt-1" />
@@ -51,21 +51,21 @@ function LogCard({ entry }: { entry: LogEntry }) {
       {/* Card */}
       <div className="mb-4 flex-1 min-w-0">
         <div
-          className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden cursor-pointer hover:border-indigo-200 transition-all"
+          className="bg-[var(--app-panel)] rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-sm overflow-hidden cursor-pointer hover:border-indigo-200 transition-all"
           onClick={() => changedFields.length > 0 && setOpen(o => !o)}
         >
           <div className="px-4 py-3 flex items-center gap-3 flex-wrap">
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-lg border ${meta.color}`}>{meta.label}</span>
-            <span className="font-semibold text-slate-700 text-sm">
-              <span className="text-slate-400 font-normal">on </span>{entry.resource}
-              <span className="text-slate-400 font-normal"> #{entry.resource_id}</span>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-[var(--app-radius)] border ${meta.color}`}>{meta.label}</span>
+            <span className="font-semibold text-[var(--app-text)] text-sm">
+              <span className="text-[var(--app-muted)] font-normal">on </span>{entry.resource}
+              <span className="text-[var(--app-muted)] font-normal"> #{entry.resource_id}</span>
             </span>
             {entry.user_id && (
-              <span className="flex items-center gap-1 text-xs text-slate-500">
+              <span className="flex items-center gap-1 text-xs text-[var(--app-muted)]">
                 <User size={12} /> user #{entry.user_id}
               </span>
             )}
-            <span className="ml-auto flex items-center gap-1 text-xs text-slate-400">
+            <span className="ml-auto flex items-center gap-1 text-xs text-[var(--app-muted)]">
               <Clock size={11} />
               {new Date(entry.created_at).toLocaleString()}
             </span>
@@ -75,18 +75,18 @@ function LogCard({ entry }: { entry: LogEntry }) {
           </div>
 
           {open && changedFields.length > 0 && (
-            <div className="border-t border-slate-100 bg-slate-50 px-4 py-3">
+            <div className="border-t border-[var(--app-border)] bg-[var(--app-panel-soft)] px-4 py-3">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="text-slate-400 text-left">
+                  <tr className="text-[var(--app-muted)] text-left">
                     <th className="pb-1.5 font-semibold w-1/4">Field</th>
                     <th className="pb-1.5 font-semibold">Change</th>
                   </tr>
                 </thead>
                 <tbody>
                   {changedFields.map(field => (
-                    <tr key={field} className="border-t border-slate-100">
-                      <td className="py-1.5 pr-4 text-slate-500 font-mono">{field}</td>
+                    <tr key={field} className="border-t border-[var(--app-border)]">
+                      <td className="py-1.5 pr-4 text-[var(--app-muted)] font-mono">{field}</td>
                       <td className="py-1.5">
                         <DiffCell from={changes[field][0]} to={changes[field][1]} />
                       </td>
@@ -142,10 +142,10 @@ const AuditLogs = () => {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">System Audit Trail</h1>
-          <p className="text-slate-500 mt-1">Full change history — click any entry to expand the field diff.</p>
+          <h1 className="text-3xl font-extrabold text-[var(--app-text)] tracking-tight">System Audit Trail</h1>
+          <p className="text-[var(--app-muted)] mt-1">Full change history — click any entry to expand the field diff.</p>
         </div>
-        <button onClick={fetchLogs} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
+        <button onClick={fetchLogs} className="flex items-center gap-2 px-4 py-2 bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius)] text-sm font-medium text-slate-600 hover:bg-[var(--app-panel-soft)] transition-all">
           <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh
         </button>
       </div>
@@ -153,9 +153,9 @@ const AuditLogs = () => {
       {/* Toolbar */}
       <div className="flex gap-3 flex-wrap items-center">
         <div className="relative flex-1 min-w-[220px] max-w-sm">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" />
           <input
-            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full pl-9 pr-4 py-2 bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius)] text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
             placeholder="Search resource, user..."
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -166,14 +166,14 @@ const AuditLogs = () => {
             <button
               key={a}
               onClick={() => setActionFilter(a)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${actionFilter === a ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+              className={`px-3 py-1.5 rounded-[var(--app-radius)] text-xs font-bold border transition-all ${actionFilter === a ? 'bg-[var(--app-accent)] text-white border-indigo-600' : 'bg-[var(--app-panel)] border-[var(--app-border)] text-slate-600 hover:bg-[var(--app-panel-soft)]'}`}
             >
               {a || 'All'}
             </button>
           ))}
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs font-medium text-slate-400">Page size:</span>
+          <span className="text-xs font-medium text-[var(--app-muted)]">Page size:</span>
           <Combobox 
             options={[
               { label: '10', value: 10 },
@@ -192,11 +192,11 @@ const AuditLogs = () => {
 
       {/* Timeline */}
       {loading ? (
-        <div className="flex items-center justify-center py-20 text-slate-400 gap-3">
+        <div className="flex items-center justify-center py-20 text-[var(--app-muted)] gap-3">
           <RefreshCw size={20} className="animate-spin" /> Loading audit trail...
         </div>
       ) : entries.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
+        <div className="flex flex-col items-center justify-center py-20 gap-3 text-[var(--app-muted)]">
           <Database size={40} strokeWidth={1} />
           <p>No audit records found.</p>
         </div>
@@ -208,12 +208,12 @@ const AuditLogs = () => {
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-3 pt-2 pb-4">
               <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-                className="px-4 py-1.5 rounded-xl border border-slate-200 text-sm font-medium disabled:opacity-40 hover:bg-slate-50 transition-all">
+                className="px-4 py-1.5 rounded-[var(--app-radius)] border border-[var(--app-border)] text-sm font-medium disabled:opacity-40 hover:bg-[var(--app-panel-soft)] transition-all">
                 Prev
               </button>
-              <span className="text-sm text-slate-500">Page {page} of {totalPages}</span>
+              <span className="text-sm text-[var(--app-muted)]">Page {page} of {totalPages}</span>
               <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}
-                className="px-4 py-1.5 rounded-xl border border-slate-200 text-sm font-medium disabled:opacity-40 hover:bg-slate-50 transition-all">
+                className="px-4 py-1.5 rounded-[var(--app-radius)] border border-[var(--app-border)] text-sm font-medium disabled:opacity-40 hover:bg-[var(--app-panel-soft)] transition-all">
                 Next
               </button>
             </div>

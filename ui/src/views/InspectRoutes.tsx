@@ -33,54 +33,54 @@ export default function InspectRoutes() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate('/dev')}
-            className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
+            className="p-3 bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius-lg)] text-slate-600 hover:bg-[var(--app-panel-soft)] transition-all shadow-sm"
           >
             <ChevronLeft size={20} />
           </button>
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-              <Globe className="text-indigo-600" />
+            <h1 className="text-3xl font-black text-[var(--app-text)] tracking-tight flex items-center gap-3">
+              <Globe className="text-[var(--app-accent)]" />
               API Route Map
             </h1>
-            <p className="text-slate-500 mt-1 font-medium">Full manifest of registered endpoints in the framework.</p>
+            <p className="text-[var(--app-muted)] mt-1 font-medium">Full manifest of registered endpoints in the framework.</p>
           </div>
         </div>
         
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" size={18} />
           <input 
             type="text"
             placeholder="Search routes..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-12 pr-6 py-3 bg-white border border-slate-200 rounded-2xl w-80 focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-slate-700 shadow-sm"
+            className="pl-12 pr-6 py-3 bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius-lg)] w-80 focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-[var(--app-text)] shadow-sm"
           />
         </div>
       </div>
 
-      <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-[var(--app-panel)] rounded-[2.5rem] border border-[var(--app-border)] shadow-sm overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-100">
-              <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-wider w-32">Methods</th>
-              <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-wider">Endpoint Path</th>
-              <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-wider">Internal Name</th>
-              <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-wider text-right">Security Scope</th>
+            <tr className="bg-[var(--app-panel-soft)] border-b border-[var(--app-border)]">
+              <th className="px-8 py-5 text-xs font-black text-[var(--app-muted)] uppercase tracking-wider w-32">Methods</th>
+              <th className="px-8 py-5 text-xs font-black text-[var(--app-muted)] uppercase tracking-wider">Endpoint Path</th>
+              <th className="px-8 py-5 text-xs font-black text-[var(--app-muted)] uppercase tracking-wider">Internal Name</th>
+              <th className="px-8 py-5 text-xs font-black text-[var(--app-muted)] uppercase tracking-wider text-right">Security Scope</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
             {loading ? (
               [...Array(8)].map((_, i) => (
                 <tr key={i} className="animate-pulse">
-                  <td className="px-8 py-6"><div className="h-6 bg-slate-100 rounded-lg w-20"></div></td>
-                  <td className="px-8 py-6"><div className="h-6 bg-slate-100 rounded-lg w-64"></div></td>
-                  <td className="px-8 py-6"><div className="h-6 bg-slate-100 rounded-lg w-32"></div></td>
-                  <td className="px-8 py-6 text-right"><div className="h-6 bg-slate-100 rounded-lg w-24 ml-auto"></div></td>
+                  <td className="px-8 py-6"><div className="h-6 bg-[var(--app-panel-soft)] rounded-[var(--app-radius)] w-20"></div></td>
+                  <td className="px-8 py-6"><div className="h-6 bg-[var(--app-panel-soft)] rounded-[var(--app-radius)] w-64"></div></td>
+                  <td className="px-8 py-6"><div className="h-6 bg-[var(--app-panel-soft)] rounded-[var(--app-radius)] w-32"></div></td>
+                  <td className="px-8 py-6 text-right"><div className="h-6 bg-[var(--app-panel-soft)] rounded-[var(--app-radius)] w-24 ml-auto"></div></td>
                 </tr>
               ))
             ) : filteredRoutes.length > 0 ? (
               filteredRoutes.map((route, i) => (
-                <tr key={i} className="hover:bg-slate-50/50 transition-colors group">
+                <tr key={i} className="hover:bg-[var(--app-panel-soft)]/50 transition-colors group">
                   <td className="px-8 py-6">
                     <div className="flex flex-wrap gap-1">
                       {route.methods.filter(m => m !== 'OPTIONS' && m !== 'HEAD').map(m => (
@@ -89,7 +89,7 @@ export default function InspectRoutes() {
                           m === 'POST' ? 'bg-emerald-100 text-emerald-700' :
                           m === 'PUT' ? 'bg-amber-100 text-amber-700' :
                           m === 'DELETE' ? 'bg-rose-100 text-rose-700' :
-                          'bg-slate-100 text-slate-700'
+                          'bg-[var(--app-panel-soft)] text-[var(--app-text)]'
                         }`}>
                           {m}
                         </span>
@@ -98,12 +98,12 @@ export default function InspectRoutes() {
                   </td>
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-2">
-                       <code className="text-indigo-600 font-bold text-sm bg-indigo-50/50 px-2 py-1 rounded-lg group-hover:bg-indigo-100 transition-colors">
+                       <code className="text-[var(--app-accent)] font-bold text-sm bg-[var(--app-accent-glow)]/50 px-2 py-1 rounded-[var(--app-radius)] group-hover:bg-indigo-100 transition-colors">
                         {route.path}
                       </code>
                     </div>
                   </td>
-                  <td className="px-8 py-6 text-sm font-bold text-slate-400 italic">
+                  <td className="px-8 py-6 text-sm font-bold text-[var(--app-muted)] italic">
                     {route.name || '-'}
                   </td>
                   <td className="px-8 py-6 text-right">
@@ -116,7 +116,7 @@ export default function InspectRoutes() {
                          Identity
                        </span>
                      ) : (
-                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-50 text-slate-400 text-[10px] font-black uppercase rounded-full border border-slate-100">
+                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--app-panel-soft)] text-[var(--app-muted)] text-[10px] font-black uppercase rounded-full border border-[var(--app-border)]">
                          Resource
                        </span>
                      )}

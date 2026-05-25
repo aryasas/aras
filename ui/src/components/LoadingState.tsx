@@ -7,7 +7,7 @@ interface LoadingStateProps {
 
 export function LoadingState({ label = 'Loading...', className = '' }: LoadingStateProps) {
   return (
-    <div className={`flex items-center justify-center gap-2 p-8 text-sm text-slate-400 ${className}`}>
+    <div className={`flex items-center justify-center gap-2 p-8 text-sm text-[var(--app-muted)] ${className}`}>
       <Loader2 size={18} className="animate-spin" />
       <span>{label}</span>
     </div>

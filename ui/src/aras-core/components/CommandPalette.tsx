@@ -15,10 +15,10 @@ const SHORTCUTS = [
 
 const ShortcutMap: React.FC<{ onClose: () => void }> = ({ onClose }) => (
   <div className="fixed inset-0 z-[110] flex items-center justify-center px-4 bg-black/50 backdrop-blur-sm">
-    <div className="bg-[var(--aras-panel)] rounded-2xl shadow-2xl border border-[var(--aras-border)] w-full max-w-md overflow-hidden">
+    <div className="bg-[var(--aras-panel)] rounded-[var(--app-radius-lg)] shadow-2xl border border-[var(--aras-border)] w-full max-w-md overflow-hidden">
       <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[var(--aras-border)]">
         <h2 className="text-base font-extrabold text-[var(--aras-text)]">Keyboard Shortcuts</h2>
-        <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-[var(--aras-panel-soft)] text-[var(--aras-muted)] transition-all">
+        <button onClick={onClose} className="p-1.5 rounded-[var(--app-radius)] hover:bg-[var(--aras-panel-soft)] text-[var(--aras-muted)] transition-all">
           <LucideIcons.X size={18} />
         </button>
       </div>
@@ -28,7 +28,7 @@ const ShortcutMap: React.FC<{ onClose: () => void }> = ({ onClose }) => (
             <span className="text-sm text-[var(--aras-text)]">{s.description}</span>
             <div className="flex items-center gap-1">
               {s.keys.map((k, ki) => (
-                <kbd key={ki} className="bg-[var(--aras-panel-soft)] border border-[var(--aras-border)] rounded-lg px-2 py-0.5 text-xs font-bold text-[var(--aras-text)] shadow-sm">{k}</kbd>
+                <kbd key={ki} className="bg-[var(--aras-panel-soft)] border border-[var(--aras-border)] rounded-[var(--app-radius)] px-2 py-0.5 text-xs font-bold text-[var(--aras-text)] shadow-sm">{k}</kbd>
               ))}
             </div>
           </div>
@@ -110,7 +110,7 @@ export const CommandPalette: React.FC = () => {
 
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-start justify-center pt-24 px-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-2xl bg-[var(--aras-panel)] rounded-2xl shadow-2xl border border-[var(--aras-border)] overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="w-full max-w-2xl bg-[var(--aras-panel)] rounded-[var(--app-radius-lg)] shadow-2xl border border-[var(--aras-border)] overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="relative">
               <LucideIcons.Search className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--aras-muted)]" size={18} />
               <input
@@ -129,12 +129,12 @@ export const CommandPalette: React.FC = () => {
                 {results.map((result, idx) => (
                   <div
                     key={`${result.resource}-${result.id}`}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl cursor-pointer transition-all ${
-                      idx === selectedIndex ? 'bg-[var(--aras-accent)] text-white' : 'text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]'
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-[var(--app-radius)] cursor-pointer transition-all ${
+                      idx === selectedIndex ? 'bg-[var(--app-primary-action)] text-white' : 'text-[var(--app-text)] hover:bg-[var(--app-panel-soft)]'
                     }`}
                     onClick={() => handleSelect(result)}
                   >
-                    <div className={`p-1.5 rounded-lg ${idx === selectedIndex ? 'bg-white/20' : 'bg-[var(--aras-panel-soft)]'}`}>
+                    <div className={`p-1.5 rounded-[var(--app-radius)] ${idx === selectedIndex ? 'bg-[var(--app-panel)]/20' : 'bg-[var(--aras-panel-soft)]'}`}>
                       <LucideIcons.Box size={16} />
                     </div>
                     <div className="flex-1">

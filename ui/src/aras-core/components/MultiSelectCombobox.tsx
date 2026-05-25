@@ -146,7 +146,7 @@ const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({
     <div 
       ref={dropdownRef}
       style={dropdownStyles}
-      className="bg-[var(--aras-panel)] border border-[var(--aras-border-strong)] rounded-lg shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 ring-1 ring-black/5"
+      className="bg-[var(--aras-panel)] border border-[var(--aras-border-strong)] rounded-[var(--app-radius)] shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 ring-1 ring-black/5"
     >
       <div className="p-1.5 border-b border-[var(--aras-border)] bg-[var(--aras-panel-soft)]/50">
         <div className="relative group">

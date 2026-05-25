@@ -63,7 +63,7 @@ export function AppSwitcher({ sidebarData }: AppSwitcherProps) {
         onClick={() => setOpen(!open)}
         className="flex h-11 max-w-[260px] items-center gap-2 rounded-[calc(var(--aras-radius)*0.68)] border border-[var(--aras-border)] bg-[var(--aras-panel-soft)]/75 px-3 text-left shadow-inner transition-all hover:bg-[var(--aras-panel)]"
       >
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[var(--aras-panel)] text-[var(--aras-accent)] shadow-sm ring-1 ring-[var(--aras-border)]">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[var(--app-radius)] bg-[var(--aras-panel)] text-[var(--aras-accent)] shadow-sm ring-1 ring-[var(--aras-border)]">
           <ActiveIcon size={17} />
         </span>
         <span className="hidden min-w-0 sm:block">
@@ -84,7 +84,7 @@ export function AppSwitcher({ sidebarData }: AppSwitcherProps) {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Find app or module..."
-                className="h-10 w-full rounded-xl border border-[var(--aras-border)] bg-[var(--aras-panel)] pl-9 pr-3 text-sm font-semibold text-[var(--aras-text)] outline-none placeholder:text-[var(--aras-muted)] focus:border-[var(--aras-accent)]"
+                className="h-10 w-full rounded-[var(--app-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)] pl-9 pr-3 text-sm font-semibold text-[var(--aras-text)] outline-none placeholder:text-[var(--aras-muted)] focus:border-[var(--aras-accent)]"
               />
             </div>
           </div>
@@ -97,10 +97,10 @@ export function AppSwitcher({ sidebarData }: AppSwitcherProps) {
                   key={`${app.name}-${app.path}`}
                   to={app.path || `/${app.name}`}
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all hover:bg-[var(--aras-panel-soft)]"
+                  className="flex items-center gap-3 rounded-[var(--app-radius)] px-3 py-2.5 transition-all hover:bg-[var(--aras-panel-soft)]"
                   style={active ? { backgroundColor: 'color-mix(in srgb, var(--aras-accent) 10%, transparent)' } : undefined}
                 >
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--aras-panel-soft)] text-[var(--aras-accent)]">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[var(--app-radius)] bg-[var(--aras-panel-soft)] text-[var(--aras-accent)]">
                     <Icon size={18} />
                   </span>
                   <span className="min-w-0">

@@ -59,7 +59,7 @@ export function Outline() {
           type="button"
           onClick={() => actions.selectNode(id)}
           className={[
-            'flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-sm transition-colors',
+            'flex w-full items-center gap-2 rounded-[var(--app-radius)] px-2 py-1.5 text-left text-sm transition-colors',
             selectedId === id
               ? 'bg-[rgba(20,184,166,0.12)] text-[var(--ts-brand-700)]'
               : 'text-[var(--ts-surface-700)] hover:bg-[var(--ts-surface-50)]',
@@ -111,7 +111,7 @@ export function Outline() {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Find node"
-          className="w-full rounded-2xl border border-[var(--ts-surface-200)] bg-white py-2.5 pl-9 pr-3 text-sm text-[var(--ts-surface-800)] outline-none"
+          className="w-full rounded-[var(--app-radius-lg)] border border-[var(--ts-surface-200)] bg-[var(--app-panel)] py-2.5 pl-9 pr-3 text-sm text-[var(--ts-surface-800)] outline-none"
         />
       </label>
       <div className="max-h-[420px] overflow-y-auto">

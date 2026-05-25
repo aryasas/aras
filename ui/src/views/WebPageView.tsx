@@ -43,7 +43,7 @@ export default function WebPageView() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-12 text-sm text-slate-500">
+      <main className="mx-auto max-w-3xl px-6 py-12 text-sm text-[var(--app-muted)]">
         Loading...
       </main>
     )
@@ -52,14 +52,14 @@ export default function WebPageView() {
   if (notFound || !page) {
     return (
       <main className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="text-2xl font-bold text-slate-900">Page not found</h1>
+        <h1 className="text-2xl font-bold text-[var(--app-text)]">Page not found</h1>
       </main>
     )
   }
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
-      <h1 className="text-3xl font-bold text-slate-900">{page.title}</h1>
+      <h1 className="text-3xl font-bold text-[var(--app-text)]">{page.title}</h1>
       <div
         className="prose prose-slate mt-8 max-w-none"
         dangerouslySetInnerHTML={{ __html: page.content }}

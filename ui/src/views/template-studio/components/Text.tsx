@@ -57,7 +57,7 @@ export function Text({
         variant === 'paragraph' ? (
           <textarea
             autoFocus
-            className="w-full rounded-xl border border-[var(--ts-brand-300)] bg-white px-3 py-2 text-sm font-medium text-[var(--ts-surface-800)] outline-none"
+            className="w-full rounded-[var(--app-radius)] border border-[var(--ts-brand-300)] bg-[var(--app-panel)] px-3 py-2 text-sm font-medium text-[var(--ts-surface-800)] outline-none"
             defaultValue={text}
             rows={3}
             onBlur={(event) => commit(event.target.value)}
@@ -65,7 +65,7 @@ export function Text({
         ) : (
           <input
             autoFocus
-            className="w-full rounded-xl border border-[var(--ts-brand-300)] bg-white px-3 py-2 text-sm font-semibold text-[var(--ts-surface-800)] outline-none"
+            className="w-full rounded-[var(--app-radius)] border border-[var(--ts-brand-300)] bg-[var(--app-panel)] px-3 py-2 text-sm font-semibold text-[var(--ts-surface-800)] outline-none"
             defaultValue={text}
             onBlur={(event) => commit(event.target.value)}
             onKeyDown={(event) => {

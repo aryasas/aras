@@ -78,7 +78,7 @@ const sections: Section[] = [
 ]
 
 const colorMap: Record<string, { bg: string; text: string; badge: string }> = {
-  indigo: { bg: 'bg-indigo-50', text: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
+  indigo: { bg: 'bg-[var(--app-accent-glow)]', text: 'text-[var(--app-accent)]', badge: 'bg-indigo-100 text-indigo-700' },
   emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600', badge: 'bg-emerald-100 text-emerald-700' },
   blue:    { bg: 'bg-blue-50',    text: 'text-blue-600',    badge: 'bg-blue-100 text-blue-700' },
   purple:  { bg: 'bg-purple-50',  text: 'text-purple-600',  badge: 'bg-purple-100 text-purple-700' },
@@ -92,18 +92,18 @@ export default function HelpDev() {
       <div className="flex items-start justify-between mb-10">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-3 bg-slate-900 text-white rounded-2xl">
+            <div className="p-3 bg-slate-900 text-white rounded-[var(--app-radius-lg)]">
               <Terminal size={24} />
             </div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Developer Reference</h1>
+            <h1 className="text-3xl font-black text-[var(--app-text)] tracking-tight">Developer Reference</h1>
           </div>
-          <p className="text-slate-500 font-medium ml-16">Aras framework — architecture, patterns, CLI commands, and agent workflows.</p>
+          <p className="text-[var(--app-muted)] font-medium ml-16">Aras framework — architecture, patterns, CLI commands, and agent workflows.</p>
         </div>
         <div className="flex gap-3">
-          <Link to="/dev" className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-sm font-bold text-slate-700 transition-all">
+          <Link to="/dev" className="flex items-center gap-2 px-4 py-2 bg-[var(--app-panel-soft)] hover:bg-slate-200 rounded-[var(--app-radius)] text-sm font-bold text-[var(--app-text)] transition-all">
             <Cpu size={14} /> DevTools
           </Link>
-          <Link to="/help" className="flex items-center gap-2 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 rounded-xl text-sm font-bold text-indigo-700 transition-all">
+          <Link to="/help" className="flex items-center gap-2 px-4 py-2 bg-[var(--app-accent-glow)] hover:bg-indigo-100 rounded-[var(--app-radius)] text-sm font-bold text-indigo-700 transition-all">
             User Guide <ChevronRight size={14} />
           </Link>
         </div>
@@ -118,7 +118,7 @@ export default function HelpDev() {
           { label: 'Handoff Runs', path: '/dev', icon: <GitBranch size={14} /> },
         ].map(l => (
           <Link key={l.path} to={l.path}
-            className="flex items-center justify-between px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-600 transition-all"
+            className="flex items-center justify-between px-4 py-3 bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius-lg)] text-sm font-bold text-[var(--app-text)] hover:border-indigo-300 hover:text-[var(--app-accent)] transition-all"
           >
             {l.label} {l.icon}
           </Link>
@@ -130,10 +130,10 @@ export default function HelpDev() {
         {sections.map(sec => {
           const c = colorMap[sec.color]
           return (
-            <div key={sec.title} className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
-              <div className={`flex items-center gap-3 px-8 py-5 border-b border-slate-100 ${c.bg}`}>
+            <div key={sec.title} className="bg-[var(--app-panel)] rounded-[2rem] border border-[var(--app-border)] shadow-sm overflow-hidden">
+              <div className={`flex items-center gap-3 px-8 py-5 border-b border-[var(--app-border)] ${c.bg}`}>
                 <div className={`${c.text}`}>{sec.icon}</div>
-                <h2 className="text-lg font-black text-slate-900">{sec.title}</h2>
+                <h2 className="text-lg font-black text-[var(--app-text)]">{sec.title}</h2>
               </div>
               <div className="divide-y divide-slate-50">
                 {sec.items.map(item => (
@@ -141,11 +141,11 @@ export default function HelpDev() {
                     <div className="flex items-start gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className={`px-2 py-0.5 rounded-lg text-xs font-black ${c.badge}`}>{item.label}</span>
+                          <span className={`px-2 py-0.5 rounded-[var(--app-radius)] text-xs font-black ${c.badge}`}>{item.label}</span>
                         </div>
                         <p className="text-slate-600 text-sm">{item.desc}</p>
                         {item.code && (
-                          <pre className="mt-3 bg-slate-950 text-slate-200 rounded-xl px-4 py-3 text-xs font-mono overflow-x-auto whitespace-pre">{item.code}</pre>
+                          <pre className="mt-3 bg-slate-950 text-slate-200 rounded-[var(--app-radius)] px-4 py-3 text-xs font-mono overflow-x-auto whitespace-pre">{item.code}</pre>
                         )}
                       </div>
                     </div>

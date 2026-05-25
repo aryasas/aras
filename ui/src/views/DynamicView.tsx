@@ -23,7 +23,7 @@ export default function DynamicView() {
   }
   
   if (segments.length < 2) {
-    return <div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200">Invalid resource path.</div>
+    return <div className="p-12 text-center text-[var(--app-muted)] bg-[var(--app-panel)] rounded-[var(--app-radius-lg)] border border-dashed border-[var(--app-border)]">Invalid resource path.</div>
   }
 
   let resource = ""

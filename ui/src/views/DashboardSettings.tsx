@@ -21,11 +21,11 @@ export default function DashboardSettings() {
     <div className="p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-            <LayoutDashboard className="text-indigo-600" />
+          <h1 className="text-3xl font-black text-[var(--app-text)] tracking-tight flex items-center gap-3">
+            <LayoutDashboard className="text-[var(--app-accent)]" />
             Dashboard Settings
           </h1>
-          <p className="text-slate-500 mt-1 font-medium">Manage dashboard widgets and per-user dashboard layout.</p>
+          <p className="text-[var(--app-muted)] mt-1 font-medium">Manage dashboard widgets and per-user dashboard layout.</p>
         </div>
       </div>
 
@@ -34,16 +34,16 @@ export default function DashboardSettings() {
           <Link
             key={section.title}
             to={section.path}
-            className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group"
+            className="bg-[var(--app-panel)] p-6 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group"
           >
             <div className="flex items-start gap-4">
-              <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+              <div className="p-4 bg-[var(--app-accent-glow)] rounded-[var(--app-radius-lg)] text-[var(--app-accent)] group-hover:bg-[var(--app-accent)] group-hover:text-white transition-colors">
                 {section.icon}
               </div>
               <div className="flex-1">
-                <h2 className="text-lg font-black text-slate-900 mb-2">{section.title}</h2>
-                <p className="text-sm leading-relaxed text-slate-500">{section.description}</p>
-                <div className="mt-5 inline-flex items-center gap-2 text-sm font-black text-indigo-600">
+                <h2 className="text-lg font-black text-[var(--app-text)] mb-2">{section.title}</h2>
+                <p className="text-sm leading-relaxed text-[var(--app-muted)]">{section.description}</p>
+                <div className="mt-5 inline-flex items-center gap-2 text-sm font-black text-[var(--app-accent)]">
                   Open
                   <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                 </div>

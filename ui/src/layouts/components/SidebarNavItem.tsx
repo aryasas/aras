@@ -16,11 +16,11 @@ export function SidebarNavItem({ to, icon, label, active = false, collapsed = tr
       title={label} 
       aria-label={label} 
       className={`
-        group relative flex h-[48px] items-center transition-all duration-300 max-sm:h-[54px] max-sm:min-w-[58px] my-1 rounded-[14px]
+        group relative flex h-[48px] items-center transition-all duration-300 max-sm:h-[54px] max-sm:min-w-[58px] my-1 rounded-[var(--app-radius)]
         ${collapsed ? 'justify-center w-[48px] mx-auto' : 'justify-start px-3 w-full'}
         ${active 
-          ? 'font-bold bg-[var(--aras-accent)] text-white shadow-[0_10px_20px_-14px_var(--aras-accent)]'
-          : 'text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)] hover:text-[var(--aras-text)]'}
+          ? 'font-bold bg-[var(--app-primary-action)] text-white shadow-lg shadow-[var(--app-accent-glow)]'
+          : 'text-[var(--app-muted)] hover:bg-[var(--app-panel-soft)] hover:text-[var(--app-text)]'}
       `} 
     >
       <span className={`shrink-0 transition-transform group-hover:scale-110 ${active ? 'text-white' : 'text-[var(--aras-muted)] group-hover:text-[var(--aras-text)]'}`}>

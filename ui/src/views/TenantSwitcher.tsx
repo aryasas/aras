@@ -65,15 +65,15 @@ export default function TenantSwitcher() {
   if (!DEV_MULTI_TENANT) return null
 
   return (
-    <div className="lg:col-span-3 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+    <div className="lg:col-span-3 bg-[var(--app-panel)] p-6 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-sm">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+          <div className="p-3 bg-amber-50 text-amber-600 rounded-[var(--app-radius)]">
             <Building2 size={22} />
           </div>
           <div>
-            <h2 className="text-lg font-black text-slate-900">Tenant Context</h2>
-            <p className="text-sm text-slate-500 font-medium">
+            <h2 className="text-lg font-black text-[var(--app-text)]">Tenant Context</h2>
+            <p className="text-sm text-[var(--app-muted)] font-medium">
               Active tenant: {selectedTenant ? tenantLabel(selectedTenant) : tenantId || 'None selected'}
             </p>
           </div>
@@ -96,7 +96,7 @@ export default function TenantSwitcher() {
             type="button"
             onClick={fetchTenants}
             disabled={loading}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100 disabled:opacity-50"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-panel-soft)] text-slate-600 transition hover:bg-[var(--app-panel-soft)] disabled:opacity-50"
             title="Refresh tenants"
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
@@ -105,7 +105,7 @@ export default function TenantSwitcher() {
       </div>
 
       {error && (
-        <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+        <div className="mt-4 rounded-[var(--app-radius)] border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
           {error}
         </div>
       )}

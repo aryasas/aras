@@ -112,7 +112,7 @@ export default function DevTools() {
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-3 bg-[var(--app-accent)] text-white rounded-[var(--app-radius-lg)] font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 disabled:opacity-50"
         >
           <RefreshCw className={syncing ? 'animate-spin' : ''} size={18} />
           {syncing ? 'Syncing...' : 'Force Metadata Sync'}
@@ -120,23 +120,23 @@ export default function DevTools() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-8 bg-slate-100 p-1 rounded-2xl w-fit">
+      <div className="flex gap-2 mb-8 bg-[var(--app-panel-soft)] p-1 rounded-[var(--app-radius-lg)] w-fit">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${
+          className={`px-6 py-2 rounded-[var(--app-radius)] font-bold text-sm transition-all ${
             activeTab === 'overview'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
+              ? 'bg-[var(--app-panel)] text-[var(--app-text)] shadow-sm'
+              : 'text-[var(--app-muted)] hover:text-[var(--app-text)]'
           }`}
         >
           Overview
         </button>
         <button
           onClick={() => setActiveTab('handoff')}
-          className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold text-sm transition-all ${
+          className={`flex items-center gap-2 px-6 py-2 rounded-[var(--app-radius)] font-bold text-sm transition-all ${
             activeTab === 'handoff'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
+              ? 'bg-[var(--app-panel)] text-[var(--app-text)] shadow-sm'
+              : 'text-[var(--app-muted)] hover:text-[var(--app-text)]'
           }`}
         >
           <GitBranch size={14} />
@@ -149,37 +149,37 @@ export default function DevTools() {
           <TenantSwitcher />
 
           {/* Builder Control */}
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
+          <div className="bg-[var(--app-panel)] p-8 rounded-[2.5rem] border border-[var(--app-border)] shadow-sm">
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-pink-50 text-pink-600 rounded-2xl">
+              <div className="p-3 bg-pink-50 text-pink-600 rounded-[var(--app-radius-lg)]">
                 <Layout size={24} />
               </div>
-              <h2 className="text-xl font-black text-slate-900">Design Mode</h2>
+              <h2 className="text-xl font-black text-[var(--app-text)]">Design Mode</h2>
             </div>
             
-            <p className="text-sm text-slate-500 mb-6 font-medium">
+            <p className="text-sm text-[var(--app-muted)] mb-6 font-medium">
               Enable "Design Mode" to highlight editable elements on the current page. Click any element to inspect and adjust its styles.
             </p>
 
             
-            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 mt-4">
-              <span className="font-bold text-slate-700">Active Design Mode {designMode ? 'Enabled' : 'Disabled'}</span>
+            <div className="flex items-center justify-between p-4 bg-[var(--app-panel-soft)] rounded-[var(--app-radius-lg)] border border-[var(--app-border)] mt-4">
+              <span className="font-bold text-[var(--app-text)]">Active Design Mode {designMode ? 'Enabled' : 'Disabled'}</span>
               <div 
                 onClick={toggleDesignMode}
                 className={`w-12 h-7 rounded-full p-1 cursor-pointer transition-colors duration-300 flex items-center ${designMode ? 'bg-pink-500' : 'bg-slate-300'}`}
               >
-                <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 ${designMode ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                <div className={`w-5 h-5 bg-[var(--app-panel)] rounded-full shadow-sm transition-transform duration-300 ${designMode ? 'translate-x-5' : 'translate-x-0'}`}></div>
               </div>
             </div>
           </div>
 
           {/* Framework Info */}
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
+          <div className="bg-[var(--app-panel)] p-8 rounded-[2.5rem] border border-[var(--app-border)] shadow-sm">
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+              <div className="p-3 bg-[var(--app-accent-glow)] text-[var(--app-accent)] rounded-[var(--app-radius-lg)]">
                 <Cpu size={24} />
               </div>
-              <h2 className="text-xl font-black text-slate-900">Framework Info</h2>
+              <h2 className="text-xl font-black text-[var(--app-text)]">Framework Info</h2>
             </div>
             {info ? (
               <div className="space-y-4">
@@ -189,10 +189,10 @@ export default function DevTools() {
                 <InfoRow label="Total Models" value={info.total_models.toString()} />
 
                 <div className="mt-6">
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Discovered Apps</h3>
+                  <h3 className="text-sm font-bold text-[var(--app-muted)] uppercase tracking-wider mb-3">Discovered Apps</h3>
                   <div className="flex flex-wrap gap-2">
                     {info.apps_discovered.map(app => (
-                      <span key={app} className="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-lg border border-slate-200">
+                      <span key={app} className="px-3 py-1 bg-[var(--app-panel-soft)] text-[var(--app-text)] text-xs font-bold rounded-[var(--app-radius)] border border-[var(--app-border)]">
                         {app}
                       </span>
                     ))}
@@ -201,38 +201,38 @@ export default function DevTools() {
               </div>
             ) : (
               <div className="animate-pulse space-y-4">
-                <div className="h-4 bg-slate-100 rounded w-3/4"></div>
-                <div className="h-4 bg-slate-100 rounded w-1/2"></div>
+                <div className="h-4 bg-[var(--app-panel-soft)] rounded w-3/4"></div>
+                <div className="h-4 bg-[var(--app-panel-soft)] rounded w-1/2"></div>
               </div>
             )}
           </div>
 
           {/* Database Explorer */}
-          <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
+          <div className="lg:col-span-2 bg-[var(--app-panel)] p-8 rounded-[2.5rem] border border-[var(--app-border)] shadow-sm">
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
+              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-[var(--app-radius-lg)]">
                 <Database size={24} />
               </div>
-              <h2 className="text-xl font-black text-slate-900">Database Statistics</h2>
+              <h2 className="text-xl font-black text-[var(--app-text)]">Database Statistics</h2>
             </div>
 
-            <div className="overflow-hidden border border-slate-100 rounded-2xl">
+            <div className="overflow-hidden border border-[var(--app-border)] rounded-[var(--app-radius-lg)]">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 border-bottom border-slate-100">
-                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-wider">Table Name</th>
-                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-wider text-right">Row Count</th>
+                  <tr className="bg-[var(--app-panel-soft)] border-bottom border-[var(--app-border)]">
+                    <th className="px-6 py-4 text-xs font-black text-[var(--app-muted)] uppercase tracking-wider">Table Name</th>
+                    <th className="px-6 py-4 text-xs font-black text-[var(--app-muted)] uppercase tracking-wider text-right">Row Count</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {stats.map(stat => (
-                    <tr key={stat.table} className="hover:bg-slate-50/50 transition-colors">
+                    <tr key={stat.table} className="hover:bg-[var(--app-panel-soft)]/50 transition-colors">
                       <td className="px-6 py-4">
-                        <code className="text-indigo-600 font-bold text-sm bg-indigo-50 px-2 py-0.5 rounded-md">
+                        <code className="text-[var(--app-accent)] font-bold text-sm bg-[var(--app-accent-glow)] px-2 py-0.5 rounded-md">
                           {stat.table}
                         </code>
                       </td>
-                      <td className="px-6 py-4 text-right font-mono font-bold text-slate-700">
+                      <td className="px-6 py-4 text-right font-mono font-bold text-[var(--app-text)]">
                         {stat.rows.toLocaleString()}
                       </td>
                     </tr>
@@ -313,14 +313,14 @@ export default function DevTools() {
           <div className="lg:col-span-3 bg-slate-900 p-8 rounded-[2.5rem] text-white overflow-hidden relative">
              <div className="relative z-10">
                <h2 className="text-2xl font-black mb-2">Advanced Inspection</h2>
-               <p className="text-slate-400 mb-8 font-medium">Deep dive into framework internals and runtime state.</p>
+               <p className="text-[var(--app-muted)] mb-8 font-medium">Deep dive into framework internals and runtime state.</p>
 
                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
                   <button
                     onClick={() => navigate('/dev/template-builder')}
-                    className="p-4 bg-slate-800 hover:bg-slate-700 rounded-2xl border border-slate-700 transition-all flex flex-col items-center gap-2 group"
+                    className="p-4 bg-slate-800 hover:bg-slate-700 rounded-[var(--app-radius-lg)] border border-slate-700 transition-all flex flex-col items-center gap-2 group"
                   >
-                    <div className="p-2 bg-pink-500/20 text-pink-400 rounded-lg group-hover:scale-110 transition-transform relative">
+                    <div className="p-2 bg-pink-500/20 text-pink-400 rounded-[var(--app-radius)] group-hover:scale-110 transition-transform relative">
                       <Layout size={20} />
                       <span className="absolute -top-1 -right-1 flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
@@ -329,81 +329,81 @@ export default function DevTools() {
                     </div>
                     <div className="text-center">
                       <div className="font-bold text-sm">Builder</div>
-                      <div className="text-[10px] text-slate-500">Layout Annotator</div>
+                      <div className="text-[10px] text-[var(--app-muted)]">Layout Annotator</div>
                     </div>
                   </button>
 
                   <button
                     onClick={() => navigate('/dev/routes')}
-                    className="p-4 bg-slate-800 hover:bg-slate-700 rounded-2xl border border-slate-700 transition-all flex flex-col items-center gap-2 group"
+                    className="p-4 bg-slate-800 hover:bg-slate-700 rounded-[var(--app-radius-lg)] border border-slate-700 transition-all flex flex-col items-center gap-2 group"
                   >
-                    <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg group-hover:scale-110 transition-transform">
+                    <div className="p-2 bg-[var(--app-accent-glow)]0/20 text-indigo-400 rounded-[var(--app-radius)] group-hover:scale-110 transition-transform">
                       <Layout size={20} />
                     </div>
                     <div className="text-center">
                       <div className="font-bold text-sm">Routes</div>
-                      <div className="text-[10px] text-slate-500">API Map</div>
+                      <div className="text-[10px] text-[var(--app-muted)]">API Map</div>
                     </div>
                   </button>
 
                   <button
                     onClick={() => window.open('/api/v1/dev/inspect/models', '_blank')}
-                    className="p-4 bg-slate-800 hover:bg-slate-700 rounded-2xl border border-slate-700 transition-all flex flex-col items-center gap-2 group"
+                    className="p-4 bg-slate-800 hover:bg-slate-700 rounded-[var(--app-radius-lg)] border border-slate-700 transition-all flex flex-col items-center gap-2 group"
                   >
-                    <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg group-hover:scale-110 transition-transform">
+                    <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-[var(--app-radius)] group-hover:scale-110 transition-transform">
                       <Box size={20} />
                     </div>
                     <div className="text-center">
                       <div className="font-bold text-sm">Models</div>
-                      <div className="text-[10px] text-slate-500">Schema Detail</div>
+                      <div className="text-[10px] text-[var(--app-muted)]">Schema Detail</div>
                     </div>
                   </button>
 
                   <button
                     onClick={() => window.open('/api/v1/dev/inspect/env', '_blank')}
-                    className="p-4 bg-slate-800 hover:bg-slate-700 rounded-2xl border border-slate-700 transition-all flex flex-col items-center gap-2 group"
+                    className="p-4 bg-slate-800 hover:bg-slate-700 rounded-[var(--app-radius-lg)] border border-slate-700 transition-all flex flex-col items-center gap-2 group"
                   >
-                    <div className="p-2 bg-amber-500/20 text-amber-400 rounded-lg group-hover:scale-110 transition-transform">
+                    <div className="p-2 bg-amber-500/20 text-amber-400 rounded-[var(--app-radius)] group-hover:scale-110 transition-transform">
                       <Cpu size={20} />
                     </div>
                     <div className="text-center">
                       <div className="font-bold text-sm">Environment</div>
-                      <div className="text-[10px] text-slate-500">Config</div>
+                      <div className="text-[10px] text-[var(--app-muted)]">Config</div>
                     </div>
                   </button>
 
                   <button
                     onClick={() => window.open('/api/v1/dev/info', '_blank')}
-                    className="p-4 bg-slate-800 hover:bg-slate-700 rounded-2xl border border-slate-700 transition-all flex flex-col items-center gap-2 group"
+                    className="p-4 bg-slate-800 hover:bg-slate-700 rounded-[var(--app-radius-lg)] border border-slate-700 transition-all flex flex-col items-center gap-2 group"
                   >
-                    <div className="p-2 bg-blue-500/20 text-blue-400 rounded-lg group-hover:scale-110 transition-transform">
+                    <div className="p-2 bg-blue-500/20 text-blue-400 rounded-[var(--app-radius)] group-hover:scale-110 transition-transform">
                       <RefreshCw size={20} />
                     </div>
                     <div className="text-center">
                       <div className="font-bold text-sm">Raw Info</div>
-                      <div className="text-[10px] text-slate-500">Engine JSON</div>
+                      <div className="text-[10px] text-[var(--app-muted)]">Engine JSON</div>
                     </div>
                   </button>
 
                   <button
                     onClick={() => window.open('/api/v1/dev/stats', '_blank')}
-                    className="p-4 bg-slate-800 hover:bg-slate-700 rounded-2xl border border-slate-700 transition-all flex flex-col items-center gap-2 group"
+                    className="p-4 bg-slate-800 hover:bg-slate-700 rounded-[var(--app-radius-lg)] border border-slate-700 transition-all flex flex-col items-center gap-2 group"
                   >
-                    <div className="p-2 bg-purple-500/20 text-purple-400 rounded-lg group-hover:scale-110 transition-transform">
+                    <div className="p-2 bg-purple-500/20 text-purple-400 rounded-[var(--app-radius)] group-hover:scale-110 transition-transform">
                       <Database size={20} />
                     </div>
                     <div className="text-center">
                       <div className="font-bold text-sm">Raw Stats</div>
-                      <div className="text-[10px] text-slate-500">DB JSON</div>
+                      <div className="text-[10px] text-[var(--app-muted)]">DB JSON</div>
                     </div>
                   </button>
 
                   <button
                     onClick={handleSync}
                     disabled={syncing}
-                    className="p-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl border border-indigo-500/50 transition-all flex flex-col items-center gap-2 group disabled:opacity-50"
+                    className="p-4 bg-[var(--app-accent)] hover:bg-[var(--app-accent-glow)]0 rounded-[var(--app-radius-lg)] border border-indigo-500/50 transition-all flex flex-col items-center gap-2 group disabled:opacity-50"
                   >
-                    <div className="p-2 bg-white/20 text-white rounded-lg group-hover:rotate-180 transition-transform duration-500">
+                    <div className="p-2 bg-[var(--app-panel)]/20 text-white rounded-[var(--app-radius)] group-hover:rotate-180 transition-transform duration-500">
                       <RefreshCw size={20} className={syncing ? 'animate-spin' : ''} />
                     </div>
                     <div className="text-center">
@@ -414,20 +414,20 @@ export default function DevTools() {
 
                   <button
                     onClick={() => navigate('/dev/help')}
-                    className="p-4 bg-slate-800 hover:bg-slate-700 rounded-2xl border border-slate-700 transition-all flex flex-col items-center gap-2 group"
+                    className="p-4 bg-slate-800 hover:bg-slate-700 rounded-[var(--app-radius-lg)] border border-slate-700 transition-all flex flex-col items-center gap-2 group"
                   >
-                    <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg group-hover:scale-110 transition-transform">
+                    <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-[var(--app-radius)] group-hover:scale-110 transition-transform">
                       <HelpCircle size={20} />
                     </div>
                     <div className="text-center">
                       <div className="font-bold text-sm">Dev Help</div>
-                      <div className="text-[10px] text-slate-500">Reference</div>
+                      <div className="text-[10px] text-[var(--app-muted)]">Reference</div>
                     </div>
                   </button>
                </div>
              </div>
 
-             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 blur-[100px] -mr-32 -mt-32"></div>
+             <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--app-accent)]/10 blur-[100px] -mr-32 -mt-32"></div>
              <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-600/10 blur-[100px] -ml-32 -mb-32"></div>
           </div>
         </div>
@@ -437,12 +437,12 @@ export default function DevTools() {
         <div>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-black text-slate-900">Handoff Run History</h2>
-              <p className="text-slate-500 mt-1">All AI agent code generation runs, with prompts and token usage.</p>
+              <h2 className="text-2xl font-black text-[var(--app-text)]">Handoff Run History</h2>
+              <p className="text-[var(--app-muted)] mt-1">All AI agent code generation runs, with prompts and token usage.</p>
             </div>
             <button
               onClick={fetchHandoffRuns}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold text-sm transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--app-panel-soft)] hover:bg-slate-200 rounded-[var(--app-radius)] font-bold text-sm transition-all"
             >
               <RefreshCw size={14} className={loadingHandoff ? 'animate-spin' : ''} />
               Refresh
@@ -450,25 +450,25 @@ export default function DevTools() {
           </div>
 
           {loadingHandoff ? (
-            <div className="text-slate-400 text-center py-16">Loading...</div>
+            <div className="text-[var(--app-muted)] text-center py-16">Loading...</div>
           ) : handoffRuns.length === 0 ? (
-            <div className="text-center py-16 bg-slate-50 rounded-3xl">
+            <div className="text-center py-16 bg-[var(--app-panel-soft)] rounded-[var(--app-radius-lg)]">
               <GitBranch size={40} className="mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-500 font-medium">No handoff runs yet.</p>
-              <p className="text-slate-400 text-sm mt-1">Runs will appear here after <code>python tools/multi_agent.py</code> completes.</p>
+              <p className="text-[var(--app-muted)] font-medium">No handoff runs yet.</p>
+              <p className="text-[var(--app-muted)] text-sm mt-1">Runs will appear here after <code>python tools/multi_agent.py</code> completes.</p>
             </div>
           ) : (
-            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+            <div className="bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius-lg)] overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="text-left px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Run Date</th>
-                    <th className="text-left px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Feature</th>
-                    <th className="text-left px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Mode</th>
-                    <th className="text-left px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Status</th>
-                    <th className="text-left px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Author</th>
-                    <th className="text-left px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Claude Verdict</th>
-                    <th className="text-right px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wider">Total Tokens</th>
+                  <tr className="bg-[var(--app-panel-soft)] border-b border-[var(--app-border)]">
+                    <th className="text-left px-4 py-3 font-bold text-[var(--app-muted)] text-xs uppercase tracking-wider">Run Date</th>
+                    <th className="text-left px-4 py-3 font-bold text-[var(--app-muted)] text-xs uppercase tracking-wider">Feature</th>
+                    <th className="text-left px-4 py-3 font-bold text-[var(--app-muted)] text-xs uppercase tracking-wider">Mode</th>
+                    <th className="text-left px-4 py-3 font-bold text-[var(--app-muted)] text-xs uppercase tracking-wider">Status</th>
+                    <th className="text-left px-4 py-3 font-bold text-[var(--app-muted)] text-xs uppercase tracking-wider">Author</th>
+                    <th className="text-left px-4 py-3 font-bold text-[var(--app-muted)] text-xs uppercase tracking-wider">Claude Verdict</th>
+                    <th className="text-right px-4 py-3 font-bold text-[var(--app-muted)] text-xs uppercase tracking-wider">Total Tokens</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -476,12 +476,12 @@ export default function DevTools() {
                       <tr
                         key={run.id}
                         onClick={() => setSelectedRun(run)}
-                        className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors"
+                        className="border-b border-[var(--app-border)] hover:bg-[var(--app-panel-soft)] cursor-pointer transition-colors"
                       >
-                        <td className="px-4 py-3 text-slate-500 font-mono text-xs whitespace-nowrap">{String(run.run_date).slice(0, 16).replace('T', ' ')}</td>
-                        <td className="px-4 py-3 font-bold text-slate-900 max-w-xs truncate">{run.feature}</td>
+                        <td className="px-4 py-3 text-[var(--app-muted)] font-mono text-xs whitespace-nowrap">{String(run.run_date).slice(0, 16).replace('T', ' ')}</td>
+                        <td className="px-4 py-3 font-bold text-[var(--app-text)] max-w-xs truncate">{run.feature}</td>
                         <td className="px-4 py-3">
-                          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600">{run.mode}</span>
+                          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[var(--app-panel-soft)] text-slate-600">{run.mode}</span>
                         </td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
@@ -494,7 +494,7 @@ export default function DevTools() {
                         <td className="px-4 py-3">
                           <VerdictBadge verdict={run.claude_verdict} />
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-xs font-bold text-slate-900">
+                        <td className="px-4 py-3 text-right font-mono text-xs font-bold text-[var(--app-text)]">
                           {(run.total_tokens || 0).toLocaleString()}
                         </td>
                       </tr>
@@ -506,21 +506,21 @@ export default function DevTools() {
           {selectedRun && (
             <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/30" onClick={() => setSelectedRun(null)}>
               <div
-                className="h-full w-full max-w-3xl bg-white shadow-2xl border-l border-slate-200 overflow-y-auto"
+                className="h-full w-full max-w-3xl bg-[var(--app-panel)] shadow-2xl border-l border-[var(--app-border)] overflow-y-auto"
                 onClick={(event) => event.stopPropagation()}
               >
-                <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-slate-100 px-6 py-4 flex items-start justify-between gap-4">
+                <div className="sticky top-0 bg-[var(--app-panel)]/95 backdrop-blur border-b border-[var(--app-border)] px-6 py-4 flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="text-xl font-black text-slate-900">{selectedRun.feature}</h3>
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
+                    <h3 className="text-xl font-black text-[var(--app-text)]">{selectedRun.feature}</h3>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-bold text-[var(--app-muted)]">
                       <span>{String(selectedRun.run_date).slice(0, 16).replace('T', ' ')}</span>
-                      <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{selectedRun.mode}</span>
+                      <span className="px-2 py-0.5 rounded-full bg-[var(--app-panel-soft)] text-slate-600">{selectedRun.mode}</span>
                       <VerdictBadge verdict={selectedRun.claude_verdict} />
                     </div>
                   </div>
                   <button
                     onClick={() => setSelectedRun(null)}
-                    className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                    className="p-2 rounded-[var(--app-radius)] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-panel-soft)] transition-colors"
                   >
                     <X size={18} />
                   </button>
@@ -528,13 +528,13 @@ export default function DevTools() {
 
                 <div className="p-6 space-y-6">
                   <div>
-                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Prompt</div>
-                    <pre className="bg-slate-950 text-slate-200 rounded-xl p-4 text-xs overflow-x-auto whitespace-pre-wrap max-h-[36rem] overflow-y-auto">{selectedRun.prompt_md || 'No prompt captured.'}</pre>
+                    <div className="text-xs font-bold text-[var(--app-muted)] uppercase tracking-wider mb-2">Prompt</div>
+                    <pre className="bg-slate-950 text-slate-200 rounded-[var(--app-radius)] p-4 text-xs overflow-x-auto whitespace-pre-wrap max-h-[36rem] overflow-y-auto">{selectedRun.prompt_md || 'No prompt captured.'}</pre>
                   </div>
 
                   <div>
-                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Output</div>
-                    <pre className="bg-slate-950 text-slate-200 rounded-xl p-4 text-xs overflow-x-auto whitespace-pre-wrap max-h-[36rem] overflow-y-auto">{selectedRun.output_md || 'No output captured.'}</pre>
+                    <div className="text-xs font-bold text-[var(--app-muted)] uppercase tracking-wider mb-2">Output</div>
+                    <pre className="bg-slate-950 text-slate-200 rounded-[var(--app-radius)] p-4 text-xs overflow-x-auto whitespace-pre-wrap max-h-[36rem] overflow-y-auto">{selectedRun.output_md || 'No output captured.'}</pre>
                   </div>
                 </div>
               </div>
@@ -552,7 +552,7 @@ function VerdictBadge({ verdict }: { verdict?: string | null }) {
     ? 'bg-emerald-100 text-emerald-700'
     : normalized === 'NEEDS-FIX'
       ? 'bg-red-100 text-red-700'
-      : 'bg-slate-100 text-slate-500'
+      : 'bg-[var(--app-panel-soft)] text-[var(--app-muted)]'
 
   return (
     <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${classes}`}>
@@ -564,30 +564,30 @@ function VerdictBadge({ verdict }: { verdict?: string | null }) {
 function InfoRow({ label, value }: { label: string, value: string }) {
   return (
     <div className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
-      <span className="text-slate-500 text-sm font-medium">{label}</span>
-      <span className="text-slate-900 font-bold">{value}</span>
+      <span className="text-[var(--app-muted)] text-sm font-medium">{label}</span>
+      <span className="text-[var(--app-text)] font-bold">{value}</span>
     </div>
   )
 }
 
 function RegistryCard({ title, count, icon, to, color }: { title: string, count: number, icon: React.ReactNode, to: string, color: string }) {
   const colorClasses: any = {
-    indigo: 'bg-indigo-50 text-indigo-600',
+    indigo: 'bg-[var(--app-accent-glow)] text-[var(--app-accent)]',
     purple: 'bg-purple-50 text-purple-600',
     blue: 'bg-blue-50 text-blue-600',
-    slate: 'bg-slate-50 text-slate-600',
+    slate: 'bg-[var(--app-panel-soft)] text-slate-600',
     emerald: 'bg-emerald-50 text-emerald-600',
   }
 
   return (
-    <Link to={to} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group">
-      <div className={`p-4 rounded-2xl w-fit mb-4 group-hover:scale-110 transition-transform ${colorClasses[color]}`}>
+    <Link to={to} className="bg-[var(--app-panel)] p-6 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group">
+      <div className={`p-4 rounded-[var(--app-radius-lg)] w-fit mb-4 group-hover:scale-110 transition-transform ${colorClasses[color]}`}>
         {icon}
       </div>
-      <h3 className="text-lg font-black text-slate-900 mb-1">{title}</h3>
+      <h3 className="text-lg font-black text-[var(--app-text)] mb-1">{title}</h3>
       <div className="flex items-end justify-between">
-        <span className="text-3xl font-black text-slate-700">{count}</span>
-        <span className="text-indigo-600 text-xs font-black uppercase tracking-widest">Browse →</span>
+        <span className="text-3xl font-black text-[var(--app-text)]">{count}</span>
+        <span className="text-[var(--app-accent)] text-xs font-black uppercase tracking-widest">Browse →</span>
       </div>
     </Link>
   )

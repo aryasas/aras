@@ -10,7 +10,7 @@ export interface FieldProps {
   fullWidth: boolean
 }
 
-const fieldBaseClass = 'w-full rounded-xl border border-[var(--ts-surface-200)] bg-[var(--ts-surface-50)] px-4 py-3 text-sm font-semibold text-[var(--ts-surface-800)] outline-none'
+const fieldBaseClass = 'w-full rounded-[var(--app-radius)] border border-[var(--ts-surface-200)] bg-[var(--ts-surface-50)] px-4 py-3 text-sm font-semibold text-[var(--ts-surface-800)] outline-none'
 
 export function Field({
   label,

@@ -134,7 +134,7 @@ export const PrintPreview: React.FC<PrintPreviewProps> = ({ resource, id, onClos
             <h3 className="text-md font-bold mb-3">Items:</h3>
             <table className="w-full border-collapse mb-8">
               <thead>
-                <tr className="bg-slate-100">
+                <tr className="bg-[var(--app-panel-soft)]">
                   <th className="border p-2 text-left">Description</th>
                   <th className="border p-2 text-right w-20">Qty</th>
                   <th className="border p-2 text-right w-24">Unit Price</th>

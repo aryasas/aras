@@ -33,7 +33,7 @@ export function Topbar({
   return (
     <div className="template-studio-panel flex items-center justify-between gap-4 rounded-[26px] px-4 py-3">
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--ts-surface-900)] shadow-md">
+        <div className="flex h-10 w-10 items-center justify-center rounded-[var(--app-radius-lg)] bg-[var(--ts-surface-900)] shadow-md">
           <Wand2 className="h-5 w-5 text-[var(--ts-brand-400)]" />
         </div>
         <div className="min-w-0">
@@ -49,7 +49,7 @@ export function Topbar({
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <div className="flex items-center gap-1 rounded-2xl border border-[var(--ts-surface-200)] bg-white p-1">
+        <div className="flex items-center gap-1 rounded-[var(--app-radius-lg)] border border-[var(--ts-surface-200)] bg-[var(--app-panel)] p-1">
           {BREAKPOINT_ORDER.map((breakpoint) => {
             const Icon = viewportIcons[breakpoint]
             const active = activeBreakpoint === breakpoint
@@ -59,7 +59,7 @@ export function Topbar({
                 type="button"
                 onClick={() => setActiveBreakpoint(breakpoint)}
                 className={[
-                  'inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition-colors',
+                  'inline-flex items-center gap-2 rounded-[var(--app-radius)] px-3 py-2 text-xs font-bold transition-colors',
                   active
                     ? 'bg-[var(--ts-surface-900)] text-[var(--ts-brand-300)]'
                     : 'text-[var(--ts-surface-600)] hover:bg-[var(--ts-surface-50)]',
@@ -72,16 +72,16 @@ export function Topbar({
           })}
         </div>
 
-        <div className="flex items-center gap-1 rounded-2xl border border-[var(--ts-surface-200)] bg-white p-1">
-          <button type="button" onClick={() => actions.history.undo()} className="rounded-xl p-2 text-[var(--ts-surface-600)] hover:bg-[var(--ts-surface-50)]">
+        <div className="flex items-center gap-1 rounded-[var(--app-radius-lg)] border border-[var(--ts-surface-200)] bg-[var(--app-panel)] p-1">
+          <button type="button" onClick={() => actions.history.undo()} className="rounded-[var(--app-radius)] p-2 text-[var(--ts-surface-600)] hover:bg-[var(--ts-surface-50)]">
             <Undo2 className="h-4 w-4" />
           </button>
-          <button type="button" onClick={() => actions.history.redo()} className="rounded-xl p-2 text-[var(--ts-surface-600)] hover:bg-[var(--ts-surface-50)]">
+          <button type="button" onClick={() => actions.history.redo()} className="rounded-[var(--app-radius)] p-2 text-[var(--ts-surface-600)] hover:bg-[var(--ts-surface-50)]">
             <Redo2 className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="flex items-center gap-2 rounded-2xl border border-[var(--ts-surface-200)] bg-white px-3 py-2">
+        <div className="flex items-center gap-2 rounded-[var(--app-radius-lg)] border border-[var(--ts-surface-200)] bg-[var(--app-panel)] px-3 py-2">
           <span className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--ts-surface-500)]">
             Zoom
           </span>
@@ -104,7 +104,7 @@ export function Topbar({
           onClick={() => actions.setOptions((options) => {
             options.enabled = !enabled
           })}
-          className="inline-flex items-center gap-2 rounded-2xl border border-[var(--ts-surface-200)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--ts-surface-700)]"
+          className="inline-flex items-center gap-2 rounded-[var(--app-radius-lg)] border border-[var(--ts-surface-200)] bg-[var(--app-panel)] px-4 py-2.5 text-sm font-bold text-[var(--ts-surface-700)]"
         >
           {enabled ? <Eye className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
           <span>{enabled ? 'Preview' : 'Edit'}</span>
@@ -113,7 +113,7 @@ export function Topbar({
         <button
           type="button"
           onClick={onSave}
-          className="inline-flex items-center gap-2 rounded-2xl border border-[var(--ts-brand-600)] bg-[var(--ts-brand-500)] px-4 py-2.5 text-sm font-bold text-white shadow-md transition-colors hover:bg-[var(--ts-brand-600)]"
+          className="inline-flex items-center gap-2 rounded-[var(--app-radius-lg)] border border-[var(--ts-brand-600)] bg-[var(--ts-brand-500)] px-4 py-2.5 text-sm font-bold text-white shadow-md transition-colors hover:bg-[var(--ts-brand-600)]"
         >
           <Save className="h-4 w-4" />
           <span>{saving ? 'Saving…' : 'Save'}</span>

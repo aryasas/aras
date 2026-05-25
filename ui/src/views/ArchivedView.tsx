@@ -79,24 +79,24 @@ export default function ArchivedView() {
   if (loading) return <LoadingState label="Loading archive..." />
 
   return (
-    <div className="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between gap-4 border-b border-slate-100 p-4">
+    <div className="flex flex-col rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-panel)] shadow-sm">
+      <div className="flex items-center justify-between gap-4 border-b border-[var(--app-border)] p-4">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(parentPath)} className="rounded-xl p-2 text-slate-500 hover:bg-slate-50">
+          <button onClick={() => navigate(parentPath)} className="rounded-[var(--app-radius)] p-2 text-[var(--app-muted)] hover:bg-[var(--app-panel-soft)]">
             <ArrowLeft size={18} />
           </button>
           <div className="flex items-center gap-2">
-            <Archive size={18} className="text-slate-400" />
+            <Archive size={18} className="text-[var(--app-muted)]" />
             <div>
-              <h1 className="text-lg font-bold text-slate-900">Archived — {resourceTitle}</h1>
-              <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{cleanResource}</p>
+              <h1 className="text-lg font-bold text-[var(--app-text)]">Archived — {resourceTitle}</h1>
+              <p className="text-xs font-medium uppercase tracking-wider text-[var(--app-muted)]">{cleanResource}</p>
             </div>
           </div>
         </div>
         <button
           onClick={restore}
           disabled={!selectedId}
-          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-40"
+          className="flex items-center gap-2 rounded-[var(--app-radius)] bg-[var(--app-accent)] px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-40"
         >
           <RotateCcw size={16} />
           Restore
@@ -108,7 +108,7 @@ export default function ArchivedView() {
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500">
+            <thead className="bg-[var(--app-panel-soft)] text-xs font-bold uppercase tracking-wider text-[var(--app-muted)]">
               <tr>
                 <th className="w-10 px-4 py-3" />
                 {columns.map(col => (
@@ -119,7 +119,7 @@ export default function ArchivedView() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {rows.map((row) => (
-                <tr key={row.id} className={selectedId === row.id ? 'bg-indigo-50/50' : 'hover:bg-slate-50'}>
+                <tr key={row.id} className={selectedId === row.id ? 'bg-[var(--app-accent-glow)]/50' : 'hover:bg-[var(--app-panel-soft)]'}>
                   <td className="px-4 py-3">
                     <input
                       type="radio"
@@ -129,11 +129,11 @@ export default function ArchivedView() {
                     />
                   </td>
                   {columns.map(col => (
-                    <td key={col.name} className="px-4 py-3 text-slate-700">
+                    <td key={col.name} className="px-4 py-3 text-[var(--app-text)]">
                       {row[col.name] == null ? '—' : String(row[col.name])}
                     </td>
                   ))}
-                  <td className="px-4 py-3 text-slate-400 text-xs">
+                  <td className="px-4 py-3 text-[var(--app-muted)] text-xs">
                     {row.deleted_at ? new Date(row.deleted_at).toLocaleString() : '—'}
                   </td>
                 </tr>

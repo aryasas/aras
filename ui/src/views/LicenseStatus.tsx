@@ -16,7 +16,7 @@ interface LicenseStatusResponse {
 }
 
 const daysColor = (days?: number | null) => {
-  if (days == null) return 'text-slate-500'
+  if (days == null) return 'text-[var(--app-muted)]'
   if (days > 30) return 'text-emerald-600'
   if (days > 7) return 'text-amber-600'
   return 'text-red-600'
@@ -78,13 +78,13 @@ export default function LicenseStatus() {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">License</h1>
-            <p className="mt-1 text-sm text-slate-500">Instance license status and activation.</p>
+            <h1 className="text-3xl font-bold tracking-tight text-[var(--app-text)]">License</h1>
+            <p className="mt-1 text-sm text-[var(--app-muted)]">Instance license status and activation.</p>
           </div>
           <button
             type="button"
             onClick={() => setActivateOpen(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-indigo-700"
+            className="inline-flex items-center justify-center gap-2 rounded-[var(--app-radius)] bg-[var(--app-accent)] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-indigo-700"
           >
             <Key size={16} />
             Activate
@@ -92,7 +92,7 @@ export default function LicenseStatus() {
         </div>
 
         {expiringSoon && (
-          <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800">
+          <div className="flex items-start gap-3 rounded-[var(--app-radius)] border border-red-200 bg-red-50 p-4 text-red-800">
             <AlertTriangle size={20} className="mt-0.5 shrink-0" />
             <div>
               <div className="font-bold">License expires soon</div>
@@ -103,7 +103,7 @@ export default function LicenseStatus() {
 
         <Card className="p-6">
           {loading ? (
-            <div className="flex items-center gap-3 text-sm text-slate-500">
+            <div className="flex items-center gap-3 text-sm text-[var(--app-muted)]">
               <RefreshCw size={18} className="animate-spin" />
               Loading license status...
             </div>
@@ -111,8 +111,8 @@ export default function LicenseStatus() {
             <div className="space-y-6">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">Current License</h2>
-                  <p className="text-sm text-slate-500">Status returned by this instance.</p>
+                  <h2 className="text-lg font-bold text-[var(--app-text)]">Current License</h2>
+                  <p className="text-sm text-[var(--app-muted)]">Status returned by this instance.</p>
                 </div>
                 {status?.valid ? (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-700 ring-1 ring-emerald-200">
@@ -128,22 +128,22 @@ export default function LicenseStatus() {
               </div>
 
               <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Tenant ID</div>
-                  <div className="mt-2 break-all text-sm font-semibold text-slate-900">{status?.tenant_id || '-'}</div>
+                <div className="rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-panel-soft)] p-4">
+                  <div className="text-xs font-bold uppercase tracking-wide text-[var(--app-muted)]">Tenant ID</div>
+                  <div className="mt-2 break-all text-sm font-semibold text-[var(--app-text)]">{status?.tenant_id || '-'}</div>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Days Remaining</div>
+                <div className="rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-panel-soft)] p-4">
+                  <div className="text-xs font-bold uppercase tracking-wide text-[var(--app-muted)]">Days Remaining</div>
                   <div className={`mt-2 text-2xl font-black ${daysColor(daysRemaining)}`}>{daysRemaining ?? '-'}</div>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Expiry Date</div>
-                  <div className="mt-2 text-sm font-semibold text-slate-900">{expiryLabel}</div>
+                <div className="rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-panel-soft)] p-4">
+                  <div className="text-xs font-bold uppercase tracking-wide text-[var(--app-muted)]">Expiry Date</div>
+                  <div className="mt-2 text-sm font-semibold text-[var(--app-text)]">{expiryLabel}</div>
                 </div>
               </div>
 
               {!status?.valid && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                <div className="rounded-[var(--app-radius)] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
                   This instance does not have a valid license{status?.reason ? `: ${status.reason}` : '.'}
                 </div>
               )}
@@ -154,21 +154,21 @@ export default function LicenseStatus() {
 
       {activateOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl">
-            <h2 className="text-lg font-bold text-slate-900">Activate License</h2>
-            <p className="mt-1 text-sm text-slate-500">Paste the license token for this instance.</p>
+          <div className="w-full max-w-xl rounded-[var(--app-radius-lg)] bg-[var(--app-panel)] p-6 shadow-2xl">
+            <h2 className="text-lg font-bold text-[var(--app-text)]">Activate License</h2>
+            <p className="mt-1 text-sm text-[var(--app-muted)]">Paste the license token for this instance.</p>
             <textarea
               value={token}
               onChange={(event) => setToken(event.target.value)}
               rows={8}
-              className="mt-4 w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-sm text-slate-800 outline-none transition-colors focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+              className="mt-4 w-full resize-y rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-panel-soft)] px-3 py-2 font-mono text-sm text-slate-800 outline-none transition-colors focus:border-indigo-400 focus:bg-[var(--app-panel)] focus:ring-2 focus:ring-indigo-100"
               placeholder="eyJ..."
             />
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setActivateOpen(false)}
-                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                className="rounded-[var(--app-radius)] border border-[var(--app-border)] px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-[var(--app-panel-soft)]"
               >
                 Cancel
               </button>
@@ -176,7 +176,7 @@ export default function LicenseStatus() {
                 type="button"
                 onClick={activateLicense}
                 disabled={activating || !token.trim()}
-                className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-[var(--app-radius)] bg-[var(--app-accent)] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {activating ? 'Activating...' : 'Activate'}
               </button>

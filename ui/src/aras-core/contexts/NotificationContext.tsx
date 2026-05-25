@@ -69,10 +69,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         {notifications.map((n) => (
           <div 
             key={n.id} 
-            className={`px-6 py-4 rounded-2xl shadow-xl text-white font-bold animate-in slide-in-from-right-full ${
-              n.type === 'success' ? 'bg-emerald-500' : 
-              n.type === 'error' ? 'bg-rose-500' : 
-              n.type === 'warning' ? 'bg-amber-500' : 'bg-indigo-500'
+            className={`px-6 py-4 rounded-[var(--app-radius-lg)] shadow-[var(--shadow-premium)] text-white font-extrabold animate-in slide-in-from-right-full ${
+              n.type === 'success' ? 'bg-emerald-500 shadow-emerald-500/20' : 
+              n.type === 'error' ? 'bg-rose-500 shadow-rose-500/20' : 
+              n.type === 'warning' ? 'bg-amber-500 shadow-amber-500/20' : 'bg-[var(--app-primary-action)] shadow-[var(--app-accent-glow)]'
             }`}
           >
             {n.message}

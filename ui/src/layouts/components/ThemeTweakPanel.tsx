@@ -4,7 +4,8 @@ import { useUIStore } from '../../store/uiStore'
 import Combobox from '../../aras-core/components/Combobox'
 
 const accentOptions = [
-  { label: 'Aras red', value: '#7a2e2e' },
+  { label: 'Indigo (Default)', value: '#4F46E5' },
+  { label: 'Deep Red', value: '#7a2e2e' },
   { label: 'Pine', value: '#34785f' },
   { label: 'Violet', value: '#6f5bd8' },
   { label: 'Blue', value: '#448cf4' },

@@ -2365,5 +2365,150 @@
     "cache_write_tokens": "~8000",
     "token_efficiency": "Full optional_features system from backend model to frontend field hiding, 6 backend + 3 frontend files.",
     "verdict": "APPROVED"
+  },
+  {
+    "id": 173,
+    "date": "2026-05-25",
+    "feature": "Mobile: fix infinite reload loop, lookup display, iOS date picker, search, error states, icons",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "mobile/src/components/MobileListView.tsx, mobile/src/components/MobileDynamicForm.tsx, mobile/src/screens/AppHomeScreen.tsx, mobile/src/screens/AppMenuScreen.tsx",
+      "features_added": "Emoji icons per app (with API icon field override); field-level validation with inline errors; lookup shows label not ID; iOS DateTimePicker inline with Done button; clear search shortcut; retry button on full-page error; press feedback on rows",
+      "fixes_applied": "MobileListView infinite reload loop (metadata in useCallback deps \u2192 moved to ref); search race condition (pass value directly, not via state); iOS DateTimePicker never dismissed; lookup button showed numeric ID instead of display label; empty state shows context-aware message",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Fixed 5 real bugs + added 6 missing features in one pass, no re-reads, no wasted reads",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 174,
+    "date": "2026-05-25",
+    "feature": "Mobile: fix data loading \u2014 wrong resource path, success:false not thrown, icon name mismatch",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "mobile/src/screens/AppMenuScreen.tsx, mobile/src/lib/api.ts, mobile/src/screens/AppHomeScreen.tsx",
+      "features_added": "none",
+      "fixes_applied": "modelToPath was generating accounting/erp-accounting-accounts instead of erp_accounting_accounts (table name used directly); parseResponse now throws on success:false with HTTP 200; AppHomeScreen icon now uses emoji map (API icon field is Lucide name not emoji)",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Root cause found via direct API testing, 3 files fixed",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 175,
+    "date": "2026-05-25",
+    "feature": "Mobile: Obsidian Ledger dark-first design system \u2014 all 5 screens redesigned",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "mobile/src/lib/theme.ts, mobile/src/screens/LoginScreen.tsx, mobile/src/screens/AppHomeScreen.tsx, mobile/src/screens/AppMenuScreen.tsx, mobile/src/components/MobileListView.tsx, mobile/src/components/MobileDynamicForm.tsx, mobile/App.tsx, mobile/src/navigation/AppNavigator.tsx",
+      "features_added": "Obsidian Ledger dark theme: bg #111113, amber accent #d97706, tight typography with all-caps labels + wide letter-spacing; app cards with oversized symbol + top accent line; menu items with alternating left border accent; list rows with 3-digit row counter + ID badge; form fields with dark inputs + focus highlight; lookup modal with full dark treatment; dark navigation header",
+      "fixes_applied": "none",
+      "framework_changes": "Added src/lib/theme.ts design system token file",
+      "issues": "none"
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Complete 5-screen visual overhaul with shared design system in one pass",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 176,
+    "date": "2026-05-25",
+    "feature": "Mobile: Unify brand to Slate design system \u2014 match web tokens, Plus Jakarta Sans font",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "mobile/src/lib/theme.ts, mobile/src/screens/LoginScreen.tsx, mobile/src/screens/AppHomeScreen.tsx, mobile/src/screens/AppMenuScreen.tsx, mobile/src/components/MobileListView.tsx, mobile/src/components/MobileDynamicForm.tsx, mobile/App.tsx, mobile/src/navigation/AppNavigator.tsx",
+      "features_added": "Installed @expo-google-fonts/plus-jakarta-sans; theme.ts now mirrors index.css CSS variables exactly (bgMain=#f1f5f9, accent=#6366f1, panel=#fff, muted=#64748b, radius 8-12px); all screens use Fonts.* for typography; shadow tokens match web --shadow-premium; app color palette matches web APP_COLORS",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "Web and mobile still have duplicate api.ts and types.ts \u2014 recommend shared packages/ workspace to eliminate duplication"
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Complete 5-screen brand unification in one pass with accurate token mirroring",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 177,
+    "date": "2026-05-25",
+    "feature": "Mock: erp-modern-pro \u2014 refined Modern App island design with proper listview + form (with child table)",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/erp-modern-pro/index.html, ui/public/mocks/erp-modern-pro/form.html, ui/public/mocks/erp-modern-pro/shell.css, ui/public/mocks/erp-modern-pro/shell.js, ui/public/mocks/index.html",
+      "features_added": "New mock template (mock 15) refining the Modern App glass-island language. Listview page: 4-stat strip, search+segments toolbar with counts, 12-col data rows with avatars/status pills/pagination footer. Form page: structured sections (Client/Dates/Notes), full child line-items table (Description, SKU, Qty, Unit Price, Tax, Total + delete with hover-reveal), dark Summary card with totals + Post&Send, metadata + activity cards. Shared shell.css/shell.js for sidebar/header/tweak-panel/mobile-tabs consistency. Mobile collapses table into stacked cards with data-labels, shows sticky save bar. Card link added to mocks/index.html as mock 15.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Complete new template (2 pages + shared shell + index link) delivered in one pass",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 178,
+    "date": "2026-05-25",
+    "feature": "Mock: erp-modern-polished \u2014 polished Modern App design with separate listview and form child list",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/public/mocks/erp-modern-polished/index.html, ui/public/mocks/erp-modern-polished/form.html, ui/public/mocks/erp-modern-polished/shell.css, ui/public/mocks/erp-modern-polished/shell.js, ui/public/mocks/index.html",
+      "features_added": "New mock template in a separate folder. Listview page includes KPI strip, search, status segments, filter/action controls, responsive invoice table, and pagination. Form page includes structured customer/date/notes sections plus a clear child list view for invoice lines with editable row fields and totals. Shared CSS/JS keeps the glass island shell, side rail, mobile tabs, and interaction behavior consistent.",
+      "fixes_applied": "Moved the new mock out of erp-modern-refined into erp-modern-polished per user request.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 179,
+    "date": "2026-05-25",
+    "feature": "UI build fix: remove invalid escaped operators from ListView",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListView.tsx",
+      "features_added": "none",
+      "fixes_applied": "Removed literal backslash escapes before TypeScript operators such as !, !!, !==, and != that were causing parser errors in ListView.tsx.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 181,
+    "date": "2026-05-25",
+    "feature": "Floating Sidebar & UI Refinement",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/MainLayout.tsx, ui/src/layouts/components/Sidebar.tsx, ui/src/layouts/components/HorizontalAppNav.tsx, ui/src/layouts/components/Header.tsx, ui/src/views/AppHome.tsx, ui/src/index.css",
+      "features_added": "Dual-stage navigation system with global app switcher and slide-out sub-menu panel; floating island layout; premium App Home cards; repositioned Command Palette to far-left; new Page Title section with increased exposure and larger typography; redesigned top navigation as a centered floating capsule island with natural casing typography; refined System Settings with premium cards and enhanced bottom CTA banner; integrated dynamic theme variations (strong, glow) using CSS color-mix; optimized ultra-compact density setting (0.62 factor) with deep CSS scaling.",
+      "fixes_applied": "Normalized HorizontalAppNav padding/borders; cleaned up Header layout hierarchy; swapped reversed Inflow (ArrowDownLeft) and Outflow (ArrowUpRight) icons in Accounting app; performed bulk refactoring to connect hardcoded UI elements to the theme tweak system; set ListView action bar to a fixed 'Regular' size; removed hardcoded pink/rose colors and updated default application accent to professional indigo across index.css and UI store; connected ArasLogo radius and color to theme variables; simplified App Home UI by removing redundant 'Work Objects' labels.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
   }
 ]

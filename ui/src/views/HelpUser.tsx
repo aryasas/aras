@@ -69,7 +69,7 @@ const sections: Section[] = [
 ]
 
 const colorMap: Record<string, { bg: string; text: string; dot: string }> = {
-  indigo: { bg: 'bg-indigo-50', text: 'text-indigo-600', dot: 'bg-indigo-400' },
+  indigo: { bg: 'bg-[var(--app-accent-glow)]', text: 'text-[var(--app-accent)]', dot: 'bg-indigo-400' },
   emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600', dot: 'bg-emerald-400' },
   blue:    { bg: 'bg-blue-50',    text: 'text-blue-600',    dot: 'bg-blue-400' },
   purple:  { bg: 'bg-purple-50',  text: 'text-purple-600',  dot: 'bg-purple-400' },
@@ -82,16 +82,16 @@ export default function HelpUser() {
       <div className="flex items-start justify-between mb-10">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-3 bg-indigo-600 text-white rounded-2xl">
+            <div className="p-3 bg-[var(--app-accent)] text-white rounded-[var(--app-radius-lg)]">
               <HelpCircle size={24} />
             </div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Help Center</h1>
+            <h1 className="text-3xl font-black text-[var(--app-text)] tracking-tight">Help Center</h1>
           </div>
-          <p className="text-slate-500 font-medium ml-16">Answers to common questions about using the system.</p>
+          <p className="text-[var(--app-muted)] font-medium ml-16">Answers to common questions about using the system.</p>
         </div>
         <Link
           to="/dev/help"
-          className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-[var(--app-radius)] text-sm font-bold hover:bg-slate-800 transition-all"
         >
           <Terminal size={14} /> Developer Reference <ChevronRight size={14} />
         </Link>
@@ -106,7 +106,7 @@ export default function HelpUser() {
             { tip: 'Click any row', desc: 'Opens the record detail form' },
             { tip: 'Checkbox + Delete', desc: 'Bulk delete selected records' },
           ].map(t => (
-            <div key={t.tip} className="bg-white/10 rounded-2xl p-4">
+            <div key={t.tip} className="bg-[var(--app-panel)]/10 rounded-[var(--app-radius-lg)] p-4">
               <div className="font-black text-sm mb-1">{t.tip}</div>
               <div className="text-indigo-100 text-sm">{t.desc}</div>
             </div>
@@ -119,10 +119,10 @@ export default function HelpUser() {
         {sections.map(sec => {
           const c = colorMap[sec.color]
           return (
-            <div key={sec.title} className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
-              <div className={`flex items-center gap-3 px-8 py-5 border-b border-slate-100 ${c.bg}`}>
+            <div key={sec.title} className="bg-[var(--app-panel)] rounded-[2rem] border border-[var(--app-border)] shadow-sm overflow-hidden">
+              <div className={`flex items-center gap-3 px-8 py-5 border-b border-[var(--app-border)] ${c.bg}`}>
                 <div className={c.text}>{sec.icon}</div>
-                <h2 className="text-lg font-black text-slate-900">{sec.title}</h2>
+                <h2 className="text-lg font-black text-[var(--app-text)]">{sec.title}</h2>
               </div>
               <div className="divide-y divide-slate-50">
                 {sec.topics.map(topic => (
@@ -130,7 +130,7 @@ export default function HelpUser() {
                     <div className="flex gap-3">
                       <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${c.dot}`} />
                       <div>
-                        <p className="font-bold text-slate-900 mb-1">{topic.q}</p>
+                        <p className="font-bold text-[var(--app-text)] mb-1">{topic.q}</p>
                         <p className="text-slate-600 text-sm leading-relaxed">{topic.a}</p>
                       </div>
                     </div>
@@ -142,7 +142,7 @@ export default function HelpUser() {
         })}
       </div>
 
-      <p className="text-center text-slate-400 text-sm mt-10">
+      <p className="text-center text-[var(--app-muted)] text-sm mt-10">
         Can't find what you need? Contact your system administrator.
       </p>
     </div>

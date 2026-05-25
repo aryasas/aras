@@ -44,15 +44,17 @@ def _apply_scope_filters(model_class: Type[Any], request: Request, parsed_filter
         return parsed_filters
     col_names = {c.name for c in model_class.__table__.columns}
     for field in _scope_fields(model_class):
+        if field not in col_names:
+            continue
         val = scope.get(field)
         if val is None:
             continue
-        item_val = getattr(item, field, None)
+        
+        # Append the scope constraint to the filters
         if isinstance(val, list):
-            if item_val not in val:
-                raise ResourceNotFoundException("Item not found")
-        elif item_val != val:
-            raise ResourceNotFoundException("Item not found")
+            parsed_filters.append({"field": field, "op": "in", "value": val})
+        else:
+            parsed_filters.append({"field": field, "op": "=", "value": val})
     return parsed_filters
 
 

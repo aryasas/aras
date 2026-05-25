@@ -5,7 +5,6 @@ import { ChevronDown } from 'lucide-react'
 import type { AppMenuData, SidebarApp, MenuElement, MenuItem } from '../types'
 import { useVocabulary } from '../../context/VocabularyContext'
 import { resolveIcon } from '../../lib/iconUtils'
-import { useUIStore } from '../../store/uiStore'
 import { filterMenuElements, filterMenuItems } from '../../lib/menuUtils'
 import api from '../../lib/api'
 
@@ -17,15 +16,15 @@ const SKIP_APPS = new Set(['dashboard', 'settings', 'profile', 'help'])
 
 interface DropdownPos { top: number; left: number }
 
-export function HorizontalAppNav({ sidebarData: _unused }: Props) {
+export function HorizontalAppNav({ sidebarData }: Props) {
   const vocabulary = useVocabulary()
   const location = useLocation()
-  const topbarNavStyle = useUIStore(state => state.topbarNavStyle)
-  const iconOnly = topbarNavStyle === 'icon-only'
   const [menuData, setMenuData] = useState<AppMenuData | null>(null)
   const [openGroup, setOpenGroup] = useState<string | null>(null)
+  const [isSwitcherOpen, setIsSwitcherOpen] = useState(false)
   const [dropdownPos, setDropdownPos] = useState<DropdownPos>({ top: 0, left: 0 })
   const navRef = useRef<HTMLDivElement>(null)
+  const switcherRef = useRef<HTMLButtonElement>(null)
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
   const appName = useMemo(() => {
@@ -33,6 +32,10 @@ export function HorizontalAppNav({ sidebarData: _unused }: Props) {
     if (!first || SKIP_APPS.has(first)) return null
     return first
   }, [location.pathname])
+
+  const activeApp = useMemo(() => {
+    return sidebarData.find(app => (app.path || `/${app.name}`).replace(/^\//, '') === appName)
+  }, [sidebarData, appName])
 
   useEffect(() => {
     if (!appName) { setMenuData(null); return }
@@ -43,13 +46,19 @@ export function HorizontalAppNav({ sidebarData: _unused }: Props) {
     return () => { cancelled = true }
   }, [appName])
 
-  useEffect(() => { setOpenGroup(null) }, [location.pathname])
+  useEffect(() => { 
+    setOpenGroup(null)
+    setIsSwitcherOpen(false)
+  }, [location.pathname])
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(e.target as Node)) {
         const target = e.target as Element
-        if (!target.closest('[data-nav-dropdown]')) setOpenGroup(null)
+        if (!target.closest('[data-nav-dropdown]')) {
+          setOpenGroup(null)
+          setIsSwitcherOpen(false)
+        }
       }
     }
     document.addEventListener('mousedown', handler)
@@ -64,6 +73,7 @@ export function HorizontalAppNav({ sidebarData: _unused }: Props) {
   }, [menuData])
 
   const handleGroupClick = (groupLabel: string) => {
+    setIsSwitcherOpen(false)
     if (openGroup === groupLabel) {
       setOpenGroup(null)
       return
@@ -76,56 +86,147 @@ export function HorizontalAppNav({ sidebarData: _unused }: Props) {
     setOpenGroup(groupLabel)
   }
 
-  if (!appName || !menuData || groups.length === 0) return null
+  const handleSwitcherClick = () => {
+    setOpenGroup(null)
+    if (isSwitcherOpen) {
+      setIsSwitcherOpen(false)
+      return
+    }
+    if (switcherRef.current) {
+      const rect = switcherRef.current.getBoundingClientRect()
+      setDropdownPos({ top: rect.bottom + 8, left: rect.left })
+    }
+    setIsSwitcherOpen(true)
+  }
+
+  if (!appName) return null
 
   const activeGroup = groups.find(g => g.label === openGroup)
   const activeItems = activeGroup ? (filterMenuItems(activeGroup.items || []) as MenuItem[]) : []
 
+  const GridIcon = resolveIcon('LayoutGrid')
+  const AppIcon = resolveIcon(activeApp?.icon || 'Package')
+
   return (
-    <div ref={navRef}>
-      <nav
-        className="shrink-0 flex items-center gap-1 px-2 py-2 bg-[var(--aras-panel)] border border-[var(--aras-border)] shadow-[0_4px_16px_-8px_rgba(15,23,42,0.12)] rounded-[var(--aras-radius-lg)] overflow-x-auto hide-scroll"
-        aria-label="Module navigation"
-      >
-        {groups.map((group) => {
-          const GroupIcon = resolveIcon(group.icon || 'Layers')
-          const groupLabel = vocabulary.get(group.label)
-          const isOpen = openGroup === group.label
-          const items = filterMenuItems(group.items || []) as MenuItem[]
-          const isGroupActive = items.some(
-            item => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
-          )
+    <div ref={navRef} className="flex justify-center w-full animate-in fade-in slide-in-from-top-4 duration-500">
+      <div className="bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius-lg)] shadow-sm px-1 py-1 flex items-center gap-0.5 overflow-hidden">
+        
+        {/* Step 1: Global Switcher */}
+        <button
+          ref={switcherRef}
+          onClick={handleSwitcherClick}
+          className={`flex flex-col items-center justify-center w-12 h-12 rounded-[calc(var(--app-radius-lg)*0.7)] transition-all ${
+            isSwitcherOpen 
+              ? 'bg-[var(--app-primary-action)] text-white shadow-md' 
+              : 'text-[var(--app-muted)] hover:bg-[var(--app-panel-soft)] hover:text-[var(--app-text)]'
+          }`}
+          title="Switch Application"
+        >
+          <GridIcon size={20} strokeWidth={2.5} />
+        </button>
 
-          return (
-            <div key={group.label} className="relative">
-              <button
-                ref={el => { buttonRefs.current[group.label] = el }}
-                type="button"
-                onClick={() => handleGroupClick(group.label)}
-                className={`flex shrink-0 items-center gap-2 rounded-[var(--aras-radius)] px-3 py-2 text-[12px] font-bold transition-all ${
-                  isGroupActive || isOpen
-                    ? 'bg-[var(--aras-accent)] text-white shadow-sm'
-                    : 'text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)] hover:text-[var(--aras-text)]'
-                }`}
-              >
-                <GroupIcon size={15} strokeWidth={2.2} className="shrink-0" />
-                {!iconOnly && <span className="truncate max-w-[96px]">{groupLabel}</span>}
-                <ChevronDown
-                  size={13}
-                  strokeWidth={2.5}
-                  className={`shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-                />
-              </button>
-            </div>
-          )
-        })}
-      </nav>
+        <div className="w-px h-6 bg-[var(--app-border)] mx-1 opacity-50" />
 
+        {/* Step 2: Active App Context */}
+        <Link
+          to={`/${appName}`}
+          className={`flex flex-col items-center gap-0.5 px-4 py-1.5 transition-all rounded-[calc(var(--app-radius-lg)*0.7)] ${
+            location.pathname === `/${appName}` || location.pathname === `/${appName}/`
+              ? 'text-[var(--app-primary-action)] bg-[var(--app-primary-action)]/10'
+              : 'text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-panel-soft)]'
+          }`}
+        >
+          <AppIcon size={18} strokeWidth={2.2} />
+          <span className="text-[11px] font-extrabold tracking-tight truncate max-w-[100px]">
+            {vocabulary.get(activeApp?.label || appName)}
+          </span>
+        </Link>
+
+        {groups.length > 0 && <div className="w-px h-6 bg-[var(--app-border)] mx-1 opacity-50" />}
+
+        {/* Step 3: Current Modules */}
+        <nav className="flex items-center gap-0.5 overflow-x-auto hide-scroll" aria-label="Module navigation">
+          {groups.map((group) => {
+            const GroupIcon = resolveIcon(group.icon || 'Layers')
+            const groupLabel = vocabulary.get(group.label)
+            const isOpen = openGroup === group.label
+            const items = filterMenuItems(group.items || []) as MenuItem[]
+            const isGroupActive = items.some(
+              item => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
+            )
+
+            return (
+              <div key={group.label} className="relative">
+                <button
+                  ref={el => { buttonRefs.current[group.label] = el }}
+                  type="button"
+                  onClick={() => handleGroupClick(group.label)}
+                  className={`flex flex-col shrink-0 items-center gap-0.5 px-4 py-1.5 text-[11px] font-bold tracking-tight transition-all rounded-[calc(var(--app-radius-lg)*0.7)] ${
+                    isGroupActive || isOpen
+                      ? 'text-[var(--app-primary-action)] bg-[var(--app-primary-action)]/10'
+                      : 'text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-panel-soft)]'
+                  }`}
+                >
+                  <GroupIcon size={18} strokeWidth={2.2} className="shrink-0" />
+                  <div className="flex items-center gap-1">
+                    <span className="truncate max-w-[90px]">{groupLabel}</span>
+                    <ChevronDown
+                      size={10}
+                      strokeWidth={2.5}
+                      className={`shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                    />
+                  </div>
+                </button>
+              </div>
+            )
+          })}
+        </nav>
+      </div>
+
+      {/* Switcher Portal */}
+      {isSwitcherOpen && createPortal(
+        <div
+          data-nav-dropdown
+          style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
+          className="w-[420px] rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-panel)] p-4 shadow-[var(--shadow-premium)] animate-in fade-in zoom-in-95 duration-100"
+        >
+          <div className="text-[10px] font-black uppercase tracking-widest text-[var(--app-muted)] mb-3 px-2">Switch Application</div>
+          <div className="grid grid-cols-2 gap-2">
+            {sidebarData.map(app => {
+              const Icon = resolveIcon(app.icon || 'Package')
+              const path = app.path || `/${app.name}`
+              const isActive = location.pathname.startsWith(path)
+              return (
+                <Link
+                  key={app.name}
+                  to={path}
+                  className={`flex items-center gap-3 p-3 rounded-[var(--app-radius)] transition-all ${
+                    isActive 
+                      ? 'bg-[var(--app-primary-action)]/10 text-[var(--app-primary-action)]' 
+                      : 'hover:bg-[var(--app-panel-soft)] text-[var(--app-muted)] hover:text-[var(--app-text)]'
+                  }`}
+                >
+                  <div className={`p-2 rounded-lg ${isActive ? 'bg-[var(--app-primary-action)] text-white' : 'bg-[var(--app-panel-soft)] text-[var(--app-muted)]'}`}>
+                    <Icon size={20} strokeWidth={2.2} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-bold truncate">{vocabulary.get(app.label || app.name)}</div>
+                    <div className="text-[10px] opacity-60 truncate">Open Workspace</div>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Group Items Portal */}
       {openGroup && activeItems.length > 0 && createPortal(
         <div
           data-nav-dropdown
           style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
-          className="min-w-[200px] rounded-[var(--aras-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)] p-1.5 shadow-[0_18px_45px_-18px_rgba(15,23,42,0.35)] animate-in fade-in zoom-in-95 duration-100"
+          className="min-w-[200px] rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-panel)] p-2 shadow-[var(--shadow-premium)] animate-in fade-in zoom-in-95 duration-100"
         >
           {activeItems.map((item) => {
             const ItemIcon = resolveIcon(item.icon || 'FileText')
@@ -135,13 +236,13 @@ export function HorizontalAppNav({ sidebarData: _unused }: Props) {
                 key={item.name}
                 to={item.path}
                 onClick={() => setOpenGroup(null)}
-                className={`flex items-center gap-3 rounded-[calc(var(--aras-radius)*0.75)] px-3 py-2 text-[13px] font-semibold transition-all ${
+                className={`flex items-center gap-3 rounded-[var(--app-radius)] px-3 py-2 text-[13px] font-bold transition-all ${
                   isActive
-                    ? 'text-[var(--aras-accent)] bg-[color-mix(in_srgb,var(--aras-accent)_8%,transparent)]'
-                    : 'text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)] hover:text-[var(--aras-text)]'
+                    ? 'text-[var(--app-primary-action)] bg-[var(--app-primary-action)]/10'
+                    : 'text-[var(--app-muted)] hover:bg-[var(--app-panel-soft)] hover:text-[var(--app-text)]'
                 }`}
               >
-                <ItemIcon size={15} strokeWidth={2.2} className="shrink-0" />
+                <ItemIcon size={16} strokeWidth={2.5} className="shrink-0" />
                 {vocabulary.get(item.label || item.name)}
               </Link>
             )

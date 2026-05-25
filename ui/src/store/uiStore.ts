@@ -98,7 +98,7 @@ export const useUIStore = create<UIStore>()(
       themeMode: 'normal',
       cornerMode: 'rounded',
       density: 'regular',
-      accentColor: '#7a2e2e',
+      accentColor: '#4F46E5',
       fontScale: 100,
       sidebarCollapsed: false,
       topbarNavStyle: 'icon-text',

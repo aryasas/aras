@@ -29,19 +29,19 @@ const RBACManager = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Access Control Manager</h1>
-        <p className="text-slate-500">Manage user roles, granular data permissions, and system access.</p>
+        <h1 className="text-3xl font-extrabold text-[var(--app-text)] tracking-tight">Access Control Manager</h1>
+        <p className="text-[var(--app-muted)]">Manage user roles, granular data permissions, and system access.</p>
       </div>
 
-      <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
+      <div className="flex items-center gap-2 p-1 bg-[var(--app-panel-soft)] rounded-[var(--app-radius-lg)] w-fit">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-[var(--app-radius)] text-sm font-bold transition-all ${
               activeTab === tab.id 
-                ? 'bg-white text-indigo-600 shadow-sm' 
-                : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
+                ? 'bg-[var(--app-panel)] text-[var(--app-accent)] shadow-sm' 
+                : 'text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-panel)]/50'
             }`}
           >
             <tab.icon size={18} />
@@ -50,7 +50,7 @@ const RBACManager = () => {
         ))}
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden h-[calc(100vh-280px)]">
+      <div className="bg-[var(--app-panel)] rounded-[var(--app-radius-lg)] shadow-sm border border-[var(--app-border)] overflow-hidden h-[calc(100vh-280px)]">
         <ListView 
           key={activeTab}
           resource={activeResource} 

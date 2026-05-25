@@ -75,7 +75,7 @@ export function Sidebar({
       />
       <div className="flex h-full flex-col">
         <div className="mb-8 flex h-12 items-center justify-center px-0">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--ts-surface-900)] text-white shadow-md">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--app-radius)] bg-[var(--ts-surface-900)] text-white shadow-md">
             <TemplateIcon name="box" className="h-5 w-5 text-[var(--ts-brand-400)]" />
           </div>
           {!compact ? (
@@ -91,11 +91,11 @@ export function Sidebar({
               key={`${item.label}-${item.icon}`}
               href="#"
               className={[
-                'group flex items-center gap-3 rounded-2xl border p-3 text-sm transition-all',
+                'group flex items-center gap-3 rounded-[var(--app-radius-lg)] border p-3 text-sm transition-all',
                 compact ? 'justify-center px-0' : 'px-4',
                 item.active
-                  ? 'border-[var(--ts-surface-100)] bg-white font-semibold text-[var(--ts-brand-600)] shadow-sm'
-                  : 'border-transparent font-medium text-[var(--ts-surface-500)] hover:border-[var(--ts-surface-100)] hover:bg-white hover:text-[var(--ts-surface-900)]',
+                  ? 'border-[var(--ts-surface-100)] bg-[var(--app-panel)] font-semibold text-[var(--ts-brand-600)] shadow-sm'
+                  : 'border-transparent font-medium text-[var(--ts-surface-500)] hover:border-[var(--ts-surface-100)] hover:bg-[var(--app-panel)] hover:text-[var(--ts-surface-900)]',
               ].join(' ')}
             >
               <TemplateIcon
@@ -107,7 +107,7 @@ export function Sidebar({
               />
               {!compact ? <span>{item.label}</span> : null}
               {!compact && item.badge ? (
-                <span className="ml-auto rounded-lg border border-[var(--ts-brand-200)] bg-[var(--ts-brand-100)] px-2 py-0.5 text-xs font-bold text-[var(--ts-brand-700)]">
+                <span className="ml-auto rounded-[var(--app-radius)] border border-[var(--ts-brand-200)] bg-[var(--ts-brand-100)] px-2 py-0.5 text-xs font-bold text-[var(--ts-brand-700)]">
                   {item.badge}
                 </span>
               ) : null}
@@ -117,8 +117,8 @@ export function Sidebar({
         </nav>
 
         <div className="mt-4 border-t border-[rgba(226,232,240,0.55)] pt-4">
-          <div className="flex items-center gap-3 rounded-2xl border border-[rgba(226,232,240,0.55)] bg-[rgba(241,245,249,0.6)] p-2">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--ts-surface-900)] text-sm font-bold text-white">
+          <div className="flex items-center gap-3 rounded-[var(--app-radius-lg)] border border-[rgba(226,232,240,0.55)] bg-[rgba(241,245,249,0.6)] p-2">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--app-radius)] bg-[var(--ts-surface-900)] text-sm font-bold text-white">
               {userName.slice(0, 1)}
             </div>
             {!compact ? (

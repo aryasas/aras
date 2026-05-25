@@ -81,17 +81,17 @@ export const ListViewActionBar: React.FC<ListViewActionBarProps> = ({
     return () => document.removeEventListener('mousedown', onDown);
   }, []);
 
-  const iconButton = 'grid h-10 w-10 place-items-center rounded-xl border border-[var(--aras-border)] bg-[var(--aras-panel)]/75 text-[var(--aras-muted)] transition-all hover:bg-[var(--aras-panel)] hover:text-[var(--aras-text)]';
-  const toolButton = 'inline-flex h-10 items-center gap-2 rounded-xl border border-[var(--aras-border)] bg-[var(--aras-panel)]/75 px-3 text-sm font-bold text-[var(--aras-text)] transition-all hover:bg-[var(--aras-panel)]';
+  const iconButton = `grid h-10 w-10 place-items-center rounded-[var(--app-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)]/75 text-[var(--aras-muted)] transition-all hover:bg-[var(--aras-panel)] hover:text-[var(--aras-text)]`;
+  const toolButton = `inline-flex h-10 items-center gap-2 rounded-[var(--app-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)]/75 px-4 text-sm font-bold text-[var(--aras-text)] transition-all hover:bg-[var(--aras-panel)]`;
 
   return (
-    <DesignContainer id="action-bar-layout" className="aras-list-action-bar glass-panel island mb-4 flex flex-col gap-3 p-3">
+    <DesignContainer id="action-bar-layout" className="aras-list-action-bar glass-panel island mb-6 flex flex-col gap-3 p-4">
       <DesignContainer id="action-bar-top-row" className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <DesignContainer id="action-bar-left-group" className="flex shrink-0 items-center gap-2">
-          <DesignElement id="btn-add-new" tagName="button" onClick={onAdd} className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--aras-button)] px-5 text-sm font-extrabold text-[var(--aras-button-text)] transition-all hover:brightness-110 active:scale-[0.98]"><Plus size={17} />Add New</DesignElement>
+          <DesignElement id="btn-add-new" tagName="button" onClick={onAdd} className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-[var(--app-radius)] bg-[var(--aras-button)] px-6 text-sm font-extrabold text-[var(--aras-button-text)] transition-all hover:brightness-110 active:scale-[0.98]"><Plus size={17} />Add New</DesignElement>
 
           {selectedCount > 0 && (
-            <div className="hidden items-center gap-1 rounded-xl border border-[var(--aras-border)] bg-[var(--aras-panel-soft)] px-2 py-1 lg:flex">
+            <div className="hidden items-center gap-1 rounded-[var(--app-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel-soft)] px-2 py-1 lg:flex">
               <span className="px-2 text-xs font-black text-[var(--aras-muted)]">{selectedCount} selected</span>
               <button type="button" onClick={onBulkEdit} className={iconButton} title={`Edit ${selectedCount} selected`}>
                 <Edit3 size={16} />
@@ -111,7 +111,7 @@ export const ListViewActionBar: React.FC<ListViewActionBarProps> = ({
               id="list-search-input"
               type="text"
               placeholder={`Search ${title}...`}
-              className="h-10 w-full rounded-xl border border-[var(--aras-border)] bg-[var(--aras-panel)]/75 pl-10 pr-4 text-sm font-semibold text-[var(--aras-text)] outline-none transition-all placeholder:text-[var(--aras-muted)] focus:bg-[var(--aras-panel)]"
+              className="h-10 w-full rounded-[var(--app-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)]/75 pl-10 pr-4 text-sm font-semibold text-[var(--aras-text)] outline-none transition-all placeholder:text-[var(--aras-muted)] focus:bg-[var(--aras-panel)]"
               value={search}
               onChange={(event) => onSearchChange(event.target.value)}
             />
@@ -142,7 +142,7 @@ export const ListViewActionBar: React.FC<ListViewActionBarProps> = ({
             {savedOpen && (
               <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-[1rem] border border-[var(--aras-border)] bg-[var(--aras-panel)] p-2 shadow-lg">
                 {savedFilters.map((filter) => (
-                  <div key={filter.id} className="group flex items-center gap-1 rounded-xl hover:bg-[var(--aras-panel-soft)]">
+                  <div key={filter.id} className="group flex items-center gap-1 rounded-[var(--app-radius)] hover:bg-[var(--aras-panel-soft)]">
                     <button
                       type="button"
                       onClick={() => { onApplySavedFilter(filter.id); setSavedOpen(false); }}
@@ -153,7 +153,7 @@ export const ListViewActionBar: React.FC<ListViewActionBarProps> = ({
                     <button
                       type="button"
                       onClick={(event) => { event.stopPropagation(); onDeleteSavedFilter(filter.id); }}
-                      className="mr-1 grid h-7 w-7 place-items-center rounded-lg text-[var(--aras-muted)] opacity-0 transition-all hover:bg-rose-50 hover:text-rose-600 group-hover:opacity-100"
+                      className="mr-1 grid h-7 w-7 place-items-center rounded-[var(--app-radius)] text-[var(--aras-muted)] opacity-0 transition-all hover:bg-rose-50 hover:text-rose-600 group-hover:opacity-100"
                       title="Delete saved filter"
                     >
                       <X size={14} />
@@ -166,7 +166,7 @@ export const ListViewActionBar: React.FC<ListViewActionBarProps> = ({
         )}
 
         {onViewModeChange && (
-          <div className="flex h-10 overflow-hidden rounded-xl border border-[var(--aras-border)] bg-[var(--aras-panel)]/75">
+          <div className="flex h-10 overflow-hidden rounded-[var(--app-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)]/75">
             <button type="button" onClick={() => onViewModeChange('list')} className={`grid w-10 place-items-center ${viewMode === 'list' ? 'bg-[var(--aras-panel)] text-[var(--aras-accent)]' : 'text-[var(--aras-muted)] hover:bg-[var(--aras-panel)]'}`} title="List view">
               <List size={17} />
             </button>
@@ -190,7 +190,7 @@ export const ListViewActionBar: React.FC<ListViewActionBarProps> = ({
               <div className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-widest text-[var(--aras-muted)]">Columns</div>
               <div className="max-h-64 space-y-1 overflow-y-auto">
                 {fields.map((field) => (
-                  <label key={field.name} className="flex cursor-pointer items-center gap-2 rounded-xl px-2 py-1.5 text-sm font-semibold text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]">
+                  <label key={field.name} className="flex cursor-pointer items-center gap-2 rounded-[var(--app-radius)] px-2 py-1.5 text-sm font-semibold text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]">
                     <input
                       type="checkbox"
                       checked={visibleColumns.includes(field.name)}
@@ -236,7 +236,7 @@ export const ListViewActionBar: React.FC<ListViewActionBarProps> = ({
       </DesignContainer>
 
       {selectedCount > 0 && (
-        <div className="flex items-center justify-between rounded-xl border border-[var(--aras-border)] bg-[var(--aras-panel-soft)] px-3 py-2 lg:hidden">
+        <div className="flex items-center justify-between rounded-[var(--app-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel-soft)] px-3 py-2 lg:hidden">
           <span className="text-xs font-black text-[var(--aras-muted)]">{selectedCount} selected</span>
           <div className="flex items-center gap-2">
             <button type="button" onClick={onBulkEdit} className={iconButton} title={`Edit ${selectedCount} selected`}>

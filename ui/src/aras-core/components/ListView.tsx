@@ -423,7 +423,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                       );
                     })()}
                   </div>
-                  <button onClick={() => removeFilter(i)} className="flex-shrink-0 p-2 text-[var(--aras-muted)] hover:text-rose-500 rounded-xl transition-colors">
+                  <button onClick={() => removeFilter(i)} className="flex-shrink-0 p-2 text-[var(--aras-muted)] hover:text-rose-500 rounded-[var(--app-radius)] transition-colors">
                     <X size={14} />
                   </button>
                 </div>
@@ -436,50 +436,50 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           </DesignElement>
         )}
 
-        <DesignElement id="table" className="glass-panel island flex-1 overflow-auto w-full mt-4">
+        <DesignElement id="table" className="bg-[var(--app-panel)] rounded-[var(--app-radius-lg)] border border-[var(--app-border)] shadow-[var(--shadow-premium)] flex-1 overflow-auto w-full mt-6">
           {isPartyResource && (
-            <div className="flex flex-wrap gap-1 border-b border-[var(--aras-border)] bg-[var(--aras-panel-soft)] px-4 py-2">
-               <span className="text-[10px] font-black uppercase text-[var(--aras-muted)] px-3">Role filtering active</span>
+            <div className="flex flex-wrap gap-1 border-b border-[var(--app-border)] bg-[var(--app-panel-soft)] px-4 py-2">
+               <span className="text-[10px] font-black uppercase text-[var(--app-muted)] px-3">Role filtering active</span>
             </div>
           )}
           {viewMode === 'list' && (
             <div className="overflow-x-auto">
               <div className="aras-list-table" style={{ minWidth: listMinWidth }}>
-              <div className="aras-list-header hidden md:grid" style={{ gridTemplateColumns }}>
-                <div><button onClick={handleSelectAll} className="hover:text-[var(--aras-accent)]">{selectedIds.length === data.length && data.length > 0 ? <CheckSquare size={16} className="text-[var(--aras-accent)]" /> : <Square size={16} />}</button></div>
+              <div className="aras-list-header hidden md:grid bg-[var(--app-table-head)] sticky top-0 z-10 border-b border-[var(--app-border)]" style={{ gridTemplateColumns }}>
+                <div className="px-[calc(16px*var(--app-density))] py-[calc(18px*var(--app-density))]"><button onClick={handleSelectAll} className="hover:text-[var(--app-accent)]">{selectedIds.length === data.length && data.length > 0 ? <CheckSquare size={18} className="text-[var(--app-accent)]" /> : <Square size={18} className="text-[var(--app-muted)]" />}</button></div>
                 {listColumns.map((column) => (
-                  <div key={column.key} className={`aras-list-header__cell ${column.align === 'right' ? 'justify-end text-right' : ''}`} onClick={() => { if (orderBy === column.field.name) setDesc(!desc); else { setOrderBy(column.field.name); setDesc(true); } }}>
+                  <div key={column.key} className={`px-[calc(6px*var(--app-density))] py-[calc(18px*var(--app-density))] flex items-center gap-2 text-[calc(11px*var(--app-font-scale))] font-extrabold text-[var(--app-muted)] uppercase tracking-wider cursor-pointer hover:text-[var(--app-text)] transition-colors ${column.align === 'right' ? 'justify-end text-right' : ''}`} onClick={() => { if (orderBy === column.field.name) setDesc(!desc); else { setOrderBy(column.field.name); setDesc(true); } }}>
                     {column.label}
-                    {orderBy === column.field.name && (desc ? <ChevronDown size={14} className="text-[var(--aras-accent)]" /> : <ChevronUp size={14} className="text-[var(--aras-accent)]" />)}
+                    {orderBy === column.field.name && (desc ? <ChevronDown size={14} className="text-[var(--app-accent)]" /> : <ChevronUp size={14} className="text-[var(--app-accent)]" />)}
                   </div>
                 ))}
-                <div className="text-right">Action</div>
+                <div className="px-[calc(16px*var(--app-density))] py-[calc(18px*var(--app-density))] text-right text-[calc(11px*var(--app-font-scale))] font-extrabold text-[var(--app-muted)] uppercase tracking-wider">Action</div>
               </div>
 
               {loading ? (
-                <div className="p-20 text-center animate-pulse text-[var(--aras-muted)]">Fetching records...</div>
+                <div className="p-[calc(80px*var(--app-density))] text-center animate-pulse text-[var(--app-muted)] font-bold">Fetching records...</div>
               ) : data.length === 0 ? (
                 <div className="px-6 py-20 text-center">
-                  <Search size={48} className="mb-4 opacity-20 mx-auto" />
-                  <p className="text-[15px] font-bold text-[var(--aras-text)]">No records found.</p>
+                  <Search size={48} className="mb-4 text-[var(--app-border-strong)] mx-auto" />
+                  <p className="text-[calc(15px*var(--app-font-scale))] font-extrabold text-[var(--app-text)]">No records found.</p>
                 </div>
               ) : (
                 data.map((item) => (
-                  <div key={item.id} className={`aras-list-row grid items-center group ${selectedIds.includes(item.id) ? 'is-selected' : ''}`} style={{ gridTemplateColumns }} onClick={() => onRowClick?.(item.id)}>
-                    <div onClick={(e) => e.stopPropagation()}><button onClick={() => handleSelectOne(item.id)} className={`${selectedIds.includes(item.id) ? 'text-[var(--aras-accent)]' : 'text-[var(--aras-border-strong)]'}`}>{selectedIds.includes(item.id) ? <CheckSquare size={18} /> : <Square size={18} />}</button></div>
+                  <div key={item.id} className={`aras-list-row grid items-center group border-b border-[var(--app-border)] hover:bg-[var(--app-panel-soft)] transition-colors cursor-pointer ${selectedIds.includes(item.id) ? 'bg-[var(--app-primary-action)]/5' : ''}`} style={{ gridTemplateColumns }} onClick={() => onRowClick?.(item.id)}>
+                    <div className="px-[calc(16px*var(--app-density))] py-[calc(8px*var(--app-density))]" onClick={(e) => e.stopPropagation()}><button onClick={() => handleSelectOne(item.id)} className={`${selectedIds.includes(item.id) ? 'text-[var(--app-primary-action)]' : 'text-[var(--app-border-strong)]'}`}>{selectedIds.includes(item.id) ? <CheckSquare size={20} /> : <Square size={20} />}</button></div>
                     {listColumns.map((column) => {
                       const value = getFieldValue(item, column.field)
                       return (
-                        <div key={column.key} className={`min-w-0 ${column.align === 'right' ? 'text-right' : ''}`}>
-                          <div className={`${column.primary ? 'font-extrabold text-[var(--aras-foreground)]' : 'font-semibold text-[var(--aras-muted)]'} truncate text-sm`}>
+                        <div key={column.key} className={`px-[calc(6px*var(--app-density))] py-[calc(8px*var(--app-density))] min-w-0 ${column.align === 'right' ? 'text-right' : ''}`}>
+                          <div className={`${column.primary ? 'font-extrabold text-[var(--app-text)]' : 'font-semibold text-[var(--app-muted)]'} truncate text-[calc(14px*var(--app-font-scale))]`}>
                             {renderCellValue(value, column.field.type, column.field.name)}
                           </div>
                         </div>
                       )
                     })}
-                    <div className="flex items-center justify-end gap-1">
-                      <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteOne(item); }} className="p-2 text-[var(--aras-muted)] hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-colors"><Trash2 size={16} /></button>
-                      <ChevronRight size={18} className="text-[var(--aras-muted)]" />
+                    <div className="px-[calc(16px*var(--app-density))] py-[calc(8px*var(--app-density))] flex items-center justify-end gap-1">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteOne(item); }} className="p-2 text-[var(--app-muted)] hover:text-rose-500 hover:bg-rose-50 rounded-[var(--app-radius)] transition-colors"><Trash2 size={18} /></button>
+                      <ChevronRight size={20} className="text-[var(--app-muted)]" />
                     </div>
                   </div>
                 ))
@@ -490,10 +490,10 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         </DesignElement>
 
         {viewMode === 'list' && (
-          <DesignElement id="pagination" className="mt-3 aras-island p-3 flex flex-wrap items-center justify-between gap-3 w-full">
+          <DesignElement id="pagination" className="mt-6 bg-[var(--app-panel)] border border-[var(--app-border)] shadow-[var(--shadow-premium)] rounded-[var(--app-radius-lg)] p-[calc(16px*var(--app-density))] flex flex-wrap items-center justify-between gap-4 w-full">
             <div className="flex items-center gap-4">
-              <span className="text-xs font-medium text-[var(--aras-muted)]">Showing {(page-1)*perPage + 1} to {Math.min(page*perPage, total)} of {total}</span>
-              <div className="min-w-[120px]">
+              <span className="text-[calc(13px*var(--app-font-scale))] font-bold text-[var(--app-muted)]">Showing {(page-1)*perPage + 1} to {Math.min(page*perPage, total)} of {total}</span>
+              <div className="min-w-[140px]">
                 <Combobox
                   options={[
                     { label: '10 per page', value: 10 },
@@ -506,9 +506,9 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                 />
               </div>
             </div>
-            <div className="flex items-center border border-[var(--aras-border-strong)] rounded-[var(--aras-radius)] overflow-hidden">
-              <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="px-3 py-2 text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)] border-r border-[var(--aras-border)]"><ChevronLeft size={16} /></button>
-              <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} className="px-3 py-2 text-[var(--aras-muted)] hover:bg-[var(--aras-panel-soft)]"><ChevronRight size={16} /></button>
+            <div className="flex items-center border border-[var(--app-border-strong)] rounded-[var(--app-radius)] overflow-hidden bg-[var(--app-panel)]">
+              <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="px-4 py-2.5 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-panel-soft)] border-r border-[var(--app-border-strong)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><ChevronLeft size={18} /></button>
+              <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} className="px-4 py-2.5 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-panel-soft)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><ChevronRight size={18} /></button>
             </div>
           </DesignElement>
         )}
@@ -541,8 +541,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
               </div>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setBulkEditOpen(false)} className="flex-1 px-4 py-2 border rounded-xl">Cancel</button>
-              <button onClick={handleBulkEditSubmit} disabled={bulkEditing || !bulkEditField} className="flex-1 px-4 py-2 bg-[var(--aras-accent)] text-white rounded-xl">{bulkEditing ? 'Saving...' : 'Apply'}</button>
+              <button onClick={() => setBulkEditOpen(false)} className="flex-1 px-4 py-2 border border-[var(--app-border)] rounded-[var(--app-radius)] text-[var(--app-muted)] hover:bg-[var(--app-panel-soft)] transition-colors">Cancel</button>
+              <button onClick={handleBulkEditSubmit} disabled={bulkEditing || !bulkEditField} className="flex-1 px-4 py-2 bg-[var(--app-primary-action)] text-white rounded-[var(--app-radius)] font-bold shadow-lg shadow-[var(--app-accent-glow)] hover:brightness-110 active:scale-95 transition-all">{bulkEditing ? 'Saving...' : 'Apply Changes'}</button>
             </div>
           </div>
         </div>

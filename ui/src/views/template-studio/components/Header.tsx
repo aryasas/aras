@@ -31,7 +31,7 @@ function buttonClass(variant: HeaderProps['primaryVariant']) {
   if (variant === 'danger') {
     return 'border-red-200 bg-red-50 text-red-700'
   }
-  return 'border-[var(--ts-surface-200)] bg-white text-[var(--ts-surface-700)] shadow-sm'
+  return 'border-[var(--ts-surface-200)] bg-[var(--app-panel)] text-[var(--ts-surface-700)] shadow-sm'
 }
 
 export function Header({
@@ -70,10 +70,10 @@ export function Header({
         settings={settings}
       />
       <div className="flex min-w-0 items-center gap-4">
-        <button type="button" className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--ts-surface-200)] bg-white text-[var(--ts-surface-500)] shadow-sm">
+        <button type="button" className="flex h-10 w-10 items-center justify-center rounded-[var(--app-radius)] border border-[var(--ts-surface-200)] bg-[var(--app-panel)] text-[var(--ts-surface-500)] shadow-sm">
           <TemplateIcon name="arrow-left" className="h-5 w-5" />
         </button>
-        <button type="button" className={['inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-bold', buttonClass(primaryVariant)].join(' ')}>
+        <button type="button" className={['inline-flex items-center gap-2 rounded-[var(--app-radius)] border px-5 py-2.5 text-sm font-bold', buttonClass(primaryVariant)].join(' ')}>
           <TemplateIcon name="save" className="h-4 w-4" />
           <span>{primaryLabel}</span>
         </button>
@@ -85,7 +85,7 @@ export function Header({
         </div>
       </div>
       <div className="flex flex-1 justify-end">
-        <button type="button" className={['rounded-xl border px-5 py-2.5 text-sm font-bold', buttonClass(secondaryVariant)].join(' ')}>
+        <button type="button" className={['rounded-[var(--app-radius)] border px-5 py-2.5 text-sm font-bold', buttonClass(secondaryVariant)].join(' ')}>
           {secondaryLabel}
         </button>
       </div>

@@ -78,7 +78,7 @@ function GlobalSettings() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-400">
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-[var(--app-muted)]">
         <RefreshCw className="animate-spin mb-4" size={32} />
         <p>Loading global configuration...</p>
       </div>
@@ -87,15 +87,15 @@ function GlobalSettings() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto pb-12">
-      <div className="flex items-center justify-between mb-8 sticky top-0 bg-slate-50/80 backdrop-blur-md py-4 z-10 border-b border-slate-200/50">
+      <div className="flex items-center justify-between mb-8 sticky top-0 bg-[var(--app-panel-soft)]/80 backdrop-blur-md py-4 z-10 border-b border-[var(--app-border)]/50">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Global Preferences</h1>
-          <p className="text-slate-500 mt-1">Configure platform behavior, localization, and system constraints.</p>
+          <h1 className="text-3xl font-bold text-[var(--app-text)] tracking-tight">Global Preferences</h1>
+          <p className="text-[var(--app-muted)] mt-1">Configure platform behavior, localization, and system constraints.</p>
         </div>
         <button 
           onClick={saveSettings}
           disabled={saving}
-          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-3 bg-[var(--app-accent)] text-white rounded-[var(--app-radius-lg)] font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 disabled:opacity-50"
         >
           {saving ? <RefreshCw className="animate-spin" size={18} /> : <Save size={18} />}
           <span>{saving ? 'Saving...' : 'Save Changes'}</span>
@@ -105,36 +105,36 @@ function GlobalSettings() {
       <div className="space-y-6">
         
         {/* Application Identity Section */}
-        <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-6 text-indigo-600">
+        <div className="bg-[var(--app-panel)] p-8 rounded-[2rem] border border-[var(--app-border)] shadow-sm">
+          <div className="flex items-center gap-3 mb-6 text-[var(--app-accent)]">
             <Cpu size={24} />
-            <h2 className="text-xl font-bold text-slate-900">Application Identity</h2>
+            <h2 className="text-xl font-bold text-[var(--app-text)]">Application Identity</h2>
           </div>
           
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">Application Name</label>
+              <label className="block text-sm font-bold text-[var(--app-text)] mb-2">Application Name</label>
               <input 
                 type="text"
                 value={settings['app_name']?.value || 'Aras Framework'}
                 onChange={(e) => handleUpdate('app_name', e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                className="w-full px-4 py-3 bg-[var(--app-panel-soft)] border border-[var(--app-border)] rounded-[var(--app-radius)] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
               />
-              <p className="text-xs text-slate-500 mt-2">The global display name of the application, used in emails and UI headers.</p>
+              <p className="text-xs text-[var(--app-muted)] mt-2">The global display name of the application, used in emails and UI headers.</p>
             </div>
           </div>
         </div>
 
         {/* Localization Section */}
-        <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+        <div className="bg-[var(--app-panel)] p-8 rounded-[2rem] border border-[var(--app-border)] shadow-sm">
           <div className="flex items-center gap-3 mb-6 text-purple-600">
             <Languages size={24} />
-            <h2 className="text-xl font-bold text-slate-900">Language & Localization</h2>
+            <h2 className="text-xl font-bold text-[var(--app-text)]">Language & Localization</h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">Default System Language</label>
+              <label className="block text-sm font-bold text-[var(--app-text)] mb-2">Default System Language</label>
               <Combobox 
                 options={[
                   { label: 'English (US)', value: 'en' },
@@ -149,19 +149,19 @@ function GlobalSettings() {
                   handleUpdate('core.language_default', value)
                 }}
               />
-              <p className="text-xs text-slate-500 mt-2">New users will inherit this language setting by default.</p>
+              <p className="text-xs text-[var(--app-muted)] mt-2">New users will inherit this language setting by default.</p>
             </div>
 
             
-            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 border-dashed">
+            <div className="p-6 bg-[var(--app-panel-soft)] rounded-[var(--app-radius-lg)] border border-[var(--app-border)] border-dashed">
               <div className="flex items-start gap-3">
-                <Globe className="text-slate-400 mt-1" size={20} />
+                <Globe className="text-[var(--app-muted)] mt-1" size={20} />
                 <div>
-                  <h4 className="text-sm font-bold text-slate-700 mb-1">Multi-Language UI</h4>
-                  <p className="text-xs text-slate-500 leading-relaxed">
+                  <h4 className="text-sm font-bold text-[var(--app-text)] mb-1">Multi-Language UI</h4>
+                  <p className="text-xs text-[var(--app-muted)] leading-relaxed">
                     Aras uses a centralized translation system for metadata. 
                     You can manage translated labels for resources and fields via the 
-                    <span className="font-bold text-indigo-600 ml-1">Translation Registry</span>.
+                    <span className="font-bold text-[var(--app-accent)] ml-1">Translation Registry</span>.
                   </p>
                 </div>
               </div>
@@ -171,15 +171,15 @@ function GlobalSettings() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Date & Time Section */}
-          <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
-            <div className="flex items-center gap-3 mb-6 text-indigo-600">
+          <div className="bg-[var(--app-panel)] p-8 rounded-[2rem] border border-[var(--app-border)] shadow-sm">
+            <div className="flex items-center gap-3 mb-6 text-[var(--app-accent)]">
               <Calendar size={24} />
-              <h2 className="text-xl font-bold text-slate-900">Date & Time</h2>
+              <h2 className="text-xl font-bold text-[var(--app-text)]">Date & Time</h2>
             </div>
             
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">Date Format</label>
+                <label className="block text-sm font-bold text-[var(--app-text)] mb-2">Date Format</label>
                 <Combobox 
                   options={[
                     { label: 'YYYY-MM-DD (2026-05-12)', value: 'YYYY-MM-DD' },
@@ -193,7 +193,7 @@ function GlobalSettings() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">Time Format</label>
+                <label className="block text-sm font-bold text-[var(--app-text)] mb-2">Time Format</label>
                 <Combobox 
                   options={[
                     { label: '24-hour (14:30:05)', value: 'HH:mm:ss' },
@@ -208,15 +208,15 @@ function GlobalSettings() {
           </div>
 
           {/* Numbers & Currency Section */}
-          <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+          <div className="bg-[var(--app-panel)] p-8 rounded-[2rem] border border-[var(--app-border)] shadow-sm">
             <div className="flex items-center gap-3 mb-6 text-emerald-600">
               <Coins size={24} />
-              <h2 className="text-xl font-bold text-slate-900">Numbers & Currency</h2>
+              <h2 className="text-xl font-bold text-[var(--app-text)]">Numbers & Currency</h2>
             </div>
             
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">Number Format</label>
+                <label className="block text-sm font-bold text-[var(--app-text)] mb-2">Number Format</label>
                 <Combobox 
                   options={[
                     { label: '1,234.56 (US/UK)', value: '#,###.##' },
@@ -231,23 +231,23 @@ function GlobalSettings() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Decimal Precision</label>
+                  <label className="block text-sm font-bold text-[var(--app-text)] mb-2">Decimal Precision</label>
                   <input 
                     type="number"
                     min="0"
                     max="6"
                     value={settings['core.decimal_precision']?.value || '2'}
                     onChange={(e) => handleUpdate('core.decimal_precision', e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                    className="w-full px-4 py-3 bg-[var(--app-panel-soft)] border border-[var(--app-border)] rounded-[var(--app-radius)] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Currency Symbol</label>
+                  <label className="block text-sm font-bold text-[var(--app-text)] mb-2">Currency Symbol</label>
                   <input 
                     type="text"
                     value={settings['core.currency_symbol']?.value || '$'}
                     onChange={(e) => handleUpdate('core.currency_symbol', e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                    className="w-full px-4 py-3 bg-[var(--app-panel-soft)] border border-[var(--app-border)] rounded-[var(--app-radius)] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -256,14 +256,14 @@ function GlobalSettings() {
         </div>
 
         {/* Maintenance Section */}
-        <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+        <div className="bg-[var(--app-panel)] p-8 rounded-[2rem] border border-[var(--app-border)] shadow-sm">
           <div className="flex items-center gap-3 mb-6 text-amber-600">
             <ShieldAlert size={24} />
-            <h2 className="text-xl font-bold text-slate-900">System Control</h2>
+            <h2 className="text-xl font-bold text-[var(--app-text)]">System Control</h2>
           </div>
           
           <div className="space-y-6">
-            <div className="flex items-center justify-between p-4 bg-amber-50 rounded-2xl border border-amber-100">
+            <div className="flex items-center justify-between p-4 bg-amber-50 rounded-[var(--app-radius-lg)] border border-amber-100">
               <div>
                 <label className="block text-sm font-bold text-amber-900 mb-1">Maintenance Mode</label>
                 <p className="text-xs text-amber-700">Disable public access. Only administrators will be able to log in.</p>
@@ -275,7 +275,7 @@ function GlobalSettings() {
                   checked={settings['maintenance_mode']?.value === 'true'}
                   onChange={(e) => handleUpdate('maintenance_mode', e.target.checked ? 'true' : 'false')}
                 />
-                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--app-panel)] after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
               </label>
             </div>
           </div>
@@ -287,12 +287,12 @@ function GlobalSettings() {
             <Database size={24} />
             <h2 className="text-xl font-bold">Raw Settings Database</h2>
           </div>
-          <p className="text-slate-400 text-sm mb-6">
+          <p className="text-[var(--app-muted)] text-sm mb-6">
             You can view, add, or delete all raw key-value pairs directly in the generic List View for advanced configuration.
           </p>
           <a 
             href="/dev/table/registry/sys_settings"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold transition-all border border-slate-700"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-[var(--app-radius)] text-sm font-bold transition-all border border-slate-700"
           >
             <Activity size={16} />
             Open Raw Table View

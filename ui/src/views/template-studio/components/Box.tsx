@@ -256,7 +256,7 @@ export function StudioSelectionChrome({
       ) : null}
       {selected ? (
         <>
-          <div className="pointer-events-none absolute left-3 top-3 z-30 flex items-center gap-2 rounded-full bg-white/95 px-2.5 py-1 shadow-md ring-1 ring-[rgba(203,213,225,0.95)]">
+          <div className="pointer-events-none absolute left-3 top-3 z-30 flex items-center gap-2 rounded-full bg-[var(--app-panel)]/95 px-2.5 py-1 shadow-md ring-1 ring-[rgba(203,213,225,0.95)]">
             <GripVertical className="h-3 w-3 text-[var(--ts-surface-500)]" />
             <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--ts-surface-700)]">
               {label}

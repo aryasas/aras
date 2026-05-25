@@ -212,31 +212,31 @@ export default function PosView() {
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Point of Sale</h1>
-            <p className="text-slate-500 mt-1">Open an existing register session or start a new one.</p>
+            <h1 className="text-3xl font-bold text-[var(--app-text)] tracking-tight">Point of Sale</h1>
+            <p className="text-[var(--app-muted)] mt-1">Open an existing register session or start a new one.</p>
           </div>
           <button
             type="button"
             onClick={createSession}
             disabled={creatingSession}
-            className="inline-flex items-center justify-center px-5 py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+            className="inline-flex items-center justify-center px-5 py-3 rounded-[var(--app-radius)] bg-[var(--app-accent)] text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-60 transition-colors"
           >
             {creatingSession ? 'Creating...' : 'New Session'}
           </button>
         </div>
 
         {sessionsLoading ? (
-          <div className="h-56 flex items-center justify-center text-slate-400">
+          <div className="h-56 flex items-center justify-center text-[var(--app-muted)]">
             <Loader2 size={22} className="animate-spin mr-2" />
             <span className="text-sm font-medium">Loading sessions...</span>
           </div>
         ) : openSessions.length === 0 ? (
-          <div className="min-h-64 rounded-2xl border border-dashed border-slate-300 bg-white flex items-center justify-center p-8">
+          <div className="min-h-64 rounded-[var(--app-radius-lg)] border border-dashed border-slate-300 bg-[var(--app-panel)] flex items-center justify-center p-8">
             <button
               type="button"
               onClick={createSession}
               disabled={creatingSession}
-              className="px-5 py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+              className="px-5 py-3 rounded-[var(--app-radius)] bg-[var(--app-accent)] text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-60 transition-colors"
             >
               {creatingSession ? 'Creating...' : 'New Session'}
             </button>
@@ -244,22 +244,22 @@ export default function PosView() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {openSessions.map(openSession => (
-              <div key={openSession.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+              <div key={openSession.id} className="bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius-lg)] p-5 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className="text-base font-bold text-slate-900 truncate">
+                    <h2 className="text-base font-bold text-[var(--app-text)] truncate">
                       {openSession.number ?? `Session #${openSession.id}`}
                     </h2>
-                    <p className="text-sm text-slate-500 mt-1">{openSession.doc_date ?? today()}</p>
+                    <p className="text-sm text-[var(--app-muted)] mt-1">{openSession.doc_date ?? today()}</p>
                   </div>
-                  <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold uppercase shrink-0">
+                  <span className="px-2.5 py-1 rounded-[var(--app-radius)] bg-emerald-50 text-emerald-700 text-xs font-bold uppercase shrink-0">
                     {openSession.mode ?? 'sales'}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => navigate(`/pot/sessions/${openSession.id}/pos`)}
-                  className="mt-5 w-full px-4 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors"
+                  className="mt-5 w-full px-4 py-2.5 rounded-[var(--app-radius)] bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors"
                 >
                   Open
                 </button>
@@ -273,7 +273,7 @@ export default function PosView() {
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center text-slate-400">
+      <div className="h-full flex items-center justify-center text-[var(--app-muted)]">
         <Loader2 size={22} className="animate-spin mr-2" />
         <span className="text-sm font-medium">Loading POS...</span>
       </div>
@@ -281,34 +281,34 @@ export default function PosView() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-slate-100 -m-6">
-      <div className="h-16 px-6 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
+    <div className="h-full flex flex-col bg-[var(--app-panel-soft)] -m-6">
+      <div className="h-16 px-6 bg-[var(--app-panel)] border-b border-[var(--app-border)] flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
             onClick={() => navigate('/pot/sessions')}
-            className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            className="p-2 rounded-[var(--app-radius)] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-panel-soft)] transition-colors"
             title="Back"
           >
             <ArrowLeft size={18} />
           </button>
           <div className="min-w-0">
-            <h1 className="text-base font-bold text-slate-900 truncate">Session {session?.number ?? `#${id}`}</h1>
-            <p className="text-xs text-slate-500">{session?.status ?? 'Open'}</p>
+            <h1 className="text-base font-bold text-[var(--app-text)] truncate">Session {session?.number ?? `#${id}`}</h1>
+            <p className="text-xs text-[var(--app-muted)]">{session?.status ?? 'Open'}</p>
           </div>
           {session?.mode === 'both' ? (
-            <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs font-bold">
+            <div className="flex rounded-[var(--app-radius)] border border-[var(--app-border)] overflow-hidden text-xs font-bold">
               <button type="button" onClick={() => { setPosMode('sales'); setCart([]); setIsCreditMode(false) }}
-                className={`px-3 py-1 transition-colors ${posMode === 'sales' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
+                className={`px-3 py-1 transition-colors ${posMode === 'sales' ? 'bg-emerald-600 text-white' : 'bg-[var(--app-panel)] text-[var(--app-muted)] hover:bg-[var(--app-panel-soft)]'}`}>
                 Sales
               </button>
               <button type="button" onClick={() => { setPosMode('purchase'); setCart([]); setIsCreditMode(false) }}
-                className={`px-3 py-1 transition-colors ${posMode === 'purchase' ? 'bg-sky-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
+                className={`px-3 py-1 transition-colors ${posMode === 'purchase' ? 'bg-sky-600 text-white' : 'bg-[var(--app-panel)] text-[var(--app-muted)] hover:bg-[var(--app-panel-soft)]'}`}>
                 Purchase
               </button>
             </div>
           ) : (
-            <span className={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase ${posMode === 'sales' ? 'bg-emerald-50 text-emerald-700' : 'bg-sky-50 text-sky-700'}`}>
+            <span className={`px-2.5 py-1 rounded-[var(--app-radius)] text-xs font-bold uppercase ${posMode === 'sales' ? 'bg-emerald-50 text-emerald-700' : 'bg-sky-50 text-sky-700'}`}>
               {posMode}
             </span>
           )}
@@ -317,21 +317,21 @@ export default function PosView() {
           type="button"
           onClick={closeSession}
           disabled={closing}
-          className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-60 transition-colors"
+          className="px-4 py-2 rounded-[var(--app-radius)] bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-60 transition-colors"
         >
           {closing ? 'Closing...' : 'Close Session'}
         </button>
       </div>
 
       <div className="flex-1 grid grid-cols-1 xl:grid-cols-[1fr_440px] min-h-0">
-        <div className="p-6 flex flex-col min-h-0 border-r border-slate-200 print:hidden">
+        <div className="p-6 flex flex-col min-h-0 border-r border-[var(--app-border)] print:hidden">
           <div className="mb-5">
             <input
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search items..."
-              className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+              className="w-full px-4 py-3 rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-panel)] text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
             />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 overflow-y-auto pr-1">
@@ -340,57 +340,57 @@ export default function PosView() {
                 key={item.id}
                 type="button"
                 onClick={() => addItem(item)}
-                className="text-left bg-white border border-slate-200 rounded-2xl p-4 min-h-32 shadow-sm hover:border-indigo-300 hover:shadow-md transition-all"
+                className="text-left bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius-lg)] p-4 min-h-32 shadow-sm hover:border-indigo-300 hover:shadow-md transition-all"
               >
-                <div className="text-sm font-bold text-slate-900 line-clamp-2">{item.name}</div>
-                {item.code && <div className="mt-1 text-xs text-slate-400">{item.code}</div>}
+                <div className="text-sm font-bold text-[var(--app-text)] line-clamp-2">{item.name}</div>
+                {item.code && <div className="mt-1 text-xs text-[var(--app-muted)]">{item.code}</div>}
                 <div className="mt-5 flex items-end justify-between gap-3">
-                  <span className="text-base font-bold text-indigo-600">{formatCurrency(getItemPrice(item))}</span>
-                  <span className="text-xs text-slate-400">{item.qty_on_hand ?? 0}</span>
+                  <span className="text-base font-bold text-[var(--app-accent)]">{formatCurrency(getItemPrice(item))}</span>
+                  <span className="text-xs text-[var(--app-muted)]">{item.qty_on_hand ?? 0}</span>
                 </div>
               </button>
             ))}
           </div>
         </div>
 
-        <aside className="bg-white flex flex-col min-h-0">
-          <div className="h-14 px-6 border-b border-slate-200 flex items-center gap-2 shrink-0">
-            <Receipt size={17} className="text-slate-400" />
-            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Cart</h2>
+        <aside className="bg-[var(--app-panel)] flex flex-col min-h-0">
+          <div className="h-14 px-6 border-b border-[var(--app-border)] flex items-center gap-2 shrink-0">
+            <Receipt size={17} className="text-[var(--app-muted)]" />
+            <h2 className="text-sm font-bold text-[var(--app-text)] uppercase tracking-wider">Cart</h2>
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
             {cart.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-sm text-slate-400">
+              <div className="h-full flex items-center justify-center text-sm text-[var(--app-muted)]">
                 No items selected.
               </div>
             ) : (
               cart.map(line => (
                 <div key={line.item.id} className="flex items-center gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-slate-900 truncate">{line.item.name}</div>
-                    <div className="text-xs text-slate-500">{formatCurrency(getItemPrice(line.item))}</div>
+                    <div className="text-sm font-semibold text-[var(--app-text)] truncate">{line.item.name}</div>
+                    <div className="text-xs text-[var(--app-muted)]">{formatCurrency(getItemPrice(line.item))}</div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
                       onClick={() => changeQty(line.item.id, -1)}
-                      className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50"
+                      className="p-1.5 rounded-[var(--app-radius)] border border-[var(--app-border)] text-[var(--app-muted)] hover:bg-[var(--app-panel-soft)]"
                       title="Decrease quantity"
                     >
                       <Minus size={13} />
                     </button>
-                    <span className="w-8 text-center text-sm font-bold text-slate-900">{line.qty}</span>
+                    <span className="w-8 text-center text-sm font-bold text-[var(--app-text)]">{line.qty}</span>
                     <button
                       type="button"
                       onClick={() => changeQty(line.item.id, 1)}
-                      className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50"
+                      className="p-1.5 rounded-[var(--app-radius)] border border-[var(--app-border)] text-[var(--app-muted)] hover:bg-[var(--app-panel-soft)]"
                       title="Increase quantity"
                     >
                       <Plus size={13} />
                     </button>
                   </div>
-                  <div className="w-20 text-right text-sm font-semibold text-slate-900">
+                  <div className="w-20 text-right text-sm font-semibold text-[var(--app-text)]">
                     {formatCurrency(getItemPrice(line.item) * line.qty)}
                   </div>
                 </div>
@@ -399,26 +399,26 @@ export default function PosView() {
           </div>
 
           {receipt ? (
-            <div className="p-6 border-t border-slate-200 space-y-4 shrink-0 bg-white print:block">
+            <div className="p-6 border-t border-[var(--app-border)] space-y-4 shrink-0 bg-[var(--app-panel)] print:block">
               <div className="text-center mb-6">
-                <h3 className="text-xl font-black text-slate-900">{receipt.invoice_number ?? `#${receipt.invoice_id}`}</h3>
-                <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">Receipt</p>
+                <h3 className="text-xl font-black text-[var(--app-text)]">{receipt.invoice_number ?? `#${receipt.invoice_id}`}</h3>
+                <p className="text-xs text-[var(--app-muted)] uppercase tracking-wider mt-1">Receipt</p>
               </div>
               <div className="space-y-3">
                 {receipt.items.map(line => (
                   <div key={line.item.id} className="flex items-center justify-between text-sm">
                     <div>
-                      <div className="font-semibold text-slate-900">{line.item.name}</div>
-                      <div className="text-xs text-slate-500">{line.qty} × {formatCurrency(getItemPrice(line.item))}</div>
+                      <div className="font-semibold text-[var(--app-text)]">{line.item.name}</div>
+                      <div className="text-xs text-[var(--app-muted)]">{line.qty} × {formatCurrency(getItemPrice(line.item))}</div>
                     </div>
-                    <div className="font-bold text-slate-900">{formatCurrency(getItemPrice(line.item) * line.qty)}</div>
+                    <div className="font-bold text-[var(--app-text)]">{formatCurrency(getItemPrice(line.item) * line.qty)}</div>
                   </div>
                 ))}
               </div>
-              <div className="border-t border-slate-200 pt-3 space-y-2">
+              <div className="border-t border-[var(--app-border)] pt-3 space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500 font-medium">Subtotal</span>
-                  <span className="text-lg font-bold text-slate-900">{formatCurrency(receipt.items.reduce((s, l) => s + getItemPrice(l.item) * l.qty, 0))}</span>
+                  <span className="text-[var(--app-muted)] font-medium">Subtotal</span>
+                  <span className="text-lg font-bold text-[var(--app-text)]">{formatCurrency(receipt.items.reduce((s, l) => s + getItemPrice(l.item) * l.qty, 0))}</span>
                 </div>
                 {receipt.isCredit ? (
                   <div className="mt-4 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 uppercase tracking-wider">
@@ -427,30 +427,30 @@ export default function PosView() {
                 ) : (
                   <>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-500 font-medium">Paid</span>
-                      <span className="font-bold text-slate-900">{formatCurrency(receipt.paid)}</span>
+                      <span className="text-[var(--app-muted)] font-medium">Paid</span>
+                      <span className="font-bold text-[var(--app-text)]">{formatCurrency(receipt.paid)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-500 font-medium">Change</span>
-                      <span className="font-bold text-slate-900">{formatCurrency(receipt.change)}</span>
+                      <span className="text-[var(--app-muted)] font-medium">Change</span>
+                      <span className="font-bold text-[var(--app-text)]">{formatCurrency(receipt.change)}</span>
                     </div>
                   </>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-2 mt-6 pt-4 print:hidden">
-                <button type="button" onClick={() => window.print()} className="px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold hover:bg-slate-50 transition-colors">Print</button>
-                <button type="button" onClick={() => { setReceipt(null); clearCart() }} className="px-4 py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-colors">New Transaction</button>
+                <button type="button" onClick={() => window.print()} className="px-4 py-3 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-panel)] text-sm font-bold hover:bg-[var(--app-panel-soft)] transition-colors">Print</button>
+                <button type="button" onClick={() => { setReceipt(null); clearCart() }} className="px-4 py-3 rounded-[var(--app-radius)] bg-[var(--app-accent)] text-white text-sm font-bold hover:bg-indigo-700 transition-colors">New Transaction</button>
               </div>
             </div>
           ) : (
-          <div className="p-6 border-t border-slate-200 space-y-4 shrink-0 print:hidden">
+          <div className="p-6 border-t border-[var(--app-border)] space-y-4 shrink-0 print:hidden">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-500 font-medium">Subtotal</span>
-              <span className="text-lg font-bold text-slate-900">{formatCurrency(subtotal)}</span>
+              <span className="text-[var(--app-muted)] font-medium">Subtotal</span>
+              <span className="text-lg font-bold text-[var(--app-text)]">{formatCurrency(subtotal)}</span>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              <span className="text-xs font-bold text-[var(--app-muted)] uppercase tracking-wider">
                 Credit {posMode === 'sales' ? 'Sale' : 'Purchase'}
               </span>
               <button
@@ -466,7 +466,7 @@ export default function PosView() {
                     : 'bg-slate-200'
                 }`}
               >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-[var(--app-panel)] shadow transition-transform ${
                   isCreditMode ? 'translate-x-[18px]' : 'translate-x-0.5'
                 }`} />
               </button>
@@ -474,7 +474,7 @@ export default function PosView() {
 
             <div className={`space-y-3 ${isCreditMode ? 'opacity-40 pointer-events-none select-none' : ''}`}>
               <label className="block">
-                <span className="block mb-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Party</span>
+                <span className="block mb-1.5 text-xs font-bold text-[var(--app-muted)] uppercase tracking-wider">Party</span>
                 <Combobox
                   resource="party/parties"
                   value={partyId}
@@ -483,7 +483,7 @@ export default function PosView() {
                 />
               </label>
               <label className="block">
-                <span className="block mb-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Mode</span>
+                <span className="block mb-1.5 text-xs font-bold text-[var(--app-muted)] uppercase tracking-wider">Mode</span>
                 <Combobox
                   resource="config/payment-modes"
                   value={paymentModeId}
@@ -492,13 +492,13 @@ export default function PosView() {
                 />
               </label>
               <label className="block">
-                <span className="block mb-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Paid</span>
+                <span className="block mb-1.5 text-xs font-bold text-[var(--app-muted)] uppercase tracking-wider">Paid</span>
                 <input
                   type="number"
                   min="0"
                   value={amountPaid}
                   onChange={(event) => setAmountPaid(event.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                  className="w-full px-4 py-2.5 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-panel-soft)] text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
                 />
               </label>
             </div>
@@ -514,8 +514,8 @@ export default function PosView() {
               </div>
             ) : (
               <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-500 font-medium">Change</span>
-                <span className="font-bold text-slate-900">{formatCurrency(change)}</span>
+                <span className="text-[var(--app-muted)] font-medium">Change</span>
+                <span className="font-bold text-[var(--app-text)]">{formatCurrency(change)}</span>
               </div>
             )}
 
@@ -524,12 +524,12 @@ export default function PosView() {
                 type="button"
                 onClick={charge}
                 disabled={charging || cart.length === 0 || (!isCreditMode && !paymentModeId)}
-                className={`h-12 rounded-xl text-white text-sm font-bold uppercase tracking-wider disabled:opacity-60 transition-colors ${
+                className={`h-12 rounded-[var(--app-radius)] text-white text-sm font-bold uppercase tracking-wider disabled:opacity-60 transition-colors ${
                   isCreditMode
                     ? posMode === 'sales'
                       ? 'bg-amber-500 hover:bg-amber-600 disabled:hover:bg-amber-500'
                       : 'bg-purple-600 hover:bg-purple-700 disabled:hover:bg-purple-600'
-                    : 'bg-indigo-600 hover:bg-indigo-700 disabled:hover:bg-indigo-600'
+                    : 'bg-[var(--app-accent)] hover:bg-indigo-700 disabled:hover:bg-[var(--app-accent)]'
                 }`}
               >
                 {charging
@@ -542,7 +542,7 @@ export default function PosView() {
                 type="button"
                 onClick={clearCart}
                 disabled={cart.length === 0}
-                className="h-12 w-12 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 transition-colors flex items-center justify-center"
+                className="h-12 w-12 rounded-[var(--app-radius)] border border-[var(--app-border)] text-[var(--app-muted)] hover:bg-[var(--app-panel-soft)] disabled:opacity-50 transition-colors flex items-center justify-center"
                 title="Clear cart"
               >
                 <X size={17} />

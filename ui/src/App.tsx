@@ -124,7 +124,7 @@ function App() {
       <CommandPalette />
       <GlobalDialog />
       <SidePanel />
-      <Suspense fallback={<div className="flex h-screen items-center justify-center text-slate-400 text-sm">Loading...</div>}>
+      <Suspense fallback={<div className="flex h-screen items-center justify-center text-[var(--app-muted)] text-sm">Loading...</div>}>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route

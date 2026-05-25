@@ -62,7 +62,7 @@ export default function AppHome() {
 
   if (!appPath || isLoading) {
     return (
-      <LoadingState label="Loading application..." className="bg-white rounded-2xl border border-dashed border-slate-200" />
+      <LoadingState label="Loading application..." className="bg-[var(--app-panel)] rounded-[var(--app-radius-lg)] border border-dashed border-[var(--app-border)]" />
     )
   }
 
@@ -91,19 +91,29 @@ export default function AppHome() {
 
   const hasContent = moduleItems.length > 0 || resourceItems.length > 0
 
-  const renderRow = (item: MenuItem & { groupLabel?: string }) => {
+  const renderCard = (item: MenuItem & { groupLabel?: string }) => {
     const ItemIcon = resolveIcon(item.icon || 'FileText')
     const label = vocabulary.get(item.label || item.name)
+    const subLabel = item.groupLabel || 'Resource'
+
+    const ArrowIcon = resolveIcon('ChevronRight')
+
     return (
       <Link
         key={item.name}
         to={item.path}
-        className="aras-app-row group"
+        className="aras-app-card group"
       >
-        <div className="aras-app-row__icon">
-          <ItemIcon size={15} strokeWidth={2.2} />
+        <div className="aras-app-card__icon">
+          <ItemIcon size={20} strokeWidth={2.2} />
         </div>
-        <span className="aras-app-row__label">{label}</span>
+        <div className="aras-app-card__content">
+          <p>{vocabulary.get(subLabel)}</p>
+          <h2>{label}</h2>
+        </div>
+        <div className="aras-app-card__arrow">
+          <ArrowIcon size={16} />
+        </div>
       </Link>
     )
   }
@@ -125,8 +135,8 @@ export default function AppHome() {
               <h2 id="app-home-modules">Modules</h2>
             </div>
           </div>
-          <div className="aras-app-list">
-            {moduleItems.map((sub: any) => renderRow({ ...sub, groupLabel: 'Module' }))}
+          <div className="aras-app-grid">
+            {moduleItems.map((sub: any) => renderCard({ ...sub, groupLabel: 'Module' }))}
           </div>
         </section>
       )}
@@ -135,12 +145,11 @@ export default function AppHome() {
         <section key={groupLabel} className="aras-app-section" aria-labelledby={`group-${groupLabel}`}>
           <div className="aras-app-section__heading">
             <div>
-              <p>Work Objects</p>
               <h2 id={`group-${groupLabel}`}>{vocabulary.get(groupLabel)}</h2>
             </div>
           </div>
-          <div className="aras-app-list">
-            {items.map((item) => renderRow(item))}
+          <div className="aras-app-grid">
+            {items.map((item) => renderCard(item))}
           </div>
         </section>
       ))}

@@ -85,7 +85,7 @@ function variantClass(variant: ButtonElProps['variant']) {
   if (variant === 'danger') {
     return 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
   }
-  return 'border-[var(--ts-surface-200)] bg-white text-[var(--ts-surface-700)] hover:bg-[var(--ts-surface-50)]'
+  return 'border-[var(--ts-surface-200)] bg-[var(--app-panel)] text-[var(--ts-surface-700)] hover:bg-[var(--ts-surface-50)]'
 }
 
 export function ButtonEl({
@@ -116,7 +116,7 @@ export function ButtonEl({
       <button
         type="button"
         className={[
-          'inline-flex min-w-0 items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-bold transition-colors',
+          'inline-flex min-w-0 items-center justify-center gap-2 rounded-[var(--app-radius)] border px-4 py-2.5 text-sm font-bold transition-colors',
           variantClass(variant),
           className ?? '',
         ].join(' ').trim()}

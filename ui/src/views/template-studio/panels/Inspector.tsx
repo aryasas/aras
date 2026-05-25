@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, Copy, Eye, EyeOff, Lock, Trash2, Unlock } from 'luc
 import type { IconName } from '../components/ButtonEl'
 import { BREAKPOINT_LABELS, BREAKPOINT_ORDER, type Breakpoint, type ResponsiveBoxSettings, type ResponsiveColumns } from '../lib/breakpoints'
 
-const inputClass = 'w-full rounded-xl border border-[var(--ts-surface-200)] bg-white px-3 py-2 text-sm text-[var(--ts-surface-800)] outline-none'
+const inputClass = 'w-full rounded-[var(--app-radius)] border border-[var(--ts-surface-200)] bg-[var(--app-panel)] px-3 py-2 text-sm text-[var(--ts-surface-800)] outline-none'
 const labelClass = 'text-[11px] font-black uppercase tracking-[0.18em] text-[var(--ts-surface-500)]'
 
 function inferLabel(node: { data: { displayName: string; props: Record<string, unknown> } }) {
@@ -135,7 +135,7 @@ function BreakpointAccordion({
   children: React.ReactNode
 }) {
   return (
-    <div className="rounded-2xl border border-[var(--ts-surface-200)] bg-white">
+    <div className="rounded-[var(--app-radius-lg)] border border-[var(--ts-surface-200)] bg-[var(--app-panel)]">
       <button
         type="button"
         onClick={onToggle}
@@ -177,7 +177,7 @@ export function Inspector() {
   if (!selectedId || !selectedNode) {
     return (
       <div className="p-4">
-        <div className="rounded-[24px] border border-dashed border-[var(--ts-surface-300)] bg-white/70 p-5 text-sm text-[var(--ts-surface-500)]">
+        <div className="rounded-[24px] border border-dashed border-[var(--ts-surface-300)] bg-[var(--app-panel)]/70 p-5 text-sm text-[var(--ts-surface-500)]">
           Select a node on the canvas to edit its AI note, responsive properties, and structure actions.
         </div>
       </div>
@@ -249,11 +249,11 @@ export function Inspector() {
             })
           }}
           placeholder={`Instruction for ${label}`}
-          className="w-full rounded-2xl border border-emerald-200 bg-white px-3 py-3 text-sm text-[var(--ts-surface-800)] outline-none"
+          className="w-full rounded-[var(--app-radius-lg)] border border-emerald-200 bg-[var(--app-panel)] px-3 py-3 text-sm text-[var(--ts-surface-800)] outline-none"
         />
       </div>
 
-      <div className="rounded-[24px] border border-[var(--ts-surface-200)] bg-white p-4">
+      <div className="rounded-[24px] border border-[var(--ts-surface-200)] bg-[var(--app-panel)] p-4">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--ts-surface-500)]">
@@ -505,32 +505,32 @@ export function Inspector() {
         ) : null}
       </div>
 
-      <div className="rounded-[24px] border border-[var(--ts-surface-200)] bg-white p-4">
+      <div className="rounded-[24px] border border-[var(--ts-surface-200)] bg-[var(--app-panel)] p-4">
         <p className="mb-3 text-[11px] font-black uppercase tracking-[0.24em] text-[var(--ts-surface-500)]">
           Actions
         </p>
         <div className="grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => actions.setHidden(selectedId, !hidden)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--ts-surface-200)] px-3 py-2 text-sm font-bold text-[var(--ts-surface-700)]">
+          <button type="button" onClick={() => actions.setHidden(selectedId, !hidden)} className="inline-flex items-center justify-center gap-2 rounded-[var(--app-radius)] border border-[var(--ts-surface-200)] px-3 py-2 text-sm font-bold text-[var(--ts-surface-700)]">
             {hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
             <span>{hidden ? 'Show' : 'Hide'}</span>
           </button>
-          <button type="button" onClick={() => actions.setCustom(selectedId, (custom: Record<string, unknown>) => { custom.locked = !locked })} className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--ts-surface-200)] px-3 py-2 text-sm font-bold text-[var(--ts-surface-700)]">
+          <button type="button" onClick={() => actions.setCustom(selectedId, (custom: Record<string, unknown>) => { custom.locked = !locked })} className="inline-flex items-center justify-center gap-2 rounded-[var(--app-radius)] border border-[var(--ts-surface-200)] px-3 py-2 text-sm font-bold text-[var(--ts-surface-700)]">
             {locked ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
             <span>{locked ? 'Unlock' : 'Lock'}</span>
           </button>
-          <button type="button" onClick={duplicateSelected} disabled={!parentInfo} className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--ts-surface-200)] px-3 py-2 text-sm font-bold text-[var(--ts-surface-700)] disabled:opacity-40">
+          <button type="button" onClick={duplicateSelected} disabled={!parentInfo} className="inline-flex items-center justify-center gap-2 rounded-[var(--app-radius)] border border-[var(--ts-surface-200)] px-3 py-2 text-sm font-bold text-[var(--ts-surface-700)] disabled:opacity-40">
             <Copy className="h-4 w-4" />
             <span>Duplicate</span>
           </button>
-          <button type="button" onClick={() => actions.delete(selectedId)} disabled={!query.node(selectedId).isDeletable()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700 disabled:opacity-40">
+          <button type="button" onClick={() => actions.delete(selectedId)} disabled={!query.node(selectedId).isDeletable()} className="inline-flex items-center justify-center gap-2 rounded-[var(--app-radius)] border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700 disabled:opacity-40">
             <Trash2 className="h-4 w-4" />
             <span>Delete</span>
           </button>
-          <button type="button" onClick={() => moveSelected(-1)} disabled={!parentInfo || parentInfo.index === 0} className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--ts-surface-200)] px-3 py-2 text-sm font-bold text-[var(--ts-surface-700)] disabled:opacity-40">
+          <button type="button" onClick={() => moveSelected(-1)} disabled={!parentInfo || parentInfo.index === 0} className="inline-flex items-center justify-center gap-2 rounded-[var(--app-radius)] border border-[var(--ts-surface-200)] px-3 py-2 text-sm font-bold text-[var(--ts-surface-700)] disabled:opacity-40">
             <ArrowUp className="h-4 w-4" />
             <span>Move Up</span>
           </button>
-          <button type="button" onClick={() => moveSelected(1)} disabled={!parentInfo || parentInfo.index === parentInfo.siblings - 1} className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--ts-surface-200)] px-3 py-2 text-sm font-bold text-[var(--ts-surface-700)] disabled:opacity-40">
+          <button type="button" onClick={() => moveSelected(1)} disabled={!parentInfo || parentInfo.index === parentInfo.siblings - 1} className="inline-flex items-center justify-center gap-2 rounded-[var(--app-radius)] border border-[var(--ts-surface-200)] px-3 py-2 text-sm font-bold text-[var(--ts-surface-700)] disabled:opacity-40">
             <ArrowDown className="h-4 w-4" />
             <span>Move Down</span>
           </button>

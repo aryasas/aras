@@ -59,12 +59,12 @@ class Accounting(Aras.App):
         },
         {
             "label": "Inflow",
-            "icon": "ArrowUpRight",
+            "icon": "ArrowDownLeft",
             "models": ["erp_accounting_inflow_invoices"]
         },
         {
             "label": "Outflow",
-            "icon": "ArrowDownLeft",
+            "icon": "ArrowUpRight",
             "models": ["erp_accounting_outflow_invoices", "erp_accounting_grns"]
         },
         {
