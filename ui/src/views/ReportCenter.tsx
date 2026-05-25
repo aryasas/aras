@@ -4,6 +4,7 @@ import { FileText, Play, Search, Loader2 } from 'lucide-react'
 import GenericReport from '../aras-core/components/GenericReport'
 import { useAras } from '../aras-core/hooks/useAras'
 import { useUIStore } from '../store/uiStore'
+import { useAuthStore } from '../store/authStore'
 import Combobox from '../aras-core/components/Combobox'
 
 interface Report {
@@ -36,10 +37,22 @@ const getErrorDetail = (err: unknown, fallback: string) => (
   (err as { response?: { data?: { detail?: string } } }).response?.data?.detail || fallback
 )
 
+const asArray = <T,>(value: unknown): T[] => Array.isArray(value) ? value : []
+
+const normalizeReportPayload = (payload: unknown): Record<string, any> | null => {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null
+  const body = payload as Record<string, any>
+  if (body.data && typeof body.data === 'object' && !Array.isArray(body.data) && ('columns' in body.data || 'data' in body.data)) {
+    return body.data as Record<string, any>
+  }
+  return body
+}
+
 export default function ReportCenter() {
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
   const setPageTitle = useUIStore(state => state.setPageTitle)
+  const orgId = useAuthStore(state => state.activeOrgId)
 
   const [search, setSearch] = useState('')
   const [activeModule, setActiveModule] = useState<string | null>(null)
@@ -74,15 +87,26 @@ export default function ReportCenter() {
   const runReport = useCallback(async (report: Report, params: Record<string, FilterValue>) => {
     try {
       setRunningReport(report.id)
-      const res = await api.post(`report/reports/${report.id}/action/generate_report`, { params })
+      const allParams = { ...params }
+      if (orgId) allParams['org_id'] = String(orgId)
+      const queryStr = Object.entries(allParams)
+        .filter(([, v]) => v !== '' && v !== null && v !== undefined)
+        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+        .join('&')
+      const url = `/report/execute/${report.code}${queryStr ? '?' + queryStr : ''}`
+      const res = await api.get(url)
 
-      const reportData = res.data.result
+      const reportData = normalizeReportPayload(res.data)
       if (!reportData || reportData.error) {
         notify(reportData?.error || "Failed to generate report", "error")
         return
       }
 
-      setReportResult(reportData)
+      setReportResult({
+        title: reportData.title || report.name,
+        data: asArray<Record<string, unknown>>(reportData.data),
+        columns: asArray<{ field: string; label: string; type?: string }>(reportData.columns),
+      })
     } catch (err) {
       notify(getErrorDetail(err, "Failed to generate report"), "error")
     } finally {
@@ -93,20 +117,18 @@ export default function ReportCenter() {
   const handleSelectReport = useCallback(async (report: Report) => {
     setReportResult(null)
     setActiveReport(report)
-    
+
     try {
       const detailRes = await api.get(`report/reports/${report.id}`)
       const reportDetail = { ...report, ...detailRes.data }
       const filters = parseFilters(reportDetail.filters_json)
-      
+
       setReportFilters(filters)
       const params = defaultParamsFor(filters)
       setReportParams(params)
 
-      // If no filters, auto-run
-      if (filters.length === 0) {
-        await runReport(reportDetail, params)
-      }
+      // Auto-run on select (with or without filters)
+      await runReport(reportDetail, params)
     } catch (err) {
       notify(getErrorDetail(err, "Failed to load report filters"), "error")
     }
@@ -116,7 +138,7 @@ export default function ReportCenter() {
     try {
       setLoading(true)
       const res = await api.get('report/reports')
-      const items = res.data?.items || []
+      const items = asArray<Report>(res.data?.items || res.data)
       setReports(items)
       
       // Auto-select first report if none active
@@ -150,7 +172,7 @@ export default function ReportCenter() {
 
   const renderFilterInput = (filter: ReportFilter) => {
     const value = reportParams[filter.field] ?? ''
-    const label = filter.label || filter.field.replace(/_/g, ' ')
+    const label = filter.label || filter.field.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())
     const baseClass = "w-full px-3 py-2 bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius)] text-sm font-medium text-[var(--app-text)] focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
 
     if (filter.type === 'select') {
@@ -171,11 +193,25 @@ export default function ReportCenter() {
       )
     }
 
+    if (filter.type === 'date' || filter.field.includes('date') || filter.field.includes('from') || filter.field.includes('to')) {
+      return (
+        <label key={filter.field} className="space-y-1.5 block">
+          <span className="block text-xs font-black text-[var(--app-muted)] uppercase tracking-wider">{label}</span>
+          <input
+            type="date"
+            className={baseClass}
+            value={value}
+            onChange={(e) => setReportParams(prev => ({ ...prev, [filter.field]: e.target.value }))}
+          />
+        </label>
+      )
+    }
+
     return (
       <label key={filter.field} className="space-y-1.5">
         <span className="block text-xs font-black text-[var(--app-muted)] uppercase tracking-wider">{label}</span>
         <input
-          type={filter.type === 'date' ? 'date' : 'text'}
+          type="text"
           className={baseClass}
           value={value}
           onChange={(e) => setReportParams(prev => ({ ...prev, [filter.field]: e.target.value }))}
@@ -232,33 +268,36 @@ export default function ReportCenter() {
           ) : filteredReports.length === 0 ? (
             <div className="py-10 text-center text-[var(--app-muted)] text-xs italic">No reports found</div>
           ) : (
-            filteredReports.map(report => (
-              <button
-                key={report.id}
-                onClick={() => handleSelectReport(report)}
-                className={`w-full text-left p-3 rounded-[var(--app-radius-lg)] transition-all group ${
-                  activeReport?.id === report.id 
-                    ? 'bg-[var(--app-accent-glow)] border-indigo-100' 
-                    : 'hover:bg-[var(--app-panel-soft)]'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-[var(--app-radius)] shrink-0 ${
-                    activeReport?.id === report.id ? 'bg-[var(--app-accent)] text-white' : 'bg-[var(--app-panel-soft)] text-[var(--app-muted)] group-hover:bg-slate-200'
-                  }`}>
-                    <FileText size={16} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className={`text-sm font-bold truncate ${activeReport?.id === report.id ? 'text-indigo-900' : 'text-[var(--app-text)]'}`}>
-                      {report.name}
+            filteredReports.map(report => {
+              const typeLabel = report.report_type === 'orm' ? 'ORM' : report.report_type === 'builtin' ? 'BUILTIN' : report.report_type
+              return (
+                <button
+                  key={report.id}
+                  onClick={() => handleSelectReport(report)}
+                  className={`w-full text-left p-3 rounded-[var(--app-radius-lg)] transition-all group ${
+                    activeReport?.id === report.id
+                      ? 'bg-[var(--app-accent-glow)] border-indigo-100'
+                      : 'hover:bg-[var(--app-panel-soft)]'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-[var(--app-radius)] shrink-0 ${
+                      activeReport?.id === report.id ? 'bg-[var(--app-accent)] text-white' : 'bg-[var(--app-panel-soft)] text-[var(--app-muted)] group-hover:bg-slate-200'
+                    }`}>
+                      <FileText size={16} />
                     </div>
-                    <div className="text-[10px] font-black uppercase tracking-tight text-[var(--app-muted)]">
-                      {report.module} • {report.report_type}
+                    <div className="min-w-0">
+                      <div className={`text-sm font-bold truncate ${activeReport?.id === report.id ? 'text-indigo-900' : 'text-[var(--app-text)]'}`}>
+                        {report.name}
+                      </div>
+                      <div className="text-[10px] font-black uppercase tracking-tight text-[var(--app-muted)]">
+                        {report.module} • {typeLabel}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </button>
-            ))
+                </button>
+              )
+            })
           )}
         </div>
       </div>

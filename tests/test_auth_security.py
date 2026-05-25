@@ -25,7 +25,7 @@ def test_sidebar_requires_auth(client):
 def test_login_with_env_password(client):
     resp = client.post(
         "/api/v1/auth/token",
-        data={"username": "admin", "password": "testadmin123"}
+        data={"username": "admin", "password": "admin"}
     )
     assert resp.status_code == 200
     assert "access_token" in resp.json()
@@ -51,7 +51,13 @@ def test_query_requires_auth_for_non_public_resource(client):
     assert resp.status_code == 401
 
 
-def test_metadata_endpoint_is_accessible_without_auth(client):
-    # Intentionally unauthenticated — UI needs it to render forms
+def test_private_metadata_requires_auth(client):
+    # auth_users is private (not marked __public_read__)
     resp = client.get("/api/v1/metadata/auth_users")
+    assert resp.status_code == 401
+
+
+def test_public_metadata_is_accessible_without_auth(client):
+    # sys_settings is marked __public_read__ = True
+    resp = client.get("/api/v1/metadata/sys_settings")
     assert resp.status_code in (200, 404)  # 404 if resource not registered, not 401

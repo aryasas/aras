@@ -605,7 +605,7 @@ class Model(Aras, Base):
             source_id = self.id
             try:
                 # Use SQLAlchemy Core to interact with the bridge table
-                bridge_table_obj = Table(bridge_table_name, self.metadata, autoload_with=db.connection())
+                bridge_table_obj = Table(bridge_table, self.metadata, autoload_with=db.connection())
 
                 # Clear existing
                 delete_stmt = bridge_table_obj.delete().where(bridge_table_obj.c[source_key] == source_id)

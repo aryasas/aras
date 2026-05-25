@@ -1,18 +1,37 @@
 from typing import Optional
-from sqlalchemy import String, Integer, Boolean, JSON, ForeignKey, DateTime
+from sqlalchemy import String, Integer, Boolean, JSON, ForeignKey, DateTime, text
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from core import Aras
 from core.response import ok
 from datetime import datetime, timedelta
 
+# claude-sonnet-4-6
 class Plan(Aras.Model):
     __tablename__ = "saas_plan"
+    __field_hints__ = {
+        "plan_key": {"help": "Lowercase slug, contoh: free, lite, growth"},
+        "active_modules": {"help": "JSON list modul aktif, contoh: [\"pos\", \"stock\", \"accounting\"]"},
+        "features": {"help": "JSON fitur tampilan, contoh: {\"included\": [\"...\", \"...\"]}"},
+        "max_transactions": {"help": "-1 = unlimited"},
+        "max_products": {"help": "-1 = unlimited"},
+        "max_branches": {"help": "-1 = unlimited"},
+        "max_users": {"help": "-1 = unlimited"},
+        "storage_mb": {"help": "-1 = unlimited"},
+    }
+    plan_key: Mapped[str] = mapped_column(String(50), nullable=False, unique=True, server_default="")
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     price: Mapped[int] = mapped_column(Integer, default=0)
-    currency: Mapped[str] = mapped_column(String(10), default="USD")
+    currency: Mapped[str] = mapped_column(String(10), default="IDR")
+    # -1 = unlimited
     max_users: Mapped[int] = mapped_column(Integer, default=1)
     max_branches: Mapped[int] = mapped_column(Integer, default=1)
+    max_transactions: Mapped[int] = mapped_column(Integer, default=50)
+    max_products: Mapped[int] = mapped_column(Integer, default=30)
+    storage_mb: Mapped[int] = mapped_column(Integer, default=256)
+    active_modules: Mapped[list] = mapped_column(JSON, default=list, server_default=text("'[]'"))
+    api_access: Mapped[bool] = mapped_column(Boolean, default=False)
     features: Mapped[dict] = mapped_column(JSON, default=dict)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 # claude-opus-4-7
@@ -79,8 +98,10 @@ class Subscription(Aras.Model):
         # Issue trial license (14 days)
         from .services.license_service import LicenseService
         try:
-            license_token = LicenseService.issue_license(db, self.id, days=14)
-        except Exception:
+            license_token = LicenseService.issue_license(db, self.id, expiry_days=14)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Failed to issue license: {e}")
             license_token = None
 
         return ok(

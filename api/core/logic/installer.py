@@ -247,7 +247,7 @@ class AppInstaller(Service):
         # 1. Drop physical tables (Protect core tables)
         core_tables = {
             "aras_apps", "aras_resources", "aras_fields", "aras_links",
-            "aras_translations", "aras_activity_logs", "auth_roles",
+            "translations", "aras_activity_logs", "auth_roles",
             "auth_permissions", "auth_user_roles", "auth_users", "sys_settings"
         }
         for table_name in table_names:

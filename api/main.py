@@ -38,12 +38,7 @@ logger = logging.getLogger(__name__)
 
 # Discover and load all apps
 Aras.logic.discovery.discover_apps(package_path="apps")
-
-# Create tables and handle migrations
-logger.info("Initializing database schema and running migrations...")
-Aras.Base.metadata.create_all(bind=Aras.engine)
-Aras.logic.auto_migrate.run(Aras.engine, Aras.Base.metadata)
-logger.info("Database schema and migrations complete.")
+logger.info("Startup schema mutation disabled. Run Alembic migrations before starting the API.")
 
 from contextlib import asynccontextmanager
 
@@ -146,7 +141,7 @@ app.add_middleware(
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Org-ID", "X-Scope-Org-ID", "X-Tenant-ID"],
 )
 
 # Core Routes

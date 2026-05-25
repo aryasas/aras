@@ -97,26 +97,35 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
   const { notify } = useAras();
 
   useEffect(() => {
+    const controller = new AbortController();
     const fetchMetadata = async () => {
       try {
         const cleanResource = cleanResourcePath(resource);
-        const metaRes = await api.get(`/metadata/${cleanResource}`);
+        const metaRes = await api.get(`/metadata/${cleanResource}`, { signal: controller.signal });
         setMetadata(metaRes.data);
         setLoading(false);
-      } catch (err) {
+      } catch (err: any) {
+        if (err.name === 'CanceledError') return;
         notify("Failed to load metadata", "error");
       }
     };
     fetchMetadata();
+    return () => controller.abort();
   }, [resource, notify]);
 
   useEffect(() => {
+    const controller = new AbortController();
     if (metadata && currentId) {
-      api.get(`/${cleanResourcePath(metadata.api_path || resource)}/${currentId}`)
+      api.get(`/${cleanResourcePath(metadata.api_path || resource)}/${currentId}`, { signal: controller.signal })
         .then(res => setFormData(res.data))
+        .catch(err => {
+          if (err.name === 'CanceledError') return;
+          console.error("Failed to fetch record:", err);
+        });
     } else if (metadata) {
       setFormData({ ...createDefaultRecord(metadata.fields), ...initialData })
     }
+    return () => controller.abort();
   }, [metadata, currentId, initialData, resource]);
 
   const handleSubmit = async () => {

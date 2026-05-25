@@ -1,0 +1,17 @@
+{
+  "nav.dashboard": "Dasbor",
+  "nav.settings": "Pengaturan",
+  "common.save": "Simpan",
+  "common.cancel": "Batal",
+  "common.delete": "Hapus",
+  "common.edit": "Ubah",
+  "common.add": "Tambah",
+  "common.search": "Cari",
+  "common.loading": "Memuat...",
+  "common.error": "Kesalahan",
+  "common.success": "Berhasil",
+  "common.back": "Kembali",
+  "lang.label": "Bahasa",
+  "lang.en": "English",
+  "lang.id": "Bahasa Indonesia"
+}

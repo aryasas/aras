@@ -1,6 +1,6 @@
 """
 Seed naming series for all ERP document types from seeds/series.yaml.
-Run: cd api && python apps/erp/config/seed_series.py
+Run: cd api && python apps/config/seed_series.py
 """
 import sys
 import yaml

@@ -5,6 +5,7 @@ from datetime import timedelta
 
 from ..base.validation import Validation
 from ..lib.database import get_db
+from ..lib.settings import settings
 from .service import (
     create_access_token, 
     get_current_user, 
@@ -31,7 +32,7 @@ class ResetPasswordRequest(Validation):
     new_password: str
 
 @router.post("/token")
-async def login_for_access_token(
+def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
@@ -51,7 +52,7 @@ async def login_for_access_token(
 
 
 @router.get("/me")
-async def read_users_me(
+def read_users_me(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -74,7 +75,7 @@ async def read_users_me(
 
 
 @router.post("/change-password")
-async def change_password(
+def change_password(
     data: ChangePasswordRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -90,7 +91,7 @@ async def change_password(
     return {"message": "Password changed successfully"}
 
 @router.post("/forgot-password")
-async def forgot_password(
+def forgot_password(
     data: ForgotPasswordRequest,
     db: Session = Depends(get_db)
 ):
@@ -101,15 +102,13 @@ async def forgot_password(
     
     token = create_password_reset_token(user.email)
     
-    # In a real app, send email here. 
-    # For this framework demo, we'll just log it or return it in a real-world "debug" way 
-    # but for now let's just pretend we sent it.
-    print(f"DEBUG: Password reset token for {user.email}: {token}")
+    if settings.DEBUG:
+        print(f"DEBUG: Password reset token for {user.email}: {token}")
     
     return {"message": "If an account with that email exists, we have sent a reset link."}
 
 @router.post("/reset-password")
-async def reset_password(
+def reset_password(
     data: ResetPasswordRequest,
     db: Session = Depends(get_db)
 ):

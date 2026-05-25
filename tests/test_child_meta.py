@@ -9,7 +9,7 @@ def main():
             print(json.dumps(resp.json().get('child_tables', []), indent=2))
         else:
             print(f"Error dev: {resp.status_code}")
-            resp2 = requests.get("http://localhost:8000/api/v1/erp/metadata/erp_stock/erp_stock_products")
+            resp2 = requests.get("http://localhost:8000/api/v1/metadata/erp_stock/erp_stock_products")
             if resp2.status_code == 200:
                 print(json.dumps(resp2.json().get('child_tables', []), indent=2))
             else:

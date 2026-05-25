@@ -46,7 +46,8 @@ def test_db_defined_child_metadata():
         meta = UIGenerator.generate_metadata(DbParent, db=db)
         
         # 4. Verify DB-defined child is in 'children'
-        assert "db_child" in meta["children"]
+        child_resources = [c['resource'] for c in meta["children"]]
+        assert "db_child" in child_resources
         
         # 5. Verify it's also in 'fields' as 'child_table'
         child_field = next((f for f in meta["fields"] if f["name"] == "lines"), None)

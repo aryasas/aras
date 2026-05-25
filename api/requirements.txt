@@ -10,3 +10,6 @@ PyYAML
 psycopg2-binary
 python-dotenv
 python-json-logger
+celery
+redis
+alembic

@@ -1,6 +1,6 @@
 from datetime import date
 from typing import Optional
-from sqlalchemy import String, ForeignKey, Float, Date, Text, JSON, Boolean, Integer
+from sqlalchemy import String, ForeignKey, Float, Date, Text, JSON, Boolean, Integer, event
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from apps.base import ConfigBase, MasterDataBase, LineItemBase
 from core import Aras
@@ -198,6 +198,21 @@ class Organization(ConfigBase):
                 raise ValidationException(
                     f"Account '{acc.code}' (field: {field}) does not belong to the COA org (id={lookup_org_id})."
                 )
+
+# claude-sonnet-4-6
+# after_insert fires after INSERT is flushed, so self.id is guaranteed to exist
+@event.listens_for(Organization, "after_insert")
+def _seed_reports_for_new_org(mapper, connection, target):
+    from sqlalchemy.orm import object_session
+    db = object_session(target)
+    if db is None:
+        return
+    try:
+        from apps.report.seed_reports import run_seed
+        run_seed(db, target.id)
+    except Exception:
+        pass
+
 
 class Currency(ConfigBase):
     __tablename__ = "erp_config_currencies"

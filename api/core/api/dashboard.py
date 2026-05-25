@@ -20,7 +20,7 @@ class DashboardLayoutUpdate(Validation):
     is_default: Optional[bool] = None
 
 @router.get("/layouts", response_model=List[dict])
-async def get_dashboard_layouts(
+def get_dashboard_layouts(
     db: Session = Depends(get_db),
     user: Any = Depends(get_current_user)
 ):
@@ -31,7 +31,7 @@ async def get_dashboard_layouts(
     return [layout.to_dict() for layout in layouts]
 
 @router.get("/layouts/{layout_id}", response_model=dict)
-async def get_dashboard_layout(
+def get_dashboard_layout(
     layout_id: int,
     db: Session = Depends(get_db),
     user: Any = Depends(get_current_user)
@@ -48,7 +48,7 @@ async def get_dashboard_layout(
     return layout.to_dict()
 
 @router.post("/layouts", response_model=dict, status_code=status.HTTP_201_CREATED)
-async def create_dashboard_layout(
+def create_dashboard_layout(
     layout_data: DashboardLayoutCreate,
     db: Session = Depends(get_db),
     user: Any = Depends(get_current_user)
@@ -76,7 +76,7 @@ async def create_dashboard_layout(
     return new_layout.to_dict()
 
 @router.put("/layouts/{layout_id}", response_model=dict)
-async def update_dashboard_layout(
+def update_dashboard_layout(
     layout_id: int,
     layout_data: DashboardLayoutUpdate,
     db: Session = Depends(get_db),
@@ -105,7 +105,7 @@ async def update_dashboard_layout(
     return layout.to_dict()
 
 @router.delete("/layouts/{layout_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_dashboard_layout(
+def delete_dashboard_layout(
     layout_id: int,
     db: Session = Depends(get_db),
     user: Any = Depends(get_current_user)
@@ -124,7 +124,7 @@ async def delete_dashboard_layout(
     return
 
 @router.post("/layout", response_model=dict)
-async def update_widget_order(
+def update_widget_order(
     order_data: Dict[str, List[int]],
     db: Session = Depends(get_db),
     user: Any = Depends(get_current_user)
@@ -162,7 +162,7 @@ async def update_widget_order(
     return layout.to_dict()
 
 @router.get("/widgets", response_model=Dict[str, Any]) # Changed response_model to dict for layout
-async def get_widgets(
+def get_widgets(
     db: Session = Depends(get_db),
     user: Any = Depends(get_current_user)
 ):

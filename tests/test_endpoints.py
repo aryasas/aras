@@ -7,7 +7,7 @@ Requires client + admin_headers fixtures from conftest.py.
 def test_login_returns_token(client):
     resp = client.post(
         "/api/v1/auth/token",
-        data={"username": "admin", "password": "testadmin123"},
+        data={"username": "admin", "password": "admin"}
     )
     assert resp.status_code == 200
     assert "access_token" in resp.json()

@@ -16,7 +16,7 @@ router = APIRouter(tags=["Developer Tools"])
 # ── Handoff Runs CRUD ────────────────────────────────────────────────────────
 
 @router.post("/dev_handoff_runs", response_model=dict, status_code=201)
-async def create_handoff_run(
+def create_handoff_run(
     payload: Dict[str, Any],
     db: Session = Depends(get_db),
     _: Any = Depends(require_admin),
@@ -31,7 +31,7 @@ async def create_handoff_run(
 
 
 @router.get("/dev_handoff_runs", response_model=dict)
-async def list_handoff_runs(
+def list_handoff_runs(
     limit: int = 50,
     sort: str = "id",
     order: str = "desc",
@@ -46,7 +46,7 @@ async def list_handoff_runs(
 
 
 @router.patch("/dev_handoff_runs/{run_id}", response_model=dict)
-async def patch_handoff_run(
+def patch_handoff_run(
     run_id: int,
     payload: Dict[str, Any],
     db: Session = Depends(get_db),
@@ -71,7 +71,7 @@ class TaskEnqueueRequest(Validation):
 
 
 @router.post("/tasks/enqueue")
-async def enqueue_background_task(
+def enqueue_background_task(
     request: TaskEnqueueRequest,
     _: Any = Depends(require_admin)
 ):
@@ -81,7 +81,7 @@ async def enqueue_background_task(
 
 
 @router.get("/tasks/{task_id}/status")
-async def get_background_task_status(
+def get_background_task_status(
     task_id: str,
     _: Any = Depends(require_admin)
 ):
@@ -90,7 +90,7 @@ async def get_background_task_status(
 
 
 @router.post("/sync")
-async def sync_metadata(
+def sync_metadata(
     db: Session = Depends(get_db),
     _: Any = Depends(require_admin)
 ):
@@ -101,7 +101,7 @@ async def sync_metadata(
 
 
 @router.get("/info")
-async def get_framework_info(_: Any = Depends(require_admin)):
+def get_framework_info(_: Any = Depends(require_admin)):
     """Returns framework version and basic stats."""
     from ..base.app import App
     from ..base.model import Model
@@ -115,7 +115,7 @@ async def get_framework_info(_: Any = Depends(require_admin)):
 
 
 @router.get("/stats")
-async def get_db_stats(
+def get_db_stats(
     db: Session = Depends(get_db),
     _: Any = Depends(require_admin)
 ):
@@ -141,7 +141,7 @@ async def get_db_stats(
 
 
 @router.get("/inspect/resource/{resource_name}")
-async def get_resource_metadata(
+def get_resource_metadata(
     resource_name: str,
     db: Session = Depends(get_db),
     _: Any = Depends(require_admin)
@@ -161,14 +161,14 @@ async def get_resource_metadata(
 
 
 @router.get("/inspect/models")
-async def inspect_models(_: Any = Depends(require_admin)):
+def inspect_models(_: Any = Depends(require_admin)):
     """Returns all models registered in memory."""
     from ..base.model import Model
     return {name: str(cls) for name, cls in Model._registry.items()}
 
 
 @router.get("/inspect/routes")
-async def inspect_routes(
+def inspect_routes(
     request: Request,
     _: Any = Depends(require_admin)
 ):
@@ -184,7 +184,7 @@ async def inspect_routes(
 
 
 @router.get("/inspect/env")
-async def inspect_env(_: Any = Depends(require_admin)):
+def inspect_env(_: Any = Depends(require_admin)):
     """Returns basic environment info (sanitized)."""
     import os
     return {

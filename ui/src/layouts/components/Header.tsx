@@ -1,7 +1,7 @@
-// claude-opus-4-7
+// claude-sonnet-4-6
 // ARC topbar: title+breadcrumb LEFT, centered CommandBar, Live + actions RIGHT.
 import type { ReactNode } from 'react'
-import { ChevronRight, Menu } from 'lucide-react'
+import { ChevronRight, Menu, Globe, Building2 } from 'lucide-react'
 import { CommandPaletteTrigger } from './CommandPaletteTrigger'
 import { ThemeTweakPanel } from './ThemeTweakPanel'
 import NotificationHistory from '../../aras-core/components/NotificationHistory'
@@ -9,10 +9,15 @@ import { Link } from 'react-router-dom'
 import { useUIStore } from '../../store/uiStore'
 import { useAuthStore } from '../../store/authStore'
 import { TemplateDesignToggle } from './TemplateDesignToggle'
+import { useLanguage } from '../../context/LanguageContext'
 
 export function Header({ children }: { children?: ReactNode }) {
   const { pageTitle, breadcrumbs, setMobileSidebarOpen } = useUIStore()
+  const { lang, setLang } = useLanguage()
   const user = useAuthStore((s) => s.user)
+  const organizations = useAuthStore((s) => s.organizations)
+  const activeOrgId = useAuthStore((s) => s.activeOrgId)
+  const setActiveOrg = useAuthStore((s) => s.setActiveOrg)
   const initial = (user?.full_name || user?.username || 'A')[0].toUpperCase()
 
   return (
@@ -64,6 +69,54 @@ export function Header({ children }: { children?: ReactNode }) {
         {children}
 
         <span className="hidden md:block" style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 2px' }} />
+
+        {/* Org Selector — only shown when user has access to multiple orgs */}
+        {organizations.length > 1 && (
+          <div className="hidden md:flex items-center gap-1 mr-1">
+            <Building2 size={13} className="text-[var(--text-3)] shrink-0" />
+            <select
+              value={activeOrgId ?? ''}
+              onChange={(e) => setActiveOrg(Number(e.target.value))}
+              style={{
+                fontSize: 11.5, fontWeight: 500, padding: '2px 4px', borderRadius: 6,
+                border: '1px solid var(--line)', background: 'var(--surface)',
+                color: 'var(--text-2)', outline: 'none', cursor: 'pointer',
+                maxWidth: 140,
+              }}
+            >
+              {organizations.map((org) => (
+                <option key={org.id} value={org.id}>{org.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Language Switcher */}
+        <div className="hidden md:flex items-center gap-1 mr-1">
+          <Globe size={14} className="text-[var(--text-3)] mr-0.5" />
+          <button
+            onClick={() => setLang('en')}
+            style={{
+              fontSize: 10, fontWeight: 700, padding: '2px 4px', borderRadius: 4,
+              color: lang === 'en' ? 'var(--bg)' : 'var(--text-3)',
+              background: lang === 'en' ? 'var(--accent)' : 'transparent',
+              transition: 'all 0.2s'
+            }}
+          >
+            EN
+          </button>
+          <button
+            onClick={() => setLang('id')}
+            style={{
+              fontSize: 10, fontWeight: 700, padding: '2px 4px', borderRadius: 4,
+              color: lang === 'id' ? 'var(--bg)' : 'var(--text-3)',
+              background: lang === 'id' ? 'var(--accent)' : 'transparent',
+              transition: 'all 0.2s'
+            }}
+          >
+            ID
+          </button>
+        </div>
 
         <TemplateDesignToggle />
         <ThemeTweakPanel />

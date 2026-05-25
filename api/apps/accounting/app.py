@@ -9,16 +9,24 @@ from .models import * # Import all models for discovery
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from core.lib.database import get_db
+from core.logic.permissions import check_permissions
+from core.auth.service import user_can_access_org
 
 accounting_api_router = APIRouter()
 
 @accounting_api_router.get("/payments/{payment_id}/open_invoices")
-def get_open_invoices_for_payment(payment_id: int, db: Session = Depends(get_db)):
+def get_open_invoices_for_payment(
+    payment_id: int,
+    db: Session = Depends(get_db),
+    user: object = Depends(check_permissions("erp_accounting_payments", "READ")),
+):
     from .models import Payment
     from .services.payment import PaymentService
 
     payment = db.query(Payment).filter(Payment.id == payment_id).first()
     if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    if payment.org_id and not user_can_access_org(db, user, payment.org_id):
         raise HTTPException(status_code=404, detail="Payment not found")
 
     if payment.payment_type not in ("Incoming", "Outgoing"):

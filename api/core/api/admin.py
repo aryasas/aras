@@ -11,7 +11,7 @@ router = APIRouter(tags=["Framework Admin"])
 
 
 @router.get("/apps")
-async def get_apps_list(db: Session = Depends(get_db), _: Any = Depends(require_admin)):
+def get_apps_list(db: Session = Depends(get_db), _: Any = Depends(require_admin)):
     """List all discovered apps and their manifest details, merged with DB registry status."""
     from ..base.app import App
     from ..registry.app_model import AppModel
@@ -36,13 +36,13 @@ async def get_apps_list(db: Session = Depends(get_db), _: Any = Depends(require_
 
 
 @router.post("/install")
-async def install_app(
+def install_app(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     _: Any = Depends(require_admin)
 ):
     """Installs a new app from YAML, JSON, or Python ZIP file."""
-    content = await file.read()
+    content = file.file.read()
     filename = file.filename
 
     try:
@@ -63,7 +63,7 @@ async def install_app(
 
 
 @router.delete("/uninstall/{app_name}")
-async def uninstall_app(
+def uninstall_app(
     app_name: str,
     db: Session = Depends(get_db),
     _: Any = Depends(require_admin)
@@ -77,7 +77,7 @@ async def uninstall_app(
 
 
 @router.get("/apps/capabilities")
-async def get_app_capabilities(db: Session = Depends(get_db), _: Any = Depends(get_current_user)):
+def get_app_capabilities(db: Session = Depends(get_db), _: Any = Depends(get_current_user)):
     """Returns active app names and the merged optional_features map for all active apps.
     Used by the UI to conditionally show/hide feature toggles in Organization config.
     """

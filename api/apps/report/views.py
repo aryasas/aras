@@ -6,7 +6,7 @@ class ReportView(Aras.View):
     title = "Reports"
     icon = "pi pi-file-pdf"
     layout = [
-        {"title": "Identity", "fields": ["name", "module", "report_type", "linked_doctype"]},
-        {"title": "Configuration", "fields": ["columns_json", "filters_json"]},
-        {"title": "Script/Logic", "fields": ["script"]}
+        {"title": "Identity", "fields": ["code", "name", "module", "report_type"]},
+        {"title": "Query Config", "fields": ["linked_doctype", "query_filters"]},
+        {"title": "Display", "fields": ["columns_json", "filters_json"]}
     ]

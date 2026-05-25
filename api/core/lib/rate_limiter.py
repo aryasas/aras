@@ -18,8 +18,10 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
 
     # (max_requests, window_seconds)
     _ROUTE_LIMITS: dict = {
-        "/api/v1/auth/login": (10, 60),
+        "/api/v1/auth/token": (10, 60),
         "/api/v1/auth/register": (5, 60),
+        "/api/v1/auth/forgot-password": (5, 300),
+        "/api/v1/auth/reset-password": (5, 300),
     }
     _DEFAULT = (200, 60)
 

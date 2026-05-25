@@ -1,0 +1,44 @@
+# gemini-flash
+services:
+  db-control:
+    image: postgres:16-alpine
+    environment: {POSTGRES_USER: aras, POSTGRES_PASSWORD: aras, POSTGRES_DB: aras_control}
+    volumes: [pgdata-control:/var/lib/postgresql/data]
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  control-panel:
+    build: {context: ., dockerfile: Dockerfile}
+    env_file: api/.env.control-panel.example
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+    ports: ["8000:8000"]
+    depends_on: [db-control, redis]
+    volumes:
+      - .:/app
+
+  db-tenant:
+    image: postgres:16-alpine
+    environment: {POSTGRES_USER: aras, POSTGRES_PASSWORD: aras, POSTGRES_DB: aras_tenant_1}
+    volumes: [pgdata-tenant:/var/lib/postgresql/data]
+
+  tenant-1:
+    build: {context: ., dockerfile: Dockerfile}
+    env_file: api/.env.tenant.example
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+    ports: ["8001:8000"]
+    depends_on: [db-tenant, redis, control-panel]
+    volumes:
+      - .:/app
+
+  ui:
+    build: {context: ui, dockerfile: Dockerfile}
+    ports: ["5173:80"]
+    depends_on: [control-panel]
+
+volumes:
+  pgdata-control:
+  pgdata-tenant:

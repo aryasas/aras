@@ -198,3 +198,17 @@ This file is used only to report if there are fix
 
 ## QA SWEEP — full-app regression test, report bugs only (NO FIXES) — revision (2026-05-25)
   - [GPT (codex)] Fixed frontend build blockers, restored DynamicForm model actions/display_token modal, added portal signup/landing error states, fixed mobile slash routes, removed dead mobile forgot button
+
+## Sidebar Menu Stability and Sub-app Redirection (2026-05-25)
+  - [Gemini] Fixed `Sidebar.tsx` to correctly flatten non-grouped menu items and include sub-apps that are not explicitly in `menu_groups`.
+  - [Gemini] Fixed `SmartDispatcher.tsx` to use the full matched app path for menu fetching and correctly determine the first menu item for redirection, preventing sub-apps from being redirected back to their parent app's home.
+
+## Sidebar Toggle Expanded State with Text (2026-05-25)
+  - [Gemini] Enhanced `Sidebar.tsx` to support an expanded state for the app rail. When `sidebarCollapsed` is false, the app rail expands to 180px and displays text labels next to icons, while also showing the section submenu panel.
+  - [Gemini] Added user profile summary and notification labels to the expanded sidebar for better UX.
+
+## UndefinedColumn Error in Reports Fixed (2026-05-25)
+  - [Gemini] Fixed `ProgrammingError: column si.total_amount does not exist` in accounting reports.
+  - [Gemini] Refactored `InflowInvoice` and `OutflowInvoice` to use `DocumentRecalcMixin` and added `subtotal`, `total_charge`, and `total_amount` as persistent `Float` columns.
+  - [Gemini] Populated missing totals for existing records via a one-time maintenance script.
+  - [Gemini] Ensured consistent naming of totals in both models and reports to allow for raw SQL queries.

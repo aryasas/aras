@@ -54,7 +54,6 @@ class Config(Aras.App):
         {
             "label": "System Tools",
             "icon": "Activity",
-            "models": ["erp_config_print_templates", "erp_config_notifications"],
-            "apps": ["notes"]
+            "models": ["erp_config_print_templates", "erp_config_notifications"]
         },
     ]

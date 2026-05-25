@@ -2,7 +2,7 @@ import os
 import sys
 sys.path.insert(0, os.path.join(os.getcwd(), 'api'))
 
-from apps.erp.stock import models
+from apps.stock import models
 
 def test():
     for col in models.PriceList.__table__.columns:

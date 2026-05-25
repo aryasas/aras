@@ -1,11 +1,11 @@
 import logging
-from fastapi import APIRouter, Depends, Body, HTTPException, Query
+from fastapi import APIRouter, Depends, Body, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
 
 from ..lib.database import get_db
 from ..lib.query_builder import QueryBuilder
-from ..auth.service import get_current_user, get_optional_user
+from ..auth.service import get_current_user
 from ..base.validation import Validation
 from ..logic.permissions import RBAC
 
@@ -18,11 +18,12 @@ class QueryRequest(Validation):
 
 
 @router.post("/{resource_name}/query")
-async def execute_query(
+def execute_query(
+    fastapi_request: Request,
     resource_name: str,
     request: QueryRequest = Body(...),
     db: Session = Depends(get_db),
-    current_user: Optional[Any] = Depends(get_optional_user)
+    current_user: Optional[Any] = Depends(get_current_user)
 ):
     """Execute a structured query against any registered resource."""
     from ..base.model import Model
@@ -37,21 +38,33 @@ async def execute_query(
     if not model_class:
         raise HTTPException(status_code=404, detail=f"Resource '{resource_name}' not found")
 
-    if not getattr(model_class, "__public_read__", False):
-        if not current_user:
-            raise HTTPException(status_code=401, detail="Authentication required")
-        if not current_user.is_admin and not RBAC.has_permission(db, current_user, model_class.__tablename__, "READ"):
-            raise HTTPException(status_code=403, detail=f"No READ permission on {model_class.__tablename__}")
+    if not current_user.is_admin and not RBAC.has_permission(db, current_user, model_class.__tablename__, "READ"):
+        raise HTTPException(status_code=403, detail=f"No READ permission on {model_class.__tablename__}")
+
+    filters = list(request.filters or [])
+    scope = getattr(getattr(fastapi_request, "state", None), "scope", None)
+    if scope:
+        scoped_by = getattr(model_class, "__scoped_by__", None) or []
+        col_names = {c.name for c in model_class.__table__.columns}
+        for item in scoped_by:
+            field = item[0] if isinstance(item, (list, tuple)) else item
+            if field not in col_names:
+                continue
+            value = scope.get(field)
+            if value is None:
+                continue
+            filters.append({"field": field, "op": "in" if isinstance(value, list) else "==", "value": value})
 
     try:
-        results = QueryBuilder.execute(db, model_class, request.filters)
+        results = QueryBuilder.execute(db, model_class, filters)
         return {"items": [item.to_dict() for item in results]}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/search")
-async def global_search(
+def global_search(
+    request: Request,
     q: str = Query(..., min_length=2),
     db: Session = Depends(get_db),
     current_user: Any = Depends(get_current_user)
@@ -83,6 +96,19 @@ async def global_search(
         try:
             stmt = model_class._q().limit(10)
             stmt = model_class.apply_search(stmt, q, fields=search_fields)
+            scope = getattr(getattr(request, "state", None), "scope", None)
+            if scope:
+                scoped_by = getattr(model_class, "__scoped_by__", None) or []
+                col_names = {c.name for c in model_class.__table__.columns}
+                for item in scoped_by:
+                    field = item[0] if isinstance(item, (list, tuple)) else item
+                    if field not in col_names:
+                        continue
+                    value = scope.get(field)
+                    if value is None:
+                        continue
+                    column = getattr(model_class, field)
+                    stmt = stmt.where(column.in_(value) if isinstance(value, list) else column == value)
             items = db.scalars(stmt).all()
 
             for item in items:

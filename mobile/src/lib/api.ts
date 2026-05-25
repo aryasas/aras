@@ -3,6 +3,10 @@ import * as SecureStore from 'expo-secure-store';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
 
+if (!__DEV__ && API_BASE_URL.startsWith('http://')) {
+  console.warn('SECURITY WARNING: Production mobile build is using an insecure HTTP endpoint. HTTPS is required for production.');
+}
+
 interface ApiEnvelope<T = unknown> {
   success: boolean;
   data: T;

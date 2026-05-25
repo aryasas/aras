@@ -92,7 +92,9 @@ class JournalEntryLine(LineItemBase):
     parent: Mapped["JournalEntry"] = relationship("JournalEntry", back_populates="lines")
     account: Mapped["Account"] = relationship("Account")
 
-class InflowInvoice(DocumentBase):
+from .services.recalc_mixin import DocumentRecalcMixin
+
+class InflowInvoice(DocumentBase, DocumentRecalcMixin):
     __tablename__ = "erp_accounting_inflow_invoices"
     __soft_delete__ = True
     __linked_docs__ = [
@@ -114,26 +116,15 @@ class InflowInvoice(DocumentBase):
     lines: Mapped[list["InflowInvoiceLine"]] = relationship("InflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["InflowInvoiceCharge"]] = relationship("InflowInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
 
+    subtotal: Mapped[float] = mapped_column(Float, default=0)
+    total_charge: Mapped[float] = mapped_column(Float, default=0)
+    total_amount: Mapped[float] = mapped_column(Float, default=0)
+
     @property
     def journal_entries(self) -> list["JournalEntry"]:
         db = object_session(self)
         if db is None: return []
         return db.query(JournalEntry).filter_by(source_type="InflowInvoice", source_id=self.id).all()
-
-    @property
-    @Aras.computed_field
-    def subtotal(self) -> float:
-        return sum(line.qty * (line.unit_price - line.discount) for line in self.lines)
-
-    @property
-    @Aras.computed_field
-    def total_charge(self) -> float:
-        return sum(c.amount for c in self.charges)
-
-    @property
-    @Aras.computed_field
-    def total_amount(self) -> float:
-        return self.subtotal + self.total_charge
 
     @Aras.model_action(name="create_invoice", permission="edit", label="Create Invoice")
     def create_invoice(self, db):
@@ -245,7 +236,7 @@ class InflowInvoiceCharge(LineItemBase):
     parent: Mapped["InflowInvoice"] = relationship("InflowInvoice", back_populates="charges")
 
 
-class OutflowInvoice(DocumentBase):
+class OutflowInvoice(DocumentBase, DocumentRecalcMixin):
     __tablename__ = "erp_accounting_outflow_invoices"
     __soft_delete__ = True
     __linked_docs__ = [
@@ -268,26 +259,15 @@ class OutflowInvoice(DocumentBase):
     lines: Mapped[list["OutflowInvoiceLine"]] = relationship("OutflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["OutflowInvoiceCharge"]] = relationship("OutflowInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
 
+    subtotal: Mapped[float] = mapped_column(Float, default=0)
+    total_charge: Mapped[float] = mapped_column(Float, default=0)
+    total_amount: Mapped[float] = mapped_column(Float, default=0)
+
     @property
     def journal_entries(self) -> list["JournalEntry"]:
         db = object_session(self)
         if db is None: return []
         return db.query(JournalEntry).filter_by(source_type="OutflowInvoice", source_id=self.id).all()
-
-    @property
-    @Aras.computed_field
-    def subtotal(self) -> float:
-        return sum(line.qty * (line.unit_price - line.discount) for line in self.lines)
-
-    @property
-    @Aras.computed_field
-    def total_charge(self) -> float:
-        return sum(c.amount for c in self.charges)
-
-    @property
-    @Aras.computed_field
-    def total_amount(self) -> float:
-        return self.subtotal + self.total_charge
 
     @Aras.model_action(name="create_invoice", permission="edit", label="Create Invoice")
     def create_invoice(self, db):
@@ -538,8 +518,12 @@ class GoodsReceiptNote(DocumentBase):
         # db.commit() # Removed
         return ok({"status": self.status}, message="Goods Receipt Note received successfully.")
 
-    @Aras.model_action(name="match_invoice", permission="edit", label="Match to Invoice")
-    def match_invoice(self, db, invoice_id: int):
+    class _MatchInvoiceInput(Aras.Schema):
+        invoice_id: int
+
+    @Aras.model_action(name="match_invoice", permission="edit", label="Match to Invoice", input_schema=_MatchInvoiceInput)
+    def match_invoice(self, db, data: _MatchInvoiceInput):
+        invoice_id = data.invoice_id
         invoice = db.get(OutflowInvoice, invoice_id)
         if not invoice:
             raise ValidationException(f"Invoice with ID {invoice_id} not found.")

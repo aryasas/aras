@@ -2,7 +2,7 @@ import json
 import csv
 import io
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Request, status, Query, UploadFile, File
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, status, Query, UploadFile, File
 from fastapi.responses import StreamingResponse, JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
@@ -23,6 +23,19 @@ from ..base.model import Model as ArasModel
 from ..base.validation import Validation
 from pydantic.fields import FieldInfo
 
+MAX_PER_PAGE = 200
+MAX_CSV_IMPORT_BYTES = 5 * 1024 * 1024
+ALLOWED_CSV_TYPES = {"text/csv", "application/csv", "application/vnd.ms-excel"}
+ACTION_PERMISSION_ALIASES = {
+    "read": "READ",
+    "view": "READ",
+    "create": "CREATE",
+    "write": "UPDATE",
+    "edit": "UPDATE",
+    "update": "UPDATE",
+    "delete": "DELETE",
+}
+
 
 def _scope_fields(model_class: Type[Any]) -> list[str]:
     """Return the list of scope field names declared on a model via __scoped_by__."""
@@ -36,6 +49,10 @@ def _scope_fields(model_class: Type[Any]) -> list[str]:
 
 def _get_scope(request: Request) -> ScopeContext:
     return getattr(getattr(request, "state", None), "scope", None) or ScopeContext()
+
+
+def _permission_action(action: str) -> str:
+    return ACTION_PERMISSION_ALIASES.get(str(action).lower(), str(action).upper())
 
 
 def _apply_scope_filters(model_class: Type[Any], request: Request, parsed_filters: list) -> list:
@@ -63,6 +80,10 @@ def _inject_scope_payload(model_class: Type[Any], request: Request, payload: dic
     for field in _scope_fields(model_class):
         val = scope.get(field)
         if val is not None:
+            if isinstance(val, list) and not val:
+                raise ValidationException(
+                    f"No active scope for '{field}'. Please select a context first."
+                )
             payload[field] = val[0] if isinstance(val, list) else val
         elif not payload.get(field):
             col_names = {c.name for c in model_class.__table__.columns}
@@ -270,7 +291,7 @@ class RouterFactory(Router):
         # ── 2. Standard Endpoints (existing CRUD, etc.) ─────────────────────────
         
         @router.get("/metadata", response_model=dict)
-        async def get_metadata(
+        def get_metadata(
             lang: Optional[str] = Query(None),
             db: Session = Depends(get_db),
             _: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=allow_public))
@@ -289,10 +310,10 @@ class RouterFactory(Router):
             return ok(data, "Metadata retrieved successfully.")
 
         @router.get("/")
-        async def list_items_slashed(
+        def list_items_slashed(
             request: Request,
             page: int = Query(1, ge=1),
-            per_page: int = Query(20, ge=1, le=999999),
+            per_page: int = Query(20, ge=1, le=MAX_PER_PAGE),
             search: Optional[str] = None,
             filters: Optional[str] = None,
             order_by: Optional[str] = None,
@@ -300,13 +321,13 @@ class RouterFactory(Router):
             db: Session = Depends(get_db),
             user: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=allow_public))
         ):
-            return await list_items(request, page, per_page, search, filters, order_by, desc, db, user)
+            return list_items(request, page, per_page, search, filters, order_by, desc, db, user)
 
         @router.get("")
-        async def list_items(
+        def list_items(
             request: Request,
             page: int = Query(1, ge=1),
-            per_page: int = Query(20, ge=1, le=999999),
+            per_page: int = Query(20, ge=1, le=MAX_PER_PAGE),
             search: Optional[str] = None,
             filters: Optional[str] = None,
             order_by: Optional[str] = None,
@@ -336,7 +357,7 @@ class RouterFactory(Router):
             return ok(paginated_data, "Items listed successfully.")
 
         @router.get("/aggregate")
-        async def aggregate_items(
+        def aggregate_items(
             request: Request, # Added request to allow scope filters
             field: str = Query(..., description="Field to aggregate"),
             agg_func: str = Query(..., alias="func", description="Aggregation function: sum, count, avg"),
@@ -374,7 +395,7 @@ class RouterFactory(Router):
             return ok({"value": aggregate_value}, f"{agg_func.capitalize()} of {field} retrieved successfully.")
 
         @router.get("/export")
-        async def export_items(
+        def export_items(
             request: Request, # Add request for scope filters
             search: Optional[str] = None,
             filters: Optional[str] = None,
@@ -423,7 +444,7 @@ class RouterFactory(Router):
             )
 
         @router.post("/import")
-        async def import_items(
+        def import_items(
             file: UploadFile = File(...),
             mapping: Optional[str] = Query(None), # JSON string mapping CSV -> Model
             user: Any = Depends(check_permissions(model_class.__tablename__, "CREATE"))
@@ -431,13 +452,17 @@ class RouterFactory(Router):
             """Imports records from a CSV file via background task with optional mapping."""
             if not file.filename.endswith(".csv"):
                 raise ValidationException("Only CSV files are supported")
+            if file.content_type and file.content_type not in ALLOWED_CSV_TYPES:
+                raise ValidationException("Only CSV files are supported")
 
             parsed_mapping = None
             if mapping:
                 try: parsed_mapping = json.loads(mapping)
                 except: raise ValidationException("Invalid mapping format")
 
-            content = await file.read()
+            content = file.file.read(MAX_CSV_IMPORT_BYTES + 1)
+            if len(content) > MAX_CSV_IMPORT_BYTES:
+                raise ValidationException("CSV import file is too large")
             stream = io.StringIO(content.decode("utf-8"))
             reader = csv.DictReader(stream)
 
@@ -456,16 +481,16 @@ class RouterFactory(Router):
             return ok(data, data["message"])
 
         @router.post("/", status_code=status.HTTP_201_CREATED)
-        async def create_item_slashed(
+        def create_item_slashed(
             request: Request,
             data: Schema,
             db: Session = Depends(get_db),
             user: Any = Depends(check_permissions(model_class.__tablename__, "CREATE"))
         ):
-            return await create_item(request, data, db, user)
+            return create_item(request, data, db, user)
 
         @router.post("", status_code=status.HTTP_201_CREATED)
-        async def create_item(
+        def create_item(
             request: Request,
             data: Schema,
             db: Session = Depends(get_db),
@@ -480,15 +505,17 @@ class RouterFactory(Router):
 
         if getattr(model_class, "__soft_delete__", False):
             @router.get("/deleted", tags=[_api_tag])
-            async def list_deleted(
+            def list_deleted(
+                request: Request,
                 page: int = Query(1, ge=1),
-                per_page: int = Query(20, ge=1, le=999999),
+                per_page: int = Query(20, ge=1, le=MAX_PER_PAGE),
                 db: Session = Depends(get_db),
                 user: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=False))
             ):
                 """Lists only soft-deleted records."""
                 from sqlalchemy import select as sa_select
                 stmt = sa_select(model_class).where(model_class.deleted_at.isnot(None))
+                stmt = model_class.apply_filters(stmt, _apply_scope_filters(model_class, request, []))
                 total = db.scalar(sa_select(func.count()).select_from(stmt.subquery()))
                 offset = (page - 1) * per_page
                 items = db.scalars(stmt.offset(offset).limit(per_page)).all()
@@ -501,7 +528,8 @@ class RouterFactory(Router):
                 return ok(data, "Deleted items listed successfully.")
 
             @router.post("/{item_id}/restore")
-            async def restore_item(
+            def restore_item(
+                request: Request,
                 item_id: int,
                 db: Session = Depends(get_db),
                 user: Any = Depends(check_permissions(model_class.__tablename__, "UPDATE"))
@@ -511,6 +539,7 @@ class RouterFactory(Router):
                 item = db.scalar(sa_select(model_class).where(model_class.id == item_id))
                 if not item:
                     raise ResourceNotFoundException("Item not found")
+                _check_scope_ownership(model_class, request, item)
                 if item.deleted_at is None:
                     raise ValidationException("Record is not deleted")
                 item.deleted_at = None
@@ -520,7 +549,8 @@ class RouterFactory(Router):
                 return ok(item.to_dict(), "Item restored successfully.")
 
         @router.get("/{item_id}/linked-documents")
-        async def get_linked_documents(
+        def get_linked_documents(
+            request: Request,
             item_id: int,
             db: Session = Depends(get_db),
             user: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=False))
@@ -529,11 +559,12 @@ class RouterFactory(Router):
             item = model_class.get(db, item_id)
             if not item:
                 raise ResourceNotFoundException("Item not found")
+            _check_scope_ownership(model_class, request, item)
             docs = item.get_linked_documents(db) if hasattr(item, "get_linked_documents") else []
             return ok(docs, "Linked documents fetched.")
 
         @router.get("/{item_id}")
-        async def get_item(
+        def get_item(
             request: Request,
             item_id: int,
             db: Session = Depends(get_db),
@@ -569,7 +600,7 @@ class RouterFactory(Router):
             return ok(res, "Item retrieved successfully.")
 
         @router.put("/{item_id}")
-        async def update_item(
+        def update_item(
             request: Request,
             item_id: int,
             data: Schema,
@@ -591,7 +622,7 @@ class RouterFactory(Router):
             return ok(res, "Item updated successfully.")
 
         @router.patch("/{item_id}")
-        async def patch_item(
+        def patch_item(
             request: Request,
             item_id: int,
             data: PatchSchema,
@@ -613,7 +644,8 @@ class RouterFactory(Router):
             return ok(res, "Item patched successfully.")
 
         @router.delete("/{item_id}")
-        async def delete_item(
+        def delete_item(
+            request: Request,
             item_id: int,
             db: Session = Depends(get_db),
             user: Any = Depends(check_permissions(model_class.__tablename__, "DELETE"))
@@ -622,13 +654,15 @@ class RouterFactory(Router):
             item = model_class.get(db, item_id)
             if not item:
                 raise ResourceNotFoundException("Item not found")
+            _check_scope_ownership(model_class, request, item)
 
             item.delete_self(db, user_id=user.id)
             db.commit()
             return ok({"id": item_id}, "Item deleted successfully.")
 
         @router.post("/bulk-delete")
-        async def bulk_delete(
+        def bulk_delete(
+            request: Request,
             ids: List[int],
             db: Session = Depends(get_db),
             user: Any = Depends(check_permissions(model_class.__tablename__, "DELETE"))
@@ -639,6 +673,7 @@ class RouterFactory(Router):
                 item = model_class.get(db, item_id)
                 if item:
                     try:
+                        _check_scope_ownership(model_class, request, item)
                         item.delete_self(db, user.id)
                         deleted_count += 1
                     except Exception as e:
@@ -647,20 +682,32 @@ class RouterFactory(Router):
             db.commit()
             return ok({"deleted_count": deleted_count, "requested_count": len(ids)}, message)
 
+        @router.post("/batch-delete")
+        def batch_delete(
+            request: Request,
+            body: Any = Body(...),
+            db: Session = Depends(get_db),
+            user: Any = Depends(check_permissions(model_class.__tablename__, "DELETE"))
+        ):
+            """Compatibility endpoint for older clients that send {ids: [...]}."""
+            ids = body.get("ids") if isinstance(body, dict) else body
+            if not isinstance(ids, list) or not all(isinstance(item_id, int) for item_id in ids):
+                raise ValidationException("Body must be a list of IDs or an object with an ids list.")
+            return bulk_delete(request, ids, db, user)
+
         class _BatchOp(BaseModel):
             action: str  # "create" | "update" | "delete"
             id: Optional[int] = None
             data: Optional[dict] = None
 
         @router.post("/batch")
-        async def batch_operations(
+        def batch_operations(
             request: Request,
+            body: Any = Body(...),
             db: Session = Depends(get_db),
             user: Any = Depends(check_permissions(model_class.__tablename__, "UPDATE"))
         ):
             """Executes mixed create/update/delete operations, or saves parent+children atomically."""
-            body = await request.json()
-
             # {parent, children} shape — save parent then its children
             if isinstance(body, dict) and "parent" in body:
                 try:
@@ -670,6 +717,7 @@ class RouterFactory(Router):
                         parent_item = model_class.get(db, current_id)
                         if not parent_item:
                             raise ResourceNotFoundException("Item not found")
+                        _check_scope_ownership(model_class, request, parent_item)
                         parent_item.update_self(db, parent_payload, user_id=user.id)
                     else:
                         parent_item = model_class.create(db, parent_payload, user_id=user.id)
@@ -715,7 +763,8 @@ class RouterFactory(Router):
             try:
                 for op in operations:
                     if op.action == "create":
-                        item = model_class.create(db, op.data or {}, user_id=user.id)
+                        payload = _inject_scope_payload(model_class, request, op.data or {})
+                        item = model_class.create(db, payload, user_id=user.id)
                         results.append({"action": "create", "id": item.id, "status": "ok"})
                     elif op.action == "update":
                         if not op.id:
@@ -724,6 +773,7 @@ class RouterFactory(Router):
                         if not item:
                             results.append({"action": "update", "id": op.id, "status": "not_found"})
                             continue
+                        _check_scope_ownership(model_class, request, item)
                         item.update_self(db, op.data or {}, user_id=user.id)
                         results.append({"action": "update", "id": op.id, "status": "ok"})
                     elif op.action == "delete":
@@ -733,6 +783,7 @@ class RouterFactory(Router):
                         if not item:
                             results.append({"action": "delete", "id": op.id, "status": "not_found"})
                             continue
+                        _check_scope_ownership(model_class, request, item)
                         item.delete_self(db, user_id=user.id)
                         results.append({"action": "delete", "id": op.id, "status": "ok"})
                     else:
@@ -757,15 +808,17 @@ class RouterFactory(Router):
                 
                 if InputModel:
                     @router.post(f"/{{item_id}}/action/{name}", response_model=dict)
-                    async def run_custom_action(
+                    def run_custom_action(
+                        request: Request,
                         item_id: int,
                         input_data: InputModel,
                         db: Session = Depends(get_db),
-                        user: Any = Depends(check_permissions(model_class.__tablename__, action.permission))
+                        user: Any = Depends(check_permissions(model_class.__tablename__, _permission_action(action.permission)))
                     ):
                         item = model_class.get(db, item_id)
                         if not item:
                             raise ResourceNotFoundException("Item not found")
+                        _check_scope_ownership(model_class, request, item)
                         
                         try:
                             # Pass input data to handler
@@ -783,14 +836,16 @@ class RouterFactory(Router):
                             raise ArasException("Internal Server Error", detail=str(e))
                 else:
                     @router.post(f"/{{item_id}}/action/{name}", response_model=dict)
-                    async def run_custom_action(
+                    def run_custom_action(
+                        request: Request,
                         item_id: int,
                         db: Session = Depends(get_db),
-                        user: Any = Depends(check_permissions(model_class.__tablename__, action.permission))
+                        user: Any = Depends(check_permissions(model_class.__tablename__, _permission_action(action.permission)))
                     ):
                         item = model_class.get(db, item_id)
                         if not item:
                             raise ResourceNotFoundException("Item not found")
+                        _check_scope_ownership(model_class, request, item)
                         
                         try:
                             handler = getattr(item, action.handler.__name__)

@@ -89,7 +89,7 @@ class PaymentView(Aras.View):
     icon = "pi pi-wallet"
     fields = {
         "allocations.invoice_type": {"read_only": True},
-        "allocations.invoice_id": {"ui_type": "async_select", "choices_url": "/api/erp/accounting/payments/{parent_id}/open_invoices", "display_field": "number"},
+        "allocations.invoice_id": {"ui_type": "async_select", "choices_url": "/api/v1/accounting/payments/{parent_id}/open_invoices", "display_field": "number"},
     }
     layout = [
         {"title": "Header", "fields": ["number", "currency_id", "payment_type", "party_type", "party_id", "doc_date", "status"]},
@@ -97,4 +97,3 @@ class PaymentView(Aras.View):
         {"title": "Allocations", "fields": ["amount_allocated", "amount_unallocated", "allocations"], "actions": ["get_open_invoices", "auto_allocate"]},
         DOC_LAYOUT_NOTES
     ]
-

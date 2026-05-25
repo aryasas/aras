@@ -28,11 +28,13 @@ def test_parent_child_discovery():
     from core.base.model import Model
     
     assert "test_parents" in Model._child_map
-    assert "test_children" in Model._child_map["test_parents"]
+    child_resources = [c['resource'] for c in Model._child_map["test_parents"]]
+    assert "test_children" in child_resources
     
     # 3. Verify UI Metadata includes children
     metadata = ParentTest.get_ui_metadata()
-    assert "test_children" in metadata["children"]
+    meta_child_resources = [c['resource'] for c in metadata["children"]]
+    assert "test_children" in meta_child_resources
     
     print("\n[Success] Parent-Child Auto Discovery verified!")
 

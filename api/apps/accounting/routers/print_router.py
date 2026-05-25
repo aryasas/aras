@@ -4,6 +4,7 @@ from typing import List, Dict, Any
 
 from core import Aras
 from core.lib.database import get_db
+from core.logic.permissions import RBAC, check_permissions
 
 router = APIRouter()
 
@@ -15,15 +16,27 @@ SUPPORTED_RESOURCES = {
 
 
 @router.get("/accounting/{resource}/{id}/print")
-async def get_printable_document(resource: str, id: int, db: Session = Depends(get_db)):
+def get_printable_document(
+    resource: str,
+    id: int,
+    db: Session = Depends(get_db),
+    user: object = Depends(check_permissions(resource=None)),
+):
     if resource not in SUPPORTED_RESOURCES:
         raise HTTPException(status_code=400, detail=f"Unsupported resource: {resource}")
 
     model_class = Aras.Model.get_model(resource)
+    if not user.is_admin and not RBAC.has_permission(db, user, model_class.__tablename__, "READ"):
+        raise HTTPException(status_code=403, detail=f"No READ permission on {model_class.__tablename__}")
 
     record = db.query(model_class).filter(model_class.id == id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Record not found")
+    request_org_id = getattr(record, "org_id", None)
+    if request_org_id and getattr(user, "is_admin", False) is False:
+        from core.auth.service import user_can_access_org
+        if not user_can_access_org(db, user, request_org_id):
+            raise HTTPException(status_code=404, detail="Record not found")
 
     # Org name via registry
     org_name = ""

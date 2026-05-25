@@ -1,12 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
-import { User, Bell, Shield, CircleHelp, LogOut, ChevronRight } from 'lucide-react-native';
+import { User, Bell, Shield, CircleHelp, LogOut, ChevronRight, Languages } from 'lucide-react-native';
 import { theme } from '../lib/theme';
 import { useAuthStore } from '../store/useAuthStore';
 import { Card } from '../components/Card';
+import { useLanguage } from '../context/LanguageContext';
 
 export const SettingsScreen = () => {
   const { user, logout } = useAuthStore();
+  const { lang, setLang, t } = useLanguage();
 
   const menuItems = [
     { title: 'Personal Information', icon: <User size={20} color={theme.colors.textSecondary} /> },
@@ -27,7 +29,7 @@ export const SettingsScreen = () => {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Settings</Text>
+          <Text style={styles.title}>{t('nav.settings')}</Text>
         </View>
 
         <Card variant="outline" style={styles.profileCard}>
@@ -39,6 +41,44 @@ export const SettingsScreen = () => {
             <Text style={styles.profileEmail}>{user?.email || 'user@example.com'}</Text>
           </View>
         </Card>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('lang.label')}</Text>
+          <Card variant="outline" style={styles.langCard}>
+            <View style={styles.langRow}>
+              <View style={styles.menuItemLeft}>
+                <Languages size={20} color={theme.colors.textSecondary} />
+                <Text style={styles.menuItemTitle}>{t('lang.label')}</Text>
+              </View>
+              <View style={styles.langButtons}>
+                <TouchableOpacity
+                  onPress={() => setLang('en')}
+                  style={[
+                    styles.langButton,
+                    lang === 'en' && styles.langButtonActive
+                  ]}
+                >
+                  <Text style={[
+                    styles.langButtonText,
+                    lang === 'en' && styles.langButtonTextActive
+                  ]}>EN</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setLang('id')}
+                  style={[
+                    styles.langButton,
+                    lang === 'id' && styles.langButtonActive
+                  ]}
+                >
+                  <Text style={[
+                    styles.langButtonText,
+                    lang === 'id' && styles.langButtonTextActive
+                  ]}>ID</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Card>
+        </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>General</Text>
@@ -127,6 +167,39 @@ const styles = StyleSheet.create({
   menuCard: {
     padding: 0,
     overflow: 'hidden',
+  },
+  langCard: {
+    padding: 0,
+    overflow: 'hidden',
+  },
+  langRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: theme.spacing.md,
+  },
+  langButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  langButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  langButtonActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  langButtonText: {
+    ...theme.typography.caption,
+    fontWeight: '700',
+    color: theme.colors.textSecondary,
+  },
+  langButtonTextActive: {
+    color: theme.colors.surface,
   },
   menuItem: {
     flexDirection: 'row',

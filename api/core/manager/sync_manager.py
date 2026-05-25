@@ -13,7 +13,6 @@ from ..registry.resource_model import ResourceModel
 from ..registry.field_model import FieldModel
 from ..registry.link_model import LinkModel
 from .manager import Manager
-from ..logic import auto_migrate
 
 logger = logging.getLogger(__name__)
 
@@ -76,13 +75,6 @@ class SyncManager(Manager):
             
             db.commit()
 
-            # 4. Trigger Auto-Migration to ensure physical tables match models
-            logger.info("Running auto-migration...")
-            from ..aras import Aras
-            report = auto_migrate.run(Aras.engine, Aras.Base.metadata)
-            if report.errors:
-                logger.error(f"Auto-migration encountered errors: {report.errors}")
-            
             logger.info("Synchronization complete.")
         except Exception as e:
             db.rollback()

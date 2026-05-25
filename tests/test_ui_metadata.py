@@ -37,7 +37,8 @@ def test_smart_metadata_detection():
     assert fields["status"]["type"] == "select"
     assert len(fields["status"]["options"]) == 3
     assert fields["other_id"]["type"] == "lookup"
-    assert fields["other_id"]["target_resource"] == "aras_apps"
+    # Can be 'aras_apps' or '/dev/aras-apps' depending on if Dev app is registered
+    assert fields["other_id"]["target_resource"] in ("aras_apps", "dev/aras-apps", "/dev/aras-apps")
 
 if __name__ == "__main__":
     try:

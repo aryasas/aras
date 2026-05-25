@@ -100,7 +100,7 @@ class PotSession(DocumentBase):
 
     @Aras.model_action(name="open_pos", permission="edit", label="Open POS")
     def open_pos(self, db):
-        return ok({"redirect": f"/erp/pot/sessions/{self.id}/pos"}, message="")
+        return ok({"redirect": f"/pot/sessions/{self.id}/pos"}, message="")
 
     @Aras.model_action(name="close_session", permission="edit", label="Close Session", input_schema=_CloseSessionInput)
     def close_session(self, db, data: _CloseSessionInput):

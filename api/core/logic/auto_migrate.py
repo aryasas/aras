@@ -55,9 +55,18 @@ def _safe_default_sql(col) -> Optional[str]:
     if col.server_default is not None:
         sd = col.server_default
         try:
-            return sd.arg.text if hasattr(sd, "arg") and hasattr(sd.arg, "text") else None
+            # FetchedValue has no arg
+            if hasattr(sd, "arg"):
+                arg = sd.arg
+                # text() clause
+                if hasattr(arg, "text"):
+                    return arg.text
+                # plain string server_default (e.g. server_default="[]")
+                if isinstance(arg, str):
+                    return arg
         except Exception:
-            return None
+            pass
+        return None
     if col.default is not None and getattr(col.default, "is_scalar", False):
         v = col.default.arg
         if isinstance(v, bool):
@@ -93,7 +102,7 @@ def run(engine, metadata, drop_orphaned_tables: bool = False) -> MigrationReport
                 # Protect core tables
                 core_tables = {
                     "aras_apps", "aras_resources", "aras_fields", "aras_links",
-                    "aras_translations", "aras_activity_logs", "auth_roles",
+                    "translations", "aras_activity_logs", "auth_roles",
                     "auth_permissions", "auth_user_roles", "auth_users", "sys_settings"
                 }
                 if tname in core_tables or tname.startswith("aras_"):

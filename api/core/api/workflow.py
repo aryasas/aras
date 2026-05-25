@@ -9,14 +9,14 @@ router = APIRouter(tags=["Workflow API"])
 
 
 @router.get("/handlers")
-async def list_handlers(_: Any = Depends(get_current_user)):
+def list_handlers(_: Any = Depends(get_current_user)):
     """Returns all registered workflow handler names and descriptions."""
     from ..logic.handler_registry import HandlerRegistry
     return HandlerRegistry.list_handlers()
 
 
 @router.get("/{resource_name}/{item_id}/actions")
-async def get_actions(
+def get_actions(
     resource_name: str,
     item_id: int,
     db: Session = Depends(get_db),
@@ -37,7 +37,7 @@ async def get_actions(
 
 
 @router.post("/{resource_name}/{item_id}/action/{action_name}")
-async def trigger_action(
+def trigger_action(
     resource_name: str,
     item_id: int,
     action_name: str,

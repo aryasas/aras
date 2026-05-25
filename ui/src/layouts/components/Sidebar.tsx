@@ -1,7 +1,3 @@
-// claude-opus-4-7
-// ARC sidebar: 56px icon rail (apps) + 200px section panel (active app submenu).
-// Section panel items are user-reorderable via DnD (persisted in uiStore.submenuOrder).
-// Clicking an app navigates directly to its first submenu item (skips AppHome).
 import { useState, useEffect, useMemo } from 'react'
 import { Bell, ChevronRight, Hexagon, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -21,6 +17,18 @@ interface SidebarProps {
 
 interface FlatMenuItem extends MenuItem { id: string; groupLabel?: string }
 
+function normalizeRoutePath(path?: string) {
+  if (!path) return '/'
+  const normalized = path.startsWith('/') ? path : `/${path}`
+  return normalized.length > 1 ? normalized.replace(/\/+$/, '') : normalized
+}
+
+function isRouteMatch(currentPath: string, targetPath?: string) {
+  const current = normalizeRoutePath(currentPath)
+  const target = normalizeRoutePath(targetPath)
+  return current === target || current.startsWith(`${target}/`)
+}
+
 export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
   const vocabulary = useVocabulary()
   const navigate = useNavigate()
@@ -33,46 +41,79 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
   const toggleIconRail = useUIStore((s) => s.toggleIconRail)
   const mobileSidebarOpen = useUIStore((s) => s.mobileSidebarOpen)
   const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen)
-  const [activeApp, setActiveApp] = useState<SidebarApp | null>(null)
+  
   const [menuData, setMenuData] = useState<any>(null)
   const [isLoadingMenu, setIsLoadingMenu] = useState(false)
 
-  const apps = sidebarData.filter(isVisibleMenuItem)
+  const apps = useMemo(() => sidebarData.filter(isVisibleMenuItem), [sidebarData])
   const initial = (user?.full_name || user?.username || 'A')[0].toUpperCase()
 
-  useEffect(() => {
-    const [appName] = currentPath.split('/').filter(Boolean)
-    if (appName) {
-      const app = apps.find((a) => a.name === appName)
-      if (app && app.name !== activeApp?.name) setActiveApp(app)
-    }
-  }, [currentPath, apps, activeApp?.name])
+  // Derive active app directly from URL so the selector stays in sync with route changes.
+  const activeApp = useMemo(() => {
+    const current = normalizeRoutePath(currentPath)
+    return apps
+      .map((app) => ({ app, path: normalizeRoutePath(app.path || `/${app.name}`) }))
+      .filter(({ path }) => isRouteMatch(current, path))
+      .sort((a, b) => b.path.length - a.path.length)[0]?.app || null
+  }, [currentPath, apps])
 
+  // Fetch menu data when active app changes
   useEffect(() => {
-    if (!activeApp) { setMenuData(null); return }
+    if (!activeApp) {
+      setMenuData(null)
+      return
+    }
+    
+    let cancelled = false
     setIsLoadingMenu(true)
-    api.get(`/app-menu/${activeApp.name}`)
-      .then((res) => setMenuData(res.data))
-      .catch(() => setMenuData(null))
-      .finally(() => setIsLoadingMenu(false))
-  }, [activeApp])
+    if (activeApp.type === 'link') {
+      setMenuData(null)
+      setIsLoadingMenu(false)
+      return
+    }
+
+    const menuPath = normalizeRoutePath(activeApp.path || `/${activeApp.name}`).replace(/^\//, '')
+    api.get(`/app-menu/${menuPath}`)
+      .then((res) => {
+        if (!cancelled) setMenuData(res.data)
+      })
+      .catch(() => {
+        if (!cancelled) setMenuData(null)
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingMenu(false)
+      })
+      
+    return () => { cancelled = true }
+  }, [activeApp?.name, activeApp?.path, activeApp?.type])
 
   // Flatten menu groups into a single ordered list (id = path) for DnD.
   const flatItems = useMemo<FlatMenuItem[]>(() => {
     if (!menuData) return []
-    const groups = filterMenuElements(menuData.menu || []).filter((g: any) => {
-      const label = (g.label || '').toLowerCase()
-      const name = (g.name || '').toLowerCase()
-      return !label.includes('setting') && !name.includes('setting') && !label.includes('admin') && !name.includes('admin')
-    })
+    const elements = filterMenuElements(menuData.menu || [])
+    
+    // Add sub_apps as well if they are not already in menu (as app_links)
+    const existingPaths = new Set(elements.map((e: any) => (e as any).path).filter(Boolean))
+    const subApps = (menuData.sub_apps || []).filter((sa: any) => !existingPaths.has(sa.path))
+    
+    const allElements = [...elements, ...subApps.map((sa: any) => ({ ...sa, type: 'app_link' }))]
     const items: FlatMenuItem[] = []
-    groups.forEach((g: any) => {
-      filterMenuItems(g.items || []).forEach((i: MenuItem) => {
-        const il = (i.label || '').toLowerCase()
-        const inm = (i.name || '').toLowerCase()
-        if (il.includes('setting') || inm.includes('setting') || il.includes('admin') || inm.includes('admin')) return
-        items.push({ ...i, id: i.path || i.name, groupLabel: g.label })
-      })
+
+    allElements.forEach((el: any) => {
+      const label = (el.label || '').toLowerCase()
+      const name = (el.name || '').toLowerCase()
+      if (label.includes('setting') || name.includes('setting') || label.includes('admin') || name.includes('admin')) return
+
+      if (el.type === 'group') {
+        filterMenuItems(el.items || []).forEach((i: MenuItem) => {
+          const il = (i.label || '').toLowerCase()
+          const inm = (i.name || '').toLowerCase()
+          if (il.includes('setting') || inm.includes('setting') || il.includes('admin') || inm.includes('admin')) return
+          items.push({ ...i, id: i.path || i.name, groupLabel: el.label })
+        })
+      } else {
+        items.push({ ...el, id: el.path || el.name, groupLabel: 'General' })
+      }
     })
     return items
   }, [menuData])
@@ -89,26 +130,6 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
     return reordered
   }, [flatItems, submenuOrder, activeApp])
 
-  // Auto-navigate to first item when app changes and current path is just /<app>.
-  useEffect(() => {
-    if (!activeApp || !orderedItems.length) return
-    const segs = currentPath.split('/').filter(Boolean)
-    if (segs.length <= 1 && segs[0] === activeApp.name) {
-      navigate(orderedItems[0].path)
-    }
-  }, [activeApp, orderedItems, currentPath, navigate])
-
-  const handleAppClick = (app: SidebarApp) => {
-    setActiveApp(app)
-    const saved = submenuOrder[app.name]
-    const target = saved?.[0] || app.path || `/${app.name}`
-    if (target === currentPath) {
-      navigate(target, { replace: true, state: { _t: Date.now() } })
-    } else {
-      navigate(target)
-    }
-  }
-
   // Auto-close mobile drawer on route change.
   useEffect(() => {
     if (mobileSidebarOpen) setMobileSidebarOpen(false)
@@ -118,6 +139,60 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
   const handleReorder = (next: FlatMenuItem[]) => {
     if (!activeApp) return
     setSubmenuOrder(activeApp.name, next.map((it) => it.id))
+  }
+
+  const firstPathFromMenuData = (data: any) => {
+    const elements = filterMenuElements(data?.menu || [])
+    const existingPaths = new Set(elements.map((e: any) => (e as any).path).filter(Boolean))
+    const subApps = (data?.sub_apps || []).filter((sa: any) => !existingPaths.has(sa.path))
+    const allElements = [...elements, ...subApps.map((sa: any) => ({ ...sa, type: 'app_link' }))]
+
+    for (const el of allElements) {
+      const label = (el.label || '').toLowerCase()
+      const name = (el.name || '').toLowerCase()
+      if (label.includes('setting') || name.includes('setting') || label.includes('admin') || name.includes('admin')) continue
+
+      if (el.type === 'group') {
+        const firstItem = filterMenuItems(el.items || []).find((i: MenuItem) => {
+          const il = (i.label || '').toLowerCase()
+          const inm = (i.name || '').toLowerCase()
+          return !il.includes('setting') && !inm.includes('setting') && !il.includes('admin') && !inm.includes('admin')
+        })
+        if (firstItem?.path) return normalizeRoutePath(firstItem.path)
+      } else if (el.path) {
+        return normalizeRoutePath(el.path)
+      }
+    }
+
+    return null
+  }
+
+  const handleAppClick = async (item: SidebarApp) => {
+    const appRoot = normalizeRoutePath(item.path || `/${item.name}`)
+    if (item.type === 'link') {
+      navigate(appRoot)
+      return
+    }
+
+    const currentAppRoot = normalizeRoutePath(activeApp?.path || `/${activeApp?.name || ''}`)
+    if (appRoot === currentAppRoot && orderedItems[0]?.path) {
+      navigate(normalizeRoutePath(orderedItems[0].path))
+      return
+    }
+
+    const saved = submenuOrder[item.name]?.[0]
+    if (saved) {
+      navigate(normalizeRoutePath(saved))
+      return
+    }
+
+    try {
+      const menuPath = appRoot.replace(/^\//, '')
+      const res = await api.get(`/app-menu/${menuPath}`)
+      navigate(firstPathFromMenuData(res.data) || appRoot)
+    } catch {
+      navigate(appRoot)
+    }
   }
 
   return (
@@ -132,44 +207,62 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
     <div
       className={`flex h-full max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:shadow-xl max-md:transition-transform max-md:duration-200 ${mobileSidebarOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'}`}
     >
-      {/* 56px icon rail */}
+      {/* App rail (Icons or Icons + Text) */}
       <aside
-        className="flex flex-col shrink-0 z-40"
+        className="flex flex-col shrink-0 z-40 transition-[width] duration-300"
         style={{
-          width: iconRailCollapsed ? 0 : 56,
+          width: iconRailCollapsed ? 0 : (sidebarCollapsed ? 56 : 180),
           background: 'var(--bg-2)',
           borderRight: iconRailCollapsed ? 'none' : '1px solid var(--line)',
           overflow: iconRailCollapsed ? 'hidden' : undefined,
         }}
       >
         <div
-          className="flex items-center justify-center"
+          className="flex items-center px-4"
           style={{ height: 52, borderBottom: '1px solid var(--line)' }}
         >
-          <Hexagon size={20} className="text-[var(--accent)]" />
+          <Hexagon size={20} className="text-[var(--accent)] shrink-0" />
+          {!sidebarCollapsed && !iconRailCollapsed && (
+            <span className="ml-3 font-bold text-sm truncate uppercase tracking-wider text-[var(--text)]">
+              Aras
+            </span>
+          )}
         </div>
 
-        <div className="flex-1 flex flex-col items-center gap-1 py-3 overflow-y-auto arc-scroll">
+        <div className="flex-1 flex flex-col gap-1 py-3 overflow-y-auto arc-scroll px-2">
           {apps.map((item) => {
             const Icon = resolveIcon(item.icon)
-            const isActive = activeApp?.name === item.name
+            const itemPath = normalizeRoutePath(item.path || `/${item.name}`)
+            const isActive = activeApp?.name === item.name || isRouteMatch(currentPath, itemPath)
+            const label = vocabulary.get(item.label)
+            
             return (
               <button
+                type="button"
                 key={item.name}
+                title={sidebarCollapsed ? label : undefined}
                 onClick={() => handleAppClick(item)}
-                title={vocabulary.get(item.label)}
-                className="relative flex items-center justify-center transition-colors"
+                className="group relative flex items-center transition-all duration-200"
                 style={{
-                  width: 38, height: 38, borderRadius: 'var(--radius)',
+                  width: '100%',
+                  height: 38,
+                  padding: sidebarCollapsed ? '0' : '0 10px',
+                  justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                  borderRadius: 'var(--radius)',
                   background: isActive ? 'var(--surface-2)' : 'transparent',
                   border: isActive ? '1px solid var(--line)' : '1px solid transparent',
                   color: isActive ? 'var(--text)' : 'var(--text-3)',
                 }}
               >
-                <Icon size={17} />
+                <Icon size={17} className="shrink-0" />
+                {!sidebarCollapsed && (
+                  <span className="ml-3 text-[13px] font-medium truncate opacity-90 group-hover:opacity-100">
+                    {label}
+                  </span>
+                )}
                 {isActive && (
                   <span style={{
-                    position: 'absolute', left: -8, top: 8, bottom: 8, width: 2,
+                    position: 'absolute', left: -2, top: 8, bottom: 8, width: 2,
                     background: 'var(--accent)', borderRadius: 2,
                   }} />
                 )}
@@ -178,37 +271,71 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
           })}
         </div>
 
-        <div className="flex flex-col items-center gap-2 py-3" style={{ borderTop: '1px solid var(--line)' }}>
+        <div className="flex flex-col gap-2 py-3 px-2" style={{ borderTop: '1px solid var(--line)' }}>
           <button
             onClick={toggleIconRail}
             aria-label="Hide sidebar"
-            className="flex items-center justify-center hover:text-[var(--text)] text-[var(--text-3)] transition-colors"
-            style={{ width: 32, height: 32, borderRadius: 8 }}
+            className="flex items-center hover:text-[var(--text)] text-[var(--text-3)] transition-colors"
+            style={{ 
+              width: '100%', 
+              height: 32, 
+              borderRadius: 8,
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+              padding: sidebarCollapsed ? '0' : '0 10px'
+            }}
           >
-            <Menu size={16} />
+            <Menu size={16} className="shrink-0" />
+            {!sidebarCollapsed && <span className="ml-3 text-xs font-medium">Hide Rail</span>}
           </button>
           <button
             onClick={toggleSidebar}
             aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="flex items-center justify-center hover:text-[var(--text)] text-[var(--text-3)] transition-colors"
-            style={{ width: 32, height: 32, borderRadius: 8 }}
+            className="flex items-center hover:text-[var(--text)] text-[var(--text-3)] transition-colors"
+            style={{ 
+              width: '100%', 
+              height: 32, 
+              borderRadius: 8,
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+              padding: sidebarCollapsed ? '0' : '0 10px'
+            }}
           >
-            {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+            {sidebarCollapsed ? <PanelLeftOpen size={16} className="shrink-0" /> : <PanelLeftClose size={16} className="shrink-0" />}
+            {!sidebarCollapsed && <span className="ml-3 text-xs font-medium">Collapse</span>}
           </button>
-          <Bell size={17} className="text-[var(--text-3)]" />
-          <div className="arc-av" style={{
-            width: 28, height: 28,
-            background: 'color-mix(in oklch, var(--accent) 22%, var(--surface))',
-            color: 'var(--accent)',
-            boxShadow: '0 0 0 1.5px var(--accent), 0 0 0 3px var(--bg)',
-          }}>
-            <span className="arc-mono">{initial}</span>
+          <div className="flex items-center" style={{ 
+              width: '100%', 
+              height: 32, 
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+              padding: sidebarCollapsed ? '0' : '10px'
+            }}>
+            <Bell size={17} className="text-[var(--text-3)] shrink-0" />
+            {!sidebarCollapsed && <span className="ml-3 text-xs font-medium">Notifications</span>}
+          </div>
+          <div className="flex items-center" style={{ 
+              width: '100%', 
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+              padding: sidebarCollapsed ? '0' : '0 10px'
+            }}>
+            <div className="arc-av shrink-0" style={{
+              width: 28, height: 28,
+              background: 'color-mix(in oklch, var(--accent) 22%, var(--surface))',
+              color: 'var(--accent)',
+              boxShadow: '0 0 0 1.5px var(--accent), 0 0 0 3px var(--bg)',
+            }}>
+              <span className="arc-mono">{initial}</span>
+            </div>
+            {!sidebarCollapsed && (
+              <div className="ml-3 min-w-0">
+                <div className="text-[11px] font-bold truncate text-[var(--text)]">{user?.full_name || user?.username}</div>
+                <div className="text-[9px] text-[var(--text-3)] truncate uppercase tracking-tighter">Administrator</div>
+              </div>
+            )}
           </div>
         </div>
       </aside>
 
       {/* 200px Section panel — hidden on phones unless drawer open */}
-      {activeApp && !sidebarCollapsed && !iconRailCollapsed && (
+      {activeApp?.type !== 'link' && activeApp && !sidebarCollapsed && !iconRailCollapsed && (
         <aside
           className={`flex-col shrink-0 z-30 ${mobileSidebarOpen ? 'flex' : 'max-md:hidden flex'}`}
           style={{ width: 200, background: 'var(--bg-2)', borderRight: '1px solid var(--line)' }}
@@ -229,27 +356,31 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
                 items={orderedItems}
                 onReorder={handleReorder}
                 renderItem={(item) => {
-                  const isActive = currentPath === item.path || currentPath.startsWith(`${item.path}/`)
+                  const target = normalizeRoutePath(item.path)
+                  const isActive = isRouteMatch(currentPath, target)
                   const n = String(orderedItems.findIndex((i) => i.id === item.id) + 1).padStart(2, '0')
                   return (
-                    <button
-                      onClick={() => navigate(item.path)}
-                      className="group w-full flex items-center gap-2 text-left transition-colors relative"
-                      style={{
-                        padding: '8px 10px', borderRadius: 'var(--radius)',
-                        background: isActive ? 'var(--surface)' : 'transparent',
-                        border: isActive ? '1px solid var(--line)' : '1px solid transparent',
-                        color: isActive ? 'var(--text)' : 'var(--text-2)',
-                        fontSize: 13, fontWeight: 500,
-                      }}
-                    >
-                      <span className="arc-mono" style={{ fontSize: 10.5, color: isActive ? 'var(--accent)' : 'var(--text-3)' }}>{n}</span>
-                      <span className="truncate flex-1">{vocabulary.get(item.label || item.name)}</span>
-                      {isActive && <ChevronRight size={13} className="text-[var(--text-3)]" />}
-                      <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="group relative w-full">
+                      <button
+                        type="button"
+                        onClick={() => navigate(target)}
+                        className="w-full flex items-center gap-2 text-left transition-colors"
+                        style={{
+                          padding: '8px 34px 8px 10px', borderRadius: 'var(--radius)',
+                          background: isActive ? 'var(--surface)' : 'transparent',
+                          border: isActive ? '1px solid var(--line)' : '1px solid transparent',
+                          color: isActive ? 'var(--text)' : 'var(--text-2)',
+                          fontSize: 13, fontWeight: 500,
+                        }}
+                      >
+                        <span className="arc-mono" style={{ fontSize: 10.5, color: isActive ? 'var(--accent)' : 'var(--text-3)' }}>{n}</span>
+                        <span className="truncate flex-1">{vocabulary.get(item.label || item.name)}</span>
+                        {isActive && <ChevronRight size={13} className="text-[var(--text-3)]" />}
+                      </button>
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <DragHandle />
                       </span>
-                    </button>
+                    </div>
                   )
                 }}
               />

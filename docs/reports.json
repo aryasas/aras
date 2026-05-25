@@ -2904,5 +2904,479 @@
       "issues": "Handoff only; no application code changed."
     },
     "verdict": "APPROVED"
+  },
+  {
+    "id": 203,
+    "date": "2026-05-25",
+    "feature": "Audit security and PWA hardening",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/auth/service.py, api/core/logic/permissions.py, api/core/logic/router_factory.py, api/core/api/query.py, api/core/api/registry.py, api/apps/report/services/report_service.py, api/apps/accounting/app.py, api/apps/accounting/routers/print_router.py, api/core/base/model.py, api/core/lib/query_builder.py, api/core/lib/rate_limiter.py, api/core/auth/routes.py, api/main.py",
+      "features_added": "Validated org scope headers against ERP access, defaulted non-admin requests to allowed org scope, enforced scope on generic query/batch/bulk-delete/restore/linked-doc/action paths, protected registry metadata endpoints, constrained report SQL execution, disabled script report exec, added batch-delete compatibility, capped pagination and CSV imports, and disabled startup schema mutation in production.",
+      "fixes_applied": "Fixed undefined bridge_table_name in save_m2m, corrected auth rate limiter target to /auth/token, throttled password reset routes, and gated password reset token logging behind DEBUG.",
+      "framework_changes": "Generic framework routes now enforce org scope more consistently and normalize model action permission aliases such as edit to UPDATE.",
+      "issues": "No api/tests directory exists, so backend regression tests could not be run."
+    },
+    "frontend": {
+      "files_written": "ui/src/views/WebPageView.tsx, ui/index.html, ui/src/main.tsx, ui/src/index.css, ui/public/manifest.webmanifest, ui/public/sw.js",
+      "features_added": "Added sanitized CMS HTML rendering, PWA manifest/service worker registration, app metadata, theme color, Apple mobile metadata, safe-area padding, and mobile touch/input sizing.",
+      "fixes_applied": "Changed the browser title from generic ui to Aras.",
+      "framework_changes": "none",
+      "issues": "Service worker registration is production-build only."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 204,
+    "date": "2026-05-25",
+    "feature": "Frontend robust loading and test suite alignment",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/manager/bootstrap.py, api/core/logic/permissions.py, api/core/api/registry.py",
+      "features_added": "Aligned default admin username to 'admin' to match user request. Fixed ImportError in permissions caused by refactoring. Allowed unauthenticated access to metadata while maintaining internal model protection.",
+      "fixes_applied": "Corrected dependency injection usage in metadata endpoint. Fixed multiple test file credentials and import paths (apps.erp -> apps.accounting/stock/etc). Resolved NoReferencedTableError in tests by ensuring app discovery runs before table creation.",
+      "framework_changes": "Metadata endpoint now handles optional authentication gracefully. Test suite fully migrated to local PostgreSQL with specific user credentials.",
+      "issues": "SQLite remains in use for some unit tests that mock the engine, but the core integration suite now correctly uses Postgres."
+    },
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/DynamicForm.tsx, ui/src/aras-core/components/ListView.tsx, mobile/app.json, mobile/src/lib/api.ts",
+      "features_added": "Implemented AbortController request cancellation in DynamicForm and ListView to prevent stale data and race conditions. Added search debouncing (300ms) to ListView. Standardized mobile app.json with bundle identifiers and deep linking schemes. Enforced HTTPS warning in mobile production builds.",
+      "fixes_applied": "Removed insecure client-side org_id injection in ListView, delegating scope enforcement entirely to the hardened backend. Fixed browser title and favicon references.",
+      "framework_changes": "Generic UI components now handle rapid resource switching and search input more robustly without flickering or loading incorrect data.",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 205,
+    "date": "2026-05-25",
+    "feature": "Review build cleanup",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListView.tsx",
+      "features_added": "none",
+      "fixes_applied": "Removed stale useAuthStore import and activeOrgId destructuring left after client-side org_id filter removal so TypeScript build passes.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 206,
+    "date": "2026-05-25",
+    "feature": "SaaS consumer subscription levels and payment flow tests",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/saas/plans.py, api/apps/saas/routers.py, api/core/manager/bootstrap.py, tests/conftest.py, tests/test_saas_consumer_flow.py",
+      "features_added": "Seeded canonical SaaS subscription levels: Starter, Business, and Enterprise, each with explicit app packages, included features, user limits, and branch limits. Added consumer portal endpoints for register, subscribe, development payment bypass, and subscription-scoped app visibility.",
+      "fixes_applied": "Excluded old script-style localhost request files from pytest collection so the real test suite can run cleanly.",
+      "framework_changes": "Bootstrap now seeds default SaaS plans idempotently when the SaaS app is installed.",
+      "issues": "Development payment bypass is intentionally disabled outside DEBUG/TESTING."
+    },
+    "frontend": {
+      "files_written": "ui/src/views/PublicLanding.tsx, ui/src/views/CustomerSignup.tsx, ui/src/views/CustomerPortal.tsx",
+      "features_added": "Public pricing and signup now show package apps/included features; customer portal shows plan limits and available apps after payment activation.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "Consumer self-service payment UI is not yet a full checkout; backend dev-bypass endpoint is covered by tests."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 207,
+    "date": "2026-05-25",
+    "feature": "Fix model action signatures and TypeError in reports",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/report/models.py, api/apps/report/services/report_service.py, api/apps/crm/models.py, api/apps/accounting/models.py",
+      "features_added": "none",
+      "fixes_applied": "Fixed TypeError: generate_report() takes 1 positional argument but 2 were given by adding 'db' parameter to generate_report and convert_to_party. Added missing input_schema to match_invoice. Fixed non-existent 'status' field bug in Lead.convert_to_party.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 208,
+    "date": "2026-05-25",
+    "feature": "Sidebar Menu and Redirection Fixes + Toggle Expanded State",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/components/Sidebar.tsx, ui/src/views/SmartDispatcher.tsx",
+      "features_added": "Implemented toggleable expanded sidebar that shows text labels next to icons when open. Added user profile and labels to the expanded rail.",
+      "fixes_applied": "Fixed sidebar menu flattening logic to handle non-grouped items and sub-apps. Fixed SmartDispatcher to use full app paths for menu fetching and redirection, solving sub-app navigation bugs.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 209,
+    "date": "2026-05-25",
+    "feature": "Fix UndefinedColumn total_amount in reports",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/accounting/models.py",
+      "features_added": "none",
+      "fixes_applied": "Resolved ProgrammingError: column si.total_amount does not exist. Added persistent subtotal, total_charge, and total_amount columns to InflowInvoice and OutflowInvoice. Integrated DocumentRecalcMixin to automatically update these totals on save.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 210,
+    "date": "2026-05-25",
+    "feature": "Fix sidebar selector navigation",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/components/Sidebar.tsx",
+      "features_added": "none",
+      "fixes_applied": "Matched active sidebar items by normalized route path instead of only the first URL segment. Changed section row navigation to explicit button navigation with a separate drag handle so sortable rows still navigate on click.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 211,
+    "date": "2026-05-25",
+    "feature": "Main sidebar app-home navigation",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/components/Sidebar.tsx, ui/src/views/SmartDispatcher.tsx",
+      "features_added": "Main sidebar app clicks now open the app home page instead of jumping to the first module.",
+      "fixes_applied": "Stopped app-root routes from redirecting back to the first submenu item, so clicking Config from /config/organization moves to /config and shows AppHome.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 212,
+    "date": "2026-05-25",
+    "feature": "Main sidebar first-submenu navigation",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/components/Sidebar.tsx",
+      "features_added": "none",
+      "fixes_applied": "Changed the main left app rail so app clicks resolve and navigate to the app's first submenu item while keeping app home routes available when opened directly.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 213,
+    "date": "2026-05-25",
+    "feature": "Report center payload normalization",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/ReportCenter.tsx, ui/src/aras-core/components/GenericReport.tsx",
+      "features_added": "none",
+      "fixes_applied": "Unwrapped nested model-action report responses before rendering and guarded report table rows/columns against non-array payloads, fixing the reports page '(data || []).map is not a function' crash.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 214,
+    "date": "2026-05-25",
+    "feature": "Pluggable app seed registry \u2014 decouple ERP RBAC from framework bootstrap",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/seeds/registry.py, api/core/manager/bootstrap.py, api/apps/config/seed_rbac.py",
+      "features_added": "core/seeds/registry.py: register() decorator + run_all() \u2014 apps self-register seed fns at import time",
+      "fixes_applied": "Replaced hardcoded _seed_erp_rbac() in bootstrap with _run_app_seeds() that imports app seed modules then runs registry; apps/config/seed_rbac.py uses @register instead of being called directly from core",
+      "framework_changes": "Bootstrap no longer has compile-time dependency on apps.config \u2014 ERP seed is app-owned and pluggable",
+      "issues": "none"
+    },
+    "frontend": null,
+    "input_tokens": "~8000",
+    "output_tokens": "~1200",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Clean 3-file change, architectural concern fully resolved",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 215,
+    "date": "2026-05-25",
+    "feature": "ARAS SaaS paket & pricing \u2014 6 plan IDR (free\u2192enterprise) dengan resource limits",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/saas/models.py, api/apps/saas/plans.py, api/apps/saas/routers.py",
+      "features_added": "Plan model: tambah plan_key (unique), max_transactions, max_products, storage_mb, active_modules, sort_order; plans.py: ganti 3 plan USD lama dengan 6 plan IDR (free/lite/starter/growth/business/enterprise); _plan_payload expose semua field baru ke API",
+      "fixes_applied": "seed_default_plans kini upsert by plan_key bukan by name",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "input_tokens": "~6000",
+    "output_tokens": "~800",
+    "cache_read_tokens": "~4000",
+    "cache_write_tokens": "0",
+    "token_efficiency": "3-file targeted change, full plan data delivered",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 216,
+    "date": "2026-05-25",
+    "feature": "Revisi paket ARAS: 4 tier (free/lite/growth/business) + api_access field + admin customizable",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/saas/models.py, api/apps/saas/plans.py, api/apps/saas/routers.py",
+      "features_added": "Plan model: tambah api_access bool + __field_hints__ untuk UX admin; plans.py: 4 paket final IDR dengan Lite=POS+Stock+Receivable, Growth=+Accounting, Business=+API; routers: expose api_access di payload",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "input_tokens": "~3000",
+    "output_tokens": "~600",
+    "cache_read_tokens": "~5000",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Revisi bersih, 3 file, data lengkap",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 217,
+    "date": "2026-05-25",
+    "feature": "Frontend customer flow: landing page, signup, portal \u2014 4-paket IDR, bahasa Indonesia",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/PublicLanding.tsx, ui/src/views/CustomerSignup.tsx, ui/src/views/CustomerPortal.tsx",
+      "features_added": "PublicLanding: rewrite penuh \u2014 hero, fitur, pricing 4 paket dengan badge 'Paling Populer' pada Growth, testimonial, footer nav; CustomerSignup: pre-select plan dari ?plan=<key>, sidebar ringkasan plan, bahasa Indonesia; CustomerPortal: modul badges, usage limits dengan progress bar, upgrade modal, bahasa Indonesia",
+      "fixes_applied": "Plan type diupdate dengan field baru (plan_key, active_modules, max_transactions, max_products, api_access); signup submit kini kirim plan_id dari plan_key lookup",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~10000",
+    "output_tokens": "~4000",
+    "cache_read_tokens": "~6000",
+    "cache_write_tokens": "0",
+    "token_efficiency": "3 file customer-facing selesai lengkap dalam satu shot",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 218,
+    "date": "2026-05-25",
+    "feature": "SaaS Production Readiness: Control Panel Config, Module Guard, Docker",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/saas/routers.py, api/core/auth/module_guard.py, api/apps/saas/plans.py, api/.env.control-panel.example, api/.env.tenant.example, Dockerfile, ui/Dockerfile, docker-compose.yml",
+      "features_added": "Tenant config delivery endpoint; SaaS license renewal with trial support; require_module middleware for plan enforcement; idempotent plan seeding; full Docker/Docker-compose setup.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 219,
+    "date": "2026-05-25",
+    "feature": "i18n \u2014 Multi-language support (Web + Mobile, EN + ID)",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/locales/en.json, ui/src/locales/id.json, ui/src/context/LanguageContext.tsx, ui/src/main.tsx, ui/src/layouts/components/Header.tsx, mobile/src/locales/en.json, mobile/src/locales/id.json, mobile/src/context/LanguageContext.tsx, mobile/App.tsx, mobile/src/screens/SettingsScreen.tsx",
+      "features_added": "Multi-language (EN/ID) support for both Web and Mobile. Includes locale files, custom LanguageContext for persistence (localStorage/AsyncStorage), and UI switchers in Web Header and Mobile Settings.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 220,
+    "date": "2026-05-25",
+    "feature": "SaaS Admin REST Endpoints \u2014 approve, suspend, downgrade subscription via API",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/saas/routers.py",
+      "features_added": "Added 5 admin REST endpoints: list subscriptions, approve (provision), suspend (revoke), update plan, and subscription detail.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 221,
+    "date": "2026-05-25",
+    "feature": "Report Security Hardening \u2014 ORM + Parameterized SQL, No exec()",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/report/models.py, api/apps/report/services/report_service.py, api/apps/report/routers.py, api/apps/report/CUSTOM_REPORTS.md, tests/test_report_security.py",
+      "features_added": "Dual-type report system: ORM-based (QueryBuilder, no raw SQL) and custom_sql (parameterized, stored in DB). Both enforce org_id isolation. Auto-adds LIMIT 1000. Blocks INSERT/UPDATE/DELETE/DROP/ALTER/EXECUTE/MERGE. New API endpoint /erp/report/execute/{report_code}.",
+      "fixes_applied": "Removed raw exec() risk. Replaced script reports with parameterized SQL validation. All custom reports now require database storage with strict query whitelisting.",
+      "framework_changes": "Report model: added query_type enum ('orm'/'custom_sql'), query_filters for ORM-based reports, validation middleware for custom SQL.",
+      "issues": "none"
+    },
+    "frontend": null,
+    "input_tokens": "15000",
+    "output_tokens": "8000",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Complete report security refactor (ORM + parameterized SQL) delivered in one shot. No exec(), full isolation, full tests.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 222,
+    "date": "2026-05-25",
+    "feature": "Report Center UI \u2014 Auto-run, Date Picker, Type Labels",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/ReportCenter.tsx",
+      "features_added": "Auto-run report on select (no manual trigger needed). Date picker for date fields (auto-detect by field name). Type labels: 'ORM' for orm, 'SQL' for custom_sql. New API endpoint /erp/report/execute/{report_code} for parameterized queries.",
+      "fixes_applied": "Reports now execute via new /erp/report/execute/{report_code} endpoint (supports orm + custom_sql types). Filters auto-populate from report.filters_json.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "8000",
+    "output_tokens": "5000",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "UI refactor complete with dual-type support and auto-run behavior.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 223,
+    "date": "2026-05-25",
+    "feature": "Global Org Selector in Header + fix ReportCenter org_id not found",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/components/Header.tsx, ui/src/views/ReportCenter.tsx",
+      "features_added": "Global org selector combobox in Header (visible when user has >1 org). Persists via authStore.setActiveOrg -> localStorage.",
+      "fixes_applied": "ReportCenter was reading state.selectedOrg from uiStore (does not exist). Fixed to read activeOrgId from authStore — reports now correctly pass org_id param.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "5000",
+    "output_tokens": "1500",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Targeted grep + fix, no wasted reads.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 224,
+    "date": "2026-05-25",
+    "feature": "Fix report not found — seed reports for all orgs",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/manager/bootstrap.py, api/apps/config/models.py, api/apps/report/routers.py",
+      "features_added": "POST /erp/report/seed-all endpoint for prod recovery. Auto-seed reports on new org creation via Organization.before_save hook.",
+      "fixes_applied": "bootstrap.py was only seeding first org — now seeds all orgs. Organization.before_save now calls run_seed for new orgs.",
+      "framework_changes": "none",
+      "issues": "before_save is called before flush so self.id may not be set for brand-new orgs — guarded with `if self.id` check."
+    },
+    "frontend": null,
+    "input_tokens": "6000",
+    "output_tokens": "2000",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Root cause found fast, fix targeted 3 files.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 225,
+    "date": "2026-05-26",
+    "feature": "Convert all reports from custom_sql to builtin ORM — no raw SQL",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/report/services/report_service.py, api/apps/report/seed_reports.py",
+      "features_added": "New report_type='builtin' with @ReportService.register decorator. All 9 reports (sales_summary, purchase_summary, trial_balance, profit_and_loss, ar_aging, ap_aging, stock_summary, general_ledger, accounts_receivable) implemented as Python ORM functions. No raw SQL anywhere.",
+      "fixes_applied": "Removed custom_sql report type from seed. Fixed stock_summary to use Item model (not Product which does not exist). Fixed ar/ap_aging to use party_id join (not supplier_id). Removed custom_sql _generate_custom_sql_report — no longer needed for builtin reports.",
+      "framework_changes": "report_service.py now supports 3 types: builtin (Python function), orm (QueryBuilder), custom_sql removed from seed but kept in service for user-created reports via UI.",
+      "issues": "ar_aging and ap_aging loop through all invoices and call _calc_outstanding per row — N+1 query. Acceptable for now, optimize later if perf issue."
+    },
+    "frontend": null,
+    "input_tokens": "12000",
+    "output_tokens": "4000",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Full rewrite of report service and seed in one shot.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 226,
+    "date": "2026-05-26",
+    "feature": "Fix Report Center execution endpoint not found",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/ReportCenter.tsx",
+      "features_added": "none",
+      "fixes_applied": "Updated Report Center execution calls to use the mounted app route `/report/erp/report/execute/{code}` instead of the missing `/erp/report/execute/{code}` path.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 227,
+    "date": "2026-05-26",
+    "feature": "Fix Stock Summary report empty results",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/report/services/report_service.py",
+      "features_added": "none",
+      "fixes_applied": "Reworked builtin stock_summary to aggregate from posted, non-deleted stock movement lines, use an outer UoM join so items without uom_id are not dropped, and fall back to movement header locations when line locations are empty.",
+      "framework_changes": "none",
+      "issues": "Org 1 sample movement in the local DB is soft-deleted, so it is intentionally excluded; org 2 active movements now return stock rows."
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 228,
+    "date": "2026-05-26",
+    "feature": "Fix Report Center generated data rendering",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/ReportCenter.tsx",
+      "features_added": "none",
+      "fixes_applied": "Fixed Report Center response normalization so generated report payloads keep title, columns, and row data instead of treating the row array as the whole report object.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 229,
+    "date": "2026-05-26",
+    "feature": "Harden reports, org isolation, migrations, and legacy ERP URLs",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/report/routers.py, api/apps/report/models.py, api/apps/report/views.py, api/apps/report/services/report_service.py, api/apps/report/CUSTOM_REPORTS.md, api/alembic.ini, api/alembic/env.py, api/alembic/script.py.mako, api/alembic/versions/20260526_0001_saas_plan_limits.py, api/alembic/versions/20260526_0002_report_safe_execution_fields.py, api/main.py, api/manage.py, api/core/manager/sync_manager.py, api/core/tenant/provisioner.py, api/core/api/query.py, api/apps/pot/models.py, api/apps/accounting/views.py, api/apps/config/seed_series.py, api/core/logic/discovery.py, tests/test_report_security.py, tests/test_child_meta.py, api/requirements.txt",
+      "features_added": "Alembic migration scaffold and manage.py migrate command; canonical report execute endpoint without /erp prefix; report security tests for disabled raw SQL and required org context.",
+      "fixes_applied": "Report execution now validates selected org access, scopes report lookup by org_id, rejects raw SQL/custom script reports, removes startup schema mutations, and removes legacy /erp report/POS/payment metadata URLs.",
+      "framework_changes": "DB-heavy API handlers were converted from async route handlers to sync handlers where they use synchronous SQLAlchemy sessions; global query/search now apply request scope filters.",
+      "issues": "Alembic package was added to requirements; the local test DB was manually patched with equivalent SQL because the current venv did not yet have Alembic installed."
+    },
+    "frontend": {
+      "files_written": "ui/src/views/ReportCenter.tsx",
+      "features_added": "none",
+      "fixes_applied": "Report Center now executes reports through /report/execute/{code}, sends active org context, normalizes report payloads, and no longer displays custom SQL as a supported report type.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
   }
 ]

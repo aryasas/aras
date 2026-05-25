@@ -10,6 +10,31 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+html {
+  min-height: 100%;
+  background: var(--app-bg-main);
+}
+
+body {
+  min-height: 100%;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea,
+  button {
+    min-height: 44px;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 @theme {
   --shadow-premium: 0 4px 20px -4px rgba(0, 0, 0, 0.05), 0 2px 8px -2px rgba(0, 0, 0, 0.02);
   --shadow-card-lift: 0 10px 30px -10px rgba(0, 0, 0, 0.08);

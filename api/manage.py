@@ -18,6 +18,10 @@ def main():
     # Sync
     sync_parser = subparsers.add_parser("sync", help="Sync code to DB registry")
 
+    # Migrate
+    migrate_parser = subparsers.add_parser("migrate", help="Run Alembic migrations")
+    migrate_parser.add_argument("revision", nargs="?", default="head", help="Revision target (default: head)")
+
     # Install
     install_parser = subparsers.add_parser("install", help="Install app from YAML")
     install_parser.add_argument("file", help="Path to YAML file")
@@ -68,20 +72,16 @@ def main():
         print("Discovering apps...")
         Aras.logic.discovery.discover_apps(package_path="apps")
 
-        print("Creating tables...")
-        Aras.Base.metadata.create_all(bind=Aras.engine)
-
-        # Pre-migrate so sync_all's queries see any new columns (e.g. scoped_by).
-        print("Auto-migrating schema...")
-        from core.logic import auto_migrate
-        report = auto_migrate.run(Aras.engine, Aras.Base.metadata)
-        if report.errors:
-            print(f"Auto-migration errors: {report.errors}")
-
         print("Synchronizing metadata...")
         db = next(Aras.get_db())
         Aras.Manager.Sync.sync_all(db)
         print("Done.")
+
+    elif args.command == "migrate":
+        from alembic import command
+        from alembic.config import Config
+        cfg = Config(os.path.join(os.path.dirname(__file__), "alembic.ini"))
+        command.upgrade(cfg, args.revision)
     
     elif args.command == "install":
         if not os.path.exists(args.file):

@@ -13,6 +13,7 @@ import {
 
 import AppNavigator from './src/navigation/AppNavigator';
 import { theme } from './src/lib/theme';
+import { LanguageProvider } from './src/context/LanguageContext';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -32,9 +33,11 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <AppNavigator />
-      <StatusBar style="dark" />
-    </SafeAreaProvider>
+    <LanguageProvider>
+      <SafeAreaProvider>
+        <AppNavigator />
+        <StatusBar style="dark" />
+      </SafeAreaProvider>
+    </LanguageProvider>
   );
 }

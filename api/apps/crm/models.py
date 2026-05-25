@@ -43,10 +43,8 @@ class Lead(MasterDataBase):
     description: Mapped[str] = mapped_column(Text, nullable=True)
 
     @Aras.model_action(name="convert", permission="edit", label="Convert to Party")
-    def convert_to_party(self):
-        from sqlalchemy.orm import object_session
+    def convert_to_party(self, db):
         from apps.party.models import Party
-        db = object_session(self)
 
         # Check if already a party
         if self.party_id:
@@ -57,8 +55,7 @@ class Lead(MasterDataBase):
             org_id=self.org_id,
             name=self.name,
             email=self.contact_email,
-            phone=self.contact_phone,
-            status="Active"
+            phone=self.contact_phone
         )
         db.add(party)
         db.flush()

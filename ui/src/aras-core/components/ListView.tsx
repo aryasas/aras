@@ -10,7 +10,6 @@ import {
 import { resolveFieldComponent, resolveFilterComponent } from '../SchemaRegistry'
 import { useAras } from '../hooks/useAras'
 import { useUIStore } from '../../store/uiStore'
-import { useAuthStore } from '../../store/authStore'
 import Combobox from './Combobox'
 
 import ListViewActionBar from './ListViewActionBar'
@@ -63,7 +62,6 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
 }) => {
   const vocabulary = useVocabulary()
   const navigate = useNavigate()
-  const { activeOrgId } = useAuthStore()
   const [searchParams] = useSearchParams()
   const [metadata, setMetadata] = useState<Metadata | null>(null)
   const [data, setData] = useState<any[]>([])
@@ -104,7 +102,14 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     [metadata?.api_path, resource]
   )
 
-  const fetchData = useCallback(async () => {
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => clearTimeout(timer)
+  }, [search])
+
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       const cleanResource = cleanResourcePath(resource)
@@ -117,7 +122,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         order: desc ? 'desc' : 'asc',
       }
 
-      if (search) params.search = search
+      if (debouncedSearch) params.search = debouncedSearch
       
       const allFilters = [...filters]
       if (fixedFilters) {
@@ -126,10 +131,6 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         })
       }
       
-      if (activeOrgId) {
-        allFilters.push({ field: 'org_id', op: '=', value: activeOrgId })
-      }
-
       if (isPartyResource && roleFilter !== 'all') {
         allFilters.push({ field: 'role', op: '=', value: roleFilter })
       }
@@ -138,22 +139,24 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         params.filters = JSON.stringify(allFilters)
       }
 
-      const res = await api.get(`/${resourceApiPath}`, { params })
+      const res = await api.get(`/${resourceApiPath}`, { params, signal })
       setData(res.data.items || [])
       setTotal(res.data.total || 0)
       setTotalPages(res.data.pages || 0)
     } catch (err: any) {
+      if (err.name === 'CanceledError') return
       notify(err.response?.data?.detail || "Failed to fetch data", "error")
     } finally {
       setLoading(false)
     }
-  }, [resource, metadata, page, perPage, orderBy, desc, search, filters, fixedFilters, activeOrgId, isPartyResource, roleFilter, notify])
+  }, [resource, metadata, page, perPage, orderBy, desc, debouncedSearch, filters, fixedFilters, isPartyResource, roleFilter, notify])
 
   useEffect(() => {
+    const controller = new AbortController()
     const fetchMetadata = async () => {
       try {
         const cleanResource = cleanResourcePath(resource)
-        const metaRes = await api.get(`/metadata/${cleanResource}`)
+        const metaRes = await api.get(`/metadata/${cleanResource}`, { signal: controller.signal })
         const meta = metaRes.data
         setMetadata(meta)
         
@@ -164,10 +167,12 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         const statusField = meta.fields.find((f: any) => f.name === 'status' || f.name === 'state')
         if (statusField) setGroupField(statusField.name)
       } catch (err: any) {
+        if (err.name === 'CanceledError') return
         notify(err.response?.data?.detail || "Failed to load metadata", "error")
       }
     }
     fetchMetadata()
+    return () => controller.abort()
   }, [resource, notify])
 
   useEffect(() => {
@@ -189,7 +194,9 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   }, [metadata, resource, vocabulary, setPageTitle])
 
   useEffect(() => {
-    if (metadata) fetchData()
+    const controller = new AbortController()
+    if (metadata) fetchData(controller.signal)
+    return () => controller.abort()
   }, [fetchData, metadata])
 
   const fetchSavedFilters = useCallback(async () => {
@@ -722,7 +729,9 @@ const renderCellValue = (value: any, type: string, fieldName?: string) => {
     case 'currency': return <span className="text-[var(--aras-text)] font-bold">{FormattingService.formatCurrency(value)}</span>
     case 'date':
     case 'datetime': return FormattingService.formatDate(value)
-    default: return String(value)
+    default:
+      if (typeof value === 'object') return <span className="text-[var(--aras-muted)] italic text-xs">{JSON.stringify(value).slice(0, 60)}</span>
+      return String(value)
   }
 }
 

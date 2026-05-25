@@ -4,6 +4,7 @@ Called once from the FastAPI lifespan after sync completes.
 """
 import logging
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,9 @@ def run(db: Session) -> None:
     _seed_widgets(db)
     _seed_settings(db)
     _seed_framework_rbac(db)
-    _seed_erp_rbac(db)
+    _run_app_seeds(db)
+    _seed_saas_plans(db)
+    _seed_reports(db)
 
 
 def _seed_admin(db: Session) -> None:
@@ -95,9 +98,47 @@ def _seed_framework_rbac(db: Session) -> None:
     load_rbac(seed_file, db)
 
 
-def _seed_erp_rbac(db: Session) -> None:
+def _run_app_seeds(db: Session) -> None:
+    # Import app seed modules so their @register decorators fire before run_all.
+    # Add new app seeds here as: try: import apps.<name>.seed_rbac; except ImportError: pass
     try:
-        from apps.config.seed_rbac import run_seed
-        run_seed(db)
+        import apps.config.seed_rbac  # noqa: F401
     except ImportError:
         pass
+    from core.seeds import registry
+    registry.run_all(db)
+
+
+def _seed_saas_plans(db: Session) -> None:
+    try:
+        from apps.saas.plans import seed_default_plans
+        seed_default_plans(db)
+    except ImportError:
+        pass
+
+
+def _seed_reports(db: Session) -> None:
+    # claude-sonnet-4-6
+    try:
+        from apps.report.seed_reports import run_seed
+        from apps.config.models import Organization
+
+        from apps.report.models import Report
+        deleted = db.query(Report).filter(or_(Report.code.is_(None), Report.code == '')).delete()
+        if deleted:
+            db.commit()
+            logger.info(f"Removed {deleted} orphaned report(s) with no code.")
+
+        orgs = db.query(Organization).all()
+        if not orgs:
+            logger.info("Creating default organization for reports...")
+            org = Organization(name="Default", code="default")
+            db.add(org)
+            db.commit()
+            orgs = [org]
+        for org in orgs:
+            logger.info(f"Seeding reports for org {org.id}...")
+            run_seed(db, org.id)
+        logger.info("Reports seeded successfully.")
+    except (ImportError, Exception) as e:
+        logger.error(f"Report seeding failed: {e}", exc_info=True)

@@ -53,15 +53,15 @@ def provision_tenant(tenant_id: str, db_name: str) -> Dict[str, Any]:
 
     tenant_db_url = _build_tenant_db_url(db_name)
 
-    # Run framework schema sync on new tenant DB
+    # Run Alembic schema migrations on the new tenant DB
     try:
-        from core.aras import Aras
-        tenant_engine = create_engine(tenant_db_url)
-        Aras.Base.metadata.create_all(bind=tenant_engine)
-        from core.logic import auto_migrate
-        auto_migrate.run(tenant_engine, Aras.Base.metadata)
-        tenant_engine.dispose()
-        logger.info(f"Schema synced for tenant '{tenant_id}'.")
+        from alembic import command
+        from alembic.config import Config
+        api_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        cfg = Config(os.path.join(api_root, "alembic.ini"))
+        cfg.set_main_option("sqlalchemy.url", tenant_db_url)
+        command.upgrade(cfg, "head")
+        logger.info(f"Schema migrated for tenant '{tenant_id}'.")
     except Exception as e:
         logger.error(f"Schema sync failed for tenant '{tenant_id}': {e}")
         raise

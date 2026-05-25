@@ -5,10 +5,13 @@ Safe to re-run: skips anything that already exists.
 """
 import logging
 from sqlalchemy.orm import Session
+from core.seeds.registry import register
 
 logger = logging.getLogger(__name__)
 
 
+# claude-sonnet-4-6
+@register
 def run_seed(db: Session) -> None:
     from pathlib import Path
     from core.seeds.loader import load_rbac

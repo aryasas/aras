@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 # Reading configuration from environment variables as specified
 SECRET_KEY = os.getenv("ARAS_LICENSE_SECRET", "default-secret-key-for-dev")
 DEFAULT_EXPIRY_DAYS = int(os.getenv("ARAS_LICENSE_EXPIRY_DAYS", "30"))
-ISSUER = "aras-control-plane"
+ISSUER = "aras-control-panel"
 
 
 def issue_license_token(

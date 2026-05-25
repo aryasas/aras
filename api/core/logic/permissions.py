@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from ..lib.database import get_db
 from ..auth.models import User
-from ..auth.service import get_current_user, get_optional_user
+from ..auth.service import get_current_user, get_current_user_optional, require_org_access
 from ..base.auth import Auth
 
 
@@ -14,14 +14,11 @@ def check_permissions(resource: Optional[str] = None, action: str = "READ", allo
     If resource is None, acts as a simple authentication check.
     If allow_public is True, allows READ access without a user (for public resources).
     """
-    async def permission_dependency(
+    def permission_dependency(
         request: Request,
-        user: Any = Depends(get_optional_user if allow_public else get_current_user),
+        user: Any = Depends(get_current_user_optional if allow_public else get_current_user),
         db: Session = Depends(get_db),
     ):
-        org_id = int(request.headers.get("X-Org-ID", 0) or 0)
-        request.state.org_id = org_id  # New: Org ID in request state
-
         if not user:
             if allow_public and action == "READ":
                 return None
@@ -29,6 +26,10 @@ def check_permissions(resource: Optional[str] = None, action: str = "READ", allo
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Authentication required"
             )
+
+        org_id = getattr(request.state, "org_id", 0)
+        if org_id:
+            require_org_access(db, user, org_id)
 
         if user.is_admin:
             return user
@@ -84,5 +85,4 @@ class RBAC(Auth):
         rows = query.all()
 
         return {row[0] for row in rows}
-
 

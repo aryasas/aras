@@ -33,6 +33,9 @@ class QueryBuilder:
             elif op == "<": conditions.append(field < val)
             elif op == ">=": conditions.append(field >= val)
             elif op == "<=": conditions.append(field <= val)
+            elif op == "in":
+                if isinstance(val, list):
+                    conditions.append(field.in_(val))
             elif op == "like" or op == "ilike": conditions.append(field.ilike(f"%{val}%"))
             
         if conditions:

@@ -18,6 +18,10 @@ from sqlalchemy.orm import sessionmaker
 def db_session(tmp_path):
     db_url = f"sqlite:///{tmp_path}/test_framework.db"
     from core import Aras
+    import os
+    
+    # Ensure all apps are discovered so models are registered
+    Aras.discover_apps("apps")
 
     engine = create_engine(db_url, connect_args={"check_same_thread": False})
     Aras.Base.metadata.create_all(bind=engine)
@@ -49,8 +53,10 @@ def _make_test_model():
 
 def test_sync_populates_registry(db_session):
     from core import Aras
-    from apps.dev.app import Dev  # noqa — register models
-    from apps.erp.app import ERP  # noqa
+    import os
+    
+    # Ensure all apps are discovered so models are registered
+    Aras.discover_apps("apps")
 
     Aras.Manager.Sync.sync_all(db_session)
 

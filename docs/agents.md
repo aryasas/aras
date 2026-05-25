@@ -216,6 +216,3 @@ This approach:
                           ^^^^^^^^^^^^^^^^^^^
                           Zero Claude tokens during generation
 ```
-
-The handoff file is the firewall. Claude writes a spec (cheap), Gemini/GPT-5.5
-do the heavy generation independently, Claude reviews the result (cheap).

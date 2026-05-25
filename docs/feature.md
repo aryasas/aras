@@ -194,6 +194,14 @@ This file is used only to report if there are feature added
 - **SaaS Portal Auth** — short-lived JWT issuance for tenants via `/portal/login`.
 - **Marketing Content CMS** — `LandingSection` model for managing structured landing page content (hero, features, CTA, etc.) via admin UI.
 - **Public Landing API** — `GET /landing` returns visible landing sections ordered by `sort_order`.
+- **Tenant Configuration Delivery** — `GET /api/v1/saas/tenant-config` delivers plan configuration (active modules, limits) to tenant instances.
+- **Module Enforcement** — `require_module` middleware for plan-based feature gating in tenant instances.
+
+---
+
+## 11. Infrastructure & DevOps
+- **Dockerized Environment** — multi-container setup with PostgreSQL, Control Panel, Tenant Instance, and React UI.
+- **Env Templates** — standardized `.env.example` for control-panel and tenant roles.
 
 ---
 
@@ -205,6 +213,13 @@ This file is used only to report if there are feature added
 | 2026-05-15 | Hierarchical app architecture, ERP module split (7 sub-apps), scope system, transition registry, `__unique_together__`, child table UI standardization, ERP core features (charges, CRM, posting, payments), dual-axis navigation, mega-menu topbar, hierarchical URLs, Series rename, form customization UI, company-aware RBAC |
 | 2026-05-16 | Reporting module, GRN + AP matching, financial reports, PostgreSQL migration, multi-tenant provisioner + REST API, demo/random invoice seeds, UI polish (empty states, skeletons, status badges, home cards), keyboard shortcuts, print/PDF, import validation, auto-discovery, saved filters, FIFO valuation, GL reconciliation, toast queue, dark mode charts |
 
+
+## ARAS SaaS Production Readiness (2026-05-25)
+- [Gemini 2.5 Flash] Implemented `GET /api/v1/saas/tenant-config` for plan delivery to tenants.
+- [Gemini 2.5 Flash] Implemented `POST /api/v1/saas/license/renew` with trial support.
+- [Gemini 2.5 Flash] Created `api/core/auth/module_guard.py` for plan-based module enforcement.
+- [Gemini 2.5 Flash] Made `seed_default_plans` idempotent and non-overwriting.
+- [Gemini 2.5 Flash] Added `.env.example` files and Docker configuration (Dockerfile, docker-compose.yml, ui/Dockerfile).
 
 ## Plan.md Full Build Queue — Backend 0, C1–C3, Backend 3–4, U4, U13, U14, Backend 6, H1–H2, R4, R6, H4, Backend 5+7–14, P1–P5, R1, R5, Backend 9–10, U1, U5, U2–U3, U6, U11 (2026-05-17)
   - [Gemini] Custom exception classes (ArasException and subclasses), standardized API response functions (ok, err), FastAPI exception handlers for custom exceptions.
@@ -380,3 +395,6 @@ This file is used only to report if there are feature added
 
 ## Production hardening — Customer SaaS portal + admin-controlled marketing pages + sidebar toggle stability — revision (2026-05-25)
   - [GPT (codex)] Public landing page, customer signup form, customer portal, public routes, login footer links, and full icon-rail collapse/restore control
+
+## SaaS Admin REST Endpoints (2026-05-25)
+  - [Gemini] Added 5 subscription management admin endpoints (list, approve, suspend, plan update, detail) to `api/apps/saas/routers.py`.

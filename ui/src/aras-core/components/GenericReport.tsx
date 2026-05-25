@@ -10,21 +10,24 @@ interface GenericReportProps {
 }
 
 export const GenericReport: React.FC<GenericReportProps> = ({ title, data = [], columns = [], onBack }) => {
+  const rows = Array.isArray(data) ? data : [];
+  const visibleColumns = Array.isArray(columns) ? columns : [];
+
   const handlePrint = () => {
     window.print();
   };
 
   const handleExportCSV = () => {
-    if (!data || !data.length) return;
-    const headers = (columns || []).map(c => c.label).join(',');
-    const rows = (data || []).map(row => 
-      (columns || []).map((c, colIdx) => {
+    if (!rows.length) return;
+    const headers = visibleColumns.map(c => c.label).join(',');
+    const csvRows = rows.map(row => 
+      visibleColumns.map((c, colIdx) => {
         let val = Array.isArray(row) ? row[colIdx] : row[c.field];
         if (typeof val === 'string') val = `"${val.replace(/"/g, '""')}"`;
         return val ?? '';
       }).join(',')
     );
-    const csv = [headers, ...rows].join('\n');
+    const csv = [headers, ...csvRows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -74,7 +77,7 @@ export const GenericReport: React.FC<GenericReportProps> = ({ title, data = [], 
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[var(--aras-panel-soft)] border-b border-[var(--aras-border)] print:bg-[var(--app-panel)]">
-                {(columns || []).map(col => (
+                {visibleColumns.map(col => (
                   <th key={col.field} className="px-6 py-4 text-xs font-black text-[var(--aras-muted)] uppercase tracking-widest">
                     {col.label}
                   </th>
@@ -82,9 +85,9 @@ export const GenericReport: React.FC<GenericReportProps> = ({ title, data = [], 
               </tr>
             </thead>
             <tbody>
-              {(data || []).map((row, idx) => (
+              {rows.map((row, idx) => (
                 <tr key={idx} className="border-b border-[var(--aras-border)] last:border-none hover:bg-[var(--aras-panel-soft)]/50 transition-colors">
-                  {(columns || []).map((col, colIdx) => {
+                  {visibleColumns.map((col, colIdx) => {
                     const val = Array.isArray(row) ? row[colIdx] : row[col.field];
                     return (
                       <td key={col.field} className="px-6 py-4 text-sm text-[var(--aras-text)] font-medium">
@@ -102,7 +105,7 @@ export const GenericReport: React.FC<GenericReportProps> = ({ title, data = [], 
           </table>
         </div>
 
-        {(!data || data.length === 0) && (
+        {rows.length === 0 && (
           <div className="p-20 text-center text-[var(--aras-muted)] font-medium italic">
             No records found for this report.
           </div>

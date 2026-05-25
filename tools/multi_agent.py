@@ -13,15 +13,17 @@ Workflow:
 Role defaults (edit DEFAULT_* vars to change permanently):
   orchestrator = sonnet   (-o flag to override)
   backend      = gemini   (-b flag to override)
-  frontend     = gpt      (-f flag to override)
+  frontend     = haiku    (-f flag to override)
+  mobile       = haiku    (-m flag to override)
 
 Usage:
-  python tools/multi_agent.py                          # run both with defaults
+  python tools/multi_agent.py                          # run all (backend + frontend + mobile if tasks exist)
   python tools/multi_agent.py -b gemini-pro            # backend on Gemini Pro
-  python tools/multi_agent.py -f gemini                # frontend on Gemini Flash
-  python tools/multi_agent.py -b sonnet -f gpt         # mix agents per role
+  python tools/multi_agent.py -f sonnet                # frontend on Sonnet
+  python tools/multi_agent.py -m sonnet                # mobile on Sonnet
   python tools/multi_agent.py --backend-only
   python tools/multi_agent.py --frontend-only
+  python tools/multi_agent.py --mobile-only
   python tools/multi_agent.py --test "hello"
 
 Available agent keys: gemini, gemini-pro, gemini-flash, gpt, sonnet, opus, haiku
@@ -67,7 +69,25 @@ FRONTEND_SYSTEM = (
     "You are a frontend developer for the Aras framework (React 19 + TypeScript + TailwindCSS 4). "
     "Read docs/aras.md first for framework patterns and component conventions. "
     "ONLY implement tasks listed under '## Frontend Tasks' or '## Revision Tasks > Frontend' in the spec below. "
-    "Do NOT implement backend tasks. Do NOT write any code that was not explicitly requested. "
+    "Do NOT implement backend tasks. Do NOT implement mobile tasks. Do NOT write any code that was not explicitly requested. "
+    "Claude (the orchestrator) has already designed the solution — your job is to implement it as specified, nothing more. "
+    "After writing all files, output a structured report using EXACTLY this format:\n\n"
+    "### AGENT REPORT\n"
+    "- files_written: <comma-separated paths or 'none'>\n"
+    "- features_added: <short description or 'none'>\n"
+    "- fixes_applied: <short description or 'none'>\n"
+    "- framework_changes: <short description or 'none'>\n"
+    "- issues: <short description or 'none'>\n\n"
+    "SPEC:\n\n"
+)
+
+MOBILE_SYSTEM = (
+    "ARAS_AGENT_ROLE=mobile-worker. "
+    "You are a mobile developer for the Aras framework (React Native + Expo + TypeScript). "
+    "The mobile app lives in the mobile/ directory. "
+    "Read docs/aras.md first for framework patterns. "
+    "ONLY implement tasks listed under '## Mobile Tasks' or '## Revision Tasks > Mobile' in the spec below. "
+    "Do NOT implement backend or web frontend tasks. Do NOT write any code that was not explicitly requested. "
     "Claude (the orchestrator) has already designed the solution — your job is to implement it as specified, nothing more. "
     "After writing all files, output a structured report using EXACTLY this format:\n\n"
     "### AGENT REPORT\n"
@@ -108,7 +128,8 @@ AGENTS: dict[str, dict] = {
 
 DEFAULT_ORCHESTRATOR = "sonnet"
 DEFAULT_BACKEND      = "gemini"
-DEFAULT_FRONTEND     = "gpt"
+DEFAULT_FRONTEND     = "haiku"
+DEFAULT_MOBILE       = "haiku"
 
 
 def _resolve_agent(key, default: str) -> dict:
@@ -204,15 +225,19 @@ def _append(path: Path, text: str):
         f.write("\n" + text)
 
 
-def update_docs(br: dict, fr: dict, feature: str, backend_label: str, frontend_label: str, is_revision: bool = False):
+def update_docs(br: dict, fr: dict, feature: str, backend_label: str, frontend_label: str,
+                is_revision: bool = False, mr: "dict | None" = None, mobile_label: str = ""):
     label = f"{feature} — revision ({DATE})" if is_revision else f"{feature} ({DATE})"
     bl, fl = f"[{backend_label}]", f"[{frontend_label}]"
+    ml = f"[{mobile_label}]" if mobile_label else "[Mobile]"
 
     feats = []
     if br["features_added"] != "none":
         feats.append(f"  - {bl} {br['features_added']}")
     if fr["features_added"] != "none":
         feats.append(f"  - {fl} {fr['features_added']}")
+    if mr and mr["features_added"] != "none":
+        feats.append(f"  - {ml} {mr['features_added']}")
     if feats:
         _append(FEATURE_FILE, f"\n## {label}\n" + "\n".join(feats) + "\n")
         print("  + feature.md updated")
@@ -222,6 +247,8 @@ def update_docs(br: dict, fr: dict, feature: str, backend_label: str, frontend_l
         fixes.append(f"  - {bl} {br['fixes_applied']}")
     if fr["fixes_applied"] != "none":
         fixes.append(f"  - {fl} {fr['fixes_applied']}")
+    if mr and mr["fixes_applied"] != "none":
+        fixes.append(f"  - {ml} {mr['fixes_applied']}")
     if fixes:
         _append(FIX_FILE, f"\n## {label}\n" + "\n".join(fixes) + "\n")
         print("  + fix.md updated")
@@ -231,11 +258,23 @@ def update_docs(br: dict, fr: dict, feature: str, backend_label: str, frontend_l
         fw.append(f"  - {bl} {br['framework_changes']}")
     if fr["framework_changes"] != "none":
         fw.append(f"  - {fl} {fr['framework_changes']}")
+    if mr and mr["framework_changes"] != "none":
+        fw.append(f"  - {ml} {mr['framework_changes']}")
     if fw:
         _append(ARAS_FILE, f"\n---\n## Framework Change: {label}\n" + "\n".join(fw) + "\n")
         print("  + aras.md updated (framework change)")
 
     rev_label = f"revision ({DATE})" if is_revision else DATE
+    mobile_section = ""
+    if mr:
+        mobile_section = (
+            f"### Mobile ({mobile_label})\n"
+            f"- files_written: {mr['files_written']}\n"
+            f"- features_added: {mr['features_added']}\n"
+            f"- fixes_applied: {mr['fixes_applied']}\n"
+            f"- framework_changes: {mr['framework_changes']}\n"
+            f"- issues: {mr['issues']}\n\n"
+        )
     summary = (
         f"\n---\n## Agent Reports ({rev_label})\n\n"
         f"### Backend ({backend_label})\n"
@@ -250,6 +289,7 @@ def update_docs(br: dict, fr: dict, feature: str, backend_label: str, frontend_l
         f"- fixes_applied: {fr['fixes_applied']}\n"
         f"- framework_changes: {fr['framework_changes']}\n"
         f"- issues: {fr['issues']}\n\n"
+        + mobile_section +
         f"## Claude Review\n"
         f"- verdict: <!-- APPROVED / NEEDS-FIX -->\n"
         f"- reviewed_by: Claude Code\n"
@@ -265,11 +305,15 @@ def update_docs(br: dict, fr: dict, feature: str, backend_label: str, frontend_l
 
 # ── Terminal summary ──────────────────────────────────────────────────────────
 
-def _print_summary(br: dict, fr: dict, backend_label: str, frontend_label: str):
+def _print_summary(br: dict, fr: dict, backend_label: str, frontend_label: str,
+                   mr: "dict | None" = None, mobile_label: str = ""):
     print(f"\n{'='*60}")
     print("  RUN SUMMARY")
     print(f"{'='*60}")
-    for lbl, r in [(backend_label[:12].ljust(12), br), (frontend_label[:12].ljust(12), fr)]:
+    rows = [(backend_label[:12].ljust(12), br), (frontend_label[:12].ljust(12), fr)]
+    if mr:
+        rows.append(((mobile_label or "Mobile")[:12].ljust(12), mr))
+    for lbl, r in rows:
         print(f"  {lbl} files   : {r['files_written']}")
         print(f"  {lbl} features: {r['features_added']}")
         print(f"  {lbl} fixes   : {r['fixes_applied']}")
@@ -375,16 +419,24 @@ def _parse_claude_review(handoff: str) -> dict:
 
 def run_agents(args, handoff: str, is_revision: bool = False) -> tuple:
     empty = {k: "none" for k in ["files_written", "features_added", "fixes_applied", "framework_changes", "issues"]}
-    br = fr = empty.copy()
-    backend_out = frontend_out = ""
+    br = fr = mr = empty.copy()
+    backend_out = frontend_out = mobile_out = ""
 
     b_agent = _resolve_agent(getattr(args, "backend",  None), DEFAULT_BACKEND)
     f_agent = _resolve_agent(getattr(args, "frontend", None), DEFAULT_FRONTEND)
+    m_agent = _resolve_agent(getattr(args, "mobile",   None), DEFAULT_MOBILE)
 
-    if args.frontend_only:
+    mobile_only  = getattr(args, "mobile_only",  False)
+    frontend_only = getattr(args, "frontend_only", False)
+    backend_only  = getattr(args, "backend_only",  False)
+
+    if mobile_only:
+        mobile_out = run_worker("mobile", m_agent, MOBILE_SYSTEM + handoff)
+        mr = parse_report(mobile_out)
+    elif frontend_only:
         frontend_out = run_worker("frontend", f_agent, FRONTEND_SYSTEM + handoff)
         fr = parse_report(frontend_out)
-    elif args.backend_only:
+    elif backend_only:
         backend_out = run_worker("backend", b_agent, BACKEND_SYSTEM + handoff)
         br = parse_report(backend_out)
     else:
@@ -392,10 +444,25 @@ def run_agents(args, handoff: str, is_revision: bool = False) -> tuple:
         br = parse_report(backend_out)
         frontend_out = run_worker("frontend", f_agent, FRONTEND_SYSTEM + handoff)
         fr = parse_report(frontend_out)
+        if _has_mobile_tasks(handoff):
+            mobile_out = run_worker("mobile", m_agent, MOBILE_SYSTEM + handoff)
+            mr = parse_report(mobile_out)
 
-    _print_summary(br, fr, b_agent["label"], f_agent["label"])
-    update_docs(br, fr, get_feature(handoff), b_agent["label"], f_agent["label"], is_revision=is_revision)
-    return backend_out, frontend_out, br, fr, b_agent["label"], f_agent["label"]
+    mr_out = mr if any(v != "none" for v in mr.values()) else None
+    _print_summary(br, fr, b_agent["label"], f_agent["label"], mr_out, m_agent["label"])
+    update_docs(br, fr, get_feature(handoff), b_agent["label"], f_agent["label"],
+                is_revision=is_revision, mr=mr_out, mobile_label=m_agent["label"])
+    return backend_out, frontend_out, br, fr, b_agent["label"], f_agent["label"], mobile_out, mr, m_agent["label"]
+
+
+def _has_mobile_tasks(handoff: str) -> bool:
+    """Return True if handoff contains a non-empty ## Mobile Tasks section."""
+    import re
+    m = re.search(r"##\s+Mobile Tasks\s*\n(.*?)(?=\n##|\Z)", handoff, re.DOTALL)
+    if not m:
+        return False
+    body = m.group(1).strip()
+    return bool(body) and body.lower() != "none"
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
@@ -405,10 +472,13 @@ def main():
     parser = argparse.ArgumentParser(description="aras multi-agent — reads docs/handoff.md")
     parser.add_argument("--backend-only",  action="store_true")
     parser.add_argument("--frontend-only", action="store_true")
+    parser.add_argument("--mobile-only",   action="store_true")
     parser.add_argument("-b", "--backend",      metavar="AGENT", default=None,
                         help=f"Backend agent key (default: {DEFAULT_BACKEND}). Options: {keys}")
     parser.add_argument("-f", "--frontend",     metavar="AGENT", default=None,
                         help=f"Frontend agent key (default: {DEFAULT_FRONTEND}). Options: {keys}")
+    parser.add_argument("-m", "--mobile",       metavar="AGENT", default=None,
+                        help=f"Mobile agent key (default: {DEFAULT_MOBILE}). Options: {keys}")
     parser.add_argument("-o", "--orchestrator", metavar="AGENT", default=None,
                         help=f"Orchestrator agent key (default: {DEFAULT_ORCHESTRATOR}, informational). Options: {keys}")
     parser.add_argument("--test", metavar="PROMPT", help="Smoke-test both CLIs")
@@ -454,10 +524,16 @@ def main():
     feature = get_feature(handoff)
     is_revision = has_revision_tasks(handoff)
     rev_num = get_revision_count(handoff)
-    mode = "backend-only" if args.backend_only else "frontend-only" if args.frontend_only else "full"
+    mode = (
+        "mobile-only"   if args.mobile_only else
+        "backend-only"  if args.backend_only else
+        "frontend-only" if args.frontend_only else
+        "full"
+    )
 
     b_agent = _resolve_agent(args.backend,  DEFAULT_BACKEND)
     f_agent = _resolve_agent(args.frontend, DEFAULT_FRONTEND)
+    m_agent = _resolve_agent(args.mobile,   DEFAULT_MOBILE)
     o_agent = _resolve_agent(args.orchestrator, DEFAULT_ORCHESTRATOR)
 
     print(f"\n{'='*60}")
@@ -468,16 +544,23 @@ def main():
     print(f"  Orchestrator : {o_agent['label']}")
     print(f"  Backend      : {b_agent['label']}")
     print(f"  Frontend     : {f_agent['label']}")
+    print(f"  Mobile       : {m_agent['label']}")
     print(f"{'='*60}")
 
-    backend_out, frontend_out, br, fr, b_label, f_label = run_agents(args, handoff, is_revision=is_revision)
+    backend_out, frontend_out, br, fr, b_label, f_label, mobile_out, mr, m_label = run_agents(args, handoff, is_revision=is_revision)
+
+    all_issues = " | ".join(x for x in [br["issues"], fr["issues"], mr["issues"]] if x != "none")
 
     if is_revision:
         run_id = _get_run_id_from_handoff(handoff)
         _patch_run(run_id, {
             "revision_count": rev_num + 1,
-            "output_md": f"## Revision {rev_num + 1} — Backend ({b_label})\n{backend_out}\n\n## Revision {rev_num + 1} — Frontend ({f_label})\n{frontend_out}",
-            "issues": " | ".join(x for x in [br["issues"], fr["issues"]] if x != "none"),
+            "output_md": (
+                f"## Revision {rev_num + 1} — Backend ({b_label})\n{backend_out}\n\n"
+                f"## Revision {rev_num + 1} — Frontend ({f_label})\n{frontend_out}\n\n"
+                f"## Revision {rev_num + 1} — Mobile ({m_label})\n{mobile_out}"
+            ),
+            "issues": all_issues,
         })
     else:
         run_id = _persist_new(mode, handoff, backend_out, frontend_out, br, fr, b_label, f_label)

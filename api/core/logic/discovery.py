@@ -59,7 +59,7 @@ def register_app_routes(app: FastAPI, prefix: str = "/api/v1"):
     registered_apps = App._registry
 
     for app_cls_name, app_cls in registered_apps.items():
-        # Hierarchical App Prefix (e.g., /api/v1/erp/accounting)
+        # Hierarchical App Prefix (e.g., /api/v1/accounting)
         app_clean_path = app_cls._get_clean_path()
         app_prefix = f"{prefix}{app_clean_path}"
 

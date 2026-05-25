@@ -433,3 +433,33 @@ Tag format: `# claude-sonnet-4-6`, `# gemini-flash`, `# gemini-pro`, `# chatgpt`
 Place the tag comment on the line above the function/class definition.
 Be honest about quality: `# claude-sonnet-4-6 (bad)`, `# gemini-pro (needs review)` — let contributors know what to trust.
 
+
+---
+## Framework Change: i18n Architecture & Table Rename (2026-05-25)
+
+### Table rename
+- `aras_translations` → `translations` (translation_model.py, auto_migrate.py, installer.py, health_manager.py)
+
+### i18n Architecture (Phase 1 — EN + ID)
+
+**Web (React)**
+- Static UI strings: `ui/src/locales/{en,id}.json` + `LanguageContext` (localStorage `aras_lang`)
+- Dynamic content (field labels, resource titles): backend `TranslationService` via `?lang=` param on metadata endpoints
+- Language switcher: Header component (Globe icon + EN/ID toggle)
+
+**Mobile (React Native/Expo)**
+- Same pattern: `mobile/src/locales/{en,id}.json` + `LanguageContext` (AsyncStorage `aras_lang`)
+- Language switcher: SettingsScreen
+
+**VocabularyContext** (existing): handles per-org profile label overrides (retail/school/coop) — independent of i18n lang.
+
+### Roadmap kesiapan
+| Phase | Scope | Arsitektur | Status |
+|-------|-------|------------|--------|
+| 1 | EN + ID | JSON locales + LanguageContext + TranslationService | In progress |
+| 3 | Global Latin-based | Tambah locale file saja, tidak ada perubahan arsitektur | Ready |
+| 2 | ASEAN CJK | Font CJK, RTL CSS (sudah dipersiapkan), charset | Requires font setup |
+
+**RTL-readiness**: CSS harus pakai `margin-inline-start` bukan `margin-left`, `padding-inline` bukan `padding-left/right`, dan `dir="rtl"` di root. Persiapkan dari Phase 1 walaupun belum dipakai.
+
+**Multi-currency**: Siapkan `currency_code` + `locale` di org settings. Format angka via `Intl.NumberFormat(locale, {style:'currency', currency})`. Pluggable tax engine per `country_code` di org settings.
