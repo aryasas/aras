@@ -463,3 +463,31 @@ Be honest about quality: `# claude-sonnet-4-6 (bad)`, `# gemini-pro (needs revie
 **RTL-readiness**: CSS harus pakai `margin-inline-start` bukan `margin-left`, `padding-inline` bukan `padding-left/right`, dan `dir="rtl"` di root. Persiapkan dari Phase 1 walaupun belum dipakai.
 
 **Multi-currency**: Siapkan `currency_code` + `locale` di org settings. Format angka via `Intl.NumberFormat(locale, {style:'currency', currency})`. Pluggable tax engine per `country_code` di org settings.
+
+---
+## Framework Change: Audit hardening, explicit cascades, SaaS plan entitlements, and public i18n (2026-05-26)
+
+### Request scope and generic writes
+- `get_current_user()` now accepts only org scope headers: `X-Org-ID` or `X-Scope-Org-ID`.
+- Unsupported `X-Scope-*` headers are rejected instead of being trusted as arbitrary scope values.
+- `X-Org-ID` and `X-Scope-Org-ID` must match when both are sent.
+- Generic `bulk-delete` and list-shaped `/batch` operations now fail on missing/out-of-scope records instead of silently skipping them.
+- List-shaped `/batch` operations now commit successful operations atomically.
+
+### Cascade delete rule
+- Implicit FK auto-cascade in `Model._cascade_linked_docs()` is removed.
+- Destructive linked deletes must be declared explicitly through `__linked_docs__ = [LinkedDoc(..., cascade=True)]`.
+- SQLAlchemy relationship-level `cascade="all, delete-orphan"` remains valid for ORM-owned child collections.
+
+### Startup writes
+- Production API startup no longer runs registry sync/bootstrap writes.
+- `Sync.sync_all()` and bootstrap still run in `DEBUG`/`TESTING`; production deploys must run migrations and sync explicitly.
+
+### SaaS plan entitlement payload
+- SaaS plan payloads normalize `features.apps` for both public plan cards and portal app gating.
+- Public pages show only the current public tiers: `free`, `lite`, `growth`, `business`.
+
+### Public web i18n
+- Public landing and signup pages now use `LanguageContext` and `ui/src/locales/{en,id}.json`.
+- `LanguageContext.t()` resolves both flat keys (`"nav.dashboard"`) and nested object paths.
+- Public pages include EN/ID toggles and persist language in `localStorage` key `aras_lang`.

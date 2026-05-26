@@ -3378,5 +3378,68 @@
       "issues": "none"
     },
     "verdict": "APPROVED"
+  },
+  {
+    "id": 230,
+    "date": "2026-05-26",
+    "feature": "Complete audit hardening follow-up fixes",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/auth/service.py, api/core/logic/router_factory.py, api/core/base/model.py, api/main.py, api/apps/saas/routers.py",
+      "features_added": "none",
+      "fixes_applied": "Validated supported org scope headers, rejected conflicting or unsupported scope headers, made bulk delete fail on not-found/out-of-scope records, committed standard batch operations atomically, normalized SaaS plan app entitlements, and restricted startup sync/bootstrap writes to non-production modes.",
+      "framework_changes": "Implicit non-null FK cascade deletion was removed; cascades now rely on explicit LinkedDoc cascade declarations.",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/store/authStore.ts, ui/src/lib/api.ts",
+      "features_added": "none",
+      "fixes_applied": "Moved the main auth JWT from persistent localStorage to sessionStorage with legacy token migration and cleanup on logout/401.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 231,
+    "date": "2026-05-26",
+    "feature": "Document audit hardening and add public SaaS i18n plan cleanup",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "docs/fix.md, docs/feature.md, docs/aras.md, docs/framework_ref.md",
+      "features_added": "none",
+      "fixes_applied": "Documented audit hardening fixes, explicit cascade behavior, production startup behavior, SaaS plan entitlement normalization, and public web i18n contracts.",
+      "framework_changes": "Added framework reference details for request scope, generic batch/bulk writes, explicit cascade rules, production startup sync policy, SaaS plan payloads, and public web i18n.",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/context/LanguageContext.tsx, ui/src/locales/en.json, ui/src/locales/id.json, ui/src/views/PublicLanding.tsx, ui/src/views/CustomerSignup.tsx",
+      "features_added": "Public landing and signup pages now support EN/ID language toggles and localized public SaaS plan copy.",
+      "fixes_applied": "LanguageContext now supports existing flat keys and nested path lookups; public pricing/signup filter to the current Free, Lite, Growth, and Business plans.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 232,
+    "date": "2026-05-26",
+    "feature": "Close residual SaaS pricing/i18n and cross-org regression coverage",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/saas/routers.py, tests/test_saas_consumer_flow.py, tests/test_cross_org_scope_regression.py, tests/test_public_pricing_i18n.py",
+      "features_added": "Cross-org regression coverage now exercises scoped list, generic query, get, write scope injection, forbidden foreign org selection, and batch-delete rollback behavior.",
+      "fixes_applied": "Public SaaS plans endpoint now returns only active current public tiers: free, lite, growth, and business. Consumer flow tests were updated to the current plan model.",
+      "framework_changes": "none",
+      "issues": "Existing warning cleanup remains out of scope: Pydantic class Config deprecations, Starlette HTTP_422 deprecation, urllib3 LibreSSL notice."
+    },
+    "frontend": {
+      "files_written": "ui/package.json, ui/package-lock.json, ui/playwright.config.ts, ui/tests/public-pricing-i18n.spec.ts",
+      "features_added": "Added Playwright EN/ID pricing and signup regression checks across desktop and mobile Chrome.",
+      "fixes_applied": "Added static translation/plan-key regression tests and browser assertions for public plan filtering, language toggle, signup plan preselection, and horizontal overflow.",
+      "framework_changes": "Added npm script test:e2e for Playwright.",
+      "issues": "Playwright Chromium download timed out, so the suite is configured to use installed system Google Chrome."
+    },
+    "verdict": "APPROVED"
   }
 ]

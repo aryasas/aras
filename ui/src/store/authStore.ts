@@ -1,5 +1,19 @@
 import { create } from 'zustand'
 
+const TOKEN_KEY = 'aras_token'
+
+function getStoredToken() {
+  const sessionToken = sessionStorage.getItem(TOKEN_KEY)
+  if (sessionToken) return sessionToken
+
+  const legacyToken = localStorage.getItem(TOKEN_KEY)
+  if (legacyToken) {
+    sessionStorage.setItem(TOKEN_KEY, legacyToken)
+    localStorage.removeItem(TOKEN_KEY)
+  }
+  return legacyToken
+}
+
 interface User {
   username: string
   email: string
@@ -33,15 +47,16 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  token: localStorage.getItem('aras_token'),
+  token: getStoredToken(),
   organizations: [],
   activeOrgId: Number(localStorage.getItem('org_id')) || null,
   activeApps: [],
   optionalFeatures: {},
   setUser: (user) => set({ user }),
   setToken: (token) => {
-    if (token) localStorage.setItem('aras_token', token)
-    else localStorage.removeItem('aras_token')
+    localStorage.removeItem(TOKEN_KEY)
+    if (token) sessionStorage.setItem(TOKEN_KEY, token)
+    else sessionStorage.removeItem(TOKEN_KEY)
     set({ token })
   },
   setOrganizations: (organizations) => set((state) => {
@@ -69,7 +84,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
   setCapabilities: (activeApps, optionalFeatures) => set({ activeApps, optionalFeatures }),
   logout: () => {
-    localStorage.removeItem('aras_token')
+    sessionStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem('org_id')
     set({ user: null, token: null, organizations: [], activeOrgId: null, activeApps: [], optionalFeatures: {} })
   },

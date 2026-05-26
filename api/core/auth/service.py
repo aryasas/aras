@@ -113,15 +113,23 @@ def get_current_user(
 
     from ..logic.scope import ScopeContext
     raw: dict = {}
+    scoped_org_id: Optional[int] = None
     for key, value in request.headers.items():
         if not key.lower().startswith("x-scope-"):
             continue
         parsed = _parse_positive_int(value, header_name=key)
         if parsed is not None:
             scope_key = key[8:].lower().replace("-", "_")
-            raw[scope_key] = parsed
+            if scope_key != "org_id":
+                raise HTTPException(status_code=400, detail=f"Unsupported scope header: {key}")
+            scoped_org_id = parsed
 
     oid = _parse_positive_int(request.headers.get("X-Org-ID"), header_name="X-Org-ID") or 0
+    if scoped_org_id:
+        if oid and oid != scoped_org_id:
+            raise HTTPException(status_code=400, detail="Conflicting organization scope headers")
+        oid = scoped_org_id
+
     if oid:
         require_org_access(db, user, oid)
         # Always strict: user sees only the selected org's data.

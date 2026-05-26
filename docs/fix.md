@@ -212,3 +212,11 @@ This file is used only to report if there are fix
   - [Gemini] Refactored `InflowInvoice` and `OutflowInvoice` to use `DocumentRecalcMixin` and added `subtotal`, `total_charge`, and `total_amount` as persistent `Float` columns.
   - [Gemini] Populated missing totals for existing records via a one-time maintenance script.
   - [Gemini] Ensured consistent naming of totals in both models and reports to allow for raw SQL queries.
+
+## Audit hardening follow-up and public SaaS plan/i18n fixes (2026-05-26)
+- [Codex/GPT-5.5] Tightened request scope handling so unsupported `X-Scope-*` headers are rejected and `X-Org-ID` cannot conflict with `X-Scope-Org-ID`.
+- [Codex/GPT-5.5] Fixed generic bulk delete and batch operations to fail on missing/out-of-scope records and commit successful list-shaped batch writes atomically.
+- [Codex/GPT-5.5] Removed implicit non-null FK auto-cascade deletes; destructive cascades now require explicit `LinkedDoc(cascade=True)` declarations.
+- [Codex/GPT-5.5] Restricted startup sync/bootstrap writes to non-production modes.
+- [Codex/GPT-5.5] Moved browser auth JWT storage from persistent `localStorage` to `sessionStorage` with legacy token cleanup.
+- [Codex/GPT-5.5] Fixed public SaaS pricing/signup pages to show only the current public plans (`free`, `lite`, `growth`, `business`) and to use EN/ID language strings.

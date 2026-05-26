@@ -3,6 +3,24 @@ import { cleanResourcePath } from './resourceUtils'
 
 const DEV_MULTI_TENANT = import.meta.env.VITE_DEV_MULTI_TENANT === 'true'
 const TENANT_STORAGE_KEY = 'aras_tenant_id'
+const TOKEN_STORAGE_KEY = 'aras_token'
+
+function getAuthToken() {
+  const sessionToken = sessionStorage.getItem(TOKEN_STORAGE_KEY)
+  if (sessionToken) return sessionToken
+
+  const legacyToken = localStorage.getItem(TOKEN_STORAGE_KEY)
+  if (legacyToken) {
+    sessionStorage.setItem(TOKEN_STORAGE_KEY, legacyToken)
+    localStorage.removeItem(TOKEN_STORAGE_KEY)
+  }
+  return legacyToken
+}
+
+function clearAuthToken() {
+  sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+  localStorage.removeItem(TOKEN_STORAGE_KEY)
+}
 
 interface ApiEnvelope<T = unknown> {
   success: boolean
@@ -44,7 +62,7 @@ api.interceptors.request.use((config) => {
     config.url = `${leadingSlash}${cleanResourcePath(path)}${query ? `?${query}` : ''}`
   }
 
-  const token = localStorage.getItem('aras_token')
+  const token = getAuthToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -115,7 +133,7 @@ api.interceptors.response.use(
       };
     }
     if (error.response?.status === 401) {
-      localStorage.removeItem('aras_token');
+      clearAuthToken();
       const path = window.location.pathname;
       const publicPaths = ['/login', '/welcome', '/signup', '/portal', '/portal/setup', '/forgot-password', '/reset-password', '/contact'];
       const isPublic = publicPaths.some((p) => path === p || path.startsWith(p + '/')) || path.startsWith('/p/');

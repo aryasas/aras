@@ -14,6 +14,7 @@ from core.auth.service import create_access_token, require_admin
 from datetime import datetime, timedelta
 
 router = APIRouter(prefix="", tags=["SaaS Control Plane"])
+PUBLIC_PLAN_KEYS = ("free", "lite", "growth", "business")
 
 class AdminUpdatePlanRequest(Validation):
     plan_id: int
@@ -269,12 +270,45 @@ def portal_payment_dev_bypass(
 # gemini-flash
 @router.get("/plans/public")
 def get_plans_public(db: Session = Depends(get_db)):
-    plans = db.query(Plan).filter_by(is_active=True).order_by(Plan.price).all()
+    plans = (
+        db.query(Plan)
+        .filter(Plan.is_active == True, Plan.plan_key.in_(PUBLIC_PLAN_KEYS))  # noqa: E712
+        .order_by(Plan.sort_order, Plan.price)
+        .all()
+    )
     return [_plan_payload(p) for p in plans]
 
 
 # claude-sonnet-4-6
 def _plan_payload(plan: Plan) -> dict[str, Any]:
+    features = dict(plan.features or {})
+    if "apps" not in features:
+        plan_name = (plan.name or "").lower()
+        plan_key = (getattr(plan, "plan_key", "") or "").lower()
+        modules = set(getattr(plan, "active_modules", []) or [])
+        if plan_name == "starter" or plan_key == "starter":
+            features["apps"] = ["accounting", "party", "report"]
+        elif plan_name == "business" or plan_key == "business":
+            features["apps"] = ["accounting", "party", "report", "stock", "pot"]
+        elif plan_name == "enterprise" or plan_key == "enterprise":
+            features["apps"] = ["accounting", "party", "report", "stock", "pot", "crm", "hr", "asset"]
+        else:
+            module_apps = {
+                "accounting": "accounting",
+                "stock": "stock",
+                "pos": "pot",
+                "receivable": "accounting",
+                "crm": "crm",
+                "hr": "hr",
+                "asset": "asset",
+            }
+            apps = ["party", "report"]
+            for module in modules:
+                app_name = module_apps.get(module)
+                if app_name and app_name not in apps:
+                    apps.append(app_name)
+            features["apps"] = apps
+
     return {
         "id": plan.id,
         "plan_key": getattr(plan, "plan_key", None),
@@ -289,7 +323,7 @@ def _plan_payload(plan: Plan) -> dict[str, Any]:
         "active_modules": getattr(plan, "active_modules", []),
         "api_access": getattr(plan, "api_access", False),
         "sort_order": getattr(plan, "sort_order", 0),
-        "features": plan.features or {},
+        "features": features,
     }
 
 
@@ -372,7 +406,8 @@ def get_portal_apps(
         raise HTTPException(status_code=400, detail="Subscription has no plan")
 
     from core.base.app import App
-    features = sub.plan.features or {}
+    plan_payload = _plan_payload(sub.plan)
+    features = plan_payload["features"]
     allowed = features.get("apps", [])
     allow_all = allowed == "*" or allowed == ["*"]
     if isinstance(allowed, str):
@@ -394,7 +429,7 @@ def get_portal_apps(
 
     return {
         "tenant_id": sub.tenant_id,
-        "plan": _plan_payload(sub.plan),
+        "plan": plan_payload,
         "apps": apps,
         "features": features,
         "limits": {

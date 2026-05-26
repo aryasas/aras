@@ -381,3 +381,74 @@ ERP abstract bases (`api/apps/erp/base/`):
 - `api/core/base/model.py` — use Model attributes table above
 - `api/main.py` — use Startup Flow in `docs/aras.md`
 - `aras-old/` — LEGACY, never read
+
+---
+
+## Framework Change Details — 2026-05-26 Audit Hardening
+
+### Request Scope Contract
+
+Scope resolution lives in `api/core/auth/service.py`.
+
+Accepted org scope headers:
+- `X-Org-ID: <positive integer>`
+- `X-Scope-Org-ID: <positive integer>`
+
+Rules:
+- Unsupported `X-Scope-*` headers return `400`.
+- If both accepted org headers are present, their values must match.
+- The selected org is validated through ERP access before `request.state.scope` and `request.state.org_id` are set.
+- When no org is selected, non-admin users receive their allowed org list as scope so scoped reads are still constrained.
+
+### Generic Router Write Semantics
+
+`api/core/logic/router_factory.py` now treats generic multi-record writes as all-or-error operations:
+- `POST /bulk-delete` raises `404` for missing or out-of-scope records.
+- `POST /batch` raises for missing or out-of-scope update/delete targets.
+- List-shaped `/batch` operations call `db.commit()` after the operation loop and `db.rollback()` on errors.
+
+This preserves the framework rule that scope failures look like not-found records while avoiding partial silent success.
+
+### Cascade Delete Contract
+
+`api/core/base/model.py::Model._cascade_linked_docs()` no longer scans every non-null FK and deletes children implicitly.
+
+Allowed cascade mechanisms:
+- ORM-owned children: SQLAlchemy `relationship(..., cascade="all, delete-orphan")`.
+- Cross-document cascades: explicit `__linked_docs__` entries with `cascade=True`.
+
+No model should rely on automatic FK scan cascade for destructive behavior.
+
+### Production Startup Contract
+
+`api/main.py` only runs `Aras.Manager.Sync.sync_all(db)` and bootstrap when `settings.DEBUG` or `settings.TESTING` is true.
+
+Production deployment requirements:
+- Run Alembic migrations before API startup.
+- Run explicit metadata sync/bootstrap as an admin/deploy step, not as app import/startup side effects.
+
+### SaaS Plan Payload Contract
+
+`api/apps/saas/routers.py::_plan_payload()` returns normalized plan data. `features.apps` is guaranteed for public plan display and portal app filtering.
+
+Current public web plan tier filter:
+- `free`
+- `lite`
+- `growth`
+- `business`
+
+Legacy/custom plans can still exist in the database, but public pricing/signup intentionally filter to those current customer-facing tiers.
+
+### Public Web i18n Contract
+
+`ui/src/context/LanguageContext.tsx` supports both existing flat locale keys and nested dot-path lookups.
+
+Public web pages using i18n:
+- `ui/src/views/PublicLanding.tsx`
+- `ui/src/views/CustomerSignup.tsx`
+
+Locale files:
+- `ui/src/locales/en.json`
+- `ui/src/locales/id.json`
+
+Language preference is stored in `localStorage` as `aras_lang`.

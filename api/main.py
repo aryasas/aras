@@ -47,8 +47,11 @@ async def lifespan(app: FastAPI):
     from core.manager.bootstrap import run as bootstrap
     db = next(Aras.get_db())
     Aras.Manager.Audit.register_listeners()
-    Aras.Manager.Sync.sync_all(db)
-    bootstrap(db)
+    if settings.DEBUG or settings.TESTING:
+        Aras.Manager.Sync.sync_all(db)
+        bootstrap(db)
+    else:
+        logger.info("Production startup registry/bootstrap writes disabled. Run migrations and sync explicitly.")
     yield
 
 app = FastAPI(

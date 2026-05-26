@@ -7,6 +7,12 @@ def _plans_by_name(client):
     return {plan["name"]: plan for plan in response.json()}
 
 
+def _plans_by_key(client):
+    response = client.get("/api/v1/saas/plans/public")
+    assert response.status_code == 200, response.text
+    return {plan["plan_key"]: plan for plan in response.json()}
+
+
 def _register_subscribe_pay(client, email: str, company: str, plan_id: int):
     register = client.post("/api/v1/saas/portal/register", json={
         "email": email,
@@ -41,32 +47,34 @@ def _register_subscribe_pay(client, email: str, company: str, plan_id: int):
 
 def test_consumer_register_subscribe_dev_payment_and_plan_app_access(client):
     suffix = uuid.uuid4().hex[:8]
-    plans = _plans_by_name(client)
-    starter = plans["Starter"]
-    business = plans["Business"]
-    enterprise = plans["Enterprise"]
+    plans = _plans_by_key(client)
+    free = plans["free"]
+    growth = plans["growth"]
+    business = plans["business"]
 
-    assert starter["features"]["apps"] == ["accounting", "party", "report"]
-    assert "stock" in business["features"]["apps"]
-    assert {"crm", "hr", "asset"}.issubset(set(enterprise["features"]["apps"]))
+    assert set(plans) == {"free", "lite", "growth", "business"}
+    assert free["features"]["apps"] == ["party", "report", "pot"]
+    assert {"accounting", "stock", "pot"}.issubset(set(growth["features"]["apps"]))
+    assert business["api_access"] is True
 
     basic_headers = _register_subscribe_pay(
         client,
         f"basic-{suffix}@example.test",
         f"Basic Co {suffix}",
-        starter["id"],
+        free["id"],
     )
     pro_headers = _register_subscribe_pay(
         client,
         f"pro-{suffix}@example.test",
         f"Pro Co {suffix}",
-        business["id"],
+        growth["id"],
     )
 
     basic_apps = client.get("/api/v1/saas/portal/apps", headers=basic_headers)
     assert basic_apps.status_code == 200, basic_apps.text
     basic_names = {app["name"] for app in basic_apps.json()["apps"]}
-    assert "accounting" in basic_names
+    assert "pot" in basic_names
+    assert "accounting" not in basic_names
     assert "stock" not in basic_names
     assert "crm" not in basic_names
 
@@ -79,7 +87,7 @@ def test_consumer_register_subscribe_dev_payment_and_plan_app_access(client):
 
 def test_consumer_cannot_view_apps_before_payment(client):
     suffix = uuid.uuid4().hex[:8]
-    plan_id = _plans_by_name(client)["Starter"]["id"]
+    plan_id = _plans_by_key(client)["free"]["id"]
 
     register = client.post("/api/v1/saas/portal/register", json={
         "email": f"pending-{suffix}@example.test",

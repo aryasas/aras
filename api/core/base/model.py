@@ -729,48 +729,8 @@ class Model(Aras, Base):
 
     def _cascade_linked_docs(self, db):
         """
-        Soft-deletes all cascade=True linked docs using two-pass logic.
+        Soft-deletes explicit cascade=True linked docs.
         """
-        from sqlalchemy import inspect as sa_inspect
-
-        # Pass 1 — SA FK auto-scan (default cascade=True for auto-discovered children if not explicitly excluded)
-        # Actually, for auto-scan, we should be careful about cascading. 
-        # The handoff says: "For cascade: call child.delete_self(db) if getattr(child, "deleted_at", None) is None, else db.delete(child)."
-        # But it doesn't specify if ALL auto-discovered children should cascade.
-        # Usually, children that FK to a parent SHOULD cascade if they are "owned" by it (e.g. LineItems).
-        # Let's follow the handoff's Pass 1 logic for cascade.
-        
-        SKIP_COLS = {"created_by", "updated_by", "org_id", "deleted_at", "created_at", "updated_at"}
-        mapper_registry = sa_inspect(type(self)).mapper.registry
-        target_table = self.__tablename__
-
-        for m in mapper_registry.mappers:
-            child_cls = m.class_
-            if child_cls is type(self) or not hasattr(child_cls, "__tablename__"):
-                continue
-            
-            if child_cls.__dict__.get("__abstract__"):
-                continue
-
-            for col in m.persist_selectable.columns:
-                if col.name in SKIP_COLS:
-                    continue
-                # Skip nullable columns — they are lookup/reference FKs, not ownership.
-                # Ownership FKs (line items, children) are non-nullable.
-                if col.nullable:
-                    continue
-                for fk in col.foreign_keys:
-                    if fk.column.table.name == target_table:
-                        children = db.query(child_cls).filter(
-                            getattr(child_cls, col.key) == self.id
-                        ).all()
-                        for child in children:
-                            if hasattr(child, "deleted_at") and getattr(child, "deleted_at") is None:
-                                child.delete_self(db)
-                            else:
-                                db.delete(child)
-
-        # Pass 2 — explicit __linked_docs__
         for ld in getattr(self.__class__, "__linked_docs__", []):
             if ld.cascade:
                 ld.delete_linked(db, self)

@@ -398,3 +398,9 @@ This file is used only to report if there are feature added
 
 ## SaaS Admin REST Endpoints (2026-05-25)
   - [Gemini] Added 5 subscription management admin endpoints (list, approve, suspend, plan update, detail) to `api/apps/saas/routers.py`.
+
+## Public SaaS pricing i18n and entitlement normalization (2026-05-26)
+- [Codex/GPT-5.5] Added EN/ID public marketing and signup copy through `LanguageContext` and `ui/src/locales/{en,id}.json`.
+- [Codex/GPT-5.5] Added public-page language toggles on the landing and signup pages.
+- [Codex/GPT-5.5] Normalized SaaS plan payloads so `features.apps` is always present for plan cards and portal app gating.
+- [Codex/GPT-5.5] Public pricing and signup now intentionally show the current customer-facing tiers only: Free, Lite, Growth, and Business.

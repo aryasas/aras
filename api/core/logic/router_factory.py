@@ -671,13 +671,11 @@ class RouterFactory(Router):
             deleted_count = 0
             for item_id in ids:
                 item = model_class.get(db, item_id)
-                if item:
-                    try:
-                        _check_scope_ownership(model_class, request, item)
-                        item.delete_self(db, user.id)
-                        deleted_count += 1
-                    except Exception as e:
-                        logging.error(f"[Bulk Delete] Failed to delete item {item_id}: {e}", exc_info=True)
+                if not item:
+                    raise ResourceNotFoundException("Item not found")
+                _check_scope_ownership(model_class, request, item)
+                item.delete_self(db, user.id)
+                deleted_count += 1
             message = f"Successfully deleted {deleted_count} of {len(ids)} items."
             db.commit()
             return ok({"deleted_count": deleted_count, "requested_count": len(ids)}, message)
@@ -771,8 +769,7 @@ class RouterFactory(Router):
                             raise ValidationException("Update requires ID.")
                         item = model_class.get(db, op.id)
                         if not item:
-                            results.append({"action": "update", "id": op.id, "status": "not_found"})
-                            continue
+                            raise ResourceNotFoundException("Item not found")
                         _check_scope_ownership(model_class, request, item)
                         item.update_self(db, op.data or {}, user_id=user.id)
                         results.append({"action": "update", "id": op.id, "status": "ok"})
@@ -781,8 +778,7 @@ class RouterFactory(Router):
                             raise ValidationException("Delete requires ID.")
                         item = model_class.get(db, op.id)
                         if not item:
-                            results.append({"action": "delete", "id": op.id, "status": "not_found"})
-                            continue
+                            raise ResourceNotFoundException("Item not found")
                         _check_scope_ownership(model_class, request, item)
                         item.delete_self(db, user_id=user.id)
                         results.append({"action": "delete", "id": op.id, "status": "ok"})
@@ -793,6 +789,7 @@ class RouterFactory(Router):
             except Exception as e:
                 db.rollback()
                 raise ArasException("Internal Server Error", detail=str(e))
+            db.commit()
             
             data = {"results": results, "count": len(results)}
             return ok(data, "Batch operation completed.")

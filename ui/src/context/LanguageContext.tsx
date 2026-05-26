@@ -29,6 +29,9 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const t = useCallback((key: string, fallback?: string): string => {
+    const direct = (locales[lang] as Record<string, any>)[key];
+    if (typeof direct === 'string') return direct;
+
     const keys = key.split('.');
     let value: any = locales[lang];
     
