@@ -522,28 +522,30 @@ class Model(Aras, Base):
         # ── Series Generation ──
         if is_new:
             try:
-                # Use local imports to avoid circularity
-                from ..registry.field_model import FieldModel
-                from ..registry.resource_model import ResourceModel
-                from ..manager.naming_manager import SeriesManager
+                # Use ServiceRegistry to avoid circularity
+                from ..service_registry import ServiceRegistry
+                FieldModel = ServiceRegistry.get("FieldModel")
+                ResourceModel = ServiceRegistry.get("ResourceModel")
+                SeriesManager = ServiceRegistry.get("SeriesManager")
                 
-                # Check for fields with 'series' metadata in DB
-                res_rec = db.query(ResourceModel).filter(ResourceModel.name == self.__tablename__).first()
-                if res_rec:
-                    fields_with_series = db.query(FieldModel).filter(
-                        FieldModel.resource_id == res_rec.id,
-                        FieldModel.series.isnot(None),
-                        FieldModel.series != ""
-                    ).all()
-                    
-                    for f_meta in fields_with_series:
-                        current_val = getattr(self, f_meta.name, None)
-                        if not current_val or current_val == "":
-                            # Generate next value using SeriesManager
-                            # Key is resource_field for uniqueness
-                            series_key = f"{self.__tablename__}_{f_meta.name}"
-                            generated = SeriesManager.get_next(db, key=series_key, default_prefix=f_meta.series)
-                            setattr(self, f_meta.name, generated)
+                if ResourceModel and FieldModel and SeriesManager:
+                    # Check for fields with 'series' metadata in DB
+                    res_rec = db.query(ResourceModel).filter(ResourceModel.name == self.__tablename__).first()
+                    if res_rec:
+                        fields_with_series = db.query(FieldModel).filter(
+                            FieldModel.resource_id == res_rec.id,
+                            FieldModel.series.isnot(None),
+                            FieldModel.series != ""
+                        ).all()
+                        
+                        for f_meta in fields_with_series:
+                            current_val = getattr(self, f_meta.name, None)
+                            if not current_val or current_val == "":
+                                # Generate next value using SeriesManager
+                                # Key is resource_field for uniqueness
+                                series_key = f"{self.__tablename__}_{f_meta.name}"
+                                generated = SeriesManager.get_next(db, key=series_key, default_prefix=f_meta.series)
+                                setattr(self, f_meta.name, generated)
             except Exception as e:
                 logging.error(f"[Model] Series generation failed for {self.__tablename__}: {e}", exc_info=True)
 

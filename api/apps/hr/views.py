@@ -4,7 +4,7 @@ from .models import Department, Position, Employee
 class DepartmentView(Aras.View):
     model = Department
     title = "Departments"
-    icon = "pi pi-sitemap"
+    icon = "Network"
     layout = [
         {
             "key": "general",
@@ -16,7 +16,7 @@ class DepartmentView(Aras.View):
 class PositionView(Aras.View):
     model = Position
     title = "Positions"
-    icon = "pi pi-id-card"
+    icon = "Contact"
     layout = [
         {
             "key": "general",
@@ -28,7 +28,7 @@ class PositionView(Aras.View):
 class EmployeeView(Aras.View):
     model = Employee
     title = "Employees"
-    icon = "pi pi-users"
+    icon = "Users"
     layout = [
         {
             "key": "identity",

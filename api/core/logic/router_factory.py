@@ -21,6 +21,7 @@ from ..exceptions import ArasException, ValidationException, ResourceNotFoundExc
 from ..response import ok, err
 from ..base.model import Model as ArasModel
 from ..base.validation import Validation
+from ..api.websocket import broadcast_sync
 from pydantic.fields import FieldInfo
 
 MAX_PER_PAGE = 200
@@ -265,6 +266,19 @@ def _generate_pydantic_schemas(model_class: Type[Any]):
     return Schema, PatchSchema
 
 
+def _broadcast_update(model_class, event: str, item_id: Any):
+    """Helper to broadcast real-time updates via WebSocket."""
+    # Convert id to int if it's not already
+    id_val = int(item_id) if item_id and str(item_id).isdigit() else item_id
+    payload = {
+        "event": event,
+        "resource": model_class.__tablename__,
+        "id": id_val
+    }
+    broadcast_sync("dashboard", payload)
+    broadcast_sync("global", payload)
+
+
 class RouterFactory(Router):
     """
     Generic factory for generating standardized CRUD routes for any Aras Model.
@@ -358,14 +372,15 @@ class RouterFactory(Router):
 
         @router.get("/aggregate")
         def aggregate_items(
-            request: Request, # Added request to allow scope filters
+            request: Request,
             field: str = Query(..., description="Field to aggregate"),
-            agg_func: str = Query(..., alias="func", description="Aggregation function: sum, count, avg"),
+            agg_func: str = Query(..., alias="func", description="Aggregation function: sum, count, avg, min, max"),
+            group_by: Optional[str] = Query(None, description="Field to group by"),
             filters: Optional[str] = None,
             db: Session = Depends(get_db),
             _: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=allow_public))
         ):
-            """Performs aggregation on a specified field."""
+            """Performs aggregation on a specified field, optionally grouped."""
             parsed_filters = None
             if filters:
                 try:
@@ -381,17 +396,54 @@ class RouterFactory(Router):
 
             stmt = select(model_class)
             stmt = model_class.apply_filters(stmt, parsed_filters)
+            subq = stmt.subquery()
 
-            aggregate_value = None
+            if group_by:
+                group_col_obj = getattr(model_class, group_by, None)
+                if not group_col_obj:
+                    raise ValidationException(f"Group by field '{group_by}' not found.")
+                
+                # Re-fetch column from subquery for grouping
+                group_col = subq.c[group_by]
+                agg_col = subq.c[field]
+                
+                if agg_func == "count":
+                    agg_expr = func.count(agg_col)
+                elif agg_func == "sum":
+                    agg_expr = func.sum(agg_col)
+                elif agg_func == "avg":
+                    agg_expr = func.avg(agg_col)
+                elif agg_func == "min":
+                    agg_expr = func.min(agg_col)
+                elif agg_func == "max":
+                    agg_expr = func.max(agg_col)
+                else:
+                    raise ValidationException(f"Invalid aggregation function: {agg_func}")
+
+                results = db.execute(
+                    select(group_col, agg_expr).group_by(group_col)
+                ).all()
+                
+                groups = [{"group": row[0], "value": row[1]} for row in results]
+                return ok({"groups": groups}, f"Aggregation by {group_by} completed.")
+
+            # Simple aggregation
+            agg_expr = None
+            agg_col = subq.c[field]
             if agg_func == "count":
-                aggregate_value = db.scalar(select(func.count()).select_from(stmt.subquery()))
+                agg_expr = func.count()
             elif agg_func == "sum":
-                aggregate_value = db.scalar(select(func.sum(target_column)).select_from(stmt.subquery()))
+                agg_expr = func.sum(agg_col)
             elif agg_func == "avg":
-                aggregate_value = db.scalar(select(func.avg(target_column)).select_from(stmt.subquery()))
+                agg_expr = func.avg(agg_col)
+            elif agg_func == "min":
+                agg_expr = func.min(agg_col)
+            elif agg_func == "max":
+                agg_expr = func.max(agg_col)
             else:
-                raise ValidationException(f"Invalid aggregation function: {agg_func}. Supported: sum, count, avg.")
-            
+                raise ValidationException(f"Invalid aggregation function: {agg_func}")
+
+            aggregate_value = db.scalar(select(agg_expr).select_from(subq))
             return ok({"value": aggregate_value}, f"{agg_func.capitalize()} of {field} retrieved successfully.")
 
         @router.get("/export")
@@ -501,6 +553,7 @@ class RouterFactory(Router):
             new_item = model_class.create(db, payload, user_id=user.id)
             _save_children(db, new_item, payload, user_id=user.id)
             db.commit()
+            _broadcast_update(model_class, "record_created", new_item.id)
             return ok(new_item.to_dict(), "Item created successfully.")
 
         if getattr(model_class, "__soft_delete__", False):
@@ -617,6 +670,7 @@ class RouterFactory(Router):
             item.update_self(db, payload, user_id=user.id)
             _save_children(db, item, payload, user_id=user.id)
             db.commit()
+            _broadcast_update(model_class, "record_updated", item_id)
             res = item.to_dict()
             model_class.resolve_labels(db, [res])
             return ok(res, "Item updated successfully.")
@@ -639,6 +693,7 @@ class RouterFactory(Router):
             item.update_self(db, payload, user_id=user.id)
             _save_children(db, item, payload, user_id=user.id)
             db.commit()
+            _broadcast_update(model_class, "record_updated", item_id)
             res = item.to_dict()
             model_class.resolve_labels(db, [res])
             return ok(res, "Item patched successfully.")
@@ -658,6 +713,7 @@ class RouterFactory(Router):
 
             item.delete_self(db, user_id=user.id)
             db.commit()
+            _broadcast_update(model_class, "record_deleted", item_id)
             return ok({"id": item_id}, "Item deleted successfully.")
 
         @router.post("/bulk-delete")
@@ -675,6 +731,7 @@ class RouterFactory(Router):
                     raise ResourceNotFoundException("Item not found")
                 _check_scope_ownership(model_class, request, item)
                 item.delete_self(db, user.id)
+                _broadcast_update(model_class, "record_deleted", item_id)
                 deleted_count += 1
             message = f"Successfully deleted {deleted_count} of {len(ids)} items."
             db.commit()
@@ -711,12 +768,14 @@ class RouterFactory(Router):
                 try:
                     parent_payload = _inject_scope_payload(model_class, request, body["parent"])
                     children = body.get("children") or []
+                    event = "record_created"
                     if current_id := parent_payload.get("id"):
                         parent_item = model_class.get(db, current_id)
                         if not parent_item:
                             raise ResourceNotFoundException("Item not found")
                         _check_scope_ownership(model_class, request, parent_item)
                         parent_item.update_self(db, parent_payload, user_id=user.id)
+                        event = "record_updated"
                     else:
                         parent_item = model_class.create(db, parent_payload, user_id=user.id)
                     db.flush()
@@ -739,9 +798,11 @@ class RouterFactory(Router):
                         child_data = _inject_scope_payload(child_model, request, child_data)
                         try:
                             child_model.create(db, child_data, user_id=user.id)
+                            _broadcast_update(child_model, "record_created", None) # Generic update for child
                         except Exception as ce:
                             child_errors.append(str(ce))
                     db.commit()
+                    _broadcast_update(model_class, event, parent_item.id)
                     result = parent_item.to_dict()
                     if child_errors:
                         result["child_errors"] = child_errors
@@ -764,6 +825,7 @@ class RouterFactory(Router):
                         payload = _inject_scope_payload(model_class, request, op.data or {})
                         item = model_class.create(db, payload, user_id=user.id)
                         results.append({"action": "create", "id": item.id, "status": "ok"})
+                        _broadcast_update(model_class, "record_created", item.id)
                     elif op.action == "update":
                         if not op.id:
                             raise ValidationException("Update requires ID.")
@@ -773,6 +835,7 @@ class RouterFactory(Router):
                         _check_scope_ownership(model_class, request, item)
                         item.update_self(db, op.data or {}, user_id=user.id)
                         results.append({"action": "update", "id": op.id, "status": "ok"})
+                        _broadcast_update(model_class, "record_updated", op.id)
                     elif op.action == "delete":
                         if not op.id:
                             raise ValidationException("Delete requires ID.")
@@ -782,6 +845,7 @@ class RouterFactory(Router):
                         _check_scope_ownership(model_class, request, item)
                         item.delete_self(db, user_id=user.id)
                         results.append({"action": "delete", "id": op.id, "status": "ok"})
+                        _broadcast_update(model_class, "record_deleted", op.id)
                     else:
                         raise ValidationException(f"Unknown action: {op.action}")
             except HTTPException:
@@ -822,6 +886,11 @@ class RouterFactory(Router):
                             handler = getattr(item, action.handler.__name__)
                             result = handler(db, input_data)
                             db.commit()
+
+                            # If result is already an ok() response, return as is to avoid double wrapping
+                            if isinstance(result, dict) and "success" in result:
+                                return result
+
                             message = f"Action '{name}' completed successfully."
                             return ok({"result": result}, message)
                         except ArasException:
@@ -848,6 +917,11 @@ class RouterFactory(Router):
                             handler = getattr(item, action.handler.__name__)
                             result = handler(db)
                             db.commit()
+
+                            # If result is already an ok() response, return as is to avoid double wrapping
+                            if isinstance(result, dict) and "success" in result:
+                                return result
+
                             message = f"Action '{name}' completed successfully."
                             return ok({"result": result}, message)
                         except ArasException:

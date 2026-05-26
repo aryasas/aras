@@ -51,7 +51,7 @@ All classes accessed via unified namespace — `from core import Aras`. → `fra
 3. Routes are auto-mounted per app via `RouterFactory` — no manual router wiring needed.
 4. Apps are isolated by `app_name`; `parent_name` is available but not used for ERP — all ERP domains are top-level apps.
 
-Full `manage.py` command list: → `framework_ref.md` L211–227
+Full `manage.py` command list: → `framework_ref.md` L226–242
 
 ### App Registration Requirements (required for all apps)
 
@@ -124,7 +124,7 @@ Always use the **best** approach — not the simplest. Use simple only when it i
 7. Views contain ALL UI metadata — title, icon, fields overrides, layout
 8. Every folder must have `__init__.py` — discovery uses `pkgutil.walk_packages`
 
-App patterns, file structure, `autodiscover_models`, `menu_groups`: → `framework_ref.md` L230–321
+App patterns, file structure, `autodiscover_models`, `menu_groups`: → `framework_ref.md` L245–337
 
 ---
 
@@ -134,7 +134,7 @@ All routes prefixed `/api/v1/`. Underscores → hyphens. App/parent prefixes str
 
 Example: App `accounting` (`table_prefix="erp_accounting"`), model `erp_accounting_accounts` → `/api/v1/accounting/accounts`
 
-Full endpoint list: → `framework_ref.md` L118–137
+Full endpoint list: → `framework_ref.md` L130–153
 
 ## Endpoint Patterns
 
@@ -162,7 +162,7 @@ Auth chain: `require_admin → get_current_user → JWT decode → DB lookup` (`
 
 RBAC: `RBAC.has_permission(db, user, resource, action)` · `RBAC.get_readable_resources(db, user)`
 
-Logic modules + Manager classes: → `framework_ref.md` L92–115
+Logic modules + Manager classes: → `framework_ref.md` L104–127
 
 ---
 
@@ -182,9 +182,21 @@ ERP domains are top-level standalone apps — no parent app. Each inherits `Aras
 | `report` | `erp_report` | Reports |
 | `config` | `erp_config` | Configuration |
 
-Shared utilities live in `api/apps/erp/base/` (`saved_filter_router`, `series_router`, `SavedFilter`, ERP abstract bases). `config` app owns `SavedFilter` and `Note` models. ERP abstract bases (`DocumentBase`, `LineItemBase`, `MasterDataBase`, `ConfigBase`) are ERP-specific — not framework primitives.
+Shared utilities live in `api/apps/erp/base/` (`saved_filter_router`, `series_router`, `SavedFilter`, ERP abstract bases). ERP abstract bases (`DocumentBase`, `LineItemBase`, `MasterDataBase`, `ConfigBase`) are ERP-specific — not framework primitives.
 
-Full sub-app and base tables: → `framework_ref.md` L325–349
+Full sub-app and base tables: → `framework_ref.md` L340–370
+
+---
+
+## Standard Apps (`api/apps/`)
+
+| app_name | table_prefix | Key models |
+|---|---|---|
+| `saas` | `saas` | Plan, Subscription, LicenseToken, ActivationRequest |
+| `web` | `web` | WebPage, WebMenuItem, ContactSubmission, SiteSetting |
+| `notes` | `notes` | Note |
+| `ticket` | `erp_ticket` | Team, Category, Ticket, TicketMessage |
+| `dev` | `dev` | HandoffRun, TemplateAnnotation |
 
 ---
 
@@ -276,7 +288,7 @@ Key components: `DynamicForm`, `ListView`, `DashboardView`, `CommandPalette`, `M
 
 API responses: `{ success, data, message, error }` envelope
 
-Full component/hook/route tables: → `framework_ref.md` L140–208
+Full component/hook/route tables: → `framework_ref.md` L155–223
 
 ---
 

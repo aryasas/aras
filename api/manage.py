@@ -180,9 +180,6 @@ def main():
     elif args.command == "seed":
         # Imports here, specifically for the seed command
         from core.lib.database import SessionLocal
-        from apps.config.seed_rbac import run_seed as seed_rbac
-        from apps.accounting.seed_coa import seed_coa
-        from apps.report.seed_reports import run_seed as seed_reports
         from apps.seed_demo import run_seed as seed_demo_data
         from apps.config.models import Organization
 
@@ -197,12 +194,11 @@ def main():
                 print(f"Error: Organization with ID {args.org_id} not found.")
                 sys.exit(1)
             
-            # Run core ERP seeding
-            print("  - Seeding Chart of Accounts...")
-            seed_rbac(db)
-            seed_coa(db, company.id)
-            print("  - Seeding Reports...")
-            seed_reports(db, company.id)
+            # Run core ERP seeding via standardized App.seed() method
+            registered_apps = Aras.App._registry
+            for name, app_cls in registered_apps.items():
+                print(f"  - Seeding app: {name}...")
+                app_cls.seed(db)
             
             if args.demo:
                 print("  - Seeding Demo Data...")

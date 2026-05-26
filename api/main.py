@@ -45,6 +45,8 @@ from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from core.manager.bootstrap import run as bootstrap
+    from core.manager.service_bootstrap import register_services
+    register_services()
     db = next(Aras.get_db())
     Aras.Manager.Audit.register_listeners()
     if settings.DEBUG or settings.TESTING:

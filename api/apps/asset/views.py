@@ -4,7 +4,7 @@ from .models import AssetCategory, Asset
 class AssetCategoryView(Aras.View):
     model = AssetCategory
     title = "Asset Categories"
-    icon = "pi pi-tags"
+    icon = "Tags"
     layout = [
         {
             "key": "general",
@@ -16,7 +16,7 @@ class AssetCategoryView(Aras.View):
 class AssetView(Aras.View):
     model = Asset
     title = "Assets"
-    icon = "pi pi-box"
+    icon = "Box"
     layout = [
         {
             "key": "asset_info",

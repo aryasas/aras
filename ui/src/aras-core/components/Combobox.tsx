@@ -28,8 +28,11 @@ interface ComboboxProps {
   extraFilters?: Record<string, string | number | boolean>;
   field?: Field;
   variant?: 'lookup' | 'simple';
+  /** compact=true renders a shorter trigger for inline table rows */
+  compact?: boolean;
 }
 
+// claude-sonnet-4-6
 const Combobox: React.FC<ComboboxProps> = ({
   resource,
   options,
@@ -40,7 +43,8 @@ const Combobox: React.FC<ComboboxProps> = ({
   disabled = false,
   extraFilters,
   field,
-  variant = 'lookup'
+  variant = 'lookup',
+  compact = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -56,6 +60,7 @@ const Combobox: React.FC<ComboboxProps> = ({
   const navigate = useNavigate();
   const targetResource = field?.target_resource || resource;
   const isSimple = variant === 'simple';
+  const isLookup = !isSimple && !!resource;
 
   const optionToItem = (opt: Option): ComboboxItem => ({
     id: opt.value,
@@ -67,17 +72,15 @@ const Combobox: React.FC<ComboboxProps> = ({
     if (isOpen && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       const windowHeight = window.innerHeight;
-      const dropdownHeight = 350;
-      
+      const dropdownHeight = 320;
       const spaceBelow = windowHeight - rect.bottom;
       const showAbove = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
-
       setDropdownStyles({
         position: 'fixed',
         top: showAbove ? 'auto' : `${rect.bottom + 4}px`,
         bottom: showAbove ? `${windowHeight - rect.top + 4}px` : 'auto',
         left: `${rect.left}px`,
-        width: `${rect.width}px`,
+        width: `${Math.max(rect.width, 220)}px`,
         zIndex: 9999,
       });
     }
@@ -85,18 +88,19 @@ const Combobox: React.FC<ComboboxProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node) && 
-          dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current && !containerRef.current.contains(event.target as Node) &&
+        dropdownRef.current && !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
+        setSearch('');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    updateDropdownPosition();
-  }, [isOpen, updateDropdownPosition]);
+  useEffect(() => { updateDropdownPosition(); }, [isOpen, updateDropdownPosition]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -113,11 +117,9 @@ const Combobox: React.FC<ComboboxProps> = ({
       if (resource && value) {
         try {
           setInitialLoading(true);
-          const cleanRes = cleanResourcePath(resource);
-          const res = await api.get(`/${cleanRes}/${value}`);
+          const res = await api.get(`/${cleanResourcePath(resource)}/${value}`);
           setSelectedItem(res.data);
-        } catch (err) {
-          console.error("Failed to fetch selected item", err);
+        } catch {
           setSelectedItem(null);
         } finally {
           setInitialLoading(false);
@@ -134,13 +136,12 @@ const Combobox: React.FC<ComboboxProps> = ({
 
   useEffect(() => {
     if (!isOpen || disabled || !resource) return;
-
     const timer = setTimeout(async () => {
       try {
         setLoading(true);
         const cleanRes = cleanResourcePath(resource);
         const extraFilterList = extraFilters
-          ? Object.entries(extraFilters).map(([field, value]) => ({ field, op: '=', value }))
+          ? Object.entries(extraFilters).map(([f, v]) => ({ field: f, op: '=', value: v }))
           : [];
         const params = {
           search: search || undefined,
@@ -150,22 +151,22 @@ const Combobox: React.FC<ComboboxProps> = ({
         const res = await api.get(`/${cleanRes}/`, { params });
         setItems(res.data.items);
         setActiveIndex(-1);
-      } catch (err) {
-        console.error("Failed to fetch items", err);
+      } catch {
+        // silent
       } finally {
         setLoading(false);
       }
     }, 300);
-
     return () => clearTimeout(timer);
   }, [search, resource, isOpen, disabled, extraFilters]);
 
   useEffect(() => {
     if (options) {
-      const filtered = options.filter(opt =>
-        opt.label.toLowerCase().includes(search.toLowerCase())
-      ).map(optionToItem);
-      setItems(filtered);
+      setItems(
+        options
+          .filter(opt => opt.label.toLowerCase().includes(search.toLowerCase()))
+          .map(optionToItem)
+      );
       setActiveIndex(-1);
     }
   }, [search, options, displayField]);
@@ -186,13 +187,26 @@ const Combobox: React.FC<ComboboxProps> = ({
 
   const handleAddNew = () => {
     if (disabled || !targetResource) return;
-    const cleanRes = cleanResourcePath(targetResource);
-    navigate(`/${cleanRes}/new`);
+    navigate(`/${cleanResourcePath(targetResource)}/new`);
+  };
+
+  const handleOpenRecord = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!targetResource || !value) return;
+    navigate(`/${cleanResourcePath(targetResource)}/${value}`);
+  };
+
+  const handleOpenItemRecord = (e: React.MouseEvent, item: ComboboxItem) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!targetResource || !item.id) return;
+    setIsOpen(false);
+    setSearch('');
+    navigate(`/${cleanResourcePath(targetResource)}/${item.id}`);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (disabled) return;
-
     if (!isOpen) {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
         e.preventDefault();
@@ -200,112 +214,127 @@ const Combobox: React.FC<ComboboxProps> = ({
       }
       return;
     }
-
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setActiveIndex(prev => (prev < items.length - 1 ? prev + 1 : prev));
+        setActiveIndex(prev => Math.min(prev + 1, items.length - 1));
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setActiveIndex(prev => (prev > 0 ? prev - 1 : 0));
+        setActiveIndex(prev => Math.max(prev - 1, 0));
         break;
       case 'Enter':
         e.preventDefault();
-        if (activeIndex >= 0 && activeIndex < items.length) {
-          handleSelect(items[activeIndex]);
-        } else if (items.length > 0 && activeIndex === -1) {
-          handleSelect(items[0]);
-        }
+        if (activeIndex >= 0 && activeIndex < items.length) handleSelect(items[activeIndex]);
+        else if (items.length > 0) handleSelect(items[0]);
         break;
       case 'Escape':
         e.preventDefault();
         setIsOpen(false);
+        setSearch('');
         break;
       case 'Tab':
         setIsOpen(false);
+        setSearch('');
         break;
     }
   };
 
+  const triggerH = compact ? 'h-7' : 'h-9';
+  const triggerText = compact ? 'text-[11.5px]' : 'text-[12.5px]';
+
   const dropdownMenu = (
-    <div 
+    <div
       ref={dropdownRef}
-      id={`combobox-listbox-${field?.name || resource}`}
       role="listbox"
-      aria-labelledby={`combobox-button-${field?.name || resource}`}
+      aria-labelledby={`cbx-btn-${field?.name || resource}`}
       style={dropdownStyles}
       data-combobox-dropdown
-      className="bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-[1rem] shadow-[0_18px_45px_-18px_rgba(15,23,42,0.35)] overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+      className="bg-[var(--surface)] border border-[var(--line)] rounded-[var(--radius)] shadow-[0_16px_40px_-12px_rgba(15,23,42,0.22),0_4px_12px_-4px_rgba(15,23,42,0.10)] overflow-hidden"
     >
-      {!isSimple && (
-        <div className="p-2 border-b border-[var(--aras-border)] bg-[var(--aras-panel-soft)]/60">
-          <div className="relative group">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--aras-muted)]" />
-            <input 
-              ref={inputRef}
-              autoFocus
-              type="text"
-              placeholder="Search..."
-              className="w-full min-h-10 pl-8 pr-3 py-2 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-[var(--aras-radius)] text-sm font-semibold outline-none focus:border-[var(--aras-accent)] transition-all text-[var(--aras-text)] placeholder:text-[var(--aras-muted)]"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
-          </div>
+      {/* Search header */}
+      <div className="p-1.5 border-b border-[var(--line)]">
+        <div className="relative">
+          <Search size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-3)]" />
+          <input
+            ref={inputRef}
+            autoFocus
+            type="text"
+            placeholder="Search..."
+            className="w-full h-7 pl-7 pr-3 bg-[var(--surface-2)] border border-transparent rounded-[var(--radius-sm)] text-[12px] font-medium text-[var(--text)] placeholder:text-[var(--text-3)] outline-none focus:border-[var(--accent)] focus:bg-[var(--surface)] transition-all"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
         </div>
-      )}
+      </div>
 
-      <div className="max-h-[240px] overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-[var(--aras-border-strong)] scrollbar-track-transparent">
+      {/* List */}
+      <div className="max-h-[220px] overflow-y-auto p-1">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-6 text-[var(--aras-muted)]">
-            <Loader2 size={16} className="animate-spin mb-1.5 text-[var(--aras-accent)]" />
-            <span className="text-[10px] font-medium">Loading...</span>
+          <div className="flex items-center justify-center gap-2 py-5 text-[var(--text-3)]">
+            <Loader2 size={13} className="animate-spin text-[var(--accent)]" />
+            <span className="text-[11px] font-medium">Loading…</span>
           </div>
         ) : items.length === 0 ? (
-          <div className="py-6 text-center text-xs text-[var(--aras-muted)] italic">
-            No results found
-          </div>
+          <div className="py-5 text-center text-[11px] text-[var(--text-3)]">No results</div>
         ) : (
-          <div className="space-y-0.5">
-            {items.map((item, index) => {
-              const isSelected = String(value) === String(item.id);
-              const isActive = index === activeIndex;
-              return (
-                <div 
-                  key={item.id}
-                  role="option"
-                  aria-selected={isSelected}
-                  onClick={() => handleSelect(item)}
-                  onMouseEnter={() => setActiveIndex(index)}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-[var(--aras-radius)] cursor-pointer transition-all ${
-                    isSelected 
-                      ? 'bg-[var(--aras-accent)] text-white' 
-                      : isActive 
-                        ? 'bg-[var(--aras-panel-soft)] text-[var(--aras-text)]' 
-                        : 'text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]'
-                  }`}
-                >
-                  <span className={`text-sm truncate ${isSelected ? 'font-bold' : 'font-semibold'}`}>
-                    {item[displayField] || item.id}
-                  </span>
-                  {isSelected && <Check size={14} className="shrink-0 ml-2" />}
-                </div>
-              );
-            })}
-          </div>
+          items.map((item, index) => {
+            const isSelected = String(value) === String(item.id);
+            const isActive = index === activeIndex;
+            return (
+              <div
+                key={item.id}
+                role="option"
+                aria-selected={isSelected}
+                onClick={() => handleSelect(item)}
+                onMouseEnter={() => setActiveIndex(index)}
+                className={`group/cbx-option flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors ${
+                  isSelected
+                    ? 'bg-[var(--accent)] text-white'
+                    : isActive
+                      ? 'bg-[var(--surface-2)] text-[var(--text)]'
+                      : 'text-[var(--text)] hover:bg-[var(--surface-2)]'
+                }`}
+              >
+                <span className={`text-[12px] truncate ${isSelected ? 'font-semibold' : 'font-medium'}`}>
+                  {item[displayField] || item.id}
+                </span>
+                <span className="flex shrink-0 items-center gap-1">
+                  {isLookup && targetResource && (
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={(e) => handleOpenItemRecord(e, item)}
+                      onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                      title="Open record"
+                      className={`grid h-5 w-5 place-items-center rounded transition-all ${
+                        isSelected
+                          ? 'text-white/80 hover:bg-white/15 hover:text-white'
+                          : 'text-[var(--text-3)] opacity-0 group-hover/cbx-option:opacity-100 group-focus-within/cbx-option:opacity-100 hover:bg-[color-mix(in_oklch,var(--accent)_10%,transparent)] hover:text-[var(--accent)]'
+                      }`}
+                    >
+                      <ExternalLink size={11} />
+                    </button>
+                  )}
+                  {isSelected && <Check size={12} className="opacity-90" />}
+                </span>
+              </div>
+            );
+          })
         )}
       </div>
 
-      {!isSimple && targetResource && !disabled && (
-        <div className="p-2 border-t border-[var(--aras-border)] bg-[var(--aras-panel-soft)]/50">
-          <button 
+      {/* Footer: add new */}
+      {isLookup && targetResource && !disabled && (
+        <div className="p-1 border-t border-[var(--line)]">
+          <button
             type="button"
             onMouseDown={(e) => { e.preventDefault(); handleAddNew(); }}
-            className="flex items-center gap-2 w-full px-3 py-2 text-xs font-bold text-[var(--aras-accent)] hover:bg-[var(--aras-accent)] hover:text-white rounded-[var(--aras-radius)] transition-all"
+            className="flex items-center gap-1.5 w-full px-2.5 py-1.5 text-[11.5px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white rounded-[var(--radius-sm)] transition-colors"
           >
-            <Plus size={12} /> 
-            Add New Record
+            <Plus size={11} />
+            Add new record
           </button>
         </div>
       )}
@@ -313,59 +342,77 @@ const Combobox: React.FC<ComboboxProps> = ({
   );
 
   return (
-    <div className={`relative w-full ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`} ref={containerRef}>
+    <div
+      className={`group/cbx relative w-full ${disabled ? 'opacity-50 pointer-events-none' : ''}`}
+      ref={containerRef}
+    >
       <div
-        id={`combobox-button-${field?.name || resource}`}
+        id={`cbx-btn-${field?.name || resource}`}
         role="combobox"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        aria-controls={`combobox-listbox-${field?.name || resource}`}
         tabIndex={disabled ? -1 : 0}
         onClick={() => !disabled && setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
-        className={`aras-combobox-trigger flex items-center justify-between w-full min-h-[46px] px-4 bg-[var(--aras-panel-soft)] border rounded-[var(--aras-radius)] text-sm transition-all ${
-          disabled 
-            ? 'border-[var(--aras-border)] bg-[var(--aras-panel-soft)]' 
-            : isOpen 
-              ? 'border-[var(--aras-accent)] bg-[var(--aras-panel)] cursor-pointer shadow-[0_0_0_4px_color-mix(in_srgb,var(--aras-accent)_10%,transparent)]' 
-              : 'border-[var(--aras-border)] hover:border-[var(--aras-border-strong)] cursor-pointer'
-        }`}
+        className={`
+          flex items-center w-full ${triggerH} px-2.5 gap-1.5
+          bg-[var(--surface-2)] border border-[var(--line)] rounded-[var(--radius-sm)]
+          transition-all cursor-pointer select-none
+          ${isOpen
+            ? 'border-[var(--accent)] bg-[var(--surface)] shadow-[0_0_0_3px_color-mix(in_oklch,var(--accent)_18%,transparent)]'
+            : 'hover:border-[var(--line-2)] hover:bg-[var(--surface)]'
+          }
+        `}
       >
-        <div className="flex-1 truncate text-left pr-2">
+        {/* Value label */}
+        <div className={`flex-1 min-w-0 truncate ${triggerText}`}>
           {initialLoading ? (
-            <div className="flex items-center gap-1.5">
-              <Loader2 size={14} className="animate-spin text-[var(--aras-accent)]" />
-              <span className="text-[var(--aras-muted)]">Loading...</span>
-            </div>
+            <span className="flex items-center gap-1.5 text-[var(--text-3)]">
+              <Loader2 size={11} className="animate-spin text-[var(--accent)]" />
+              Loading…
+            </span>
           ) : selectedItem ? (
-            <span className={`text-[var(--aras-text)] ${isSimple ? 'font-medium' : 'font-semibold'}`}>{selectedItem[displayField] || selectedItem.id}</span>
+            <span className="font-medium text-[var(--text)] truncate">
+              {selectedItem[displayField] || selectedItem.id}
+            </span>
           ) : (
-            <span className="text-[var(--aras-muted)]">{placeholder}</span>
+            <span className="text-[var(--text-3)]">{placeholder}</span>
           )}
         </div>
-        
-        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-          {!isSimple && value && targetResource && !isOpen && (
+
+        {/* Action icons — always in trigger, visible on hover or when open/selected */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          {/* FK shortcut: navigate to selected record */}
+          {isLookup && value && !isOpen && (
             <button
               type="button"
               tabIndex={-1}
-              onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/${cleanResourcePath(targetResource)}/${value}`); }}
-              className="p-1 text-[var(--aras-muted)] hover:text-[var(--aras-accent)] rounded-[var(--app-radius)]"
-              title="View Record"
+              onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); handleOpenRecord(e); }}
+              title="Open record"
+              className="h-5 w-5 grid place-items-center rounded text-[var(--text-3)] opacity-0 group-hover/cbx:opacity-100 hover:!text-[var(--accent)] hover:bg-[color-mix(in_oklch,var(--accent)_10%,transparent)] transition-all"
             >
-              <ExternalLink size={12} />
+              <ExternalLink size={11} />
             </button>
           )}
+
+          {/* Clear */}
           {selectedItem && !disabled && (
-            <button 
+            <button
+              type="button"
               tabIndex={-1}
-              onClick={handleClear} 
-              className="p-1 text-[var(--aras-muted)] hover:text-red-500 rounded-[var(--app-radius)]"
+              onMouseDown={(e) => { e.preventDefault(); handleClear(e); }}
+              title="Clear"
+              className="h-5 w-5 grid place-items-center rounded text-[var(--text-3)] opacity-0 group-hover/cbx:opacity-100 hover:!text-[var(--danger)] hover:bg-[color-mix(in_oklch,var(--danger)_10%,transparent)] transition-all"
             >
-              <X size={12} />
+              <X size={11} />
             </button>
           )}
-          <ChevronDown size={14} className={`text-[var(--aras-muted)] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+
+          {/* Chevron */}
+          <ChevronDown
+            size={12}
+            className={`text-[var(--text-3)] transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`}
+          />
         </div>
       </div>
 

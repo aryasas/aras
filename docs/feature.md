@@ -214,6 +214,11 @@ This file is used only to report if there are feature added
 | 2026-05-16 | Reporting module, GRN + AP matching, financial reports, PostgreSQL migration, multi-tenant provisioner + REST API, demo/random invoice seeds, UI polish (empty states, skeletons, status badges, home cards), keyboard shortcuts, print/PDF, import validation, auto-discovery, saved filters, FIFO valuation, GL reconciliation, toast queue, dark mode charts |
 
 
+## RouterFactory Aggregation & Action Wrapping (2026-05-26)
+- [Gemini] Expanded `/aggregate` endpoint to support `min`, `max`, and `group_by` with subquery-based aggregation for performance and scope safety.
+- [Gemini] Fixed custom action response wrapping in `RouterFactory` to avoid double `ok()` envelopes when handlers already return standardized responses.
+
+
 ## ARAS SaaS Production Readiness (2026-05-25)
 - [Gemini 2.5 Flash] Implemented `GET /api/v1/saas/tenant-config` for plan delivery to tenants.
 - [Gemini 2.5 Flash] Implemented `POST /api/v1/saas/license/renew` with trial support.

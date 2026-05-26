@@ -4,7 +4,7 @@ from .models import Report
 class ReportView(Aras.View):
     model = Report
     title = "Reports"
-    icon = "pi pi-file-pdf"
+    icon = "FileDigit"
     layout = [
         {"title": "Identity", "fields": ["code", "name", "module", "report_type"]},
         {"title": "Query Config", "fields": ["linked_doctype", "query_filters"]},

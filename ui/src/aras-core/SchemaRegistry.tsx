@@ -16,6 +16,8 @@ export interface Field {
   target_resource?: string;
   fk_filter?: Record<string, string>;
   fk_filter_fallback?: Record<string, string>;
+  /** Use simple variant (no search/add-new/shortcut) for this lookup */
+  simple_combobox?: boolean;
 }
 
 export interface FieldProps {
@@ -43,7 +45,7 @@ const arrayValue = (value: FieldProps['value']): Array<string | number> =>
   Array.isArray(value) ? value : [];
 
 const DefaultInput: React.FC<FieldProps> = ({ value, onChange, field, disabled }) => {
-  const commonClass = "w-full h-9 px-3 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-[var(--aras-radius)] text-xs focus:border-[var(--aras-accent)] focus:ring-2 focus:ring-[var(--aras-accent)]/10 outline-none transition-all placeholder:text-[var(--aras-muted)] shadow-sm disabled:opacity-50 disabled:bg-[var(--aras-panel-soft)]";
+  const commonClass = "w-full h-8 px-3 bg-[var(--surface)] border border-[var(--line)] rounded-[6px] text-[12px] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/10 outline-none transition-all placeholder:text-[var(--text-3)] shadow-sm disabled:opacity-50 disabled:bg-[var(--surface-2)]";
   return (
     <input 
       type={field.type === 'email' ? 'email' : 'text'}
@@ -61,7 +63,7 @@ const NumberInput: React.FC<FieldProps> = ({ value, onChange, disabled }) => (
     type="number"
     value={inputValue(value)}
     onChange={(e) => onChange(e.target.value)}
-    className="w-full h-9 px-3 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-[var(--aras-radius)] text-xs focus:border-[var(--aras-accent)] focus:ring-2 focus:ring-[var(--aras-accent)]/10 outline-none transition-all shadow-sm disabled:opacity-50 disabled:bg-[var(--aras-panel-soft)]"
+    className="w-full h-8 px-3 bg-[var(--surface)] border border-[var(--line)] rounded-[6px] text-[12px] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/10 outline-none transition-all shadow-sm disabled:opacity-50 disabled:bg-[var(--surface-2)]"
     disabled={disabled}
     placeholder="0.00"
   />
@@ -77,16 +79,16 @@ const BooleanInput: React.FC<FieldProps> = ({ value, onChange, disabled }) => (
         className="peer sr-only"
         disabled={disabled}
       />
-      <div className="w-8 h-4.5 bg-slate-200 rounded-full peer-checked:bg-[var(--aras-accent)] transition-all"></div>
-      <div className="absolute left-0.5 top-0.5 w-3.5 h-3.5 bg-[var(--app-panel)] rounded-full transition-all peer-checked:left-4 shadow-sm"></div>
+      <div className="w-8 h-4.5 bg-slate-200 rounded-full peer-checked:bg-[var(--accent)] transition-all"></div>
+      <div className="absolute left-0.5 top-0.5 w-3.5 h-3.5 bg-[var(--surface)] rounded-full transition-all peer-checked:left-4 shadow-sm"></div>
     </div>
-    <span className="text-xs font-semibold text-[var(--aras-muted)] group-hover:text-[var(--aras-accent)] transition-colors">
+    <span className="text-xs font-semibold text-[var(--text-3)] group-hover:text-[var(--accent)] transition-colors">
       {value ? 'Yes' : 'No'}
     </span>
   </label>
 );
 
-const DATE_CLASS = "w-full h-9 px-3 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-[var(--aras-radius)] text-xs focus:border-[var(--aras-accent)] focus:ring-2 focus:ring-[var(--aras-accent)]/10 transition-all cursor-pointer shadow-sm disabled:opacity-50 disabled:bg-[var(--aras-panel-soft)]";
+const DATE_CLASS = "w-full h-8 px-3 bg-[var(--surface)] border border-[var(--line)] rounded-[6px] text-[12px] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/10 transition-all cursor-pointer shadow-sm disabled:opacity-50 disabled:bg-[var(--surface-2)]";
 
 const DateInput: React.FC<FieldProps> = ({ value, onChange, disabled }) => (
   <input
@@ -127,7 +129,7 @@ const TextAreaInput: React.FC<FieldProps> = ({ value, onChange, field, disabled 
     value={inputValue(value)} 
     onChange={(e) => onChange(e.target.value)}
     disabled={disabled}
-    className="w-full px-3 py-2 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-[var(--aras-radius)] text-xs focus:border-[var(--aras-accent)] focus:ring-2 focus:ring-[var(--aras-accent)]/10 outline-none transition-all shadow-sm placeholder:text-[var(--aras-muted)] disabled:opacity-50 disabled:bg-[var(--aras-panel-soft)]"
+    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--line)] rounded-[6px] text-[12px] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/10 outline-none transition-all shadow-sm placeholder:text-[var(--text-3)] disabled:opacity-50 disabled:bg-[var(--surface-2)]"
     placeholder={`Enter ${field.label.toLowerCase()}...`}
   />
 );
@@ -168,6 +170,7 @@ const components: Record<string, React.FC<FieldProps>> = {
         placeholder={`Select ${props.field.label}...`}
         disabled={props.disabled}
         extraFilters={Object.keys(extraFilters ?? {}).length ? extraFilters as Record<string, string | number | boolean> : undefined}
+        variant={props.field.simple_combobox ? 'simple' : 'lookup'}
       />
     );
   },
@@ -231,7 +234,7 @@ export function resolveFilterComponent(field: Field): React.ComponentType<FieldP
         type="date"
         value={stringValue(props.value).split('T')[0]}
         onChange={(e) => props.onChange(e.target.value)}
-        className="w-full h-9 px-3 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-[var(--aras-radius)] text-xs outline-none focus:border-[var(--aras-accent)] transition-all shadow-sm"
+        className="w-full h-8 px-3 bg-[var(--surface)] border border-[var(--line)] rounded-[6px] text-[12px] outline-none focus:border-[var(--accent)] transition-all shadow-sm"
       />
     );
   }
@@ -241,7 +244,7 @@ export function resolveFilterComponent(field: Field): React.ComponentType<FieldP
         type="datetime-local"
         value={stringValue(props.value).split('.')[0]}
         onChange={(e) => props.onChange(e.target.value)}
-        className="w-full h-9 px-3 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-[var(--aras-radius)] text-xs outline-none focus:border-[var(--aras-accent)] transition-all shadow-sm"
+        className="w-full h-8 px-3 bg-[var(--surface)] border border-[var(--line)] rounded-[6px] text-[12px] outline-none focus:border-[var(--accent)] transition-all shadow-sm"
       />
     );
   }
@@ -251,7 +254,7 @@ export function resolveFilterComponent(field: Field): React.ComponentType<FieldP
       value={inputValue(props.value)}
       placeholder="Value..."
       onChange={(e) => props.onChange(e.target.value)}
-      className="w-full h-9 px-3 bg-[var(--aras-panel)] border border-[var(--aras-border)] rounded-[var(--aras-radius)] text-xs outline-none focus:border-[var(--aras-accent)] transition-all shadow-sm"
+      className="w-full h-8 px-3 bg-[var(--surface)] border border-[var(--line)] rounded-[6px] text-[12px] outline-none focus:border-[var(--accent)] transition-all shadow-sm"
     />
   );
 }

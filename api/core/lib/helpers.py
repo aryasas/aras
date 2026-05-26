@@ -38,3 +38,9 @@ def slugify(text: str) -> str:
     text = re.sub(r'[\s_-]+', '-', text)
     text = re.sub(r'^-+|-+$', '', text)
     return text
+
+def to_label_case(name: str) -> str:
+    """Converts snake_case or technical names to human-readable labels."""
+    if not name:
+        return ""
+    return name.replace("_", " ").title()

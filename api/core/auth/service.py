@@ -32,9 +32,10 @@ def user_can_access_org(db: Session, user: User, org_id: int) -> bool:
     """Return whether a user is allowed to operate in an organization context."""
     if user.is_admin:
         return True
-    try:
-        from apps.config.erp_rbac import get_access
-    except ImportError:
+    
+    from ..service_registry import ServiceRegistry
+    get_access = ServiceRegistry.get("get_access")
+    if not get_access:
         return False
 
     access = get_access(db, user.id)
@@ -47,9 +48,10 @@ def user_org_scope(db: Session, user: User) -> Optional[list[int]]:
     """Return allowed org IDs for scoped filtering; None means unrestricted."""
     if user.is_admin:
         return None
-    try:
-        from apps.config.erp_rbac import get_access
-    except ImportError:
+    
+    from ..service_registry import ServiceRegistry
+    get_access = ServiceRegistry.get("get_access")
+    if not get_access:
         return []
 
     access = get_access(db, user.id)

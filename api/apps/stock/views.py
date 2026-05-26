@@ -15,7 +15,7 @@ class DeliveryNoteLineView(Aras.View):
 class ItemCategoryView(Aras.View):
     model = ItemCategory
     title = "Item Categories"
-    icon = "pi pi-tags"
+    icon = "Tags"
     layout = [
         {
             "key": "general",
@@ -27,7 +27,7 @@ class ItemCategoryView(Aras.View):
 class ItemView(Aras.View):
     model = Item
     title = "Items"
-    icon = "pi pi-box"
+    icon = "Box"
     layout = [
         {
             "key": "general",
@@ -103,7 +103,7 @@ class PromoBundleItemView(Aras.View):
 class LocationView(Aras.View):
     model = Location
     title = "Locations"
-    icon = "pi pi-map-marker"
+    icon = "MapPin"
     layout = [
         {"title": "General", "fields": ["name", "location_type", "is_group", "parent_id"]}
     ]
@@ -111,7 +111,7 @@ class LocationView(Aras.View):
 class StockMovementView(Aras.View):
     model = StockMovement
     title = "Stock Movements"
-    icon = "pi pi-sync"
+    icon = "RefreshCw"
     layout = [
         {"title": "Header", "fields": ["number", "doc_date", "status"]},
         {"title": "Route", "fields": ["from_location_id", "to_location_id"]},
@@ -126,7 +126,7 @@ class StockMovementLineView(Aras.View):
 class DeliveryNoteView(Aras.View):
     model = DeliveryNote
     title = "Delivery Notes"
-    icon = "pi pi-truck"
+    icon = "Truck"
     layout = [
         {"title": "Header", "fields": ["number", "party_id", "doc_date", "status"]},
         {"title": "Source", "fields": ["location_id"]},

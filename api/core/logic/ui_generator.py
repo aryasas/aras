@@ -92,8 +92,9 @@ class UIGenerator(Service):
 
             # Apply DB Overrides if present
             # Removed direct translation logic here, will be handled by TranslationService
+            from ..aras import Aras
             label = db_field.label if db_field and db_field.label else \
-                    column.info.get("label", column.name.replace("_id", "").replace("_", " ").title())
+                    column.info.get("label", Aras.helper.to_label_case(column.name.replace("_id", "")))
             
             final_ui_type = db_field.ui_type if db_field and db_field.ui_type else ui_type
             is_hidden = db_field.is_hidden if db_field and db_field.is_hidden is not None else column.info.get("hidden", False)
@@ -143,35 +144,9 @@ class UIGenerator(Service):
             fields.append(field_info)
 
         # Helper: resolve REST API path for any table name
-        from ..base.app import App as _App
-        from ..aras import Aras as _Aras
+        from ..service_registry import ServiceRegistry
         def resolve_api_path(tablename: str) -> Optional[str]:
-            for a in _App._registry.values():
-                for m in a.models:
-                    if getattr(m, "__tablename__", None) == tablename:
-                        seg = tablename
-                        full_prefix = f"{a.parent_name}_{a.app_name}_" if a.parent_name and a.app_name else None
-                        table_prefix = f"{a.table_prefix}_" if a.table_prefix else None
-                        if table_prefix and seg.startswith(table_prefix):
-                            seg = seg[len(table_prefix):]
-                        elif full_prefix and seg.startswith(full_prefix):
-                            seg = seg[len(full_prefix):]
-                        elif a.app_name and seg.startswith(f"{a.app_name}_"):
-                            seg = seg[len(a.app_name)+1:]
-                        elif a.parent_name and seg.startswith(f"{a.parent_name}_"):
-                            seg = seg[len(a.parent_name)+1:]
-                        return f"{a._get_clean_path()}/{seg.replace('_', '-')}".lstrip("/")
-            
-            # Check core models
-            core_models = [
-                _Aras.User, _Aras.Role, _Aras.Permission, _Aras.ActivityLog, _Aras.ArasSetting,
-                _Aras.AppModel, _Aras.ResourceModel, _Aras.FieldModel, _Aras.LinkModel, _Aras.TranslationModel,
-                _Aras.WidgetModel, _Aras.DashboardLayoutModel
-            ]
-            for m in core_models:
-                if getattr(m, "__tablename__", None) == tablename:
-                    return tablename
-            return None
+            return ServiceRegistry.get_resource_path(tablename)
 
         # 4. Include Many-to-Many (Bridge) and Child Table Fields
         if db and db_resource:
@@ -244,9 +219,10 @@ class UIGenerator(Service):
                 if child_table and child_table not in db_linked_children:
                     if not any(c.get("resource") == child_table for c in children):
                         children.append(child_entry)
+                    from ..aras import Aras
                     fields.append({
                         "name": child_table,
-                        "label": child_table.replace("_", " ").title(),
+                        "label": Aras.helper.to_label_case(child_table),
                         "type": "child_table",
                         "required": False,
                         "target_resource": child_table,
@@ -264,9 +240,10 @@ class UIGenerator(Service):
             # Fallback to code definition if DB not synced yet
             m2m_defs = getattr(model_class, "__m2m__", {})
             for field_name, defs in m2m_defs.items():
+                from ..aras import Aras
                 fields.append({
                     "name": field_name,
-                    "label": defs.get("label", field_name.replace("_", " ").title()),
+                    "label": defs.get("label", Aras.helper.to_label_case(field_name)),
                     "type": "bridge",
                     "required": False,
                     "target_resource": defs.get("target_resource"),
@@ -282,9 +259,10 @@ class UIGenerator(Service):
             # Fallback for children
             for child_entry in child_map.get(resource_name, []):
                 child_table = child_entry.get("resource")
+                from ..aras import Aras
                 fields.append({
                     "name": child_table,
-                    "label": child_table.replace("_", " ").title(),
+                    "label": Aras.helper.to_label_case(child_table),
                     "type": "child_table",
                     "required": False,
                     "target_resource": child_table,
@@ -298,7 +276,9 @@ class UIGenerator(Service):
 
         # 5. Include Computed Fields
         for name in getattr(model_class, "_computed", []):
-            label = name.replace("_", " ").title()
+            from ..aras import Aras
+            label = Aras.helper.to_label_case(name)
+
             fields.append({
                 "name": name,
                 "label": label,
@@ -324,7 +304,8 @@ class UIGenerator(Service):
         def clean_label(name):
             if app_cls:
                 return app_cls._get_clean_label(name)
-            return name.replace("_", " ").title()
+            from ..aras import Aras
+            return Aras.helper.to_label_case(name)
 
         api_path = resolve_api_path(resource_name)
 
@@ -351,10 +332,11 @@ class UIGenerator(Service):
         for action_name, model_action in model_class._actions.items():
             schema_fields = None
             if model_action.input_schema is not None:
+                from ..aras import Aras
                 schema_fields = [
                     {
                         "name": fname,
-                        "label": fname.replace("_", " ").title(),
+                        "label": Aras.helper.to_label_case(fname),
                         "required": info.is_required(),
                         "type": _pydantic_type_to_ui(info.annotation),
                     }

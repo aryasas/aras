@@ -220,3 +220,8 @@ This file is used only to report if there are fix
 - [Codex/GPT-5.5] Restricted startup sync/bootstrap writes to non-production modes.
 - [Codex/GPT-5.5] Moved browser auth JWT storage from persistent `localStorage` to `sessionStorage` with legacy token cleanup.
 - [Codex/GPT-5.5] Fixed public SaaS pricing/signup pages to show only the current public plans (`free`, `lite`, `growth`, `business`) and to use EN/ID language strings.
+
+## Framework Quality Fixes (2026-05-26)
+- [Gemini] Fixed `strokeDashoffset` SVG attribute in `DashboardView.tsx` by removing redundant `String()` wrapper, satisfying SVG attribute numeric type requirements.
+- [Gemini] Added missing `key` fields to `PotSessionView` layout definitions in `pot/views.py` to ensure consistent rendering and prevent React key warnings.
+- [Gemini] Renamed "Totals" tab to "Financials" in `InflowInvoiceView` and `OutflowInvoiceView` within `accounting/views.py` to align with organizational naming standards.

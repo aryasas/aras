@@ -11,3 +11,8 @@ class SaaSApp(App):
     have_home = True
     routers = [router]
     models = autodiscover_models(__name__, ["models"])
+
+    @classmethod
+    def seed(cls, db):
+        from .plans import seed_default_plans
+        seed_default_plans(db)

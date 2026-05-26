@@ -49,6 +49,7 @@ from . import logic
 from . import api
 from . import tenant
 from .lib import helpers as helper
+from .service_registry import ServiceRegistry
 
 class Aras(BaseAras):
     """
@@ -62,6 +63,7 @@ class Aras(BaseAras):
     api = api
     tenant = tenant
     helper = helper
+    ServiceRegistry = ServiceRegistry
 
     # Core Abstractions (Level 2)
     Model = Model

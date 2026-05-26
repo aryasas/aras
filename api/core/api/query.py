@@ -116,11 +116,16 @@ def global_search(
                         getattr(item, "title",
                         getattr(item, "username",
                         getattr(item, "number", f"{model_class.__name__} #{item.id}"))))
+                
+                from ..base.view import View
+                view_cls = View._view_map.get(model_class.__tablename__)
+                type_label = view_cls.title if view_cls and view_cls.title else model_class.__name__
+
                 results.append({
                     "resource": model_class.__tablename__,
                     "id": item.id,
                     "label": str(label),
-                    "type": getattr(model_class, "__title__", model_class.__name__)
+                    "type": type_label
                 })
                 search_count += 1
         except Exception as e:

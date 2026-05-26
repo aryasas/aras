@@ -159,7 +159,7 @@ const ChartWidget: WidgetComponent = ({ widget }) => {
                 return (
                   <circle key={i} cx="16" cy="16" r="16" fill="transparent"
                           stroke={colors[i % colors.length]} strokeWidth="32"
-                          strokeDasharray={`${percentage} 100`} strokeDashoffset={String(strokeDashoffset)} />
+                          strokeDasharray={`${percentage} 100`} strokeDashoffset={strokeDashoffset} />
                 )
               })}
             </svg>

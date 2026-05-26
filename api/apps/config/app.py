@@ -57,3 +57,8 @@ class Config(Aras.App):
             "models": ["erp_config_print_templates", "erp_config_notifications"]
         },
     ]
+
+    @classmethod
+    def seed(cls, db):
+        from .seed_rbac import run_seed as seed_rbac
+        seed_rbac(db)

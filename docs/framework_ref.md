@@ -39,7 +39,7 @@
 | `Aras.ResourceModel` | `aras_resources` | table/model metadata |
 | `Aras.FieldModel` | `aras_fields` | field-level UI overrides |
 | `Aras.LinkModel` | `aras_links` | relationship metadata |
-| `Aras.TranslationModel` | `aras_translations` | i18n label records |
+| `Aras.TranslationModel` | `translations` | i18n label records |
 | `Aras.WidgetModel` | `aras_widgets` | dashboard widget definitions |
 | `Aras.DashboardLayoutModel` | `aras_dashboard_layouts` | per-user dashboard configs |
 | `Aras.ActivityLog` | `aras_activity_logs` | audit trail |
@@ -167,7 +167,7 @@ ui/src/
 │   ├── hooks/useAras.ts       # PRIMARY hook: notify, confirm, api
 │   └── services/              # FormattingService, MetadataService, SchemaRegistry
 ├── layouts/                   # MainLayout + Sidebar + Header
-├── views/                     # 14 page views
+├── views/                     # 37 page views
 ├── store/                     # authStore, uiStore
 └── lib/                       # api.ts (Axios), LogicEvaluator.ts
 ```
@@ -361,6 +361,9 @@ Each ERP domain is a **standalone top-level `Aras.App`** — no parent `erp` cla
 |---|---|---|
 | `apps/saas/` | `saas` | Plan, Subscription, LicenseToken, ActivationRequest |
 | `apps/web/` | `web` | WebPage, WebMenuItem, ContactSubmission, SiteSetting |
+| `apps/notes/` | `notes` | Note (`notes_note`) |
+| `apps/ticket/` | `ticket` | Team, Category, Ticket, TicketMessage (prefix: `erp_ticket`) |
+| `apps/dev/` | `dev` | HandoffRun (`dev_handoff_runs`), TemplateAnnotation (`dev_template_annotations`) |
 
 ---
 

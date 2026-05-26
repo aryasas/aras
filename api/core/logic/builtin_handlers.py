@@ -1,15 +1,12 @@
-"""
-Purpose: Built-in workflow side-effect handlers registered at framework startup.
-Context: Apps can override any handler by calling HandlerRegistry.register with the same name.
-Impact: Powers DB-driven workflow transitions with reusable accounting and stock logic.
-"""
 from .handler_registry import HandlerRegistry
+from core.service_registry import ServiceRegistry
 
 
 @HandlerRegistry.register("post_stock_movement", "Create StockMovement lines from document lines")
 def post_stock_movement(db, item, params: dict):
-    from apps.stock.services.stock import StockComputeService
-    from apps.stock.models import StockMovement, StockMovementLine
+    StockComputeService = ServiceRegistry.get("StockComputeService")
+    StockMovement = ServiceRegistry.get("StockMovement")
+    StockMovementLine = ServiceRegistry.get("StockMovementLine")
 
     move_type = params.get("move_type", "Outgoing")
     location_field = params.get("location_field", "location_id")
@@ -18,7 +15,7 @@ def post_stock_movement(db, item, params: dict):
     org_id = getattr(item, "org_id", None)
     currency_id = getattr(item, "currency_id", None)
     if not currency_id and org_id:
-        from apps.config.models import Organization
+        Organization = ServiceRegistry.get("Organization")
         org = db.get(Organization, org_id)
         currency_id = getattr(org, "base_currency_id", None) if org else None
 
@@ -61,10 +58,11 @@ def post_journal_entry(db, item, params: dict):
       account_credit_id: int (simple mode)
       use_product_category_accounts: bool
     """
-    from apps.accounting.services.journal import JournalService
-    from apps.stock.services.stock import StockComputeService
-    from apps.stock.models import Product, ProductCategory
-    from apps.config.models import Organization
+    JournalService = ServiceRegistry.get("JournalService")
+    StockComputeService = ServiceRegistry.get("StockComputeService")
+    Product = ServiceRegistry.get("Product")
+    ProductCategory = ServiceRegistry.get("ProductCategory")
+    Organization = ServiceRegistry.get("Organization")
 
     mode = params.get("mode", "simple")
     org_id = getattr(item, "org_id", None)
@@ -123,8 +121,9 @@ def post_journal_entry(db, item, params: dict):
 
 @HandlerRegistry.register("create_invoice_from_delivery", "Auto-create Sales Invoice from Delivery Note")
 def create_invoice_from_delivery(db, item, params: dict):
-    from apps.accounting.models import InflowInvoice, InflowInvoiceLine
-    from apps.stock.services.price import PriceService
+    InflowInvoice = ServiceRegistry.get("InflowInvoice")
+    InflowInvoiceLine = ServiceRegistry.get("InflowInvoiceLine")
+    PriceService = ServiceRegistry.get("PriceService")
 
     invoice = InflowInvoice(
         org_id=getattr(item, "org_id", None),
@@ -150,7 +149,7 @@ def create_invoice_from_delivery(db, item, params: dict):
 
 @HandlerRegistry.register("send_notification", "Send in-app notification to a user or role")
 def send_notification(db, item, params: dict):
-    from apps.config.models import Notification
+    Notification = ServiceRegistry.get("Notification")
 
     template = params.get("message_template", "Document {number} changed to {status}")
     message = template.format(

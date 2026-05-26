@@ -17,8 +17,7 @@ export default function MainLayout() {
   const [sidebarData, setSidebarData] = useState<SidebarApp[]>([])
   const { organizations, activeOrgId, setActiveOrg } = useAuthStore()
   const location = useLocation()
-  const activeOrganization = organizations.find((organization) => organization.id === activeOrgId)
-  const { notify } = useAras()
+const { notify } = useAras()
   const { closePanel, themeMode, cornerMode, density, fontScale, accentColor, iconRailCollapsed, toggleIconRail } = useUIStore()
 
   const layoutStyle = {
@@ -109,9 +108,7 @@ export default function MainLayout() {
                 onChange={(val) => setActiveOrg(Number(val))}
                 placeholder="Select Organization"
               />
-            ) : (
-              <span className="arc-id"><b>{activeOrganization?.name || 'org'}</b></span>
-            )}
+            ) : null}
           </div>
         </Header>
 

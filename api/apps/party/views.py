@@ -4,7 +4,7 @@ from .models import Party, Contact
 class PartyView(Aras.View):
     model = Party
     title = "Parties"
-    icon = "pi pi-users"
+    icon = "Users"
     layout = [
         {
             "key": "identity",
@@ -26,7 +26,7 @@ class PartyView(Aras.View):
 class ContactView(Aras.View):
     model = Contact
     title = "Contacts"
-    icon = "pi pi-user"
+    icon = "User"
     layout = [
         {
             "key": "info",

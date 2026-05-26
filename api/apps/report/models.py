@@ -25,7 +25,7 @@ class Report(MasterDataBase):
         if self.script:
             raise ValidationException("Raw SQL and Python script reports are disabled. Use builtin or ORM report definitions.")
 
-    @Aras.model_action(name="generate_report", permission="read", label="Generate Report", icon="pi pi-play")
+    @Aras.model_action(name="generate_report", permission="read", label="Generate Report", icon="Play")
     def generate_report(self, db):
         """
         Action to execute the report logic.

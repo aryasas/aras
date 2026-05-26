@@ -81,3 +81,12 @@ class Accounting(Aras.App):
             "models": ["erp_accounting_payments"]
         }
     ]
+
+    @classmethod
+    def seed(cls, db):
+        from .seed_coa import seed_coa
+        # Use first org for COA seed if available
+        from apps.config.models import Organization
+        org = db.query(Organization).first()
+        if org:
+            seed_coa(db, org.id)

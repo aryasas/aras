@@ -5,29 +5,29 @@ from .models import WebPage, WebMenuItem, ContactSubmission, SiteSetting, Landin
 class WebPageView(Aras.View):
     model = WebPage
     title = "Pages"
-    icon = "pi pi-file"
+    icon = "FileText"
 
 
 class WebMenuItemView(Aras.View):
     model = WebMenuItem
     title = "Menu Items"
-    icon = "pi pi-bars"
+    icon = "Menu"
 
 
 class ContactSubmissionView(Aras.View):
     model = ContactSubmission
     title = "Contact Submissions"
-    icon = "pi pi-envelope"
+    icon = "Mail"
 
 
 class SiteSettingView(Aras.View):
     model = SiteSetting
     title = "Site Settings"
-    icon = "pi pi-cog"
+    icon = "Settings"
 
 
 # gemini-flash
 class LandingSectionView(Aras.View):
     model = LandingSection
     title = "Landing Sections"
-    icon = "pi pi-images"
+    icon = "Image"

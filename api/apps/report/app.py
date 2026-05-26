@@ -19,3 +19,11 @@ class ReportApp(Aras.App):
             "models": ["erp_report_reports"]
         }
     ]
+
+    @classmethod
+    def seed(cls, db):
+        from .seed_reports import run_seed as seed_reports
+        from apps.config.models import Organization
+        org = db.query(Organization).first()
+        if org:
+            seed_reports(db, org.id)

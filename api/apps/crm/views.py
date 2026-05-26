@@ -4,7 +4,7 @@ from .models import Lead, Pipeline, Stage, Activity
 class PipelineView(Aras.View):
     model = Pipeline
     title = "Pipelines"
-    icon = "pi pi-sitemap"
+    icon = "Network"
     layout = [
         {
             "key": "general",
@@ -16,7 +16,7 @@ class PipelineView(Aras.View):
 class LeadView(Aras.View):
     model = Lead
     title = "Leads & Opportunities"
-    icon = "pi pi-filter"
+    icon = "Filter"
     layout = [
         {"title": "Identity", "fields": ["lead_type", "name", "party_id", "status"]},
         {"title": "Contact", "fields": ["contact_name", "contact_email", "contact_phone"]},

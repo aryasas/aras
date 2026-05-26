@@ -46,7 +46,7 @@ class App(Aras):
             clean = clean[len(cls.app_name)+1:]
         if cls.parent_name and clean.startswith(f"{cls.parent_name}_"):
             clean = clean[len(cls.parent_name)+1:]
-        return clean.replace("_", " ").title()
+        return Aras.helper.to_label_case(clean)
 
     @classmethod
     def _get_clean_path(cls, model_name: str = None) -> str:
@@ -192,3 +192,8 @@ class App(Aras):
             "models": [m.__tablename__ for m in cls.models if hasattr(m, "__tablename__")],
             "menu_groups": cls.menu_groups
         }
+
+    @classmethod
+    def seed(cls, db: Any):
+        """Seeds initial data for the app. Subclasses should override this."""
+        pass

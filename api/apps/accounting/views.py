@@ -5,7 +5,7 @@ from .models import Account, JournalEntry, JournalEntryLine, InflowInvoice, Outf
 
 class AccountView(Aras.View):
     model = Account
-    icon = "pi pi-list"
+    icon = "List"
     fields = {
         "is_group": {"title": "Is Group Account", "ui_type": "boolean"},
         "account_type": {"title": "Type"}
@@ -36,7 +36,7 @@ class FiscalPeriodView(Aras.View):
 
 class JournalEntryView(Aras.View):
     model = JournalEntry
-    icon = "pi pi-book"
+    icon = "Book"
     layout = [
         {"title": "Header", "fields": ["number", "doc_date", "status", "currency_id", "source_type", "source_id"]},
         {"title": "Lines", "fields": ["lines"]},
@@ -55,13 +55,13 @@ class JournalEntryLineView(Aras.View):
 class InflowInvoiceView(Aras.View):
     model = InflowInvoice
     title = "Inflow Invoices"
-    icon = "pi pi-file"
+    icon = "FileText"
     layout = [
         {"title": "Header", "fields": ["number", "party_id", "doc_date", "doc_type", "pricelist_id", "status", "currency_id"]},
         {"title": "Items", "fields": ["lines"]},
         {"title": "Taxes & Charges", "fields": ["charges"]},
         {"title": "Financials", "tabs": [
-            {"title": "Totals", "fields": ["subtotal", "total_charge", "total_amount"]},
+            {"title": "Financials", "fields": ["subtotal", "total_charge", "total_amount"]},
             {"title": "Payments", "fields": ["amount_paid", "amount_due", "payment_allocations"]},
             {"title": "Journal Entries", "fields": ["journal_entries"]},
         ]},
@@ -71,13 +71,13 @@ class InflowInvoiceView(Aras.View):
 class OutflowInvoiceView(Aras.View):
     model = OutflowInvoice
     title = "Outflow Invoices"
-    icon = "pi pi-file-pdf"
+    icon = "FileDigit"
     layout = [
         {"title": "Header", "fields": ["number", "party_id", "doc_date", "doc_type", "pricelist_id", "status", "currency_id"]},
         {"title": "Items", "fields": ["lines"]},
         {"title": "Taxes & Charges", "fields": ["charges"]},
         {"title": "Financials", "tabs": [
-            {"title": "Totals", "fields": ["subtotal", "total_charge", "total_amount"]},
+            {"title": "Financials", "fields": ["subtotal", "total_charge", "total_amount"]},
             {"title": "Payments", "fields": ["amount_paid", "amount_due", "payment_allocations"]},
             {"title": "Journal Entries", "fields": ["journal_entries"]},
         ]},
@@ -86,7 +86,7 @@ class OutflowInvoiceView(Aras.View):
 
 class PaymentView(Aras.View):
     model = Payment
-    icon = "pi pi-wallet"
+    icon = "Wallet"
     fields = {
         "allocations.invoice_type": {"read_only": True},
         "allocations.invoice_id": {"ui_type": "async_select", "choices_url": "/api/v1/accounting/payments/{parent_id}/open_invoices", "display_field": "number"},

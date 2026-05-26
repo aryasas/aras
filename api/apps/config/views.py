@@ -4,7 +4,7 @@ from .models import Organization, Currency, Uom, PriceType, Charge, ExchangeRate
 class OrganizationView(Aras.View):
     model = Organization
     title = "Organizations"
-    icon = "pi pi-building"
+    icon = "Building"
     layout = [
         {"title": "Identity", "fields": ["code", "name", "legal_name", "trade_name", "tax_id", "is_group", "parent_id", "profile", "unit_type"]},
         {"title": "Contact & Branding", "fields": ["phone", "email", "website", "address", "logo_path"]},
@@ -27,7 +27,7 @@ class OrganizationView(Aras.View):
 class CurrencyView(Aras.View):
     model = Currency
     title = "Currencies"
-    icon = "pi pi-money-bill"
+    icon = "Banknote"
     layout = [
         {
             "key": "general",
@@ -39,7 +39,7 @@ class CurrencyView(Aras.View):
 class UomView(Aras.View):
     model = Uom
     title = "Units of Measure"
-    icon = "pi pi-tag"
+    icon = "Tag"
     layout = [
         {
             "key": "general",
@@ -51,12 +51,12 @@ class UomView(Aras.View):
 class PriceTypeView(Aras.View):
     model = PriceType
     title = "Price Types"
-    icon = "pi pi-list"
+    icon = "List"
 
 class ChargeView(Aras.View):
     model = Charge
     title = "Taxes & Charges"
-    icon = "pi pi-percentage"
+    icon = "Percent"
     layout = [
         {"title": "Configuration", "fields": ["name", "charge_type", "calc_method", "rate", "amount"]},
         {"title": "Accounting", "fields": ["account_collected_id", "account_paid_id"]},
@@ -66,7 +66,7 @@ class ChargeView(Aras.View):
 class ExchangeRateView(Aras.View):
     model = ExchangeRate
     title = "Exchange Rates"
-    icon = "pi pi-chart-line"
+    icon = "TrendingUp"
     layout = [
         {
             "key": "general",
@@ -78,13 +78,13 @@ class ExchangeRateView(Aras.View):
 class SettingView(Aras.View):
     model = Setting
     title = "Settings"
-    icon = "pi pi-sliders-h"
+    icon = "Sliders"
 
 
 class ModeOfPaymentView(Aras.View):
     model = ModeOfPayment
     title = "Payment Modes"
-    icon = "pi pi-credit-card"
+    icon = "CreditCard"
     layout = [
         {
             "key": "general",
@@ -96,7 +96,7 @@ class ModeOfPaymentView(Aras.View):
 class PrintTemplateView(Aras.View):
     model = PrintTemplate
     title = "Print Templates"
-    icon = "pi pi-print"
+    icon = "Printer"
     layout = [
         {
             "key": "general",
@@ -108,4 +108,4 @@ class PrintTemplateView(Aras.View):
 class NotificationView(Aras.View):
     model = Notification
     title = "Notifications"
-    icon = "pi pi-bell"
+    icon = "Bell"
