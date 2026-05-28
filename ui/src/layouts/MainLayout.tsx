@@ -11,7 +11,6 @@ import { Building2, ChevronRight } from 'lucide-react'
 import { useAras } from '../aras-core/hooks/useAras'
 import { useUIStore } from '../store/uiStore'
 import SimpleCombobox from '../aras-core/components/SimpleCombobox'
-import TweaksPanel from '../aras-core/components/TweaksPanel'
 
 export default function MainLayout() {
   const [sidebarData, setSidebarData] = useState<SidebarApp[]>([])
@@ -91,7 +90,6 @@ const { notify } = useAras()
         </button>
       )}
 
-      <TweaksPanel />
       <div id="content-wrapper"
            className="flex flex-col flex-1 min-w-0 h-full overflow-hidden relative z-10">
         <Header>

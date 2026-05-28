@@ -4,13 +4,14 @@ import api from '../../lib/api'
 import { cleanResourcePath } from '../../lib/resourceUtils'
 import {
   Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  CheckSquare, Square, X,
+  CheckSquare, Square, X, Pencil,
   ChevronDown, ChevronUp, Trash2, Search
 } from 'lucide-react'
 import { resolveFieldComponent, resolveFilterComponent } from '../SchemaRegistry'
 import { useAras } from '../hooks/useAras'
 import { useUIStore } from '../../store/uiStore'
 import Combobox from './Combobox'
+import FormSettings from './FormSettings'
 
 import ListViewActionBar from './ListViewActionBar'
 import type { ViewMode } from './ListViewActionBar'
@@ -30,6 +31,12 @@ interface Field {
   searchable: boolean
   target_resource?: string
   options?: { label: string; value: any }[]
+  section?: string
+}
+
+interface ListTab {
+  label: string
+  filter: { field: string; value: any }
 }
 
 interface Metadata {
@@ -38,6 +45,7 @@ interface Metadata {
   title: string
   fields: Field[]
   is_auditable?: boolean
+  list_tabs?: ListTab[]
 }
 
 interface FilterRule {
@@ -68,6 +76,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const [loading, setLoading] = useState(true)
   const { notify, confirm } = useAras()
   const setPageTitle = useUIStore(state => state.setPageTitle)
+  const showPanel = useUIStore(state => state.showPanel)
+  const inlineEdit = useUIStore(state => state.inlineEdit)
 
   // Query State
   const [page, setPage] = useState(1)
@@ -94,6 +104,9 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const [bulkEditing, setBulkEditing] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [groupField, setGroupField] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<number>(0)
+  const [editingCell, setEditingCell] = useState<{ id: string | number; field: string } | null>(null)
+  const [editingValue, setEditingValue] = useState<any>('')
 
   const roleFilter = searchParams.get('role') || 'all'
   const isPartyResource = useMemo(() => /(^|\/)(parties|party)$/.test(cleanResourcePath(resource)), [resource])
@@ -130,9 +143,15 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           allFilters.push({ field, op: '=', value })
         })
       }
-      
+
       if (isPartyResource && roleFilter !== 'all') {
         allFilters.push({ field: 'role', op: '=', value: roleFilter })
+      }
+
+      const listTabs = metadata?.list_tabs ?? []
+      if (listTabs.length > 0 && activeTab > 0 && listTabs[activeTab - 1]) {
+        const tabFilter = listTabs[activeTab - 1].filter
+        allFilters.push({ field: tabFilter.field, op: '=', value: tabFilter.value })
       }
 
       if (allFilters.length > 0) {
@@ -149,7 +168,9 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     } finally {
       setLoading(false)
     }
-  }, [resource, metadata, page, perPage, orderBy, desc, debouncedSearch, filters, fixedFilters, isPartyResource, roleFilter, notify])
+  }, [resource, metadata, page, perPage, orderBy, desc, debouncedSearch, filters, fixedFilters, isPartyResource, roleFilter, notify, activeTab])
+
+  useEffect(() => { setActiveTab(0) }, [resource])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -163,7 +184,13 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         const defaultVisible = meta.fields
           .filter((f: any) => !f.list_hidden && !f.hidden)
           .map((f: any) => f.name)
-        setVisibleColumns(defaultVisible)
+        try {
+          const pref = await api.get('/user_preference', { params: { key: `columns:${cleanResource}` }, signal: controller.signal })
+          const saved = typeof pref.data?.value === 'string' ? JSON.parse(pref.data.value) : pref.data?.value
+          setVisibleColumns(Array.isArray(saved) ? saved : defaultVisible)
+        } catch {
+          setVisibleColumns(defaultVisible)
+        }
         const statusField = meta.fields.find((f: any) => f.name === 'status' || f.name === 'state')
         if (statusField) setGroupField(statusField.name)
       } catch (err: any) {
@@ -322,6 +349,36 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     }
   }
 
+  const updateVisibleColumns = (columns: string[]) => {
+    setVisibleColumns(columns)
+    api.put('/user_preference', { key: `columns:${cleanResourcePath(resource)}`, value: JSON.stringify(columns) }).catch(() => {})
+  }
+
+  const startCellEdit = (item: any, field: Field) => {
+    if (field.read_only) return
+    setEditingCell({ id: item.id, field: field.name })
+    setEditingValue(item[field.name] ?? '')
+  }
+
+  const cancelCellEdit = () => {
+    setEditingCell(null)
+    setEditingValue('')
+  }
+
+  const commitCellEdit = async () => {
+    if (!editingCell) return
+    const { id, field } = editingCell
+    try {
+      await api.patch(`/${resourceApiPath}/${id}`, { [field]: editingValue })
+      setData((rows) => rows.map((row) => row.id === id ? { ...row, [field]: editingValue } : row))
+      notify('Cell updated', 'success')
+      cancelCellEdit()
+    } catch (err: any) {
+      notify(err.response?.data?.detail || 'Cell update failed', 'error')
+    }
+  }
+
+
   const addFilter = () => {
     setFilters([...filters, { field: metadata?.fields[0]?.name || 'id', op: '=', value: '' }])
   }
@@ -403,9 +460,10 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
             isColumnPickerOpen={isColumnPickerOpen}
             onAdd={onAdd || (() => navigate(`${resourceApiPath}/new`))}
             onArchive={metadata?.is_auditable ? () => navigate(`/${resourceApiPath}/archived`) : undefined}
+            onSettings={() => showPanel('Form Settings', <FormSettings resource={resource} metadata={metadata} visibleColumns={visibleColumns} onVisibleColumnsChange={updateVisibleColumns} />, 'max-w-3xl')}
             fields={orderedFields}
             visibleColumns={visibleColumns}
-            onVisibleColumnsChange={setVisibleColumns}
+            onVisibleColumnsChange={updateVisibleColumns}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             hasTreeSupport={false}
@@ -472,6 +530,30 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           </DesignElement>
         )}
 
+        {(metadata?.list_tabs?.length ?? 0) > 0 && (
+          <DesignElement id="list-tabs" className="w-full px-1 pt-1 pb-0">
+            <div className="flex items-center gap-1 border-b border-[var(--line)]">
+              <button
+                type="button"
+                onClick={() => { setActiveTab(0); setPage(1); }}
+                className={`px-4 py-2 text-[11.5px] font-bold transition-colors border-b-2 -mb-px ${activeTab === 0 ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-[var(--text-3)] hover:text-[var(--text-2)]'}`}
+              >
+                All
+              </button>
+              {metadata!.list_tabs!.map((tab, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => { setActiveTab(idx + 1); setPage(1); }}
+                  className={`px-4 py-2 text-[11.5px] font-bold transition-colors border-b-2 -mb-px ${activeTab === idx + 1 ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-[var(--text-3)] hover:text-[var(--text-2)]'}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </DesignElement>
+        )}
+
         <DesignElement id="table" className="border-t border-[var(--line)] flex-1 overflow-auto w-full mt-2">
           {isPartyResource && (
             <div className="flex flex-wrap gap-1 border-b border-[var(--app-border)] bg-[var(--app-panel-soft)] px-4 py-2">
@@ -481,15 +563,38 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           {viewMode === 'list' && (
             <div className="md:overflow-x-auto">
               <div className="aras-list-table md:[min-width:var(--list-min-width)]" style={{ ['--list-min-width' as any]: typeof listMinWidth === 'number' ? `${listMinWidth}px` : listMinWidth }}>
-              <div className="aras-list-header hidden md:grid sticky top-0 z-10 border-b border-[var(--line)] bg-[var(--surface)]/80 backdrop-blur" style={{ gridTemplateColumns }}>
-                <div className="px-[calc(16px*var(--app-density))] py-[calc(18px*var(--app-density))]"><button onClick={handleSelectAll} className="hover:text-[var(--app-accent)]">{selectedIds.length === data.length && data.length > 0 ? <CheckSquare size={18} className="text-[var(--app-accent)]" /> : <Square size={18} className="text-[var(--app-muted)]" />}</button></div>
+              {/* Section header row — only when at least one visible column has a section */}
+              {listColumns.some(c => c.field.section) && (() => {
+                // Build section spans: [{label, span}] where span = number of grid columns
+                const spans: { label: string; span: number }[] = [{ label: '', span: 1 }] // checkbox col
+                for (const col of listColumns) {
+                  const sec = col.field.section ?? ''
+                  if (spans.length > 1 && spans[spans.length - 1].label === sec) {
+                    spans[spans.length - 1].span++
+                  } else {
+                    spans.push({ label: sec, span: 1 })
+                  }
+                }
+                spans.push({ label: '', span: 1 }) // actions col
+                return (
+                  <div className="hidden md:flex sticky top-0 z-10 border-b border-[var(--line)]" style={{ background: 'var(--bg)' }}>
+                    {spans.map((s, i) => (
+                      <div key={i} style={{ flex: s.label ? s.span : '0 0 auto', minWidth: s.label ? undefined : i === 0 ? 48 : 100 }} className={`text-[9.5px] font-black uppercase tracking-[0.2em] px-3 py-1 ${s.label ? 'text-[var(--accent)] border-r border-[var(--line)]' : 'text-transparent'}`}>
+                        {s.label || '.'}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+              <div className="aras-list-header hidden md:grid sticky top-0 z-10 border-b border-[var(--line)]" style={{ gridTemplateColumns, background: 'var(--bg)', fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '.14em', color: 'var(--text-3)', textTransform: 'uppercase' }}>
+                <div style={{ padding: '10px 12px' }}><button onClick={handleSelectAll} className="hover:text-[var(--app-accent)]">{selectedIds.length === data.length && data.length > 0 ? <CheckSquare size={14} className="text-[var(--app-accent)]" /> : <Square size={14} className="text-[var(--app-muted)]" />}</button></div>
                 {listColumns.map((column) => (
-                  <div key={column.key} className={`px-[calc(6px*var(--app-density))] py-2.5 flex items-center gap-1.5 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-[0.14em] cursor-pointer hover:text-[var(--text)] transition-colors ${column.align === 'right' ? 'justify-end text-right' : ''}`} onClick={() => { if (orderBy === column.field.name) setDesc(!desc); else { setOrderBy(column.field.name); setDesc(true); } }}>
+                  <div key={column.key} className={`flex items-center gap-1.5 cursor-pointer hover:text-[var(--text)] transition-colors ${column.align === 'right' ? 'justify-end text-right' : ''}`} style={{ padding: '10px 12px', fontWeight: 500 }} onClick={() => { if (orderBy === column.field.name) setDesc(!desc); else { setOrderBy(column.field.name); setDesc(true); } }}>
                     {column.label}
-                    {orderBy === column.field.name && (desc ? <ChevronDown size={14} className="text-[var(--app-accent)]" /> : <ChevronUp size={14} className="text-[var(--app-accent)]" />)}
+                    {orderBy === column.field.name && (desc ? <ChevronDown size={13} className="text-[var(--app-accent)]" /> : <ChevronUp size={13} className="text-[var(--app-accent)]" />)}
                   </div>
                 ))}
-                <div className="px-[calc(16px*var(--app-density))] py-2.5 text-right text-[10px] font-bold text-[var(--text-3)] uppercase tracking-[0.14em]">&nbsp;</div>
+                <div style={{ padding: '10px 12px', textAlign: 'right' }}>&nbsp;</div>
               </div>
 
               {loading ? (
@@ -525,7 +630,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                     {group.items.map((item) => {
                       const prefix = (resource.split('/').pop() || '').toUpperCase().slice(0, 3) || 'ARC'
                       return (
-                      <div key={item.id} className={`aras-list-row hidden md:grid items-center group border-b border-[var(--line)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer ${selectedIds.includes(item.id) ? 'bg-[var(--accent)]/8' : ''}`} style={{ gridTemplateColumns }} onClick={() => onRowClick?.(item.id)}>
+                      <div key={item.id} className={`aras-list-row hidden md:grid items-center group border-b border-[var(--line)] hover:bg-[var(--surface-2)] transition-colors ${inlineEdit ? '' : 'cursor-pointer'} ${selectedIds.includes(item.id) ? 'bg-[var(--accent)]/8' : ''}`} style={{ gridTemplateColumns }} onClick={() => { if (!inlineEdit) onRowClick?.(item.id) }}>
                         <div className="px-[calc(16px*var(--app-density))] py-[calc(8px*var(--app-density))]" onClick={(e) => e.stopPropagation()}>
                           <button onClick={() => handleSelectOne(item.id)} className={`${selectedIds.includes(item.id) ? 'text-[var(--accent)]' : 'text-[var(--text-3)]'}`}>
                             {selectedIds.includes(item.id) ? <CheckSquare size={15} /> : <Square size={15} />}
@@ -534,9 +639,27 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                         {listColumns.map((column, colIdx) => {
                           const value = getFieldValue(item, column.field)
                           const isIdCol = colIdx === 0 && (column.field.name === 'id' || column.field.name === 'number' || column.field.name === 'code')
+                          const isEditing = editingCell?.id === item.id && editingCell?.field === column.field.name
                           return (
-                            <div key={column.key} className={`px-[calc(6px*var(--app-density))] py-[calc(8px*var(--app-density))] min-w-0 ${column.align === 'right' ? 'text-right' : ''}`}>
-                              {isIdCol ? (
+                            <div key={column.key} onClick={(e) => { if (inlineEdit) { e.stopPropagation(); startCellEdit(item, column.field) } }} className={`px-[calc(6px*var(--app-density))] py-[calc(8px*var(--app-density))] min-w-0 ${column.align === 'right' ? 'text-right' : ''} ${inlineEdit && !column.field.read_only ? 'cursor-cell hover:bg-[var(--accent)]/5' : ''}`}>
+                              {isEditing ? (
+                                <input
+                                  autoFocus
+                                  type={column.field.type === 'number' || column.field.type === 'currency' ? 'number' : column.field.type === 'date' ? 'date' : 'text'}
+                                  value={editingValue ?? ''}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={(e) => setEditingValue(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Escape') cancelCellEdit()
+                                    if (e.key === 'Enter' || e.key === 'Tab') {
+                                      e.preventDefault()
+                                      commitCellEdit()
+                                    }
+                                  }}
+                                  onBlur={commitCellEdit}
+                                  className="h-7 w-full rounded border border-[var(--accent)] bg-[var(--surface)] px-2 text-[12px] text-[var(--text)] outline-none"
+                                />
+                              ) : isIdCol ? (
                                 <span className="arc-id text-[12px]">
                                   <b>{prefix}</b> · <b>{String(value)}</b>
                                 </span>
@@ -549,8 +672,11 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                           )
                         })}
                         <div className="px-[calc(16px*var(--app-density))] py-[calc(8px*var(--app-density))] flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {inlineEdit && (
+                            <button type="button" onClick={(e) => { e.stopPropagation(); onRowClick?.(item.id) }} className="p-1.5 text-[var(--text-3)] hover:text-[var(--accent)] rounded transition-colors" title="Open form"><Pencil size={13} /></button>
+                          )}
                           <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteOne(item); }} className="p-1.5 text-[var(--text-3)] hover:text-rose-500 rounded transition-colors"><Trash2 size={14} /></button>
-                          <ChevronRight size={14} className="text-[var(--text-3)]" />
+                          {!inlineEdit && <ChevronRight size={14} className="text-[var(--text-3)]" />}
                         </div>
                       </div>
                       )

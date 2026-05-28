@@ -1,7 +1,25 @@
 import { useState, useRef, useEffect } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
-import Combobox from '../../aras-core/components/Combobox'
+import SimpleCombobox from '../../aras-core/components/SimpleCombobox'
+
+// claude-sonnet-4-6
+function ToggleSwitch({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-xs font-bold text-[var(--aras-muted)]">{label}</span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={value}
+        onClick={() => onChange(!value)}
+        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${value ? 'bg-[var(--aras-accent)]' : 'bg-[var(--aras-border)]'}`}
+      >
+        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${value ? 'translate-x-4' : 'translate-x-0.5'}`} />
+      </button>
+    </div>
+  )
+}
 
 const accentOptions = [
   { label: 'Indigo (Default)', value: '#4F46E5' },
@@ -29,6 +47,8 @@ export function ThemeTweakPanel() {
     setFontScale,
     topbarNavStyle,
     setTopbarNavStyle,
+    inlineEdit,
+    setInlineEdit,
   } = useUIStore()
 
   useEffect(() => {
@@ -37,8 +57,7 @@ export function ThemeTweakPanel() {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node
       if (panelRef.current && !panelRef.current.contains(target)) {
-        // Don't close when interacting with Combobox portal dropdowns
-        if ((target as Element).closest?.('[data-combobox-dropdown]')) return
+          if ((target as Element).closest?.('[role="listbox"]')) return
         setOpen(false)
       }
     }
@@ -67,8 +86,7 @@ export function ThemeTweakPanel() {
           <div className="space-y-4">
             <label className="block">
               <span className="mb-1.5 block text-xs font-bold text-[var(--aras-muted)]">Theme</span>
-              <Combobox
-                variant="simple"
+              <SimpleCombobox
                 options={[
                   { label: 'Light', value: 'light' },
                   { label: 'Normal', value: 'normal' },
@@ -76,27 +94,27 @@ export function ThemeTweakPanel() {
                 ]}
                 value={themeMode}
                 onChange={(val) => setThemeMode(val as any)}
+                width="100%"
               />
             </label>
 
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
                 <span className="mb-1.5 block text-xs font-bold text-[var(--aras-muted)]">Corners</span>
-                <Combobox
-                  variant="simple"
+                <SimpleCombobox
                   options={[
                     { label: 'Rounded', value: 'rounded' },
                     { label: 'Square', value: 'square' }
                   ]}
                   value={cornerMode}
                   onChange={(val) => setCornerMode(val as any)}
+                  width="100%"
                 />
               </label>
 
               <label className="block">
                 <span className="mb-1.5 block text-xs font-bold text-[var(--aras-muted)]">Layout</span>
-                <Combobox
-                  variant="simple"
+                <SimpleCombobox
                   options={[
                     { label: 'Compact', value: 'compact' },
                     { label: 'Regular', value: 'regular' },
@@ -104,6 +122,7 @@ export function ThemeTweakPanel() {
                   ]}
                   value={density}
                   onChange={(val) => setDensity(val as any)}
+                  width="100%"
                 />
               </label>
             </div>
@@ -141,16 +160,21 @@ export function ThemeTweakPanel() {
 
             <label className="block">
               <span className="mb-1.5 block text-xs font-bold text-[var(--aras-muted)]">Nav Labels</span>
-              <Combobox
-                variant="simple"
+              <SimpleCombobox
                 options={[
                   { label: 'Icon + Label', value: 'icon-text' },
                   { label: 'Icon Only', value: 'icon-only' },
                 ]}
                 value={topbarNavStyle}
                 onChange={(val) => setTopbarNavStyle(val as any)}
+                width="100%"
               />
             </label>
+
+            <div className="border-t border-[var(--aras-border)] pt-3 space-y-2.5">
+              <span className="block text-xs font-bold text-[var(--aras-muted)] uppercase tracking-wider mb-2">Behavior</span>
+              <ToggleSwitch label="Inline cell edit in list" value={inlineEdit} onChange={setInlineEdit} />
+            </div>
           </div>
         </div>
       )}

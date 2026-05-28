@@ -199,6 +199,7 @@ export function TweaksPanel() {
     cornerMode, setCornerMode,
     fontScale, setFontScale,
     sidebarCollapsed, toggleSidebar,
+    inlineEdit, setInlineEdit,
   } = useUIStore()
 
   return (
@@ -239,6 +240,7 @@ export function TweaksPanel() {
 
             <Section label="Layout">
               <Toggle label="Collapse sidebar" value={sidebarCollapsed} onChange={toggleSidebar} />
+              <Toggle label="Inline cell edit" value={inlineEdit} onChange={setInlineEdit} />
             </Section>
           </div>
         </div>

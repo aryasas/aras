@@ -13,7 +13,8 @@ from .service import (
     create_password_reset_token,
     verify_password_reset_token
 )
-from .models import User
+from .models import User, UserPreference
+from pydantic import BaseModel
 
 router = APIRouter(
     prefix="/auth",
@@ -129,3 +130,42 @@ def reset_password(
     user.password_hash = User.hash_password(data.new_password)
     db.commit()
     return {"message": "Password has been reset successfully"}
+
+
+class UserPreferenceBody(BaseModel):
+    key: str
+    value: str
+
+
+# claude-sonnet-4-6
+@router.get("/preference")
+def get_user_preference(
+    key: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    pref = db.query(UserPreference).filter(
+        UserPreference.user_id == user.id,
+        UserPreference.key == key
+    ).first()
+    return {"key": key, "value": pref.value if pref else None}
+
+
+# claude-sonnet-4-6
+@router.put("/preference")
+def set_user_preference(
+    body: UserPreferenceBody,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    pref = db.query(UserPreference).filter(
+        UserPreference.user_id == user.id,
+        UserPreference.key == body.key
+    ).first()
+    if pref:
+        pref.value = body.value
+    else:
+        pref = UserPreference(user_id=user.id, key=body.key, value=body.value)
+        db.add(pref)
+    db.commit()
+    return {"key": body.key, "value": body.value}

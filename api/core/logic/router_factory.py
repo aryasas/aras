@@ -21,7 +21,6 @@ from ..exceptions import ArasException, ValidationException, ResourceNotFoundExc
 from ..response import ok, err
 from ..base.model import Model as ArasModel
 from ..base.validation import Validation
-from ..api.websocket import broadcast_sync
 from pydantic.fields import FieldInfo
 
 MAX_PER_PAGE = 200
@@ -267,14 +266,9 @@ def _generate_pydantic_schemas(model_class: Type[Any]):
 
 
 def _broadcast_update(model_class, event: str, item_id: Any):
-    """Helper to broadcast real-time updates via WebSocket."""
-    # Convert id to int if it's not already
+    from ..api.websocket import broadcast_sync
     id_val = int(item_id) if item_id and str(item_id).isdigit() else item_id
-    payload = {
-        "event": event,
-        "resource": model_class.__tablename__,
-        "id": id_val
-    }
+    payload = {"event": event, "resource": model_class.__tablename__, "id": id_val}
     broadcast_sync("dashboard", payload)
     broadcast_sync("global", payload)
 
@@ -858,7 +852,27 @@ class RouterFactory(Router):
             data = {"results": results, "count": len(results)}
             return ok(data, "Batch operation completed.")
         
-        # ── 3. Custom Model Actions ───────────────────────────────────────────
+        # ── 3. M2M Field Update ──────────────────────────────────────────────
+        # claude-sonnet-4-6
+        @router.put("/{item_id}/{m2m_field}")
+        def update_m2m_field(
+            item_id: int,
+            m2m_field: str,
+            ids: List[int] = Body(...),
+            db: Session = Depends(get_db),
+            user: Any = Depends(check_permissions(model_class.__tablename__, "UPDATE"))
+        ):
+            m2m_defs = getattr(model_class, "__m2m__", {})
+            if m2m_field not in m2m_defs:
+                raise ValidationException(f"Field '{m2m_field}' is not a M2M field on this resource.")
+            item = model_class.get(db, item_id)
+            if not item:
+                raise ResourceNotFoundException("Item not found")
+            item.save_m2m(db, {m2m_field: ids})
+            db.commit()
+            return ok({"id": item_id, m2m_field: ids}, f"M2M field '{m2m_field}' updated.")
+
+        # ── 4. Custom Model Actions ───────────────────────────────────────────
         for action_name, model_action in model_class._actions.items():
             # Create a dynamic Pydantic model for the action's input if schema is provided
             ActionInputSchema = model_action.input_schema

@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { useAras } from '../aras-core/hooks/useAras'
 import { useAuthStore } from '../store/authStore'
 import { Database, Plus, Trash2, DatabaseZap } from 'lucide-react'
+import ArasTable from '../aras-core/components/ArasTable'
 
 interface Tenant {
   tenant_id: string
@@ -156,51 +157,29 @@ export default function TenantAdmin() {
           </button>
         </div>
         
-        {loading ? (
-          <div className="p-8 text-center text-sm text-[var(--app-muted)]">Loading tenants...</div>
-        ) : tenants.length === 0 ? (
-          <div className="p-8 text-center text-sm text-[var(--app-muted)]">No tenants provisioned yet.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-[var(--app-panel-soft)] text-[var(--app-muted)] font-medium">
-                <tr>
-                  <th className="px-5 py-3">Tenant ID</th>
-                  <th className="px-5 py-3">DB Name</th>
-                  <th className="px-5 py-3">Created</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {tenants.map(t => (
-                  <tr key={t.tenant_id} className="hover:bg-[var(--app-panel-soft)]/50">
-                    <td className="px-5 py-3 font-semibold text-[var(--app-text)]">{t.tenant_id}</td>
-                    <td className="px-5 py-3 text-[var(--app-muted)] font-mono text-xs">{t.db_name}</td>
-                    <td className="px-5 py-3 text-[var(--app-muted)]">{t.created_at ? new Date(t.created_at).toLocaleDateString() : 'N/A'}</td>
-                    <td className="px-5 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleSeed(t.tenant_id)}
-                          className="p-1.5 text-[var(--app-muted)] hover:text-[var(--app-accent)] hover:bg-[var(--app-accent-glow)] rounded-[var(--app-radius)] transition-colors"
-                          title="Seed Demo Data"
-                        >
-                          <DatabaseZap size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleRemove(t.tenant_id)}
-                          className="p-1.5 text-[var(--app-muted)] hover:text-red-600 hover:bg-red-50 rounded-[var(--app-radius)] transition-colors"
-                          title="Remove Tenant"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {(() => {
+          // claude-sonnet-4-6
+          const tenantColumns = [
+            { key: 'tenant_id', label: 'Tenant ID', render: (v: string) => <span className="font-semibold text-[var(--app-text)]">{v}</span> },
+            { key: 'db_name', label: 'DB Name', render: (v: string) => <span className="text-[var(--app-muted)] font-mono text-xs">{v}</span> },
+            { key: 'created_at', label: 'Created', render: (v: string) => <span className="text-[var(--app-muted)]">{v ? new Date(v).toLocaleDateString() : 'N/A'}</span> },
+            { key: 'actions', label: 'Actions', align: 'right' as const, render: (_: any, t: any) => (
+              <div className="flex items-center justify-end gap-2">
+                <button onClick={() => handleSeed(t.tenant_id)} className="p-1.5 text-[var(--app-muted)] hover:text-[var(--app-accent)] hover:bg-[var(--app-accent-glow)] rounded-[var(--app-radius)] transition-colors" title="Seed Demo Data"><DatabaseZap size={16} /></button>
+                <button onClick={() => handleRemove(t.tenant_id)} className="p-1.5 text-[var(--app-muted)] hover:text-red-600 hover:bg-red-50 rounded-[var(--app-radius)] transition-colors" title="Remove Tenant"><Trash2 size={16} /></button>
+              </div>
+            )},
+          ]
+          return (
+            <ArasTable
+              columns={tenantColumns}
+              rows={tenants}
+              rowKey={(t) => t.tenant_id}
+              loading={loading}
+              emptyMessage="No tenants provisioned yet."
+            />
+          )
+        })()}
       </div>
     </div>
   )

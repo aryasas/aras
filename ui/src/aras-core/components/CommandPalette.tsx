@@ -13,6 +13,10 @@ const SHORTCUTS = [
   { keys: ['Double-click'], description: 'Inline-edit a table cell' },
 ]
 
+const ACTIONS = [
+  { label: 'New Invoice', path: '/accounting/invoice/new', type: 'action' },
+]
+
 const ShortcutMap: React.FC<{ onClose: () => void }> = ({ onClose }) => (
   <div className="fixed inset-0 z-[110] flex items-center justify-center px-4 bg-black/50 backdrop-blur-sm">
     <div className="bg-[var(--aras-panel)] rounded-[var(--app-radius-lg)] shadow-2xl border border-[var(--aras-border)] w-full max-w-md overflow-hidden">
@@ -77,18 +81,32 @@ export const CommandPalette: React.FC = () => {
   useEffect(() => {
     if (query.length < 2) { setResults([]); return }
     const timer = setTimeout(async () => {
+      const actionResults = ACTIONS
+        .filter((action) => action.label.toLowerCase().includes(query.toLowerCase()))
+        .map((action) => ({ label: action.label, type: action.type, actionPath: action.path }))
       try {
         const res = await api.get(`/search?q=${query}`)
-        setResults(res.data)
+        setResults([...actionResults, ...(res.data || [])])
         setSelectedIndex(0)
       } catch (err: any) {
-        notify(err.message || 'Search failed', 'error')
+        if (actionResults.length) {
+          setResults(actionResults)
+          setSelectedIndex(0)
+        } else {
+          notify(err.message || 'Search failed', 'error')
+        }
       }
     }, 300)
     return () => clearTimeout(timer)
   }, [query, notify])
 
   const handleSelect = (result: any) => {
+    if (result.actionPath) {
+      navigate(result.actionPath)
+      setIsOpen(false)
+      setQuery('')
+      return
+    }
     navigate(`/${result.resource}/${result.id}`)
     setIsOpen(false)
     setQuery('')
@@ -128,14 +146,14 @@ export const CommandPalette: React.FC = () => {
               <div className="max-h-80 overflow-y-auto border-t border-[var(--aras-border)] p-2">
                 {results.map((result, idx) => (
                   <div
-                    key={`${result.resource}-${result.id}`}
+                    key={result.actionPath || `${result.resource}-${result.id}`}
                     className={`flex items-center gap-3 px-4 py-2.5 rounded-[var(--app-radius)] cursor-pointer transition-all ${
                       idx === selectedIndex ? 'bg-[var(--app-primary-action)] text-white' : 'text-[var(--app-text)] hover:bg-[var(--app-panel-soft)]'
                     }`}
                     onClick={() => handleSelect(result)}
                   >
                     <div className={`p-1.5 rounded-[var(--app-radius)] ${idx === selectedIndex ? 'bg-[var(--app-panel)]/20' : 'bg-[var(--aras-panel-soft)]'}`}>
-                      <LucideIcons.Box size={16} />
+                      {result.actionPath ? <LucideIcons.Zap size={16} /> : <LucideIcons.Box size={16} />}
                     </div>
                     <div className="flex-1">
                       <div className="font-semibold text-sm">{result.label}</div>

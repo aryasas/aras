@@ -100,6 +100,14 @@ def sync_metadata(
     return {"status": "success", "message": "Metadata synced"}
 
 
+@router.get("/metadata/flush")
+def flush_metadata_cache(_: Any = Depends(require_admin)):
+    """Clears the UIGenerator metadata cache."""
+    from ..logic.ui_generator import UIGenerator
+    UIGenerator.flush_cache()
+    return {"status": "success", "message": "Metadata cache flushed"}
+
+
 @router.get("/info")
 def get_framework_info(_: Any = Depends(require_admin)):
     """Returns framework version and basic stats."""

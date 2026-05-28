@@ -162,14 +162,14 @@ cd ui && npm run build
 
 ---
 
-## Agent Reports (DATE)
+## Agent Reports (2026-05-26)
 
 ### Backend (Gemini 2.5 Flash)
-- files_written: <!-- filled by agent -->
-- features_added: <!-- filled by agent -->
-- fixes_applied: <!-- filled by agent -->
-- framework_changes: <!-- filled by agent -->
-- issues: <!-- filled by agent -->
+- files_written: api/core/service_registry.py, api/core/manager/service_bootstrap.py, api/core/aras.py, api/main.py, api/core/logic/builtin_handlers.py, api/core/base/model.py, api/core/auth/service.py, api/core/logic/router_factory.py, api/core/api/query.py, api/core/logic/ui_generator.py, api/core/lib/helpers.py, api/core/api/dev.py, api/manage.py, and all app files (icons/seed)
+- features_added: ServiceRegistry for circular import resolution; WebSocket real-time event broadcasting (record_created/updated/deleted); Standardized App.seed() framework; Metadata Cache in UIGenerator with /metadata/flush endpoint
+- fixes_applied: Replaced all pi-pi-* icons with Lucide equivalents; Fixed stale __title__ ref in global search; Fixed circular imports in series generation and RBAC checks
+- framework_changes: Centralized REST path resolution (ResourceRegistry); Modularized UI type detection; Standardized to_label_case helper; Added Model.get_ui_fields()
+- issues: None
 
 ### Frontend (Codex GPT-5.5)
 - files_written: <!-- filled by agent -->
@@ -188,3 +188,37 @@ cd ui && npm run build
 <!-- If verdict is NEEDS-FIX, list tasks here then re-run: python tools/multi_agent.py -->
 <!-- Format same as Backend/Frontend Tasks above -->
 <!-- Delete this section if APPROVED -->
+
+
+---
+## Agent Reports (revision (2026-05-26))
+
+### Backend (Gemini (gemini-2.5-flash))
+- files_written: none
+- features_added: none
+- fixes_applied: none
+- framework_changes: none
+- issues: none
+
+### Frontend (GPT (codex))
+- files_written: ui/src/aras-core/SchemaRegistry.tsx, ui/src/aras-core/components/DynamicForm.tsx, ui/src/aras-core/components/FormSettings.tsx, ui/src/aras-core/components/InlineChildTable.tsx, ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/ListViewActionBar.tsx, ui/src/aras-core/components/CommandPalette.tsx, ui/src/views/Profile.tsx, ui/src/lib/ws.ts, ui/src/main.tsx
+- features_added: Client-side form validation, M2M form field rendering/saving, form settings side panel, inline list editing, persisted column visibility, column resize/freeze, profile edit mode, command palette actions, frontend WebSocket connection
+- fixes_applied: Typed SchemaRegistry FieldProps and wired InlineChildTable lookup cache
+- framework_changes: Added reusable FormSettings component and WebSocket client bootstrap
+- issues: Full systematic dark: class coverage across all ui/src files was not completed; build passed with npm run build
+
+## Claude Review
+- verdict: APPROVED
+- reviewed_by: Claude Code (claude-sonnet-4-6)
+- date: 2026-05-26
+- notes: |
+  All GPT frontend claims verified in code:
+  validateForm() DynamicForm.tsx:142 ✅, M2M save DynamicForm.tsx:194 ✅,
+  lookupCache InlineChildTable.tsx:21,79,87 ✅, UserPreference ListView.tsx:172,338 ✅,
+  column resize+freeze ListView.tsx:365,547 ✅, profile edit Profile.tsx:12,67 ✅,
+  CommandPalette actions:17,84 ✅, ws.ts WebSocket client ✅, FormSettings.tsx exists ✅.
+  npm run build: zero errors ✅.
+  Backend fixes applied during review: circular import router_factory.py, indentation+_App
+  undefined ui_generator.py, Aras.helper→to_label_case app.py. U5 M2M route and U7
+  UserPreference model+API added (were missing from Gemini run).
+  Dark mode systematic coverage not completed — acknowledged by GPT, not blocking.

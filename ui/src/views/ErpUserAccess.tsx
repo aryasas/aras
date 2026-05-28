@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import api from '../lib/api'
+import ArasTable from '../aras-core/components/ArasTable'
 
 type AccessScope = 'ALL' | 'SPECIFIC' | 'NONE'
 
@@ -113,61 +114,37 @@ const ErpUserAccess = () => {
         <p className="text-[var(--app-muted)]">Manage organization access for ERP users.</p>
       </div>
 
-      <div className="overflow-hidden rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-panel)] shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="border-b border-[var(--app-border)] bg-[var(--app-panel-soft)] text-xs font-bold uppercase tracking-wider text-[var(--app-muted)]">
-              <tr>
-                <th className="px-6 py-4">User</th>
-                <th className="px-6 py-4">Scope</th>
-                <th className="px-6 py-4">Organizations</th>
-                <th className="px-6 py-4 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {users.map((user) => (
-                <tr key={user.id} className="transition-colors hover:bg-[var(--app-panel-soft)]">
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-bold text-[var(--app-text)]">{user.username}</span>
-                        {user.is_admin && (
-                          <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-700">
-                            Administrator
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-sm text-[var(--app-muted)]">{user.email}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">{renderScopeBadge(user)}</td>
-                  <td className="px-6 py-4 text-sm text-slate-600">
-                    {user.org_names.length > 0 ? user.org_names.join(', ') : '—'}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    {!user.is_admin && (
-                      <button
-                        type="button"
-                        onClick={() => openPanel(user)}
-                        className="rounded-[var(--app-radius)] bg-[var(--app-accent-glow)] px-4 py-2 text-sm font-bold text-[var(--app-accent)] transition-colors hover:bg-indigo-100"
-                      >
-                        Edit
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {users.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-sm text-[var(--app-muted)]">
-                    No users found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* claude-sonnet-4-6 */}
+      {(() => {
+        const erpUserColumns = [
+          { key: 'user', label: 'User', render: (_: any, user: UserRow) => (
+            <div className="flex flex-col gap-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-bold text-[var(--app-text)]">{user.username}</span>
+                {user.is_admin && <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-700">Administrator</span>}
+              </div>
+              <span className="text-sm text-[var(--app-muted)]">{user.email}</span>
+            </div>
+          )},
+          { key: 'scope', label: 'Scope', render: (_: any, user: UserRow) => renderScopeBadge(user) },
+          { key: 'org_names', label: 'Organizations', render: (_: any, user: UserRow) => <span className="text-sm text-slate-600">{user.org_names.length > 0 ? user.org_names.join(', ') : '—'}</span> },
+          { key: 'action', label: 'Action', align: 'right' as const, render: (_: any, user: UserRow) => (
+            !user.is_admin ? (
+              <button type="button" onClick={() => openPanel(user)} className="rounded-[var(--app-radius)] bg-[var(--app-accent-glow)] px-4 py-2 text-sm font-bold text-[var(--app-accent)] transition-colors hover:bg-indigo-100">Edit</button>
+            ) : null
+          )},
+        ]
+        return (
+          <div className="overflow-hidden rounded-[var(--app-radius-lg)] border border-[var(--app-border)] bg-[var(--app-panel)] shadow-sm">
+            <ArasTable
+              columns={erpUserColumns}
+              rows={users}
+              rowKey={(u) => u.id}
+              emptyMessage="No users found"
+            />
+          </div>
+        )
+      })()}
 
       {panelOpen && selectedUser && (
         <>

@@ -409,3 +409,7 @@ This file is used only to report if there are feature added
 - [Codex/GPT-5.5] Added public-page language toggles on the landing and signup pages.
 - [Codex/GPT-5.5] Normalized SaaS plan payloads so `features.apps` is always present for plan cards and portal app gating.
 - [Codex/GPT-5.5] Public pricing and signup now intentionally show the current customer-facing tiers only: Free, Lite, Growth, and Business.
+
+
+## Framework remaining items — all NOT DONE and HALF from plan.md verified against actual codebase — revision (2026-05-26)
+  - [GPT (codex)] Client-side form validation, M2M form field rendering/saving, form settings side panel, inline list editing, persisted column visibility, column resize/freeze, profile edit mode, command palette actions, frontend WebSocket connection

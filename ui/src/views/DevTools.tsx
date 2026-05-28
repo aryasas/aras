@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Terminal, Database, RefreshCw, Cpu, Box, Layout, Table, Link as LinkIcon, Users, Settings, GitBranch, HelpCircle, X } from 'lucide-react'
 import api from '../lib/api'
+import ArasTable from '../aras-core/components/ArasTable'
 import { MetadataService } from '../aras-core/services/MetadataService'
 import { useUIStore } from '../store/uiStore'
 import { useAras } from '../aras-core/hooks/useAras'
@@ -216,30 +217,18 @@ export default function DevTools() {
               <h2 className="text-xl font-black text-[var(--app-text)]">Database Statistics</h2>
             </div>
 
-            <div className="overflow-hidden border border-[var(--app-border)] rounded-[var(--app-radius-lg)]">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-[var(--app-panel-soft)] border-bottom border-[var(--app-border)]">
-                    <th className="px-6 py-4 text-xs font-black text-[var(--app-muted)] uppercase tracking-wider">Table Name</th>
-                    <th className="px-6 py-4 text-xs font-black text-[var(--app-muted)] uppercase tracking-wider text-right">Row Count</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {stats.map(stat => (
-                    <tr key={stat.table} className="hover:bg-[var(--app-panel-soft)]/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <code className="text-[var(--app-accent)] font-bold text-sm bg-[var(--app-accent-glow)] px-2 py-0.5 rounded-md">
-                          {stat.table}
-                        </code>
-                      </td>
-                      <td className="px-6 py-4 text-right font-mono font-bold text-[var(--app-text)]">
-                        {stat.rows.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {/* claude-sonnet-4-6 */}
+            {(() => {
+              const dbStatColumns = [
+                { key: 'table', label: 'Table Name', render: (v: string) => <code className="text-[var(--app-accent)] font-bold text-sm bg-[var(--app-accent-glow)] px-2 py-0.5 rounded-md">{v}</code> },
+                { key: 'rows', label: 'Row Count', align: 'right' as const, render: (v: any) => <span className="font-mono font-bold text-[var(--app-text)]">{Number(v).toLocaleString()}</span> },
+              ]
+              return (
+                <div className="overflow-hidden border border-[var(--app-border)] rounded-[var(--app-radius-lg)]">
+                  <ArasTable columns={dbStatColumns} rows={stats} rowKey={(stat) => stat.table} />
+                </div>
+              )
+            })()}
           </div>
 
           {/* Registry Shortcuts */}
@@ -458,50 +447,23 @@ export default function DevTools() {
               <p className="text-[var(--app-muted)] text-sm mt-1">Runs will appear here after <code>python tools/multi_agent.py</code> completes.</p>
             </div>
           ) : (
-            <div className="bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius-lg)] overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-[var(--app-panel-soft)] border-b border-[var(--app-border)]">
-                    <th className="text-left px-4 py-3 font-bold text-[var(--app-muted)] text-xs uppercase tracking-wider">Run Date</th>
-                    <th className="text-left px-4 py-3 font-bold text-[var(--app-muted)] text-xs uppercase tracking-wider">Feature</th>
-                    <th className="text-left px-4 py-3 font-bold text-[var(--app-muted)] text-xs uppercase tracking-wider">Mode</th>
-                    <th className="text-left px-4 py-3 font-bold text-[var(--app-muted)] text-xs uppercase tracking-wider">Status</th>
-                    <th className="text-left px-4 py-3 font-bold text-[var(--app-muted)] text-xs uppercase tracking-wider">Author</th>
-                    <th className="text-left px-4 py-3 font-bold text-[var(--app-muted)] text-xs uppercase tracking-wider">Claude Verdict</th>
-                    <th className="text-right px-4 py-3 font-bold text-[var(--app-muted)] text-xs uppercase tracking-wider">Total Tokens</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {handoffRuns.map((run) => (
-                      <tr
-                        key={run.id}
-                        onClick={() => setSelectedRun(run)}
-                        className="border-b border-[var(--app-border)] hover:bg-[var(--app-panel-soft)] cursor-pointer transition-colors"
-                      >
-                        <td className="px-4 py-3 text-[var(--app-muted)] font-mono text-xs whitespace-nowrap">{String(run.run_date).slice(0, 16).replace('T', ' ')}</td>
-                        <td className="px-4 py-3 font-bold text-[var(--app-text)] max-w-xs truncate">{run.feature}</td>
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[var(--app-panel-soft)] text-slate-600">{run.mode}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                            run.status === 'success' ? 'bg-emerald-100 text-emerald-700' :
-                            run.status === 'error'   ? 'bg-red-100 text-red-700' :
-                                                       'bg-amber-100 text-amber-700'
-                          }`}>{run.status}</span>
-                        </td>
-                        <td className="px-4 py-3 text-slate-600 text-xs font-bold">{run.author || '—'}</td>
-                        <td className="px-4 py-3">
-                          <VerdictBadge verdict={run.claude_verdict} />
-                        </td>
-                        <td className="px-4 py-3 text-right font-mono text-xs font-bold text-[var(--app-text)]">
-                          {(run.total_tokens || 0).toLocaleString()}
-                        </td>
-                      </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            // claude-sonnet-4-6
+            (() => {
+              const handoffColumns = [
+                { key: 'run_date', label: 'Run Date', render: (v: string) => <span className="text-[var(--app-muted)] font-mono text-xs whitespace-nowrap">{String(v).slice(0, 16).replace('T', ' ')}</span> },
+                { key: 'feature', label: 'Feature', render: (v: string) => <span className="font-bold text-[var(--app-text)] max-w-xs truncate block">{v}</span> },
+                { key: 'mode', label: 'Mode', render: (v: string) => <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[var(--app-panel-soft)] text-slate-600">{v}</span> },
+                { key: 'status', label: 'Status', render: (v: string) => <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${v === 'success' ? 'bg-emerald-100 text-emerald-700' : v === 'error' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{v}</span> },
+                { key: 'author', label: 'Author', render: (v: string) => <span className="text-slate-600 text-xs font-bold">{v || '—'}</span> },
+                { key: 'claude_verdict', label: 'Claude Verdict', render: (v: string) => <VerdictBadge verdict={v} /> },
+                { key: 'total_tokens', label: 'Total Tokens', align: 'right' as const, render: (v: number) => <span className="font-mono text-xs font-bold text-[var(--app-text)]">{(v || 0).toLocaleString()}</span> },
+              ]
+              return (
+                <div className="bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius-lg)] overflow-hidden">
+                  <ArasTable columns={handoffColumns} rows={handoffRuns} rowKey={(run) => run.id} onRowClick={(run) => setSelectedRun(run)} />
+                </div>
+              )
+            })()
           )}
           {selectedRun && (
             <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/30" onClick={() => setSelectedRun(null)}>

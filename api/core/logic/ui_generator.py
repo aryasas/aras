@@ -12,16 +12,69 @@ class UIGenerator(Service):
     Utility class that handles the 'Zero Code' auto-detection 
     of UI components from SQLAlchemy models.
     """
+    _metadata_cache = {}
+
+    @classmethod
+    def flush_cache(cls):
+        """Clears the metadata cache."""
+        cls._metadata_cache = {}
+
+    @staticmethod
+    def _detect_ui_type(column: Any) -> tuple[str, Optional[list]]:
+        """Detects UI type and options for a given SQLAlchemy column."""
+        from sqlalchemy import String, Integer, Boolean, DateTime, Date, Numeric, Enum as SQLEnum
+        
+        ui_type = column.info.get("ui_type")
+        ui_options = None
+        
+        if ui_type:
+            return ui_type, None
+
+        # 1. Foreign Key Detection (Lookup)
+        if column.foreign_keys:
+            return "lookup", None
+            
+        # 2. Choice Detection (Select)
+        choices = column.info.get("choices")
+        if choices:
+            return "select", [{"label": str(c), "value": c} for c in choices]
+            
+        # 3. SQLAlchemy Type Detection
+        col_type = column.type
+        if isinstance(col_type, SQLEnum) or hasattr(col_type, "enums"):
+            return "select", [{"label": str(e), "value": str(e)} for e in getattr(col_type, "enums", [])]
+        if isinstance(col_type, String): 
+            # Auto-detect Files/Images by Name
+            if any(suffix in column.name for suffix in ["_file", "_path", "_attachment"]):
+                return "file", None
+            if any(suffix in column.name for suffix in ["_image", "_photo", "_avatar"]):
+                return "image", None
+            return "string", None
+        if isinstance(col_type, (Integer, Numeric)): 
+            return "number", None
+        if isinstance(col_type, Boolean): 
+            return "boolean", None
+        if isinstance(col_type, DateTime): 
+            return "datetime", None
+        if isinstance(col_type, Date): 
+            return "date", None
+            
+        return "string", None
 
     @classmethod
     def generate_metadata(cls, model_class: Any, db: Any = None, lang: Optional[str] = None) -> Dict[str, Any]: # Changed translations to lang
         """Generates metadata for a given model, merging code detection with DB overrides."""
+        resource_name = model_class.__table__.name
+        cache_key = f"{resource_name}:{lang or 'default'}:{bool(db)}"
+        
+        if cache_key in cls._metadata_cache:
+            return cls._metadata_cache[cache_key]
+
         from ..registry.resource_model import ResourceModel
         from ..registry.field_model import FieldModel
 
         fields = []
         table = model_class.__table__
-        resource_name = table.name
         
         # 1. Try to fetch DB Overrides if DB session provided
         db_resource = None
@@ -44,51 +97,15 @@ class UIGenerator(Service):
             # DB Override Check
             db_field = db_fields.get(column.name)
             
-            # Detect Foreign Key (Lookup)
+            # 2. Base Metadata from Code
+            ui_type, ui_options = cls._detect_ui_type(column)
             target_resource = None
-            ui_options = None
-            ui_type = column.info.get("ui_type")
             
-            if column.foreign_keys:
+            if ui_type == "lookup":
                 target_table = list(column.foreign_keys)[0].column.table.name
-                target_resource = target_table
-                
-                # Resolve app path for the target resource
-                from ..base.app import App
-                for app_cls in App._registry.values():
-                    if any(hasattr(m, "__tablename__") and m.__tablename__ == target_table for m in app_cls.models):
-                        target_resource = app_cls._get_clean_path(target_table)
-                        break
-                
-                if not ui_type:
-                    ui_type = "lookup"
-            
-            # Honor info={"choices": [...]} — treat as a typed dropdown.
-            choices = column.info.get("choices")
-            if choices and not ui_type:
-                ui_type = "select"
-                ui_options = [{"label": str(c), "value": c} for c in choices]
-
-            if not ui_type:
-                col_type = column.type
-                from sqlalchemy import String, Integer, Boolean, DateTime, Date, Numeric, Enum
-
-                if isinstance(col_type, Enum) or hasattr(col_type, "enums"):
-                    ui_type = "select"
-                    ui_options = [{"label": str(e), "value": str(e)} for e in getattr(col_type, "enums", [])]
-                elif isinstance(col_type, String): ui_type = "string"
-                elif isinstance(col_type, (Integer, Numeric)): ui_type = "number"
-                elif isinstance(col_type, Boolean): ui_type = "boolean"
-                elif isinstance(col_type, DateTime): ui_type = "datetime"
-                elif isinstance(col_type, Date): ui_type = "date"
-                else: ui_type = "string"
-
-            # 3. Auto-detect Files/Images by Name
-            if not column.info.get("ui_type") and ui_type == "string":
-                if any(suffix in column.name for suffix in ["_file", "_path", "_attachment"]):
-                    ui_type = "file"
-                elif any(suffix in column.name for suffix in ["_image", "_photo", "_avatar"]):
-                    ui_type = "image"
+                # Resolve app path for the target resource using ServiceRegistry
+                from ..service_registry import ServiceRegistry
+                target_resource = ServiceRegistry.get_resource_path(target_table) or target_table
 
             # Apply DB Overrides if present
             # Removed direct translation logic here, will be handled by TranslationService
@@ -295,6 +312,7 @@ class UIGenerator(Service):
             })
 
         # Find the app for this model to use its clean label logic
+        from ..base.app import App as _App
         app_cls = None
         for a in _App._registry.values():
             if model_class in a.models:
@@ -321,6 +339,7 @@ class UIGenerator(Service):
             "is_auditable": "audit" in getattr(model_class, "__features__", []),
             "is_document": "series" in getattr(model_class, "__features__", []),
             "scoped_by": [list(p) for p in (getattr(model_class, "__scoped_by__", None) or [])],
+            "list_tabs": getattr(model_class, "__list_tabs__", None) or [],
         }
 
         # 4. Apply Translations if lang is provided
@@ -349,18 +368,17 @@ class UIGenerator(Service):
                 "icon": model_action.icon,
                 "has_input_schema": model_action.input_schema is not None,
                 "input_fields": schema_fields,
-            })
+                })
+
         metadata["actions"] = actions_metadata
-            
+        cls._metadata_cache[cache_key] = metadata
         return metadata
 
 
 def _pydantic_type_to_ui(annotation: Any) -> str:
     """Map a Pydantic field annotation to a simple UI type string."""
     from typing import get_origin, get_args, Union
-    import inspect
 
-    # Unwrap Optional[X] → X
     if get_origin(annotation) is Union:
         args = [a for a in get_args(annotation) if a is not type(None)]
         annotation = args[0] if args else str

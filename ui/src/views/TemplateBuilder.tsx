@@ -103,7 +103,8 @@ function EditorStateBridge({
 export default function TemplateBuilder() {
   const { notify } = useAras()
   const [searchParams] = useSearchParams()
-  const fromRoute = searchParams.get('from') || DEFAULT_TEMPLATE_NAME
+  // strip leading slash so "/employees" → "employees"
+  const fromRoute = (searchParams.get('from') || DEFAULT_TEMPLATE_NAME).replace(/^\//, '')
   const [templateName, setTemplateName] = useState(fromRoute)
   const [activeBreakpoint, setActiveBreakpoint] = useState<Breakpoint>('desktop')
   const [zoom, setZoom] = useState(100)

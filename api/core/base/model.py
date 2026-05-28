@@ -756,6 +756,12 @@ class Model(Aras, Base):
         func._aras_computed = True
         return func
 
+    @classmethod
+    def get_ui_fields(cls) -> List[str]:
+        """Returns a list of field names that should be visible in the UI (non-system)."""
+        system = cls._SYSTEM
+        return [c.name for c in cls.__table__.columns if c.name not in system]
+
     def to_dict(self, include: list = None, exclude: list = None) -> dict:
         """Generic serialization into a dictionary, respecting metadata flags."""
         excl = set(exclude or [])

@@ -197,5 +197,206 @@
       "issues": "npm run build passes. Targeted ESLint still reports existing Combobox hook lint baseline."
     },
     "verdict": "APPROVED"
+  },
+  {
+    "id": 12,
+    "date": "2026-05-26",
+    "feature": "Framework Architecture Overhaul — ServiceRegistry, WebSocket Events, and Metadata Optimization",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/service_registry.py, api/core/manager/service_bootstrap.py, api/core/aras.py, api/main.py, api/core/logic/builtin_handlers.py, api/core/base/model.py, api/core/auth/service.py, api/core/logic/router_factory.py, api/core/api/query.py, api/core/logic/ui_generator.py, api/core/lib/helpers.py, api/core/api/dev.py, api/manage.py, and app view/model files (icons)",
+      "features_added": "Implemented ServiceRegistry for circular import resolution; WebSocket real-time event broadcasting (record_created/updated/deleted); Standardized App.seed() framework; Metadata Cache in UIGenerator with /metadata/flush endpoint",
+      "fixes_applied": "Replaced all PrimeIcons strings with Lucide icon names across all app views; Fixed stale __title__ reference in global search; Resolved circular imports in core model series generation and auth service; Standardized label formatting using to_label_case helper",
+      "framework_changes": "Centralized REST API path resolution via ServiceRegistry; Modularized UI type detection in UIGenerator; Added Aras.helper namespace; Standardized app seeding CLI",
+      "issues": "None"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 13,
+    "date": "2026-05-27",
+    "feature": "ListView: restore header style, add framework-level inline_edit toggle with pencil button",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListView.tsx",
+      "features_added": "metadata.inline_edit flag: when true cells clickable for inline edit + pencil button in row actions to open form; when false row click opens form (original behavior)",
+      "fixes_applied": "Restored header column style (removed sticky/resize), restored gridTemplateColumns to minmax(120px,1fr)",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~8000",
+    "output_tokens": "~1500",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Targeted grep + diff, no redundant reads. Complete fix delivered.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 14,
+    "date": "2026-05-27",
+    "feature": "Inline edit sebagai global preference via TweaksPanel switch",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/store/uiStore.ts, ui/src/aras-core/components/TweaksPanel.tsx, ui/src/aras-core/components/ListView.tsx",
+      "features_added": "inlineEdit persisted global preference di uiStore; Toggle switch di TweaksPanel section Layout; ListView baca dari store bukan metadata",
+      "fixes_applied": "Hapus inline_edit dari metadata per-resource, sekarang satu switch global",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~5000",
+    "output_tokens": "~800",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Minimal reads, targeted edits, no wasted tokens.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 15,
+    "date": "2026-05-27",
+    "feature": "Gabungkan TweaksPanel floating ke ThemeTweakPanel topbar + inline edit toggle",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/components/ThemeTweakPanel.tsx, ui/src/layouts/MainLayout.tsx",
+      "features_added": "Toggle switch Inline cell edit di section Behavior pada ThemeTweakPanel topbar",
+      "fixes_applied": "Hapus floating TweaksPanel dari MainLayout; semua tweaks kini terpusat di topbar panel",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~6000",
+    "output_tokens": "~700",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Langsung ke file yang relevan, no wasted reads.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 16,
+    "date": "2026-05-27",
+    "feature": "Samakan header ListViewActionBar dengan contoh ArasStudio DesktopList",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListViewActionBar.tsx",
+      "features_added": "none",
+      "fixes_applied": "Padding vertical dari py-2 ke py-3.5 (14px), padding horizontal seragam px-6, tambah border-b, count format pakai font-mono sesuai ArasStudio",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~5000",
+    "output_tokens": "~400",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Baca 3 file relevan, 3 edit kecil. Efisien.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 17,
+    "date": "2026-05-27",
+    "feature": "Samakan table header generic ListView dengan ArasStudio DesktopList",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListView.tsx",
+      "features_added": "none",
+      "fixes_applied": "Table header: background var(--bg), font-mono 10.5px, padding 10px 12px, hapus backdrop-blur, checkbox size 14px sesuai ArasStudio",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~3000",
+    "output_tokens": "~300",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Baca 1 section file, 1 edit. Sangat efisien.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 18,
+    "date": "2026-05-27",
+    "feature": "Migrate 5 views to use ArasTable generic component",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/TenantAdmin.tsx, ui/src/views/ErpUserAccess.tsx, ui/src/views/InspectRoutes.tsx, ui/src/views/ArchivedView.tsx, ui/src/views/DevTools.tsx",
+      "features_added": "none",
+      "fixes_applied": "Replaced raw <table> blocks in 5 views with ArasTable generic component; added columns defs with claude-sonnet-4-6 attribution; kept all existing logic/state/non-table JSX untouched",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~12000",
+    "output_tokens": "~3000",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Read all 5 files in one parallel batch, all edits in one shot. No re-reads.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 19,
+    "date": "2026-05-27",
+    "feature": "ArasActionBar generic component — simple + full variant, migrate InlineChildTable dan ListViewActionBar",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ArasActionBar.tsx, ui/src/aras-core/components/ListViewActionBar.tsx, ui/src/aras-core/components/InlineChildTable.tsx",
+      "features_added": "ArasActionBar dengan variant='simple' (Add, Search, Columns + extra slot) dan variant='full' (seluruh fitur ListViewActionBar). ListViewActionBar menjadi thin re-export. InlineChildTable pakai variant='simple'.",
+      "fixes_applied": "Hapus toolbar inline InlineChildTable, hapus unused state/ref/imports (useRef, searchRef, columnsRef, chip, iconChip, mousedown useEffect)",
+      "framework_changes": "ListViewActionBar backward-compatible via re-export",
+      "issues": "none"
+    },
+    "input_tokens": "~6000",
+    "output_tokens": "~2500",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Buat 1 file baru, rewrite 1 file, 5 targeted edits. 0 TS errors.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 20,
+    "date": "2026-05-27",
+    "feature": "InlineChildTable pakai ArasTable generic — header/row design konsisten dengan ListView",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/InlineChildTable.tsx, ui/src/aras-core/components/ArasTable.tsx",
+      "features_added": "none",
+      "fixes_applied": "Ganti manual <table> InlineChildTable dengan ArasTable; kolom select + actions jadi ArasTableColumn dengan render; ArasTable tambah class 'group' pada <tr> agar group-hover actions bekerja; Combobox lookup pakai resource langsung (hapus lookupOptions fallback yang tidak perlu)",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~4000",
+    "output_tokens": "~900",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "2 targeted edits, 0 TS errors.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 21,
+    "date": "2026-05-27",
+    "feature": "Fix TemplateBuilder from-route + ListView tabs & sections support",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/logic/ui_generator.py",
+      "features_added": "list_tabs from __list_tabs__ model attr exposed in metadata",
+      "fixes_applied": "none",
+      "framework_changes": "metadata dict now includes list_tabs field",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/views/TemplateBuilder.tsx, ui/src/aras-core/components/ListView.tsx",
+      "features_added": "ListView: metadata-driven filter tabs (list_tabs) + section column headers; TemplateBuilder: strip leading slash from ?from param",
+      "fixes_applied": "TemplateBuilder was loading template named /employees instead of employees due to raw pathname in from param",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~18000",
+    "output_tokens": "~2000",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "3 file edits, 2 bugs fixed, 1 new feature (tabs+sections).",
+    "verdict": "APPROVED"
   }
 ]

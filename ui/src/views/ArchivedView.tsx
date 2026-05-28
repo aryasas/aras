@@ -6,6 +6,7 @@ import { cleanResourcePath } from '../lib/resourceUtils'
 import { useAras } from '../aras-core/hooks/useAras'
 import { LoadingState } from '../components/LoadingState'
 import { EmptyState } from '../components/EmptyState'
+import ArasTable from '../aras-core/components/ArasTable'
 
 interface Field {
   name: string
@@ -106,41 +107,25 @@ export default function ArchivedView() {
       {rows.length === 0 ? (
         <EmptyState title="No archived records" />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="bg-[var(--app-panel-soft)] text-xs font-bold uppercase tracking-wider text-[var(--app-muted)]">
-              <tr>
-                <th className="w-10 px-4 py-3" />
-                {columns.map(col => (
-                  <th key={col.name} className="px-4 py-3">{col.label}</th>
-                ))}
-                <th className="px-4 py-3">Deleted At</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {rows.map((row) => (
-                <tr key={row.id} className={selectedId === row.id ? 'bg-[var(--app-accent-glow)]/50' : 'hover:bg-[var(--app-panel-soft)]'}>
-                  <td className="px-4 py-3">
-                    <input
-                      type="radio"
-                      checked={selectedId === row.id}
-                      onChange={() => setSelectedId(row.id)}
-                      className="accent-indigo-600"
-                    />
-                  </td>
-                  {columns.map(col => (
-                    <td key={col.name} className="px-4 py-3 text-[var(--app-text)]">
-                      {row[col.name] == null ? '—' : String(row[col.name])}
-                    </td>
-                  ))}
-                  <td className="px-4 py-3 text-[var(--app-muted)] text-xs">
-                    {row.deleted_at ? new Date(row.deleted_at).toLocaleString() : '—'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        // claude-sonnet-4-6
+        (() => {
+          const archivedColumns = [
+            { key: '__radio', label: '', width: 40, sortable: false, render: (_: any, row: any) => (
+              <input type="radio" checked={selectedId === row.id} onChange={() => setSelectedId(row.id)} className="accent-indigo-600" />
+            )},
+            ...columns.map(col => ({ key: col.name, label: col.label, field: col.name, render: (v: any) => v == null ? '—' : String(v) })),
+            { key: 'deleted_at', label: 'Deleted At', render: (v: any) => <span className="text-[var(--app-muted)] text-xs">{v ? new Date(v).toLocaleString() : '—'}</span> },
+          ]
+          return (
+            <ArasTable
+              columns={archivedColumns}
+              rows={rows}
+              rowKey={(row) => row.id}
+              rowClassName={(row) => selectedId === row.id ? 'bg-[var(--accent)]/8' : ''}
+              minWidth={640}
+            />
+          )
+        })()
       )}
     </div>
   )

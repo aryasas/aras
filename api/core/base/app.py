@@ -5,6 +5,7 @@ Impact: Standardizes how applications declare their manifest and models.
 """
 from typing import List, Any, Dict, Type
 from .aras import Aras
+from ..lib.helpers import to_label_case
 
 class App(Aras):
     """
@@ -46,7 +47,7 @@ class App(Aras):
             clean = clean[len(cls.app_name)+1:]
         if cls.parent_name and clean.startswith(f"{cls.parent_name}_"):
             clean = clean[len(cls.parent_name)+1:]
-        return Aras.helper.to_label_case(clean)
+        return to_label_case(clean)
 
     @classmethod
     def _get_clean_path(cls, model_name: str = None) -> str:

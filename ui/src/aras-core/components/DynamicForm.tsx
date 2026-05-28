@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
 import {
-  RefreshCw, Check, MoreHorizontal, Share2, Copy, X, Link2
+  RefreshCw, Check, MoreHorizontal, Share2, Copy, X, Link2, Settings
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { resolveFieldComponent } from '../SchemaRegistry';
@@ -13,6 +13,8 @@ import { DesignContainer } from './design/DesignContainer';
 import { DesignElement } from './design/DesignElement';
 import { useAuthStore } from '../../store/authStore';
 import { InlineChildTable } from './InlineChildTable';
+import FormSettings from './FormSettings';
+import { useUIStore } from '../../store/uiStore';
 
 interface Field {
   name: string;
@@ -28,6 +30,10 @@ interface Field {
   fk_column?: string | null;
   options?: { label: string; value: any }[];
   allow_full_list?: boolean;
+  min_length?: number;
+  max_length?: number;
+  pattern?: string;
+  col_span?: number;
 }
 
 interface Metadata {
@@ -96,8 +102,10 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [displayToken, setDisplayToken] = useState<string | null>(null);
   const [childData, setChildData] = useState<Record<string, any[]>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   
   const { notify } = useAras();
+  const showPanel = useUIStore((s) => s.showPanel);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -131,15 +139,59 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
     return () => controller.abort();
   }, [metadata, currentId, initialData, resource]);
 
+  const validateForm = () => {
+    if (!metadata) return {};
+    const nextErrors: Record<string, string> = {};
+    for (const field of metadata.fields) {
+      if (!isFieldVisible(field) || field.read_only || field.type === 'child_table') continue;
+      const value = formData[field.name];
+      const textValue = value == null ? '' : String(value);
+      if (field.required && (value == null || textValue.trim() === '' || (Array.isArray(value) && value.length === 0))) {
+        nextErrors[field.name] = `${field.label} is required`;
+        continue;
+      }
+      if (field.min_length && textValue && textValue.length < field.min_length) {
+        nextErrors[field.name] = `${field.label} must be at least ${field.min_length} characters`;
+        continue;
+      }
+      if (field.max_length && textValue && textValue.length > field.max_length) {
+        nextErrors[field.name] = `${field.label} must be ${field.max_length} characters or fewer`;
+        continue;
+      }
+      if (field.pattern && textValue) {
+        try {
+          if (!new RegExp(field.pattern).test(textValue)) nextErrors[field.name] = `${field.label} format is invalid`;
+        } catch {
+          nextErrors[field.name] = `${field.label} validation pattern is invalid`;
+        }
+      }
+    }
+    return nextErrors;
+  };
+
   const handleSubmit = async () => {
+    const nextErrors = validateForm();
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      notify("Please fix the highlighted fields", "error");
+      return;
+    }
     setSaving(true);
     try {
       const cleanPath = cleanResourcePath(metadata?.api_path || resource);
+      let savedId = currentId;
       if (currentId) {
         await api.patch(`/${cleanPath}/${currentId}`, formData);
       } else {
         const res = await api.post(`/${cleanPath}`, formData);
-        if (res.data.id) setCurrentId(res.data.id);
+        if (res.data.id) {
+          savedId = res.data.id;
+          setCurrentId(res.data.id);
+        }
+      }
+      if (savedId && metadata) {
+        const m2mFields = metadata.fields.filter((field) => field.type === 'm2m');
+        await Promise.all(m2mFields.map((field) => api.put(`/${cleanPath}/${savedId}/${field.name}`, { ids: formData[field.name] || [] })));
       }
       notify("Saved successfully", "success");
       if (onSave) onSave();
@@ -186,15 +238,26 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
   const renderField = (field: Field) => {
     if (!isFieldVisible(field)) return null;
     const Component = resolveFieldComponent(field);
+    const colSpan = Math.max(1, Math.min(Number(field.col_span || 1), 3));
     return (
-      <DesignElement id={`field-${field.name}`} key={field.name} className="flex flex-col gap-1.5 w-full">
+      <DesignElement id={`field-${field.name}`} key={field.name} className="flex flex-col gap-1.5 w-full" style={{ gridColumn: `span ${colSpan} / span ${colSpan}` }}>
         <label className="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-[0.14em]">{vocabulary.get(field.label)}</label>
         <Component
            field={field}
            value={formData[field.name]}
-           onChange={(val: any) => setFormData((prev: any) => ({...prev, [field.name]: val}))}
+           onChange={(val: any) => {
+             setFormData((prev: any) => ({...prev, [field.name]: val}));
+             setErrors((prev) => {
+               if (!prev[field.name]) return prev;
+               const next = { ...prev };
+               delete next[field.name];
+               return next;
+             });
+           }}
            formData={formData}
+           disabled={field.read_only}
         />
+        {errors[field.name] && <div className="text-[11px] font-medium text-rose-600">{errors[field.name]}</div>}
       </DesignElement>
     );
   };
@@ -236,6 +299,10 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
   const titleField = formData.name ?? formData.title ?? formData.subject ?? '';
   const idPrefix = (resource.split('/').pop() || 'ARC').toUpperCase().slice(0, 3);
   const modelActions = (metadata.actions || []) as ModelAction[];
+
+  const openSettings = () => {
+    showPanel('Form Settings', <FormSettings resource={resource} metadata={metadata} />, 'max-w-3xl');
+  };
 
   // claude-sonnet-4-6
   const AvatarInitial = ({ name, size = 22 }: { name: string; size?: number }) => (
@@ -303,6 +370,9 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
           </button>
           <button type="button" className="h-6 w-6 grid place-items-center rounded text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors" title="More">
             <MoreHorizontal size={13} />
+          </button>
+          <button type="button" onClick={openSettings} className="h-6 w-6 grid place-items-center rounded text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors" title="Settings">
+            <Settings size={13} />
           </button>
           <button
             type="button"

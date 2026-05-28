@@ -2,12 +2,15 @@
 // ARC profile: account meta on left, password form on right. Submit on the LEFT.
 import React, { useState, useEffect } from 'react'
 import api from '../lib/api'
-import { Mail, Shield, Lock, Save, AlertCircle, CheckCircle, User } from 'lucide-react'
+import { Mail, Shield, Lock, Save, AlertCircle, CheckCircle, User, Edit3, X } from 'lucide-react'
 import { useAras } from '../aras-core/hooks/useAras'
 import { useUIStore } from '../store/uiStore'
 
 const Profile = () => {
   const [userInfo, setUserInfo] = useState<any>(null)
+  const [profileForm, setProfileForm] = useState({ full_name: '', email: '' })
+  const [editingProfile, setEditingProfile] = useState(false)
+  const [profileSaving, setProfileSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const setPageTitle = useUIStore((state) => state.setPageTitle)
 
@@ -29,6 +32,7 @@ const Profile = () => {
       try {
         const res = await api.get('/auth/me')
         setUserInfo(res.data)
+        setProfileForm({ full_name: res.data.full_name || '', email: res.data.email || '' })
       } catch (err: any) {
         notify(err.message || 'Failed to fetch user info', 'error')
       } finally {
@@ -60,6 +64,22 @@ const Profile = () => {
     }
   }
 
+  const handleSaveProfile = async () => {
+    setProfileSaving(true)
+    try {
+      const res = await api.patch('/user/me', profileForm)
+      const nextUser = { ...userInfo, ...(res.data || profileForm) }
+      setUserInfo(nextUser)
+      setProfileForm({ full_name: nextUser.full_name || '', email: nextUser.email || '' })
+      setEditingProfile(false)
+      notify('Profile updated', 'success')
+    } catch (err: any) {
+      notify(err.response?.data?.detail || 'Failed to update profile', 'error')
+    } finally {
+      setProfileSaving(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="arc arc-card p-8 flex items-center justify-center">
@@ -82,6 +102,14 @@ const Profile = () => {
             <div className="arc-id"><b>user</b>/{userInfo?.id ?? '—'}</div>
             <div className="text-[14px] font-medium text-[var(--text)] truncate">{userInfo?.full_name || userInfo?.username}</div>
           </div>
+          <button
+            type="button"
+            onClick={() => setEditingProfile(true)}
+            className="ml-auto grid h-7 w-7 place-items-center rounded-full border border-[var(--line)] text-[var(--text-3)] hover:text-[var(--text)]"
+            title="Edit profile"
+          >
+            <Edit3 size={13} />
+          </button>
         </div>
 
         <div className="flex flex-col gap-3 pt-3 border-t border-[var(--line)]">
@@ -107,6 +135,27 @@ const Profile = () => {
             </div>
           </div>
         </div>
+
+        {editingProfile && (
+          <div className="flex flex-col gap-3 border-t border-[var(--line)] pt-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="arc-id">name</span>
+              <input className="arc-input" value={profileForm.full_name} onChange={(e) => setProfileForm((prev) => ({ ...prev, full_name: e.target.value }))} />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="arc-id">email</span>
+              <input type="email" className="arc-input" value={profileForm.email} onChange={(e) => setProfileForm((prev) => ({ ...prev, email: e.target.value }))} />
+            </label>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={handleSaveProfile} disabled={profileSaving} className="arc-btn primary">
+                <Save size={14} /> {profileSaving ? 'Saving...' : 'Save'}
+              </button>
+              <button type="button" onClick={() => { setEditingProfile(false); setProfileForm({ full_name: userInfo?.full_name || '', email: userInfo?.email || '' }) }} className="arc-btn">
+                <X size={14} /> Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </aside>
 
       {/* Password form */}

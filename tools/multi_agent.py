@@ -128,7 +128,7 @@ AGENTS: dict[str, dict] = {
 
 DEFAULT_ORCHESTRATOR = "sonnet"
 DEFAULT_BACKEND      = "gemini"
-DEFAULT_FRONTEND     = "haiku"
+DEFAULT_FRONTEND     = "gpt"
 DEFAULT_MOBILE       = "haiku"
 
 

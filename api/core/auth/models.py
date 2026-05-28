@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped
-from sqlalchemy import String, Boolean
+from sqlalchemy import String, Boolean, Integer, UniqueConstraint
 from ..base.model import Model
 from ..base.field import Field
 from passlib.context import CryptContext
@@ -32,3 +32,13 @@ class User(Model):
 
     def __repr__(self):
         return f"<User {self.username}>"
+
+
+# claude-sonnet-4-6
+class UserPreference(Model):
+    __tablename__ = "auth_user_preferences"
+    __table_args__ = (UniqueConstraint("user_id", "key", name="uq_user_pref"),)
+
+    user_id: Mapped[int] = Field(Integer, index=True, label="User")
+    key: Mapped[str] = Field(String(128), label="Key")
+    value: Mapped[str] = Field(String(4096), default="", label="Value")

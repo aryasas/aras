@@ -10,7 +10,7 @@ You have to input your plan here. No delete. Add plan, mark done which done.
 |---|------|--------|--------|
 | 0 | Custom Exceptions — centralize `exceptions.py` with ValidationException, ResourceNotFound, etc.; Response Wrapper — `response.py` with standard envelope (success/data/message/error) | ✅ DONE | Low |
 | 1 | Field-level validation — `min/max/pattern` on `Field()` enforced in router before DB write | ✅ DONE | Low |
-| 2 | WebSocket `/ws` — stub exists; NOT pushing audit logs, workflow state, or dashboard changes | 🟡 HALF | Medium |
+| 2 | WebSocket `/ws` — stub exists; pushing record_created/updated/deleted events | ✅ DONE | Medium |
 | 3 | M2M missing in list views — `Model.paginate` skips `resolve_m2m`; M2M fields blank in ListView | ✅ DONE | Low |
 | 4 | Transaction atomicity — `Model.save` calls `db.commit()` at line 478, 553, 556; move commit up to Router/Service layer so actions and batch ops are atomic | ✅ DONE | Medium |
 | 5 | Client-side dashboard aggregation — `ChartWidget` fetches all records and tallies in browser; crashes on large tables; add `/aggregate` endpoint to `RouterFactory` | ✅ DONE | Medium |
@@ -24,10 +24,10 @@ You have to input your plan here. No delete. Add plan, mark done which done.
 | 13 | Naming inconsistency — "Totals" vs "Financials" tab for same 3 fields in `accounting/views.py` | ✅ DONE | Low |
 | 14 | Field inconsistency — `customer_id` (inflow) vs `party_id` (outflow) for same counterparty | ✅ DONE | Low |
 | 15 | Hook system — `@Aras.on_create/update/delete` hooks don't receive `db` or `user_id`; add both + `@Aras.on_validate` that runs pre-commit and can raise `ValidationException` | ✅ DONE | Medium |
-| 16 | Global search stale ref — `query.py:97` still uses `__title__` attribute (removed); fix via View registry + implement searchable resource index to avoid full-model loop | ⬜ TODO | Low |
-| 17 | ResourceRegistry — `UIGenerator` does full app registry scan per FK to resolve resource paths; build centralized map at startup | 🟡 HALF | Low |
-| 18 | Icon standard — all ERP views (`accounting`, `asset`, `party`, `config`) use `pi pi-*` PrimeIcons strings; frontend resolves via Lucide; replace all with Lucide names | ⬜ TODO | Low |
-| 19 | Seed framework — seeding scattered across `seed_coa.py`, `seed_series.py`, `seed_random_invoices.py`, `seed_basic.py`; standardize `App.seed(db)` method called by `manage.py seed` | ⬜ TODO | Low |
+| 16 | Global search stale ref — `query.py:97` still uses `__title__` attribute (removed); fixed via View registry lookup | ✅ DONE | Low |
+| 17 | ResourceRegistry — `UIGenerator` does full app registry scan per FK to resolve resource paths; built centralized map at startup in `ServiceRegistry` | ✅ DONE | Low |
+| 18 | Icon standard — all ERP views (`accounting`, `asset`, `party`, `config`) use `pi pi-*` PrimeIcons strings; replaced all with Lucide names | ✅ DONE | Low |
+| 19 | Seed framework — seeding scattered; standardized `App.seed(db)` method called by `manage.py seed` | ✅ DONE | Low |
 
 ---
 
@@ -92,7 +92,7 @@ You have to input your plan here. No delete. Add plan, mark done which done.
 |---|------|--------|--------|
 | R1 | `cleanResourcePath` overuse — manually called in almost every component/hook; abstract into api client or `useResource` hook | ✅ DONE | Low |
 | R2 | Service vs. logic location — ERP services (`recalc_mixin.py`, `posting.py`) mixed with models; standardize `services/` folder for all apps | ⬜ TODO | Low |
-| R3 | Circular import fatigue — local imports inside methods across `model_actions.py`, `model.py`, app actions; introduce `ServiceRegistry`/`DependencyProvider` | ⬜ TODO | High |
+| R3 | Circular import fatigue — local imports inside methods across `model_actions.py`, `model.py`, app actions; introduced `ServiceRegistry` | ✅ DONE | High |
 | R4 | `createEmptyRecord` boilerplate — identical `if type==='boolean'`/`date`/`datetime` chains in `DynamicForm.tsx:~262` and `InlineChildTable.tsx:~58`; extract to `SchemaRegistry.createDefaultRecord(metadata)` | ✅ DONE | Low |
 | R5 | Hardcoded widget registry — `DashboardView.tsx:87–89` uses `if widget_type==='stat'/'chart'/'list'`; replace with `WidgetRegistry` pattern so app modules inject custom widgets | ✅ DONE | Low |
 | R6 | `<SubTableToolbar>` — `InlineChildTable.tsx:78–88` uses full `ListToolbar` with empty stubs (`onExport/onBulkEdit={() => {}}`); needs a dedicated lightweight toolbar | ✅ DONE | Low |

@@ -503,3 +503,8 @@ Be honest about quality: `# claude-sonnet-4-6 (bad)`, `# gemini-pro (needs revie
 - Public landing and signup pages now use `LanguageContext` and `ui/src/locales/{en,id}.json`.
 - `LanguageContext.t()` resolves both flat keys (`"nav.dashboard"`) and nested object paths.
 - Public pages include EN/ID toggles and persist language in `localStorage` key `aras_lang`.
+
+
+---
+## Framework Change: Framework remaining items — all NOT DONE and HALF from plan.md verified against actual codebase — revision (2026-05-26)
+  - [GPT (codex)] Added reusable FormSettings component and WebSocket client bootstrap

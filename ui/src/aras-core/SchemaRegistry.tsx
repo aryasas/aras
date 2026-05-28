@@ -8,7 +8,7 @@ interface Option {
   value: string | number;
 }
 
-export interface Field {
+export interface FieldDefinition {
   name?: string;
   type: string;
   label: string;
@@ -20,28 +20,30 @@ export interface Field {
   simple_combobox?: boolean;
 }
 
+export type Field = FieldDefinition;
+
 export interface FieldProps {
-  value: string | number | boolean | Array<string | number> | undefined | null;
-  onChange: (val: string | number | boolean | Array<string | number> | null | undefined) => void;
-  field: Field;
+  value: unknown;
+  onChange: (val: unknown) => void;
+  field: FieldDefinition;
   formData: Record<string, unknown>;
   disabled?: boolean;
 }
 
-const inputValue = (value: FieldProps['value']): string | number | readonly string[] =>
+const inputValue = (value: unknown): string | number | readonly string[] =>
   Array.isArray(value)
     ? value.map(String)
     : typeof value === 'string' || typeof value === 'number'
       ? value
       : '';
 
-const scalarValue = (value: FieldProps['value']): string | number | null | undefined =>
+const scalarValue = (value: unknown): string | number | null | undefined =>
   typeof value === 'string' || typeof value === 'number' || value == null ? value : undefined;
 
-const stringValue = (value: FieldProps['value']): string =>
+const stringValue = (value: unknown): string =>
   typeof value === 'string' ? value : value == null ? '' : String(value);
 
-const arrayValue = (value: FieldProps['value']): Array<string | number> =>
+const arrayValue = (value: unknown): Array<string | number> =>
   Array.isArray(value) ? value : [];
 
 const DefaultInput: React.FC<FieldProps> = ({ value, onChange, field, disabled }) => {
@@ -182,7 +184,16 @@ const components: Record<string, React.FC<FieldProps>> = {
       placeholder={`Select ${props.field.label}...`}
       disabled={props.disabled}
     />
-  )
+  ),
+  'm2m': (props) => (
+    <MultiSelectCombobox
+      resource={props.field.target_resource || ''}
+      value={arrayValue(props.value)}
+      onChange={props.onChange}
+      placeholder={`Select ${props.field.label}...`}
+      disabled={props.disabled}
+    />
+  ),
 };
 
 export function resolveFieldComponent(field: Field): React.ComponentType<FieldProps> {

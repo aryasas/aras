@@ -40,6 +40,7 @@ interface UIStore {
   sidebarCollapsed: boolean;
   iconRailCollapsed: boolean;
   topbarNavStyle: 'icon-text' | 'icon-only';
+  inlineEdit: boolean;
   designMode: boolean;
   activeElementId: string | null;
   designData: {
@@ -67,6 +68,7 @@ interface UIStore {
   setDensity: (density: UIStore['density']) => void;
   setAccentColor: (accentColor: string) => void;
   setFontScale: (fontScale: number) => void;
+  setInlineEdit: (v: boolean) => void;
   toggleDesignMode: () => void;
   setActiveDesignElement: (id: string | null) => void;
   updateElementStyle: (id: string, styles: any) => void;
@@ -109,6 +111,7 @@ export const useUIStore = create<UIStore>()(
       sidebarCollapsed: false,
       iconRailCollapsed: false,
       topbarNavStyle: 'icon-text',
+      inlineEdit: false,
       designMode: false,
       activeElementId: null,
       designData: { styles: {}, orders: {}, customElements: {} },
@@ -154,6 +157,7 @@ export const useUIStore = create<UIStore>()(
       setDensity: (density) => set({ density }),
       setAccentColor: (accentColor) => set({ accentColor }),
       setFontScale: (fontScale) => set({ fontScale }),
+      setInlineEdit: (inlineEdit) => set({ inlineEdit }),
       toggleDesignMode: () => set({ designMode: !get().designMode, activeElementId: null }),
       setActiveDesignElement: (id) => set({ activeElementId: id }),
       updateElementStyle: (id, styles) => set((state) => ({
@@ -219,6 +223,7 @@ export const useUIStore = create<UIStore>()(
         sidebarCollapsed: s.sidebarCollapsed,
         iconRailCollapsed: s.iconRailCollapsed,
         topbarNavStyle: s.topbarNavStyle,
+        inlineEdit: s.inlineEdit,
         submenuOrder: s.submenuOrder,
       }),
       onRehydrateStorage: () => (state) => {

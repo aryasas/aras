@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Globe, Search, Shield, ChevronLeft } from 'lucide-react'
 import api from '../lib/api'
 import { useNavigate } from 'react-router-dom'
+import ArasTable from '../aras-core/components/ArasTable'
 
 interface RouteInfo {
   path: string
@@ -58,81 +59,51 @@ export default function InspectRoutes() {
         </div>
       </div>
 
-      <div className="bg-[var(--app-panel)] rounded-[2.5rem] border border-[var(--app-border)] shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-[var(--app-panel-soft)] border-b border-[var(--app-border)]">
-              <th className="px-8 py-5 text-xs font-black text-[var(--app-muted)] uppercase tracking-wider w-32">Methods</th>
-              <th className="px-8 py-5 text-xs font-black text-[var(--app-muted)] uppercase tracking-wider">Endpoint Path</th>
-              <th className="px-8 py-5 text-xs font-black text-[var(--app-muted)] uppercase tracking-wider">Internal Name</th>
-              <th className="px-8 py-5 text-xs font-black text-[var(--app-muted)] uppercase tracking-wider text-right">Security Scope</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {loading ? (
-              [...Array(8)].map((_, i) => (
-                <tr key={i} className="animate-pulse">
-                  <td className="px-8 py-6"><div className="h-6 bg-[var(--app-panel-soft)] rounded-[var(--app-radius)] w-20"></div></td>
-                  <td className="px-8 py-6"><div className="h-6 bg-[var(--app-panel-soft)] rounded-[var(--app-radius)] w-64"></div></td>
-                  <td className="px-8 py-6"><div className="h-6 bg-[var(--app-panel-soft)] rounded-[var(--app-radius)] w-32"></div></td>
-                  <td className="px-8 py-6 text-right"><div className="h-6 bg-[var(--app-panel-soft)] rounded-[var(--app-radius)] w-24 ml-auto"></div></td>
-                </tr>
-              ))
-            ) : filteredRoutes.length > 0 ? (
-              filteredRoutes.map((route, i) => (
-                <tr key={i} className="hover:bg-[var(--app-panel-soft)]/50 transition-colors group">
-                  <td className="px-8 py-6">
-                    <div className="flex flex-wrap gap-1">
-                      {route.methods.filter(m => m !== 'OPTIONS' && m !== 'HEAD').map(m => (
-                        <span key={m} className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${
-                          m === 'GET' ? 'bg-blue-100 text-blue-700' :
-                          m === 'POST' ? 'bg-emerald-100 text-emerald-700' :
-                          m === 'PUT' ? 'bg-amber-100 text-amber-700' :
-                          m === 'DELETE' ? 'bg-rose-100 text-rose-700' :
-                          'bg-[var(--app-panel-soft)] text-[var(--app-text)]'
-                        }`}>
-                          {m}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-2">
-                       <code className="text-[var(--app-accent)] font-bold text-sm bg-[var(--app-accent-glow)]/50 px-2 py-1 rounded-[var(--app-radius)] group-hover:bg-indigo-100 transition-colors">
-                        {route.path}
-                      </code>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6 text-sm font-bold text-[var(--app-muted)] italic">
-                    {route.name || '-'}
-                  </td>
-                  <td className="px-8 py-6 text-right">
-                     {route.path.includes('/dev/') ? (
-                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black uppercase rounded-full border border-amber-100">
-                         <Shield size={12} /> Maintenance
-                       </span>
-                     ) : route.path.includes('/auth/') ? (
-                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black uppercase rounded-full border border-blue-100">
-                         Identity
-                       </span>
-                     ) : (
-                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--app-panel-soft)] text-[var(--app-muted)] text-[10px] font-black uppercase rounded-full border border-[var(--app-border)]">
-                         Resource
-                       </span>
-                     )}
-                  </td>
-                </tr>
-              ))
+      {/* claude-sonnet-4-6 */}
+      {(() => {
+        const routeColumns = [
+          { key: 'methods', label: 'Methods', width: 128, render: (_: any, route: RouteInfo) => (
+            <div className="flex flex-wrap gap-1">
+              {route.methods.filter(m => m !== 'OPTIONS' && m !== 'HEAD').map(m => (
+                <span key={m} className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${
+                  m === 'GET' ? 'bg-blue-100 text-blue-700' :
+                  m === 'POST' ? 'bg-emerald-100 text-emerald-700' :
+                  m === 'PUT' ? 'bg-amber-100 text-amber-700' :
+                  m === 'DELETE' ? 'bg-rose-100 text-rose-700' :
+                  'bg-[var(--app-panel-soft)] text-[var(--app-text)]'
+                }`}>{m}</span>
+              ))}
+            </div>
+          )},
+          { key: 'path', label: 'Endpoint Path', render: (_: any, route: RouteInfo) => (
+            <code className="text-[var(--app-accent)] font-bold text-sm bg-[var(--app-accent-glow)]/50 px-2 py-1 rounded-[var(--app-radius)]">{route.path}</code>
+          )},
+          { key: 'name', label: 'Internal Name', render: (_: any, route: RouteInfo) => (
+            <span className="text-sm font-bold text-[var(--app-muted)] italic">{route.name || '-'}</span>
+          )},
+          { key: 'scope', label: 'Security Scope', align: 'right' as const, render: (_: any, route: RouteInfo) => (
+            route.path.includes('/dev/') ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black uppercase rounded-full border border-amber-100"><Shield size={12} /> Maintenance</span>
+            ) : route.path.includes('/auth/') ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black uppercase rounded-full border border-blue-100">Identity</span>
             ) : (
-              <tr>
-                <td colSpan={4} className="px-8 py-20 text-center">
-                   <div className="text-slate-300 font-bold text-lg">No routes found matching your search.</div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--app-panel-soft)] text-[var(--app-muted)] text-[10px] font-black uppercase rounded-full border border-[var(--app-border)]">Resource</span>
+            )
+          )},
+        ]
+        return (
+          <div className="bg-[var(--app-panel)] rounded-[2.5rem] border border-[var(--app-border)] shadow-sm overflow-hidden">
+            <ArasTable
+              columns={routeColumns}
+              rows={filteredRoutes}
+              rowKey={(_, i) => i}
+              loading={loading}
+              loadingRows={8}
+              emptyMessage="No routes found matching your search."
+            />
+          </div>
+        )
+      })()}
     </div>
   )
 }

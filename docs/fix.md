@@ -225,3 +225,7 @@ This file is used only to report if there are fix
 - [Gemini] Fixed `strokeDashoffset` SVG attribute in `DashboardView.tsx` by removing redundant `String()` wrapper, satisfying SVG attribute numeric type requirements.
 - [Gemini] Added missing `key` fields to `PotSessionView` layout definitions in `pot/views.py` to ensure consistent rendering and prevent React key warnings.
 - [Gemini] Renamed "Totals" tab to "Financials" in `InflowInvoiceView` and `OutflowInvoiceView` within `accounting/views.py` to align with organizational naming standards.
+
+
+## Framework remaining items — all NOT DONE and HALF from plan.md verified against actual codebase — revision (2026-05-26)
+  - [GPT (codex)] Typed SchemaRegistry FieldProps and wired InlineChildTable lookup cache
