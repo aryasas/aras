@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import * as SecureStore from 'expo-secure-store';
 import api from '../lib/api';
+import { getToken, logout as clearAuthStorage, setToken } from '../lib/auth';
 
 interface User {
   id: string | number;
@@ -33,24 +33,23 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
     
     const { access_token } = response.data;
-    await SecureStore.setItemAsync('aras_token', access_token);
+    await setToken(access_token);
     
     const me = await api.get('/auth/me');
     set({ isAuthenticated: true, user: me.data, token: access_token });
   },
   logout: async () => {
-    await SecureStore.deleteItemAsync('aras_token');
-    await SecureStore.deleteItemAsync('org_id');
+    await clearAuthStorage();
     set({ isAuthenticated: false, user: null, token: null });
   },
   checkAuth: async () => {
-    const token = await SecureStore.getItemAsync('aras_token');
+    const token = await getToken();
     if (token) {
       try {
         const me = await api.get('/auth/me');
         set({ isAuthenticated: true, user: me.data, token });
       } catch (err) {
-        await SecureStore.deleteItemAsync('aras_token');
+        await clearAuthStorage();
         set({ isAuthenticated: false, user: null, token: null });
       }
     }

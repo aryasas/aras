@@ -37,6 +37,7 @@ interface UIStore {
   density: 'compact' | 'regular' | 'comfy';
   accentColor: string;
   fontScale: number;
+  dirtyForms: Set<string>;
   sidebarCollapsed: boolean;
   iconRailCollapsed: boolean;
   topbarNavStyle: 'icon-text' | 'icon-only';
@@ -68,6 +69,7 @@ interface UIStore {
   setDensity: (density: UIStore['density']) => void;
   setAccentColor: (accentColor: string) => void;
   setFontScale: (fontScale: number) => void;
+  setDirty: (key: string, dirty: boolean) => void;
   setInlineEdit: (v: boolean) => void;
   toggleDesignMode: () => void;
   setActiveDesignElement: (id: string | null) => void;
@@ -108,6 +110,7 @@ export const useUIStore = create<UIStore>()(
       density: 'regular',
       accentColor: '#4F46E5',
       fontScale: 100,
+      dirtyForms: new Set<string>(),
       sidebarCollapsed: false,
       iconRailCollapsed: false,
       topbarNavStyle: 'icon-text',
@@ -157,6 +160,12 @@ export const useUIStore = create<UIStore>()(
       setDensity: (density) => set({ density }),
       setAccentColor: (accentColor) => set({ accentColor }),
       setFontScale: (fontScale) => set({ fontScale }),
+      setDirty: (key, dirty) => set((state) => {
+        const next = new Set(state.dirtyForms)
+        if (dirty) next.add(key)
+        else next.delete(key)
+        return { dirtyForms: next }
+      }),
       setInlineEdit: (inlineEdit) => set({ inlineEdit }),
       toggleDesignMode: () => set({ designMode: !get().designMode, activeElementId: null }),
       setActiveDesignElement: (id) => set({ activeElementId: id }),

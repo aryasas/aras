@@ -6,11 +6,15 @@ import { Search, Check, ChevronDown, X, Loader2 } from 'lucide-react';
 
 interface MultiSelectComboboxProps {
   resource: string;
-  value: any[];
-  onChange: (value: any[]) => void;
+  value: Array<string | number>;
+  onChange: (value: Array<string | number>) => void;
   placeholder?: string;
   displayField?: string;
   disabled?: boolean;
+}
+
+interface LookupItem extends Record<string, unknown> {
+  id: string | number;
 }
 
 const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({ 
@@ -23,9 +27,9 @@ const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<LookupItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedItems, setSelectedItems] = useState<any[]>([]);
+  const [selectedItems, setSelectedItems] = useState<LookupItem[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropdownStyles, setDropdownStyles] = useState<React.CSSProperties>({});
@@ -82,7 +86,7 @@ const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({
           const cleanRes = cleanResourcePath(resource);
           const promises = value.map(id => api.get(`/${cleanRes}/${id}`));
           const responses = await Promise.all(promises);
-          setSelectedItems(responses.map(r => r.data));
+          setSelectedItems(responses.map(r => r.data as LookupItem));
         } catch (err) {
           console.error("Failed to fetch selected items", err);
         }
@@ -105,7 +109,7 @@ const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({
           per_page: 20
         };
         const res = await api.get(`/${cleanRes}/`, { params });
-        setItems(res.data.items);
+        setItems(Array.isArray(res.data.items) ? res.data.items as LookupItem[] : []);
       } catch (err) {
         console.error("Failed to fetch items", err);
       } finally {
@@ -116,10 +120,10 @@ const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({
     return () => clearTimeout(timer);
   }, [search, resource, isOpen, disabled]);
 
-  const handleSelect = (item: any) => {
+  const handleSelect = (item: LookupItem) => {
     const isSelected = value.includes(item.id);
-    let newValue: any[];
-    let newSelectedItems: any[];
+    let newValue: Array<string | number>;
+    let newSelectedItems: LookupItem[];
 
     if (isSelected) {
       newValue = value.filter(id => id !== item.id);
@@ -133,7 +137,7 @@ const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({
     onChange(newValue);
   };
 
-  const handleRemove = (e: React.MouseEvent, itemId: any) => {
+  const handleRemove = (e: React.MouseEvent, itemId: string | number) => {
     e.stopPropagation();
     if (disabled) return;
     const newValue = value.filter(id => id !== itemId);
@@ -187,7 +191,7 @@ const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({
                   }`}
                 >
                   <span className={`text-xs truncate ${isSelected ? 'font-bold' : 'font-medium'}`}>
-                    {item[displayField] || item.id}
+                    {String(item[displayField] || item.id)}
                   </span>
                   {isSelected && <Check size={14} className="shrink-0 ml-2" />}
                 </div>
@@ -214,7 +218,7 @@ const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({
         {selectedItems.length > 0 ? (
           selectedItems.map(item => (
             <span key={item.id} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-[var(--aras-accent)]/10 text-[var(--aras-accent)] rounded-md text-[10px] font-bold">
-              {item[displayField] || item.id}
+              {String(item[displayField] || item.id)}
               {!disabled && (
                 <button 
                   onClick={(e) => handleRemove(e, item.id)}

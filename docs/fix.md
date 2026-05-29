@@ -3,7 +3,15 @@
 This file is used only to report if there are fix
 
 
-## Plan.md Full Build Queue — Backend 0, C1–C3, Backend 3–4, U4, U13, U14, Backend 6, H1–H2, R4, R6, H4, Backend 5+7–14, P1–P5, R1, R5, Backend 9–10, U1, U5, U2–U3, U6, U11 (2026-05-17)
+## Backend Hygiene & Script-Report Hardening (2026-05-29)
+- [Gemini Flash] Implemented orphan-table drop policy in `auto_migrate.py`: only drops in `development` mode with explicit `--drop-orphans` flag in `manage.py sync`.
+- [Gemini Flash] Hardened `exec()` in script reports: gated behind administrator role, restricted globals to a whitelist (no `__builtins__`), and added a 5-second timeout via `concurrent.futures`.
+- [Gemini Flash] Added script approval tracking to `Report` model (`script_approved_by`, `script_approved_at`) and enforced it before execution.
+- [Gemini Flash] Cleaned up bare `except:` blocks across `router_factory` and `model` packages, replacing them with specific exception handling and logging.
+- [Gemini Flash] Migrated all `print()` statements to a proper logger in `discovery.py` and added a regression test.
+
+## Plan.md Full Build Queue
+ — Backend 0, C1–C3, Backend 3–4, U4, U13, U14, Backend 6, H1–H2, R4, R6, H4, Backend 5+7–14, P1–P5, R1, R5, Backend 9–10, U1, U5, U2–U3, U6, U11 (2026-05-17)
   - [Gemini] Replaced all raw HTTPException raises in RouterFactory with appropriate custom ArasException subclasses, replaced all _create_success_response and _create_error_detail calls with new response.ok and response.err functions.
   - [Codex/GPT-5.5] dashboard dependency/catch/pie offset fixes, import endpoint switched to /import, console errors replaced with notifications in requested files, API path/error envelope normalization
 
@@ -229,3 +237,40 @@ This file is used only to report if there are fix
 
 ## Framework remaining items — all NOT DONE and HALF from plan.md verified against actual codebase — revision (2026-05-26)
   - [GPT (codex)] Typed SchemaRegistry FieldProps and wired InlineChildTable lookup cache
+
+
+## Full sweep — immediate UX fixes + P0 in-flight close-out + P1 polish + P2 backend quality + P3 docs (2026-05-28)
+  - [GPT (codex)] removed ListViewActionBar shim, added login-card test id, normalized preference endpoints, added metadata flush after FormSettings save, fixed build-blocking unused InlineChildTable declarations
+
+## Backend Sweep Revision & UX Polish (2026-05-29)
+- [Gemini 2.5 Flash] Deleted stale `.bak` files from core split (`model.py.bak`, `router_factory.py.bak`).
+- [Gemini 2.5 Flash] Created shared `SkeletonRow` component and consolidated pulse animations across `ArasTable` and `ListView`.
+- [Gemini 2.5 Flash] Verified backend integrity via full smoke test suite (14/14 pass).
+
+## Framework Import & Metadata Fixes (2026-05-29)
+- [Gemini 2.5 Flash] Fixed `ModuleNotFoundError` during sync by correcting relative imports in `api/core/logic/ui_generator/__init__.py`.
+- [Gemini 2.5 Flash] Corrected `ResourceModel.layout` type hint to `list` to match `View.layout` structure.
+- [Gemini 2.5 Flash] Fixed `NameError: to_label_case` in `UIGenerator` by adding missing import.
+
+
+## Remaining plan.md items — H3 typing, dark mode, dashboard DnD, table polish, profile edit, metadata-driven specials, Form Builder DnD, Framework Phases 1/2/3.1 (2026-05-29)
+  - [GPT (codex)] removed downstream field renderer any casts in DynamicForm/ListView; corrected Profile save endpoint and topbar user update
+
+## Public-page error UX and mobile auth headers (2026-05-29)
+- [Codex/GPT-5.5] Added retryable error states for public landing and signup plan loading, normalized customer portal envelope parsing with raw JSON fallback, and wired mobile API auth/org headers through AsyncStorage-backed helpers.
+
+
+## Close all outstanding QA/audit items from plan.md Section 7 — backend hygiene, public-page error UX, script-report sandbox, mobile auth audit (2026-05-29)
+  - [GPT (codex)] Public signup/landing retry error UX, portal envelope parsing with legacy fallback, mobile AsyncStorage auth/org headers, ResourceList 401/403 error state
+
+
+## SaaS Fase 6–8 — Auto-provisioning, automated billing, resource monitoring + Pluggable payment gateways (Stripe + Midtrans + Xendit) with IP-geo routing (2026-05-29)
+  - [GPT (codex)] Removed unused dashboard import found during build
+
+
+## Polish sweep — FE silent-catch surfacing, `any` cleanup, email transport wiring, GeoLite2 bundling, payment webhook E2E tests — revision (2026-05-29)
+  - [GPT (codex)] <description, or "none">
+
+
+## Polish sweep — FE silent-catch surfacing, `any` cleanup, email transport wiring, GeoLite2 bundling, payment webhook E2E tests — revision (2026-05-29)
+  - [GPT (codex)] Fixed TypeScript fallout from tighter aras-core component types; npm run build passes

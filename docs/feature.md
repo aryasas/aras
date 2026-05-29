@@ -4,8 +4,35 @@ This file is used only to report if there are feature added
 
 # Aras Framework Features
 
----
+## SaaS Polish & Backend Hardening (2026-05-29)
+- [Gemini 2.5 Flash] Implemented pluggable EmailTransport system with SMTP, Resend, and Console backends.
+- [Gemini 2.5 Flash] Developed automated dunning email service for overdue SaaS invoices.
+- [Gemini 2.5 Flash] Added `fetch-geo` management command for GeoLite2 database maintenance.
+- [Gemini 2.5 Flash] Hardened payment webhook handlers with signature verification and 400-error signaling.
+- [Gemini 2.5 Flash] Established E2E test suite for Stripe, Midtrans, and Xendit webhooks with 100% pass rate.
 
+## SaaS Phase 6–8 Backend (2026-05-29)
+- [Gemini 2.5 Flash] Implemented pluggable payment provider architecture with Stripe, Midtrans, and Xendit.
+- [Gemini 2.5 Flash] Added GeoMiddleware for IP-based payment provider routing.
+- [Gemini 2.5 Flash] Developed Provisioner service for automated tenant DB creation and seeding.
+- [Gemini 2.5 Flash] Implemented BillingService with automated invoice generation and APScheduler cron integration.
+- [Gemini 2.5 Flash] Added RequestLog middleware and MetricsService for tenant usage monitoring.
+
+## Quick Actions & Service Layer (2026-05-28)
+- [Gemini] Added `GET /admin/quick-actions` returning RBAC-filtered actions, resources, and routes.
+- [Gemini] Standardized `Aras.Service` base class for business logic with built-in RBAC and audit.
+- [Gemini] Added `GET /web/landing/{key}` for targeted content retrieval.
+- [Gemini] Added `reorder` action to `LandingSection` for manual sorting.
+- [Gemini] Resource-specific `/search` and `/lookup` endpoints for optimized data retrieval.
+
+## Metadata-driven UI, Profile Update & Framework Refactor (2026-05-29)
+- [Gemini 2.5 Flash] Implemented `PUT /auth/me` and added `User.name` for profile management.
+- [Gemini 2.5 Flash] Refactored `UIGenerator` to a Type Handler Pattern in `api/core/logic/ui_generator/`.
+- [Gemini 2.5 Flash] Added `Model.get_ui_fields()` in `api/core/base/model/queries.py` for standardized column retrieval.
+- [Gemini 2.5 Flash] Integrated `to_label_case` helper across the framework for consistent label generation.
+- [Gemini 2.5 Flash] Added `ErpUserAccessView` and updated `OrganizationView` with UI type overrides for `profile`, `unit_type`, and `org_id`.
+
+---
 ## 1. Core Architecture
 - Metadata-driven design (FastAPI + SQLAlchemy)
 - 3-level hierarchical structure
@@ -413,3 +440,23 @@ This file is used only to report if there are feature added
 
 ## Framework remaining items — all NOT DONE and HALF from plan.md verified against actual codebase — revision (2026-05-26)
   - [GPT (codex)] Client-side form validation, M2M form field rendering/saving, form settings side panel, inline list editing, persisted column visibility, column resize/freeze, profile edit mode, command palette actions, frontend WebSocket connection
+
+
+## Full sweep — immediate UX fixes + P0 in-flight close-out + P1 polish + P2 backend quality + P3 docs (2026-05-28)
+  - [GPT (codex)] theme propagation, DB-driven landing sections, template memory/switching, robust websocket bridge, list/form live update handling, dirty-state guard, table accessibility/responsive behavior, quick-actions command palette, shared validation and list action helpers
+
+
+## Remaining plan.md items — H3 typing, dark mode, dashboard DnD, table polish, profile edit, metadata-driven specials, Form Builder DnD, Framework Phases 1/2/3.1 (2026-05-29)
+  - [GPT (codex)] metadata-driven profile/org/unit pickers, table column resize persistence support, dashboard preference-based reorder persistence, profile edit via PUT /auth/me, dnd-kit form layout editor with sections/tabs/preview
+
+
+## SaaS Fase 6–8 — Auto-provisioning, automated billing, resource monitoring + Pluggable payment gateways (Stripe + Midtrans + Xendit) with IP-geo routing (2026-05-29)
+  - [GPT (codex)] SaaS admin dashboard, tenant detail view, plan editor fields, SaaS admin routes/sidebar entry, checkout redirect signup flow, billing invoice/payment UI, redirect-back payment polling, and 402 billing redirect
+
+
+## Polish sweep — FE silent-catch surfacing, `any` cleanup, email transport wiring, GeoLite2 bundling, payment webhook E2E tests — revision (2026-05-29)
+  - [GPT (codex)] Surfaced portal fetch failures with safe API envelope parsing and error toasts; reduced `ui/src/aras-core/` explicit `any` usage to 37 while keeping `npm run build` green.
+
+
+## Polish sweep — FE silent-catch surfacing, `any` cleanup, email transport wiring, GeoLite2 bundling, payment webhook E2E tests — revision (2026-05-29)
+  - [GPT (codex)] Portal safe API envelope parsing with error toasts; aras-core explicit any count reduced to 37

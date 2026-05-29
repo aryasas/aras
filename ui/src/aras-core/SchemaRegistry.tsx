@@ -8,12 +8,19 @@ interface Option {
   value: string | number;
 }
 
-export interface FieldDefinition {
-  name?: string;
+export interface FieldMeta {
+  name: string;
   type: string;
   label: string;
-  options?: Option[];
+  required?: boolean;
+  read_only?: boolean;
+  info?: Record<string, unknown>;
+  choices?: string[];
   target_resource?: string;
+}
+
+export interface FieldDefinition extends FieldMeta {
+  options?: Option[];
   fk_filter?: Record<string, string>;
   fk_filter_fallback?: Record<string, string>;
   /** Use simple variant (no search/add-new/shortcut) for this lookup */
@@ -22,12 +29,15 @@ export interface FieldDefinition {
 
 export type Field = FieldDefinition;
 
-export interface FieldProps {
-  value: unknown;
-  onChange: (val: unknown) => void;
-  field: FieldDefinition;
+export interface FieldProps<T = unknown> {
+  field: FieldMeta;
+  value: T;
+  onChange: (val: T) => void;
   formData: Record<string, unknown>;
+  error?: string;
   disabled?: boolean;
+  'aria-invalid'?: boolean;
+  'aria-describedby'?: string;
 }
 
 const inputValue = (value: unknown): string | number | readonly string[] =>
@@ -45,6 +55,17 @@ const stringValue = (value: unknown): string =>
 
 const arrayValue = (value: unknown): Array<string | number> =>
   Array.isArray(value) ? value : [];
+
+const fieldOptions = (field: FieldMeta): Option[] | undefined => {
+  const withOptions = field as FieldDefinition;
+  if (withOptions.options) return withOptions.options;
+  return field.choices?.map((choice) => ({ label: choice, value: choice }));
+};
+
+const infoString = (field: FieldMeta, key: string): string | undefined => {
+  const value = field.info?.[key];
+  return typeof value === 'string' ? value : undefined;
+};
 
 const DefaultInput: React.FC<FieldProps> = ({ value, onChange, field, disabled }) => {
   const commonClass = "w-full h-8 px-3 bg-[var(--surface)] border border-[var(--line)] rounded-[6px] text-[12px] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/10 outline-none transition-all placeholder:text-[var(--text-3)] shadow-sm disabled:opacity-50 disabled:bg-[var(--surface-2)]";
@@ -116,7 +137,7 @@ const DateTimeInput: React.FC<FieldProps> = ({ value, onChange, disabled }) => (
 
 const SelectInput: React.FC<FieldProps> = ({ value, onChange, field, disabled }) => (
   <Combobox 
-    options={field.options}
+    options={fieldOptions(field)}
     value={scalarValue(value)} 
     onChange={onChange} 
     placeholder={`Select ${field.label}...`}
@@ -136,6 +157,9 @@ const TextAreaInput: React.FC<FieldProps> = ({ value, onChange, field, disabled 
   />
 );
 
+const lookupResource = (field: FieldMeta, fallback = '') =>
+  field.target_resource || infoString(field, 'target_resource') || fallback;
+
 const components: Record<string, React.FC<FieldProps>> = {
   'string': DefaultInput,
   'email': DefaultInput,
@@ -149,8 +173,9 @@ const components: Record<string, React.FC<FieldProps>> = {
   'file': (props) => <FileField value={stringValue(props.value)} onChange={props.onChange} label={props.field.label} />,
   'image': (props) => <FileField value={stringValue(props.value)} onChange={props.onChange} label={props.field.label} />,
   'lookup': (props) => {
-    const fkFilter = props.field.fk_filter as Record<string, string> | undefined;
-    const fkFilterFallback = props.field.fk_filter_fallback as Record<string, string> | undefined;
+    const field = props.field as FieldDefinition;
+    const fkFilter = field.fk_filter;
+    const fkFilterFallback = field.fk_filter_fallback;
     const resolvedFilter: Record<string, string> = fkFilter ? { ...fkFilter } : {};
     if (fkFilterFallback) {
       for (const [filterKey, srcKey] of Object.entries(fkFilterFallback)) {
@@ -166,19 +191,59 @@ const components: Record<string, React.FC<FieldProps>> = {
       : undefined;
     return (
       <Combobox
-        resource={props.field.target_resource || ''}
+        resource={lookupResource(props.field)}
         value={scalarValue(props.value)}
         onChange={props.onChange}
         placeholder={`Select ${props.field.label}...`}
         disabled={props.disabled}
         extraFilters={Object.keys(extraFilters ?? {}).length ? extraFilters as Record<string, string | number | boolean> : undefined}
-        variant={props.field.simple_combobox ? 'simple' : 'lookup'}
+        variant={field.simple_combobox ? 'simple' : 'lookup'}
       />
     );
   },
+  'profile_picker': (props) => (
+    <Combobox
+      options={[
+        { label: 'General', value: 'general' },
+        { label: 'Restaurant', value: 'restaurant' },
+        { label: 'Retail', value: 'retail' },
+        { label: 'Manufacturing', value: 'manufacturing' },
+      ]}
+      value={scalarValue(props.value)}
+      onChange={props.onChange}
+      placeholder={`Select ${props.field.label}...`}
+      disabled={props.disabled}
+      variant="simple"
+    />
+  ),
+  'org_picker': (props) => (
+    <Combobox
+      resource={lookupResource(props.field, 'config/organizations')}
+      value={scalarValue(props.value)}
+      onChange={props.onChange}
+      placeholder={`Select ${props.field.label}...`}
+      disabled={props.disabled}
+    />
+  ),
+  'unit_type_picker': (props) => (
+    <Combobox
+      options={[
+        { label: 'Organization', value: 'organization' },
+        { label: 'Group', value: 'group' },
+        { label: 'Branch', value: 'branch' },
+        { label: 'Outlet', value: 'outlet' },
+        { label: 'Warehouse', value: 'warehouse' },
+      ]}
+      value={scalarValue(props.value)}
+      onChange={props.onChange}
+      placeholder={`Select ${props.field.label}...`}
+      disabled={props.disabled}
+      variant="simple"
+    />
+  ),
   'bridge': (props) => (
     <MultiSelectCombobox 
-      resource={props.field.target_resource || ''} 
+      resource={lookupResource(props.field)}
       value={arrayValue(props.value)} 
       onChange={props.onChange} 
       placeholder={`Select ${props.field.label}...`}
@@ -187,7 +252,7 @@ const components: Record<string, React.FC<FieldProps>> = {
   ),
   'm2m': (props) => (
     <MultiSelectCombobox
-      resource={props.field.target_resource || ''}
+      resource={lookupResource(props.field)}
       value={arrayValue(props.value)}
       onChange={props.onChange}
       placeholder={`Select ${props.field.label}...`}
@@ -197,7 +262,8 @@ const components: Record<string, React.FC<FieldProps>> = {
 };
 
 export function resolveFieldComponent(field: Field): React.ComponentType<FieldProps> {
-  return components[field.type] || DefaultInput;
+  const uiType = infoString(field, 'ui_type') || field.type;
+  return components[uiType] || DefaultInput;
 }
 
 export function resolveFilterComponent(field: Field): React.ComponentType<FieldProps> {
@@ -214,10 +280,10 @@ export function resolveFilterComponent(field: Field): React.ComponentType<FieldP
       />
     );
   }
-  if (field.type === 'select' && field.options) {
+  if (field.type === 'select' && fieldOptions(field)) {
     return (props) => (
       <Combobox 
-        options={props.field.options}
+        options={fieldOptions(props.field)}
         value={scalarValue(props.value)}
         onChange={props.onChange}
         placeholder={`Select ${props.field.label}...`}

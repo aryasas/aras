@@ -10,11 +10,11 @@
 **Level 1 — Root** (`api/core/base/aras.py`):
 - `Aras` — ultimate base class. Provides `@Aras.model_action` and `@Aras.computed_field`.
 
-**Level 2 — Core Abstractions** (`api/core/base/`):
+Level 2 — Core Abstractions (api/core/base/):
 | Class | Purpose |
 |---|---|
-| `Aras.Model` | SQLAlchemy model base (CRUD, audit, M2M, workflow, layout) |
-| `Aras.SoftModel` | `Model` subclass with soft-delete built-in |
+| Aras.Model | Package-based SQLAlchemy model base. Modularized into queries, hooks, and serialization. |
+| Aras.SoftModel | Model subclass with soft-delete built-in |
 | `Aras.App` | App manifest base. Supports `app_name`, `table_prefix`, `have_home`, `menu_groups` |
 | `Aras.Manager` | Orchestration — `Manager.Sync`, `Manager.Audit`, `Manager.Workflow` |
 | `Aras.View` | UI metadata config base. Title auto-derived if not set. |
@@ -28,9 +28,9 @@
 **Level 2.5 — Tiered Core** (prevents circular imports):
 | Tier | Path | Rule |
 |---|---|---|
-| Tier 0 `lib` | `api/core/lib/` | ZERO framework dependencies |
-| Tier 1 `logic` | `api/core/logic/` | depends on lib + base only |
-| Tier 2 `api` | `api/core/api/` | depends on any lower tier |
+| Tier 0 `lib` | `api/core/lib/` | ZERO framework dependencies (e.g. `helpers.py`, `database.py`) |
+| Tier 1 `logic` | `api/core/logic/` | depends on lib + base only (e.g. `ui_generator/`) |
+| Tier 2 `api` | `api/core/api/` | depends on any lower tier (e.g. `router_factory/`) |
 
 **Level 3 — Registry** (`api/core/registry/`):
 | Class | Table | Purpose |
@@ -104,10 +104,10 @@ from core import Aras
 ## Key Logic Modules (`api/core/logic/`)
 | File | Class/Function | Purpose |
 |---|---|---|
-| `router_factory.py` | `RouterFactory.create_router(model)` | generates full CRUD FastAPI router |
+| `router_factory/` | `RouterFactory.create_router(model)` | Package-based router generator. Modularized into crud, bulk, m2m, aggregate, and search. |
 | `discovery.py` | `discover_apps(package_path)` | walks apps/, imports all, checks inheritance |
 | `discovery.py` | `register_app_routes(app, prefix)` | mounts per-app CRUD routers |
-| `ui_generator.py` | `UIGenerator.generate_metadata(model, db, lang)` | code → UI JSON (merged with DB overrides) |
+| `ui_generator/` | `UIGenerator.generate_metadata(model, db, lang)` | Package-based UI JSON generator using Type Handler Pattern. |
 | `auto_migrate.py` | `run(engine, metadata)` | safe SQLAlchemy schema migration (no files) |
 | `integrity_checker.py` | `IntegrityChecker.check_module(module)` | enforces Aras inheritance on all classes |
 | `permissions.py` | `check_permissions(...)` | RBAC enforcement |
@@ -137,6 +137,9 @@ All routes prefixed `/api/v1/`.
 | `/api/v1/{table}/{id}` | GET/PUT/DELETE | Retrieve/Update/Delete |
 | `/api/v1/{app}/{table}/{id}/action/{name}` | POST | Custom model action |
 | `/api/v1/search` | POST | Global multi-resource search |
+| `/api/v1/admin/quick-actions` | GET | Searchable actions, resources, and routes for CMD+K |
+| `/api/v1/{table}/search` | GET | Resource-specific search |
+| `/api/v1/{table}/lookup` | GET | Optimized {id, label} lookup for dropdowns |
 | `/api/v1/metadata/{resource}` | GET | UI metadata for forms/tables |
 | `/api/v1/dashboard` | GET | Dashboard widgets & layout |
 | `/api/v1/sidebar` | GET | Dynamic sidebar data |
@@ -146,6 +149,12 @@ All routes prefixed `/api/v1/`.
 | `/api/v1/license/status` | GET | Public, returns {valid, tenant_id, days_remaining, expired} |
 | `/api/v1/license/activate` | POST | Admin only, writes token to data/license.jwt |
 | `/api/v1/saas/license/renew` | POST | Public (instance→hub), validates current_token then issues new one |
+| `/api/v1/saas/payments/checkout` | POST | Create checkout URL (geo-aware) |
+| `/api/v1/saas/payments/webhook/{code}`| POST | Payment provider webhook |
+| `/api/v1/saas/payments/methods` | GET | List available payment methods |
+| `/api/v1/saas/billing/invoices` | GET | List SaaS invoices (admin) |
+| `/api/v1/saas/admin/tenants` | GET | List subscriptions for admin |
+| `/api/v1/saas/admin/revenue` | GET | SaaS MRR/ARR metrics |
 | `/api/v1/tenants` | GET/POST | List / provision tenants (admin only) |
 | `/api/v1/tenants/{id}/seed` | POST | Seed a provisioned tenant (admin only) |
 | `/api/v1/tenants/{id}` | DELETE | Deprovision tenant (admin only) |

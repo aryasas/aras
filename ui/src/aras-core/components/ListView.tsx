@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import type { CSSProperties } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../../lib/api'
 import { cleanResourcePath } from '../../lib/resourceUtils'
@@ -13,12 +14,14 @@ import { useUIStore } from '../../store/uiStore'
 import Combobox from './Combobox'
 import FormSettings from './FormSettings'
 
-import ListViewActionBar from './ListViewActionBar'
-import type { ViewMode } from './ListViewActionBar'
+import { ArasActionBar, type ViewMode } from './ArasActionBar'
+import { validateField } from '../lib/validate'
+import { bulkDelete, exportCsv, importCsv } from '../lib/listActions'
 import { useVocabulary } from '../../context/VocabularyContext'
 import { FormattingService } from '../services/FormattingService'
 import { DesignContainer } from './design/DesignContainer'
 import { DesignElement } from './design/DesignElement'
+import { SkeletonRow } from '../../components/SkeletonRow'
 
 interface Field {
   name: string
@@ -30,13 +33,17 @@ interface Field {
   list_hidden: boolean
   searchable: boolean
   target_resource?: string
-  options?: { label: string; value: any }[]
+  options?: { label: string; value: string | number }[]
   section?: string
+  min_length?: number
+  max_length?: number
+  pattern?: string
+  info?: { pattern_hint?: string }
 }
 
 interface ListTab {
   label: string
-  filter: { field: string; value: any }
+  filter: { field: string; value: FieldValue }
 }
 
 interface Metadata {
@@ -51,7 +58,7 @@ interface Metadata {
 interface FilterRule {
   field: string
   op: string
-  value: any
+  value: FieldValue
 }
 
 interface SavedFilter {
@@ -62,17 +69,37 @@ interface SavedFilter {
   is_default: boolean;
 }
 
+type FieldValue = string | number | boolean | null | Record<string, unknown> | unknown[]
+type ListRow = Record<string, FieldValue> & { id: string | number }
+type ListParams = {
+  page: number
+  per_page: number
+  sort: string
+  order: 'asc' | 'desc'
+  search?: string
+  filters?: string
+}
+type ApiError = Error & {
+  name?: string
+  response?: { data?: { detail?: string } }
+}
+
+const getErrorMessage = (err: unknown, fallback: string) =>
+  (err as ApiError).response?.data?.detail || fallback
+
+const isCanceledError = (err: unknown) => (err as ApiError).name === 'CanceledError'
+
 const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   resource: string,
   onRowClick?: (id: string | number) => void,
   onAdd?: () => void,
-  fixedFilters?: Record<string, any>
+  fixedFilters?: Record<string, FieldValue>
 }) => {
   const vocabulary = useVocabulary()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [metadata, setMetadata] = useState<Metadata | null>(null)
-  const [data, setData] = useState<any[]>([])
+  const [data, setData] = useState<ListRow[]>([])
   const [loading, setLoading] = useState(true)
   const { notify, confirm } = useAras()
   const setPageTitle = useUIStore(state => state.setPageTitle)
@@ -100,13 +127,14 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const [isExporting, setIsExporting] = useState(false)
   const [bulkEditOpen, setBulkEditOpen] = useState(false)
   const [bulkEditField, setBulkEditField] = useState('')
-  const [bulkEditValue, setBulkEditValue] = useState<any>('')
+  const [bulkEditValue, setBulkEditValue] = useState<FieldValue>('')
   const [bulkEditing, setBulkEditing] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [groupField, setGroupField] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<number>(0)
   const [editingCell, setEditingCell] = useState<{ id: string | number; field: string } | null>(null)
-  const [editingValue, setEditingValue] = useState<any>('')
+  const [editingValue, setEditingValue] = useState<FieldValue>('')
+  const [cellErrors, setCellErrors] = useState<Record<string, string>>({})
 
   const roleFilter = searchParams.get('role') || 'all'
   const isPartyResource = useMemo(() => /(^|\/)(parties|party)$/.test(cleanResourcePath(resource)), [resource])
@@ -128,7 +156,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
       const cleanResource = cleanResourcePath(resource)
       const resourceApiPath = metadata?.api_path || cleanResource
 
-      const params: any = {
+      const params: ListParams = {
         page,
         per_page: perPage,
         sort: orderBy,
@@ -162,9 +190,9 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
       setData(res.data.items || [])
       setTotal(res.data.total || 0)
       setTotalPages(res.data.pages || 0)
-    } catch (err: any) {
-      if (err.name === 'CanceledError') return
-      notify(err.response?.data?.detail || "Failed to fetch data", "error")
+    } catch (err) {
+      if (isCanceledError(err)) return
+      notify(getErrorMessage(err, "Failed to fetch data"), "error")
     } finally {
       setLoading(false)
     }
@@ -182,20 +210,20 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         setMetadata(meta)
         
         const defaultVisible = meta.fields
-          .filter((f: any) => !f.list_hidden && !f.hidden)
-          .map((f: any) => f.name)
+          .filter((f: Field) => !f.list_hidden && !f.hidden)
+          .map((f: Field) => f.name)
         try {
-          const pref = await api.get('/user_preference', { params: { key: `columns:${cleanResource}` }, signal: controller.signal })
+          const pref = await api.get('/preference', { params: { key: `list:${cleanResource}:columns` }, signal: controller.signal })
           const saved = typeof pref.data?.value === 'string' ? JSON.parse(pref.data.value) : pref.data?.value
           setVisibleColumns(Array.isArray(saved) ? saved : defaultVisible)
         } catch {
           setVisibleColumns(defaultVisible)
         }
-        const statusField = meta.fields.find((f: any) => f.name === 'status' || f.name === 'state')
+        const statusField = meta.fields.find((f: Field) => f.name === 'status' || f.name === 'state')
         if (statusField) setGroupField(statusField.name)
-      } catch (err: any) {
-        if (err.name === 'CanceledError') return
-        notify(err.response?.data?.detail || "Failed to load metadata", "error")
+      } catch (err) {
+        if (isCanceledError(err)) return
+        notify(getErrorMessage(err, "Failed to load metadata"), "error")
       }
     }
     fetchMetadata()
@@ -225,6 +253,23 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     if (metadata) fetchData(controller.signal)
     return () => controller.abort()
   }, [fetchData, metadata])
+
+  useEffect(() => {
+    if (!metadata) return
+    let timer: number | null = null
+    const currentResource = cleanResourcePath(metadata.resource || resource)
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent).detail
+      if (detail?.resource !== currentResource) return
+      if (timer !== null) window.clearTimeout(timer)
+      timer = window.setTimeout(() => fetchData(), 200)
+    }
+    window.addEventListener('aras:record-event', handler)
+    return () => {
+      if (timer !== null) window.clearTimeout(timer)
+      window.removeEventListener('aras:record-event', handler)
+    }
+  }, [fetchData, metadata, resource])
 
   const fetchSavedFilters = useCallback(async () => {
     try {
@@ -277,12 +322,12 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     })
     if (!ok) return
     try {
-      await api.post(`/${resourceApiPath}/batch-delete`, { ids: selectedIds })
+      await bulkDelete(resourceApiPath, selectedIds)
       notify(`${selectedIds.length} records deleted`, "success")
       setSelectedIds([])
       fetchData()
-    } catch (err: any) {
-      notify(err.response?.data?.detail || "Bulk delete failed", "error")
+    } catch (err) {
+      notify(getErrorMessage(err, "Bulk delete failed"), "error")
     }
   }
 
@@ -299,8 +344,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
       setBulkEditOpen(false)
       setSelectedIds([])
       fetchData()
-    } catch (err: any) {
-      notify(err.response?.data?.detail || "Bulk update failed", "error")
+    } catch (err) {
+      notify(getErrorMessage(err, "Bulk update failed"), "error")
     } finally {
       setBulkEditing(false)
     }
@@ -309,15 +354,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const handleExport = async () => {
     setIsExporting(true)
     try {
-      const res = await api.get(`/${resourceApiPath}/export`, { responseType: 'blob' })
-      const url = window.URL.createObjectURL(new Blob([res.data]))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `${resource.replace(/\//g, '_')}_export.csv`)
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-    } catch (err: any) {
+      await exportCsv(resourceApiPath, `${resource.replace(/\//g, '_')}_export.csv`)
+    } catch {
       notify("Export failed", "error")
     } finally {
       setIsExporting(false)
@@ -327,34 +365,32 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const formData = new FormData()
-    formData.append('file', file)
     try {
-      await api.post(`/${resourceApiPath}/import`, formData)
+      await importCsv(resourceApiPath, file)
       notify("Import successful", "success")
       fetchData()
-    } catch (err: any) {
+    } catch {
       notify("Import failed", "error")
     }
   }
 
-  const handleDeleteOne = async (item: any) => {
+  const handleDeleteOne = async (item: ListRow) => {
     if (!await confirm({ title: 'Delete record', message: `Are you sure you want to delete this record?`, type: 'danger' })) return
     try {
       await api.delete(`/${resourceApiPath}/${item.id}`)
       notify("Record deleted", "success")
       fetchData()
-    } catch (err: any) {
+    } catch {
       notify("Delete failed", "error")
     }
   }
 
   const updateVisibleColumns = (columns: string[]) => {
     setVisibleColumns(columns)
-    api.put('/user_preference', { key: `columns:${cleanResourcePath(resource)}`, value: JSON.stringify(columns) }).catch(() => {})
+    api.put('/preference', { key: `list:${cleanResourcePath(resource)}:columns`, value: columns }).catch(() => {})
   }
 
-  const startCellEdit = (item: any, field: Field) => {
+  const startCellEdit = (item: ListRow, field: Field) => {
     if (field.read_only) return
     setEditingCell({ id: item.id, field: field.name })
     setEditingValue(item[field.name] ?? '')
@@ -368,13 +404,27 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const commitCellEdit = async () => {
     if (!editingCell) return
     const { id, field } = editingCell
+    const fieldMeta = metadata?.fields.find((f) => f.name === field)
+    if (fieldMeta) {
+      const error = validateField(fieldMeta, editingValue)
+      if (error) {
+        setCellErrors((prev) => ({ ...prev, [`${id}:${field}`]: error }))
+        notify(error, 'error')
+        return
+      }
+    }
     try {
       await api.patch(`/${resourceApiPath}/${id}`, { [field]: editingValue })
       setData((rows) => rows.map((row) => row.id === id ? { ...row, [field]: editingValue } : row))
+      setCellErrors((prev) => {
+        const next = { ...prev }
+        delete next[`${id}:${field}`]
+        return next
+      })
       notify('Cell updated', 'success')
       cancelCellEdit()
-    } catch (err: any) {
-      notify(err.response?.data?.detail || 'Cell update failed', 'error')
+    } catch (err) {
+      notify(getErrorMessage(err, 'Cell update failed'), 'error')
     }
   }
 
@@ -383,7 +433,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     setFilters([...filters, { field: metadata?.fields[0]?.name || 'id', op: '=', value: '' }])
   }
 
-  const updateFilter = (index: number, key: keyof FilterRule, value: any) => {
+  const updateFilter = (index: number, key: keyof FilterRule, value: FieldValue) => {
     const newFilters = [...filters]
     newFilters[index] = { ...newFilters[index], [key]: value }
     setFilters(newFilters)
@@ -410,10 +460,10 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const gridTemplateColumns = `48px ${listColumns.map(() => 'minmax(120px, 1fr)').join(' ')} 100px`
   const listMinWidth = 150 * listColumns.length + 150
 
-  const getFieldValue = (item: any, field: Field) => {
+  const getFieldValue = (item: ListRow, field: Field): FieldValue => {
     const val = item[field.name]
-    if (field.type === 'lookup' && typeof val === 'object' && val !== null) {
-      return val.name || val.title || val.number || val.id
+    if (field.type === 'lookup' && typeof val === 'object' && val !== null && !Array.isArray(val)) {
+      return String(val.name || val.title || val.number || val.id || '')
     }
     return val
   }
@@ -424,11 +474,11 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     .filter(f => f.name === 'status' || f.name === 'state' || f.type === 'select' || f.type === 'lookup' || f.type === 'boolean')
     .map(f => ({ name: f.name, label: vocabulary.get(f.label) }))
 
-  const groupedRows: { key: string; label: string; items: any[] }[] = (() => {
+  const groupedRows: { key: string; label: string; items: ListRow[] }[] = (() => {
     if (!groupField) return [{ key: '__all', label: '', items: data }]
     const fieldDef = fields.find(f => f.name === groupField)
     if (!fieldDef) return [{ key: '__all', label: '', items: data }]
-    const groups = new Map<string, any[]>()
+    const groups = new Map<string, ListRow[]>()
     for (const item of data) {
       const raw = getFieldValue(item, fieldDef)
       const k = raw == null || raw === '' ? '—' : String(raw)
@@ -443,7 +493,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
       <DesignContainer id="list-view-layout" className="flex flex-col h-full w-full">
         
         <DesignElement id="toolbar" className="w-full">
-          <ListViewActionBar
+          <ArasActionBar
+            variant="full"
             title={title}
             search={search}
             onSearchChange={setSearch}
@@ -510,7 +561,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                         <FilterComponent
                           field={fieldDef}
                           value={f.value}
-                          onChange={(val) => updateFilter(i, 'value', val)}
+                          onChange={(val) => updateFilter(i, 'value', val as FieldValue)}
                           formData={{}}
                           disabled={false}
                         />
@@ -562,7 +613,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           )}
           {viewMode === 'list' && (
             <div className="md:overflow-x-auto">
-              <div className="aras-list-table md:[min-width:var(--list-min-width)]" style={{ ['--list-min-width' as any]: typeof listMinWidth === 'number' ? `${listMinWidth}px` : listMinWidth }}>
+              <div className="aras-list-table md:[min-width:var(--list-min-width)]" style={{ '--list-min-width': typeof listMinWidth === 'number' ? `${listMinWidth}px` : listMinWidth } as CSSProperties & Record<'--list-min-width', string>}>
               {/* Section header row — only when at least one visible column has a section */}
               {listColumns.some(c => c.field.section) && (() => {
                 // Build section spans: [{label, span}] where span = number of grid columns
@@ -598,7 +649,14 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
               </div>
 
               {loading ? (
-                <div className="p-[calc(80px*var(--app-density))] text-center animate-pulse text-[var(--app-muted)] font-bold">Fetching records...</div>
+                Array.from({ length: 10 }).map((_, i) => (
+                  <SkeletonRow 
+                    key={i} 
+                    variant="grid" 
+                    columns={listColumns.length + 2} 
+                    gridTemplateColumns={gridTemplateColumns} 
+                  />
+                ))
               ) : data.length === 0 ? (
                 <div className="px-6 py-20 text-center">
                   <Search size={48} className="mb-4 text-[var(--app-border-strong)] mx-auto" />
@@ -642,24 +700,35 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                           const isEditing = editingCell?.id === item.id && editingCell?.field === column.field.name
                           return (
                             <div key={column.key} onClick={(e) => { if (inlineEdit) { e.stopPropagation(); startCellEdit(item, column.field) } }} className={`px-[calc(6px*var(--app-density))] py-[calc(8px*var(--app-density))] min-w-0 ${column.align === 'right' ? 'text-right' : ''} ${inlineEdit && !column.field.read_only ? 'cursor-cell hover:bg-[var(--accent)]/5' : ''}`}>
-                              {isEditing ? (
-                                <input
-                                  autoFocus
-                                  type={column.field.type === 'number' || column.field.type === 'currency' ? 'number' : column.field.type === 'date' ? 'date' : 'text'}
-                                  value={editingValue ?? ''}
-                                  onClick={(e) => e.stopPropagation()}
-                                  onChange={(e) => setEditingValue(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Escape') cancelCellEdit()
-                                    if (e.key === 'Enter' || e.key === 'Tab') {
-                                      e.preventDefault()
-                                      commitCellEdit()
-                                    }
-                                  }}
-                                  onBlur={commitCellEdit}
-                                  className="h-7 w-full rounded border border-[var(--accent)] bg-[var(--surface)] px-2 text-[12px] text-[var(--text)] outline-none"
-                                />
-                              ) : isIdCol ? (
+                              {isEditing ? (() => {
+                                const FieldComponent = resolveFieldComponent(column.field)
+                                const error = cellErrors[`${item.id}:${column.field.name}`]
+                                return (
+                                  <div
+                                    onClick={(e) => e.stopPropagation()}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Escape') cancelCellEdit()
+                                      if (e.key === 'Enter' || e.key === 'Tab') {
+                                        e.preventDefault()
+                                        commitCellEdit()
+                                      }
+                                    }}
+                                    onBlur={(e) => {
+                                      if (!e.currentTarget.contains(e.relatedTarget as Node)) commitCellEdit()
+                                    }}
+                                  >
+                                    <FieldComponent
+                                      field={column.field}
+                                      value={editingValue}
+                                      onChange={(val) => setEditingValue(val as FieldValue)}
+                                      formData={item}
+                                      disabled={false}
+                                      aria-invalid={!!error}
+                                    />
+                                    {error && <div className="mt-1 text-[11px] text-rose-600">{error}</div>}
+                                  </div>
+                                )
+                              })() : isIdCol ? (
                                 <span className="arc-id text-[12px]">
                                   <b>{prefix}</b> · <b>{String(value)}</b>
                                 </span>
@@ -796,7 +865,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                   const field = metadata?.fields.find(f => f.name === bulkEditField);
                   if (!field) return null;
                   const FieldComponent = resolveFieldComponent(field);
-                  return <FieldComponent field={field} value={bulkEditValue} onChange={setBulkEditValue} formData={{}} disabled={false} />;
+                  return <FieldComponent field={field} value={bulkEditValue} onChange={(val) => setBulkEditValue(val as FieldValue)} formData={{}} disabled={false} />;
                 })()}
               </div>
             </div>
@@ -836,13 +905,13 @@ const STATUS_GLYPH: Record<string, { ch: string; color: string }> = {
   rejected:    { ch: '✕', color: '#e11d48' },
 }
 // claude-opus-4-7
-function StatusGlyph({ value }: { value: any }) {
+function StatusGlyph({ value }: { value: FieldValue }) {
   const key = String(value ?? '').toLowerCase().trim()
   const g = STATUS_GLYPH[key] || { ch: '○', color: 'var(--text-3)' }
   return <span style={{ color: g.color, fontFamily: 'Geist Mono, ui-monospace, monospace', fontSize: 13 }}>{g.ch}</span>
 }
 
-const renderCellValue = (value: any, type: string, fieldName?: string) => {
+const renderCellValue = (value: FieldValue, type: string, fieldName?: string) => {
   if (value === null || value === undefined) return <span className="text-[var(--aras-muted)]">-</span>
   if (fieldName === 'status' || fieldName === 'state' || type === 'boolean') {
     const rawLabel = typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)
@@ -852,9 +921,9 @@ const renderCellValue = (value: any, type: string, fieldName?: string) => {
     return <span className={`inline-flex rounded-[var(--aras-radius)] border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${roleColors[String(value)] || roleColors.other}`}>{String(value)}</span>
   }
   switch (type) {
-    case 'currency': return <span className="text-[var(--aras-text)] font-bold">{FormattingService.formatCurrency(value)}</span>
+    case 'currency': return <span className="text-[var(--aras-text)] font-bold">{FormattingService.formatCurrency(Number(value || 0))}</span>
     case 'date':
-    case 'datetime': return FormattingService.formatDate(value)
+    case 'datetime': return FormattingService.formatDate(String(value))
     default:
       if (typeof value === 'object') return <span className="text-[var(--aras-muted)] italic text-xs">{JSON.stringify(value).slice(0, 60)}</span>
       return String(value)

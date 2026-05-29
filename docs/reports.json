@@ -398,5 +398,221 @@
     "cache_write_tokens": "0",
     "token_efficiency": "3 file edits, 2 bugs fixed, 1 new feature (tabs+sections).",
     "verdict": "APPROVED"
+  },
+  {
+    "id": 22,
+    "date": "2026-05-28",
+    "feature": "Backend Sweep — RouterFactory & Model Modularization, Quick Actions, and Service Layer",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/logic/router_factory/*, api/core/base/model/*, api/core/base/service.py, api/core/api/admin.py, api/apps/web/routers.py, api/apps/web/models.py, api/apps/web/views.py, api/apps/web/seed_landing.py, api/core/api/dev.py, api/core/logic/ui_generator.py, api/apps/accounting/services/journal.py, api/apps/stock/services/stock.py, api/apps/saas/services/license_service.py, api/core/logic/trait_injector.py, api/core/base/aras.py, api/tests/conftest.py, api/tests/smoke_test.py",
+      "features_added": "GET /web/landing/{key}; LandingSection reorder action; GET /admin/quick-actions; Resource-specific /search and /lookup; Standardized Aras.Service base class; Session-scoped test infrastructure",
+      "fixes_applied": "Resolved circular imports in TraitInjector and computed_field; Improved M2M validation and broadcast; Enhanced UIGenerator cache invalidation",
+      "framework_changes": "Full modularization of RouterFactory and Model into packages; Introduction of Service layer; Standardized test client and transactional DB setup",
+      "issues": "Circular imports during refactoring required inheritance and decorator restructuring"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 23,
+    "date": "2026-05-29",
+    "feature": "Backend Revision Tasks — bak cleanup, sync, smoke tests, and SkeletonRow consolidation",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/base/model.py.bak (deleted), api/core/logic/router_factory.py.bak (deleted)",
+      "features_added": "Verified 14/14 smoke tests pass with Postgres",
+      "fixes_applied": "Deleted stale .bak files; Ran manage.py sync",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/components/SkeletonRow.tsx, ui/src/aras-core/components/ArasTable.tsx, ui/src/aras-core/components/ListView.tsx",
+      "features_added": "Shared SkeletonRow component",
+      "fixes_applied": "Consolidated table/grid pulse skeletons into SkeletonRow",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 24,
+    "date": "2026-05-29",
+    "feature": "Batch 1: Metadata-driven UI Overrides",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/config/views.py",
+      "features_added": "ErpUserAccessView",
+      "fixes_applied": "Added UI type overrides for profile, unit_type, and org_id fields",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 25,
+    "date": "2026-05-29",
+    "feature": "Batch 2: Profile Update API",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/auth/models.py, api/core/auth/routes.py",
+      "features_added": "PUT /auth/me endpoint, User.name field",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 26,
+    "date": "2026-05-29",
+    "feature": "Batch 3: Layout Registry Type Fix",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/registry/resource_model.py",
+      "features_added": "none",
+      "fixes_applied": "Changed ResourceModel.layout type hint to list for structure alignment",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 27,
+    "date": "2026-05-29",
+    "feature": "Batch 4: UI Generator Refactoring & to_label_case",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/lib/helpers.py, api/core/logic/ui_generator/*, api/core/base/model/queries.py, api/core/logic/router_factory/crud.py, api/core/manager/sync_manager.py, api/core/logic/installer.py, api/core/logic/model_actions.py, api/core/api/admin.py",
+      "features_added": "to_label_case helper, Model.get_ui_fields(), UI Type Handler Pattern",
+      "fixes_applied": "Standardized label generation; Fixed relative imports in ui_generator",
+      "framework_changes": "UIGenerator refactored to modular package",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 28,
+    "date": "2026-05-29",
+    "feature": "Backend Hygiene & Script-Report Hardening",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/logic/auto_migrate.py, api/manage.py, api/core/logic/discovery.py, api/apps/report/services/report_service.py, api/apps/report/models.py, api/core/logic/router_factory/*.py, api/apps/report/tests/test_smoke.py, api/tests/test_discovery_logging.py",
+      "features_added": "Orphan-table drop policy (DEV only); Script-report hardening (superuser, whitelist, timeout); regression tests.",
+      "fixes_applied": "Bare except cleanup; migrated discovery prints to logger.",
+      "framework_changes": "RouterFactory now passes current_user to model actions; manage.py sync calls auto_migrate.run explicitly.",
+      "issues": "None"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 29,
+    "date": "2026-05-29",
+    "feature": "Public Page Error UX and Mobile Auth Header Audit",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/CustomerSignup.tsx, ui/src/views/PublicLanding.tsx, ui/src/views/CustomerPortal.tsx, ui/src/views/__tests__/public-error-states.test.ts, mobile/src/lib/api.ts, mobile/src/lib/auth.ts, mobile/src/store/useAuthStore.ts, mobile/src/screens/ResourceListScreen.tsx",
+      "features_added": "none",
+      "fixes_applied": "Added retryable public-page failure states, customer portal envelope parsing with raw JSON fallback, AsyncStorage-backed mobile auth/org headers, and mobile 401/403 list error UX.",
+      "framework_changes": "none",
+      "issues": "ResourceDetailScreen is not present. Full UI build is blocked by existing SkeletonRow unused React import; mobile typecheck is blocked by existing MobileShell literal color type errors."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 30,
+    "date": "2026-05-29",
+    "feature": "SaaS Phase 6–8 Backend — Payments, Provisioning, Billing, and Monitoring",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/saas/payments/*, api/apps/saas/services/*, api/core/lib/geo.py, api/core/api/middleware/*, api/apps/saas/routers/*, api/apps/saas/models.py, api/main.py, api/requirements.txt",
+      "features_added": "Pluggable payment providers (Stripe, Midtrans, Xendit); IP-based Geo Routing; Automated Tenant Provisioner; Billing Cron Service; Request Metrics Logging",
+      "fixes_applied": "Renamed SaaS Payment/Invoice models to avoid global registry collisions; Fixed missing slugify helper",
+      "framework_changes": "Introduced GeoMiddleware and RequestLogMiddleware to core; Expanded SaaS app with services and multiple routers",
+      "issues": "Naming collision with accounting.Payment required renaming to SaaSPayment"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 31,
+    "date": "2026-05-29",
+    "feature": "rhf run_id 103 — SaaS Fase 6–8 + 3-provider payment gateway (Stripe/Midtrans/Xendit) review",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "none (review only)",
+      "features_added": "none",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "Backend smoke tests not runnable in sandbox (Postgres TCP blocked); grep-verified all deliverables present"
+    },
+    "frontend": {
+      "files_written": "ui/src/components/SkeletonRow.tsx",
+      "features_added": "none",
+      "fixes_applied": "Removed unused `import React from 'react'` that broke `npm run build` (TS6133)",
+      "framework_changes": "none",
+      "issues": "none — vite build green in 351ms"
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Minimal — grep-first verification, one targeted Edit to unblock build, single approval write",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 32,
+    "date": "2026-05-29",
+    "feature": "Polish sweep — Email transport wiring, GeoLite2 bundling, payment webhook E2E tests",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/saas/services/email.py, api/apps/saas/services/billing.py, api/scripts/fetch_geolite.py, api/manage.py, api/core/lib/geo.py, api/apps/saas/routers/*.py, api/apps/saas/payments/*.py, api/apps/saas/tests/test_payment_webhooks.py, docs/aras.md",
+      "features_added": "Pluggable EmailTransport (SMTP, Resend, Console); send_dunning_emails implementation; GeoLite2 auto-fetch script; 7 E2E tests for payment webhooks",
+      "fixes_applied": "Removed double '/saas/saas' prefix from routers; fixed providers to read secrets from env for testability; ensured EmailTransport inherits from Aras",
+      "framework_changes": "Added 'fetch-geo' management command; improved WebhookEvent schema with sub_id/amount metadata",
+      "issues": "Integrity error required making EmailTransport inherit from Aras; router 404s required prefix fix"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 33,
+    "date": "2026-05-29",
+    "feature": "Polish sweep frontend resume — silent-catch surfacing and aras-core any cleanup",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/CustomerPortal.tsx, ui/src/aras-core/components/ArasTable.tsx, ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/InlineChildTable.tsx, ui/src/aras-core/components/MultiSelectCombobox.tsx, ui/src/aras-core/components/GenericReport.tsx, docs/handoff.md, docs/feature.md",
+      "features_added": "Portal fetches use safe API envelope parsing with error toasts; aras-core explicit any count reduced to 37",
+      "fixes_applied": "Fixed TypeScript fallout from tighter aras-core component types; npm run build passes",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 34,
+    "date": "2026-05-29",
+    "feature": "rhf run_id 104 — FE silent-catch + any cleanup (resume after codex disconnect) review",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "none (review only)",
+      "features_added": "none",
+      "fixes_applied": "Verified BATCH 1 (toast surfacing in CustomerSignup/PublicLanding/CustomerPortal + sessionStorage subscription_id) and BATCH 2 (any 110→37 in aras-core/)",
+      "framework_changes": "none",
+      "issues": "none — npm run build green"
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Two grep verifications + build check; single approval write",
+    "verdict": "APPROVED"
   }
 ]

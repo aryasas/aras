@@ -16,6 +16,11 @@ export interface FilterChip {
   onRemove?: () => void
 }
 
+interface ActionBarField {
+  name: string
+  label: string
+}
+
 // ── Shared props (both simple + full) ─────────────────────────────────────────
 
 interface SimpleActionBarProps {
@@ -58,7 +63,7 @@ interface FullActionBarProps {
   onAdd: () => void
   onArchive?: () => void
   onSettings?: () => void
-  fields: any[]
+  fields: ActionBarField[]
   visibleColumns: string[]
   onVisibleColumnsChange: (cols: string[]) => void
   viewMode?: ViewMode

@@ -1,7 +1,8 @@
 import { Editor, Frame, useEditor, type SerializedNodes } from '@craftjs/core'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAras } from '../aras-core/hooks/useAras'
+import api from '../lib/api'
 import Box from './template-studio/components/Box'
 import Sidebar from './template-studio/components/Sidebar'
 import Header from './template-studio/components/Header'
@@ -103,9 +104,11 @@ function EditorStateBridge({
 export default function TemplateBuilder() {
   const { notify } = useAras()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   // strip leading slash so "/employees" → "employees"
-  const fromRoute = (searchParams.get('from') || DEFAULT_TEMPLATE_NAME).replace(/^\//, '')
+  const fromRoute = (searchParams.get('from') || localStorage.getItem('template-studio:last') || DEFAULT_TEMPLATE_NAME).replace(/^\//, '')
   const [templateName, setTemplateName] = useState(fromRoute)
+  const [availableTemplates, setAvailableTemplates] = useState<string[]>([])
   const [activeBreakpoint, setActiveBreakpoint] = useState<Breakpoint>('desktop')
   const [zoom, setZoom] = useState(100)
   const [loading, setLoading] = useState(true)
@@ -123,6 +126,8 @@ export default function TemplateBuilder() {
       if (cancelled) return
       setFrameData(tree)
       setSerializedNodes(tree)
+      setTemplateName(fromRoute)
+      localStorage.setItem('template-studio:last', fromRoute)
       setEditorKey((current) => current + 1)
       setLoading(false)
     }
@@ -134,6 +139,18 @@ export default function TemplateBuilder() {
     }
   }, [fromRoute])
 
+  useEffect(() => {
+    let cancelled = false
+    api.get('/dev/dev_template_trees/list')
+      .then((res) => {
+        if (cancelled) return
+        const rows = Array.isArray(res.data) ? res.data : []
+        setAvailableTemplates(rows.map((row: any) => String(row.template_name)).filter(Boolean))
+      })
+      .catch(() => setAvailableTemplates([]))
+    return () => { cancelled = true }
+  }, [])
+
   const handleTreeChange = useCallback((tree: SerializedNodes) => {
     setSerializedNodes(tree)
   }, [])
@@ -142,9 +159,15 @@ export default function TemplateBuilder() {
     setSaving(true)
     await saveTree(templateName, serializedNodes)
     await flushNotes(templateName, collectNotes(serializedNodes, activeBreakpoint))
+    localStorage.setItem('template-studio:last', templateName)
     setSaving(false)
     notify('Template snapshot saved', 'success')
   }, [activeBreakpoint, notify, serializedNodes, templateName])
+
+  const handleTemplateSelect = useCallback((name: string) => {
+    localStorage.setItem('template-studio:last', name)
+    navigate(`/dev/template-builder?from=${encodeURIComponent(name)}`)
+  }, [navigate])
 
   const canvasWidth = useMemo(() => BREAKPOINT_WIDTHS[activeBreakpoint], [activeBreakpoint])
 
@@ -160,6 +183,8 @@ export default function TemplateBuilder() {
             onZoomChange={setZoom}
             onSave={handleSave}
             saving={saving}
+            availableTemplates={availableTemplates}
+            onTemplateSelect={handleTemplateSelect}
           />
 
           <div className="grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)_360px] gap-4">

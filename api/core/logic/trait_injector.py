@@ -6,9 +6,7 @@ Impact: Eliminates repeatable code by centralizing feature implementation.
 from typing import Type, Any
 from sqlalchemy import Column, DateTime, Integer, String, Boolean, ForeignKey, func
 from sqlalchemy.orm import mapped_column, Mapped
-from ..base.service import Service
-
-class TraitInjector(Service):
+class TraitInjector:
     """
     Injects columns and logic into Models based on their __features__ attribute.
     """

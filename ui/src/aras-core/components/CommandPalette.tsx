@@ -13,9 +13,25 @@ const SHORTCUTS = [
   { keys: ['Double-click'], description: 'Inline-edit a table cell' },
 ]
 
-const ACTIONS = [
-  { label: 'New Invoice', path: '/accounting/invoice/new', type: 'action' },
-]
+type QuickAction = {
+  id: string
+  label: string
+  kind: 'action' | 'resource' | 'route'
+  target: string
+  icon?: string
+  app?: string
+}
+
+type CommandResult = {
+  label?: string
+  type?: string
+  actionPath?: string
+  icon?: string
+  resource?: string
+  id?: string | number
+}
+
+let quickActionsCache: { expires: number; items: QuickAction[] } | null = null
 
 const ShortcutMap: React.FC<{ onClose: () => void }> = ({ onClose }) => (
   <div className="fixed inset-0 z-[110] flex items-center justify-center px-4 bg-black/50 backdrop-blur-sm">
@@ -50,7 +66,8 @@ export const CommandPalette: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<any[]>([])
+  const [results, setResults] = useState<CommandResult[]>([])
+  const [quickActions, setQuickActions] = useState<QuickAction[]>([])
   const [selectedIndex, setSelectedIndex] = useState(0)
   const navigate = useNavigate()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -79,34 +96,51 @@ export const CommandPalette: React.FC = () => {
   }, [isOpen])
 
   useEffect(() => {
+    if (!isOpen) return
+    if (quickActionsCache && quickActionsCache.expires > Date.now()) {
+      setQuickActions(quickActionsCache.items)
+      return
+    }
+    api.get('/admin/quick-actions')
+      .then((res) => {
+        const items = Array.isArray(res.data) ? res.data : []
+        quickActionsCache = { expires: Date.now() + 60000, items }
+        setQuickActions(items)
+      })
+      .catch(() => setQuickActions([]))
+  }, [isOpen])
+
+  useEffect(() => {
     if (query.length < 2) { setResults([]); return }
     const timer = setTimeout(async () => {
-      const actionResults = ACTIONS
-        .filter((action) => action.label.toLowerCase().includes(query.toLowerCase()))
-        .map((action) => ({ label: action.label, type: action.type, actionPath: action.path }))
+      const q = query.toLowerCase()
+      const actionResults = quickActions
+        .filter((action) => `${action.label} ${action.app ?? ''} ${action.kind}`.toLowerCase().includes(q))
+        .map((action) => ({ label: action.label, type: action.kind, actionPath: action.target, icon: action.icon }))
       try {
         const res = await api.get(`/search?q=${query}`)
         setResults([...actionResults, ...(res.data || [])])
         setSelectedIndex(0)
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (actionResults.length) {
           setResults(actionResults)
           setSelectedIndex(0)
         } else {
-          notify(err.message || 'Search failed', 'error')
+          notify(err instanceof Error ? err.message : 'Search failed', 'error')
         }
       }
     }, 300)
     return () => clearTimeout(timer)
-  }, [query, notify])
+  }, [query, notify, quickActions])
 
-  const handleSelect = (result: any) => {
+  const handleSelect = (result: CommandResult) => {
     if (result.actionPath) {
       navigate(result.actionPath)
       setIsOpen(false)
       setQuery('')
       return
     }
+    if (!result.resource || result.id == null) return
     navigate(`/${result.resource}/${result.id}`)
     setIsOpen(false)
     setQuery('')
@@ -134,6 +168,10 @@ export const CommandPalette: React.FC = () => {
               <input
                 ref={inputRef}
                 type="text"
+                role="combobox"
+                aria-controls="command-palette-results"
+                aria-expanded={results.length > 0}
+                aria-activedescendant={results[selectedIndex] ? `command-palette-result-${selectedIndex}` : undefined}
                 className="w-full pl-14 pr-5 py-5 text-base border-none focus:ring-0 bg-transparent text-[var(--aras-text)] placeholder:text-[var(--aras-muted)] font-medium outline-none"
                 placeholder="Search records, apps, and actions... (CMD+K)"
                 value={query}
@@ -143,10 +181,13 @@ export const CommandPalette: React.FC = () => {
             </div>
 
             {results.length > 0 && (
-              <div className="max-h-80 overflow-y-auto border-t border-[var(--aras-border)] p-2">
+              <div id="command-palette-results" role="listbox" className="max-h-80 overflow-y-auto border-t border-[var(--aras-border)] p-2">
                 {results.map((result, idx) => (
                   <div
                     key={result.actionPath || `${result.resource}-${result.id}`}
+                    id={`command-palette-result-${idx}`}
+                    role="option"
+                    aria-selected={idx === selectedIndex}
                     className={`flex items-center gap-3 px-4 py-2.5 rounded-[var(--app-radius)] cursor-pointer transition-all ${
                       idx === selectedIndex ? 'bg-[var(--app-primary-action)] text-white' : 'text-[var(--app-text)] hover:bg-[var(--app-panel-soft)]'
                     }`}

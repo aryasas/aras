@@ -188,5 +188,5 @@ def run_seed(db: Session, org_id: int):
             count += 1
         except Exception as e:
             print(f"[seed error] {r['code']}: {e}")
-    db.commit()
+    db.flush()
     print(f"[seed] {count}/{len(REPORTS)} reports seeded for org {org_id}.")

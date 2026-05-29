@@ -54,6 +54,14 @@ async def lifespan(app: FastAPI):
         bootstrap(db)
     else:
         logger.info("Production startup registry/bootstrap writes disabled. Run migrations and sync explicitly.")
+    
+    # SaaS Cron
+    try:
+        from apps.saas.cron import setup_cron
+        setup_cron()
+    except Exception as e:
+        logger.warning(f"Failed to setup SaaS cron: {e}")
+        
     yield
 
 app = FastAPI(
@@ -135,6 +143,14 @@ async def license_check_middleware(request: Request, call_next):
             except HTTPException as e:
                 return JSONResponse(status_code=e.status_code, content={"detail": e.detail})
     return await call_next(request)
+
+# Geo Middleware
+from core.api.middleware.geo import GeoMiddleware
+app.add_middleware(GeoMiddleware)
+
+# Request Logging
+from core.api.middleware.request_log import RequestLogMiddleware
+app.add_middleware(RequestLogMiddleware)
 
 # Rate limiting — must be added before CORS so it applies to all routes
 from core.lib.rate_limiter import RateLimiterMiddleware

@@ -1,11 +1,15 @@
 import importlib
 import pkgutil
+import logging
 from typing import List, Type
 from fastapi import FastAPI
 
 from ..base.app import App
 from ..logic.router_factory import RouterFactory
 from ..logic.integrity_checker import IntegrityChecker
+
+# gemini-flash
+logger = logging.getLogger(__name__)
 
 def autodiscover_models(package_name: str, module_names: list[str]) -> list:
     """
@@ -28,7 +32,7 @@ def autodiscover_models(package_name: str, module_names: list[str]) -> list:
                         obj.__module__ == full_module_name):
                     discovered_models.append(obj)
         except ImportError as e:
-            print(f"Error importing module {full_module_name}: {e}")
+            logger.error(f"Error importing module {full_module_name}: {e}")
     return discovered_models
 
 def discover_apps(package_path: str = "apps"):
@@ -36,11 +40,11 @@ def discover_apps(package_path: str = "apps"):
     Otomatis mencari dan mengimpor semua modul di dalam folder apps/
     yang memiliki class turunan dari App.
     """
-    print(f"Discovering apps in {package_path}...")
+    logger.info(f"Discovering apps in {package_path}...")
     try:
         package = importlib.import_module(package_path)
     except ImportError as e:
-        print(f"Error importing {package_path}: {e}")
+        logger.error(f"Error importing {package_path}: {e}")
         return
 
     for loader, module_name, is_pkg in pkgutil.walk_packages(package.__path__, package_path + "."):
@@ -83,7 +87,7 @@ def register_app_routes(app: FastAPI, prefix: str = "/api/v1"):
             
             router = RouterFactory.create_router(model, prefix=model_path)
             app.include_router(router, prefix=app_prefix)
-            print(f"Registered route: {app_prefix}{model_path}")
+            logger.info(f"Registered route: {app_prefix}{model_path}")
         
         # Include custom routers defined directly in the App class
         if hasattr(app_cls, 'routers') and isinstance(app_cls.routers, list):
@@ -91,7 +95,7 @@ def register_app_routes(app: FastAPI, prefix: str = "/api/v1"):
                 # Custom routers are expected to have their own prefix defined internally
                 # or we can apply the app_prefix to them. Let's apply the app_prefix for consistency.
                 app.include_router(custom_router, prefix=app_prefix)
-                print(f"Registered custom router for app {app_cls.app_name} at prefix: {app_prefix}")
+                logger.info(f"Registered custom router for app {app_cls.app_name} at prefix: {app_prefix}")
 
 def load_class(class_path: str):
     """
@@ -102,5 +106,5 @@ def load_class(class_path: str):
         module = importlib.import_module(module_path)
         return getattr(module, class_name)
     except (ImportError, AttributeError, ValueError) as e:
-        print(f"Error loading class {class_path}: {e}")
+        logger.error(f"Error loading class {class_path}: {e}")
         return None

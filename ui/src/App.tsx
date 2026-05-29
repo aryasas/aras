@@ -8,6 +8,7 @@ import GlobalDialog from './aras-core/components/GlobalDialog'
 import SidePanel from './aras-core/components/SidePanel'
 import { FormattingService } from './aras-core/services/FormattingService'
 import { VocabularyProvider } from './context/VocabularyContext'
+import { connectArasWebSocket, disconnectArasWebSocket } from './lib/ws'
 
 const Login = lazy(() => import('./views/Login'))
 const OrganizationPicker = lazy(() => import('./views/OrganizationPicker'))
@@ -35,6 +36,9 @@ const PublicLanding = lazy(() => import('./views/PublicLanding'))
 const CustomerSignup = lazy(() => import('./views/CustomerSignup'))
 const CustomerPortal = lazy(() => import('./views/CustomerPortal'))
 const CustomerPortalSetup = lazy(() => import('./views/CustomerPortalSetup'))
+const SaaSAdminDashboard = lazy(() => import('./views/saas/SaaSAdminDashboard'))
+const SaaSTenantDetail = lazy(() => import('./views/saas/TenantDetail'))
+const SaaSPlans = lazy(() => import('./views/saas/Plans'))
 const InspectRoutesView = lazy(() => import('./views/InspectRoutes'))
 const HealthIntegrityView = lazy(() => import('./views/HealthIntegrity'))
 const ArchivedView = lazy(() => import('./views/ArchivedView'))
@@ -63,10 +67,37 @@ const OrganizationGuard = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   const { showAlert, showConfirm, showError } = useUIStore();
+  const { themeMode, cornerMode, density, fontScale, accentColor } = useUIStore();
   const token = useAuthStore((state) => state.token);
   const setUser = useAuthStore((state) => state.setUser);
   const setOrganizations = useAuthStore((state) => state.setOrganizations);
   const setCapabilities = useAuthStore((state) => state.setCapabilities);
+
+  useEffect(() => {
+    const root = document.documentElement
+    const vars = {
+      '--accent': accentColor,
+      '--aras-accent': accentColor,
+      '--aras-accent-strong': `color-mix(in srgb, ${accentColor}, black 14%)`,
+      '--aras-accent-glow': `color-mix(in srgb, ${accentColor}, transparent 78%)`,
+      '--aras-radius': cornerMode === 'square' ? '0px' : '8px',
+      '--aras-radius-lg': cornerMode === 'square' ? '0px' : '14px',
+      '--aras-density': density === 'compact' ? '0.85' : density === 'comfy' ? '1.1' : '1',
+      '--aras-font-scale': String(fontScale / 100),
+    }
+    Object.entries(vars).forEach(([key, value]) => root.style.setProperty(key, value))
+    root.classList.toggle('dark', themeMode === 'dark')
+    root.setAttribute('data-theme', themeMode === 'dark' ? 'dark' : 'light')
+  }, [accentColor, cornerMode, density, fontScale, themeMode]);
+
+  useEffect(() => {
+    if (!token) {
+      disconnectArasWebSocket()
+      return
+    }
+    connectArasWebSocket()
+    return () => disconnectArasWebSocket()
+  }, [token]);
 
   useEffect(() => {
     if (token) {
@@ -174,6 +205,9 @@ function App() {
           <Route path="dev/health" element={<HealthIntegrityView />} />
           <Route path="dev/routes" element={<InspectRoutesView />} />
           <Route path="admin/tenants" element={<TenantAdmin />} />
+          <Route path="saas-admin" element={<SaaSAdminDashboard />} />
+          <Route path="saas-admin/tenants/:id" element={<SaaSTenantDetail />} />
+          <Route path="saas-admin/plans" element={<SaaSPlans />} />
           <Route path="dev/help" element={<HelpDevView />} />
           <Route path="help" element={<HelpUserView />} />
           <Route path="dev/table/:app/:model" element={<DynamicView />} />

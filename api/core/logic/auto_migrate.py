@@ -7,6 +7,7 @@ from sqlalchemy.schema import CreateTable
 from sqlalchemy import String, Text
 from ..base.service import Service
 
+# gemini-flash
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -30,19 +31,19 @@ class MigrationReport(Service):
             return
             
         if self.created_tables:
-            print(f"[auto_migrate] created tables: {self.created_tables}")
+            logger.info(f"[auto_migrate] created tables: {self.created_tables}")
         if self.dropped_tables:
-            print(f"[auto_migrate] dropped tables: {self.dropped_tables}")
+            logger.info(f"[auto_migrate] dropped tables: {self.dropped_tables}")
         if self.added_columns:
-            print(f"[auto_migrate] added columns: {self.added_columns}")
+            logger.info(f"[auto_migrate] added columns: {self.added_columns}")
         if self.dropped_columns:
-            print(f"[auto_migrate] dropped columns: {self.dropped_columns}")
+            logger.info(f"[auto_migrate] dropped columns: {self.dropped_columns}")
         if self.added_indexes:
-            print(f"[auto_migrate] added indexes: {self.added_indexes}")
+            logger.info(f"[auto_migrate] added indexes: {self.added_indexes}")
         if self.widened_columns:
-            print(f"[auto_migrate] widened/modified: {self.widened_columns}")
+            logger.info(f"[auto_migrate] widened/modified: {self.widened_columns}")
         if self.errors:
-            print(f"[auto_migrate] errors: {self.errors}")
+            logger.error(f"[auto_migrate] errors: {self.errors}")
 
 def _quote(name: str) -> str:
     return f'"{name}"'
@@ -77,7 +78,7 @@ def _safe_default_sql(col) -> Optional[str]:
             return f"'{v}'"
     return None
 
-def run(engine, metadata, drop_orphaned_tables: bool = False) -> MigrationReport:
+def run(engine, metadata, drop_orphan_tables: bool = False) -> MigrationReport:
     report = MigrationReport()
     
     try:
@@ -96,23 +97,33 @@ def run(engine, metadata, drop_orphaned_tables: bool = False) -> MigrationReport
             except Exception as e:
                 report.errors.append(f"create {tname}: {e}")
 
-        # 2. Drop orphaned tables
-        if drop_orphaned_tables:
-            for tname in sorted(db_tables - model_tables):
-                # Protect core tables
-                core_tables = {
-                    "aras_apps", "aras_resources", "aras_fields", "aras_links",
-                    "translations", "aras_activity_logs", "auth_roles",
-                    "auth_permissions", "auth_user_roles", "auth_users", "sys_settings"
-                }
-                if tname in core_tables or tname.startswith("aras_"):
-                    continue
-                try:
-                    with engine.begin() as conn:
-                        conn.execute(text(f"DROP TABLE IF EXISTS {_quote(tname)} CASCADE"))
-                    report.dropped_tables.append(tname)
-                except Exception as e:
-                    report.errors.append(f"drop table {tname}: {e}")
+        # 2. Handle orphan tables
+        orphans = sorted(db_tables - model_tables)
+        if orphans:
+            # Protect core tables
+            core_tables = {
+                "aras_apps", "aras_resources", "aras_fields", "aras_links",
+                "translations", "aras_activity_logs", "auth_roles",
+                "auth_permissions", "auth_user_roles", "auth_users", "sys_settings",
+                "alembic_version"
+            }
+            real_orphans = [t for t in orphans if t not in core_tables and not t.startswith("aras_")]
+            
+            if real_orphans:
+                logger.warning(f"[auto_migrate] Found orphan tables in DB: {real_orphans}")
+                
+                aras_mode = os.getenv("ARAS_MODE", "production")
+                if drop_orphan_tables and aras_mode == "development":
+                    for tname in real_orphans:
+                        try:
+                            with engine.begin() as conn:
+                                conn.execute(text(f"DROP TABLE IF EXISTS {_quote(tname)} CASCADE"))
+                            report.dropped_tables.append(tname)
+                            logger.info(f"[auto_migrate] Dropped orphan table: {tname}")
+                        except Exception as e:
+                            report.errors.append(f"drop table {tname}: {e}")
+                elif drop_orphan_tables:
+                    logger.warning(f"[auto_migrate] Orphan table drop requested but denied because ARAS_MODE={aras_mode}")
 
         # 3. Diff existing tables
         for tname in sorted(model_tables & db_tables):

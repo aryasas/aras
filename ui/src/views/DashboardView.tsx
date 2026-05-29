@@ -2,7 +2,7 @@
 // ARC dashboard: bento grid of widgets. Drag-reorder using @dnd-kit through DnDGrid.
 // Stat widgets are mono-readout; charts keep their data viz but live inside arc-cards.
 import React, { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import api from '../lib/api'
 import { useAras } from '../aras-core/hooks/useAras'
 import { resolveIcon } from '../lib/iconUtils'
@@ -13,7 +13,7 @@ import {
   DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core'
-import { SortableContext, arrayMove, rectSortingStrategy, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { SortableContext, rectSortingStrategy, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical } from 'lucide-react'
 
@@ -65,6 +65,9 @@ export const DashboardView: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const { notify } = useAras()
   const setPageTitle = useUIStore((state) => state.setPageTitle)
+  const location = useLocation()
+  const appKey = location.pathname.split('/').filter(Boolean)[0] || 'dashboard'
+  const orderPreferenceKey = `dashboard:${appKey}:order`
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -79,13 +82,26 @@ export const DashboardView: React.FC = () => {
   const loadWidgets = useCallback(async () => {
     try {
       const res = await api.get('/dashboard/widgets')
-      setWidgets(res.data.layout_config?.widgets || [])
+      let nextWidgets = res.data.layout_config?.widgets || []
+      try {
+        const pref = await api.get('/preference', { params: { key: orderPreferenceKey } })
+        const saved = typeof pref.data?.value === 'string' ? JSON.parse(pref.data.value) : pref.data?.value
+        if (Array.isArray(saved)) {
+          const byId = new Map(nextWidgets.map((widget: Widget) => [widget.id, widget]))
+          const ordered = saved.map((id: number) => byId.get(id)).filter(Boolean) as Widget[]
+          const remaining = nextWidgets.filter((widget: Widget) => !saved.includes(widget.id))
+          nextWidgets = [...ordered, ...remaining]
+        }
+      } catch {
+        // Missing preferences should not block the dashboard.
+      }
+      setWidgets(nextWidgets)
     } catch (err: any) {
       notify(err.message || 'Failed to load dashboard widgets', 'error')
     } finally {
       setLoading(false)
     }
-  }, [notify])
+  }, [notify, orderPreferenceKey])
 
   useEffect(() => { loadWidgets() }, [loadWidgets])
 
@@ -95,11 +111,12 @@ export const DashboardView: React.FC = () => {
     const oldIndex = widgets.findIndex((w) => w.id === active.id)
     const newIndex = widgets.findIndex((w) => w.id === over.id)
     if (oldIndex < 0 || newIndex < 0) return
-    const next = arrayMove(widgets, oldIndex, newIndex)
+    const next = [...widgets]
+    const [moved] = next.splice(oldIndex, 1)
+    next.splice(newIndex, 0, moved)
     setWidgets(next)
-    api.post('/dashboard/layout', { widget_order: next.map((w) => w.id) }).catch((e) => {
-      notify(e.message || 'Failed to save dashboard layout', 'error')
-    })
+    api.put('/preference', { key: orderPreferenceKey, value: JSON.stringify(next.map((w) => w.id)) })
+      .catch((e) => notify(e.message || 'Failed to save dashboard layout', 'error'))
   }
 
   if (loading) return <LoadingState label="Loading dashboard..." className="arc-card p-12" />

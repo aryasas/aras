@@ -1,6 +1,6 @@
 from typing import Optional
 from sqlalchemy import String, Integer, Boolean, ForeignKey, DateTime, Text
-from sqlalchemy.orm import relationship, Mapped, mapped_column
+from sqlalchemy.orm import relationship, Mapped, mapped_column, Session
 from core import Aras
 from core.response import ok
 from datetime import datetime, timezone
@@ -21,12 +21,16 @@ class WebPage(Aras.Model):
     def publish(self, db):
         self.is_published = True
         self.published_at = datetime.now(timezone.utc)
+        db.add(self)
+        db.flush()
         return ok({}, message="Page published.")
 
     @Aras.model_action(name="unpublish", permission="edit", label="Unpublish", icon="X")
     def unpublish(self, db):
         self.is_published = False
         self.published_at = None
+        db.add(self)
+        db.flush()
         return ok({}, message="Page unpublished.")
 
 class WebMenuItem(Aras.Model):
@@ -38,7 +42,7 @@ class WebMenuItem(Aras.Model):
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    parent = relationship("WebMenuItem", remote_side="WebMenuItem.id", backref="children")
+    parent = relationship(lambda: WebMenuItem, remote_side="WebMenuItem.id", backref="children")
 
 class ContactSubmission(Aras.Model):
     __tablename__ = "web_contact_submission"
@@ -74,3 +78,12 @@ class LandingSection(Aras.Model):
     cta_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_visible: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # gemini-flash
+    @Aras.model_action(name="reorder", permission="edit")
+    def reorder(self, db: Session, sort_order: int):
+        self.sort_order = sort_order
+        db.add(self)
+        db.commit()
+        db.refresh(self)
+        return ok({"id": self.id, "sort_order": self.sort_order}, message=f"Landing section {self.key} reordered.")

@@ -13,6 +13,7 @@ from ..registry.resource_model import ResourceModel
 from ..registry.field_model import FieldModel
 from ..registry.link_model import LinkModel
 from .manager import Manager
+from ..lib.helpers import to_label_case
 
 logger = logging.getLogger(__name__)
 
@@ -218,7 +219,7 @@ class SyncManager(Manager):
         
         # Determine Title, Icon and Layout from View or Model
         view = Aras.View.get_for_model(model_cls)
-        title = getattr(view, "title", None) or getattr(model_cls, "__title__", None) or table_name.replace("_", " ").title()
+        title = getattr(view, "title", None) or getattr(model_cls, "__title__", None) or to_label_case(table_name)
         icon = getattr(view, "icon", None)
         layout = getattr(view, "layout", None) or []
 
@@ -276,7 +277,7 @@ class SyncManager(Manager):
             # Metadata from View/Generator
             meta = field_meta_map.get(column.name, {})
             code_meta = {
-                "label": meta.get("label") or column.name.replace("_", " ").title(),
+                "label": meta.get("label") or to_label_case(column.name),
                 "ui_type": meta.get("type") or "string",
                 "is_required": meta.get("required", not column.nullable),
                 "is_read_only": meta.get("read_only", column.info.get("read_only", False)),
@@ -322,7 +323,7 @@ class SyncManager(Manager):
                                 target_resource_id=target_resource.id,
                                 field_name=column.name,
                                 link_type="lookup",
-                                label=column.info.get("label", column.name.replace("_id", "").replace("_", " ").title()),
+                                label=column.info.get("label", to_label_case(column.name.replace("_id", ""))),
                                 display_column=column.info.get("display_column")
                             )
                             db.add(link_db)
@@ -346,7 +347,7 @@ class SyncManager(Manager):
                         target_resource_id=target_resource.id,
                         field_name=field_name,
                         link_type="bridge",
-                        label=defs.get("label", field_name.replace("_", " ").title()),
+                        label=defs.get("label", to_label_case(field_name)),
                         config=defs
                     )
                     db.add(link_db)

@@ -24,6 +24,15 @@ class Account(MasterDataBase):
     
     parent: Mapped[Optional["Account"]] = relationship("Account", remote_side="Account.id", backref="children")
 
+    __m2m__ = {
+        "related_accounts": {
+            "bridge_table": "erp_accounting_account_relations",
+            "source_key": "account_id",
+            "target_key": "related_id",
+            "target_resource": "erp_accounting_accounts"
+        }
+    }
+
     @property
     @Aras.computed_field
     def display_name(self) -> str:

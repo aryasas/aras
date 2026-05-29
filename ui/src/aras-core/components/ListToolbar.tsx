@@ -7,6 +7,11 @@ import {
 
 export type ViewMode = 'list' | 'tree' | 'report';
 
+interface ToolbarField {
+  name: string;
+  label: string;
+}
+
 interface ListToolbarProps {
   title: string;
   search: string;
@@ -24,7 +29,7 @@ interface ListToolbarProps {
   isColumnPickerOpen: boolean;
   onAdd: () => void;
   onArchive?: () => void;
-  fields: any[];
+  fields: ToolbarField[];
   visibleColumns: string[];
   onVisibleColumnsChange: (columns: string[]) => void;
   viewMode?: ViewMode;

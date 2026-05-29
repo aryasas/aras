@@ -29,7 +29,6 @@ export interface SortableListItem {
   id: string | number;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface SortableListProps<T extends SortableListItem> {
   items: T[];
   onReorder: (next: T[]) => void;
@@ -70,8 +69,8 @@ function SortableRow<T extends SortableListItem>({ item, render, wholeItemDragga
 }
 
 const SortableRowCtx = React.createContext<{
-  listeners: any;
-  attributes: any;
+  listeners: React.HTMLAttributes<HTMLElement>;
+  attributes: React.HTMLAttributes<HTMLElement>;
 }>({ listeners: {}, attributes: {} });
 
 export const DragHandle: React.FC<{ className?: string; label?: string }> = ({ className, label = 'Drag to reorder' }) => {

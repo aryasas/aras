@@ -1,13 +1,15 @@
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from core import Aras
 from ..models import StockMovement, StockMovementLine
 
-class StockComputeService:
+class StockComputeService(Aras.Service):
     """Service for stock quantities and valuation."""
+    model_class = StockMovement
 
-    @staticmethod
-    def compute_qty(db: Session, item_id: int, location_id: Optional[int] = None) -> float:
+    @classmethod
+    def compute_qty(cls, db: Session, item_id: int, location_id: Optional[int] = None) -> float:
         from sqlalchemy import case as sa_case
         base = db.query(StockMovementLine).join(StockMovement).filter(
             StockMovementLine.item_id == item_id,
@@ -33,8 +35,8 @@ class StockComputeService:
             )
         return float(base.with_entities(signed).scalar() or 0)
 
-    @staticmethod
-    def compute_qty_by_location(db: Session, item_id: int) -> list:
+    @classmethod
+    def compute_qty_by_location(cls, db: Session, item_id: int) -> list:
         from ..models import Location
         from sqlalchemy import union_all, select
         in_q = select(
@@ -67,8 +69,8 @@ class StockComputeService:
          .having(func.sum(combined.c.qty) != 0).all()
         return [{"location_id": r.loc_id, "location_name": r.name, "qty": float(r.net_qty)} for r in rows]
 
-    @staticmethod
-    def compute_avg_cost(db: Session, item_id: int) -> float:
+    @classmethod
+    def compute_avg_cost(cls, db: Session, item_id: int) -> float:
         last = db.query(StockMovementLine).join(StockMovement).filter(
             StockMovementLine.item_id == item_id,
             StockMovement.move_type.in_(["receipt", "return"]),

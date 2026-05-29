@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Bell, ChevronRight, Hexagon, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { Bell, ChevronRight, CreditCard, Hexagon, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { SidebarApp, MenuItem } from '../types'
 import { useVocabulary } from '../../context/VocabularyContext'
@@ -230,6 +230,37 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
         </div>
 
         <div className="flex-1 flex flex-col gap-1 py-3 overflow-y-auto arc-scroll px-2">
+          {user?.is_admin && (
+            <button
+              type="button"
+              title={sidebarCollapsed ? 'SaaS Admin' : undefined}
+              onClick={() => navigate('/saas-admin')}
+              className="group relative flex items-center transition-all duration-200"
+              style={{
+                width: '100%',
+                height: 38,
+                padding: sidebarCollapsed ? '0' : '0 10px',
+                justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                borderRadius: 'var(--radius)',
+                background: isRouteMatch(currentPath, '/saas-admin') ? 'var(--surface-2)' : 'transparent',
+                border: isRouteMatch(currentPath, '/saas-admin') ? '1px solid var(--line)' : '1px solid transparent',
+                color: isRouteMatch(currentPath, '/saas-admin') ? 'var(--text)' : 'var(--text-3)',
+              }}
+            >
+              <CreditCard size={17} className="shrink-0" />
+              {!sidebarCollapsed && (
+                <span className="ml-3 text-[13px] font-medium truncate opacity-90 group-hover:opacity-100">
+                  SaaS Admin
+                </span>
+              )}
+              {isRouteMatch(currentPath, '/saas-admin') && (
+                <span style={{
+                  position: 'absolute', left: -2, top: 8, bottom: 8, width: 2,
+                  background: 'var(--accent)', borderRadius: 2,
+                }} />
+              )}
+            </button>
+          )}
           {apps.map((item) => {
             const Icon = resolveIcon(item.icon)
             const itemPath = normalizeRoutePath(item.path || `/${item.name}`)

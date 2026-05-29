@@ -83,3 +83,20 @@ def get_landing(db: Session = Depends(get_db)):
         "cta_label": s.cta_label,
         "cta_url": s.cta_url
     } for s in sections]
+
+# gemini-flash
+@router.get("/landing/{key}")
+def get_landing_section(key: str, db: Session = Depends(get_db)):
+    section = db.query(LandingSection).filter_by(key=key, is_visible=True).first()
+    if not section:
+        raise HTTPException(status_code=404, detail="Landing section not found")
+    return {
+        "key": section.key,
+        "title": section.title,
+        "subtitle": section.subtitle,
+        "body": section.body,
+        "image_url": section.image_url,
+        "cta_label": section.cta_label,
+        "cta_url": section.cta_url
+    }
+

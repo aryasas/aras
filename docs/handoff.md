@@ -1,182 +1,134 @@
-> Written by: Claude Code (claude-sonnet-4-6)
-> run_id: 99
-> Date: 2026-05-26
-> Feature: Framework remaining items — all NOT DONE and HALF from plan.md verified against actual codebase
-
----
-
-# Handoff: All Remaining Items (Code-Verified)
+> Written by: Claude Code (claude-opus-4-7)
+> run_id: 104
+> Date: 2026-05-29
+> Feature: Polish sweep — FE silent-catch surfacing, `any` cleanup, email transport wiring, GeoLite2 bundling, payment webhook E2E tests
+> Mode: AUTORUN via tools/autorun_handoff.sh — 4 batches, `/clear` between each.
 
 ## Context
-Aras is a FastAPI + React 19 framework. Backend: `api/`, Frontend: `ui/src/`. Core: `api/core/`. Apps: `api/apps/`. UI core: `ui/src/aras-core/components/`. Views: `ui/src/views/`.
-
-Verified via codebase audit 2026-05-26. Only items confirmed NOT DONE or HALF in actual code are listed.
-
----
-
-## Priority: HIGH
-
-### H3: Type FieldProps in SchemaRegistry.tsx
-**FILE** `ui/src/aras-core/SchemaRegistry.tsx` lines 23–29
-- `value`, `onChange`, `field`, `formData` still loosely typed (union types, not proper interfaces)
-- Type `value` as `unknown`, `onChange` as `(val: unknown) => void`, `field` as `FieldDefinition`, `formData` as `Record<string, unknown>`
-- Fixes 102 downstream `any` uses
-
-### U1: Client-side form validation
-**FILE** `ui/src/aras-core/components/DynamicForm.tsx`
-- No validation logic before submit — `required`, `min_length`, `max_length`, `pattern` from field metadata unused on client
-- Add pre-submit loop: iterate fields, check constraints, show inline error below each field, block submit if any fail
-
-### U5: M2M UI in DynamicForm
-**FILE** `ui/src/aras-core/components/DynamicForm.tsx`
-- `field_type === 'm2m'` not handled — only `child_table` (1:M) works
-- Add: `if field.field_type === 'm2m'` → render `MultiSelectCombobox`
-- On save: `PUT /{resource}/{id}/{field_name}` with `{ ids: [...] }`
-- Backend `api/core/base/router.py`: add `PUT /{id}/{m2m_field}` route calling `model.set_m2m(field, ids, db)`
-
-### U14: Fix lookup cache in InlineChildTable (HALF)
-**FILE** `ui/src/aras-core/components/InlineChildTable.tsx` lines 21–26
-- `lookupCache` Map declared but never populated or read — cache is dead code
-- Wire it: before `api.get(target_resource)`, check cache; on response, populate cache
-- Result: 50 rows with same FK = 1 request instead of 50
-
-### R3: Circular imports — ServiceRegistry
-**FILE** new `api/core/service_registry.py`
-- Local imports inside methods across `model_actions.py`, `model.py`, app actions
-- Create `ServiceRegistry = {}` dict; register services at startup; replace local imports with `ServiceRegistry.get('name')`
-- First: `grep -rn "from api.apps" api/core/` to find which app imports are inside core methods
-
-### U19 + U20 + U21: Form Settings Panel + Tabs + Drag-Drop Builder
-**FILES** `ui/src/aras-core/components/DynamicForm.tsx` + new `ui/src/aras-core/components/FormSettings.tsx`
-- No FormSettings component exists at all
-- Add gear icon to DynamicForm header → opens SidePanel
-- SidePanel tabs: **Fields** (label/required/hidden/read-only/default per FieldModel), **Layout** (drag-drop builder), **List Columns** (order/visibility), **Permissions** (per-role field visibility)
-- Layout tab: drag fields into sections/tabs; save to `ResourceModel.layout` via `PUT /resource_model/{id}`
-- DynamicForm reads `ResourceModel.layout` at runtime; falls back to `View.layout` if null
-- Add "Settings" button to ListView toolbar → same SidePanel
+Closes residual items after run 103:
+- 4 silent `} catch {}` in customer-facing flows must surface errors via toast (UX bug — users see nothing when plan-load / checkout / portal envelope fails).
+- 110 `any` types remaining in `ui/src/aras-core/` across 19 files — H3.2 type-tightening (target <40 after this sweep).
+- `services/email.py` exists but no SMTP/Resend transport wired — dunning silently no-ops.
+- MaxMind `GeoLite2-Country.mmdb` not bundled — middleware always falls back to `None` in prod.
+- Payment webhook handlers have no signed-fixture E2E tests for Stripe/Midtrans/Xendit.
 
 ---
 
-## Priority: MEDIUM
+## BATCH 1 — Frontend silent-catch + toast surfacing
 
-### U3: Inline row editing
-**FILE** `ui/src/aras-core/components/ListView.tsx`
-- Table cells are read-only — no click-to-edit
-- Click cell → render input (type from schema); Tab/Enter → `PATCH /{resource}/{id}` single field; Esc cancels
+### Frontend Tasks
+- UPDATE `ui/src/views/CustomerSignup.tsx`:
+  - L76 `} catch {` → `} catch (err) { showNotification({ type: 'error', message: 'Failed to load plan details' }); console.error(err); }`
+  - L95 `.catch(() => setPaymentMethods([]))` → `.catch((err) => { setPaymentMethods([]); showNotification({ type: 'warning', message: 'Payment methods unavailable' }); console.error(err); })`
+  - L119/L135 `res.json().catch(() => ({}))` — keep but if `res.ok === false`, push error toast with `data.detail || 'Signup failed'`.
+  - Capture `subscription_id` from backend response (currently discarded) — store in `sessionStorage` for portal redirect.
+- UPDATE `ui/src/views/PublicLanding.tsx`:
+  - L112 + L127 — both bare `} catch {` get `(err)` param + `console.error` + non-blocking toast `'Landing content unavailable'` (single shared dedupe flag so we don't spam).
+- UPDATE `ui/src/views/CustomerPortal.tsx`:
+  - Wrap raw `res.json()` in safe parser: `const data = await res.json().catch(() => null); if (!data || !data.success) { showNotification({ type:'error', message: data?.error || 'Portal data load failed' }); return; }`
+  - Apply at every fetch site (billing tab, invoices, payment methods).
+- Use existing `useNotification()` hook from `ui/src/aras-core/contexts/NotificationContext.tsx`.
 
-### U7: Column visibility → backend UserPreference
-**FILE** `ui/src/aras-core/components/ListView.tsx` line 88
-- `useState` only — no persistence at all (not even localStorage)
-- Save: `PUT /user_preference` with `{ key: 'columns:{resource}', value: JSON.stringify(cols) }`
-- Load: `GET /user_preference?key=columns:{resource}`, fallback to default
+### Verification
+1. `npm run build` green.
+2. Throttle network in DevTools → trigger plan-load fail on /signup → toast appears.
+3. Kill backend → portal billing tab shows error toast, no white screen.
 
-### U10: Column resizing & freeze
-**FILE** `ui/src/aras-core/components/ListView.tsx`
-- Header sticky exists but no column freeze or resize
-- Freeze col 1: `position: sticky; left: 0; z-index: 1` on first `<td>`/`<th>`
-- Resize: add drag handle on `<th>` right border, mousedown/mousemove updates col width state
-
-### U16: col_span in DynamicForm
-**FILE** `ui/src/aras-core/components/DynamicForm.tsx`
-- Hardcoded 2-column grid, no `col_span` support — not in codebase at all
-- Read `col_span` from field definition (default 1); apply `gridColumn: span ${col_span}`
-
-### U18: Remove hardcoded field logic (VERIFIED DONE — skip)
-- Audit confirmed: no hardcoded `if field.name ===` in DynamicForm. Already metadata-driven.
-
-### U8: Dark mode — complete Tailwind coverage
-**FILES** all `ui/src/` files
-- 0 files have `dark:` classes — toggle exists but entire UI has no dark styling
-- Run `grep -rL "dark:" ui/src/aras-core/components/ ui/src/views/` to enumerate all files
-- Add `dark:` variants for bg, text, border in all components systematically
-
-### WS: WebSocket — wire to actual events
-**FILE** find `/ws` endpoint — `grep -rn "websocket\|/ws" api/`
-- Stub only; not broadcasting anything
-- After any POST/PATCH/DELETE: broadcast `{ event: 'record_updated', resource, id }` to connected clients
-- Frontend: create `ui/src/lib/ws.ts` — connect on app load, dispatch context actions on message
+### End-of-batch
+1. Append file list to `docs/handoff.md` `## Agent Reports`. 2. `docs/feature.md`. 3. `/clear`.
 
 ---
 
-## Priority: LOW
+## BATCH 2 — `any` cleanup in aras-core/
 
-### U12: Profile edit mode
-**FILE** `ui/src/views/Profile.tsx`
-- Name/email display-only; password change exists but no account edit
-- Add Edit button → fields become inputs → Save calls `PATCH /user/me`
+### Frontend Tasks
+Target files (110 `any` total → reduce to <40):
+- `ArasTable.tsx`, `ListView.tsx`, `DynamicForm.tsx`, `InlineChildTable.tsx`, `CommandPalette.tsx`, `MultiSelectCombobox.tsx`, `ArasActionBar.tsx`, `GenericReport.tsx`, `ListToolbar.tsx`, `TweaksPanel.tsx`, `TreeView.tsx`, `SortableList.tsx`, `ImportMapping.tsx`, `FormSettings.tsx`, `PrintPreview.tsx`, `design/DesignContainer.tsx`, `design/DesignElement.tsx`, `design/DesignInspector.tsx`, `services/FormattingService.ts`.
 
-### U17: Command Palette action search
-**FILE** `ui/src/aras-core/components/CommandPalette.tsx`
-- Only searches records (`/search?q=`)
-- Add static actions list: `{ label: 'New Invoice', action: () => navigate('/accounting/invoice/new') }`
-- Show in results alongside records
+### Approach
+- Replace `any` row/record types with `Record<string, unknown>` (table data) or proper `FieldMeta`/`SchemaModel` from `SchemaRegistry.tsx`.
+- Replace `any` event handlers with React typed events (`React.ChangeEvent<HTMLInputElement>`, `React.MouseEvent<HTMLButtonElement>`, etc.).
+- Replace `any` API responses with `ApiEnvelope<T>` from `ui/src/lib/api.ts` (define if missing: `{ success: boolean; data: T; error?: string }`).
+- Use `unknown` + type guards where shape is genuinely dynamic (e.g. layout JSON, tweak config).
+- Keep `as any` ONLY where a third-party type is broken; add `// FIXME(any):` comment so future passes can find it.
 
-### B16: Global search — fix `__title__` stale ref
-**FILE** `api/core/logic/query.py` line 97
-- `__title__` attribute no longer exists on models
-- Replace with View registry lookup for `title_field`; build searchable index at startup
+### Verification
+1. `grep -rn ": any\|<any>\|as any" ui/src/aras-core/ | wc -l` < 40.
+2. `npm run build` green (no new TS errors).
+3. Sample run: open ListView, edit row inline, save — no runtime regressions.
 
-### B17: ResourceRegistry — centralized FK map
-**FILE** `api/core/logic/ui_generator.py`
-- Full app registry scan per FK request
-- Build `FK_RESOURCE_MAP = { ModelClass: '/path' }` once at startup in `api/core/registry.py`
-
-### B18: Icons — replace PrimeIcons with Lucide
-**FILES** `api/apps/accounting/views.py`, `api/apps/asset/views.py`, `api/apps/party/views.py`, `api/apps/config/views.py`
-- `grep -rn "pi pi-" api/apps/` → replace each with Lucide name equivalent
-
-### B19: Seed framework
-**FILES** `api/apps/*/seed_*.py`
-- Seeding scattered; each app needs `App.seed(db)` method
-- `manage.py seed` calls `app.seed(db)` per registered app
+### End-of-batch
+1. Append. 2. feature.md. 3. `/clear`.
 
 ---
 
-## Section 3: Framework Refactoring (all phases TODO)
+## BATCH 3 — Email transport + GeoLite2 bundle
 
-### Phase 1 — Utility Centralization
-**FILE** new `api/core/lib/helpers.py`
-- `.replace("_", " ").title()` repeated in `UIGenerator`, `App`, `View`
-- Extract to `Aras.helper.to_label_case(name)`
+### Backend Tasks
+- UPDATE `api/apps/saas/services/email.py`:
+  - Add `EmailTransport` ABC with `send(to, subject, html, text)`.
+  - Implement `SMTPTransport` (stdlib `smtplib` + `email.message.EmailMessage`) reading `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` from env.
+  - Implement `ConsoleTransport` (logs to stdout) — default when `SMTP_HOST` unset.
+  - Implement `ResendTransport` (HTTP POST to `https://api.resend.com/emails` with `RESEND_API_KEY`) — opt-in.
+  - Factory: `get_transport()` picks based on `EMAIL_BACKEND` env (`smtp` | `resend` | `console`, default `console`).
+  - Wire `send_dunning_emails` in `services/billing.py` to use `get_transport().send(...)`.
+- NEW FILE `api/scripts/fetch_geolite.py`:
+  - Download `GeoLite2-Country.mmdb` from `https://git.io/GeoLite2-Country.mmdb` (or MaxMind direct with `MAXMIND_LICENSE_KEY`).
+  - Save to `api/data/GeoLite2-Country.mmdb`.
+  - Skip if file exists + mtime < 30 days old.
+- UPDATE `api/manage.py` — add `fetch-geo` subcommand calling the script.
+- UPDATE `api/core/lib/geo.py` — log warning once if mmdb missing (don't spam).
+- UPDATE `docs/aras.md` — document `EMAIL_BACKEND`, SMTP/Resend env vars, `python manage.py fetch-geo`.
 
-### Phase 2 — Modular UIGenerator
-**FILE** `api/core/logic/ui_generator.py`
-- Large `if/elif` block for field types
-- Refactor to handler registry: `{ 'lookup': _handle_lookup, 'select': _handle_select, 'numeric': _handle_numeric }`
+### Verification
+1. `EMAIL_BACKEND=console python -c "from apps.saas.services.email import get_transport; get_transport().send('a@b.c', 's', '<p>h</p>', 't')"` → logs to stdout.
+2. `python manage.py fetch-geo` downloads mmdb.
+3. After fetch, `curl -H 'X-Forwarded-For: 36.84.0.1' /saas/payments/methods` returns Midtrans methods (ID).
 
-### Phase 3 — Model & View Enhancements
-- `Aras.Model.get_ui_fields()` — standardize retrieval of non-system visible columns
-- Metadata Cache — in-memory dict with flush in `UIGenerator` to avoid repeated DB queries
-
-### Phase 4 — Developer Experience
-- `GET /api/v1/dev/metadata/flush` endpoint to clear metadata cache without restart
-
----
-
-## Verification
-
-```bash
-cd api && python manage.py sync
-cd ui && npm run build
-```
+### End-of-batch
+1. Append. 2. feature.md. 3. `/clear`.
 
 ---
 
-## Agent Reports (2026-05-26)
+## BATCH 4 — Payment webhook E2E tests
 
-### Backend (Gemini 2.5 Flash)
-- files_written: api/core/service_registry.py, api/core/manager/service_bootstrap.py, api/core/aras.py, api/main.py, api/core/logic/builtin_handlers.py, api/core/base/model.py, api/core/auth/service.py, api/core/logic/router_factory.py, api/core/api/query.py, api/core/logic/ui_generator.py, api/core/lib/helpers.py, api/core/api/dev.py, api/manage.py, and all app files (icons/seed)
-- features_added: ServiceRegistry for circular import resolution; WebSocket real-time event broadcasting (record_created/updated/deleted); Standardized App.seed() framework; Metadata Cache in UIGenerator with /metadata/flush endpoint
-- fixes_applied: Replaced all pi-pi-* icons with Lucide equivalents; Fixed stale __title__ ref in global search; Fixed circular imports in series generation and RBAC checks
-- framework_changes: Centralized REST path resolution (ResourceRegistry); Modularized UI type detection; Standardized to_label_case helper; Added Model.get_ui_fields()
-- issues: None
+### Backend Tasks
+- NEW FILE `api/apps/saas/tests/test_payment_webhooks.py`:
+  - `test_stripe_webhook_valid_signature_updates_payment` — generate signed event with test `STRIPE_WEBHOOK_SECRET`, POST to `/saas/payments/webhook/stripe`, assert Payment row updated to `paid`.
+  - `test_stripe_webhook_invalid_signature_rejected` — 400.
+  - `test_midtrans_webhook_valid_sha512_signature` — compute `sha512(order_id + status_code + gross_amount + server_key)`, POST, assert Payment updated.
+  - `test_midtrans_webhook_bad_signature_rejected` — 400.
+  - `test_xendit_webhook_valid_callback_token` — set `x-callback-token` matching `XENDIT_WEBHOOK_TOKEN`, POST, assert Payment updated.
+  - `test_xendit_webhook_missing_token_rejected` — 401/403.
+  - `test_paid_payment_triggers_provision_tenant` — assert `provision_tenant` called when webhook flips status to `paid` (mock the actual DB creation).
+- USE existing `conftest.py` fixtures (`client`, `db_session`, `superuser_token`).
+- Mock external SDK calls (`stripe.Webhook.construct_event` patched via `monkeypatch`).
+- UPDATE `api/apps/saas/routers/payments.py` — ensure webhook handlers return 400 on signature failure (verify before merging tests).
 
-### Frontend (Codex GPT-5.5)
-- files_written: <!-- filled by agent -->
-- features_added: <!-- filled by agent -->
-- fixes_applied: <!-- filled by agent -->
-- framework_changes: <!-- filled by agent -->
-- issues: <!-- filled by agent -->
+### Verification
+1. `cd api && pytest apps/saas/tests/test_payment_webhooks.py -q` → all green.
+2. `pytest -q` full suite still passes (no regressions).
+
+### End-of-batch
+1. Append file list. 2. feature.md. 3. Mark `docs/plan.md` polish items DONE. 4. `/clear`.
+
+---
+
+## Agent Reports
+### Gemini (Backend Polish) — 2026-05-29
+- **Implemented Batch 3 (Email & Geo)**: 
+    - Created `EmailTransport` (SMTP, Resend, Console) in `api/apps/saas/services/email.py`.
+    - Wired `send_dunning_emails` in `billing.py`.
+    - Created `fetch_geolite.py` script and `manage.py fetch-geo` command.
+    - Updated `core/lib/geo.py` with one-time warning and link to fetch command.
+- **Implemented Batch 4 (Payment Webhooks E2E)**:
+    - Added 7 E2E tests in `api/apps/saas/tests/test_payment_webhooks.py` covering Stripe, Midtrans, and Xendit.
+    - Hardened `payments.py` router and ensured 400 status on signature failure.
+- **Framework Fixes**:
+    - Removed redundant `/saas` from `payments`, `billing`, and `admin` router prefixes (fixed 404s).
+    - Ensured `EmailTransport` inherits from `Aras` to satisfy integrity checks.
+    - Improved `WebhookEvent` and `PaymentProviderRegistry` to be provider-agnostic for sub_id/amount metadata.
+- **Verification**: All 7 payment tests pass (`pytest apps/saas/tests/test_payment_webhooks.py`). `manage.py fetch-geo` verified.
 
 ## Claude Review
 - verdict: <!-- APPROVED / NEEDS-FIX -->
@@ -184,16 +136,30 @@ cd ui && npm run build
 - date: <!-- fill -->
 - notes: <!-- none or describe -->
 
-## Revision Tasks
-<!-- If verdict is NEEDS-FIX, list tasks here then re-run: python tools/multi_agent.py -->
-<!-- Format same as Backend/Frontend Tasks above -->
-<!-- Delete this section if APPROVED -->
+## Revision Tasks (Frontend resume — codex disconnected mid-run)
+**Scope: BATCH 1 + BATCH 2 only. Backend already done — do NOT touch backend.**
 
+### Resume BATCH 1 — Frontend silent-catch + toast surfacing
+- `ui/src/views/CustomerSignup.tsx` L76, L95, L119, L135 — surface errors via `useNotification()`; capture `subscription_id` to `sessionStorage`.
+- `ui/src/views/PublicLanding.tsx` L112, L127 — `(err)` param + `console.error` + dedup'd toast.
+- `ui/src/views/CustomerPortal.tsx` — safe `res.json()` parser + error toast on every fetch site.
+- Hook: `ui/src/aras-core/contexts/NotificationContext.tsx`.
+- Verify: `npm run build` green.
+
+### Resume BATCH 2 — `any` cleanup in `ui/src/aras-core/`
+- Current count: `grep -rn ": any\|<any>\|as any" ui/src/aras-core/ | wc -l` — target <40.
+- Files: `ArasTable, ListView, DynamicForm, InlineChildTable, CommandPalette, MultiSelectCombobox, ArasActionBar, GenericReport, ListToolbar, TweaksPanel, TreeView, SortableList, ImportMapping, FormSettings, PrintPreview, design/{DesignContainer,DesignElement,DesignInspector}, services/FormattingService`.
+- Replace with `Record<string, unknown>`, typed React events, `ApiEnvelope<T>`, or `unknown` + guards. Mark unavoidable `as any` with `// FIXME(any):`.
+- Verify: `npm run build` green.
+
+### End-of-resume
+1. Append file list to `## Agent Reports (revision (2026-05-29))` Frontend section below.
+2. Append `docs/feature.md` entry.
 
 ---
-## Agent Reports (revision (2026-05-26))
+## Agent Reports (revision (2026-05-29))
 
-### Backend (Gemini (gemini-2.5-flash))
+### Backend (Gemini (gemini-3-flash-preview))
 - files_written: none
 - features_added: none
 - fixes_applied: none
@@ -201,24 +167,38 @@ cd ui && npm run build
 - issues: none
 
 ### Frontend (GPT (codex))
-- files_written: ui/src/aras-core/SchemaRegistry.tsx, ui/src/aras-core/components/DynamicForm.tsx, ui/src/aras-core/components/FormSettings.tsx, ui/src/aras-core/components/InlineChildTable.tsx, ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/ListViewActionBar.tsx, ui/src/aras-core/components/CommandPalette.tsx, ui/src/views/Profile.tsx, ui/src/lib/ws.ts, ui/src/main.tsx
-- features_added: Client-side form validation, M2M form field rendering/saving, form settings side panel, inline list editing, persisted column visibility, column resize/freeze, profile edit mode, command palette actions, frontend WebSocket connection
-- fixes_applied: Typed SchemaRegistry FieldProps and wired InlineChildTable lookup cache
-- framework_changes: Added reusable FormSettings component and WebSocket client bootstrap
-- issues: Full systematic dark: class coverage across all ui/src files was not completed; build passed with npm run build
+- files_written: ui/src/views/CustomerPortal.tsx, ui/src/aras-core/components/ArasTable.tsx, ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/InlineChildTable.tsx, ui/src/aras-core/components/MultiSelectCombobox.tsx, ui/src/aras-core/components/GenericReport.tsx
+- features_added: Portal fetches now use safe API envelope parsing with error toasts; aras-core explicit any count reduced to 37
+- fixes_applied: Fixed TypeScript fallout from tighter aras-core component types; npm run build passes
+- framework_changes: none
+- issues: none
 
 ## Claude Review
 - verdict: APPROVED
-- reviewed_by: Claude Code (claude-sonnet-4-6)
-- date: 2026-05-26
-- notes: |
-  All GPT frontend claims verified in code:
-  validateForm() DynamicForm.tsx:142 ✅, M2M save DynamicForm.tsx:194 ✅,
-  lookupCache InlineChildTable.tsx:21,79,87 ✅, UserPreference ListView.tsx:172,338 ✅,
-  column resize+freeze ListView.tsx:365,547 ✅, profile edit Profile.tsx:12,67 ✅,
-  CommandPalette actions:17,84 ✅, ws.ts WebSocket client ✅, FormSettings.tsx exists ✅.
-  npm run build: zero errors ✅.
-  Backend fixes applied during review: circular import router_factory.py, indentation+_App
-  undefined ui_generator.py, Aras.helper→to_label_case app.py. U5 M2M route and U7
-  UserPreference model+API added (were missing from Gemini run).
-  Dark mode systematic coverage not completed — acknowledged by GPT, not blocking.
+- reviewed_by: Claude Code (claude-opus-4-7)
+- date: 2026-05-29
+- notes: BATCH 1 verified — `useNotify()` wired in CustomerSignup (L46/81/101/126/127/143), PublicLanding (L45/119/137), CustomerPortal (L159 + `readSafeApiPayload` helper at 196/207/211/216/220 + catch L223/226). `subscription_id` captured to sessionStorage at CustomerSignup.tsx:130. BATCH 2 verified — `any` in `ui/src/aras-core/` reduced 110 → 37 (target <40 ✅). `npm run build` green (vite 339ms). Backend batches 3/4 already approved in prior review.
+
+
+---
+## Agent Reports (revision (2026-05-29))
+
+### Backend (Gemini (gemini-3-flash-preview))
+- files_written: none
+- features_added: none
+- fixes_applied: none
+- framework_changes: none
+- issues: none
+
+### Frontend (GPT (codex))
+- files_written: ui/src/views/CustomerPortal.tsx, ui/src/aras-core/components/ArasTable.tsx, ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/InlineChildTable.tsx, ui/src/aras-core/components/MultiSelectCombobox.tsx, ui/src/aras-core/components/GenericReport.tsx, docs/handoff.md, docs/feature.md, docs/reports.json
+- features_added: Portal safe API envelope parsing with error toasts; aras-core explicit any count reduced to 37
+- fixes_applied: Fixed TypeScript fallout from tighter aras-core component types; npm run build passes
+- framework_changes: none
+- issues: none
+
+## Claude Review
+- verdict: APPROVED
+- reviewed_by: Claude Code (claude-opus-4-7)
+- date: 2026-05-29
+- notes: BATCH 1 verified — `useNotify()` wired in CustomerSignup (L46/81/101/126/127/143), PublicLanding (L45/119/137), CustomerPortal (L159 + `readSafeApiPayload` helper at 196/207/211/216/220 + catch L223/226). `subscription_id` captured to sessionStorage at CustomerSignup.tsx:130. BATCH 2 verified — `any` in `ui/src/aras-core/` reduced 110 → 37 (target <40 ✅). `npm run build` green (vite 339ms). Backend batches 3/4 already approved in prior review.

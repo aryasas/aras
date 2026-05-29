@@ -2,6 +2,7 @@ from typing import Callable, Dict, Any, Type, Optional
 from functools import wraps
 from pydantic import BaseModel
 from ..base.aras import Aras
+from ..lib.helpers import to_label_case
 
 class ModelAction(Aras):
     def __init__(self, name: str, handler: Callable, permission: str, input_schema: Optional[Type[BaseModel]] = None, label: Optional[str] = None, icon: Optional[str] = None):
@@ -9,7 +10,7 @@ class ModelAction(Aras):
         self.handler = handler
         self.permission = permission
         self.input_schema = input_schema
-        self.label = label or name.replace("_", " ").title()
+        self.label = label or to_label_case(name)
         self.icon = icon
 
 def action(

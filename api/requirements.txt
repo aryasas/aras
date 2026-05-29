@@ -10,6 +10,11 @@ PyYAML
 psycopg2-binary
 python-dotenv
 python-json-logger
+stripe>=8
+midtransclient
+xendit-python
+maxminddb
+apscheduler
 celery
 redis
 alembic

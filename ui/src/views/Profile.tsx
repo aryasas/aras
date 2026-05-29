@@ -5,14 +5,16 @@ import api from '../lib/api'
 import { Mail, Shield, Lock, Save, AlertCircle, CheckCircle, User, Edit3, X } from 'lucide-react'
 import { useAras } from '../aras-core/hooks/useAras'
 import { useUIStore } from '../store/uiStore'
+import { useAuthStore } from '../store/authStore'
 
 const Profile = () => {
   const [userInfo, setUserInfo] = useState<any>(null)
-  const [profileForm, setProfileForm] = useState({ full_name: '', email: '' })
+  const [profileForm, setProfileForm] = useState({ name: '', email: '' })
   const [editingProfile, setEditingProfile] = useState(false)
   const [profileSaving, setProfileSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const setPageTitle = useUIStore((state) => state.setPageTitle)
+  const setUser = useAuthStore((state) => state.setUser)
 
   useEffect(() => {
     setPageTitle('Your Profile', 'Manage your account details and security settings.', 'PROFILE')
@@ -32,7 +34,7 @@ const Profile = () => {
       try {
         const res = await api.get('/auth/me')
         setUserInfo(res.data)
-        setProfileForm({ full_name: res.data.full_name || '', email: res.data.email || '' })
+        setProfileForm({ name: res.data.name || res.data.full_name || '', email: res.data.email || '' })
       } catch (err: any) {
         notify(err.message || 'Failed to fetch user info', 'error')
       } finally {
@@ -67,10 +69,17 @@ const Profile = () => {
   const handleSaveProfile = async () => {
     setProfileSaving(true)
     try {
-      const res = await api.patch('/user/me', profileForm)
-      const nextUser = { ...userInfo, ...(res.data || profileForm) }
+      await api.put('/auth/me', profileForm)
+      const nextUser = { ...userInfo, ...profileForm, full_name: profileForm.name }
       setUserInfo(nextUser)
-      setProfileForm({ full_name: nextUser.full_name || '', email: nextUser.email || '' })
+      setUser({
+        username: nextUser.username,
+        email: nextUser.email,
+        name: nextUser.name,
+        full_name: nextUser.full_name,
+        is_admin: nextUser.is_admin,
+      } as any)
+      setProfileForm({ name: nextUser.name || nextUser.full_name || '', email: nextUser.email || '' })
       setEditingProfile(false)
       notify('Profile updated', 'success')
     } catch (err: any) {
@@ -88,7 +97,7 @@ const Profile = () => {
     )
   }
 
-  const initial = (userInfo?.full_name || userInfo?.username || 'A')[0].toUpperCase()
+  const initial = (userInfo?.name || userInfo?.full_name || userInfo?.username || 'A')[0].toUpperCase()
 
   return (
     <div className="arc grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl mx-auto">
@@ -100,7 +109,7 @@ const Profile = () => {
           </div>
           <div className="min-w-0">
             <div className="arc-id"><b>user</b>/{userInfo?.id ?? '—'}</div>
-            <div className="text-[14px] font-medium text-[var(--text)] truncate">{userInfo?.full_name || userInfo?.username}</div>
+            <div className="text-[14px] font-medium text-[var(--text)] truncate">{userInfo?.name || userInfo?.full_name || userInfo?.username}</div>
           </div>
           <button
             type="button"
@@ -140,7 +149,7 @@ const Profile = () => {
           <div className="flex flex-col gap-3 border-t border-[var(--line)] pt-3">
             <label className="flex flex-col gap-1.5">
               <span className="arc-id">name</span>
-              <input className="arc-input" value={profileForm.full_name} onChange={(e) => setProfileForm((prev) => ({ ...prev, full_name: e.target.value }))} />
+              <input className="arc-input" value={profileForm.name} onChange={(e) => setProfileForm((prev) => ({ ...prev, name: e.target.value }))} />
             </label>
             <label className="flex flex-col gap-1.5">
               <span className="arc-id">email</span>
@@ -150,7 +159,7 @@ const Profile = () => {
               <button type="button" onClick={handleSaveProfile} disabled={profileSaving} className="arc-btn primary">
                 <Save size={14} /> {profileSaving ? 'Saving...' : 'Save'}
               </button>
-              <button type="button" onClick={() => { setEditingProfile(false); setProfileForm({ full_name: userInfo?.full_name || '', email: userInfo?.email || '' }) }} className="arc-btn">
+              <button type="button" onClick={() => { setEditingProfile(false); setProfileForm({ name: userInfo?.name || userInfo?.full_name || '', email: userInfo?.email || '' }) }} className="arc-btn">
                 <X size={14} /> Cancel
               </button>
             </div>

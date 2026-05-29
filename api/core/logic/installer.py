@@ -14,6 +14,7 @@ from ..registry.app_model import AppModel
 from ..registry.resource_model import ResourceModel
 from ..registry.field_model import FieldModel
 from ..base.service import Service
+from ..lib.helpers import to_label_case
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ class AppInstaller(Service):
         files = {}
 
         # ── app.py ────────────────────────────────────────────────────────────
-        app_label = app_data.get("label", app_name.replace("_", " ").title())
+        app_label = app_data.get("label", to_label_case(app_name))
         description = app_data.get("description", "")
         icon = app_data.get("icon", "Package")
         version = app_data.get("version", "1.0.0")
@@ -120,7 +121,7 @@ class AppInstaller(Service):
 
             for col in tbl.get("columns", []):
                 col_name = col["name"]
-                col_label = col.get("label", col_name.replace("_", " ").title())
+                col_label = col.get("label", to_label_case(col_name))
                 col_type = cls._map_field_type(col.get("field_type", "string"))
                 required = "nullable=False" if col.get("required") else "nullable=True"
                 
@@ -144,7 +145,7 @@ class AppInstaller(Service):
 
         for tbl in tables_data:
             class_name = cls._to_camel_case(tbl["name"])
-            title = tbl.get("title", tbl["name"].replace("_", " ").title())
+            title = tbl.get("title", to_label_case(tbl["name"]))
             
             view_lines += [
                 f"class {class_name}View(Aras.View):",

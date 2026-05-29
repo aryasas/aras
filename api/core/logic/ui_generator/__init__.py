@@ -4,8 +4,11 @@ Context: Decouples UI logic from core database models.
 """
 from typing import Any, Dict, List, Optional
 from sqlalchemy import String, Integer, Boolean, DateTime, Date, Numeric
-from ..base.service import Service
-from ..lib.i18n import TranslationService # Import TranslationService
+from ...base.service import Service
+from ...lib.i18n import TranslationService # Import TranslationService
+from ...lib.helpers import to_label_case
+from .registry import get_handlers
+from .handlers import standard # noqa
 
 class UIGenerator(Service):
     """
@@ -19,59 +22,50 @@ class UIGenerator(Service):
         """Clears the metadata cache."""
         cls._metadata_cache = {}
 
+    @classmethod
+    def invalidate(cls, resource_name: str):
+        """Invalidates all cache entries for a specific resource."""
+        keys_to_delete = [k for k in cls._metadata_cache.keys() if k[0] == resource_name]
+        for k in keys_to_delete:
+            del cls._metadata_cache[k]
+
     @staticmethod
     def _detect_ui_type(column: Any) -> tuple[str, Optional[list]]:
         """Detects UI type and options for a given SQLAlchemy column."""
-        from sqlalchemy import String, Integer, Boolean, DateTime, Date, Numeric, Enum as SQLEnum
-        
         ui_type = column.info.get("ui_type")
-        ui_options = None
-        
         if ui_type:
             return ui_type, None
 
-        # 1. Foreign Key Detection (Lookup)
-        if column.foreign_keys:
-            return "lookup", None
-            
-        # 2. Choice Detection (Select)
-        choices = column.info.get("choices")
-        if choices:
-            return "select", [{"label": str(c), "value": c} for c in choices]
-            
-        # 3. SQLAlchemy Type Detection
-        col_type = column.type
-        if isinstance(col_type, SQLEnum) or hasattr(col_type, "enums"):
-            return "select", [{"label": str(e), "value": str(e)} for e in getattr(col_type, "enums", [])]
-        if isinstance(col_type, String): 
-            # Auto-detect Files/Images by Name
-            if any(suffix in column.name for suffix in ["_file", "_path", "_attachment"]):
-                return "file", None
-            if any(suffix in column.name for suffix in ["_image", "_photo", "_avatar"]):
-                return "image", None
-            return "string", None
-        if isinstance(col_type, (Integer, Numeric)): 
-            return "number", None
-        if isinstance(col_type, Boolean): 
-            return "boolean", None
-        if isinstance(col_type, DateTime): 
-            return "datetime", None
-        if isinstance(col_type, Date): 
-            return "date", None
+        handlers = get_handlers()
+        # Priority handlers first
+        for name in ["lookup", "select", "file_image", "scalar"]:
+            handler = handlers.get(name)
+            if handler:
+                result = handler(column)
+                if result:
+                    return result
+        
+        # Fallback to other registered handlers
+        for name, handler in handlers.items():
+            if name in ["lookup", "select", "file_image", "scalar"]:
+                continue
+            result = handler(column)
+            if result:
+                return result
             
         return "string", None
 
     @classmethod
-    def generate_metadata(cls, model_class: Any, db: Any = None, lang: Optional[str] = None) -> Dict[str, Any]: # Changed translations to lang
+    def generate_metadata(cls, model_class: Any, db: Any = None, lang: Optional[str] = None, org_id: Optional[int] = None) -> Dict[str, Any]:
         """Generates metadata for a given model, merging code detection with DB overrides."""
         resource_name = model_class.__table__.name
-        cache_key = f"{resource_name}:{lang or 'default'}:{bool(db)}"
+        cache_key = (resource_name, lang or "default", org_id, bool(db))
         
         if cache_key in cls._metadata_cache:
             return cls._metadata_cache[cache_key]
 
-        from ..registry.resource_model import ResourceModel
-        from ..registry.field_model import FieldModel
+        from ...registry.resource_model import ResourceModel
+        from ...registry.field_model import FieldModel
 
         fields = []
         table = model_class.__table__
@@ -90,10 +84,9 @@ class UIGenerator(Service):
         child_map = getattr(model_class, "_child_map", {})
         # children: list of {resource, fk_column}
         children = [dict(c) for c in child_map.get(resource_name, [])]
-        for column in table.columns:
-            if column.name in system_fields:
-                continue
-            
+        
+        from ...aras import Aras
+        for column in model_class.get_ui_fields():
             # DB Override Check
             db_field = db_fields.get(column.name)
             
@@ -104,14 +97,13 @@ class UIGenerator(Service):
             if ui_type == "lookup":
                 target_table = list(column.foreign_keys)[0].column.table.name
                 # Resolve app path for the target resource using ServiceRegistry
-                from ..service_registry import ServiceRegistry
+                from ...service_registry import ServiceRegistry
                 target_resource = ServiceRegistry.get_resource_path(target_table) or target_table
 
             # Apply DB Overrides if present
             # Removed direct translation logic here, will be handled by TranslationService
-            from ..aras import Aras
             label = db_field.label if db_field and db_field.label else \
-                    column.info.get("label", Aras.helper.to_label_case(column.name.replace("_id", "")))
+                    column.info.get("label", to_label_case(column.name.replace("_id", "")))
             
             final_ui_type = db_field.ui_type if db_field and db_field.ui_type else ui_type
             is_hidden = db_field.is_hidden if db_field and db_field.is_hidden is not None else column.info.get("hidden", False)
@@ -161,14 +153,14 @@ class UIGenerator(Service):
             fields.append(field_info)
 
         # Helper: resolve REST API path for any table name
-        from ..service_registry import ServiceRegistry
+        from ...service_registry import ServiceRegistry
         def resolve_api_path(tablename: str) -> Optional[str]:
             return ServiceRegistry.get_resource_path(tablename)
 
         # 4. Include Many-to-Many (Bridge) and Child Table Fields
         if db and db_resource:
-            from ..registry.link_model import LinkModel
-            from ..registry.resource_model import ResourceModel
+            from ...registry.link_model import LinkModel
+            from ...registry.resource_model import ResourceModel
             
             # Bridge Links
             bridge_links = db.query(LinkModel).filter(
@@ -236,10 +228,10 @@ class UIGenerator(Service):
                 if child_table and child_table not in db_linked_children:
                     if not any(c.get("resource") == child_table for c in children):
                         children.append(child_entry)
-                    from ..aras import Aras
+                    from ...aras import Aras
                     fields.append({
                         "name": child_table,
-                        "label": Aras.helper.to_label_case(child_table),
+                        "label": to_label_case(child_table),
                         "type": "child_table",
                         "required": False,
                         "target_resource": child_table,
@@ -257,10 +249,10 @@ class UIGenerator(Service):
             # Fallback to code definition if DB not synced yet
             m2m_defs = getattr(model_class, "__m2m__", {})
             for field_name, defs in m2m_defs.items():
-                from ..aras import Aras
+                from ...aras import Aras
                 fields.append({
                     "name": field_name,
-                    "label": defs.get("label", Aras.helper.to_label_case(field_name)),
+                    "label": defs.get("label", to_label_case(field_name)),
                     "type": "bridge",
                     "required": False,
                     "target_resource": defs.get("target_resource"),
@@ -276,10 +268,9 @@ class UIGenerator(Service):
             # Fallback for children
             for child_entry in child_map.get(resource_name, []):
                 child_table = child_entry.get("resource")
-                from ..aras import Aras
                 fields.append({
                     "name": child_table,
-                    "label": Aras.helper.to_label_case(child_table),
+                    "label": to_label_case(child_table),
                     "type": "child_table",
                     "required": False,
                     "target_resource": child_table,
@@ -293,8 +284,7 @@ class UIGenerator(Service):
 
         # 5. Include Computed Fields
         for name in getattr(model_class, "_computed", []):
-            from ..aras import Aras
-            label = Aras.helper.to_label_case(name)
+            label = to_label_case(name)
 
             fields.append({
                 "name": name,
@@ -312,7 +302,7 @@ class UIGenerator(Service):
             })
 
         # Find the app for this model to use its clean label logic
-        from ..base.app import App as _App
+        from ...base.app import App as _App
         app_cls = None
         for a in _App._registry.values():
             if model_class in a.models:
@@ -322,8 +312,7 @@ class UIGenerator(Service):
         def clean_label(name):
             if app_cls:
                 return app_cls._get_clean_label(name)
-            from ..aras import Aras
-            return Aras.helper.to_label_case(name)
+            return to_label_case(name)
 
         api_path = resolve_api_path(resource_name)
 
@@ -351,11 +340,11 @@ class UIGenerator(Service):
         for action_name, model_action in model_class._actions.items():
             schema_fields = None
             if model_action.input_schema is not None:
-                from ..aras import Aras
+                from ...aras import Aras
                 schema_fields = [
                     {
                         "name": fname,
-                        "label": Aras.helper.to_label_case(fname),
+                        "label": to_label_case(fname),
                         "required": info.is_required(),
                         "type": _pydantic_type_to_ui(info.annotation),
                     }

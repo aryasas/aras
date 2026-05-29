@@ -16,9 +16,10 @@ class Aras:
         return action(*args, **kwargs)
 
     @staticmethod
-    def computed_field(*args, **kwargs):
-        from .model import Model
-        return Model.computed_field(*args, **kwargs)
+    def computed_field(func):
+        """Decorator to mark a method as a serializable computed field."""
+        func._aras_computed = True
+        return func
 
     @staticmethod
     def on_create(fn):

@@ -221,19 +221,19 @@ export function TweaksPanel() {
           </div>
           <div className="twk-body">
             <Section label="Theme">
-              <Seg label="Mode" value={themeMode}
+              <Seg<'normal' | 'dark'> label="Mode" value={themeMode === 'light' ? 'normal' : themeMode}
                    options={[{ value: 'normal', label: 'Light' }, { value: 'dark', label: 'Dark' }]}
-                   onChange={(v) => setThemeMode(v as any)} />
+                   onChange={setThemeMode} />
               <ColorRow label="Accent" value={accentColor} onChange={setAccentColor} />
             </Section>
 
             <Section label="Density">
-              <Seg label="Spacing" value={density}
+              <Seg<'compact' | 'regular' | 'comfy'> label="Spacing" value={density}
                    options={[{ value: 'compact', label: 'Compact' }, { value: 'regular', label: 'Regular' }, { value: 'comfy', label: 'Comfy' }]}
-                   onChange={(v) => setDensity(v as any)} />
-              <Seg label="Corners" value={cornerMode}
+                   onChange={setDensity} />
+              <Seg<'rounded' | 'square'> label="Corners" value={cornerMode}
                    options={[{ value: 'rounded', label: 'Rounded' }, { value: 'square', label: 'Square' }]}
-                   onChange={(v) => setCornerMode(v as any)} />
+                   onChange={setCornerMode} />
               <Slider label="Font scale" value={fontScale} min={85} max={120} step={5} unit="%"
                       onChange={setFontScale} />
             </Section>

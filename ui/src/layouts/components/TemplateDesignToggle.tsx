@@ -6,6 +6,7 @@ export function TemplateDesignToggle() {
   const navigate = useNavigate()
 
   const handleClick = () => {
+    localStorage.setItem('template-studio:last', location.pathname)
     navigate(`/dev/template-builder?from=${encodeURIComponent(location.pathname)}`)
   }
 

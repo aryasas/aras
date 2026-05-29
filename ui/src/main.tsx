@@ -7,9 +7,6 @@ import { ConfirmProvider } from './aras-core/contexts/ConfirmContext'
 import { ErrorBoundary } from './aras-core/components/ErrorBoundary'
 import { TenantProvider } from './context/TenantContext'
 import { LanguageProvider } from './context/LanguageContext'
-import { connectArasWebSocket } from './lib/ws'
-
-connectArasWebSocket()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

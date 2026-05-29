@@ -1,5 +1,5 @@
 from typing import Optional
-from sqlalchemy import String, Integer, Boolean, JSON, ForeignKey, DateTime, text
+from sqlalchemy import String, Integer, Boolean, JSON, ForeignKey, DateTime, text, func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from core import Aras
 from core.response import ok
@@ -33,6 +33,8 @@ class Plan(Aras.Model):
     features: Mapped[dict] = mapped_column(JSON, default=dict)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    trial_days: Mapped[int] = mapped_column(Integer, default=14)
+    annual_discount_pct: Mapped[int] = mapped_column(Integer, default=0)
 
 # claude-opus-4-7
 class Subscription(Aras.Model):
@@ -51,63 +53,45 @@ class Subscription(Aras.Model):
     expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     auto_renew: Mapped[bool] = mapped_column(Boolean, default=True)
     notes: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    billing_cycle: Mapped[str] = mapped_column(String(20), default="monthly") # monthly, annual
+    next_billing_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    default_provider_code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    trial_ends_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     plan = relationship("Plan")
 
-    # claude-opus-4-7
+    # gemini-2-5-flash
     @Aras.model_action(name="approve", permission="edit", label="Approve & Provision", icon="UserCheck")
     def approve(self, db):
-        """Approve pending signup: assign tenant_id, create User, start trial, issue setup link."""
-        from core.lib.helpers import slugify
-        from core.auth.models import User
-        from core.auth.service import create_access_token
-        import secrets
-
-        if self.status != "pending":
+        """Approve pending signup: gate on payment, provision tenant, send email."""
+        from core.response import err as aras_err
+        
+        if self.status not in ["pending", "pending_payment"]:
             return ok({}, message=f"Cannot approve: status is '{self.status}'.")
-        if not self.plan_id:
-            return ok({}, message="Cannot approve: no plan selected.")
 
-        slug = slugify(self.company_name)
-        self.tenant_id = f"{slug}-{self.id}"
-        now = datetime.now()
-        self.started_at = now
-        self.expires_at = now + timedelta(days=14)
-        self.status = "trial"
+        # Check if there's a paid invoice
+        latest_invoice = db.query(SaaSInvoice).filter_by(subscription_id=self.id).order_by(SaaSInvoice.id.desc()).first()
+        
+        # If no paid invoice exists for this subscription, require payment
+        if latest_invoice and latest_invoice.status != "paid":
+             return aras_err("Payment not confirmed")
 
-        # Create User with random password — customer sets via setup link
-        existing_user = db.query(User).filter_by(email=self.email).first()
-        if not existing_user:
-            random_pw = secrets.token_urlsafe(24)
-            user = User(
-                username=self.email,
-                email=self.email,
-                password_hash=User.hash_password(random_pw),
-                is_active=True,
-                is_admin=False,
-            )
-            db.add(user)
-
-        # One-time setup token (1h) — customer clicks to set password
-        setup_token = create_access_token(
-            {"sub": self.email, "purpose": "portal_setup", "tenant": self.tenant_id},
-            expires_delta=timedelta(hours=1),
-        )
-        setup_link = f"/portal/setup?token={setup_token}"
-
-        # Issue trial license (14 days)
-        from .services.license_service import LicenseService
+        from .services.provisioner import Provisioner
+        from .services.email import send_setup_email
         try:
-            license_token = LicenseService.issue_license(db, self.id, expiry_days=14)
+            result = Provisioner.provision_tenant(db, self)
+            self.tenant_id = result["tenant_id"]
+            self.status = "active"
+            self.started_at = datetime.now()
+            
+            # Send setup email
+            send_setup_email(self.email, result["setup_token"], self.company_name)
+            
+            return ok(result, message=f"Approved and provisioned: {self.tenant_id}. Setup email sent.")
         except Exception as e:
             import logging
-            logging.getLogger(__name__).error(f"Failed to issue license: {e}")
-            license_token = None
-
-        return ok(
-            {"display_token": setup_link, "license_token": license_token},
-            message=f"Approved. Send this setup link to {self.email} (expires in 1h). License issued.",
-        )
+            logging.getLogger(__name__).error(f"Provisioning failed: {e}")
+            return aras_err(f"Provisioning failed: {str(e)}")
 
     # claude-opus-4-7
     @Aras.model_action(name="reject", permission="edit", label="Reject", icon="X")
@@ -158,4 +142,58 @@ class ActivationRequest(Aras.Model):
     status: Mapped[str] = mapped_column(String(20), default="pending", info={"choices": ["pending", "approved", "rejected"]})
     requested_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+
+# gemini-2-5-flash
+class PaymentMethod(Aras.Model):
+    __tablename__ = "saas_payment_method"
+    code: Mapped[str] = mapped_column(String(50), unique=True)
+    label: Mapped[str] = mapped_column(String(100))
+    provider_code: Mapped[str] = mapped_column(String(50)) # stripe, midtrans, xendit
+    country: Mapped[str] = mapped_column(String(10), default="*")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    icon: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
+# gemini-2-5-flash
+class SaaSPayment(Aras.Model):
+    __tablename__ = "saas_payment"
+    subscription_id: Mapped[int] = mapped_column(ForeignKey("saas_subscription.id"))
+    provider_code: Mapped[str] = mapped_column(String(50))
+    provider_payment_id: Mapped[str] = mapped_column(String(255), index=True)
+    amount: Mapped[int] = mapped_column(Integer) # in cents/units
+    currency: Mapped[str] = mapped_column(String(10))
+    status: Mapped[str] = mapped_column(String(20)) # succeeded, failed, pending
+    method_code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    raw_response: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    
+    subscription = relationship("Subscription")
+
+# gemini-2-5-flash
+class SaaSInvoice(Aras.Model):
+    __tablename__ = "saas_invoice"
+    subscription_id: Mapped[int] = mapped_column(ForeignKey("saas_subscription.id"))
+    number: Mapped[str] = mapped_column(String(50), unique=True)
+    period_start: Mapped[datetime] = mapped_column(DateTime)
+    period_end: Mapped[datetime] = mapped_column(DateTime)
+    amount: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(10))
+    status: Mapped[str] = mapped_column(String(20), default="unpaid") # unpaid, paid, void, overdue
+    due_at: Mapped[datetime] = mapped_column(DateTime)
+    paid_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    payment_id: Mapped[Optional[int]] = mapped_column(ForeignKey("saas_payment.id"), nullable=True)
+
+    subscription = relationship("Subscription")
+    payment = relationship("SaaSPayment")
+
+# gemini-2-5-flash
+class RequestLog(Aras.Model):
+    __tablename__ = "aras_request_log"
+    tenant_id: Mapped[Optional[str]] = mapped_column(String(100), index=True)
+    path: Mapped[str] = mapped_column(String(255))
+    method: Mapped[str] = mapped_column(String(10))
+    status: Mapped[int] = mapped_column(Integer)
+    duration_ms: Mapped[int] = mapped_column(Integer)
+    ts: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+
+
 

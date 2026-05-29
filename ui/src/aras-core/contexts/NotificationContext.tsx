@@ -7,12 +7,13 @@ export interface Notification { // Exported for NotificationHistory component
   message: string
   type: NotificationType
   timestamp: number // Add timestamp for sorting/filtering
+  retry?: () => void
 }
 
 interface NotificationContextType {
   notifications: Notification[]
   history: Notification[] // Added history
-  notify: (message: string, type?: NotificationType) => void
+  notify: (message: string, type?: NotificationType, options?: { retry?: () => void }) => void
   removeNotification: (id: string) => void
   clearHistory: () => void; // Added clearHistory
 }
@@ -44,9 +45,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [history]);
 
 
-  const notify = useCallback((message: string, type: NotificationType = 'info') => {
+  const notify = useCallback((message: string, type: NotificationType = 'info', options?: { retry?: () => void }) => {
     const id = Math.random().toString(36).substr(2, 9)
-    const newNotification: Notification = { id, message, type, timestamp: Date.now() };
+    const newNotification: Notification = { id, message, type, timestamp: Date.now(), retry: options?.retry };
 
     setNotifications((prev) => [...prev, newNotification])
     setHistory((prev) => [...prev, newNotification].slice(-HISTORY_LIMIT)); // Add to history, limit size
@@ -76,6 +77,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             }`}
           >
             {n.message}
+            {n.retry && (
+              <button
+                type="button"
+                onClick={() => { n.retry?.(); removeNotification(n.id) }}
+                className="ml-3 rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold text-white hover:bg-white/30"
+              >
+                Retry
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -94,4 +104,3 @@ export const useNotificationHistory = () => {
   if (!context) throw new Error('useNotificationHistory must be used within a NotificationProvider')
   return { history: context.history, clearHistory: context.clearHistory }
 }
-

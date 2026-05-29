@@ -13,13 +13,13 @@ interface ImportMappingProps {
   csvHeaders: string[];
   csvData: string[][];
   resourceFields: ResourceField[];
-  onImport: (validatedData: any[], importAll: boolean) => void;
+  onImport: (validatedData: Array<Record<string, string | number>>, importAll: boolean) => void;
   onCancel: () => void;
 }
 
 interface ValidatedRow {
   originalIndex: number;
-  data: Record<string, any>;
+  data: Record<string, string | number>;
   errors: Record<string, string>;
   isValid: boolean;
 }
@@ -54,14 +54,14 @@ export const ImportMapping: React.FC<ImportMappingProps> = ({
     const newValidatedRows: ValidatedRow[] = [];
 
     csvData.slice(1).forEach((row, rowIndex) => {
-      const rowData: Record<string, any> = {};
+      const rowData: Record<string, string | number> = {};
       const rowErrors: Record<string, string> = {};
       let rowIsValid = true;
 
       csvHeaders.forEach((csvHeader, colIndex) => {
         const mappedField = mapping[csvHeader];
         if (mappedField) {
-          let value: any = row[colIndex];
+          let value: string | number = row[colIndex];
 
           if (requiredFields.includes(mappedField) && (!value || String(value).trim() === '')) {
             rowErrors[mappedField] = `Required field missing`;

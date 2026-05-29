@@ -6,8 +6,10 @@ from core.auth.license import issue_license_token
 from ..models import LicenseToken, Subscription
 
 class LicenseService(Aras.Service):
-    @staticmethod
-    def issue_license(db: Session, subscription_id: int, expiry_days: int = 30) -> str:
+    model_class = LicenseToken
+
+    @classmethod
+    def issue_license(cls, db: Session, subscription_id: int, expiry_days: int = 30) -> str:
         sub = db.query(Subscription).filter_by(id=subscription_id).first()
         if not sub:
             raise ValueError("Subscription not found")
@@ -24,17 +26,17 @@ class LicenseService(Aras.Service):
         db.commit()
         return token_str
         
-    @staticmethod
-    def revoke_license(db: Session, license_id: int):
+    @classmethod
+    def revoke_license(cls, db: Session, license_id: int):
         token_doc = db.query(LicenseToken).filter_by(id=license_id).first()
         if token_doc:
             token_doc.revoked = True
             db.commit()
             
-    @staticmethod
-    def renew_license(db: Session, subscription_id: int) -> str:
+    @classmethod
+    def renew_license(cls, db: Session, subscription_id: int) -> str:
         old_tokens = db.query(LicenseToken).filter_by(subscription_id=subscription_id, revoked=False).all()
         for t in old_tokens:
             t.revoked = True
         
-        return LicenseService.issue_license(db, subscription_id, 30)
+        return cls.issue_license(db, subscription_id, 30)

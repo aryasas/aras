@@ -202,3 +202,17 @@ def inspect_env(_: Any = Depends(require_admin)):
         "secret_key_configured": bool(settings.SECRET_KEY),
         "debug": settings.DEBUG,
     }
+
+# gemini-flash
+@router.get("/dev_template_trees/list")
+def list_dev_template_trees(
+    db: Session = Depends(get_db),
+    _: Any = Depends(require_admin)
+):
+    """Returns a list of all template trees."""
+    from apps.dev.models import TemplateTree
+    trees = db.query(TemplateTree).all()
+    return [{
+        "template_name": tree.template_name,
+        "updated_at": tree.updated_at.isoformat() if tree.updated_at else None
+    } for tree in trees]

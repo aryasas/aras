@@ -9,7 +9,8 @@ interface TreeNode {
   code?: string;
   is_group: boolean;
   children?: TreeNode[];
-  [key: string]: any;
+  parent_id?: number | string | null;
+  [key: string]: unknown;
 }
 
 interface TreeViewProps {
@@ -30,21 +31,23 @@ export const TreeView: React.FC<TreeViewProps> = ({ resource, onRowClick }) => {
         // We assume the API can return a tree or we fetch all and build it
         // For COA, usually we fetch all and build hierarchy based on parent_id
         const res = await api.get(`/${cleanResource}?limit=1000`);
-        const items = res.data.items || [];
+        const items = Array.isArray(res.data.items) ? res.data.items as TreeNode[] : [];
         
         // Build Tree
         const idMap: Record<string, TreeNode> = {};
         const roots: TreeNode[] = [];
         
-        items.forEach((item: any) => {
-          idMap[item.id] = { ...item, children: [] };
+        items.forEach((item) => {
+          idMap[String(item.id)] = { ...item, children: [] };
         });
         
-        items.forEach((item: any) => {
-          if (item.parent_id && idMap[item.parent_id]) {
-            idMap[item.parent_id].children?.push(idMap[item.id]);
+        items.forEach((item) => {
+          const id = String(item.id);
+          const parentId = item.parent_id == null ? null : String(item.parent_id);
+          if (parentId && idMap[parentId]) {
+            idMap[parentId].children?.push(idMap[id]);
           } else {
-            roots.push(idMap[item.id]);
+            roots.push(idMap[id]);
           }
         });
         

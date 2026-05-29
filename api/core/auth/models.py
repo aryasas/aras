@@ -11,6 +11,7 @@ class User(Model):
     __admin_only__ = True
 
     username: Mapped[str] = Field(String(64), unique=True, index=True, label="Username")
+    name: Mapped[str] = Field(String(100), nullable=True, label="Full Name")
     email: Mapped[str] = Field(String(120), unique=True, index=True, label="Email", ui_type="email")
     password_hash: Mapped[str] = Field(String(256), hidden=True, label="Password")
     is_active: Mapped[bool] = Field(Boolean, default=True, label="Is Active")

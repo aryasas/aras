@@ -49,7 +49,7 @@ const Login = () => {
 
   return (
     <div className="arc arc-bg arc-dotgrid min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md arc-card overflow-hidden" style={{ background: 'var(--surface)' }}>
+      <div data-testid="login-card" className="w-full max-w-md arc-card overflow-hidden" style={{ background: 'var(--surface)' }}>
         <div className="px-8 pt-8 pb-2 flex items-start gap-4">
           <ArasLogo size="lg" />
           <div className="flex-1 min-w-0">

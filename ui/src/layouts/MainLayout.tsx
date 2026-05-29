@@ -1,7 +1,7 @@
 // claude-opus-4-7
 // ARC shell: full-bleed bg + dot-grid, ARC sidebar on the left, topbar, content frame.
 import { useEffect, useState, type CSSProperties } from 'react'
-import { useLocation, Outlet } from 'react-router-dom'
+import { useLocation, Outlet, useBlocker } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import api from '../lib/api'
 import type { SidebarApp } from './types'
@@ -17,7 +17,7 @@ export default function MainLayout() {
   const { organizations, activeOrgId, setActiveOrg } = useAuthStore()
   const location = useLocation()
 const { notify } = useAras()
-  const { closePanel, themeMode, cornerMode, density, fontScale, accentColor, iconRailCollapsed, toggleIconRail } = useUIStore()
+  const { closePanel, cornerMode, density, fontScale, accentColor, iconRailCollapsed, toggleIconRail, dirtyForms, showConfirm } = useUIStore()
 
   const layoutStyle = {
     '--accent': accentColor,
@@ -30,19 +30,17 @@ const { notify } = useAras()
     '--aras-font-scale': String(fontScale / 100),
   } as CSSProperties
 
+  const blocker = useBlocker(dirtyForms.size > 0)
+
   useEffect(() => {
-    const root = document.documentElement
-    Object.entries(layoutStyle).forEach(([key, value]) => {
-      root.style.setProperty(key, String(value))
-    })
-    if (themeMode === 'dark') {
-      root.classList.add('dark')
-      root.setAttribute('data-theme', 'dark')
-    } else {
-      root.classList.remove('dark')
-      root.setAttribute('data-theme', 'light')
-    }
-  }, [layoutStyle, themeMode])
+    if (blocker.state !== 'blocked') return
+    showConfirm(
+      'Unsaved changes',
+      'Leave anyway?',
+      () => blocker.proceed(),
+      () => blocker.reset(),
+    )
+  }, [blocker, showConfirm])
 
   useEffect(() => { closePanel() }, [location.pathname])
 

@@ -19,7 +19,7 @@ class ResourceModel(Model):
     model_class: Mapped[str] = mapped_column(String(100)) # e.g. "SaleInvoice"
     features: Mapped[list] = mapped_column(JSON, default=list) # e.g. ["audit", "workflow"]
     scoped_by: Mapped[list] = mapped_column(JSON, default=list) # e.g. [["company_id","erp_config_companies"]]
-    layout: Mapped[dict] = mapped_column(JSON, default=dict)
+    layout: Mapped[list] = mapped_column(JSON, default=list)
     is_dynamic: Mapped[bool] = mapped_column(default=False)
     is_active: Mapped[bool] = mapped_column(default=True)
 

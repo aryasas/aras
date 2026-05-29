@@ -1,6 +1,7 @@
 import { useEditor } from '@craftjs/core'
 import { Laptop, Smartphone, Tablet, Undo2, Redo2, Wand2, Eye, Pencil, Save } from 'lucide-react'
 import { BREAKPOINT_LABELS, BREAKPOINT_ORDER, useBreakpoint } from '../lib/breakpoints'
+import SimpleCombobox from '../../../aras-core/components/SimpleCombobox'
 
 interface TopbarProps {
   templateName: string
@@ -9,6 +10,8 @@ interface TopbarProps {
   onZoomChange: (value: number) => void
   onSave: () => void
   saving: boolean
+  availableTemplates?: string[]
+  onTemplateSelect?: (name: string) => void
 }
 
 const viewportIcons = {
@@ -24,6 +27,8 @@ export function Topbar({
   onZoomChange,
   onSave,
   saving,
+  availableTemplates = [],
+  onTemplateSelect,
 }: TopbarProps) {
   const { activeBreakpoint, setActiveBreakpoint } = useBreakpoint()
   const { actions, enabled } = useEditor((state) => ({
@@ -45,6 +50,17 @@ export function Topbar({
             onChange={(event) => onTemplateNameChange(event.target.value)}
             className="w-52 border-none bg-transparent p-0 text-base font-bold tracking-tight text-[var(--ts-surface-900)] outline-none"
           />
+          <div className="mt-1 flex items-center gap-2">
+            <span className="text-[11px] font-semibold text-[var(--ts-surface-500)]">Current: {templateName}</span>
+            <SimpleCombobox
+              width={180}
+              value={templateName}
+              options={availableTemplates.map((name) => ({ label: name, value: name }))}
+              onChange={(value: string | number) => onTemplateSelect?.(String(value))}
+              placeholder="Switch template"
+              size="sm"
+            />
+          </div>
         </div>
       </div>
 

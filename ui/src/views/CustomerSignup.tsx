@@ -1,9 +1,10 @@
 // claude-sonnet-4-6
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { MODULE_LABELS, formatPrice } from '../lib/planUtils'
 import { useLanguage } from '../context/LanguageContext'
+import { useNotify } from '../aras-core/contexts/NotificationContext'
 
 interface Plan {
   id: number
@@ -15,6 +16,13 @@ interface Plan {
   max_branches: number
   active_modules: string[]
   features?: { included?: string[]; apps?: string[] } | null
+}
+
+interface PaymentMethod {
+  code: string
+  label: string
+  provider_code?: string
+  country?: string
 }
 
 const PUBLIC_PLAN_KEYS = new Set(['free', 'lite', 'growth', 'business'])
@@ -35,6 +43,7 @@ const initialForm = {
 
 export default function CustomerSignup() {
   const { lang, setLang, t } = useLanguage()
+  const showNotification = useNotify()
   const [searchParams] = useSearchParams()
   const [plans, setPlans] = useState<Plan[]>([])
   const [form, setForm] = useState({ ...initialForm, plan_key: searchParams.get('plan') || '' })
@@ -42,6 +51,9 @@ export default function CustomerSignup() {
   const [successEmail, setSuccessEmail] = useState('')
   const [successId, setSuccessId] = useState<number | string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [plansLoading, setPlansLoading] = useState(true)
+  const [plansError, setPlansError] = useState<string | null>(null)
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const moduleLabel = (module: string) => t(`public.modules.${module}`, MODULE_LABELS[module] ?? module)
   const localizedPrice = (price: number) => {
     if (price === 0) return t('public.pricing.free', 'Gratis')
@@ -54,12 +66,42 @@ export default function CustomerSignup() {
     return plan.features?.included ?? []
   }
 
+  const loadPlans = useCallback(async () => {
+    setPlansLoading(true)
+    setPlansError(null)
+    try {
+      const res = await fetch('/api/v1/saas/plans/public')
+      if (!res.ok) throw new Error('plan-load-failed')
+      const data = await res.json()
+      const payload = data?.data && typeof data.data === 'object' ? data.data : data
+      setPlans(Array.isArray(payload) ? payload.filter((p: Plan) => PUBLIC_PLAN_KEYS.has(p.plan_key)) : [])
+    } catch (err) {
+      setPlans([])
+      setPlansError(t('public.signup.planLoadFailed', 'Tidak dapat memuat paket. Silakan coba lagi.'))
+      showNotification('Failed to load plan details', 'error')
+      console.error(err)
+    } finally {
+      setPlansLoading(false)
+    }
+  }, [showNotification, t])
+
   useEffect(() => {
-    fetch('/api/v1/saas/plans/public')
-      .then((r) => r.ok ? r.json() : [])
-      .then((data) => setPlans(Array.isArray(data) ? data.filter((p: Plan) => PUBLIC_PLAN_KEYS.has(p.plan_key)) : []))
-      .catch(() => setPlans([]))
-  }, [])
+    loadPlans()
+  }, [loadPlans])
+
+  useEffect(() => {
+    fetch('/api/v1/saas/payments/methods')
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => {
+        const payload = data?.data && typeof data.data === 'object' ? data.data : data
+        setPaymentMethods(Array.isArray(payload) ? payload : [])
+      })
+      .catch((err) => {
+        setPaymentMethods([])
+        showNotification('Payment methods unavailable', 'warning')
+        console.error(err)
+      })
+  }, [showNotification])
 
   const selectedPlan = plans.find((p) => p.plan_key === form.plan_key) ?? null
 
@@ -80,12 +122,35 @@ export default function CustomerSignup() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      if (res.status === 409) { setError(t('public.signup.duplicateEmail', 'Email ini sudah terdaftar.')); return }
-      if (!res.ok) { setError(t('public.signup.failed', 'Pendaftaran gagal. Silakan coba lagi.')); return }
       const data = await res.json().catch(() => ({}))
+      if (res.status === 409) { setError(t('public.signup.duplicateEmail', 'Email ini sudah terdaftar.')); showNotification(data.detail || 'Signup failed', 'error'); return }
+      if (!res.ok) { setError(t('public.signup.failed', 'Pendaftaran gagal. Silakan coba lagi.')); showNotification(data.detail || 'Signup failed', 'error'); return }
       const d = data?.data && typeof data.data === 'object' ? data.data : data
+      const subscriptionId = d.subscription_id ?? d.id ?? d.signup_id
+      if (subscriptionId) sessionStorage.setItem('portal_subscription_id', String(subscriptionId))
+      if (subscriptionId && selectedPlan && selectedPlan.price > 0) {
+        const checkoutRes = await fetch('/api/v1/saas/payments/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subscription_id: subscriptionId,
+            return_url: `${window.location.origin}/portal/setup?status=pending&subscription_id=${subscriptionId}`,
+          }),
+        })
+        const checkoutData = await checkoutRes.json().catch(() => ({}))
+        if (!checkoutRes.ok) {
+          setError(t('public.signup.checkoutFailed', 'Pendaftaran tersimpan, tetapi checkout pembayaran gagal dimulai.'))
+          showNotification(checkoutData.detail || 'Signup failed', 'error')
+          return
+        }
+        const checkoutPayload = checkoutData?.data && typeof checkoutData.data === 'object' ? checkoutData.data : checkoutData
+        if (checkoutPayload.checkout_url) {
+          window.location.href = checkoutPayload.checkout_url
+          return
+        }
+      }
       setSuccessEmail(form.email)
-      setSuccessId(d.subscription_id ?? null)
+      setSuccessId(d.subscription_id ?? d.signup_id ?? null)
       setForm(initialForm)
     } finally {
       setSubmitting(false)
@@ -201,6 +266,19 @@ export default function CustomerSignup() {
             </div>
           )}
 
+          {plansError && (
+            <div className="flex items-center justify-between gap-3 rounded-[var(--radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+              <span>{plansError}</span>
+              <button
+                type="button"
+                onClick={loadPlans}
+                className="shrink-0 rounded-[var(--radius)] border border-amber-300 px-3 py-1 text-xs font-semibold hover:bg-amber-100"
+              >
+                {t('public.retry', 'Coba lagi')}
+              </button>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={submitting}
@@ -241,10 +319,23 @@ export default function CustomerSignup() {
                   </li>
                 ))}
               </ul>
+
+              {paymentMethods.length > 0 && (
+                <div className="mt-5 border-t border-[var(--line)] pt-4">
+                  <p className="text-xs font-semibold uppercase text-[var(--text-3)]">{t('public.signup.paymentMethods', 'Metode Pembayaran')}</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {paymentMethods.slice(0, 8).map((method) => (
+                      <span key={`${method.provider_code || 'provider'}-${method.code}`} className="rounded-full border border-[var(--line)] bg-[var(--surface-2)] px-2 py-0.5 text-xs font-medium text-[var(--text-2)]">
+                        {method.label || method.code}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--line)] p-5 text-center text-sm text-[var(--text-3)]">
-              {t('public.signup.selectPlanHint', 'Pilih paket untuk melihat detailnya')}
+              {plansLoading ? t('public.pricing.loading', 'Memuat paket...') : t('public.signup.selectPlanHint', 'Pilih paket untuk melihat detailnya')}
             </div>
           )}
         </aside>

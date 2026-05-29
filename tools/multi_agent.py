@@ -103,7 +103,7 @@ MOBILE_SYSTEM = (
 # ── Model constants ───────────────────────────────────────────────────────────
 # Edit these to change a model globally — injected everywhere via AGENTS below.
 
-MODEL_GEMINI_FLASH  = "gemini-2.5-flash"
+MODEL_GEMINI_FLASH  = "gemini-3-flash-preview"
 MODEL_GEMINI_PRO    = "gemini-2.5-pro"
 MODEL_CLAUDE_SONNET = "claude-sonnet-4-6"
 MODEL_CLAUDE_OPUS   = "claude-opus-4-7"

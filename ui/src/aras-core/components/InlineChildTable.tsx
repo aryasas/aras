@@ -9,19 +9,48 @@ import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
 import { createDefaultRecord } from '../../lib/schemaUtils';
 
+type ChildRow = Record<string, unknown> & { id?: string | number; __aras_empty_row?: boolean; notes?: string };
+type InputValue = string | number | readonly string[] | undefined;
+
+interface ChildField {
+  name: string;
+  label: string;
+  type: string;
+  hidden?: boolean;
+  form_hidden?: boolean;
+  list_hidden?: boolean;
+  target_resource?: string;
+  options?: Array<{ label: string; value: string | number }>;
+}
+
+interface ChildMetadata {
+  fields: ChildField[];
+}
+
 interface InlineChildTableProps {
   childResource: string;
   fkColumn: string;
   title?: string;
   parentId?: number | string;
-  parentData?: any;
-  rows: any[];
-  onChange: (rows: any[]) => void;
+  parentData?: Record<string, unknown>;
+  rows: ChildRow[];
+  onChange: (rows: ChildRow[]) => void;
   /** If true, show "Open as full list" shortcut button */
   allowFullList?: boolean;
 }
 
-const lookupCache = new Map<string, any[]>();
+const lookupCache = new Map<string, ChildRow[]>();
+
+const toInputValue = (value: unknown): InputValue => {
+  if (typeof value === 'string' || typeof value === 'number') return value;
+  if (Array.isArray(value) && value.every((item) => typeof item === 'string')) return value;
+  return '';
+};
+
+const toComboboxValue = (value: unknown): string | number | null | undefined => {
+  if (typeof value === 'string' || typeof value === 'number' || value === null || value === undefined) return value;
+  return undefined;
+};
 
 // claude-sonnet-4-6
 export function invalidateInlineLookupCache(targetResource?: string) {
@@ -30,7 +59,7 @@ export function invalidateInlineLookupCache(targetResource?: string) {
 }
 
 // claude-sonnet-4-6
-function isEmptyUserRow(row: any, fields: any[]) {
+function isEmptyUserRow(row: ChildRow, fields: ChildField[]) {
   if (row.__aras_empty_row) return true;
   return fields.every((field) => {
     const value = row[field.name];
@@ -39,7 +68,7 @@ function isEmptyUserRow(row: any, fields: any[]) {
 }
 
 // claude-sonnet-4-6
-export function filterEmptyChildRows(rows: any[], fields: any[]) {
+export function filterEmptyChildRows(rows: ChildRow[], fields: ChildField[]) {
   return rows.filter((row) => row.id || !isEmptyUserRow(row, fields));
 }
 
@@ -52,11 +81,11 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
   onChange,
   allowFullList,
 }) => {
-  const [childMeta, setChildMeta] = useState<any>(null);
+  const [childMeta, setChildMeta] = useState<ChildMetadata | null>(null);
   const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState('');
-  const [lookupOptions, setLookupOptions] = useState<Record<string, Array<{ label: string; value: string | number }>>>({});
+  const [, setLookupOptions] = useState<Record<string, Array<{ label: string; value: string | number }>>>({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,27 +93,27 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
     api.get(`/metadata/${clean}`).then(r => {
       setChildMeta(r.data);
       const cols = r.data.fields
-        .filter((f: any) => !f.hidden && !f.form_hidden && !f.list_hidden && f.name !== fkColumn && f.type !== 'child_table')
-        .map((f: any) => f.name);
+        .filter((f: ChildField) => !f.hidden && !f.form_hidden && !f.list_hidden && f.name !== fkColumn && f.type !== 'child_table')
+        .map((f: ChildField) => f.name);
       setVisibleColumns(cols);
     }).catch(() => {});
   }, [childResource, fkColumn]);
 
   useEffect(() => {
     if (!childMeta) return;
-    const lookupFields = childMeta.fields.filter((f: any) => f.type === 'lookup' && f.target_resource);
-    lookupFields.forEach((field: any) => {
-      const cleanTarget = cleanResourcePath(field.target_resource);
+    const lookupFields = childMeta.fields.filter((f) => f.type === 'lookup' && f.target_resource);
+    lookupFields.forEach((field) => {
+      const cleanTarget = cleanResourcePath(field.target_resource!);
       const cached = lookupCache.get(cleanTarget);
       if (cached) {
-        setLookupOptions(prev => ({ ...prev, [field.name]: cached.map(item => ({ label: item.name || item.title || item.number || String(item.id), value: item.id })) }));
+        setLookupOptions(prev => ({ ...prev, [field.name]: cached.map(item => ({ label: String(item.name || item.title || item.number || item.id), value: item.id! })) }));
         return;
       }
       api.get(`/${cleanTarget}`, { params: { per_page: 200 } })
         .then((res) => {
-          const items = res.data.items || [];
+          const items = Array.isArray(res.data.items) ? res.data.items as ChildRow[] : [];
           lookupCache.set(cleanTarget, items);
-          setLookupOptions(prev => ({ ...prev, [field.name]: items.map((item: any) => ({ label: item.name || item.title || item.number || String(item.id), value: item.id })) }));
+          setLookupOptions(prev => ({ ...prev, [field.name]: items.map((item) => ({ label: String(item.name || item.title || item.number || item.id), value: item.id! })) }));
         })
         .catch(() => {});
     });
@@ -92,14 +121,14 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
 
   if (!childMeta) return null;
 
-  const editableCols = childMeta.fields.filter((f: any) => !f.hidden && !f.form_hidden && f.name !== fkColumn && f.type !== 'child_table');
-  const columnPickerCols = editableCols.filter((f: any) => !f.list_hidden);
-  const visibleCols = editableCols.filter((f: any) => visibleColumns.includes(f.name));
+  const editableCols = childMeta.fields.filter((f) => !f.hidden && !f.form_hidden && f.name !== fkColumn && f.type !== 'child_table');
+  const columnPickerCols = editableCols.filter((f) => !f.list_hidden);
+  const visibleCols = editableCols.filter((f) => visibleColumns.includes(f.name));
   const validSelectedRows = new Set([...selectedRows].filter(idx => idx < rows.length));
 
   const filteredRows = rows
     .map((row, origIdx) => ({ row, origIdx }))
-    .filter(({ row }) => !search.trim() || visibleCols.some((f: any) => {
+    .filter(({ row }) => !search.trim() || visibleCols.some((f) => {
       const v = String(row[`${f.name}_label`] ?? row[f.name] ?? '').toLowerCase();
       return v.includes(search.toLowerCase());
     }));
@@ -132,14 +161,11 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
     });
   };
 
-  const allRowsSelected = rows.length > 0 && validSelectedRows.size === rows.length;
-  const toggleAllRows = () => setSelectedRows(allRowsSelected ? new Set() : new Set(rows.map((_, i) => i)));
-
-  const updateRow = (idx: number, patch: any) => {
+  const updateRow = (idx: number, patch: Partial<ChildRow>) => {
     onChange(rows.map((row, i) => i === idx ? { ...row, ...patch, __aras_empty_row: false } : row));
   };
 
-  const getColumnKind = (field: any) => {
+  const getColumnKind = (field: ChildField) => {
     const name = String(field.name || '').toLowerCase();
     if (['qty', 'quantity'].includes(name)) return 'qty';
     if (['price', 'unit_price', 'rate'].includes(name)) return 'price';
@@ -147,24 +173,24 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
     return 'description';
   };
 
-  const formatMoney = (value: any) => {
+  const formatMoney = (value: unknown) => {
     const num = Number(value ?? 0);
     return `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const columnMinWidth = (field: any) => {
+  const columnMinWidth = (field: ChildField) => {
     const kind = getColumnKind(field);
     if (kind === 'qty') return 96;
     if (kind === 'price' || kind === 'total') return 144;
     return Math.max(180, Math.min(260, String(field.label || field.name || '').length * 11));
   };
 
-  const tableMinWidth = Math.max(720, visibleCols.reduce((s: number, f: any) => s + columnMinWidth(f), 0) + 84);
+  const tableMinWidth = Math.max(720, visibleCols.reduce((s, f) => s + columnMinWidth(f), 0) + 84);
 
   const cbClass = "h-3.5 w-3.5 shrink-0 cursor-pointer rounded accent-[var(--accent)]";
 
   // claude-sonnet-4-6
-  const tableColumns: ArasTableColumn[] = [
+  const tableColumns: ArasTableColumn<ChildRow>[] = [
     {
       key: '__sel',
       label: '',
@@ -183,7 +209,7 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
         );
       },
     },
-    ...visibleCols.map((f: any): ArasTableColumn => {
+    ...visibleCols.map((f): ArasTableColumn<ChildRow> => {
       const kind = getColumnKind(f);
       return {
         key: f.name,
@@ -196,23 +222,23 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
           const origIdx = filteredRows[i]?.origIdx ?? i;
           const displayVal = row[`${f.name}_label`] ?? row[f.name];
           if (kind === 'qty') return (
-            <input type="number" value={row[f.name] ?? ''} onChange={(e) => updateRow(origIdx, { [f.name]: e.target.value })}
+            <input type="number" value={toInputValue(row[f.name])} onChange={(e) => updateRow(origIdx, { [f.name]: e.target.value })}
               className="w-16 text-right text-[12px] bg-transparent border-b border-[var(--line)] focus:border-[var(--accent)] outline-none py-0.5" />
           );
           if (kind === 'price') return (
-            <input type="number" value={row[f.name] ?? ''} onChange={(e) => updateRow(origIdx, { [f.name]: e.target.value })}
+            <input type="number" value={toInputValue(row[f.name])} onChange={(e) => updateRow(origIdx, { [f.name]: e.target.value })}
               className="w-24 text-right text-[12px] bg-transparent border-b border-[var(--line)] focus:border-[var(--accent)] outline-none py-0.5" />
           );
           if (kind === 'total') return (
             <span className="text-[12px] font-semibold text-[var(--text)]">{formatMoney(row[f.name])}</span>
           );
           if (f.type === 'lookup') return (
-            <Combobox resource={f.target_resource || ''} value={row[f.name]}
+            <Combobox resource={f.target_resource || ''} value={toComboboxValue(row[f.name])}
               onChange={(val) => updateRow(origIdx, { [f.name]: val })}
               placeholder="—" variant="lookup" field={f} compact />
           );
           if (f.type === 'select') return (
-            <Combobox options={f.options} value={row[f.name]}
+            <Combobox options={f.options} value={toComboboxValue(row[f.name])}
               onChange={(val) => updateRow(origIdx, { [f.name]: val })}
               placeholder="—" variant="lookup" field={f} compact />
           );
@@ -228,7 +254,7 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
           );
           return (
             <div className="flex flex-col">
-              <input type="text" value={displayVal ?? ''} onChange={(e) => updateRow(origIdx, { [f.name]: e.target.value })}
+              <input type="text" value={toInputValue(displayVal)} onChange={(e) => updateRow(origIdx, { [f.name]: e.target.value })}
                 className="text-[12px] text-[var(--text)] bg-transparent border-b border-transparent focus:border-[var(--accent)] outline-none py-0.5 w-full" placeholder="—" />
               {f.name === 'description' && row.notes && <span className="text-[10.5px] text-[var(--text-3)]">{row.notes}</span>}
             </div>
@@ -245,9 +271,9 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
         const origIdx = filteredRows[i]?.origIdx ?? i;
         return (
           <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            {visibleCols.filter((f: any) => f.type === 'lookup' && f.target_resource && row[f.name]).map((f: any) => (
+            {visibleCols.filter((f) => f.type === 'lookup' && f.target_resource && row[f.name]).map((f) => (
               <button key={f.name} type="button"
-                onClick={(e) => { e.stopPropagation(); navigate(`/${cleanResourcePath(f.target_resource)}/${row[f.name]}`); }}
+                onClick={(e) => { e.stopPropagation(); navigate(`/${cleanResourcePath(f.target_resource!)}/${row[f.name]}`); }}
                 title={`Open ${f.label}`}
                 className="h-6 px-1.5 flex items-center gap-1 rounded text-[10.5px] font-medium text-[var(--text-3)] hover:text-[var(--accent)] hover:bg-[color-mix(in_oklch,var(--accent)_10%,transparent)] transition-colors">
                 <ExternalLink size={11} />

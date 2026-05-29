@@ -30,4 +30,19 @@ class SiteSettingView(Aras.View):
 class LandingSectionView(Aras.View):
     model = LandingSection
     title = "Landing Sections"
-    icon = "Image"
+    icon = "pi pi-image"
+    __layout__ = [
+        {
+            "type": "tabs",
+            "tabs": [
+                {
+                    "title": "General",
+                    "fields": ["key", "title", "subtitle", "body", "is_visible", "sort_order"]
+                },
+                {
+                    "title": "Media & CTA",
+                    "fields": ["image_url", "cta_label", "cta_url"]
+                }
+            ]
+        }
+    ]

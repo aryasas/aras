@@ -1,5 +1,6 @@
-# claude-sonnet-4-6
+# gemini-flash
 import logging
+import concurrent.futures
 from datetime import date, datetime
 from core import Aras
 from core.lib.query_builder import QueryBuilder
@@ -23,7 +24,7 @@ class ReportService(Aras.Service):
         return decorator
 
     @classmethod
-    def generate(cls, report_instance, filters=None, db=None):
+    def generate(cls, report_instance, filters=None, db=None, current_user=None):
         """Execute a database-defined builtin or ORM report."""
         db = db or object_session(report_instance)
         if not db:
@@ -56,6 +57,8 @@ class ReportService(Aras.Service):
 
         if report_instance.report_type == "orm":
             result = cls._generate_orm_report(report_instance, db, params)
+        elif report_instance.report_type == "script":
+            result = cls._generate_script_report(report_instance, db, params, current_user)
         else:
             return {"error": f"Report type '{report_instance.report_type}' not supported.", "data": [], "columns": []}
 
@@ -63,7 +66,59 @@ class ReportService(Aras.Service):
         return result
 
     @classmethod
-    def _generate_orm_report(cls, report, db, filters):
+    def _generate_script_report(cls, report, db, params, current_user):
+        """Execute a Python script report with hardening."""
+        # Gate behind superuser (is_admin in this framework)
+        if not current_user or not getattr(current_user, "is_admin", False):
+            return {"error": "403 Forbidden: Script reports require administrator privileges."}
+
+        # Approval check
+        if not report.script_approved_by_id:
+            return {"error": "Report script is not approved for execution."}
+
+        if not report.script:
+            return {"error": "No script defined for this report."}
+
+        # Whitelist globals
+        safe_globals = {
+            "db": db,
+            "params": params,
+            "result": None,
+            "datetime": datetime,
+            "date": date,
+            "__builtins__": {} # NO __builtins__
+        }
+
+        start_time = datetime.now()
+        try:
+            # Wrap in executor for timeout
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(exec, report.script, safe_globals)
+                future.result(timeout=5) # 5s timeout
+            
+            result_data = safe_globals.get("result")
+            duration = (datetime.now() - start_time).total_seconds()
+            
+            # Log execution
+            logger.info(f"Script report execution: user_id={current_user.id}, report_id={report.id}, duration={duration}s")
+            
+            if result_data is None:
+                return {"error": "Script executed but 'result' variable was not set.", "data": [], "columns": report.columns_json or []}
+            
+            return {
+                "title": report.name,
+                "data": result_data if isinstance(result_data, list) else [],
+                "columns": report.columns_json or []
+            }
+        except concurrent.futures.TimeoutError:
+            logger.error(f"Script report timeout: user_id={getattr(current_user, 'id', 'unknown')}, report_id={report.id}")
+            return {"error": "Script execution timed out after 5 seconds."}
+        except Exception as e:
+            logger.exception(f"Script report failed: {report.id}")
+            return {"error": f"Script execution error: {str(e)}"}
+
+    @classmethod
+    def _generate_orm_report(cls, report, db, params):
         """Execute via ORM + QueryBuilder — no raw SQL."""
         if not report.linked_doctype:
             return {"error": "ORM report requires linked_doctype.", "data": [], "columns": []}

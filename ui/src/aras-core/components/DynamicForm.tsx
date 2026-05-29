@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
 import {
   RefreshCw, Check, MoreHorizontal, Share2, Copy, X, Link2, Settings
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { resolveFieldComponent } from '../SchemaRegistry';
+import { resolveFieldComponent, type FieldProps } from '../SchemaRegistry';
 import { useAras } from '../hooks/useAras';
 import { useVocabulary } from '../../context/VocabularyContext';
 import { createDefaultRecord } from '../../lib/schemaUtils';
@@ -15,6 +15,7 @@ import { useAuthStore } from '../../store/authStore';
 import { InlineChildTable } from './InlineChildTable';
 import FormSettings from './FormSettings';
 import { useUIStore } from '../../store/uiStore';
+import { validateField } from '../lib/validate';
 
 interface Field {
   name: string;
@@ -28,11 +29,12 @@ interface Field {
   target_resource?: string;
   target_api_path?: string | null;
   fk_column?: string | null;
-  options?: { label: string; value: any }[];
+  options?: { label: string; value: string | number }[];
   allow_full_list?: boolean;
   min_length?: number;
   max_length?: number;
   pattern?: string;
+  info?: { pattern_hint?: string; ui_type?: string };
   col_span?: number;
 }
 
@@ -103,9 +105,13 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
   const [displayToken, setDisplayToken] = useState<string | null>(null);
   const [childData, setChildData] = useState<Record<string, any[]>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [initialValues, setInitialValues] = useState<any>({});
+  const [externalUpdate, setExternalUpdate] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
   
   const { notify } = useAras();
   const showPanel = useUIStore((s) => s.showPanel);
+  const setDirty = useUIStore((s) => s.setDirty);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -128,43 +134,48 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
     const controller = new AbortController();
     if (metadata && currentId) {
       api.get(`/${cleanResourcePath(metadata.api_path || resource)}/${currentId}`, { signal: controller.signal })
-        .then(res => setFormData(res.data))
+        .then(res => {
+          setFormData(res.data)
+          setInitialValues(res.data)
+        })
         .catch(err => {
           if (err.name === 'CanceledError') return;
           console.error("Failed to fetch record:", err);
         });
     } else if (metadata) {
-      setFormData({ ...createDefaultRecord(metadata.fields), ...initialData })
+      const next = { ...createDefaultRecord(metadata.fields), ...initialData }
+      setFormData(next)
+      setInitialValues(next)
     }
     return () => controller.abort();
   }, [metadata, currentId, initialData, resource]);
+
+  const dirtyKey = `${cleanResourcePath(resource)}:${currentId || 'new'}`
+  const isDirty = useMemo(() => JSON.stringify(formData) !== JSON.stringify(initialValues), [formData, initialValues])
+
+  useEffect(() => {
+    setDirty(dirtyKey, isDirty)
+    return () => setDirty(dirtyKey, false)
+  }, [dirtyKey, isDirty, setDirty])
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent).detail
+      if (detail?.resource === cleanResourcePath(resource) && String(detail.id) === String(currentId)) {
+        setExternalUpdate(true)
+      }
+    }
+    window.addEventListener('aras:record-event', handler)
+    return () => window.removeEventListener('aras:record-event', handler)
+  }, [currentId, resource])
 
   const validateForm = () => {
     if (!metadata) return {};
     const nextErrors: Record<string, string> = {};
     for (const field of metadata.fields) {
       if (!isFieldVisible(field) || field.read_only || field.type === 'child_table') continue;
-      const value = formData[field.name];
-      const textValue = value == null ? '' : String(value);
-      if (field.required && (value == null || textValue.trim() === '' || (Array.isArray(value) && value.length === 0))) {
-        nextErrors[field.name] = `${field.label} is required`;
-        continue;
-      }
-      if (field.min_length && textValue && textValue.length < field.min_length) {
-        nextErrors[field.name] = `${field.label} must be at least ${field.min_length} characters`;
-        continue;
-      }
-      if (field.max_length && textValue && textValue.length > field.max_length) {
-        nextErrors[field.name] = `${field.label} must be ${field.max_length} characters or fewer`;
-        continue;
-      }
-      if (field.pattern && textValue) {
-        try {
-          if (!new RegExp(field.pattern).test(textValue)) nextErrors[field.name] = `${field.label} format is invalid`;
-        } catch {
-          nextErrors[field.name] = `${field.label} validation pattern is invalid`;
-        }
-      }
+      const error = validateField(field, formData[field.name]);
+      if (error) nextErrors[field.name] = error;
     }
     return nextErrors;
   };
@@ -174,6 +185,8 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
       notify("Please fix the highlighted fields", "error");
+      const first = Object.keys(nextErrors)[0];
+      formRef.current?.querySelector<HTMLElement>(`[name="${CSS.escape(first)}"], [data-field-name="${CSS.escape(first)}"] input, [data-field-name="${CSS.escape(first)}"] button`)?.focus();
       return;
     }
     setSaving(true);
@@ -194,6 +207,8 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
         await Promise.all(m2mFields.map((field) => api.put(`/${cleanPath}/${savedId}/${field.name}`, { ids: formData[field.name] || [] })));
       }
       notify("Saved successfully", "success");
+      setInitialValues(formData);
+      setDirty(dirtyKey, false);
       if (onSave) onSave();
     } catch (err) {
       notify("Save failed", "error");
@@ -239,13 +254,14 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
     if (!isFieldVisible(field)) return null;
     const Component = resolveFieldComponent(field);
     const colSpan = Math.max(1, Math.min(Number(field.col_span || 1), 3));
+    const errorId = `error-${field.name}`;
     return (
-      <DesignElement id={`field-${field.name}`} key={field.name} className="flex flex-col gap-1.5 w-full" style={{ gridColumn: `span ${colSpan} / span ${colSpan}` }}>
+      <DesignElement id={`field-${field.name}`} key={field.name} className="flex flex-col gap-1.5 w-full" style={{ gridColumn: `span ${colSpan} / span ${colSpan}` }} data-field-name={field.name}>
         <label className="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-[0.14em]">{vocabulary.get(field.label)}</label>
         <Component
            field={field}
            value={formData[field.name]}
-           onChange={(val: any) => {
+           onChange={(val: FieldProps['value']) => {
              setFormData((prev: any) => ({...prev, [field.name]: val}));
              setErrors((prev) => {
                if (!prev[field.name]) return prev;
@@ -256,8 +272,10 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
            }}
            formData={formData}
            disabled={field.read_only}
+           aria-invalid={!!errors[field.name]}
+           aria-describedby={errors[field.name] ? errorId : undefined}
         />
-        {errors[field.name] && <div className="text-[11px] font-medium text-rose-600">{errors[field.name]}</div>}
+        {errors[field.name] && <div id={errorId} className="text-[11px] font-medium text-rose-600">{errors[field.name]}</div>}
       </DesignElement>
     );
   };
@@ -340,11 +358,19 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
   };
 
   return (
-    <div className="aras-form-view flex w-full h-full animate-in fade-in duration-300">
+    <div ref={formRef} className="aras-form-view flex w-full h-full animate-in fade-in duration-300">
       {/* Main column */}
       <div className={`flex-1 min-w-0 overflow-y-auto ${showRail ? 'border-r border-[var(--line)]' : ''}`}>
 
         {/* ── Action band ── */}
+        {externalUpdate && (
+          <div className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-5 py-2 text-sm text-amber-900">
+            <span>Record updated externally — reload?</span>
+            <button type="button" onClick={() => window.location.reload()} className="rounded bg-amber-600 px-3 py-1 text-xs font-bold text-white">
+              Reload
+            </button>
+          </div>
+        )}
         <DesignElement id="form-action-band" className="flex items-center gap-2.5 px-5 sm:px-7 lg:px-8 py-2.5 border-b border-[var(--line)] sticky top-0 z-20 bg-[var(--bg)]/90 backdrop-blur flex-wrap">
           {/* Left: badge + status + tag */}
           <span className="arc-mono inline-flex items-center gap-1 h-5 px-2 rounded border border-[var(--line)] text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-2)]">

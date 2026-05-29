@@ -68,11 +68,37 @@ def read_users_me(
     return {
         "id": current_user.id,
         "username": current_user.username,
+        "name": current_user.name,
         "email": current_user.email,
         "is_admin": current_user.is_admin,
         "organizations": companies,
         "default_org_id": default_org_id,
     }
+
+
+class UpdateProfileRequest(Validation):
+    name: str
+    email: str
+
+
+@router.put("/me")
+def update_profile(
+    data: UpdateProfileRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if data.email != current_user.email:
+        existing = db.query(User).filter(User.email == data.email, User.id != current_user.id).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already in use"
+            )
+    
+    current_user.name = data.name
+    current_user.email = data.email
+    db.commit()
+    return {"message": "Profile updated successfully"}
 
 
 @router.post("/change-password")

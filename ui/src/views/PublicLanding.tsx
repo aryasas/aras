@@ -1,8 +1,10 @@
 // claude-sonnet-4-6
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MODULE_LABELS } from '../lib/planUtils'
 import { useLanguage } from '../context/LanguageContext'
+import { useAuthStore } from '../store/authStore'
+import { useNotify } from '../aras-core/contexts/NotificationContext'
 
 interface Plan {
   id: number
@@ -19,6 +21,17 @@ interface Plan {
   features?: { included?: string[]; apps?: string[] } | null
 }
 
+interface LandingSection {
+  key: string
+  title?: string | null
+  subtitle?: string | null
+  body?: string | null
+  image_url?: string | null
+  cta_label?: string | null
+  cta_url?: string | null
+  is_visible?: boolean
+}
+
 const PUBLIC_PLAN_KEYS = new Set(['free', 'lite', 'growth', 'business'])
 const EN_PLAN_FEATURES: Record<string, string[]> = {
   free: ['POS module', '50 transactions/month', '30 products', 'Basic daily reports'],
@@ -29,8 +42,14 @@ const EN_PLAN_FEATURES: Record<string, string[]> = {
 
 export default function PublicLanding() {
   const { lang, setLang, t } = useLanguage()
+  const showNotification = useNotify()
+  const user = useAuthStore((state) => state.user)
+  const landingToastShown = useRef(false)
   const [plans, setPlans] = useState<Plan[]>([])
   const [plansLoading, setPlansLoading] = useState(true)
+  const [landingLoading, setLandingLoading] = useState(true)
+  const [landingError, setLandingError] = useState<string | null>(null)
+  const [sectionsByKey, setSectionsByKey] = useState<Record<string, LandingSection>>({})
   const moduleLabel = (module: string) => t(`public.modules.${module}`, MODULE_LABELS[module] ?? module)
   const formatLandingPrice = (price: number) => {
     if (price === 0) return t('public.pricing.free', 'Gratis')
@@ -41,36 +60,70 @@ export default function PublicLanding() {
     return plan.features?.included ?? []
   }
 
+  const landingText = (key: string, field: keyof LandingSection, fallback: string) => {
+    const section = sectionsByKey[key]
+    const value = section?.[field]
+    return typeof value === 'string' && value.trim() ? value : fallback
+  }
+
   const features = [
     {
       icon: '🛒',
-      title: t('public.features.pos.title', 'POS Mudah'),
-      desc: t('public.features.pos.desc', 'Kasir digital yang cepat dan ringan.'),
+      title: landingText('feature.pos', 'title', t('public.features.pos.title', 'POS Mudah')),
+      desc: landingText('feature.pos', 'body', t('public.features.pos.desc', 'Kasir digital yang cepat dan ringan.')),
     },
     {
       icon: '📦',
-      title: t('public.features.stock.title', 'Stok Otomatis'),
-      desc: t('public.features.stock.desc', 'Stok terpotong otomatis setiap transaksi.'),
+      title: landingText('feature.stock', 'title', t('public.features.stock.title', 'Stok Otomatis')),
+      desc: landingText('feature.stock', 'body', t('public.features.stock.desc', 'Stok terpotong otomatis setiap transaksi.')),
     },
     {
       icon: '📊',
-      title: t('public.features.report.title', 'Laporan Keuangan'),
-      desc: t('public.features.report.desc', 'Laba rugi, neraca, dan arus kas tersaji rapi.'),
+      title: landingText('feature.report', 'title', t('public.features.report.title', 'Laporan Keuangan')),
+      desc: landingText('feature.report', 'body', t('public.features.report.desc', 'Laba rugi, neraca, dan arus kas tersaji rapi.')),
     },
   ]
 
   const testimonials = [
     {
-      quote: t('public.testimonials.one.quote', 'Sebelumnya saya catat stok di buku.'),
-      name: t('public.testimonials.one.name', 'Siti Rahayu'),
-      role: t('public.testimonials.one.role', 'Pemilik Toko Sembako, Surabaya'),
+      quote: landingText('testimonial.one', 'body', t('public.testimonials.one.quote', 'Sebelumnya saya catat stok di buku.')),
+      name: landingText('testimonial.one', 'title', t('public.testimonials.one.name', 'Siti Rahayu')),
+      role: landingText('testimonial.one', 'subtitle', t('public.testimonials.one.role', 'Pemilik Toko Sembako, Surabaya')),
     },
     {
-      quote: t('public.testimonials.two.quote', 'Mudah dipakai karyawan baru.'),
-      name: t('public.testimonials.two.name', 'Budi Santoso'),
-      role: t('public.testimonials.two.role', 'Pemilik Warung Makan, Bandung'),
+      quote: landingText('testimonial.two', 'body', t('public.testimonials.two.quote', 'Mudah dipakai karyawan baru.')),
+      name: landingText('testimonial.two', 'title', t('public.testimonials.two.name', 'Budi Santoso')),
+      role: landingText('testimonial.two', 'subtitle', t('public.testimonials.two.role', 'Pemilik Warung Makan, Bandung')),
     },
   ]
+
+  const loadLanding = useCallback(async () => {
+    setLandingLoading(true)
+    setLandingError(null)
+    try {
+      const res = await fetch('/api/v1/web/landing')
+      if (!res.ok) throw new Error('landing-load-failed')
+      const data = await res.json()
+      const payload = data?.data && typeof data.data === 'object' ? data.data : data
+      const rows = Array.isArray(payload) ? payload : payload?.items
+      if (!Array.isArray(rows)) throw new Error('landing-payload-invalid')
+      setSectionsByKey(Object.fromEntries(
+        rows
+          .filter((section: LandingSection) => section?.key && section.is_visible !== false)
+          .map((section: LandingSection) => [section.key, section]),
+      ))
+    } catch (err) {
+      setSectionsByKey({})
+      setLandingError(t('public.landing.loadFailed', 'Tidak dapat memuat halaman publik. Silakan coba lagi.'))
+      if (!landingToastShown.current) {
+        showNotification('Landing content unavailable', 'warning')
+        landingToastShown.current = true
+      }
+      console.error(err)
+    } finally {
+      setLandingLoading(false)
+    }
+  }, [showNotification, t])
 
   const loadPlans = useCallback(async () => {
     try {
@@ -79,14 +132,51 @@ export default function PublicLanding() {
         const data = await res.json()
         setPlans(Array.isArray(data) ? data.filter((p: Plan) => PUBLIC_PLAN_KEYS.has(p.plan_key)) : [])
       }
-    } catch {
+    } catch (err) {
+      if (!landingToastShown.current) {
+        showNotification('Landing content unavailable', 'warning')
+        landingToastShown.current = true
+      }
+      console.error(err)
       // show empty pricing gracefully
     } finally {
       setPlansLoading(false)
     }
-  }, [])
+  }, [showNotification])
 
   useEffect(() => { loadPlans() }, [loadPlans])
+  useEffect(() => { loadLanding() }, [loadLanding])
+
+  const hero = sectionsByKey.hero
+  const cta = sectionsByKey.cta
+
+  if (landingError) {
+    return (
+      <main className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
+        <section className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center px-6 text-center">
+          <h1 className="text-2xl font-bold">{t('public.landing.errorTitle', 'Halaman belum dapat dimuat')}</h1>
+          <p className="mt-3 text-sm leading-relaxed text-[var(--text-2)]">{landingError}</p>
+          <button
+            type="button"
+            onClick={loadLanding}
+            className="mt-6 rounded-[var(--radius)] bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[var(--aras-accent-strong)]"
+          >
+            {t('public.retry', 'Coba lagi')}
+          </button>
+        </section>
+      </main>
+    )
+  }
+
+  if (landingLoading) {
+    return (
+      <main className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
+        <section className="mx-auto flex min-h-screen max-w-xl items-center justify-center px-6 text-center text-sm text-[var(--text-3)]">
+          {t('public.landing.loading', 'Memuat halaman...')}
+        </section>
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
@@ -122,18 +212,18 @@ export default function PublicLanding() {
             {t('public.hero.badge', 'Platform manajemen bisnis untuk UMKM Indonesia')}
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-[var(--text)] md:text-6xl">
-            {t('public.hero.titleTop', 'Kelola bisnis lebih mudah,')}<br />
-            <span className="text-[var(--accent)]">{t('public.hero.titleAccent', 'mulai dari Rp 0')}</span>
+            {hero?.title || t('public.hero.titleTop', 'Kelola bisnis lebih mudah,')}<br />
+            <span className="text-[var(--accent)]">{hero?.subtitle || t('public.hero.titleAccent', 'mulai dari Rp 0')}</span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-[var(--text-2)]">
-            {t('public.hero.description', 'POS, stok, hutang piutang, dan laporan keuangan dalam satu platform.')}
+            {hero?.body || t('public.hero.description', 'POS, stok, hutang piutang, dan laporan keuangan dalam satu platform.')}
           </p>
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link
-              to="/signup"
+              to={hero?.cta_url || '/signup'}
               className="w-full rounded-[var(--radius)] bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white hover:bg-[var(--aras-accent-strong)] sm:w-auto"
             >
-              {t('public.hero.primary', 'Coba Gratis Sekarang')}
+              {hero?.cta_label || t('public.hero.primary', 'Coba Gratis Sekarang')}
             </Link>
             <a
               href="#pricing"
@@ -261,13 +351,13 @@ export default function PublicLanding() {
 
       {/* CTA bottom */}
       <section className="mx-auto max-w-3xl px-6 py-20 text-center">
-        <h2 className="text-3xl font-bold">{t('public.cta.title', 'Mulai sekarang, gratis')}</h2>
-        <p className="mt-3 text-sm text-[var(--text-3)]">{t('public.cta.subtitle', 'Tidak perlu kartu kredit. Setup kurang dari 5 menit.')}</p>
+        <h2 className="text-3xl font-bold">{cta?.title || t('public.cta.title', 'Mulai sekarang, gratis')}</h2>
+        <p className="mt-3 text-sm text-[var(--text-3)]">{cta?.subtitle || cta?.body || t('public.cta.subtitle', 'Tidak perlu kartu kredit. Setup kurang dari 5 menit.')}</p>
         <Link
-          to="/signup"
+          to={cta?.cta_url || '/signup'}
           className="mt-8 inline-flex rounded-[var(--radius)] bg-[var(--accent)] px-7 py-3 text-sm font-semibold text-white hover:bg-[var(--aras-accent-strong)]"
         >
-          {t('public.cta.button', 'Daftar Sekarang')}
+          {cta?.cta_label || t('public.cta.button', 'Daftar Sekarang')}
         </Link>
       </section>
 
@@ -287,6 +377,17 @@ export default function PublicLanding() {
           </div>
         </div>
       </footer>
+
+      {(user as any)?.is_superuser && (
+        <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
+          <Link to="/erp/web/landing-sections" className="rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-bold text-white shadow-lg">
+            Edit page
+          </Link>
+          <Link to="/dev/template-builder?from=landing" className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text)] shadow-lg">
+            Template Studio
+          </Link>
+        </div>
+      )}
     </main>
   )
 }

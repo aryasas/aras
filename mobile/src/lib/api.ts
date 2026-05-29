@@ -1,5 +1,5 @@
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import { getOrgId, getToken, logout } from './auth';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
 
@@ -38,12 +38,12 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(async (config) => {
-  const token = await SecureStore.getItemAsync('aras_token');
+  const token = await getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-  const orgId = await SecureStore.getItemAsync('org_id');
+  const orgId = await getOrgId();
   if (orgId && orgId !== '-1') {
     config.headers['X-Org-ID'] = orgId;
   }
@@ -90,7 +90,7 @@ api.interceptors.response.use(
       };
     }
     if (error.response?.status === 401) {
-      await SecureStore.deleteItemAsync('aras_token');
+      await logout();
     }
     return Promise.reject(error);
   }

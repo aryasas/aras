@@ -1,10 +1,15 @@
 from core import Aras
 from .models import Organization, Currency, Uom, PriceType, Charge, ExchangeRate, Setting, ModeOfPayment, PrintTemplate, Notification
+from .erp_rbac import ErpUserAccess
 
 class OrganizationView(Aras.View):
     model = Organization
     title = "Organizations"
     icon = "Building"
+    fields = {
+        "profile": {"ui_type": "profile_picker"},
+        "unit_type": {"ui_type": "unit_type_picker"},
+    }
     layout = [
         {"title": "Identity", "fields": ["code", "name", "legal_name", "trade_name", "tax_id", "is_group", "parent_id", "profile", "unit_type"]},
         {"title": "Contact & Branding", "fields": ["phone", "email", "website", "address", "logo_path"]},
@@ -67,11 +72,14 @@ class ExchangeRateView(Aras.View):
     model = ExchangeRate
     title = "Exchange Rates"
     icon = "TrendingUp"
+    fields = {
+        "org_id": {"ui_type": "org_picker"},
+    }
     layout = [
         {
             "key": "general",
             "title": "General",
-            "fields": ["currency_id", "rate", "date"],
+            "fields": ["org_id", "currency_id", "rate", "date"],
         },
     ]
 
@@ -85,11 +93,14 @@ class ModeOfPaymentView(Aras.View):
     model = ModeOfPayment
     title = "Payment Modes"
     icon = "CreditCard"
+    fields = {
+        "org_id": {"ui_type": "org_picker"},
+    }
     layout = [
         {
             "key": "general",
             "title": "General",
-            "fields": ["name", "payment_type", "erp_config_payment_accounts"],
+            "fields": ["org_id", "name", "payment_type", "erp_config_payment_accounts"],
         },
     ]
 
@@ -97,11 +108,14 @@ class PrintTemplateView(Aras.View):
     model = PrintTemplate
     title = "Print Templates"
     icon = "Printer"
+    fields = {
+        "org_id": {"ui_type": "org_picker"},
+    }
     layout = [
         {
             "key": "general",
             "title": "General",
-            "fields": ["name", "template_type", "content"],
+            "fields": ["org_id", "name", "template_type", "content"],
         },
     ]
 
@@ -109,3 +123,14 @@ class NotificationView(Aras.View):
     model = Notification
     title = "Notifications"
     icon = "Bell"
+    fields = {
+        "org_id": {"ui_type": "org_picker"},
+    }
+
+class ErpUserAccessView(Aras.View):
+    model = ErpUserAccess
+    title = "ERP User Access"
+    icon = "ShieldCheck"
+    fields = {
+        "org_id": {"ui_type": "org_picker"},
+    }

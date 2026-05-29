@@ -8,6 +8,11 @@ export interface RegionalConfig {
   language: string;
 }
 
+interface SettingRow {
+  key: string;
+  value: string;
+}
+
 let config: RegionalConfig = {
   dateFormat: 'YYYY-MM-DD',
   numberFormat: '#,###.##',
@@ -23,8 +28,9 @@ export const FormattingService = {
         filters: [{ field: 'key', op: 'ilike', value: 'core.' }]
       });
       
-      const settingsMap: any = {};
-      response.data.items.forEach((s: any) => {
+      const settingsMap: Record<string, string> = {};
+      const rows = Array.isArray(response.data.items) ? response.data.items as SettingRow[] : [];
+      rows.forEach((s) => {
         settingsMap[s.key] = s.value;
       });
 

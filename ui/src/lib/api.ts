@@ -39,6 +39,13 @@ function getEnvelopeErrorMessage(value: ApiEnvelope | Record<string, any>): stri
   return 'Request failed'
 }
 
+function getEnvelopeErrorCode(value: ApiEnvelope | Record<string, any>): string | undefined {
+  const error = value.error
+  if (error && typeof error === 'object' && typeof (error as any).code === 'string') return (error as any).code
+  if (typeof (value as any).code === 'string') return (value as any).code
+  return undefined
+}
+
 function isApiEnvelope(value: unknown): value is ApiEnvelope {
   return (
     typeof value === 'object' &&
@@ -98,7 +105,8 @@ api.interceptors.response.use(
           error: response.data.error || errorMessage, // Ensure error is also set
         };
 
-        const error = new Error(errorMessage) as Error & { response?: typeof response };
+        const error = new Error(errorMessage) as Error & { response?: typeof response; code?: string };
+        error.code = getEnvelopeErrorCode(response.data);
         error.response = { ...response, data: errorData }; // Attach enriched error data to response
         return Promise.reject(error);
       }
@@ -122,6 +130,7 @@ api.interceptors.response.use(
 
       // Ensure error.message reflects the primary error message
       error.message = errorMessage;
+      error.code = getEnvelopeErrorCode(d);
 
       // Normalize error.response.data to contain 'error', 'detail', and 'message'
       // This makes it consistent for consumers
@@ -130,6 +139,7 @@ api.interceptors.response.use(
         error: d.error || errorMessage,
         detail: d.detail || errorMessage,
         message: d.message || errorMessage,
+        code: d.code || error.code,
       };
     }
     if (error.response?.status === 401) {
@@ -139,6 +149,11 @@ api.interceptors.response.use(
       const isPublic = publicPaths.some((p) => path === p || path.startsWith(p + '/')) || path.startsWith('/p/');
       if (!isPublic) {
         window.location.href = '/login';
+      }
+    } else if (error.response?.status === 402) {
+      const path = window.location.pathname;
+      if (!path.startsWith('/portal')) {
+        window.location.href = '/portal?tab=billing';
       }
     }
     return Promise.reject(error);

@@ -15,8 +15,11 @@ def main():
     parser = argparse.ArgumentParser(description="Aras Framework Manager")
     subparsers = parser.add_subparsers(dest="command")
 
+# gemini-flash
+
     # Sync
     sync_parser = subparsers.add_parser("sync", help="Sync code to DB registry")
+    sync_parser.add_argument("--drop-orphans", action="store_true", help="Drop orphaned tables in development mode")
 
     # Migrate
     migrate_parser = subparsers.add_parser("migrate", help="Run Alembic migrations")
@@ -65,12 +68,20 @@ def main():
     # Cleanup
     subparsers.add_parser("cleanup", help="Delete inactive (stale) app/resource/field rows from registry")
 
+    # Fetch Geo
+    subparsers.add_parser("fetch-geo", help="Download GeoLite2-Country database")
+
     args = parser.parse_args()
 
 
     if args.command == "sync":
         print("Discovering apps...")
         Aras.logic.discovery.discover_apps(package_path="apps")
+
+        print("Running auto-migration...")
+        from core.logic import auto_migrate
+        from core.base.model import Base
+        auto_migrate.run(Aras.engine, Base.metadata, drop_orphan_tables=args.drop_orphans)
 
         print("Synchronizing metadata...")
         db = next(Aras.get_db())
@@ -295,6 +306,17 @@ def main():
             sys.exit(1)
         finally:
             db.close()
+
+    elif args.command == "fetch-geo":
+        try:
+            from api.scripts.fetch_geolite import fetch_geolite
+        except ImportError:
+            try:
+                from scripts.fetch_geolite import fetch_geolite
+            except ImportError:
+                print("Error: Could not import fetch_geolite. Ensure api/scripts/fetch_geolite.py exists.")
+                sys.exit(1)
+        fetch_geolite()
 
     else:
         parser.print_help()

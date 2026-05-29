@@ -306,7 +306,12 @@ export default function DevTools() {
 
                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
                   <button
-                    onClick={() => navigate('/dev/template-builder')}
+                    onClick={() => {
+                      const last = localStorage.getItem('template-studio:last') || ''
+                      const ref = (() => { try { const u = new URL(document.referrer); return u.origin === location.origin ? u.pathname : '' } catch { return '' } })()
+                      const from = ref || last
+                      navigate(from ? `/dev/template-builder?from=${encodeURIComponent(from)}` : '/dev/template-builder')
+                    }}
                     className="p-4 bg-slate-800 hover:bg-slate-700 rounded-[var(--app-radius-lg)] border border-slate-700 transition-all flex flex-col items-center gap-2 group"
                   >
                     <div className="p-2 bg-pink-500/20 text-pink-400 rounded-[var(--app-radius)] group-hover:scale-110 transition-transform relative">

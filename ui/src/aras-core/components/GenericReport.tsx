@@ -4,7 +4,7 @@ import { FormattingService } from '../services/FormattingService';
 
 interface GenericReportProps {
   title: string;
-  data: any[];
+  data: Array<Record<string, unknown> | unknown[]>;
   columns: { field: string; label: string; type?: string }[];
   onBack?: () => void;
 }
@@ -94,7 +94,7 @@ export const GenericReport: React.FC<GenericReportProps> = ({ title, data = [], 
                         {col.type === 'currency' ? (
                            FormattingService.formatCurrency(Number(val || 0))
                         ) : col.type === 'date' ? (
-                           FormattingService.formatDate(val)
+                           FormattingService.formatDate(String(val ?? ''))
                         ) : String(val ?? '-')}
                       </td>
                     );

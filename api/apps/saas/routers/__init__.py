@@ -6,9 +6,9 @@ from core.lib.database import get_db
 from core.lib.settings import settings
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc
-from .models import Subscription, Plan, LicenseToken
+from ..models import Subscription, Plan, LicenseToken
 from core.auth.models import User
-from .services.license_service import LicenseService
+from ..services.license_service import LicenseService
 from core.auth.license import verify_license_token
 from core.auth.service import create_access_token, require_admin
 from datetime import datetime, timedelta

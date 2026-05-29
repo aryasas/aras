@@ -1,11 +1,13 @@
 from sqlalchemy.orm import Session
+from core import Aras
 from ..models import JournalEntry, JournalEntryLine
 
-class JournalService:
+class JournalService(Aras.Service):
     """Service for creating and posting journal entries."""
+    model_class = JournalEntry
     
-    @staticmethod
-    def post_entry(db: Session, org_id: int, lines: list[dict], reference: str = "", narrative: str = "", currency_id: int = None, source_type: str = None, source_id: int = None) -> JournalEntry:
+    @classmethod
+    def post_entry(cls, db: Session, org_id: int, lines: list[dict], reference: str = "", narrative: str = "", currency_id: int = None, source_type: str = None, source_id: int = None) -> JournalEntry:
         """
         Create and post a balanced journal entry.
         lines: [{'account_id': int, 'debit': float, 'credit': float, 'description': str}]

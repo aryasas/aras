@@ -42,7 +42,7 @@ Level 3b  Concrete models       — exactly one __tablename__, inherits ONE Leve
 Level 3c  Registry models       — AppModel, ResourceModel, FieldModel, User, Role, … (aras_* tables)
 ```
 
-All classes accessed via unified namespace — `from core import Aras`. → `framework_ref.md` L8–66 (Architecture, Unified Namespace)
+All classes accessed via unified namespace — `from core import Aras`. → `framework_ref.md` L54–66 (Unified Namespace)
 
 ### App Discovery & Startup Flow
 
@@ -51,7 +51,7 @@ All classes accessed via unified namespace — `from core import Aras`. → `fra
 3. Routes are auto-mounted per app via `RouterFactory` — no manual router wiring needed.
 4. Apps are isolated by `app_name`; `parent_name` is available but not used for ERP — all ERP domains are top-level apps.
 
-Full `manage.py` command list: → `framework_ref.md` L226–242
+Full `manage.py` command list: → `framework_ref.md` L230–245
 
 ### App Registration Requirements (required for all apps)
 
@@ -91,7 +91,7 @@ Every app needs three things to have visible resources in the UI:
 - `__title__` is **removed** — use `View.title` instead
 - `is_active` is NOT auto-provided — opt in via `__features__ = ["activatable"]`
 - Auto-provided columns (never declare): `id`, `created_at`, `updated_at`, `created_by`, `updated_by`
-- Full attribute list: → `framework_ref.md` L70–89
+- Full attribute list: → `framework_ref.md` L70–84
 
 ## Model Actions
 
@@ -124,7 +124,7 @@ Always use the **best** approach — not the simplest. Use simple only when it i
 7. Views contain ALL UI metadata — title, icon, fields overrides, layout
 8. Every folder must have `__init__.py` — discovery uses `pkgutil.walk_packages`
 
-App patterns, file structure, `autodiscover_models`, `menu_groups`: → `framework_ref.md` L245–337
+App patterns, file structure, `autodiscover_models`, `menu_groups`: → `framework_ref.md` L250–340
 
 ---
 
@@ -134,7 +134,7 @@ All routes prefixed `/api/v1/`. Underscores → hyphens. App/parent prefixes str
 
 Example: App `accounting` (`table_prefix="erp_accounting"`), model `erp_accounting_accounts` → `/api/v1/accounting/accounts`
 
-Full endpoint list: → `framework_ref.md` L130–153
+Full endpoint list: → `framework_ref.md` L130–154
 
 ## Endpoint Patterns
 
@@ -158,11 +158,19 @@ This pattern is used by `apps/web/` for public CMS endpoints.
 
 Config from `.env` via `api/core/lib/settings.py`. Key vars: `SECRET_KEY`, `DATABASE_URL`, `CORS_ORIGINS`, `ARAS_MODE`.
 
+### Email Configuration
+- `EMAIL_BACKEND` — `smtp` \| `resend` \| `console` (default: `console`)
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` — for `smtp` backend
+- `RESEND_API_KEY` — for `resend` backend
+
+### Geo-Routing
+- `python manage.py fetch-geo` — downloads GeoLite2-Country database for IP-based routing.
+
 Auth chain: `require_admin → get_current_user → JWT decode → DB lookup` (`api/core/auth/service.py`).
 
 RBAC: `RBAC.has_permission(db, user, resource, action)` · `RBAC.get_readable_resources(db, user)`
 
-Logic modules + Manager classes: → `framework_ref.md` L104–127
+Logic modules + Manager classes: → `framework_ref.md` L104–126
 
 ---
 
@@ -184,7 +192,7 @@ ERP domains are top-level standalone apps — no parent app. Each inherits `Aras
 
 Shared utilities live in `api/apps/erp/base/` (`saved_filter_router`, `series_router`, `SavedFilter`, ERP abstract bases). ERP abstract bases (`DocumentBase`, `LineItemBase`, `MasterDataBase`, `ConfigBase`) are ERP-specific — not framework primitives.
 
-Full sub-app and base tables: → `framework_ref.md` L340–370
+Full sub-app and base tables: → `framework_ref.md` L344–381
 
 ---
 
@@ -288,7 +296,7 @@ Key components: `DynamicForm`, `ListView`, `DashboardView`, `CommandPalette`, `M
 
 API responses: `{ success, data, message, error }` envelope
 
-Full component/hook/route tables: → `framework_ref.md` L155–223
+Full component/hook/route tables: → `framework_ref.md` L157–226
 
 ---
 
@@ -368,7 +376,7 @@ To read ANY file: `<project_root>/tools/smart_read.sh <filepath>` — handles de
 ### Do NOT Re-read
 - `api/core/base/aras.py` — Level 1 root, ~27 lines, static
 - `api/core/aras.py` — unified facade, use Unified Namespace table → `framework_ref.md` L54–66
-- `api/core/base/model.py` — use Model attributes table → `framework_ref.md` L70–89
+- `api/core/base/model.py` — use Model attributes table → `framework_ref.md` L70–84
 - `api/main.py` — use Startup Flow above (L29–34)
 - `aras-old/` — LEGACY, never read
 - `docs/framework_ref.md` — never full-read; use exact line ranges pointed from this file only
@@ -506,5 +514,35 @@ Be honest about quality: `# claude-sonnet-4-6 (bad)`, `# gemini-pro (needs revie
 
 
 ---
+## Framework Change: Major Core Refactoring & Quick Actions (2026-05-28)
+- [Gemini] Split `RouterFactory` and `Model` base classes into packages for better modularity and maintainability.
+- [Gemini] Introduced `Aras.Service` base class with standard CRUD patterns, RBAC, and audit hooks.
+- [Gemini] Added `GET /admin/quick-actions` endpoint for searchable actions, resources, and routes.
+- [Gemini] Implemented resource-specific `/search` and `/lookup` endpoints in `RouterFactory`.
+- [Gemini] Enhanced `UIGenerator` cache with `org_id` awareness and invalidation on resource/field updates.
+- [Gemini] Refactored `accounting`, `stock`, and `saas` services to inherit from `Aras.Service`.
+- [Gemini] Fixed circular imports in `TraitInjector` and `computed_field` implementation.
+- [Gemini] Added session-scoped test infrastructure in `api/tests/conftest.py` and smoke tests.
+
+---
 ## Framework Change: Framework remaining items — all NOT DONE and HALF from plan.md verified against actual codebase — revision (2026-05-26)
   - [GPT (codex)] Added reusable FormSettings component and WebSocket client bootstrap
+
+## Framework Change: SaaS Payment & Provisioning Architecture (2026-05-29)
+  - [Gemini 2.5 Flash] Introduced `PaymentProvider` abstraction with Stripe, Midtrans, and Xendit implementations.
+  - [Gemini 2.5 Flash] Implemented Geo-routing middleware using MaxMind GeoLite2 for dynamic payment provider selection.
+  - [Gemini 2.5 Flash] Added automated tenant provisioning service, billing service with APScheduler integration, and resource monitoring via RequestLog middleware.
+  - [Gemini 2.5 Flash] Renamed SaaS `Payment` and `Invoice` to `SaaSPayment` and `SaaSInvoice` to avoid collisions.
+
+---
+## Framework Change: metadata-driven specials, Profile Update, and UI Generator Refactoring (2026-05-29)
+  - [Gemini 2.5 Flash] Moved `profile`, `org_id`, and `unit_type` field logic from hardcoded frontend checks into the metadata system via `View` overrides (`ui_type="org_picker"` etc.) in `api/apps/config/views.py`.
+  - [Gemini 2.5 Flash] Added `PUT /auth/me` endpoint and `User.name` field in `api/core/auth/` to support profile editing.
+  - [Gemini 2.5 Flash] Refactored `UIGenerator` to a Type Handler Pattern with discrete handlers for lookup, select, scalar, and file/image types in `api/core/logic/ui_generator/`.
+  - [Gemini 2.5 Flash] Standardized label derivation via `to_label_case` helper in `api/core/lib/helpers.py` and updated all call sites.
+  - [Gemini 2.5 Flash] Added `Model.get_ui_fields()` in `api/core/base/model/queries.py` for standardized retrieval of non-system visible columns.
+
+
+---
+## Framework Change: Polish sweep — FE silent-catch surfacing, `any` cleanup, email transport wiring, GeoLite2 bundling, payment webhook E2E tests — revision (2026-05-29)
+  - [GPT (codex)] <description, or "none">
