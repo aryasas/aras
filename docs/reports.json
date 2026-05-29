@@ -614,5 +614,25 @@
     "cache_write_tokens": "n/a",
     "token_efficiency": "Two grep verifications + build check; single approval write",
     "verdict": "APPROVED"
+  },
+  {
+    "id": 35,
+    "date": "2026-05-29",
+    "feature": "Audit plan.md DONE items + implement Backend 15 (on_validate + db/user_id hooks)",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/base/aras.py, api/core/base/model/hooks.py, api/core/base/model/__init__.py",
+      "features_added": "@Aras.on_validate decorator; hook signature introspection injects db/user_id when accepted",
+      "fixes_applied": "Pre-commit on_validate fires inside Model.save before flush; on_create/update/delete now receive db & user_id; delete_self forwards them too",
+      "framework_changes": "Lifecycle hooks gain db/user_id and a new on_validate stage that can raise ValidationException",
+      "issues": "none"
+    },
+    "frontend": null,
+    "input_tokens": "unknown",
+    "output_tokens": "unknown",
+    "cache_read_tokens": "unknown",
+    "cache_write_tokens": "unknown",
+    "token_efficiency": "Verified 5 plan items via one Explore agent + targeted greps. Only Backend 15 needed code (3 file edits). U11/U17/R6/U20/U21 were already correctly implemented — Explore agent reported false negatives, caught before duplicating work.",
+    "verdict": "APPROVED"
   }
 ]

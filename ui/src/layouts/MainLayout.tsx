@@ -1,7 +1,7 @@
 // claude-opus-4-7
 // ARC shell: full-bleed bg + dot-grid, ARC sidebar on the left, topbar, content frame.
 import { useEffect, useState, type CSSProperties } from 'react'
-import { useLocation, Outlet, useBlocker } from 'react-router-dom'
+import { useLocation, Outlet } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import api from '../lib/api'
 import type { SidebarApp } from './types'
@@ -17,7 +17,7 @@ export default function MainLayout() {
   const { organizations, activeOrgId, setActiveOrg } = useAuthStore()
   const location = useLocation()
 const { notify } = useAras()
-  const { closePanel, cornerMode, density, fontScale, accentColor, iconRailCollapsed, toggleIconRail, dirtyForms, showConfirm } = useUIStore()
+  const { closePanel, cornerMode, density, fontScale, accentColor, iconRailCollapsed, toggleIconRail, dirtyForms } = useUIStore()
 
   const layoutStyle = {
     '--accent': accentColor,
@@ -30,17 +30,17 @@ const { notify } = useAras()
     '--aras-font-scale': String(fontScale / 100),
   } as CSSProperties
 
-  const blocker = useBlocker(dirtyForms.size > 0)
-
+  // Tab close / refresh guard. In-app navigation guard requires a data router (createBrowserRouter);
+  // current app uses BrowserRouter, so useBlocker is unavailable. Re-enable when router is migrated.
   useEffect(() => {
-    if (blocker.state !== 'blocked') return
-    showConfirm(
-      'Unsaved changes',
-      'Leave anyway?',
-      () => blocker.proceed(),
-      () => blocker.reset(),
-    )
-  }, [blocker, showConfirm])
+    if (dirtyForms.size === 0) return
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [dirtyForms])
 
   useEffect(() => { closePanel() }, [location.pathname])
 

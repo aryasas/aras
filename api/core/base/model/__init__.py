@@ -212,13 +212,14 @@ class Model(Aras, Base, QueryMixin, HookMixin, SerializationMixin):
             name_val = getattr(self, "name", None)
             if name_val: setattr(self, "code", name_val)
 
+        self._fire_hooks("on_validate", db=db, user_id=user_id)
         self.before_save(is_new=is_new, db=db)
         if is_new: db.add(self)
-        db.flush() 
+        db.flush()
         if data: self.save_m2m(db, data)
         db.refresh(self)
         self.after_save(is_new=is_new)
-        self._fire_hooks("on_create" if is_new else "on_update")
+        self._fire_hooks("on_create" if is_new else "on_update", db=db, user_id=user_id)
         db.flush()
         return self
 
@@ -261,7 +262,7 @@ class Model(Aras, Base, QueryMixin, HookMixin, SerializationMixin):
         return self.save(db, data, user_id=user_id, is_new=False)
 
     def delete_self(self, db: Session, user_id: int = None):
-        self._fire_hooks("on_delete")
+        self._fire_hooks("on_delete", db=db, user_id=user_id)
         if self.__soft_delete__ and self.deleted_at is None:
             self.deleted_at = datetime.now(timezone.utc)
             if user_id: self.updated_by = user_id

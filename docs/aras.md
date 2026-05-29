@@ -546,3 +546,8 @@ Be honest about quality: `# claude-sonnet-4-6 (bad)`, `# gemini-pro (needs revie
 ---
 ## Framework Change: Polish sweep — FE silent-catch surfacing, `any` cleanup, email transport wiring, GeoLite2 bundling, payment webhook E2E tests — revision (2026-05-29)
   - [GPT (codex)] <description, or "none">
+
+---
+## Framework Change: on_validate hook + db/user_id injection (2026-05-29)
+  - [Claude Opus 4.7] Added `@Aras.on_validate` decorator in `api/core/base/aras.py`; fires pre-commit in `Model.save`, raises `ValidationException` to abort save.
+  - [Claude Opus 4.7] `HookMixin._fire_hooks` now introspects hook signatures and injects `db`/`user_id` when accepted; all call sites in `Model.save`/`delete_self` pass them through.

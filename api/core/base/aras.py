@@ -21,31 +21,45 @@ class Aras:
         func._aras_computed = True
         return func
 
+    # claude-opus-4-7
     @staticmethod
     def on_create(fn):
         """
         Decorator — marks a method as an on_create hook.
-        The method is called after a new record is committed. Signature: (self) -> None.
+        Called after a new record is committed. Signature: (self, db=None, user_id=None) -> None.
         """
         fn._aras_hook = "on_create"
         return fn
 
+    # claude-opus-4-7
     @staticmethod
     def on_update(fn):
         """
         Decorator — marks a method as an on_update hook.
-        The method is called after an existing record is committed. Signature: (self) -> None.
+        Called after an existing record is committed. Signature: (self, db=None, user_id=None) -> None.
         """
         fn._aras_hook = "on_update"
         return fn
 
+    # claude-opus-4-7
     @staticmethod
     def on_delete(fn):
         """
         Decorator — marks a method as an on_delete hook.
-        The method is called just before deletion / soft-delete. Signature: (self) -> None.
+        Called just before deletion / soft-delete. Signature: (self, db=None, user_id=None) -> None.
         """
         fn._aras_hook = "on_delete"
+        return fn
+
+    # claude-opus-4-7
+    @staticmethod
+    def on_validate(fn):
+        """
+        Decorator — marks a method as an on_validate hook.
+        Runs pre-commit; may raise ValidationException to abort save.
+        Signature: (self, db=None, user_id=None) -> None.
+        """
+        fn._aras_hook = "on_validate"
         return fn
 
     @staticmethod
