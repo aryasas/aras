@@ -13,15 +13,11 @@ from core.auth.license import verify_license_token
 from core.auth.service import create_access_token, require_admin
 from datetime import datetime, timedelta
 
-router = APIRouter(prefix="", tags=["SaaS Control Plane"])
+router = APIRouter(prefix="", tags=["SaaS Control Panel"])
 PUBLIC_PLAN_KEYS = ("free", "lite", "growth", "business")
 
 class AdminUpdatePlanRequest(Validation):
     plan_id: int
-
-class RenewLicenseRequest(Validation):
-    tenant_id: str
-    current_token: str
 
 class SignupRequest(Validation):
     email: str
@@ -77,23 +73,6 @@ def _get_portal_subscription(db: Session, authorization: str) -> Subscription:
     if not sub:
         raise HTTPException(status_code=404, detail="Subscription not found")
     return sub
-
-@router.post("/license/renew")
-def renew_license(data: RenewLicenseRequest, db: Session = Depends(get_db)):
-    payload = verify_license_token(data.current_token)
-    if not payload or payload.get("sub") != data.tenant_id:
-        raise HTTPException(status_code=403, detail="Invalid token for this tenant")
-    
-    sub = db.query(Subscription).filter(
-        Subscription.tenant_id == data.tenant_id,
-        Subscription.status.in_(["active", "trial"])
-    ).first()
-    if not sub:
-        raise HTTPException(status_code=403, detail="No active or trial subscription found")
-        
-    new_token = LicenseService.renew_license(db, sub.id)
-    return {"token": new_token}
-
 
 # gemini-flash
 @router.get("/tenant-config")

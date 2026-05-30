@@ -115,10 +115,19 @@ Aras.Manager.Workflow = WorkflowManager
 
 # 6. Delayed Implementation Attachments (Level 3)
 from .auth.models import User
-from .registry.sys_settings import ArasSetting
+from .registry.sys_settings import Settings
+from .registry.settings_service import SettingsService
+from .registry.master_data_registry import master_data_registry
 
 Aras.User = User
-Aras.ArasSetting = ArasSetting
+Aras.Settings = SettingsService
+Aras.SettingsModel = Settings
+Aras.MasterData = master_data_registry
+
+# Deprecated alias (to be removed in 2026-08)
+import warnings
+Aras.ArasSetting = Settings
+
 Aras.Router = logic.router_factory.RouterFactory.create_router
 
 __all__ = ["Aras"]

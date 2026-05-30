@@ -13,7 +13,7 @@ from apps.config.workflow_models import (
 TEMPLATES = [
     {
         "name": "Inflow Invoice Workflow",
-        "document_type": "erp_accounting_inflow_invoices",
+        "document_type": "accounting_inflow_invoices",
         "states": [
             {"name": "Draft",     "label": "Draft",     "is_initial": True,  "is_final": False, "sequence": 10},
             {"name": "Posted",    "label": "Posted",    "is_initial": False, "is_final": True,  "sequence": 20},
@@ -37,7 +37,7 @@ TEMPLATES = [
     },
     {
         "name": "Outflow Invoice Workflow",
-        "document_type": "erp_accounting_outflow_invoices",
+        "document_type": "accounting_outflow_invoices",
         "states": [
             {"name": "Draft",     "label": "Draft",     "is_initial": True,  "is_final": False, "sequence": 10},
             {"name": "Posted",    "label": "Posted",    "is_initial": False, "is_final": True,  "sequence": 20},

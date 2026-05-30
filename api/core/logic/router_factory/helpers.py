@@ -235,9 +235,9 @@ def _trigger_invalidation(db: Session, model_class: Type[Any], item: Any):
     from ...logic.ui_generator import UIGenerator
     from ...registry.resource_model import ResourceModel
 
-    if model_class.__tablename__ == "aras_resources":
+    if model_class.__tablename__ == "core_resources":
         UIGenerator.invalidate(item.name)
-    elif model_class.__tablename__ == "aras_fields":
+    elif model_class.__tablename__ == "core_fields":
         resource = db.get(ResourceModel, item.resource_id)
         if resource:
             UIGenerator.invalidate(resource.name)

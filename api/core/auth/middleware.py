@@ -83,8 +83,8 @@ def renew_license_if_needed(token: str):
 
             with httpx.Client() as client:
                 res = client.post(
-                    f"{control_panel_url}/api/v1/saas/license/renew",
-                    json={"tenant_id": tenant_id, "current_token": token},
+                    f"{control_panel_url}/api/v1/saas/control-panel/licenses/{tenant_id}/renew",
+                    json={"current_token": token},
                     timeout=5.0
                 )
                 if res.status_code == 200:

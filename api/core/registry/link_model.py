@@ -10,10 +10,10 @@ from ..base.field import Field
 
 class LinkModel(Model):
     """Stores metadata about relationships between models."""
-    __tablename__ = "aras_links"
+    __tablename__ = "core_links"
 
-    source_resource_id: Mapped[int] = Field(ForeignKey("aras_resources.id"), index=True, display_column="title")
-    target_resource_id: Mapped[int] = Field(ForeignKey("aras_resources.id"), index=True, display_column="title")
+    source_resource_id: Mapped[int] = Field(ForeignKey("core_resources.id"), index=True, display_column="title")
+    target_resource_id: Mapped[int] = Field(ForeignKey("core_resources.id"), index=True, display_column="title")
     
     # The name of the field in the source model that holds the relationship (e.g., 'customer_id')
     # For virtual/reverse links (like 'lines' in Invoice), this might be the relationship name.

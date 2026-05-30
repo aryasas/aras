@@ -17,7 +17,7 @@ class StockWorkflowService:
         movement = StockMovement(
             org_id=delivery_note.org_id,
             move_type="delivery",
-            origin_model="erp_stock_delivery_notes",
+            origin_model="stock_delivery_notes",
             origin_id=delivery_note.id,
             status="Draft",
             doc_date=delivery_note.doc_date,
@@ -52,7 +52,7 @@ class StockWorkflowService:
             party_id=delivery_note.party_id,
             doc_date=delivery_note.doc_date,
             status="Draft",
-            origin_model="erp_stock_delivery_notes",
+            origin_model="stock_delivery_notes",
             origin_id=delivery_note.id,
             notes=f"Auto-generated from Delivery Note {delivery_note.number}"
         )

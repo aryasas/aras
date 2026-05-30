@@ -46,17 +46,17 @@ def _seed_widgets(db: Session) -> None:
     db.add_all([
         WidgetModel(
             name="total_users", title="Total Users", widget_type="stat",
-            resource_name="auth_users",
+            resource_name="core_users",
             config_json={"icon": "Users", "color": "indigo"}, order=1,
         ),
         WidgetModel(
             name="recent_activity", title="Recent Activity", widget_type="list",
-            resource_name="aras_activity_logs",
+            resource_name="core_activity_logs",
             config_json={"limit": 5}, order=2, size="col-span-2",
         ),
         WidgetModel(
             name="active_apps", title="Installed Apps", widget_type="stat",
-            resource_name="aras_apps",
+            resource_name="core_apps",
             config_json={"icon": "Package", "color": "emerald"}, order=3,
         ),
     ])
@@ -65,29 +65,26 @@ def _seed_widgets(db: Session) -> None:
 
 
 def _seed_settings(db: Session) -> None:
-    from core.registry.sys_settings import ArasSetting
+    from core.aras import Aras
     from core.lib.settings import settings
 
     defaults = [
-        {"key": "app_name",              "value": settings.APP_NAME,  "description": "Application display name"},
-        {"key": "maintenance_mode",      "value": "false",             "description": "Disable public access"},
-        {"key": "default_language",      "value": "en",                "description": "System-wide default language"},
-        {"key": "core.date_format",      "value": "YYYY-MM-DD",        "description": "Global date format"},
-        {"key": "core.number_format",    "value": "#,###.##",          "description": "Global number format"},
-        {"key": "core.decimal_precision","value": "2",                 "description": "Global decimal precision"},
-        {"key": "core.currency_symbol",  "value": "$",                 "description": "Global currency symbol"},
-        {"key": "core.language_default", "value": "en",                "description": "Global default language"},
+        {"namespace": "core", "key": "app_name",              "value": settings.APP_NAME,  "description": "Application display name"},
+        {"namespace": "core", "key": "maintenance_mode",      "value": "false",             "description": "Disable public access"},
+        {"namespace": "core", "key": "default_language",      "value": "en",                "description": "System-wide default language"},
+        {"namespace": "core", "key": "date_format",           "value": "YYYY-MM-DD",        "description": "Global date format"},
+        {"namespace": "core", "key": "number_format",         "value": "#,###.##",          "description": "Global number format"},
+        {"namespace": "core", "key": "decimal_precision",     "value": "2",                 "description": "Global decimal precision"},
+        {"namespace": "core", "key": "currency_symbol",       "value": "$",                 "description": "Global currency symbol"},
+        {"namespace": "core", "key": "language_default",      "value": "en",                "description": "Global default language"},
     ]
-    existing = {
-        row[0]
-        for row in db.query(ArasSetting.key)
-                     .filter(ArasSetting.key.in_([d["key"] for d in defaults]))
-                     .all()
-    }
-    new_rows = [ArasSetting(**d) for d in defaults if d["key"] not in existing]
-    if new_rows:
-        db.add_all(new_rows)
-        db.commit()
+    
+    for d in defaults:
+        existing = db.query(Aras.SettingsModel).filter_by(namespace=d["namespace"], key=d["key"]).first()
+        if not existing:
+            db.add(Aras.SettingsModel(**d))
+            
+    db.commit()
     logger.info("Default settings seeded.")
 
 

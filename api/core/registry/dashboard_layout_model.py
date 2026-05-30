@@ -8,7 +8,7 @@ class DashboardLayoutModel(Model):
     """
     Registry for user-specific dashboard layouts and configurations.
     """
-    __tablename__ = "aras_dashboard_layouts"
+    __tablename__ = "core_dashboard_layouts"
 
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     

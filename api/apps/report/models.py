@@ -9,7 +9,7 @@ from core.response import ok
 from core.exceptions import ValidationException
 
 class Report(MasterDataBase):
-    __tablename__ = "erp_report_reports"
+    __tablename__ = "report_reports"
 
     code: Mapped[str] = mapped_column(String(100), nullable=False, index=True, default="")
     report_type: Mapped[str] = mapped_column(String(20), default="builtin", info={"choices": ["builtin", "orm", "script"]})
@@ -20,7 +20,7 @@ class Report(MasterDataBase):
     script: Mapped[Optional[str]] = mapped_column(Text, nullable=True, doc="Python script for 'script' type reports.")
     linked_doctype: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
-    script_approved_by_id: Mapped[Optional[int]] = mapped_column(ForeignKey("auth_users.id"), nullable=True)
+    script_approved_by_id: Mapped[Optional[int]] = mapped_column(ForeignKey("core_users.id"), nullable=True)
     script_approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     script_approved_by = relationship("core.auth.models.User", foreign_keys=[script_approved_by_id])

@@ -1,6 +1,9 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
 
-const TENANT_STORAGE_KEY = 'aras_tenant_id'
+export const TENANT_STORAGE_KEY = 'tenant_id'
+const LEGACY_TENANT_STORAGE_KEY = 'aras_tenant_id'
+
+type TenantStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 
 interface TenantContextValue {
   tenantId: string
@@ -9,7 +12,16 @@ interface TenantContextValue {
 
 const TenantContext = createContext<TenantContextValue | null>(null)
 
+export function migrateLegacyTenantStorage(storage: TenantStorage = localStorage) {
+  const legacy = storage.getItem(LEGACY_TENANT_STORAGE_KEY)
+  if (legacy && !storage.getItem(TENANT_STORAGE_KEY)) {
+    storage.setItem(TENANT_STORAGE_KEY, legacy)
+  }
+  storage.removeItem(LEGACY_TENANT_STORAGE_KEY)
+}
+
 function readStoredTenantId() {
+  migrateLegacyTenantStorage()
   return localStorage.getItem(TENANT_STORAGE_KEY) || ''
 }
 

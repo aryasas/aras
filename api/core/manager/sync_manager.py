@@ -12,6 +12,11 @@ from ..registry.app_model import AppModel
 from ..registry.resource_model import ResourceModel
 from ..registry.field_model import FieldModel
 from ..registry.link_model import LinkModel
+from ..registry.config_registry import config_registry
+from ..registry.menu_registry import menu_registry
+from ..registry.permission_registry import permission_registry
+from ..registry.job_registry import job_registry
+from ..registry.i18n_registry import i18n_registry
 from .manager import Manager
 from ..lib.helpers import to_label_case
 
@@ -36,6 +41,7 @@ class SyncManager(Manager):
         try:
             # 0. Seed Global Settings
             cls.seed_settings(db)
+            cls.seed_core_config_sections(db)
 
             # 0.1 Seed Default Widgets
             cls.seed_widgets(db)
@@ -52,9 +58,17 @@ class SyncManager(Manager):
 
             # 2. Cleanup/Deactivate stale apps
             registered_app_names = [cls.app_name for cls in apps.values() if hasattr(cls, "app_name")]
-            db.query(AppModel).filter(
+            stale_apps = db.query(AppModel).filter(
                 ~AppModel.name.in_(registered_app_names)
-            ).update({"is_active": False}, synchronize_session=False)
+            ).all()
+            for app_db in stale_apps:
+                app_db.is_active = False
+                # Unregister from registries
+                config_registry.unregister(app_db.name)
+                menu_registry.unregister(app_db.name)
+                permission_registry.unregister(app_db.name)
+                job_registry.unregister(app_db.name)
+                i18n_registry.unregister(app_db.name)
 
             # 3. Cleanup/Deactivate stale resources within active apps
             registered_resource_names = []
@@ -85,27 +99,50 @@ class SyncManager(Manager):
     @classmethod
     def seed_settings(cls, db: Session):
         """Seeds global framework settings if they don't exist."""
-        # Import here to avoid circular dependencies
-        try:
-            from core.registry.sys_settings import ArasSetting
-        except ImportError:
-            logger.warning("core.registry.sys_settings.ArasSetting not found. Skipping settings seed.")
-            return
-
+        from ..aras import Aras
+        
         defaults = [
-            ("core.date_format", "YYYY-MM-DD", "Global date format (e.g. YYYY-MM-DD)"),
-            ("core.number_format", "#,###.##", "Global number format (e.g. #,###.##)"),
-            ("core.decimal_precision", "2", "Default decimal precision for currency/numeric fields"),
-            ("core.currency_symbol", "$", "Default currency symbol"),
-            ("core.language_default", "en", "Default system language code"),
+            ("date_format", "YYYY-MM-DD", "Global date format (e.g. YYYY-MM-DD)"),
+            ("number_format", "#,###.##", "Global number format (e.g. #,###.##)"),
+            ("decimal_precision", "2", "Default decimal precision for currency/numeric fields"),
+            ("currency_symbol", "$", "Default currency symbol"),
+            ("language_default", "en", "Default system language code"),
         ]
 
         for key, value, desc in defaults:
-            row = db.query(ArasSetting).filter(ArasSetting.key == key).first()
+            row = db.query(Aras.SettingsModel).filter_by(namespace="core", key=key).first()
             if not row:
-                logger.info(f"Seeding setting: {key} = {value}")
-                db.add(ArasSetting(key=key, value=value, description=desc))
+                logger.info(f"Seeding core setting: {key} = {value}")
+                db.add(Aras.SettingsModel(
+                    namespace="core", 
+                    key=key, 
+                    value=value, 
+                    description=desc,
+                    value_type="str"
+                ))
         
+        db.flush()
+        
+        db.flush()
+
+    @classmethod
+    def seed_core_config_sections(cls, db: Session):
+        """Seed framework-level default settings under the 'core' namespace.
+
+        Section registration happens at import time in core/registry/core_sections.py.
+        This method only writes default values into core_settings if missing.
+        """
+        from ..registry.core_sections import CORE_SECTIONS
+        from ..registry.settings_service import SettingsService
+        from ..registry.sys_settings import Settings as SettingsModel
+
+        for s in CORE_SECTIONS:
+            for f in s.fields:
+                if f.default is None:
+                    continue
+                existing = db.query(SettingsModel).filter_by(namespace="core", key=f.key).first()
+                if not existing:
+                    SettingsService.set(db, "core", f.key, f.default)
         db.flush()
 
     @classmethod
@@ -121,7 +158,7 @@ class SyncManager(Manager):
                 "name": "total_products",
                 "title": "Total Products",
                 "widget_type": "stat",
-                "resource_name": "erp_stock_products",
+                "resource_name": "stock_items",
                 "config_json": {"icon": "Package", "color": "indigo"},
                 "size": "col-span-1",
                 "order": 1
@@ -130,7 +167,7 @@ class SyncManager(Manager):
                 "name": "recent_movements",
                 "title": "Recent Stock Movements",
                 "widget_type": "list",
-                "resource_name": "erp_stock_movements",
+                "resource_name": "stock_movements",
                 "config_json": {"limit": 5},
                 "size": "col-span-2",
                 "order": 2
@@ -139,7 +176,7 @@ class SyncManager(Manager):
                 "name": "total_accounts",
                 "title": "Total Accounts",
                 "widget_type": "stat",
-                "resource_name": "erp_accounting_accounts",
+                "resource_name": "accounting_accounts",
                 "config_json": {"icon": "Calculator", "color": "emerald"},
                 "size": "col-span-1",
                 "order": 3
@@ -148,7 +185,7 @@ class SyncManager(Manager):
                 "name": "recent_entries",
                 "title": "Recent Journal Entries",
                 "widget_type": "list",
-                "resource_name": "erp_accounting_entries",
+                "resource_name": "accounting_entries",
                 "config_json": {"limit": 5},
                 "size": "col-span-2",
                 "order": 4
@@ -157,7 +194,7 @@ class SyncManager(Manager):
                 "name": "total_customers",
                 "title": "Total Customers",
                 "widget_type": "stat",
-                "resource_name": "erp_party_parties",
+                "resource_name": "party_parties",
                 "config_json": {"icon": "Users", "color": "indigo"},
                 "size": "col-span-1",
                 "order": 5
@@ -169,6 +206,9 @@ class SyncManager(Manager):
             if not row:
                 logger.info(f"Seeding widget: {w['name']}")
                 db.add(WidgetModel(**w))
+            elif row.resource_name != w["resource_name"]:
+                logger.info(f"Updating stale widget resource_name: {w['name']} ({row.resource_name} -> {w['resource_name']})")
+                row.resource_name = w["resource_name"]
         
         db.flush()
 
@@ -188,6 +228,8 @@ class SyncManager(Manager):
                 description=manifest["description"],
                 icon=manifest["icon"],
                 version=manifest["version"],
+                required=manifest.get("required", False),
+                provides=manifest.get("provides", []),
                 menu_groups=manifest.get("menu_groups", []),
                 requires=manifest.get("requires", []),
                 optional_features=manifest.get("optional_features", {}),
@@ -202,10 +244,21 @@ class SyncManager(Manager):
             app_db.description = manifest["description"]
             app_db.icon = manifest["icon"]
             app_db.version = manifest["version"]
+            app_db.required = manifest.get("required", False)
+            app_db.provides = manifest.get("provides", [])
             app_db.menu_groups = manifest.get("menu_groups", [])
             app_db.requires = manifest.get("requires", [])
             app_db.optional_features = manifest.get("optional_features", {})
             app_db.is_active = True
+
+        # 1.1 Register in Code Registries & Seed Defaults
+        from ..logic.installer import AppInstaller
+        AppInstaller.register_app(db, app_cls)
+        
+        menu_registry.register_from_manifest(manifest["name"], manifest)
+        permission_registry.register_from_manifest(manifest["name"], manifest)
+        job_registry.register_from_manifest(manifest["name"], manifest)
+        i18n_registry.load_from_app(app_cls)
 
         # 2. Sync Models (Resources)
         for model_cls in app_cls.models:

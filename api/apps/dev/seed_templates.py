@@ -35,18 +35,115 @@ TEMPLATE_PRESETS = {
         {"id": "chart-area", "name": "Chart Area", "comment": "", "visible": True},
         {"id": "table-section", "name": "Data Table", "comment": "", "visible": True},
     ],
+    "Settings": [
+        {"id": "settings-nav", "name": "Settings Nav", "comment": "", "visible": True},
+        {"id": "settings-form", "name": "Settings Form", "comment": "", "visible": True},
+    ],
+    "Profile": [
+        {"id": "profile-header", "name": "Profile Header", "comment": "", "visible": True},
+        {"id": "profile-details", "name": "Profile Details", "comment": "", "visible": True},
+    ],
 }
+
+def create_placeholder_tree(name):
+    def full_settings(padding=0, gap=16):
+        spacing = {"top": padding, "right": padding, "bottom": padding, "left": padding}
+        margin = {"top": 0, "right": 0, "bottom": 0, "left": 0}
+        return {
+            "margin": margin,
+            "padding": spacing,
+            "gap": gap,
+            "direction": "col",
+            "align": "stretch",
+            "justify": "start",
+            "bg": "transparent",
+            "radius": 0,
+            "width": None,
+            "height": None
+        }
+
+    return {
+        "ROOT": {
+            "type": { "resolvedName": "Box" },
+            "isCanvas": True,
+            "props": {
+                "label": f"{name} Canvas",
+                "className": "w-full min-h-[600px] template-studio-dot-grid p-10 flex flex-col gap-8",
+                "settings": {
+                    "desktop": full_settings(40, 24),
+                    "tablet": full_settings(32, 20),
+                    "mobile": full_settings(24, 16)
+                }
+            },
+            "displayName": "Box",
+            "custom": {},
+            "hidden": False,
+            "nodes": ["header", "content"],
+            "linkedNodes": {}
+        },
+        "header": {
+            "type": { "resolvedName": "Header" },
+            "props": { 
+                "title": name, 
+                "subtitle": "System Template", 
+                "label": "Header",
+                "className": "template-studio-glass",
+                "settings": {
+                    "desktop": full_settings(0, 16),
+                    "tablet": full_settings(0, 16),
+                    "mobile": full_settings(0, 16)
+                }
+            },
+            "parent": "ROOT",
+            "displayName": "Header",
+            "custom": {},
+            "hidden": False,
+            "nodes": [],
+            "linkedNodes": {}
+        },
+        "content": {
+            "type": { "resolvedName": "Box" },
+            "isCanvas": True,
+            "props": { 
+                "label": "Content Area", 
+                "className": "flex-1 template-studio-glass rounded-[var(--aras-radius-lg)] flex items-center justify-center text-[var(--aras-muted)] font-medium",
+                "settings": {
+                    "desktop": full_settings(24, 16),
+                    "tablet": full_settings(20, 16),
+                    "mobile": full_settings(16, 12)
+                }
+            },
+            "parent": "ROOT",
+            "displayName": "Box",
+            "custom": {},
+            "hidden": False,
+            "nodes": ["placeholder_text"],
+            "linkedNodes": {}
+        },
+        "placeholder_text": {
+            "type": { "resolvedName": "Text" },
+            "props": { "text": f"Design your {name} here...", "variant": "paragraph" },
+            "parent": "content",
+            "displayName": "Text",
+            "custom": {},
+            "hidden": False,
+            "nodes": [],
+            "linkedNodes": {}
+        }
+    }
 
 ERP_MODERN_INVOICE_TREE = {
     "ROOT": {
-        "type": "Box",
+        "type": { "resolvedName": "Box" },
         "isCanvas": True,
         "props": {
-            "desktop": {
-                "bg": "radial-gradient(#cbd5e1 1px, transparent 1px)",
-                "backgroundSize": "24px 24px",
-                "direction": "row",
-                "padding": "0"
+            "className": "template-studio-dot-grid w-full",
+            "settings": {
+                "desktop": {
+                    "direction": "row",
+                    "padding": { "top": 24, "right": 24, "bottom": 24, "left": 24 },
+                    "gap": 24,
+                }
             }
         },
         "displayName": "Box",
@@ -71,17 +168,17 @@ def run(db):
             ann = TemplateAnnotation(
                 template_name=name,
                 sections=ordered_sections,
+                tree_json=create_placeholder_tree(name),
                 author="system",
                 node_id="root",
                 node_kind="Template",
                 status="applied"
             )
             db.add(ann)
-        else:
-            # Optionally update if system preset changes? For now just skip.
-            pass
-
-    # Seed erp-modern-invoice with initial craft tree
+        elif not existing.tree_json:
+            existing.tree_json = create_placeholder_tree(name)
+    
+    # Seed erp-modern-invoice with initial craft tree if it doesn't exist
     erp_invoice = db.query(TemplateAnnotation).filter_by(template_name="erp-modern-invoice").first()
     if not erp_invoice:
         ann = TemplateAnnotation(

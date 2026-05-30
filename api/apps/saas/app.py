@@ -5,7 +5,7 @@ from . import views
 from .routers import router
 from .routers.payments import router as payments_router
 from .routers.billing import router as billing_router
-from .routers.admin import router as admin_router
+from .routers.control_panel import router as control_panel_router
 from .payments.registry import PaymentProviderRegistry
 from .payments.stripe_provider import StripeProvider
 from .payments.midtrans_provider import MidtransProvider
@@ -16,12 +16,28 @@ PaymentProviderRegistry.register(StripeProvider())
 PaymentProviderRegistry.register(MidtransProvider())
 PaymentProviderRegistry.register(XenditProvider())
 
+from core.registry.config_registry import ConfigSection, ConfigField
+
 class SaaSApp(App):
     app_name = "saas"
-    app_label = "SaaS Control Plane"
+    app_label = "SaaS Control Panel"
     icon = "Cloud"
     have_home = True
-    routers = [router, payments_router, billing_router, admin_router]
+    config_sections = [
+        ConfigSection(key="general", label="General", scope="module", fields=[
+            ConfigField(key="trial_days", type="number", default=14, label="Trial Period (days)"),
+            ConfigField(key="default_plan", type="string", default="free", label="Default Plan on Signup"),
+            ConfigField(key="signup_open", type="bool", default=True, label="Public Signup Open"),
+            ConfigField(key="require_email_verification", type="bool", default=True, label="Require Email Verification"),
+        ]),
+        ConfigSection(key="billing", label="Billing", scope="module", fields=[
+            ConfigField(key="grace_period_days", type="number", default=3, label="Payment Grace Period (days)"),
+            ConfigField(key="auto_suspend_overdue", type="bool", default=True, label="Auto-Suspend Overdue Tenants"),
+            ConfigField(key="stripe_publishable_key", type="string", label="Stripe Publishable Key"),
+            ConfigField(key="stripe_secret_key", type="secret", label="Stripe Secret Key", secret=True),
+        ]),
+    ]
+    routers = [router, payments_router, billing_router]
     models = autodiscover_models(__name__, ["models"])
 
     @classmethod

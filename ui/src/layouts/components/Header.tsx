@@ -1,7 +1,7 @@
 // claude-sonnet-4-6
 // ARC topbar: title+breadcrumb LEFT, centered CommandBar, Live + actions RIGHT.
-import type { ReactNode } from 'react'
-import { ChevronRight, Menu, Globe } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { ChevronRight, Menu, Globe, Settings, User } from 'lucide-react'
 import { CommandPaletteTrigger } from './CommandPaletteTrigger'
 import { ThemeTweakPanel } from './ThemeTweakPanel'
 import NotificationHistory from '../../aras-core/components/NotificationHistory'
@@ -15,7 +15,19 @@ export function Header({ children }: { children?: ReactNode }) {
   const { pageTitle, breadcrumbs, setMobileSidebarOpen } = useUIStore()
   const { lang, setLang } = useLanguage()
   const user = useAuthStore((s) => s.user)
-const initial = (user?.full_name || user?.username || 'A')[0].toUpperCase()
+  const initial = (user?.full_name || user?.username || 'A')[0].toUpperCase()
+  const [accountOpen, setAccountOpen] = useState(false)
+  const accountRef = useRef<HTMLDivElement>(null)
+  const canOpenWorkspaceSettings = Boolean(user?.is_admin)
+
+  useEffect(() => {
+    if (!accountOpen) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (!accountRef.current?.contains(event.target as Node)) setAccountOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [accountOpen])
 
   return (
     <div
@@ -98,19 +110,44 @@ const initial = (user?.full_name || user?.username || 'A')[0].toUpperCase()
         <ThemeTweakPanel />
         <NotificationHistory />
 
-        <Link
-          to="/profile"
-          aria-label="Open profile"
-          className="arc-av cursor-pointer hover:border-[var(--accent)] transition-colors inline-flex items-center justify-center"
-          style={{
-            width: 26, height: 26, borderRadius: 999,
-            border: '1px solid var(--line)',
-            background: 'color-mix(in oklch, var(--accent) 14%, var(--surface))',
-            color: 'var(--accent)',
-          }}
-        >
-          <span className="arc-mono" style={{ fontSize: 10.5, fontWeight: 700 }}>{initial}</span>
-        </Link>
+        <div ref={accountRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setAccountOpen((open) => !open)}
+            aria-label="Open account menu"
+            className="arc-av cursor-pointer hover:border-[var(--accent)] transition-colors inline-flex items-center justify-center"
+            style={{
+              width: 26, height: 26, borderRadius: 999,
+              border: '1px solid var(--line)',
+              background: 'color-mix(in oklch, var(--accent) 14%, var(--surface))',
+              color: 'var(--accent)',
+            }}
+          >
+            <span className="arc-mono" style={{ fontSize: 10.5, fontWeight: 700 }}>{initial}</span>
+          </button>
+          {accountOpen ? (
+            <div className="absolute right-0 top-9 z-50 w-56 overflow-hidden rounded-[var(--aras-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)] py-1 shadow-xl">
+              <Link
+                to="/profile"
+                onClick={() => setAccountOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-[13px] text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]"
+              >
+                <User size={14} />
+                Profile
+              </Link>
+              {canOpenWorkspaceSettings ? (
+                <Link
+                  to="/admin/settings"
+                  onClick={() => setAccountOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-[13px] text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]"
+                >
+                  <Settings size={14} />
+                  Settings
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   )

@@ -5,6 +5,7 @@ export interface SidebarItem {
   icon: string
   have_home?: boolean
   path?: string
+  hide_from_sidebar?: boolean
   sub_apps?: SidebarItem[]
   models?: {
     name: string

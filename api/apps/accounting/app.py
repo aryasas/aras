@@ -18,7 +18,7 @@ accounting_api_router = APIRouter()
 def get_open_invoices_for_payment(
     payment_id: int,
     db: Session = Depends(get_db),
-    user: object = Depends(check_permissions("erp_accounting_payments", "READ")),
+    user: object = Depends(check_permissions("accounting_payments", "READ")),
 ):
     from .models import Payment
     from .services.payment import PaymentService
@@ -47,11 +47,32 @@ def get_open_invoices_for_payment(
         })
     return result
 
+from core.registry.config_registry import ConfigSection, ConfigField
+from core.registry.master_data_registry import MasterEntity
+from .models import Account, FiscalPeriod
+
 class Accounting(Aras.App):
     app_name = "accounting"
-    table_prefix = "erp_accounting"
     app_label = "Accounting"
     icon = "Calculator"
+
+    master_data = [
+        MasterEntity(key="account", model=Account, scope="module", icon="ListTree", order=10),
+        MasterEntity(key="fiscal_period", model=FiscalPeriod, scope="module", icon="CalendarDays", order=20),
+    ]
+
+    config_sections = [
+        ConfigSection(key="general", label="General", scope="module", fields=[
+            ConfigField(key="fiscal_year_start_month", type="number", default=1, label="Fiscal Year Start Month", help="1=Jan, 12=Dec"),
+            ConfigField(key="default_currency", type="string", default="USD", label="Default Currency", help="ISO 4217 code"),
+            ConfigField(key="rounding_precision", type="number", default=2, label="Rounding Precision (decimals)"),
+            ConfigField(key="enable_multi_currency", type="bool", default=False, label="Enable Multi-Currency"),
+        ]),
+        ConfigSection(key="posting", label="Posting", scope="module", fields=[
+            ConfigField(key="auto_post_journals", type="bool", default=False, label="Auto-Post Journal Entries"),
+            ConfigField(key="require_approval_above", type="number", default=0, label="Require Approval Above Amount", help="0 = no threshold"),
+        ]),
+    ]
 
     routers = [print_router, accounting_api_router]
 
@@ -63,22 +84,27 @@ class Accounting(Aras.App):
         {
             "label": "General Ledger",
             "icon": "Book",
-            "models": ["erp_accounting_accounts", "erp_accounting_entries", "erp_accounting_fiscal_periods"]
+            "models": ["accounting_accounts", "accounting_entries", "accounting_fiscal_periods"]
         },
         {
             "label": "Inflow",
             "icon": "ArrowDownLeft",
-            "models": ["erp_accounting_inflow_invoices"]
+            "models": ["accounting_inflow_invoices"]
         },
         {
             "label": "Outflow",
             "icon": "ArrowUpRight",
-            "models": ["erp_accounting_outflow_invoices", "erp_accounting_grns"]
+            "models": ["accounting_outflow_invoices", "accounting_grns"]
         },
         {
             "label": "Payments",
             "icon": "CreditCard",
-            "models": ["erp_accounting_payments"]
+            "models": ["accounting_payments"]
+        },
+        {
+            "label": "Fixed Assets",
+            "icon": "Building2",
+            "models": ["accounting_assets_assets", "accounting_assets_categories"]
         }
     ]
 

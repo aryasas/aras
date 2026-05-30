@@ -13,6 +13,7 @@ interface AppManifest {
   icon: string
   version: string
   models: string[]
+  required?: boolean
   is_active?: boolean
   is_registered?: boolean
 }
@@ -102,6 +103,17 @@ export default function AppManager() {
     }
   }
 
+  const handleUninstall = async (app: AppManifest) => {
+    if (app.required) return
+    if (!window.confirm(`Uninstall ${app.label || app.name}?`)) return
+    try {
+      await api.delete(`/admin/apps/${app.name}`).catch(() => api.delete(`/admin/uninstall/${app.name}`))
+      fetchApps()
+    } catch (error: any) {
+      alert(error.message || 'Uninstall failed')
+    }
+  }
+
   const handleInstall = async () => {
     setInstalling(true)
     setError(null)
@@ -168,6 +180,7 @@ export default function AppManager() {
             key={app.name}
             app={app}
             subModules={subModules.filter(sub => sub.parent_name === app.name)}
+            onUninstall={handleUninstall}
           />
         ))}
         
@@ -292,7 +305,7 @@ export default function AppManager() {
   )
 }
 
-function AppCard({ app, subModules }: { app: AppManifest; subModules: AppManifest[] }) {
+function AppCard({ app, subModules, onUninstall }: { app: AppManifest; subModules: AppManifest[]; onUninstall: (app: AppManifest) => void }) {
   // @ts-ignore
   const Icon = Icons[app.icon] || Icons.Package
   const isActive = app.is_active !== false
@@ -305,10 +318,17 @@ function AppCard({ app, subModules }: { app: AppManifest; subModules: AppManifes
             <Icon size={28} />
           </div>
           <div className="flex flex-col items-end">
-            <span className={`px-3 py-1 ${isActive ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-[var(--app-panel-soft)] text-[var(--app-muted)] border-[var(--app-border)]'} text-[10px] font-black uppercase tracking-widest rounded-full flex items-center gap-1 border`}>
-              {isActive ? <CheckCircle2 size={10} /> : <Icons.Circle size={10} />}
-              {isActive ? 'Active' : 'Inactive'}
-            </span>
+            <div className="flex flex-wrap justify-end gap-1">
+              <span className={`px-3 py-1 ${isActive ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-[var(--app-panel-soft)] text-[var(--app-muted)] border-[var(--app-border)]'} text-[10px] font-black uppercase tracking-widest rounded-full flex items-center gap-1 border`}>
+                {isActive ? <CheckCircle2 size={10} /> : <Icons.Circle size={10} />}
+                {isActive ? 'Active' : 'Inactive'}
+              </span>
+              {app.required ? (
+                <span className="rounded-full border border-[var(--app-border)] bg-[var(--app-panel-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-widest text-[var(--app-muted)]">
+                  Required
+                </span>
+              ) : null}
+            </div>
             <span className="text-xs font-bold text-[var(--app-muted)] mt-2">v{app.version}</span>
           </div>
         </div>
@@ -356,7 +376,12 @@ function AppCard({ app, subModules }: { app: AppManifest; subModules: AppManifes
         <button className="text-[var(--app-accent)] text-sm font-black hover:text-indigo-700 transition-colors">
           Configure
         </button>
-        <button className="p-2 text-slate-300 hover:text-red-500 transition-colors">
+        <button
+          className="p-2 text-slate-300 transition-colors hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-slate-300"
+          disabled={Boolean(app.required)}
+          title={app.required ? 'Required apps cannot be uninstalled' : 'Uninstall app'}
+          onClick={() => onUninstall(app)}
+        >
           <Trash2 size={16} />
         </button>
       </div>

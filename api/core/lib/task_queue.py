@@ -13,7 +13,7 @@ REDIS_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
 
 # Initialize Celery app
 celery_app = Celery(
-    "aras_tasks",
+    "core_tasks",
     broker=REDIS_BROKER_URL,
     backend=REDIS_BROKER_URL, # Using Redis for result backend as well
     include=['api.core.manager.task_manager'] # Will be created later

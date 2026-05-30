@@ -5,3 +5,5 @@ from . import registry
 from . import workflow
 from . import files
 from . import dashboard
+from . import settings
+from . import master_data

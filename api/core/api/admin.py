@@ -23,6 +23,10 @@ def get_apps_list(db: Session = Depends(get_db), _: Any = Depends(require_admin)
     results = []
     for app_cls in App._registry.values():
         manifest = app_cls.get_manifest()
+        # Framework apps (e.g. config/settings, dev) are part of the platform,
+        # not installable extensions — hide from App Manager.
+        if manifest.get("app_type") == "framework":
+            continue
         db_record = registry_apps.get(manifest["name"])
 
         results.append({

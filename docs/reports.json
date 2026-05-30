@@ -166,7 +166,7 @@
   {
     "id": 10,
     "date": "2026-05-26",
-    "feature": "Combobox redesign — compact mode, FK shortcut built-in per row, updated design tokens",
+    "feature": "Combobox redesign \u2014 compact mode, FK shortcut built-in per row, updated design tokens",
     "revision_count": 0,
     "backend": null,
     "frontend": {
@@ -201,7 +201,7 @@
   {
     "id": 12,
     "date": "2026-05-26",
-    "feature": "Framework Architecture Overhaul — ServiceRegistry, WebSocket Events, and Metadata Optimization",
+    "feature": "Framework Architecture Overhaul \u2014 ServiceRegistry, WebSocket Events, and Metadata Optimization",
     "revision_count": 0,
     "backend": {
       "files_written": "api/core/service_registry.py, api/core/manager/service_bootstrap.py, api/core/aras.py, api/main.py, api/core/logic/builtin_handlers.py, api/core/base/model.py, api/core/auth/service.py, api/core/logic/router_factory.py, api/core/api/query.py, api/core/logic/ui_generator.py, api/core/lib/helpers.py, api/core/api/dev.py, api/manage.py, and app view/model files (icons)",
@@ -336,7 +336,7 @@
   {
     "id": 19,
     "date": "2026-05-27",
-    "feature": "ArasActionBar generic component — simple + full variant, migrate InlineChildTable dan ListViewActionBar",
+    "feature": "ArasActionBar generic component \u2014 simple + full variant, migrate InlineChildTable dan ListViewActionBar",
     "revision_count": 0,
     "backend": null,
     "frontend": {
@@ -356,7 +356,7 @@
   {
     "id": 20,
     "date": "2026-05-27",
-    "feature": "InlineChildTable pakai ArasTable generic — header/row design konsisten dengan ListView",
+    "feature": "InlineChildTable pakai ArasTable generic \u2014 header/row design konsisten dengan ListView",
     "revision_count": 0,
     "backend": null,
     "frontend": {
@@ -402,7 +402,7 @@
   {
     "id": 22,
     "date": "2026-05-28",
-    "feature": "Backend Sweep — RouterFactory & Model Modularization, Quick Actions, and Service Layer",
+    "feature": "Backend Sweep \u2014 RouterFactory & Model Modularization, Quick Actions, and Service Layer",
     "revision_count": 0,
     "backend": {
       "files_written": "api/core/logic/router_factory/*, api/core/base/model/*, api/core/base/service.py, api/core/api/admin.py, api/apps/web/routers.py, api/apps/web/models.py, api/apps/web/views.py, api/apps/web/seed_landing.py, api/core/api/dev.py, api/core/logic/ui_generator.py, api/apps/accounting/services/journal.py, api/apps/stock/services/stock.py, api/apps/saas/services/license_service.py, api/core/logic/trait_injector.py, api/core/base/aras.py, api/tests/conftest.py, api/tests/smoke_test.py",
@@ -417,7 +417,7 @@
   {
     "id": 23,
     "date": "2026-05-29",
-    "feature": "Backend Revision Tasks — bak cleanup, sync, smoke tests, and SkeletonRow consolidation",
+    "feature": "Backend Revision Tasks \u2014 bak cleanup, sync, smoke tests, and SkeletonRow consolidation",
     "revision_count": 0,
     "backend": {
       "files_written": "api/core/base/model.py.bak (deleted), api/core/logic/router_factory.py.bak (deleted)",
@@ -527,7 +527,7 @@
   {
     "id": 30,
     "date": "2026-05-29",
-    "feature": "SaaS Phase 6–8 Backend — Payments, Provisioning, Billing, and Monitoring",
+    "feature": "SaaS Phase 6\u20138 Backend \u2014 Payments, Provisioning, Billing, and Monitoring",
     "revision_count": 0,
     "backend": {
       "files_written": "api/apps/saas/payments/*, api/apps/saas/services/*, api/core/lib/geo.py, api/core/api/middleware/*, api/apps/saas/routers/*, api/apps/saas/models.py, api/main.py, api/requirements.txt",
@@ -542,7 +542,7 @@
   {
     "id": 31,
     "date": "2026-05-29",
-    "feature": "rhf run_id 103 — SaaS Fase 6–8 + 3-provider payment gateway (Stripe/Midtrans/Xendit) review",
+    "feature": "rhf run_id 103 \u2014 SaaS Fase 6\u20138 + 3-provider payment gateway (Stripe/Midtrans/Xendit) review",
     "revision_count": 0,
     "backend": {
       "files_written": "none (review only)",
@@ -556,19 +556,19 @@
       "features_added": "none",
       "fixes_applied": "Removed unused `import React from 'react'` that broke `npm run build` (TS6133)",
       "framework_changes": "none",
-      "issues": "none — vite build green in 351ms"
+      "issues": "none \u2014 vite build green in 351ms"
     },
     "input_tokens": "n/a",
     "output_tokens": "n/a",
     "cache_read_tokens": "n/a",
     "cache_write_tokens": "n/a",
-    "token_efficiency": "Minimal — grep-first verification, one targeted Edit to unblock build, single approval write",
+    "token_efficiency": "Minimal \u2014 grep-first verification, one targeted Edit to unblock build, single approval write",
     "verdict": "APPROVED"
   },
   {
     "id": 32,
     "date": "2026-05-29",
-    "feature": "Polish sweep — Email transport wiring, GeoLite2 bundling, payment webhook E2E tests",
+    "feature": "Polish sweep \u2014 Email transport wiring, GeoLite2 bundling, payment webhook E2E tests",
     "revision_count": 0,
     "backend": {
       "files_written": "api/apps/saas/services/email.py, api/apps/saas/services/billing.py, api/scripts/fetch_geolite.py, api/manage.py, api/core/lib/geo.py, api/apps/saas/routers/*.py, api/apps/saas/payments/*.py, api/apps/saas/tests/test_payment_webhooks.py, docs/aras.md",
@@ -583,7 +583,7 @@
   {
     "id": 33,
     "date": "2026-05-29",
-    "feature": "Polish sweep frontend resume — silent-catch surfacing and aras-core any cleanup",
+    "feature": "Polish sweep frontend resume \u2014 silent-catch surfacing and aras-core any cleanup",
     "revision_count": 0,
     "backend": null,
     "frontend": {
@@ -598,15 +598,15 @@
   {
     "id": 34,
     "date": "2026-05-29",
-    "feature": "rhf run_id 104 — FE silent-catch + any cleanup (resume after codex disconnect) review",
+    "feature": "rhf run_id 104 \u2014 FE silent-catch + any cleanup (resume after codex disconnect) review",
     "revision_count": 0,
     "backend": null,
     "frontend": {
       "files_written": "none (review only)",
       "features_added": "none",
-      "fixes_applied": "Verified BATCH 1 (toast surfacing in CustomerSignup/PublicLanding/CustomerPortal + sessionStorage subscription_id) and BATCH 2 (any 110→37 in aras-core/)",
+      "fixes_applied": "Verified BATCH 1 (toast surfacing in CustomerSignup/PublicLanding/CustomerPortal + sessionStorage subscription_id) and BATCH 2 (any 110\u219237 in aras-core/)",
       "framework_changes": "none",
-      "issues": "none — npm run build green"
+      "issues": "none \u2014 npm run build green"
     },
     "input_tokens": "n/a",
     "output_tokens": "n/a",
@@ -632,7 +632,178 @@
     "output_tokens": "unknown",
     "cache_read_tokens": "unknown",
     "cache_write_tokens": "unknown",
-    "token_efficiency": "Verified 5 plan items via one Explore agent + targeted greps. Only Backend 15 needed code (3 file edits). U11/U17/R6/U20/U21 were already correctly implemented — Explore agent reported false negatives, caught before duplicating work.",
+    "token_efficiency": "Verified 5 plan items via one Explore agent + targeted greps. Only Backend 15 needed code (3 file edits). U11/U17/R6/U20/U21 were already correctly implemented \u2014 Explore agent reported false negatives, caught before duplicating work.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 36,
+    "date": "2026-05-29",
+    "feature": "Config & Registry refinement \u2014 Framework-wide declarative registries and core_config app",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/registry/base_registry.py, api/core/registry/config_registry.py, api/core/registry/menu_registry.py, api/core/registry/permission_registry.py, api/core/registry/job_registry.py, api/core/registry/i18n_registry.py, api/core/registry/config_value.py, api/core/registry/audit_log.py, api/core/registry/numbering_sequence.py, api/core/lib/config.py, api/core/lib/secrets.py, api/core/lib/audit.py, api/core/lib/numbering.py, api/core/lib/exceptions.py, api/apps/core_config/app.py, api/apps/core_config/sections.py, api/apps/core_config/hooks.py, api/apps/core_config/router.py, api/apps/core_config/locales/en.json, api/apps/core_config/locales/id.json, api/alembic/versions/20260529_0001_config_registry.py, api/tests/test_config_registry.py, api/tests/test_numbering.py",
+      "features_added": "Generic Registry abstraction; multi-tenant ConfigService with LRU cache and Fernet encryption; generic Audit logging; atomic Numbering service; mandatory core_config app with 7 sections; unified tenant provisioning with topological app installation.",
+      "fixes_applied": "Replaced legacy SeriesManager with centralized NumberingService; integrated manifest-based registration into SyncManager; added RequiredAppError (409) for mandatory apps.",
+      "framework_changes": "Extended Aras.App manifest; updated SyncManager to handle in-memory and DB registries; moved SMTP/Branding/Company logic from core to core_config app.",
+      "issues": "Legacy ERP strings in old files remain; some old models still use SeriesManager (need subsequent refactor)."
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 37,
+    "date": "2026-05-29",
+    "feature": "Template Studio ImportError and Current Page Page Fix",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/api/dev.py",
+      "features_added": "none",
+      "fixes_applied": "Fixed ImportError in list_dev_template_trees by replacing TemplateTree with TemplateAnnotation; improved query to return unique template names with latest timestamps.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/views/TemplateBuilder.tsx, ui/src/layouts/components/TemplateDesignToggle.tsx",
+      "features_added": "none",
+      "fixes_applied": "Mapped '/' route to 'Home' template in TemplateBuilder; ensured templateName state syncs with fromRoute; refreshed available templates list after save; hid TemplateDesignToggle on the builder page to prevent circular loading.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 38,
+    "date": "2026-05-29",
+    "feature": "Architecture cleanup \u2014 table prefix rename, Control Panel consolidation, Fixed Assets -> accounting sub-module, license surface split",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/alembic/versions/20260529_0002_rename_framework_tables.py, api/alembic/versions/20260529_0003_rename_app_tables_leaves.py, api/alembic/versions/20260529_0004_rename_app_tables_mid.py, api/alembic/versions/20260529_0005_rename_app_tables_core.py, api/core/tenant/service.py, api/apps/saas/routers/control_panel.py, api/apps/asset/__init__.py, api/tests/test_naming_rules.py, api/tests/test_control_panel_routing.py, api/tests/test_asset_submodule.py, docs/aras.md",
+      "features_added": "Consolidated Control Panel with dedicated `/control-panel/licenses` operator-facing endpoint and tenant provisioning service. Moved Fixed Assets (`apps/asset`) to an `accounting` sub-module (`apps/accounting/assets`).",
+      "fixes_applied": "Renamed legacy `aras_*` framework tables to `core_*` and `erp_*` app tables to `<app_name>_*`. Cleaned up license separation and routing.",
+      "framework_changes": "`api/main.py` conditionally mounts Control Panel and Tenant License routers based on `ARAS_ROLE`. Added naming and layering rules to `docs/aras.md`. Added Asset deprecation shim in `api/apps/asset/__init__.py`. Replaced `permission.asset.*` to `permission.accounting.assets.*`.",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 39,
+    "date": "2026-05-29",
+    "feature": "Architecture cleanup REVISION \u2014 fixed FK strings, routes, and SQLite PKs",
+    "revision_count": 1,
+    "backend": {
+      "files_written": "api/alembic/versions/20260529_0001_config_registry.py, api/alembic/versions/20260529_0002_rename_framework_tables.py, api/alembic/versions/20260529_0003_rename_app_tables_leaves.py, api/alembic/versions/20260529_0004_rename_app_tables_mid.py, api/alembic/versions/20260529_0005_rename_app_tables_core.py, api/core/registry/config_value.py, api/core/registry/numbering_sequence.py, api/apps/config/erp_rbac.py, api/apps/saas/app.py, api/apps/accounting/app.py, ui/src/views/PublicLanding.tsx, api/tests/test_naming_rules.py, api/tests/test_control_panel_routing.py, api/tests/test_asset_submodule.py",
+      "features_added": "REVISION: Fixed all ForeignKey and target_resource string references to remove legacy prefixes. Added safety checks to Alembic migrations (check if table exists). Fixed core_config_values and core_numbering_sequences primary keys for SQLite compatibility. Renamed user_access -> config_user_access. Added Fixed Assets submenu to Accounting. Cleaned up /erp/ route prefixes in UI and API.",
+      "fixes_applied": "Applied all NEEDS-FIX items for Backend. Verified with 4 new tests. Fixed saas_request_log model and migration mapping.",
+      "framework_changes": "Updated Model subclasses in registry to follow new naming rules and SQLite constraints. Conditional routing for Control Panel verified.",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 40,
+    "date": "2026-05-30",
+    "feature": "Final DB Naming Cleanup (Drop aras_ prefix)",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/tenant/service.py, api/manage.py, api/core/lib/config.py, api/.env.tenant.example, tools/rename_tenant_dbs.py, api/core/lib/settings.py, api/.env.control-panel.example, docker-compose.yml, docs/aras.md, api/core/logic/auto_migrate.py, api/tests/test_naming_rules.py, api/tests/test_tenant_db_naming.py",
+      "features_added": "Implemented database renaming policy (dropped aras_ prefix from tenant, dev, and control-panel DBs). Created tools/rename_tenant_dbs.py migration script.",
+      "fixes_applied": "Replaced all legacy aras_ DB name references in settings, env examples, and docker-compose. Verified with new test suite.",
+      "framework_changes": "Updated ConfigService with a 2026-08 deprecation window for aras_tenant_ DB prefixes. Added database naming rule #4 to docs/aras.md.",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 41,
+    "date": "2026-05-30",
+    "feature": "Redesign /settings to match current ARC design (hero + grouped dense rows)",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/Settings.tsx",
+      "features_added": "Hero card with app icon, name, count summary. Grouped sections (platform/preferences/security/tools) with header strip + count, matching AppHome row design (14px icon, 13px label, 11.5px description, mono path on md+).",
+      "fixes_applied": "Removed flat single-card list and oversized icon tiles; aligned typography, density (py-2.5), and section-header strip with AppHome reference. Removed bottom CTA banner that duplicated the global preferences row.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 42,
+    "date": "2026-05-30",
+    "feature": "Surface built-but-unlinked admin pages in /settings (workspace config, control-panel licenses/plans, ERP user access)",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/Settings.tsx",
+      "features_added": "Added 4 missing entries to System Settings index: Workspace Configuration (/config) for the new core_config app, Tenant Licenses (/control-panel/licenses), SaaS Plans (/control-panel/plans), and ERP User Access (/config/user-access). Gated control-panel entries to control-panel role + admin; gated workspace/ERP-access to admin.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 43,
+    "date": "2026-05-30",
+    "feature": "Surface remaining core endpoints with UI: Handoff Runs, Background Tasks, File Manager",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/HandoffRuns.tsx, ui/src/views/BackgroundTasks.tsx, ui/src/views/FileManager.tsx, ui/src/App.tsx, ui/src/views/Settings.tsx",
+      "features_added": "Three new admin pages matching ARC design (hero + grouped sections). HandoffRuns: read-only listing of /dev/dev_handoff_runs with status tones. BackgroundTasks: enqueue (POST /dev/tasks/enqueue) + per-task status polling (GET /dev/tasks/:id/status), tracked IDs cached in localStorage. FileManager: drag-and-drop upload (POST /files/upload), download by name (GET /files/download/:name), recent uploads cached in localStorage. Routes /dev/handoff-runs, /dev/tasks, /settings/files added in App.tsx (lazy). Linked from Settings tools group with admin gating for tasks/handoff.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "File list endpoint not implemented backend-side; UI uses localStorage as recent-file index. Could be moved to a real listing if a GET /files endpoint is added."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 44,
+    "date": "2026-05-30",
+    "feature": "Center main content with horizontal margins (max-w-1280, responsive px, py-5)",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/MainLayout.tsx",
+      "features_added": "Added centered container around <Outlet>: w-full max-w-[1280px] mx-auto px-4 md:px-6 lg:px-8 py-5. Applies to every routed page inside MainLayout.",
+      "fixes_applied": "Content was rendering edge-to-edge with no horizontal gutter; now centered with breathable margins on wide screens and predictable padding on small screens.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 45,
+    "date": "2026-05-30",
+    "feature": "Framework-Owned Config Registry (Single Settings Surface)",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/registry/sys_settings.py, api/core/registry/settings_service.py, api/core/api/settings.py, api/alembic/versions/20260530_0001_core_settings.py, api/core/api/__init__.py, api/core/aras.py, api/core/base/app.py, api/core/logic/installer.py, api/core/manager/sync_manager.py, api/core/manager/bootstrap.py, api/core/registry/views.py, api/core/api/registry.py, api/core/manager/service_bootstrap.py, api/apps/config/app.py, api/apps/config/models.py, api/apps/config/views.py, and all app.py in apps/",
+      "features_added": "Implemented unified Aras.Settings service with caching and typed casting. Created /api/v1/settings endpoints with namespace-based RBAC. Added config_sections to App base class and automatic registration/seeding.",
+      "fixes_applied": "Migrated core_sys_settings to unified core_settings table. Removed redundant Setting model and service from apps/config. Unified framework-level seeding.",
+      "framework_changes": "Consolidated all key/value configuration into a single framework-owned registry. Introduced ConfigSection and ConfigField as the standard schema definition for app-level settings.",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 46,
+    "date": "2026-05-30",
+    "feature": "Framework-Owned Master Data Hub (Single Master Surface)",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/registry/master_data_registry.py, api/core/registry/master_data_entities.py, api/core/api/master_data.py, api/core/base/app.py, api/core/logic/installer.py, api/core/aras.py, api/main.py, api/core/registry/__init__.py, api/core/api/__init__.py, api/apps/config/app.py, api/apps/hr/app.py, api/apps/stock/app.py, api/apps/accounting/app.py, api/apps/accounting/assets/app.py, api/apps/crm/app.py, api/apps/pot/app.py, api/apps/seeds/rbac_erp.yaml",
+      "features_added": "Implemented MasterDataRegistry and MasterEntity for declarative master data registration. Created /api/v1/master-data endpoints with /schema and namespace-based RBAC. Added master_data and hide_from_sidebar to App base class. Automated registration during app installation and sync.",
+      "fixes_applied": "Hidden config app from sidebar (now surfaced via Master Data hub). Resolved circular imports during framework initialization by using late-binding in master_data_entities.py and master_data.py API.",
+      "framework_changes": "Unified master data management into a single framework-owned hub. Standardized how apps declare master entities (scope, icon, order).",
+      "issues": "Circular dependency between core and apps.config.models required refactoring registry imports."
+    },
+    "frontend": null,
     "verdict": "APPROVED"
   }
 ]

@@ -2,61 +2,61 @@
 # key must match the model's __tablename__.
 # format tokens: {prefix}, {year}, {next_value}
 series:
-  - key: erp_accounting_entries
+  - key: accounting_entries
     prefix: "JE-"
     format: "{prefix}{year}-{next_value:04d}"
     config:
       reset_yearly: true
 
-  - key: erp_accounting_inflow_invoices
+  - key: accounting_inflow_invoices
     prefix: "INV-"
     format: "{prefix}{year}-{next_value:04d}"
     config:
       reset_yearly: true
 
-  - key: erp_accounting_outflow_invoices
+  - key: accounting_outflow_invoices
     prefix: "BILL-"
     format: "{prefix}{year}-{next_value:04d}"
     config:
       reset_yearly: true
 
-  - key: erp_accounting_payments
+  - key: accounting_payments
     prefix: "PAY-"
     format: "{prefix}{year}-{next_value:04d}"
     config:
       reset_yearly: true
 
-  - key: erp_accounting_grns
+  - key: accounting_grns
     prefix: "GRN-"
     format: "{prefix}{year}-{next_value:04d}"
     config:
       reset_yearly: true
 
-  - key: erp_stock_movements
+  - key: stock_movements
     prefix: "MV-"
     format: "{prefix}{year}-{next_value:04d}"
     config:
       reset_yearly: true
 
-  - key: erp_stock_delivery_notes
+  - key: stock_delivery_notes
     prefix: "DN-"
     format: "{prefix}{year}-{next_value:04d}"
     config:
       reset_yearly: true
 
-  - key: erp_pot_sessions
+  - key: pot_sessions
     prefix: "SES-"
     format: "{prefix}{year}-{next_value:04d}"
     config:
       reset_yearly: true
 
-  - key: erp_pot_orders
+  - key: pot_orders
     prefix: "ORD-"
     format: "{prefix}{year}-{next_value:04d}"
     config:
       reset_yearly: true
 
-  - key: erp_party_parties
+  - key: party_parties
     prefix: "PARTY-"
     format: "{prefix}{next_value:05d}"
     config: {}

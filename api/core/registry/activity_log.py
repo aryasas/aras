@@ -13,7 +13,7 @@ class ActivityLog(Model):
     Stores logs of "Who changed what and when".
     Captures old and new values for every tracked change.
     """
-    __tablename__ = "aras_activity_logs"
+    __tablename__ = "core_activity_logs"
 
     resource: Mapped[str] = Field(String(100), index=True, label="Resource")
     resource_id: Mapped[int] = Field(Integer, index=True, label="Record ID")

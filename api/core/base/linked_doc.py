@@ -10,12 +10,12 @@ Usage — only table + filters required:
     class InflowInvoice(DocumentBase):
         __linked_docs__ = [
             LinkedDoc(
-                table="erp_accounting_entries",
+                table="accounting_entries",
                 filters={"source_type": "@class_name", "source_id": "@id"},
                 cascade=True,
             ),
             LinkedDoc(
-                table="erp_stock_movements",
+                table="stock_movements",
                 filters={"origin_model": "@class_name", "origin_id": "@id"},
                 cascade=True,
             ),
@@ -24,7 +24,7 @@ Usage — only table + filters required:
     class JournalEntry(DocumentBase):
         __linked_docs__ = [
             LinkedDoc(
-                table="erp_accounting_inflow_invoices",
+                table="accounting_inflow_invoices",
                 filters={"id": "@source_id"},
                 condition=lambda self: self.source_type == "InflowInvoice",
                 cascade=True,
@@ -32,7 +32,7 @@ Usage — only table + filters required:
         ]
 
     # cascade-only (no card shown in UI):
-    LinkedDoc(table="erp_stock_movement_lines", filters={"movement_id": "@id"}, cascade=True, show=False)
+    LinkedDoc(table="stock_movement_lines", filters={"movement_id": "@id"}, cascade=True, show=False)
 
 Supported filter value prefixes:
   "@id"         → instance.id

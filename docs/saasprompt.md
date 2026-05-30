@@ -40,7 +40,7 @@ Konteks arsitektur yang sudah final:
 - Tenant Connection Router: satu-satunya layer yang tahu soal multi-tenant
 - Skema bisnis (multi-company, multi-branch, parent-child) tidak berubah
 - Auth: license + offline token JWT (verifikasi lokal, renewal ke pusat)
-- Control Plane (license/billing) terpisah dari Data Plane (monitoring)
+- Control Panel (license/billing) terpisah dari Data Plane (monitoring)
 - Solo developer — kesederhanaan dan maintainability lebih penting dari over-engineering
 
 Pertanyaan arsitektur:

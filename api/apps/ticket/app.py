@@ -4,7 +4,6 @@ from core.logic.discovery import autodiscover_models
 
 class TicketingApp(Aras.App):
     app_name = "ticket"
-    table_prefix = "erp_ticket"
     app_label = "Ticketing"
     icon = "Ticket"
     
@@ -18,9 +17,9 @@ class TicketingApp(Aras.App):
             "label": "Operations",
             "icon": "Ticket",
             "models": [
-                "erp_ticket_tickets",
-                "erp_ticket_teams",
-                "erp_ticket_categories"
+                "ticket_tickets",
+                "ticket_teams",
+                "ticket_categories"
             ]
         }
     ]

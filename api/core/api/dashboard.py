@@ -184,11 +184,17 @@ def get_widgets(
         }
     else:
         # Fallback to system-defined widgets
+        from core.logic.discovery import resolve_resource_path
         system_widgets = WidgetModel.get_default_widgets(db)
+        widgets_out = []
+        for w in system_widgets:
+            d = w.to_dict()
+            d["resource_path"] = resolve_resource_path(w.resource_name) or w.resource_name
+            widgets_out.append(d)
         return {
             "name": "System Default Dashboard",
             "is_default": False,
             "layout_config": {
-                "widgets": [w.to_dict() for w in system_widgets]
+                "widgets": widgets_out
             }
         }

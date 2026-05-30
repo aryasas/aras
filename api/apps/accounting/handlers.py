@@ -41,7 +41,7 @@ def post_stock_movement(db: Session, item, params: dict):
 
     movement = StockMovement(
         org_id=item.org_id,
-        number=SeriesManager.get_next(db, "erp_stock_movements"),
+        number=SeriesManager.get_next(db, "stock_movements"),
         move_type=move_type,
         status="Posted",
         origin_model=item.__class__.__name__,

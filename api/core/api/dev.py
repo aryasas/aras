@@ -131,9 +131,9 @@ def get_db_stats(
     from sqlalchemy import text
 
     tables = [
-        "aras_apps", "aras_resources", "aras_fields",
-        "aras_links", "aras_activity_logs", "auth_users",
-        "auth_roles", "auth_permissions", "sys_settings",
+        "core_apps", "core_resources", "core_fields",
+        "core_links", "core_activity_logs", "core_users",
+        "core_roles", "core_permissions", "core_settings",
         "dev_handoff_runs"
     ]
 
@@ -210,9 +210,20 @@ def list_dev_template_trees(
     _: Any = Depends(require_admin)
 ):
     """Returns a list of all template trees."""
-    from apps.dev.models import TemplateTree
-    trees = db.query(TemplateTree).all()
+    from apps.dev.models import TemplateAnnotation
+    from sqlalchemy import func
+    
+    # We want unique template names and their latest update time
+    subq = db.query(
+        TemplateAnnotation.template_name,
+        func.max(TemplateAnnotation.id).label("max_id")
+    ).group_by(TemplateAnnotation.template_name).subquery()
+
+    trees = db.query(TemplateAnnotation).join(
+        subq, TemplateAnnotation.id == subq.c.max_id
+    ).all()
+
     return [{
         "template_name": tree.template_name,
-        "updated_at": tree.updated_at.isoformat() if tree.updated_at else None
+        "updated_at": tree.updated_at.isoformat() if hasattr(tree, 'updated_at') and tree.updated_at else None
     } for tree in trees]

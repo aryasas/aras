@@ -7,61 +7,63 @@ roles:
   - name: "System Admin"
     description: "Full access to all framework-level resources"
     permissions:
-      - resource: auth_users
+      - resource: core_users
         actions: [READ, CREATE, UPDATE, DELETE]
-      - resource: auth_roles
+      - resource: core_roles
         actions: [READ, CREATE, UPDATE, DELETE]
-      - resource: auth_permissions
+      - resource: core_permissions
         actions: [READ, CREATE, UPDATE, DELETE]
-      - resource: auth_user_roles
+      - resource: core_user_roles
         actions: [READ, CREATE, UPDATE, DELETE]
-      - resource: aras_apps
+      - resource: core_apps
         actions: [READ, CREATE, UPDATE, DELETE]
-      - resource: sys_settings
+      - resource: core_settings
         actions: [READ, UPDATE]
-      - resource: aras_widgets
+      - resource: core_widgets
         actions: [READ, CREATE, UPDATE, DELETE]
-      - resource: aras_resources
+      - resource: core_resources
         actions: [READ, UPDATE]
-      - resource: aras_activity_logs
+      - resource: core_activity_logs
         actions: [READ]
-      - resource: aras_dashboard_layouts
+      - resource: core_dashboard_layouts
         actions: [READ, CREATE, UPDATE, DELETE]
-      - resource: aras_translations
+      - resource: core_translations
         actions: [READ, CREATE, UPDATE, DELETE]
-      - resource: aras_fields
+      - resource: core_fields
         actions: [READ, CREATE, UPDATE, DELETE]
-      - resource: aras_naming_series
+      - resource: core_series
         actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: settings
+        actions: [READ, WRITE, ADMIN]
 
   - name: "User Manager"
     description: "Manage users and role assignments; read-only on roles"
     permissions:
-      - resource: auth_users
+      - resource: core_users
         actions: [READ, CREATE, UPDATE]
-      - resource: auth_roles
+      - resource: core_roles
         actions: [READ]
-      - resource: auth_permissions
+      - resource: core_permissions
         actions: [READ]
-      - resource: auth_user_roles
+      - resource: core_user_roles
         actions: [READ, CREATE, DELETE]
-      - resource: aras_activity_logs
+      - resource: core_activity_logs
         actions: [READ]
 
   - name: "Viewer"
     description: "Read-only access to framework resources"
     permissions:
-      - resource: auth_users
+      - resource: core_users
         actions: [READ]
-      - resource: auth_roles
+      - resource: core_roles
         actions: [READ]
-      - resource: aras_apps
+      - resource: core_apps
         actions: [READ]
-      - resource: sys_settings
+      - resource: core_settings
         actions: [READ]
-      - resource: aras_resources
+      - resource: core_resources
         actions: [READ]
-      - resource: aras_activity_logs
+      - resource: core_activity_logs
         actions: [READ]
-      - resource: aras_dashboard_layouts
+      - resource: core_dashboard_layouts
         actions: [READ]

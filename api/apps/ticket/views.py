@@ -26,7 +26,7 @@ class TicketView(View):
             {"title": "Requester", "fields": ["requester_name", "requester_email", "party_id"]},
             {"title": "Notes", "fields": ["description"]},
         ]},
-        {"type": "child_table", "resource": "erp_ticket_messages"},
+        {"type": "child_table", "resource": "ticket_messages"},
     ]
 
 # gemini-flash

@@ -1,41 +1,19 @@
-from sqlalchemy import String, Text
-from sqlalchemy.orm import Mapped
+from sqlalchemy import String, Text, Boolean, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column
 from ..base.model import Model
 from ..base.field import Field
-import core
+from typing import Optional
 
-class ArasSetting(Model):
-    __tablename__ = "sys_settings"
+class Settings(Model):
+    __tablename__ = "core_settings"
     __public_read__ = True
+    __unique_together__ = [("namespace", "key")]
 
-    key: Mapped[str] = Field(String(100), unique=True, label="Setting Key", searchable=True)
+    namespace: Mapped[str] = Field(String(60), index=True, label="Namespace", searchable=True)
+    key: Mapped[str] = Field(String(100), label="Setting Key", searchable=True)
     value: Mapped[str] = Field(Text, label="Value", ui_type="textarea")
+    value_type: Mapped[str] = Field(String(20), default="str", label="Value Type")
+    is_secret: Mapped[bool] = Field(Boolean, default=False, label="Is Secret")
     description: Mapped[str] = Field(String(255), nullable=True, label="Description")
-
-    @classmethod
-    def get_value(cls, key: str, default: str = None):
-        """Fetch a setting value by key."""
-        db = core.Aras.db()
-        try:
-            row = db.query(cls).filter(cls.key == key).first()
-            return row.value if row else default
-        finally:
-            db.close()
-
-    @classmethod
-    def set_value(cls, key: str, value: str, description: str = None):
-        """Set a setting value by key."""
-        db = core.Aras.db()
-        try:
-            row = db.query(cls).filter(cls.key == key).first()
-            if row:
-                row.value = str(value)
-                if description:
-                    row.description = description
-            else:
-                row = cls(key=key, value=str(value), description=description)
-                db.add(row)
-            db.commit()
-            return row
-        finally:
-            db.close()
+    
+    updated_by: Mapped[Optional[int]] = mapped_column(ForeignKey("core_users.id"), nullable=True)

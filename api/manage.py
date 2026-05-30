@@ -57,7 +57,7 @@ def main():
     tenant_sub = tenant_parser.add_subparsers(dest="tenant_command")
     tp = tenant_sub.add_parser("provision", help="Provision a new tenant database")
     tp.add_argument("tenant_id", help="Unique tenant identifier")
-    tp.add_argument("--db-name", default=None, help="Database name (default: aras_tenant_<tenant_id>)")
+    tp.add_argument("--db-name", default=None, help="Database name (default: tenant_<tenant_id>)")
     tp.add_argument("--seed", action="store_true", help="Seed basic data after provisioning")
     tenant_sub.add_parser("list", help="List all registered tenants")
     td = tenant_sub.add_parser("deprovision", help="Soft-delete a tenant database")
@@ -77,6 +77,10 @@ def main():
     if args.command == "sync":
         print("Discovering apps...")
         Aras.logic.discovery.discover_apps(package_path="apps")
+
+        print("Registering core master data...")
+        from core.registry.master_data_entities import register_core_entities
+        register_core_entities()
 
         print("Running auto-migration...")
         from core.logic import auto_migrate
@@ -239,7 +243,7 @@ def main():
                     print(f"  {t['tenant_id']}  →  {t.get('meta', {}).get('db_name', 'unknown')}")
 
         elif args.tenant_command == "provision":
-            db_name = args.db_name or f"aras_tenant_{args.tenant_id}"
+            db_name = args.db_name or f"tenant_{args.tenant_id}"
             print(f"Provisioning tenant '{args.tenant_id}' (db: {db_name})...")
             try:
                 info = provision_tenant(args.tenant_id, db_name)

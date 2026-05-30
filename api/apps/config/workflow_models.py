@@ -10,7 +10,7 @@ from core import Aras
 
 
 class WorkflowTemplate(Aras.Model):
-    __tablename__ = "erp_config_workflow_templates"
+    __tablename__ = "config_workflow_templates"
     __features__ = ["audit"]
 
     name: Mapped[str] = mapped_column(String(200))
@@ -26,10 +26,10 @@ class WorkflowTemplate(Aras.Model):
 
 
 class WorkflowState(Aras.Model):
-    __tablename__ = "erp_config_workflow_states"
+    __tablename__ = "config_workflow_states"
     __features__ = ["audit"]
 
-    template_id: Mapped[int] = mapped_column(ForeignKey("erp_config_workflow_templates.id"), index=True)
+    template_id: Mapped[int] = mapped_column(ForeignKey("config_workflow_templates.id"), index=True)
     name: Mapped[str] = mapped_column(String(50))
     label: Mapped[str] = mapped_column(String(100))
     is_initial: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -40,12 +40,12 @@ class WorkflowState(Aras.Model):
 
 
 class WorkflowTransition(Aras.Model):
-    __tablename__ = "erp_config_workflow_transitions"
+    __tablename__ = "config_workflow_transitions"
     __features__ = ["audit"]
 
-    template_id: Mapped[int] = mapped_column(ForeignKey("erp_config_workflow_templates.id"), index=True)
-    from_state_id: Mapped[int] = mapped_column(ForeignKey("erp_config_workflow_states.id"))
-    to_state_id: Mapped[int] = mapped_column(ForeignKey("erp_config_workflow_states.id"))
+    template_id: Mapped[int] = mapped_column(ForeignKey("config_workflow_templates.id"), index=True)
+    from_state_id: Mapped[int] = mapped_column(ForeignKey("config_workflow_states.id"))
+    to_state_id: Mapped[int] = mapped_column(ForeignKey("config_workflow_states.id"))
     name: Mapped[str] = mapped_column(String(50))
     label: Mapped[str] = mapped_column(String(100))
     icon: Mapped[str] = mapped_column(String(50), default="ArrowRight")
@@ -61,10 +61,10 @@ class WorkflowTransition(Aras.Model):
 
 
 class WorkflowAction(Aras.Model):
-    __tablename__ = "erp_config_workflow_actions"
+    __tablename__ = "config_workflow_actions"
     __features__ = ["audit"]
 
-    transition_id: Mapped[int] = mapped_column(ForeignKey("erp_config_workflow_transitions.id"), index=True)
+    transition_id: Mapped[int] = mapped_column(ForeignKey("config_workflow_transitions.id"), index=True)
     handler_name: Mapped[str] = mapped_column(String(100))
     params: Mapped[dict] = mapped_column(JSON, default=dict)
     sequence: Mapped[int] = mapped_column(Integer, default=10, info={"hidden": True})

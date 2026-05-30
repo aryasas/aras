@@ -2,7 +2,7 @@ import logging
 import os
 from pythonjsonlogger.json import JsonFormatter
 
-from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi import FastAPI, Depends, HTTPException, Request, APIRouter
 from typing import Any
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -38,6 +38,11 @@ logger = logging.getLogger(__name__)
 
 # Discover and load all apps
 Aras.logic.discovery.discover_apps(package_path="apps")
+
+# Register core master data entities
+from core.registry.master_data_entities import register_core_entities
+register_core_entities()
+
 logger.info("Startup schema mutation disabled. Run Alembic migrations before starting the API.")
 
 from contextlib import asynccontextmanager
@@ -174,14 +179,24 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(Aras.api.query.router, prefix="/api/v1")
 app.include_router(Aras.api.workflow.router, prefix="/api/v1")
 app.include_router(Aras.api.admin.router, prefix="/api/v1/admin")
+app.include_router(Aras.api.settings.router, prefix="/api/v1")
+app.include_router(Aras.api.master_data.router, prefix="/api/v1")
 app.include_router(Aras.api.dev.router, prefix="/api/v1/dev")
 app.include_router(Aras.api.registry.router, prefix="/api/v1")
 app.include_router(Aras.api.files.router, prefix="/api/v1")
 app.include_router(Aras.api.dashboard.router, prefix="/api/v1")
 
-# Tenant management
-from core.api.tenant import router as tenant_router
-app.include_router(tenant_router, prefix="/api/v1")
+# Tenant management & Control Panel
+import os
+aras_role = os.getenv("ARAS_ROLE", "tenant")
+
+if aras_role == "control-panel":
+    from apps.saas.routers.control_panel import router as cp_router
+    app.include_router(cp_router, prefix="/api/v1/saas")
+
+# core_config app
+from apps.core_config.router import router as core_config_router
+app.include_router(core_config_router, prefix="/api/v1")
 
 # WebSocket — real-time push
 from core.api.websocket import router as ws_router
@@ -204,10 +219,11 @@ from pydantic import BaseModel
 class ActivateLicenseRequest(BaseModel):
     token: str
 
-@app.get("/api/v1/license/status")
+license_router = APIRouter(tags=["License"])
+
+@license_router.get("/api/v1/license/status")
 async def license_status():
     from core.auth.middleware import get_license_payload, _license_cache, LICENSE_PATH
-    from core.auth.license import days_until_expiry
     import os
     if not os.path.exists(LICENSE_PATH):
         return {"valid": False, "reason": "missing"}
@@ -219,6 +235,7 @@ async def license_status():
             payload = get_license_payload()
             
         token = _license_cache.get("token")
+        from core.auth.license import days_until_expiry
         days = days_until_expiry(token) if token else 0
         return {
             "valid": True, 
@@ -231,7 +248,7 @@ async def license_status():
     except Exception as e:
         return {"valid": False, "reason": str(e)}
 
-@app.post("/api/v1/license/activate")
+@license_router.post("/api/v1/license/activate")
 async def activate_license(data: ActivateLicenseRequest, current_user: Any = Depends(get_current_user)):
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Admin only")
@@ -248,6 +265,9 @@ async def activate_license(data: ActivateLicenseRequest, current_user: Any = Dep
     _license_cache["payload"] = None
     
     return {"status": "success"}
+
+if aras_role != "control-panel":
+    app.include_router(license_router)
 
 @app.get("/")
 async def root():
@@ -277,7 +297,7 @@ async def get_sidebar_data(_: Any = Depends(get_current_user)):
     root_apps = []
 
     for _, app_cls in registered_apps.items():
-        if app_cls.app_name in ["admin"]:
+        if app_cls.app_name in ["admin"] or getattr(app_cls, "hide_from_sidebar", False):
             continue
             
         app_data = {

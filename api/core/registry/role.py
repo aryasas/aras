@@ -12,7 +12,7 @@ class Role(Model):
     """
     Groups permissions into manageable roles for users.
     """
-    __tablename__ = "auth_roles"
+    __tablename__ = "core_roles"
     __features__ = []
 
     name: Mapped[str] = Field(String(50), unique=True, index=True, label="Role Name")

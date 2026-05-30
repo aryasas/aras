@@ -23,10 +23,21 @@ function normalizeRoutePath(path?: string) {
   return normalized.length > 1 ? normalized.replace(/\/+$/, '') : normalized
 }
 
+function appRoutePath(item?: Pick<SidebarApp, 'name' | 'path'> | null) {
+  if (!item) return '/'
+  if (item.name === 'settings' || item.path === '/settings') return '/admin/settings'
+  return normalizeRoutePath(item.path || `/${item.name}`)
+}
+
 function isRouteMatch(currentPath: string, targetPath?: string) {
   const current = normalizeRoutePath(currentPath)
   const target = normalizeRoutePath(targetPath)
   return current === target || current.startsWith(`${target}/`)
+}
+
+const getArasRole = () => {
+  const injectedRole = (globalThis as any).__ARAS_ROLE__
+  return String(injectedRole || import.meta.env.VITE_ARAS_ROLE || 'tenant')
 }
 
 export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
@@ -44,15 +55,16 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
   
   const [menuData, setMenuData] = useState<any>(null)
   const [isLoadingMenu, setIsLoadingMenu] = useState(false)
+  const isControlPanel = getArasRole() === 'control-panel'
 
-  const apps = useMemo(() => sidebarData.filter(isVisibleMenuItem), [sidebarData])
+  const apps = useMemo(() => sidebarData.filter((item) => isVisibleMenuItem(item) && !item.hide_from_sidebar), [sidebarData])
   const initial = (user?.full_name || user?.username || 'A')[0].toUpperCase()
 
   // Derive active app directly from URL so the selector stays in sync with route changes.
   const activeApp = useMemo(() => {
     const current = normalizeRoutePath(currentPath)
     return apps
-      .map((app) => ({ app, path: normalizeRoutePath(app.path || `/${app.name}`) }))
+      .map((app) => ({ app, path: appRoutePath(app) }))
       .filter(({ path }) => isRouteMatch(current, path))
       .sort((a, b) => b.path.length - a.path.length)[0]?.app || null
   }, [currentPath, apps])
@@ -168,13 +180,17 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
   }
 
   const handleAppClick = async (item: SidebarApp) => {
-    const appRoot = normalizeRoutePath(item.path || `/${item.name}`)
+    const appRoot = appRoutePath(item)
+    if (item.name === 'settings' || item.path === '/settings') {
+      navigate(appRoot)
+      return
+    }
     if (item.type === 'link') {
       navigate(appRoot)
       return
     }
 
-    const currentAppRoot = normalizeRoutePath(activeApp?.path || `/${activeApp?.name || ''}`)
+    const currentAppRoot = appRoutePath(activeApp)
     if (appRoot === currentAppRoot && orderedItems[0]?.path) {
       navigate(normalizeRoutePath(orderedItems[0].path))
       return
@@ -230,11 +246,11 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
         </div>
 
         <div className="flex-1 flex flex-col gap-1 py-3 overflow-y-auto arc-scroll px-2">
-          {user?.is_admin && (
+          {user?.is_admin && isControlPanel && (
             <button
               type="button"
-              title={sidebarCollapsed ? 'SaaS Admin' : undefined}
-              onClick={() => navigate('/saas-admin')}
+              title={sidebarCollapsed ? 'Control Panel' : undefined}
+              onClick={() => navigate('/control-panel')}
               className="group relative flex items-center transition-all duration-200"
               style={{
                 width: '100%',
@@ -242,18 +258,18 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
                 padding: sidebarCollapsed ? '0' : '0 10px',
                 justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
                 borderRadius: 'var(--radius)',
-                background: isRouteMatch(currentPath, '/saas-admin') ? 'var(--surface-2)' : 'transparent',
-                border: isRouteMatch(currentPath, '/saas-admin') ? '1px solid var(--line)' : '1px solid transparent',
-                color: isRouteMatch(currentPath, '/saas-admin') ? 'var(--text)' : 'var(--text-3)',
+                background: isRouteMatch(currentPath, '/control-panel') ? 'var(--surface-2)' : 'transparent',
+                border: isRouteMatch(currentPath, '/control-panel') ? '1px solid var(--line)' : '1px solid transparent',
+                color: isRouteMatch(currentPath, '/control-panel') ? 'var(--text)' : 'var(--text-3)',
               }}
             >
               <CreditCard size={17} className="shrink-0" />
               {!sidebarCollapsed && (
                 <span className="ml-3 text-[13px] font-medium truncate opacity-90 group-hover:opacity-100">
-                  SaaS Admin
+                  Control Panel
                 </span>
               )}
-              {isRouteMatch(currentPath, '/saas-admin') && (
+              {isRouteMatch(currentPath, '/control-panel') && (
                 <span style={{
                   position: 'absolute', left: -2, top: 8, bottom: 8, width: 2,
                   background: 'var(--accent)', borderRadius: 2,
@@ -263,7 +279,7 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
           )}
           {apps.map((item) => {
             const Icon = resolveIcon(item.icon)
-            const itemPath = normalizeRoutePath(item.path || `/${item.name}`)
+            const itemPath = appRoutePath(item)
             const isActive = activeApp?.name === item.name || isRouteMatch(currentPath, itemPath)
             const label = vocabulary.get(item.label)
             

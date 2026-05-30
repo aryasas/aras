@@ -9,10 +9,10 @@ from ..base.model import Model
 
 class Series(Model):
     """Stores sequential counters and formats for document numbering."""
-    __tablename__ = "doc_series"
+    __tablename__ = "core_series"
     __features__ = []
 
-    key: Mapped[str] = mapped_column(String(100), unique=True, index=True) # e.g. "erp_stock_movements"
+    key: Mapped[str] = mapped_column(String(100), unique=True, index=True) # e.g. "stock_movements"
     prefix: Mapped[str] = mapped_column(String(50), nullable=True) # e.g. "MV-"
     format: Mapped[str] = mapped_column(String(100), default="{prefix}{year}{next_value:04d}")
     next_value: Mapped[int] = mapped_column(Integer, default=1)

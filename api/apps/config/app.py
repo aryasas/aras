@@ -8,10 +8,15 @@ from core.logic.discovery import autodiscover_models
 from .models import * # Import all models for discovery
 from .workflow_models import * # Import all models from workflow_models for discovery
 from core.registry.series import Series # Import Series directly, autodiscovery will pick it up if it's an ArasModel
+from core.registry.config_registry import ConfigSection, ConfigField
+from core.registry.master_data_registry import MasterEntity
 
 class Config(Aras.App):
     app_name = "config"
-    table_prefix = "erp_config"
+    app_label = "Settings"
+    app_type = "framework"
+    required = True
+    hide_from_sidebar = True
 
     routers = [erp_rbac_router, vocabulary_router]
 
@@ -19,42 +24,67 @@ class Config(Aras.App):
         "models", "workflow_models"
     ]) + autodiscover_models("core.registry", ["series"]) + [ErpUserAccess]
 
+    master_data = [
+        MasterEntity(key="organization", model=Organization, scope="shared", icon="Building2", order=10),
+        MasterEntity(key="currency", model=Currency, scope="shared", icon="Coins", order=20),
+        MasterEntity(key="uom", model=Uom, scope="shared", icon="Scale", order=30),
+        MasterEntity(key="exchange_rate", model=ExchangeRate, scope="shared", icon="RefreshCw", order=40),
+        MasterEntity(key="price_type", model=PriceType, scope="shared", icon="Tag", order=50),
+        MasterEntity(key="charge", model=Charge, scope="shared", icon="Percent", order=60),
+        MasterEntity(key="payment_mode", model=ModeOfPayment, scope="shared", icon="CreditCard", order=70),
+        MasterEntity(key="print_template", model=PrintTemplate, scope="shared", icon="Printer", order=80),
+        MasterEntity(key="notification", model=Notification, scope="shared", icon="Bell", order=90),
+    ]
+
+    config_sections = [
+        ConfigSection(
+            key="erp_general", 
+            label="ERP General", 
+            scope="shared", 
+            fields=[
+                ConfigField(key="fiscal_year_start", type="number", default=1, label="Fiscal Year Start Month", help="1-12"),
+                ConfigField(key="default_currency_id", type="number", label="Default Currency ID"),
+                ConfigField(key="default_organization_id", type="number", label="Default Organization ID")
+            ]
+        )
+    ]
+
     menu_groups = [
         {"label": "Access Control", "icon": "ShieldCheck", "models": []},
         {
             "label": "System",
             "icon": "Cpu",
-            "models": ["erp_config_organizations", "erp_config_currencies", "erp_config_exchange_rates", "erp_config_settings"]
+            "models": ["config_organizations", "config_currencies", "config_exchange_rates"]
         },
         {
             "label": "Finance Configuration",
             "icon": "Wallet",
-            "models": ["erp_config_payment_modes", "erp_config_charges", "erp_config_price_types"]
+            "models": ["config_payment_modes", "config_charges", "config_price_types"]
         },
         {
             "label": "Standards",
             "icon": "Box",
-            "models": ["erp_config_uoms"]
+            "models": ["config_uoms"]
         },
         {
             "label": "Workflow",
             "icon": "GitBranch",
             "models": [
-                "erp_config_workflow_templates",
-                "erp_config_workflow_states",
-                "erp_config_workflow_transitions",
-                "erp_config_workflow_actions",
+                "config_workflow_templates",
+                "config_workflow_states",
+                "config_workflow_transitions",
+                "config_workflow_actions",
             ]
         },
         {
             "label": "Series",
             "icon": "Hash",
-            "models": ["doc_series"]
+            "models": ["core_series"]
         },
         {
             "label": "System Tools",
             "icon": "Activity",
-            "models": ["erp_config_print_templates", "erp_config_notifications"]
+            "models": ["config_print_templates", "config_notifications"]
         },
     ]
 

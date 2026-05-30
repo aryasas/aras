@@ -2,7 +2,7 @@ import axios from 'axios'
 import { cleanResourcePath } from './resourceUtils'
 
 const DEV_MULTI_TENANT = import.meta.env.VITE_DEV_MULTI_TENANT === 'true'
-const TENANT_STORAGE_KEY = 'aras_tenant_id'
+const TENANT_STORAGE_KEY = 'tenant_id'
 const TOKEN_STORAGE_KEY = 'aras_token'
 
 function getAuthToken() {
@@ -159,5 +159,93 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+export interface SettingsNamespace {
+  name: string
+  label: string
+  icon?: string
+}
+
+export interface MasterDataEntity {
+  key: string
+  label: string
+  icon?: string
+  scope: string
+  app: string
+  model_table: string
+  resource_url: string
+  can_write?: boolean
+  can_admin?: boolean
+  help?: string
+  order?: number
+}
+
+export interface MasterDataGroup {
+  key: string
+  label: string
+  entities: MasterDataEntity[]
+}
+
+export interface MasterDataSchema {
+  groups: MasterDataGroup[]
+}
+
+export interface SettingsFieldSchema {
+  key: string
+  label?: string
+  type: string
+  default?: unknown
+  help?: string
+  required?: boolean
+  secret?: boolean
+  choices?: Array<{ label: string; value: string | number | boolean } | [string | number | boolean, string] | string>
+  depends_on?: string | null
+}
+
+export interface SettingsSectionSchema {
+  key: string
+  label: string
+  icon?: string
+  order?: number
+  scope?: string
+  fields: SettingsFieldSchema[]
+}
+
+export interface SettingsSchema {
+  namespace?: string
+  sections: SettingsSectionSchema[]
+}
+
+export type SettingsValues = Record<string, Record<string, unknown>>
+
+export const settingsApi = {
+  async listNamespaces() {
+    const res = await api.get<SettingsNamespace[]>('/settings')
+    return res.data
+  },
+  async getSchema(namespace: string) {
+    const res = await api.get<SettingsSchema | SettingsSectionSchema[]>(`/settings/${encodeURIComponent(namespace)}/schema`)
+    return res.data
+  },
+  async getValues(namespace: string) {
+    const res = await api.get<SettingsValues>(`/settings/${encodeURIComponent(namespace)}`)
+    return res.data
+  },
+  async saveValues(namespace: string, payload: SettingsValues) {
+    const res = await api.put(`/settings/${encodeURIComponent(namespace)}`, payload)
+    return res.data
+  },
+}
+
+export const masterDataApi = {
+  async listEntities() {
+    const res = await api.get<MasterDataEntity[]>('/master-data')
+    return res.data
+  },
+  async getSchema() {
+    const res = await api.get<MasterDataSchema>('/master-data/schema')
+    return res.data
+  },
+}
 
 export default api

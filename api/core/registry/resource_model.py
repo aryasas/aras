@@ -11,14 +11,14 @@ from typing import List
 
 class ResourceModel(Model):
     """Stores metadata about models/tables registered in the system."""
-    __tablename__ = "aras_resources"
+    __tablename__ = "core_resources"
 
-    app_id: Mapped[int] = Field(ForeignKey("aras_apps.id"), display_column="name")
+    app_id: Mapped[int] = Field(ForeignKey("core_apps.id"), display_column="name")
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True) # e.g. "sale_invoice"
     title: Mapped[str] = mapped_column(String(100))
     model_class: Mapped[str] = mapped_column(String(100)) # e.g. "SaleInvoice"
     features: Mapped[list] = mapped_column(JSON, default=list) # e.g. ["audit", "workflow"]
-    scoped_by: Mapped[list] = mapped_column(JSON, default=list) # e.g. [["company_id","erp_config_companies"]]
+    scoped_by: Mapped[list] = mapped_column(JSON, default=list) # e.g. [["company_id","config_organizations"]]
     layout: Mapped[list] = mapped_column(JSON, default=list)
     is_dynamic: Mapped[bool] = mapped_column(default=False)
     is_active: Mapped[bool] = mapped_column(default=True)

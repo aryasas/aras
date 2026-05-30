@@ -64,7 +64,7 @@ class BaseSettings:
 class DevelopmentSettings(BaseSettings):
     DEBUG = True
     RBAC_ENABLED = os.getenv("RBAC_ENABLED", "false").lower() not in ("false", "0", "no")
-    DATABASE_URL: str = _build_db_url("aras_dev")
+    DATABASE_URL: str = _build_db_url("dev")
 
 
 class TestingSettings(BaseSettings):

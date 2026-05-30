@@ -29,10 +29,11 @@ def _build_tenant_db_url(db_name: str) -> str:
     return f"postgresql+psycopg2://{user}{pw}@{host}:{port}/{db_name}"
 
 
-def provision_tenant(tenant_id: str, db_name: str) -> Dict[str, Any]:
+def provision_tenant(tenant_id: str, db_name: str, apps: tuple = ("core_config",), extra: tuple = ()) -> Dict[str, Any]:
     """
-    Provision a new tenant by creating a dedicated MySQL database,
+    Provision a new tenant by creating a dedicated database,
     running schema migrations, and registering the tenant.
+    Then installs required and requested apps.
     """
     existing = tenant_registry.get(tenant_id)
     if existing:
@@ -68,7 +69,51 @@ def provision_tenant(tenant_id: str, db_name: str) -> Dict[str, Any]:
 
     tenant_info = tenant_registry.register(tenant_id, db_url=tenant_db_url, meta={"db_name": db_name})
     logger.info(f"Tenant '{tenant_id}' provisioned and registered.")
+
+    # Install apps
+    all_apps = list(apps) + list(extra)
+    for app_name in all_apps:
+        install_app_on_tenant(tenant_id, app_name)
+
     return tenant_info
+
+
+def install_app_on_tenant(tenant_id: str, app_name: str):
+    """
+    Installs an app on an existing tenant by running its on_install hook.
+    """
+    from core.base.app import App
+    from .router import get_tenant_db
+    
+    app_cls = App._registry.get(app_name)
+    if not app_cls:
+        # Try to find by app_name if class name is different
+        for _, cls in App._registry.items():
+            if getattr(cls, "app_name", None) == app_name:
+                app_cls = cls
+                break
+                
+    if not app_cls:
+        logger.warning(f"App '{app_name}' not found for installation.")
+        return
+
+    db = get_tenant_db(tenant_id)
+    if not db:
+        logger.error(f"Cannot connect to tenant '{tenant_id}' for app installation.")
+        return
+
+    try:
+        # Run on_install hook
+        if hasattr(app_cls, "on_install"):
+            logger.info(f"Running on_install for '{app_name}' on tenant '{tenant_id}'")
+            app_cls.on_install(db, tenant_id)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to install app '{app_name}' on tenant '{tenant_id}': {e}")
+        raise
+    finally:
+        db.close()
 
 
 def seed_tenant(tenant_id: str) -> Dict[str, Any]:

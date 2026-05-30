@@ -1,44 +1,48 @@
 .template-studio-root {
-  --ts-brand-50: #f0fdfa;
-  --ts-brand-100: #ccfbf1;
-  --ts-brand-200: #99f6e4;
-  --ts-brand-300: #5eead4;
-  --ts-brand-400: #2dd4bf;
-  --ts-brand-500: #14b8a6;
-  --ts-brand-600: #0d9488;
-  --ts-brand-700: #0f766e;
-  --ts-brand-800: #115e59;
-  --ts-brand-900: #134e4a;
-  --ts-brand-950: #042f2e;
-  --ts-surface-50: #f8fafc;
-  --ts-surface-100: #f1f5f9;
-  --ts-surface-200: #e2e8f0;
-  --ts-surface-300: #cbd5e1;
-  --ts-surface-400: #94a3b8;
-  --ts-surface-500: #64748b;
-  --ts-surface-600: #475569;
-  --ts-surface-700: #334155;
-  --ts-surface-800: #1e293b;
-  --ts-surface-900: #0f172a;
-  --ts-surface-950: #020617;
-  --ts-shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
-  --ts-shadow-floating: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
-  --ts-radius-island: 24px;
-  color: var(--ts-surface-800);
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  /* Inherit from Aras Framework */
+  --ts-brand-50: color-mix(in srgb, var(--aras-accent) 5%, white);
+  --ts-brand-100: color-mix(in srgb, var(--aras-accent) 12%, white);
+  --ts-brand-200: color-mix(in srgb, var(--aras-accent) 25%, white);
+  --ts-brand-300: color-mix(in srgb, var(--aras-accent) 45%, white);
+  --ts-brand-400: color-mix(in srgb, var(--aras-accent) 70%, white);
+  --ts-brand-500: var(--aras-accent);
+  --ts-brand-600: var(--aras-accent-strong);
+  --ts-brand-700: color-mix(in srgb, var(--aras-accent) 85%, black);
+  --ts-brand-800: color-mix(in srgb, var(--aras-accent) 70%, black);
+  --ts-brand-900: color-mix(in srgb, var(--aras-accent) 55%, black);
+  --ts-brand-950: color-mix(in srgb, var(--aras-accent) 30%, black);
+
+  --ts-surface-50: var(--bg);
+  --ts-surface-100: var(--bg-2);
+  --ts-surface-200: var(--line);
+  --ts-surface-300: var(--line-2);
+  --ts-surface-400: var(--mute);
+  --ts-surface-50: var(--bg);
+  --ts-surface-600: var(--text-3);
+  --ts-surface-700: var(--text-2);
+  --ts-surface-800: var(--text);
+  --ts-surface-900: var(--text);
+  --ts-surface-950: black;
+
+  --ts-shadow-glass: var(--shadow-premium);
+  --ts-shadow-floating: var(--shadow-card-lift);
+  --ts-radius-island: var(--aras-radius-lg);
+
+  color: var(--aras-text);
+  font-family: var(--font-sans);
 }
 
 .template-studio-dot-grid {
-  background-color: var(--ts-surface-100);
-  background-image: radial-gradient(var(--ts-surface-300) 1px, transparent 1px);
-  background-size: 24px 24px;
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--grid) 1px, transparent 1px);
+  background-size: 18px 18px;
 }
 
 .template-studio-glass {
-  background: rgba(255, 255, 255, 0.85);
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line);
   box-shadow: var(--ts-shadow-glass);
 }
 

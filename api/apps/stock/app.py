@@ -21,16 +21,39 @@ def get_item_stock(item_id: int, db: Session = Depends(get_db), _user=Depends(ge
         "by_location": StockComputeService.compute_qty_by_location(db, item_id),
     })
 
+from core.registry.config_registry import ConfigSection, ConfigField
+from core.registry.master_data_registry import MasterEntity
+from .models import ItemCategory, Location
+
 class Stock(Aras.App):
     app_name = "stock"
-    table_prefix = "erp_stock"
     app_label = "Stock"
     icon = "Package"
     requires = ["accounting"]
+
+    master_data = [
+        MasterEntity(key="item_category", model=ItemCategory, scope="module", icon="FolderTree", order=10),
+        MasterEntity(key="stock_location", model=Location, scope="module", icon="MapPin", order=20),
+    ]
+
     optional_features = {
         "enable_perpetual_inventory": "accounting",
         "enable_auto_journal": "accounting",
     }
+
+    config_sections = [
+        ConfigSection(key="general", label="General", scope="module", fields=[
+            ConfigField(key="valuation_method", type="choice", default="fifo", label="Valuation Method",
+                        choices=[("fifo", "FIFO"), ("lifo", "LIFO"), ("average", "Weighted Average")]),
+            ConfigField(key="default_warehouse", type="string", label="Default Warehouse Code"),
+            ConfigField(key="allow_negative_stock", type="bool", default=False, label="Allow Negative Stock"),
+            ConfigField(key="auto_create_serial", type="bool", default=False, label="Auto-Generate Serial Numbers"),
+        ]),
+        ConfigSection(key="reorder", label="Reorder", scope="module", fields=[
+            ConfigField(key="enable_reorder_alerts", type="bool", default=True, label="Enable Reorder Alerts"),
+            ConfigField(key="default_lead_time_days", type="number", default=7, label="Default Lead Time (days)"),
+        ]),
+    ]
 
     models = autodiscover_models(__name__, ["models"])
     routers = [stock_extra_router]
@@ -39,17 +62,17 @@ class Stock(Aras.App):
         {
             "label": "Master Data",
             "icon": "Database",
-            "models": ["erp_stock_items", "erp_stock_categories", "erp_stock_locations"]
+            "models": ["stock_items", "stock_categories", "stock_locations"]
         },
         {
             "label": "Operations",
             "icon": "Truck",
-            "models": ["erp_stock_delivery_notes", "erp_stock_movements"]
+            "models": ["stock_delivery_notes", "stock_movements"]
         },
         {
             "label": "Pricing & Promo",
             "icon": "Tag",
-            "models": ["erp_stock_pricelists", "erp_stock_promo_bundles"]
+            "models": ["stock_pricelists", "stock_promo_bundles"]
         }
     ]
 

@@ -12,7 +12,7 @@ class TranslationModel(Model):
     Stores localized strings for framework metadata.
     Mappings: (registry_type, registry_id, language_code, property_name) -> translated_value
     """
-    __tablename__ = "translations"
+    __tablename__ = "core_translations"
 
     # 'app', 'resource', 'field'
     registry_type: Mapped[str] = mapped_column(String(20), index=True) 

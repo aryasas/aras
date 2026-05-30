@@ -56,6 +56,32 @@ def discover_apps(package_path: str = "apps"):
             IntegrityChecker.check_module(module)
 
 
+def resolve_resource_path(tablename: str):
+    """
+    Map a SQLAlchemy __tablename__ to its registered REST path
+    (e.g. 'erp_stock_movements' -> 'erp/stock/movements').
+    Returns None if no app owns the model.
+    """
+    if not tablename:
+        return None
+    for app_cls in App._registry.values():
+        for model in app_cls.models:
+            if getattr(model, "__tablename__", None) != tablename:
+                continue
+            model_seg = tablename
+            full_prefix = f"{app_cls.parent_name}_{app_cls.app_name}_" if app_cls.parent_name and app_cls.app_name else None
+            if app_cls.table_prefix and model_seg.startswith(f"{app_cls.table_prefix}_"):
+                model_seg = model_seg[len(app_cls.table_prefix) + 1:]
+            elif full_prefix and model_seg.startswith(full_prefix):
+                model_seg = model_seg[len(full_prefix):]
+            elif app_cls.app_name and model_seg.startswith(f"{app_cls.app_name}_"):
+                model_seg = model_seg[len(app_cls.app_name) + 1:]
+            elif app_cls.parent_name and model_seg.startswith(f"{app_cls.parent_name}_"):
+                model_seg = model_seg[len(app_cls.parent_name) + 1:]
+            return f"{app_cls._get_clean_path().lstrip('/')}/{model_seg.replace('_', '-')}"
+    return None
+
+
 def register_app_routes(app: FastAPI, prefix: str = "/api/v1"):
     """
     Mengambil semua App yang terdaftar dan mendaftarkan route CRUD untuk setiap modelnya.

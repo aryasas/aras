@@ -8,7 +8,7 @@ from core.exceptions import ValidationException
 from apps.base import MasterDataBase, DocumentBase, LineItemBase
 
 class Account(MasterDataBase):
-    __tablename__ = "erp_accounting_accounts"
+    __tablename__ = "accounting_accounts"
     
     code: Mapped[str] = mapped_column(String(20), info={"pattern": "^[a-zA-Z0-9]{1,20}$"})
     account_type: Mapped[str] = mapped_column(String(50), info={"choices": [
@@ -19,17 +19,17 @@ class Account(MasterDataBase):
         "expense_operating", "expense_cogs", "expense_other",
         "view"
     ]})
-    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_accounts.id"), nullable=True)
+    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("accounting_accounts.id"), nullable=True)
     is_group: Mapped[bool] = mapped_column(Boolean, default=False)
     
     parent: Mapped[Optional["Account"]] = relationship("Account", remote_side="Account.id", backref="children")
 
     __m2m__ = {
         "related_accounts": {
-            "bridge_table": "erp_accounting_account_relations",
+            "bridge_table": "accounting_account_relations",
             "source_key": "account_id",
             "target_key": "related_id",
-            "target_resource": "erp_accounting_accounts"
+            "target_resource": "accounting_accounts"
         }
     }
 
@@ -45,7 +45,7 @@ class Account(MasterDataBase):
         return ok(result, message=f"Reconciled {result['matched']} entries. Unmatched GL: {result['unmatched_gl']}, Payments: {result['unmatched_payments']}")
 
 class FiscalPeriod(MasterDataBase):
-    __tablename__ = "erp_accounting_fiscal_periods"
+    __tablename__ = "accounting_fiscal_periods"
 
     start_date: Mapped[date] = mapped_column(Date)
     end_date: Mapped[date] = mapped_column(Date)
@@ -53,23 +53,23 @@ class FiscalPeriod(MasterDataBase):
 
 class JournalEntry(DocumentBase):
 
-    __tablename__ = "erp_accounting_entries"
+    __tablename__ = "accounting_entries"
     __soft_delete__ = True
 
-    currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"))
+    currency_id: Mapped[int] = mapped_column(ForeignKey("config_currencies.id"))
     narrative: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     source_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     source_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     __linked_docs__ = [
         LinkedDoc(
-            table="erp_accounting_inflow_invoices",
+            table="accounting_inflow_invoices",
             filters={"id": "@source_id"},
             condition=lambda self: self.source_type == "InflowInvoice",
             cascade=False,
         ),
         LinkedDoc(
-            table="erp_accounting_outflow_invoices",
+            table="accounting_outflow_invoices",
             filters={"id": "@source_id"},
             condition=lambda self: self.source_type == "OutflowInvoice",
             cascade=False,
@@ -90,11 +90,11 @@ class JournalEntry(DocumentBase):
         return ok({"status": self.status}, message="Journal Entry posted successfully.")
 
 class JournalEntryLine(LineItemBase):
-    __tablename__ = "erp_accounting_entry_lines"
+    __tablename__ = "accounting_entry_lines"
     __soft_delete__ = True
-    __parent__ = "erp_accounting_entries"
-    entry_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_entries.id"))
-    account_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_accounts.id"), info={"ui_type": "lookup", "target_resource": "erp/accounting/accounts", "display_column": "display_name"})
+    __parent__ = "accounting_entries"
+    entry_id: Mapped[int] = mapped_column(ForeignKey("accounting_entries.id"))
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounting_accounts.id"), info={"ui_type": "lookup", "target_resource": "accounting/accounts", "display_column": "display_name"})
     debit: Mapped[float] = mapped_column(Float, default=0)
     credit: Mapped[float] = mapped_column(Float, default=0)
     
@@ -104,22 +104,22 @@ class JournalEntryLine(LineItemBase):
 from .services.recalc_mixin import DocumentRecalcMixin
 
 class InflowInvoice(DocumentBase, DocumentRecalcMixin):
-    __tablename__ = "erp_accounting_inflow_invoices"
+    __tablename__ = "accounting_inflow_invoices"
     __soft_delete__ = True
     __linked_docs__ = [
-        LinkedDoc(table="erp_accounting_entries", filters={"source_type": "@class_name", "source_id": "@id"}, cascade=True),
-        LinkedDoc(table="erp_stock_movements", filters={"origin_model": "@class_name", "origin_id": "@id"}, cascade=True),
+        LinkedDoc(table="accounting_entries", filters={"source_type": "@class_name", "source_id": "@id"}, cascade=True),
+        LinkedDoc(table="stock_movements", filters={"origin_model": "@class_name", "origin_id": "@id"}, cascade=True),
     ]
 
-    party_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
-    currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"), nullable=True)
-    pricelist_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_price_types.id"), nullable=True)
+    party_id: Mapped[int] = mapped_column(ForeignKey("party_parties.id"))
+    currency_id: Mapped[int] = mapped_column(ForeignKey("config_currencies.id"), nullable=True)
+    pricelist_id: Mapped[Optional[int]] = mapped_column(ForeignKey("config_price_types.id"), nullable=True)
     doc_type: Mapped[str] = mapped_column(String(20), default="Invoice", info={"choices": ["Order", "Invoice"]})
-    location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
-    journal_entry_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_entries.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "erp/accounting/entries", "display_column": "number", "read_only": True})
-    stock_movement_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_movements.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "erp/stock/movements", "display_column": "number", "read_only": True})
+    location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("stock_locations.id"), nullable=True)
+    journal_entry_id: Mapped[Optional[int]] = mapped_column(ForeignKey("accounting_entries.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "accounting/entries", "display_column": "number", "read_only": True})
+    stock_movement_id: Mapped[Optional[int]] = mapped_column(ForeignKey("stock_movements.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "stock/movements", "display_column": "number", "read_only": True})
     pos_session_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("erp_pot_sessions.id"), nullable=True, info={"hidden": True}
+        ForeignKey("pot_sessions.id"), nullable=True, info={"hidden": True}
     )
 
     lines: Mapped[list["InflowInvoiceLine"]] = relationship("InflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
@@ -222,47 +222,47 @@ class InflowInvoice(DocumentBase, DocumentRecalcMixin):
         return db.query(PaymentAllocation).filter_by(invoice_type="InflowInvoice", invoice_id=self.id).all()
 
 class InflowInvoiceLine(LineItemBase):
-    __tablename__ = "erp_accounting_inflow_invoice_lines"
+    __tablename__ = "accounting_inflow_invoice_lines"
     __soft_delete__ = True
-    __parent__ = "erp_accounting_inflow_invoices"
+    __parent__ = "accounting_inflow_invoices"
 
-    invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_inflow_invoices.id"))
-    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"), info={"display_column": "name"})
+    invoice_id: Mapped[int] = mapped_column(ForeignKey("accounting_inflow_invoices.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("stock_items.id"), info={"display_column": "name"})
     qty: Mapped[float] = mapped_column(Float, default=1.0)
-    uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True, info={"display_column": "name", "depends_on": "item_id", "default_from": "uom_sales_id"})
+    uom_id: Mapped[int] = mapped_column(ForeignKey("config_uoms.id"), nullable=True, info={"display_column": "name", "depends_on": "item_id", "default_from": "uom_sales_id"})
     unit_price: Mapped[float] = mapped_column(Float, default=0, info={"depends_on": "item_id", "default_from": "default_sale_price"})
     discount: Mapped[float] = mapped_column(Float, default=0)
 
     parent: Mapped["InflowInvoice"] = relationship("InflowInvoice", back_populates="lines")
 
 class InflowInvoiceCharge(LineItemBase):
-    __tablename__ = "erp_accounting_inflow_invoice_charges"
-    __parent__ = "erp_accounting_inflow_invoices"
-    invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_inflow_invoices.id"))
-    charge_id: Mapped[int] = mapped_column(ForeignKey("erp_config_charges.id"))
+    __tablename__ = "accounting_inflow_invoice_charges"
+    __parent__ = "accounting_inflow_invoices"
+    invoice_id: Mapped[int] = mapped_column(ForeignKey("accounting_inflow_invoices.id"))
+    charge_id: Mapped[int] = mapped_column(ForeignKey("config_charges.id"))
     amount: Mapped[float] = mapped_column(Float, default=0)
 
     parent: Mapped["InflowInvoice"] = relationship("InflowInvoice", back_populates="charges")
 
 
 class OutflowInvoice(DocumentBase, DocumentRecalcMixin):
-    __tablename__ = "erp_accounting_outflow_invoices"
+    __tablename__ = "accounting_outflow_invoices"
     __soft_delete__ = True
     __linked_docs__ = [
-        LinkedDoc(table="erp_accounting_entries", filters={"source_type": "@class_name", "source_id": "@id"}, cascade=True),
-        LinkedDoc(table="erp_stock_movements", filters={"origin_model": "@class_name", "origin_id": "@id"}, cascade=True),
+        LinkedDoc(table="accounting_entries", filters={"source_type": "@class_name", "source_id": "@id"}, cascade=True),
+        LinkedDoc(table="stock_movements", filters={"origin_model": "@class_name", "origin_id": "@id"}, cascade=True),
     ]
 
-    party_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
-    currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"), nullable=True)
-    pricelist_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_price_types.id"), nullable=True)
+    party_id: Mapped[int] = mapped_column(ForeignKey("party_parties.id"))
+    currency_id: Mapped[int] = mapped_column(ForeignKey("config_currencies.id"), nullable=True)
+    pricelist_id: Mapped[Optional[int]] = mapped_column(ForeignKey("config_price_types.id"), nullable=True)
     doc_type: Mapped[str] = mapped_column(String(20), default="Invoice", info={"choices": ["Order", "Invoice"]})
-    location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
-    grn_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_grns.id"), nullable=True)
-    journal_entry_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_entries.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "erp/accounting/entries", "display_column": "number", "read_only": True})
-    stock_movement_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_movements.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "erp/stock/movements", "display_column": "number", "read_only": True})
+    location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("stock_locations.id"), nullable=True)
+    grn_id: Mapped[Optional[int]] = mapped_column(ForeignKey("accounting_grns.id"), nullable=True)
+    journal_entry_id: Mapped[Optional[int]] = mapped_column(ForeignKey("accounting_entries.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "accounting/entries", "display_column": "number", "read_only": True})
+    stock_movement_id: Mapped[Optional[int]] = mapped_column(ForeignKey("stock_movements.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "stock/movements", "display_column": "number", "read_only": True})
     pos_session_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("erp_pot_sessions.id"), nullable=True, info={"hidden": True}
+        ForeignKey("pot_sessions.id"), nullable=True, info={"hidden": True}
     )
 
     lines: Mapped[list["OutflowInvoiceLine"]] = relationship("OutflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
@@ -365,43 +365,43 @@ class OutflowInvoice(DocumentBase, DocumentRecalcMixin):
         return db.query(PaymentAllocation).filter_by(invoice_type="OutflowInvoice", invoice_id=self.id).all()
 
 class OutflowInvoiceLine(LineItemBase):
-    __tablename__ = "erp_accounting_outflow_invoice_lines"
+    __tablename__ = "accounting_outflow_invoice_lines"
     __soft_delete__ = True
-    __parent__ = "erp_accounting_outflow_invoices"
+    __parent__ = "accounting_outflow_invoices"
 
-    invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_outflow_invoices.id"))
-    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"), info={"display_column": "name"})
+    invoice_id: Mapped[int] = mapped_column(ForeignKey("accounting_outflow_invoices.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("stock_items.id"), info={"display_column": "name"})
     qty: Mapped[float] = mapped_column(Float, default=1.0)
-    uom_id: Mapped[int] = mapped_column(ForeignKey("erp_config_uoms.id"), nullable=True, info={"display_column": "name", "depends_on": "item_id", "default_from": "uom_purchase_id"})
+    uom_id: Mapped[int] = mapped_column(ForeignKey("config_uoms.id"), nullable=True, info={"display_column": "name", "depends_on": "item_id", "default_from": "uom_purchase_id"})
     unit_price: Mapped[float] = mapped_column(Float, default=0, info={"depends_on": "item_id", "default_from": "default_purchase_price"})
     discount: Mapped[float] = mapped_column(Float, default=0)
     
     parent: Mapped["OutflowInvoice"] = relationship("OutflowInvoice", back_populates="lines")
 
 class OutflowInvoiceCharge(LineItemBase):
-    __tablename__ = "erp_accounting_outflow_invoice_charges"
-    __parent__ = "erp_accounting_outflow_invoices"
-    invoice_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_outflow_invoices.id"))
-    charge_id: Mapped[int] = mapped_column(ForeignKey("erp_config_charges.id"))
+    __tablename__ = "accounting_outflow_invoice_charges"
+    __parent__ = "accounting_outflow_invoices"
+    invoice_id: Mapped[int] = mapped_column(ForeignKey("accounting_outflow_invoices.id"))
+    charge_id: Mapped[int] = mapped_column(ForeignKey("config_charges.id"))
     amount: Mapped[float] = mapped_column(Float, default=0)
     
     parent: Mapped["OutflowInvoice"] = relationship("OutflowInvoice", back_populates="charges")
 
 class Payment(DocumentBase):
-    __tablename__ = "erp_accounting_payments"
+    __tablename__ = "accounting_payments"
 
-    currency_id: Mapped[int] = mapped_column(ForeignKey("erp_config_currencies.id"))
+    currency_id: Mapped[int] = mapped_column(ForeignKey("config_currencies.id"))
     payment_type: Mapped[str] = mapped_column(String(20), info={"choices": ["Incoming", "Outgoing"]})
     party_type: Mapped[str] = mapped_column(String(20), info={"choices": ["Customer", "Supplier", "Other"]})
     party_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("erp_party_parties.id"), nullable=True,
-        info={"ui_type": "lookup", "target_resource": "erp/party/parties", "display_column": "name"}
+        ForeignKey("party_parties.id"), nullable=True,
+        info={"ui_type": "lookup", "target_resource": "party/parties", "display_column": "name"}
     )
-    account_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_accounts.id"))
-    mode_of_payment_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_payment_modes.id"), nullable=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounting_accounts.id"))
+    mode_of_payment_id: Mapped[Optional[int]] = mapped_column(ForeignKey("config_payment_modes.id"), nullable=True)
     amount: Mapped[float] = mapped_column(Float, default=0)
     reference: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    journal_entry_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_accounting_entries.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "erp/accounting/entries", "display_column": "number", "read_only": True})
+    journal_entry_id: Mapped[Optional[int]] = mapped_column(ForeignKey("accounting_entries.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "accounting/entries", "display_column": "number", "read_only": True})
 
     allocations: Mapped[list["PaymentAllocation"]] = relationship("PaymentAllocation", back_populates="parent", cascade="all, delete-orphan")
 
@@ -441,9 +441,9 @@ class Payment(DocumentBase):
 
 
 class PaymentAllocation(LineItemBase):
-    __tablename__ = "erp_accounting_payment_allocations"
-    __parent__ = "erp_accounting_payments"
-    payment_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_payments.id"))
+    __tablename__ = "accounting_payment_allocations"
+    __parent__ = "accounting_payments"
+    payment_id: Mapped[int] = mapped_column(ForeignKey("accounting_payments.id"))
     invoice_type: Mapped[str] = mapped_column(String(20)) # InflowInvoice or OutflowInvoice
     invoice_id: Mapped[int] = mapped_column(Integer)
     amount: Mapped[float] = mapped_column(Float, default=0)
@@ -471,11 +471,11 @@ class PaymentAllocation(LineItemBase):
         return ok({"ok": True}, message="Allocation removed.")
 
 class GoodsReceiptNote(DocumentBase):
-    __tablename__ = "erp_accounting_grns"
+    __tablename__ = "accounting_grns"
 
-    party_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
+    party_id: Mapped[int] = mapped_column(ForeignKey("party_parties.id"))
     purchase_order_ref: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    warehouse_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_locations.id"))
+    warehouse_id: Mapped[int] = mapped_column(ForeignKey("stock_locations.id"))
     
     status: Mapped[str] = mapped_column(
         String(20),
@@ -546,11 +546,11 @@ class GoodsReceiptNote(DocumentBase):
         return ok({"status": self.status}, message="GRN matched to invoice successfully.")
 
 class GoodsReceiptLine(LineItemBase):
-    __tablename__ = "erp_accounting_grn_lines"
-    __parent__ = "erp_accounting_grns"
+    __tablename__ = "accounting_grn_lines"
+    __parent__ = "accounting_grns"
 
-    grn_id: Mapped[int] = mapped_column(ForeignKey("erp_accounting_grns.id"))
-    item_id: Mapped[int] = mapped_column(ForeignKey("erp_stock_items.id"))
+    grn_id: Mapped[int] = mapped_column(ForeignKey("accounting_grns.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("stock_items.id"))
     quantity_received: Mapped[float] = mapped_column(Numeric, default=0)
     unit_cost: Mapped[float] = mapped_column(Numeric, default=0)
 

@@ -9,7 +9,7 @@ from ..base.model import Model
 
 class AppModel(Model):
     """Stores metadata about installed applications."""
-    __tablename__ = "aras_apps"
+    __tablename__ = "core_apps"
 
     name: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     parent_name: Mapped[str] = mapped_column(String(50), nullable=True, index=True)
@@ -19,6 +19,8 @@ class AppModel(Model):
     description: Mapped[str] = mapped_column(String(255), nullable=True)
     icon: Mapped[str] = mapped_column(String(50), default="Package")
     version: Mapped[str] = mapped_column(String(20), default="1.0.0")
+    required: Mapped[bool] = mapped_column(default=False)
+    provides: Mapped[list] = mapped_column(JSON, default=list)
     config: Mapped[dict] = mapped_column(JSON, default=dict)
     menu_groups: Mapped[list] = mapped_column(JSON, default=list) # [{label, icon, models: []}]
     requires: Mapped[list] = mapped_column(JSON, default=list)  # ["accounting", "hr"] — app names this app depends on

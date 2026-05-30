@@ -61,7 +61,7 @@ function SparkChart({ values }: { values: number[] }) {
   )
 }
 
-export default function SaaSAdminDashboard() {
+export default function ControlPanelDashboard() {
   const [revenue, setRevenue] = useState<RevenueSummary | null>(null)
   const [tenants, setTenants] = useState<TenantRow[]>([])
   const [payments, setPayments] = useState<PaymentRow[]>([])
@@ -73,15 +73,15 @@ export default function SaaSAdminDashboard() {
     setError(null)
     try {
       const [revenueRes, tenantsRes, paymentsRes] = await Promise.allSettled([
-        api.get('/saas/admin/revenue'),
-        api.get('/saas/admin/tenants'),
-        api.get('/saas/admin/payments/recent'),
+        api.get('/saas/control-panel/revenue'),
+        api.get('/saas/control-panel/tenants'),
+        api.get('/saas/control-panel/payments/recent'),
       ])
       if (revenueRes.status === 'fulfilled') setRevenue(revenueRes.value.data)
       if (tenantsRes.status === 'fulfilled') setTenants(Array.isArray(tenantsRes.value.data) ? tenantsRes.value.data : [])
       if (paymentsRes.status === 'fulfilled') setPayments(Array.isArray(paymentsRes.value.data) ? paymentsRes.value.data : [])
     } catch (err: any) {
-      setError(err.message || 'Failed to load SaaS dashboard.')
+      setError(err.message || 'Failed to load Control Panel.')
     } finally {
       setLoading(false)
     }
@@ -105,11 +105,14 @@ export default function SaaSAdminDashboard() {
     <div className="p-6 lg:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="arc-id"><b>saas</b>/admin</p>
-          <h1 className="mt-2 text-2xl font-bold text-[var(--text)]">SaaS Admin</h1>
+          <p className="arc-id"><b>saas</b>/control-panel</p>
+          <h1 className="mt-2 text-2xl font-bold text-[var(--text)]">Control Panel</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Link to="/saas-admin/plans" className="rounded-[var(--radius)] border border-[var(--line)] px-3 py-2 text-sm font-semibold text-[var(--text-2)] hover:text-[var(--text)]">
+          <Link to="/control-panel/licenses" className="rounded-[var(--radius)] border border-[var(--line)] px-3 py-2 text-sm font-semibold text-[var(--text-2)] hover:text-[var(--text)]">
+            Licenses
+          </Link>
+          <Link to="/control-panel/plans" className="rounded-[var(--radius)] border border-[var(--line)] px-3 py-2 text-sm font-semibold text-[var(--text-2)] hover:text-[var(--text)]">
             Plans
           </Link>
           <button type="button" onClick={load} className="inline-flex items-center gap-2 rounded-[var(--radius)] bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white">
@@ -177,7 +180,7 @@ export default function SaaSAdminDashboard() {
               {tenants.map((tenant) => (
                 <tr key={tenant.id || tenant.tenant_id} className="hover:bg-[var(--surface-2)]">
                   <td className="px-5 py-3">
-                    <Link to={`/saas-admin/tenants/${tenant.tenant_id || tenant.id}`} className="font-semibold text-[var(--accent)] hover:underline">
+                    <Link to={`/control-panel/tenants/${tenant.tenant_id || tenant.id}`} className="font-semibold text-[var(--accent)] hover:underline">
                       {tenant.company_name || tenant.tenant_id || `Tenant #${tenant.id}`}
                     </Link>
                     <p className="text-xs text-[var(--text-3)]">{tenant.tenant_id || 'pending tenant id'}</p>

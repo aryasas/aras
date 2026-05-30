@@ -7,9 +7,9 @@ from .erp_base import ErpBase
 class DocumentBase(ErpBase):
     __abstract__ = True
     __features__ = ["audit", "workflow", "series"]
-    __scoped_by__ = [("org_id", "erp_config_organizations")]
+    __scoped_by__ = [("org_id", "config_organizations")]
 
-    org_id: Mapped[int] = mapped_column(ForeignKey("erp_config_organizations.id"), nullable=False, index=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("config_organizations.id"), nullable=False, index=True)
 
     number: Mapped[str] = mapped_column(String(32), info={"read_only": True})
     doc_date: Mapped[date] = mapped_column(Date, default=date.today)
@@ -18,7 +18,7 @@ class DocumentBase(ErpBase):
         default="Draft",
         info={"choices": ["Draft", "Confirmed", "Posted", "Cancelled"]},
     )
-    note_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_core_notes.id"), nullable=True)
+    note_id: Mapped[Optional[int]] = mapped_column(ForeignKey("core_notes.id"), nullable=True)
 
     def before_save(self, is_new: bool, db=None):
         if not self.number and db is not None:

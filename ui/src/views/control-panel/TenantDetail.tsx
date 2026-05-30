@@ -52,7 +52,7 @@ export default function TenantDetail() {
       setError(null)
       try {
         const [metricsRes, invoicesRes] = await Promise.allSettled([
-          api.get(`/saas/admin/tenants/${id}/metrics`),
+          api.get(`/saas/control-panel/tenants/${id}/metrics`),
           api.get('/saas/billing/invoices', { params: { tenant_id: id } }),
         ])
         if (cancelled) return
@@ -83,8 +83,8 @@ export default function TenantDetail() {
 
   return (
     <div className="p-6 lg:p-8">
-      <Link to="/saas-admin" className="inline-flex items-center gap-2 text-sm text-[var(--text-3)] hover:text-[var(--text)]">
-        <ArrowLeft size={15} /> SaaS Admin
+      <Link to="/control-panel" className="inline-flex items-center gap-2 text-sm text-[var(--text-3)] hover:text-[var(--text)]">
+        <ArrowLeft size={15} /> Control Panel
       </Link>
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div>

@@ -7,7 +7,7 @@ class WidgetModel(Model):
     Registry for Dashboard Widgets.
     Widgets can be Stats, Charts, or Recent Activity lists.
     """
-    __tablename__ = "aras_widgets"
+    __tablename__ = "core_widgets"
 
     name = Column(String(100), nullable=False)
     title = Column(String(100), nullable=False)
@@ -18,7 +18,7 @@ class WidgetModel(Model):
     order = Column(Integer, default=0)
     
     # Optional: Link to a specific App
-    app_id = Column(Integer, ForeignKey("aras_apps.id", ondelete="CASCADE"), nullable=True)
+    app_id = Column(Integer, ForeignKey("core_apps.id", ondelete="CASCADE"), nullable=True)
     app = relationship("AppModel", backref="widgets")
 
     @classmethod

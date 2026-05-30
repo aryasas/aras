@@ -1,5 +1,5 @@
 from core import Aras
-from .models import Organization, Currency, Uom, PriceType, Charge, ExchangeRate, Setting, ModeOfPayment, PrintTemplate, Notification
+from .models import Organization, Currency, Uom, PriceType, Charge, ExchangeRate, ModeOfPayment, PrintTemplate, Notification
 from .erp_rbac import ErpUserAccess
 
 class OrganizationView(Aras.View):
@@ -83,11 +83,6 @@ class ExchangeRateView(Aras.View):
         },
     ]
 
-class SettingView(Aras.View):
-    model = Setting
-    title = "Settings"
-    icon = "Sliders"
-
 
 class ModeOfPaymentView(Aras.View):
     model = ModeOfPayment
@@ -100,7 +95,7 @@ class ModeOfPaymentView(Aras.View):
         {
             "key": "general",
             "title": "General",
-            "fields": ["org_id", "name", "payment_type", "erp_config_payment_accounts"],
+            "fields": ["org_id", "name", "payment_type", "config_payment_accounts"],
         },
     ]
 

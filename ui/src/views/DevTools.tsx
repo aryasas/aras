@@ -277,9 +277,9 @@ export default function DevTools() {
             />
             <RegistryCard
               title="System Settings"
-              count={stats.find(s => s.table === 'sys_settings')?.rows as number || 0}
+              count={stats.find(s => s.table === 'core_settings')?.rows as number || 0}
               icon={<Settings size={24} />}
-              to="/dev/settings"
+              to="/admin/settings"
               color="slate"
             />
             <RegistryCard

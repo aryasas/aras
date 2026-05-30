@@ -8,21 +8,21 @@ from apps.base import DocumentBase, LineItemBase, ErpBase
 
 
 class PotTerminal(ErpBase):
-    __tablename__ = "erp_pot_terminals"
+    __tablename__ = "pot_terminals"
 
     name: Mapped[str] = mapped_column(String(100))
     terminal_label: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_stock_locations.id"), nullable=True)
-    selling_pricelist_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_config_price_types.id"), nullable=True)
+    location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("stock_locations.id"), nullable=True)
+    selling_pricelist_id: Mapped[Optional[int]] = mapped_column(ForeignKey("config_price_types.id"), nullable=True)
     allow_discount: Mapped[bool] = mapped_column(Boolean, default=True)
     receipt_header: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     receipt_footer: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
 
 class PotSession(DocumentBase):
-    __tablename__ = "erp_pot_sessions"
+    __tablename__ = "pot_sessions"
 
-    terminal_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_pot_terminals.id"), nullable=True)
+    terminal_id: Mapped[Optional[int]] = mapped_column(ForeignKey("pot_terminals.id"), nullable=True)
     opening_balance: Mapped[float] = mapped_column(Float, default=0)
     closing_balance: Mapped[float] = mapped_column(Float, default=0)
     mode: Mapped[str] = mapped_column(String(20), default="sales", info={"choices": ["sales", "purchase", "both"]})

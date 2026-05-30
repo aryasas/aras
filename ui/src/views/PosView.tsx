@@ -67,7 +67,7 @@ export default function PosView() {
 
   useEffect(() => {
     if (!id) return
-    api.get(`/pot/sessions/${id}`)
+    api.get(`/pot_sessions/${id}`)
       .then(res => {
         const s = res.data as PosSession
         setSession(s)
@@ -79,9 +79,9 @@ export default function PosView() {
   useEffect(() => {
     if (id) return
     setSessionsLoading(true)
-    api.get('/pot/sessions', {
+    api.get('/pot_sessions', {
       params: {
-        filters: JSON.stringify([{ field: 'status', op: '=', value: 'Open' }])
+        filters: JSON.stringify([{ field: 'status', op: 'in', value: ['Draft', 'Confirmed'] }])
       }
     })
       .then(res => setOpenSessions(normalizeList<PosSession>(res.data)))
@@ -140,7 +140,7 @@ export default function PosView() {
   const createSession = async () => {
     setCreatingSession(true)
     try {
-      const res = await api.post('/pot/sessions', {
+      const res = await api.post('/pot_sessions', {
         status: 'Open',
         mode: 'sales',
         doc_date: today()
@@ -197,7 +197,7 @@ export default function PosView() {
 
     setClosing(true)
     try {
-      await api.post(`/pot/sessions/${id}/action/close_session`, { closing_balance: 0 })
+      await api.post(`/pot_sessions/${id}/action/close_session`, { closing_balance: 0 })
       notify('Session closed', 'success')
       navigate('/pot/sessions')
     } catch (err: any) {

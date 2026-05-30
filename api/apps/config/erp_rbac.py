@@ -13,12 +13,12 @@ ERP_RESOURCE = "erp"
 
 class ErpUserAccess(Model):
     """Links a user to an org with an ERP role. org_id=NULL means all orgs."""
-    __tablename__ = "erp_user_access"
+    __tablename__ = "config_user_access"
     __features__ = []
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("auth_users.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("core_users.id"), index=True)
     org_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
-    role_id: Mapped[int] = mapped_column(ForeignKey("auth_roles.id"))
+    role_id: Mapped[int] = mapped_column(ForeignKey("core_roles.id"))
 
 
 def ensure_erp_role(db: Session) -> Role:

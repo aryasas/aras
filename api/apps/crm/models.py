@@ -11,15 +11,15 @@ from apps.base import MasterDataBase, LineItemBase, ErpBase
 
 
 class Pipeline(MasterDataBase):
-    __tablename__ = "erp_crm_pipelines"
+    __tablename__ = "crm_pipelines"
     
     stages: Mapped[list["Stage"]] = relationship("Stage", back_populates="parent", cascade="all, delete-orphan")
 
 class Stage(LineItemBase):
-    __tablename__ = "erp_crm_stages"
-    __parent__ = "erp_crm_pipelines"
+    __tablename__ = "crm_stages"
+    __parent__ = "crm_pipelines"
     
-    pipeline_id: Mapped[int] = mapped_column(ForeignKey("erp_crm_pipelines.id"))
+    pipeline_id: Mapped[int] = mapped_column(ForeignKey("crm_pipelines.id"))
     probability: Mapped[float] = mapped_column(Float, default=0)
     is_won: Mapped[bool] = mapped_column(Boolean, default=False)
     is_lost: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -27,16 +27,16 @@ class Stage(LineItemBase):
     parent: Mapped["Pipeline"] = relationship("Pipeline", back_populates="stages")
 
 class Lead(MasterDataBase):
-    __tablename__ = "erp_crm_leads"
+    __tablename__ = "crm_leads"
     
     lead_type: Mapped[str] = mapped_column(String(20), default="Lead", info={"choices": ["Lead", "Opportunity"]})
-    party_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_party_parties.id"), nullable=True)
+    party_id: Mapped[Optional[int]] = mapped_column(ForeignKey("party_parties.id"), nullable=True)
     contact_name: Mapped[str] = mapped_column(String(200), nullable=True)
     contact_email: Mapped[str] = mapped_column(String(100), nullable=True)
     contact_phone: Mapped[str] = mapped_column(String(20), nullable=True)
-    pipeline_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_crm_pipelines.id"), nullable=True)
-    stage_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_crm_stages.id"), nullable=True)
-    salesperson_id: Mapped[Optional[int]] = mapped_column(ForeignKey("auth_users.id"), nullable=True)
+    pipeline_id: Mapped[Optional[int]] = mapped_column(ForeignKey("crm_pipelines.id"), nullable=True)
+    stage_id: Mapped[Optional[int]] = mapped_column(ForeignKey("crm_stages.id"), nullable=True)
+    salesperson_id: Mapped[Optional[int]] = mapped_column(ForeignKey("core_users.id"), nullable=True)
     expected_revenue: Mapped[float] = mapped_column(Float, default=0)
     probability: Mapped[float] = mapped_column(Float, default=0)
     priority: Mapped[str] = mapped_column(String(10), default="Normal", info={"choices": ["Low", "Normal", "High", "Very High"]})
@@ -68,16 +68,16 @@ class Lead(MasterDataBase):
         return ok({"id": party.id}, message=f"Party {party.name} created successfully.")
 
 class Activity(ErpBase):
-    __tablename__ = "erp_crm_activities"
-    __parent__ = "erp_crm_leads"
+    __tablename__ = "crm_activities"
+    __parent__ = "crm_leads"
     
-    lead_id: Mapped[int] = mapped_column(ForeignKey("erp_crm_leads.id"))
+    lead_id: Mapped[int] = mapped_column(ForeignKey("crm_leads.id"))
     activity_type: Mapped[str] = mapped_column(String(20), default="Call", info={"choices": ["Call", "Email", "Meeting", "Task", "Note", "WhatsApp"]})
     summary: Mapped[str] = mapped_column(String(255))
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     date_due: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     is_done: Mapped[bool] = mapped_column(Boolean, default=False)
-    assigned_to_id: Mapped[Optional[int]] = mapped_column(ForeignKey("auth_users.id"), nullable=True)
+    assigned_to_id: Mapped[Optional[int]] = mapped_column(ForeignKey("core_users.id"), nullable=True)
     
     parent: Mapped["Lead"] = relationship("Lead", backref="activities")
 

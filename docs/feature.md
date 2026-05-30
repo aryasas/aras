@@ -460,3 +460,23 @@ This file is used only to report if there are feature added
 
 ## Polish sweep — FE silent-catch surfacing, `any` cleanup, email transport wiring, GeoLite2 bundling, payment webhook E2E tests — revision (2026-05-29)
   - [GPT (codex)] Portal safe API envelope parsing with error toasts; aras-core explicit any count reduced to 37
+
+
+## Config & Registry refinement — apps/core_config + ConfigRegistry + adjacent registries (Menu, Permission, Numbering, Jobs, Flags, Audit, Secrets, i18n) — revision (2026-05-29)
+  - [GPT (codex)] Config workspace page with section rail, schema-driven forms, custom Company renderer, feature flags panel, config React Query helpers, account Workspace Settings link, required app badge/disabled uninstall state.
+
+
+## Architecture cleanup — table prefix rename (`erp_`/`aras_` → `core_`/`<app>_`), Control Panel consolidation, Fixed Assets → accounting sub-module, license surface split — revision (2026-05-29)
+  - [GPT (codex)] Control Panel routes, role gating, operator license panel, and control-panel test coverage
+
+
+## Drop `aras_` prefix from DB names and localStorage keys — final naming cleanup — revision (2026-05-30)
+  - [GPT (codex)] tenant localStorage key migration from aras_tenant_id to tenant_id
+
+
+## Unknown (2026-05-30)
+  - [GPT (codex)] Framework-owned /admin/settings UI with namespace rail, schema-driven section forms, section-level saves, URL namespace persistence, dirty-state handling, and settingsApi wrapper
+
+
+## Unknown (2026-05-30)
+  - [GPT (codex)] Master Data hub page, grouped rail, URL-persisted entity selection, ListView/DynamicForm embedding, API helpers, route, and Settings shortcuts

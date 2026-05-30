@@ -102,11 +102,13 @@ def run(engine, metadata, drop_orphan_tables: bool = False) -> MigrationReport:
         if orphans:
             # Protect core tables
             core_tables = {
-                "aras_apps", "aras_resources", "aras_fields", "aras_links",
-                "translations", "aras_activity_logs", "auth_roles",
-                "auth_permissions", "auth_user_roles", "auth_users", "sys_settings",
+                "core_apps", "core_resources", "core_fields", "core_links",
+                "core_translations", "core_activity_logs", "core_roles",
+                "core_permissions", "core_user_roles", "core_users", "core_settings",
                 "alembic_version"
             }
+            # Transitional: skip pre-2026-05 legacy tables.
+            # Remove after all deployments confirmed on `core_*` schema (target 2026-08).
             real_orphans = [t for t in orphans if t not in core_tables and not t.startswith("aras_")]
             
             if real_orphans:

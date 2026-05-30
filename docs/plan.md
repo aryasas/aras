@@ -212,11 +212,11 @@ Goal: dense, reliable admin workflows — faster scanning, clearer actions, bett
 
 ### Fase 4 — Web utama ✅ DONE
 - [Gemini] License enforcement middleware
-- [Gemini] apps/saas (control plane)
+- [Gemini] apps/saas (control panel)
 - [Gemini] apps/web (generic CMS)
 - [Gemini] Stripe + Midtrans + Xendit pluggable providers + IP geo routing (run 103)
 
-### Fase 5 — Control Plane MVP ✅ DONE
+### Fase 5 — Control Panel MVP ✅ DONE
 - [Gemini] apps/saas/ with Plan, Subscription, LicenseToken
 - [Gemini] Subscription management UI
 

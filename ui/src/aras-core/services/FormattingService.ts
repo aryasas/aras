@@ -8,11 +8,6 @@ export interface RegionalConfig {
   language: string;
 }
 
-interface SettingRow {
-  key: string;
-  value: string;
-}
-
 let config: RegionalConfig = {
   dateFormat: 'YYYY-MM-DD',
   numberFormat: '#,###.##',
@@ -24,22 +19,20 @@ let config: RegionalConfig = {
 export const FormattingService = {
   async init() {
     try {
-      const response = await api.post('/sys_settings/query', {
-        filters: [{ field: 'key', op: 'ilike', value: 'core.' }]
-      });
-      
-      const settingsMap: Record<string, string> = {};
-      const rows = Array.isArray(response.data.items) ? response.data.items as SettingRow[] : [];
-      rows.forEach((s) => {
-        settingsMap[s.key] = s.value;
+      const response = await api.get('/settings/core');
+      // Backend returns { section_key: { field_key: value, ... }, ... }
+      const sections = (response.data || {}) as Record<string, Record<string, any>>;
+      const flat: Record<string, string> = {};
+      Object.values(sections).forEach(section => {
+        Object.entries(section || {}).forEach(([k, v]) => { flat[k] = String(v ?? ''); });
       });
 
       config = {
-        dateFormat: settingsMap['core.date_format'] || 'YYYY-MM-DD',
-        numberFormat: settingsMap['core.number_format'] || '#,###.##',
-        decimalPrecision: parseInt(settingsMap['core.decimal_precision'] || '2'),
-        currencySymbol: settingsMap['core.currency_symbol'] || '$',
-        language: settingsMap['core.language_default'] || 'en'
+        dateFormat: flat['date_format'] || 'YYYY-MM-DD',
+        numberFormat: flat['number_format'] || '#,###.##',
+        decimalPrecision: parseInt(flat['decimal_precision'] || '2'),
+        currencySymbol: flat['currency_symbol'] || '$',
+        language: flat['language_default'] || 'en'
       };
     } catch (err) {
       console.error('[FormattingService] Failed to load config:', err);

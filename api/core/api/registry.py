@@ -46,7 +46,7 @@ def get_resource_metadata(
     if not model_class:
         from ..aras import Aras
         core_list = [
-            Aras.User, Aras.Role, Aras.Permission, Aras.ActivityLog, Aras.ArasSetting,
+            Aras.User, Aras.Role, Aras.Permission, Aras.ActivityLog, Aras.SettingsModel,
             Aras.AppModel, Aras.ResourceModel, Aras.FieldModel, Aras.LinkModel, Aras.TranslationModel,
             Aras.WidgetModel, Aras.DashboardLayoutModel
         ]

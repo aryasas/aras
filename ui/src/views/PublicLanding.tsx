@@ -380,7 +380,7 @@ export default function PublicLanding() {
 
       {(user as any)?.is_superuser && (
         <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
-          <Link to="/erp/web/landing-sections" className="rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-bold text-white shadow-lg">
+          <Link to="/web/landing-sections" className="rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-bold text-white shadow-lg">
             Edit page
           </Link>
           <Link to="/dev/template-builder?from=landing" className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text)] shadow-lg">

@@ -148,9 +148,16 @@ class UIGenerator(Service):
                 "tab": db_field.tab if db_field and db_field.tab else column.info.get("tab"),
                 "section": db_field.section if db_field and db_field.section else column.info.get("section"),
                 "foldable": db_field.foldable if db_field and db_field.foldable is not None else column.info.get("foldable", False),
-                "default_folded": db_field.default_folded if db_field and db_field.default_folded is not None else column.info.get("default_folded", False)
+                "default_folded": db_field.default_folded if db_field and db_field.default_folded is not None else column.info.get("default_folded", False),
+                # claude-opus-4-7
+                "display_order": getattr(db_field, "display_order", 0) if db_field else 0,
             }
             fields.append(field_info)
+
+        # claude-opus-4-7
+        # Stable sort by display_order; 0 (unset) keeps original column order via Python sort stability.
+        if any(f.get("display_order") for f in fields):
+            fields.sort(key=lambda f: (f.get("display_order") or 9999))
 
         # Helper: resolve REST API path for any table name
         from ...service_registry import ServiceRegistry

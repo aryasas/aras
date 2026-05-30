@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { lazy, Suspense, useEffect } from 'react'
 import api from './lib/api'
 import { useAuthStore } from './store/authStore'
@@ -16,7 +16,8 @@ const ForgotPassword = lazy(() => import('./views/ForgotPassword'))
 const ResetPassword = lazy(() => import('./views/ResetPassword'))
 const MainLayout = lazy(() => import('./layouts/MainLayout'))
 const HomeView = lazy(() => import('./views/Home'))
-const SettingsView = lazy(() => import('./views/Settings'))
+const SettingsPageView = lazy(() => import('./views/settings/SettingsPage'))
+const MasterDataPageView = lazy(() => import('./views/master-data/MasterDataPage'))
 const DashboardSettingsView = lazy(() => import('./views/DashboardSettings'))
 const ProfileView = lazy(() => import('./views/Profile'))
 const DynamicView = lazy(() => import('./views/DynamicView'))
@@ -24,11 +25,9 @@ const ReportCenterView = lazy(() => import('./views/ReportCenter'))
 const DevToolsView = lazy(() => import('./views/DevTools'))
 const TemplateBuilderView = lazy(() => import('./views/TemplateBuilder'))
 const AppManagerView = lazy(() => import('./views/AppManager'))
-const TenantAdmin = lazy(() => import('./views/TenantAdmin'))
 const AuditLogsView = lazy(() => import('./views/AuditLogs'))
 const RBACManagerView = lazy(() => import('./views/RBACManager'))
 const ErpUserAccess = lazy(() => import('./views/ErpUserAccess'))
-const GlobalSettingsView = lazy(() => import('./views/GlobalSettings'))
 const LicenseStatusView = lazy(() => import('./views/LicenseStatus'))
 const WebPageView = lazy(() => import('./views/WebPageView'))
 const ContactView = lazy(() => import('./views/ContactView'))
@@ -36,17 +35,26 @@ const PublicLanding = lazy(() => import('./views/PublicLanding'))
 const CustomerSignup = lazy(() => import('./views/CustomerSignup'))
 const CustomerPortal = lazy(() => import('./views/CustomerPortal'))
 const CustomerPortalSetup = lazy(() => import('./views/CustomerPortalSetup'))
-const SaaSAdminDashboard = lazy(() => import('./views/saas/SaaSAdminDashboard'))
-const SaaSTenantDetail = lazy(() => import('./views/saas/TenantDetail'))
+const ControlPanelDashboard = lazy(() => import('./views/control-panel/ControlPanelDashboard'))
+const ControlPanelTenantDetail = lazy(() => import('./views/control-panel/TenantDetail'))
+const LicensesPanel = lazy(() => import('./views/control-panel/LicensesPanel'))
 const SaaSPlans = lazy(() => import('./views/saas/Plans'))
 const InspectRoutesView = lazy(() => import('./views/InspectRoutes'))
 const HealthIntegrityView = lazy(() => import('./views/HealthIntegrity'))
+const HandoffRunsView = lazy(() => import('./views/HandoffRuns'))
+const BackgroundTasksView = lazy(() => import('./views/BackgroundTasks'))
+const FileManagerView = lazy(() => import('./views/FileManager'))
 const ArchivedView = lazy(() => import('./views/ArchivedView'))
 const PosView = lazy(() => import('./views/PosView'))
 const SmartDispatcher = lazy(() => import('./views/SmartDispatcher'))
 const HelpUserView = lazy(() => import('./views/HelpUser'))
 const HelpDevView = lazy(() => import('./views/HelpDev'))
 const NotFound = lazy(() => import('./views/NotFound'))
+
+const getArasRole = () => {
+  const injectedRole = (globalThis as any).__ARAS_ROLE__
+  return String(injectedRole || import.meta.env.VITE_ARAS_ROLE || 'tenant')
+}
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = useAuthStore((state) => state.token)
@@ -63,6 +71,21 @@ const OrganizationGuard = ({ children }: { children: React.ReactNode }) => {
   }
 
   return <>{children}</>
+}
+
+const ControlPanelRoute = ({ children }: { children: React.ReactNode }) => {
+  if (getArasRole() !== 'control-panel') return <NotFound />
+  return <>{children}</>
+}
+
+const TenantRoute = ({ children }: { children: React.ReactNode }) => {
+  if (getArasRole() === 'control-panel') return <NotFound />
+  return <>{children}</>
+}
+
+const LegacyTenantDetailRedirect = () => {
+  const { id = '' } = useParams()
+  return <Navigate to={`/control-panel/tenants/${id}`} replace />
 }
 
 function App() {
@@ -192,22 +215,32 @@ function App() {
         >
           <Route index element={<HomeView />} />
           <Route path="dashboard" element={<HomeView />} />
-          <Route path="settings" element={<SettingsView />} />
+          <Route path="settings" element={<Navigate to="/admin/settings" replace />} />
+          <Route path="admin/settings" element={<SettingsPageView />} />
+          <Route path="admin/master-data" element={<MasterDataPageView />} />
           <Route path="settings/dashboard" element={<DashboardSettingsView />} />
-          <Route path="settings/global" element={<GlobalSettingsView />} />
+          <Route path="settings/global" element={<Navigate to="/admin/settings" replace />} />
           <Route path="settings/audit" element={<AuditLogsView />} />
           <Route path="settings/rbac" element={<RBACManagerView />} />
-          <Route path="admin/license" element={<LicenseStatusView />} />
+          <Route path="admin/license" element={<TenantRoute><LicenseStatusView /></TenantRoute>} />
           <Route path="preview/:slug" element={<WebPageView />} />
           <Route path="config/user-access" element={<ErpUserAccess />} />
           <Route path="dev" element={<DevToolsView />} />
           <Route path="dev/template-builder" element={<TemplateBuilderView />} />
           <Route path="dev/health" element={<HealthIntegrityView />} />
           <Route path="dev/routes" element={<InspectRoutesView />} />
-          <Route path="admin/tenants" element={<TenantAdmin />} />
-          <Route path="saas-admin" element={<SaaSAdminDashboard />} />
-          <Route path="saas-admin/tenants/:id" element={<SaaSTenantDetail />} />
-          <Route path="saas-admin/plans" element={<SaaSPlans />} />
+          <Route path="dev/handoff-runs" element={<HandoffRunsView />} />
+          <Route path="dev/tasks" element={<BackgroundTasksView />} />
+          <Route path="settings/files" element={<FileManagerView />} />
+          <Route path="admin/tenants" element={<Navigate to="/control-panel/tenants" replace />} />
+          <Route path="saas-admin" element={<Navigate to="/control-panel" replace />} />
+          <Route path="saas-admin/tenants/:id" element={<LegacyTenantDetailRedirect />} />
+          <Route path="saas-admin/plans" element={<Navigate to="/control-panel/plans" replace />} />
+          <Route path="control-panel" element={<ControlPanelRoute><ControlPanelDashboard /></ControlPanelRoute>} />
+          <Route path="control-panel/tenants" element={<ControlPanelRoute><ControlPanelDashboard /></ControlPanelRoute>} />
+          <Route path="control-panel/tenants/:id" element={<ControlPanelRoute><ControlPanelTenantDetail /></ControlPanelRoute>} />
+          <Route path="control-panel/licenses" element={<ControlPanelRoute><LicensesPanel /></ControlPanelRoute>} />
+          <Route path="control-panel/plans" element={<ControlPanelRoute><SaaSPlans /></ControlPanelRoute>} />
           <Route path="dev/help" element={<HelpDevView />} />
           <Route path="help" element={<HelpUserView />} />
           <Route path="dev/table/:app/:model" element={<DynamicView />} />

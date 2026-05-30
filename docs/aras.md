@@ -80,6 +80,13 @@ Every app needs three things to have visible resources in the UI:
 
 ---
 
+## Naming & Layering
+
+1. **Table Naming:** Framework tables → `core_*`. App tables → `<app_name>_*`. No `erp_`/`aras_`/domain prefixes. (Note: `erp_*` and `aras_*` legacy prefixes are deprecated; new code MUST use the new prefixes).
+2. **App Hierarchy:** An app is top-level only if it can be meaningfully used without any other business app installed. Otherwise it is a sub-module (`parent_name` set, `app_type="module"`) of whichever app owns its domain.
+3. **Audience Routing:** Endpoints/pages about *my own instance* live under `/admin/*` (tenant deployments). Endpoints/pages about *other tenants/licenses* live under `/control-panel/*` (Control Panel deployment). No surface does both.
+4. **Database & Storage Naming:** Database and storage names follow the same prefix rule as tables: `core_*` for framework state, `<role>_*` (e.g. `tenant_<id>`, `control_panel`) for deployment artifacts. No product-name prefix anywhere. (Note: existing deployments must run `python tools/rename_tenant_dbs.py` once to migrate live DBs; the legacy fallback in `config.py` keeps the app working in the meantime).
+
 ## Model Rules
 
 - `__tablename__` — REQUIRED, `{table_prefix}_{table}` where `table_prefix` matches the app's `table_prefix` attr (e.g. `erp_accounting_accounts` for app `accounting` with `table_prefix="erp_accounting"`)
@@ -551,3 +558,13 @@ Be honest about quality: `# claude-sonnet-4-6 (bad)`, `# gemini-pro (needs revie
 ## Framework Change: on_validate hook + db/user_id injection (2026-05-29)
   - [Claude Opus 4.7] Added `@Aras.on_validate` decorator in `api/core/base/aras.py`; fires pre-commit in `Model.save`, raises `ValidationException` to abort save.
   - [Claude Opus 4.7] `HookMixin._fire_hooks` now introspects hook signatures and injects `db`/`user_id` when accepted; all call sites in `Model.save`/`delete_self` pass them through.
+
+
+---
+## Framework Change: Architecture cleanup — table prefix rename, Control Panel consolidation, Fixed Assets -> accounting sub-module, license surface split (2026-05-29)
+  - [Gemini 2.5 Flash] Added naming and layering rules to docs/aras.md, conditional Control Panel mounting based on ARAS_ROLE in main.py, and new asset submodule structure.
+
+
+---
+## Framework Change: Unknown (2026-05-30)
+  - [GPT (codex)] Exported DynamicForm renderField for shared schema-driven settings rendering

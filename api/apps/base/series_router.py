@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from core.lib.database import get_db
 from core.auth.service import get_current_user
 from core.auth.models import User
-from core.manager.naming_manager import SeriesManager
+from core.lib.numbering import numbering
 
 router = APIRouter()
 
@@ -11,7 +11,8 @@ router = APIRouter()
 def peek_series(
     key: str = Query(..., description="Series key (= model __tablename__)"),
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
-    next_number = SeriesManager.peek_next(db, key)
+    org_id = getattr(current_user, "org_id", 0)
+    next_number = numbering.peek(db, key, org_id=org_id)
     return {"next": next_number}

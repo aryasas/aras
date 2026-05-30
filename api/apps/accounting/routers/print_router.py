@@ -9,9 +9,9 @@ from core.logic.permissions import RBAC, check_permissions
 router = APIRouter()
 
 SUPPORTED_RESOURCES = {
-    "erp_accounting_inflow_invoices",
-    "erp_accounting_outflow_invoices",
-    "erp_accounting_grns",
+    "accounting_inflow_invoices",
+    "accounting_outflow_invoices",
+    "accounting_grns",
 }
 
 
@@ -42,7 +42,7 @@ def get_printable_document(
     org_name = ""
     org_id = getattr(record, "org_id", None)
     if org_id:
-        Organization = Aras.Model.get_model("erp_config_organizations")
+        Organization = Aras.Model.get_model("config_organizations")
         org = db.get(Organization, org_id)
         if org:
             org_name = getattr(org, "trade_name", None) or getattr(org, "name", "")
@@ -51,7 +51,7 @@ def get_printable_document(
     party_name = "N/A"
     party_id = getattr(record, "party_id", None)
     if party_id:
-        Party = Aras.Model.get_model("erp_party_parties")
+        Party = Aras.Model.get_model("party_parties")
         party = db.get(Party, party_id)
         if party:
             party_name = getattr(party, "name", "N/A")

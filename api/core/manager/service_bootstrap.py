@@ -109,7 +109,7 @@ def build_resource_map():
         (_Aras.Role, "admin/roles"),
         (_Aras.Permission, "admin/permissions"),
         (_Aras.ActivityLog, "admin/activity-log"),
-        (_Aras.ArasSetting, "admin/settings"),
+        (_Aras.SettingsModel, "settings"),
         (_Aras.AppModel, "registry/apps"),
         (_Aras.ResourceModel, "registry/resources"),
         (_Aras.FieldModel, "registry/fields"),

@@ -274,3 +274,27 @@ This file is used only to report if there are fix
 
 ## Polish sweep — FE silent-catch surfacing, `any` cleanup, email transport wiring, GeoLite2 bundling, payment webhook E2E tests — revision (2026-05-29)
   - [GPT (codex)] Fixed TypeScript fallout from tighter aras-core component types; npm run build passes
+
+
+## Config & Registry refinement — apps/core_config + ConfigRegistry + adjacent registries (Menu, Permission, Numbering, Jobs, Flags, Audit, Secrets, i18n) — revision (2026-05-29)
+  - [GPT (codex)] Sidebar fetch now prefers /menu with /sidebar fallback; i18n context attempts merged backend bundles with local fallback.
+
+
+## Architecture cleanup — table prefix rename, Control Panel consolidation, Fixed Assets -> accounting sub-module, license surface split (2026-05-29)
+  - [Gemini 2.5 Flash] Renamed legacy aras_* and erp_* framework/app tables to core_* and <app>_*. Consolidated Control Panel and separated tenant-facing and operator-facing license interfaces. Moved Fixed Assets (apps/asset) to an accounting sub-module (apps/accounting/assets).
+
+
+## Architecture cleanup — table prefix rename (`erp_`/`aras_` → `core_`/`<app>_`), Control Panel consolidation, Fixed Assets → accounting sub-module, license surface split — revision (2026-05-29)
+  - [GPT (codex)] Removed TenantAdmin view, redirected legacy SaaS Admin routes, renamed SaaS Admin labels/API paths to Control Panel
+
+
+## Drop `aras_` prefix from DB names and localStorage keys — final naming cleanup — revision (2026-05-30)
+  - [GPT (codex)] updated frontend tenant storage key usage and covered legacy/new/empty storage cases
+
+
+## Unknown (2026-05-30)
+  - [GPT (codex)] Redirected old /settings navigation to /admin/settings and removed old /config route target references from frontend navigation
+
+
+## Unknown (2026-05-30)
+  - [GPT (codex)] Sidebar dynamic app loop now skips apps with hide_from_sidebar

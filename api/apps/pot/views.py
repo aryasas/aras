@@ -20,7 +20,7 @@ class PotSessionView(Aras.View):
     layout = [
         {"key": "header", "title": "Header", "fields": ["number", "terminal_id", "mode", "status", "doc_date", "opening_balance", "closing_balance"]},
         {"key": "summary", "title": "Summary", "fields": ["total_sales", "total_purchase", "invoice_count"]},
-        {"key": "sales_invoices", "type": "linked_list", "title": "Sales Invoices", "resource": "erp/accounting/inflow-invoices", "fk_field": "pos_session_id"},
-        {"key": "purchase_invoices", "type": "linked_list", "title": "Purchase Invoices", "resource": "erp/accounting/outflow-invoices", "fk_field": "pos_session_id"},
+        {"key": "sales_invoices", "type": "linked_list", "title": "Sales Invoices", "resource": "accounting/inflow-invoices", "fk_field": "pos_session_id"},
+        {"key": "purchase_invoices", "type": "linked_list", "title": "Purchase Invoices", "resource": "accounting/outflow-invoices", "fk_field": "pos_session_id"},
     ]
 

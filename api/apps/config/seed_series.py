@@ -11,6 +11,7 @@ sys.path.insert(0, ".")
 from core.registry.series import Series
 
 SEED_FILE = Path(__file__).parent.parent / "seeds" / "series.yaml"
+from core.lib.config import config
 
 
 def run(db=None):
@@ -22,18 +23,15 @@ def run(db=None):
         db = SessionLocal()
     try:
         for s in data["series"]:
-            existing = db.query(Series).filter_by(key=s["key"]).first()
-            if existing:
-                print(f"[SKIP] {s['key']}")
-                continue
-            db.add(Series(
-                key=s["key"],
-                prefix=s["prefix"],
-                format=s["format"],
-                next_value=1,
-                config=s.get("config", {}),
-            ))
-            print(f"[OK]   {s['key']} → {s['prefix']}")
+            key = s["key"]
+            fmt = s["format"]
+            # Convert old format tokens to new ones
+            # {prefix}, {year}, {next_value:04d} -> {prefix}, {year}, {seq:4}
+            new_fmt = fmt.replace("{next_value:04d}", "{seq:4}").replace("{next_value:05d}", "{seq:5}").replace("{next_value}", "{seq}")
+
+            config.set(db, f"core_config.numbering.{key}", new_fmt)
+            print(f"[OK]   {key} → {new_fmt}")
+
         if own_session:
             db.commit()
         else:

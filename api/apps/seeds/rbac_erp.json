@@ -5,7 +5,7 @@
       "description": "Full access to all ERP resources",
       "permissions": [
         {
-          "resource": "erp_accounting_accounts",
+          "resource": "accounting_accounts",
           "actions": [
             "READ",
             "CREATE",
@@ -14,7 +14,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_fiscal_periods",
+          "resource": "accounting_fiscal_periods",
           "actions": [
             "READ",
             "CREATE",
@@ -23,7 +23,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_entries",
+          "resource": "accounting_entries",
           "actions": [
             "READ",
             "CREATE",
@@ -32,7 +32,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_entry_lines",
+          "resource": "accounting_entry_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -41,7 +41,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_outflow_invoices",
+          "resource": "accounting_outflow_invoices",
           "actions": [
             "READ",
             "CREATE",
@@ -50,7 +50,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_outflow_invoice_lines",
+          "resource": "accounting_outflow_invoice_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -59,7 +59,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_outflow_invoice_charges",
+          "resource": "accounting_outflow_invoice_charges",
           "actions": [
             "READ",
             "CREATE",
@@ -68,7 +68,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_inflow_invoices",
+          "resource": "accounting_inflow_invoices",
           "actions": [
             "READ",
             "CREATE",
@@ -77,7 +77,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_inflow_invoice_lines",
+          "resource": "accounting_inflow_invoice_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -86,7 +86,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_inflow_invoice_charges",
+          "resource": "accounting_inflow_invoice_charges",
           "actions": [
             "READ",
             "CREATE",
@@ -95,7 +95,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_payments",
+          "resource": "accounting_payments",
           "actions": [
             "READ",
             "CREATE",
@@ -104,7 +104,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_payment_allocations",
+          "resource": "accounting_payment_allocations",
           "actions": [
             "READ",
             "CREATE",
@@ -113,7 +113,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_grns",
+          "resource": "accounting_grns",
           "actions": [
             "READ",
             "CREATE",
@@ -122,7 +122,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_grn_lines",
+          "resource": "accounting_grn_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -131,7 +131,7 @@
           ]
         },
         {
-          "resource": "erp_stock_categories",
+          "resource": "stock_categories",
           "actions": [
             "READ",
             "CREATE",
@@ -140,7 +140,7 @@
           ]
         },
         {
-          "resource": "erp_stock_items",
+          "resource": "stock_items",
           "actions": [
             "READ",
             "CREATE",
@@ -149,7 +149,7 @@
           ]
         },
         {
-          "resource": "erp_stock_item_accounts",
+          "resource": "stock_item_accounts",
           "actions": [
             "READ",
             "CREATE",
@@ -158,7 +158,7 @@
           ]
         },
         {
-          "resource": "erp_stock_item_uoms",
+          "resource": "stock_item_uoms",
           "actions": [
             "READ",
             "CREATE",
@@ -167,7 +167,7 @@
           ]
         },
         {
-          "resource": "erp_stock_pricelists",
+          "resource": "stock_pricelists",
           "actions": [
             "READ",
             "CREATE",
@@ -176,7 +176,7 @@
           ]
         },
         {
-          "resource": "erp_stock_promo_bundles",
+          "resource": "stock_promo_bundles",
           "actions": [
             "READ",
             "CREATE",
@@ -185,7 +185,7 @@
           ]
         },
         {
-          "resource": "erp_stock_promo_items",
+          "resource": "stock_promo_items",
           "actions": [
             "READ",
             "CREATE",
@@ -194,7 +194,7 @@
           ]
         },
         {
-          "resource": "erp_stock_locations",
+          "resource": "stock_locations",
           "actions": [
             "READ",
             "CREATE",
@@ -203,7 +203,7 @@
           ]
         },
         {
-          "resource": "erp_stock_delivery_notes",
+          "resource": "stock_delivery_notes",
           "actions": [
             "READ",
             "CREATE",
@@ -212,7 +212,7 @@
           ]
         },
         {
-          "resource": "erp_stock_delivery_note_lines",
+          "resource": "stock_delivery_note_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -221,7 +221,7 @@
           ]
         },
         {
-          "resource": "erp_stock_movements",
+          "resource": "stock_movements",
           "actions": [
             "READ",
             "CREATE",
@@ -230,7 +230,7 @@
           ]
         },
         {
-          "resource": "erp_stock_movement_lines",
+          "resource": "stock_movement_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -239,7 +239,7 @@
           ]
         },
         {
-          "resource": "erp_stock_item_bundles",
+          "resource": "stock_item_bundles",
           "actions": [
             "READ",
             "CREATE",
@@ -248,7 +248,7 @@
           ]
         },
         {
-          "resource": "erp_stock_item_locations",
+          "resource": "stock_item_locations",
           "actions": [
             "READ",
             "CREATE",
@@ -257,7 +257,7 @@
           ]
         },
         {
-          "resource": "erp_config_organizations",
+          "resource": "config_organizations",
           "actions": [
             "READ",
             "CREATE",
@@ -266,7 +266,7 @@
           ]
         },
         {
-          "resource": "erp_config_currencies",
+          "resource": "config_currencies",
           "actions": [
             "READ",
             "CREATE",
@@ -275,7 +275,7 @@
           ]
         },
         {
-          "resource": "erp_config_uoms",
+          "resource": "config_uoms",
           "actions": [
             "READ",
             "CREATE",
@@ -284,7 +284,7 @@
           ]
         },
         {
-          "resource": "erp_config_price_types",
+          "resource": "config_price_types",
           "actions": [
             "READ",
             "CREATE",
@@ -293,7 +293,7 @@
           ]
         },
         {
-          "resource": "erp_config_charges",
+          "resource": "config_charges",
           "actions": [
             "READ",
             "CREATE",
@@ -302,7 +302,7 @@
           ]
         },
         {
-          "resource": "erp_config_exchange_rates",
+          "resource": "config_exchange_rates",
           "actions": [
             "READ",
             "CREATE",
@@ -311,14 +311,14 @@
           ]
         },
         {
-          "resource": "erp_config_settings",
+          "resource": "config_settings",
           "actions": [
             "READ",
             "UPDATE"
           ]
         },
         {
-          "resource": "erp_config_payment_modes",
+          "resource": "config_payment_modes",
           "actions": [
             "READ",
             "CREATE",
@@ -327,7 +327,7 @@
           ]
         },
         {
-          "resource": "erp_config_payment_accounts",
+          "resource": "config_payment_accounts",
           "actions": [
             "READ",
             "CREATE",
@@ -336,7 +336,7 @@
           ]
         },
         {
-          "resource": "erp_config_print_templates",
+          "resource": "config_print_templates",
           "actions": [
             "READ",
             "CREATE",
@@ -345,7 +345,7 @@
           ]
         },
         {
-          "resource": "erp_config_notifications",
+          "resource": "config_notifications",
           "actions": [
             "READ",
             "CREATE",
@@ -354,7 +354,7 @@
           ]
         },
         {
-          "resource": "erp_config_org_vocabulary",
+          "resource": "config_org_vocabulary",
           "actions": [
             "READ",
             "CREATE",
@@ -363,7 +363,7 @@
           ]
         },
         {
-          "resource": "erp_config_org_posting_rules",
+          "resource": "config_org_posting_rules",
           "actions": [
             "READ",
             "CREATE",
@@ -372,7 +372,7 @@
           ]
         },
         {
-          "resource": "erp_config_workflow_templates",
+          "resource": "config_workflow_templates",
           "actions": [
             "READ",
             "CREATE",
@@ -381,7 +381,7 @@
           ]
         },
         {
-          "resource": "erp_config_workflow_states",
+          "resource": "config_workflow_states",
           "actions": [
             "READ",
             "CREATE",
@@ -390,7 +390,7 @@
           ]
         },
         {
-          "resource": "erp_config_workflow_transitions",
+          "resource": "config_workflow_transitions",
           "actions": [
             "READ",
             "CREATE",
@@ -399,7 +399,7 @@
           ]
         },
         {
-          "resource": "erp_config_workflow_actions",
+          "resource": "config_workflow_actions",
           "actions": [
             "READ",
             "CREATE",
@@ -408,7 +408,7 @@
           ]
         },
         {
-          "resource": "erp_crm_pipelines",
+          "resource": "crm_pipelines",
           "actions": [
             "READ",
             "CREATE",
@@ -417,7 +417,7 @@
           ]
         },
         {
-          "resource": "erp_crm_stages",
+          "resource": "crm_stages",
           "actions": [
             "READ",
             "CREATE",
@@ -426,7 +426,7 @@
           ]
         },
         {
-          "resource": "erp_crm_leads",
+          "resource": "crm_leads",
           "actions": [
             "READ",
             "CREATE",
@@ -435,7 +435,7 @@
           ]
         },
         {
-          "resource": "erp_crm_activities",
+          "resource": "crm_activities",
           "actions": [
             "READ",
             "CREATE",
@@ -444,7 +444,7 @@
           ]
         },
         {
-          "resource": "erp_party_parties",
+          "resource": "party_parties",
           "actions": [
             "READ",
             "CREATE",
@@ -453,7 +453,7 @@
           ]
         },
         {
-          "resource": "erp_party_contacts",
+          "resource": "party_contacts",
           "actions": [
             "READ",
             "CREATE",
@@ -462,7 +462,7 @@
           ]
         },
         {
-          "resource": "erp_asset_categories",
+          "resource": "accounting_assets_categories",
           "actions": [
             "READ",
             "CREATE",
@@ -471,7 +471,7 @@
           ]
         },
         {
-          "resource": "erp_asset_assets",
+          "resource": "accounting_assets_assets",
           "actions": [
             "READ",
             "CREATE",
@@ -480,7 +480,7 @@
           ]
         },
         {
-          "resource": "erp_hr_departments",
+          "resource": "hr_departments",
           "actions": [
             "READ",
             "CREATE",
@@ -489,7 +489,7 @@
           ]
         },
         {
-          "resource": "erp_hr_positions",
+          "resource": "hr_positions",
           "actions": [
             "READ",
             "CREATE",
@@ -498,7 +498,7 @@
           ]
         },
         {
-          "resource": "erp_hr_employees",
+          "resource": "hr_employees",
           "actions": [
             "READ",
             "CREATE",
@@ -507,7 +507,7 @@
           ]
         },
         {
-          "resource": "erp_pot_terminals",
+          "resource": "pot_terminals",
           "actions": [
             "READ",
             "CREATE",
@@ -516,7 +516,7 @@
           ]
         },
         {
-          "resource": "erp_pot_sessions",
+          "resource": "pot_sessions",
           "actions": [
             "READ",
             "CREATE",
@@ -525,7 +525,7 @@
           ]
         },
         {
-          "resource": "erp_pot_orders",
+          "resource": "pot_orders",
           "actions": [
             "READ",
             "CREATE",
@@ -534,7 +534,7 @@
           ]
         },
         {
-          "resource": "erp_pot_order_lines",
+          "resource": "pot_order_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -543,7 +543,7 @@
           ]
         },
         {
-          "resource": "erp_pot_payment_lines",
+          "resource": "pot_payment_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -552,7 +552,7 @@
           ]
         },
         {
-          "resource": "erp_report_reports",
+          "resource": "report_reports",
           "actions": [
             "READ",
             "CREATE",
@@ -561,7 +561,7 @@
           ]
         },
         {
-          "resource": "erp_base_saved_filters",
+          "resource": "base_saved_filters",
           "actions": [
             "READ",
             "CREATE",
@@ -570,7 +570,7 @@
           ]
         },
         {
-          "resource": "erp_user_access",
+          "resource": "user_access",
           "actions": [
             "READ",
             "CREATE",
@@ -585,19 +585,19 @@
       "description": "General ERP access \u2014 read/write on transactional data, read-only on config",
       "permissions": [
         {
-          "resource": "erp_accounting_accounts",
+          "resource": "accounting_accounts",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_accounting_fiscal_periods",
+          "resource": "accounting_fiscal_periods",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_accounting_entries",
+          "resource": "accounting_entries",
           "actions": [
             "READ",
             "CREATE",
@@ -605,7 +605,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_entry_lines",
+          "resource": "accounting_entry_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -613,7 +613,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_outflow_invoices",
+          "resource": "accounting_outflow_invoices",
           "actions": [
             "READ",
             "CREATE",
@@ -621,7 +621,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_outflow_invoice_lines",
+          "resource": "accounting_outflow_invoice_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -629,7 +629,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_outflow_invoice_charges",
+          "resource": "accounting_outflow_invoice_charges",
           "actions": [
             "READ",
             "CREATE",
@@ -637,7 +637,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_inflow_invoices",
+          "resource": "accounting_inflow_invoices",
           "actions": [
             "READ",
             "CREATE",
@@ -645,7 +645,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_inflow_invoice_lines",
+          "resource": "accounting_inflow_invoice_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -653,7 +653,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_inflow_invoice_charges",
+          "resource": "accounting_inflow_invoice_charges",
           "actions": [
             "READ",
             "CREATE",
@@ -661,7 +661,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_payments",
+          "resource": "accounting_payments",
           "actions": [
             "READ",
             "CREATE",
@@ -669,14 +669,14 @@
           ]
         },
         {
-          "resource": "erp_accounting_payment_allocations",
+          "resource": "accounting_payment_allocations",
           "actions": [
             "READ",
             "CREATE"
           ]
         },
         {
-          "resource": "erp_accounting_grns",
+          "resource": "accounting_grns",
           "actions": [
             "READ",
             "CREATE",
@@ -684,7 +684,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_grn_lines",
+          "resource": "accounting_grn_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -692,37 +692,37 @@
           ]
         },
         {
-          "resource": "erp_stock_categories",
+          "resource": "stock_categories",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_stock_items",
+          "resource": "stock_items",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_stock_item_uoms",
+          "resource": "stock_item_uoms",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_stock_pricelists",
+          "resource": "stock_pricelists",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_stock_locations",
+          "resource": "stock_locations",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_stock_delivery_notes",
+          "resource": "stock_delivery_notes",
           "actions": [
             "READ",
             "CREATE",
@@ -730,7 +730,7 @@
           ]
         },
         {
-          "resource": "erp_stock_delivery_note_lines",
+          "resource": "stock_delivery_note_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -738,87 +738,87 @@
           ]
         },
         {
-          "resource": "erp_stock_movements",
+          "resource": "stock_movements",
           "actions": [
             "READ",
             "CREATE"
           ]
         },
         {
-          "resource": "erp_stock_movement_lines",
+          "resource": "stock_movement_lines",
           "actions": [
             "READ",
             "CREATE"
           ]
         },
         {
-          "resource": "erp_stock_item_locations",
+          "resource": "stock_item_locations",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_currencies",
+          "resource": "config_currencies",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_uoms",
+          "resource": "config_uoms",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_price_types",
+          "resource": "config_price_types",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_charges",
+          "resource": "config_charges",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_exchange_rates",
+          "resource": "config_exchange_rates",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_payment_modes",
+          "resource": "config_payment_modes",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_payment_accounts",
+          "resource": "config_payment_accounts",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_print_templates",
+          "resource": "config_print_templates",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_crm_pipelines",
+          "resource": "crm_pipelines",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_crm_stages",
+          "resource": "crm_stages",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_crm_leads",
+          "resource": "crm_leads",
           "actions": [
             "READ",
             "CREATE",
@@ -826,7 +826,7 @@
           ]
         },
         {
-          "resource": "erp_crm_activities",
+          "resource": "crm_activities",
           "actions": [
             "READ",
             "CREATE",
@@ -834,7 +834,7 @@
           ]
         },
         {
-          "resource": "erp_party_parties",
+          "resource": "party_parties",
           "actions": [
             "READ",
             "CREATE",
@@ -842,7 +842,7 @@
           ]
         },
         {
-          "resource": "erp_party_contacts",
+          "resource": "party_contacts",
           "actions": [
             "READ",
             "CREATE",
@@ -850,13 +850,13 @@
           ]
         },
         {
-          "resource": "erp_report_reports",
+          "resource": "report_reports",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_base_saved_filters",
+          "resource": "base_saved_filters",
           "actions": [
             "READ",
             "CREATE",
@@ -871,7 +871,7 @@
       "description": "Full accounting access; read-only on stock, parties, config",
       "permissions": [
         {
-          "resource": "erp_accounting_accounts",
+          "resource": "accounting_accounts",
           "actions": [
             "READ",
             "CREATE",
@@ -880,7 +880,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_fiscal_periods",
+          "resource": "accounting_fiscal_periods",
           "actions": [
             "READ",
             "CREATE",
@@ -889,7 +889,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_entries",
+          "resource": "accounting_entries",
           "actions": [
             "READ",
             "CREATE",
@@ -898,7 +898,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_entry_lines",
+          "resource": "accounting_entry_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -907,7 +907,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_outflow_invoices",
+          "resource": "accounting_outflow_invoices",
           "actions": [
             "READ",
             "CREATE",
@@ -916,7 +916,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_outflow_invoice_lines",
+          "resource": "accounting_outflow_invoice_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -925,7 +925,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_outflow_invoice_charges",
+          "resource": "accounting_outflow_invoice_charges",
           "actions": [
             "READ",
             "CREATE",
@@ -934,7 +934,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_inflow_invoices",
+          "resource": "accounting_inflow_invoices",
           "actions": [
             "READ",
             "CREATE",
@@ -943,7 +943,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_inflow_invoice_lines",
+          "resource": "accounting_inflow_invoice_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -952,7 +952,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_inflow_invoice_charges",
+          "resource": "accounting_inflow_invoice_charges",
           "actions": [
             "READ",
             "CREATE",
@@ -961,7 +961,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_payments",
+          "resource": "accounting_payments",
           "actions": [
             "READ",
             "CREATE",
@@ -970,7 +970,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_payment_allocations",
+          "resource": "accounting_payment_allocations",
           "actions": [
             "READ",
             "CREATE",
@@ -979,7 +979,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_grns",
+          "resource": "accounting_grns",
           "actions": [
             "READ",
             "CREATE",
@@ -988,7 +988,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_grn_lines",
+          "resource": "accounting_grn_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -997,67 +997,67 @@
           ]
         },
         {
-          "resource": "erp_stock_items",
+          "resource": "stock_items",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_stock_categories",
+          "resource": "stock_categories",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_party_parties",
+          "resource": "party_parties",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_party_contacts",
+          "resource": "party_contacts",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_currencies",
+          "resource": "config_currencies",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_exchange_rates",
+          "resource": "config_exchange_rates",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_payment_modes",
+          "resource": "config_payment_modes",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_payment_accounts",
+          "resource": "config_payment_accounts",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_fiscal_periods",
+          "resource": "config_fiscal_periods",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_report_reports",
+          "resource": "report_reports",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_base_saved_filters",
+          "resource": "base_saved_filters",
           "actions": [
             "READ",
             "CREATE",
@@ -1072,7 +1072,7 @@
       "description": "Sales: outflow invoices, payments, parties, CRM, reports",
       "permissions": [
         {
-          "resource": "erp_accounting_outflow_invoices",
+          "resource": "accounting_outflow_invoices",
           "actions": [
             "READ",
             "CREATE",
@@ -1080,7 +1080,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_outflow_invoice_lines",
+          "resource": "accounting_outflow_invoice_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -1088,7 +1088,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_outflow_invoice_charges",
+          "resource": "accounting_outflow_invoice_charges",
           "actions": [
             "READ",
             "CREATE",
@@ -1096,7 +1096,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_payments",
+          "resource": "accounting_payments",
           "actions": [
             "READ",
             "CREATE",
@@ -1104,26 +1104,26 @@
           ]
         },
         {
-          "resource": "erp_accounting_payment_allocations",
+          "resource": "accounting_payment_allocations",
           "actions": [
             "READ",
             "CREATE"
           ]
         },
         {
-          "resource": "erp_accounting_accounts",
+          "resource": "accounting_accounts",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_accounting_fiscal_periods",
+          "resource": "accounting_fiscal_periods",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_crm_pipelines",
+          "resource": "crm_pipelines",
           "actions": [
             "READ",
             "CREATE",
@@ -1131,7 +1131,7 @@
           ]
         },
         {
-          "resource": "erp_crm_stages",
+          "resource": "crm_stages",
           "actions": [
             "READ",
             "CREATE",
@@ -1139,7 +1139,7 @@
           ]
         },
         {
-          "resource": "erp_crm_leads",
+          "resource": "crm_leads",
           "actions": [
             "READ",
             "CREATE",
@@ -1148,7 +1148,7 @@
           ]
         },
         {
-          "resource": "erp_crm_activities",
+          "resource": "crm_activities",
           "actions": [
             "READ",
             "CREATE",
@@ -1157,7 +1157,7 @@
           ]
         },
         {
-          "resource": "erp_party_parties",
+          "resource": "party_parties",
           "actions": [
             "READ",
             "CREATE",
@@ -1165,7 +1165,7 @@
           ]
         },
         {
-          "resource": "erp_party_contacts",
+          "resource": "party_contacts",
           "actions": [
             "READ",
             "CREATE",
@@ -1173,67 +1173,67 @@
           ]
         },
         {
-          "resource": "erp_stock_items",
+          "resource": "stock_items",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_stock_categories",
+          "resource": "stock_categories",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_stock_pricelists",
+          "resource": "stock_pricelists",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_stock_item_uoms",
+          "resource": "stock_item_uoms",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_currencies",
+          "resource": "config_currencies",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_price_types",
+          "resource": "config_price_types",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_charges",
+          "resource": "config_charges",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_payment_modes",
+          "resource": "config_payment_modes",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_print_templates",
+          "resource": "config_print_templates",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_report_reports",
+          "resource": "report_reports",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_base_saved_filters",
+          "resource": "base_saved_filters",
           "actions": [
             "READ",
             "CREATE",
@@ -1248,7 +1248,7 @@
       "description": "Purchasing: inflow invoices, GRN, suppliers, stock items",
       "permissions": [
         {
-          "resource": "erp_accounting_inflow_invoices",
+          "resource": "accounting_inflow_invoices",
           "actions": [
             "READ",
             "CREATE",
@@ -1256,7 +1256,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_inflow_invoice_lines",
+          "resource": "accounting_inflow_invoice_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -1264,7 +1264,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_inflow_invoice_charges",
+          "resource": "accounting_inflow_invoice_charges",
           "actions": [
             "READ",
             "CREATE",
@@ -1272,7 +1272,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_grns",
+          "resource": "accounting_grns",
           "actions": [
             "READ",
             "CREATE",
@@ -1280,7 +1280,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_grn_lines",
+          "resource": "accounting_grn_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -1288,7 +1288,7 @@
           ]
         },
         {
-          "resource": "erp_accounting_payments",
+          "resource": "accounting_payments",
           "actions": [
             "READ",
             "CREATE",
@@ -1296,26 +1296,26 @@
           ]
         },
         {
-          "resource": "erp_accounting_payment_allocations",
+          "resource": "accounting_payment_allocations",
           "actions": [
             "READ",
             "CREATE"
           ]
         },
         {
-          "resource": "erp_accounting_accounts",
+          "resource": "accounting_accounts",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_accounting_fiscal_periods",
+          "resource": "accounting_fiscal_periods",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_party_parties",
+          "resource": "party_parties",
           "actions": [
             "READ",
             "CREATE",
@@ -1323,7 +1323,7 @@
           ]
         },
         {
-          "resource": "erp_party_contacts",
+          "resource": "party_contacts",
           "actions": [
             "READ",
             "CREATE",
@@ -1331,13 +1331,13 @@
           ]
         },
         {
-          "resource": "erp_stock_categories",
+          "resource": "stock_categories",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_stock_items",
+          "resource": "stock_items",
           "actions": [
             "READ",
             "CREATE",
@@ -1345,7 +1345,7 @@
           ]
         },
         {
-          "resource": "erp_stock_item_uoms",
+          "resource": "stock_item_uoms",
           "actions": [
             "READ",
             "CREATE",
@@ -1353,75 +1353,75 @@
           ]
         },
         {
-          "resource": "erp_stock_item_accounts",
+          "resource": "stock_item_accounts",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_stock_locations",
+          "resource": "stock_locations",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_stock_movements",
+          "resource": "stock_movements",
           "actions": [
             "READ",
             "CREATE"
           ]
         },
         {
-          "resource": "erp_stock_movement_lines",
+          "resource": "stock_movement_lines",
           "actions": [
             "READ",
             "CREATE"
           ]
         },
         {
-          "resource": "erp_stock_item_locations",
+          "resource": "stock_item_locations",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_currencies",
+          "resource": "config_currencies",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_uoms",
+          "resource": "config_uoms",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_charges",
+          "resource": "config_charges",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_payment_modes",
+          "resource": "config_payment_modes",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_print_templates",
+          "resource": "config_print_templates",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_report_reports",
+          "resource": "report_reports",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_base_saved_filters",
+          "resource": "base_saved_filters",
           "actions": [
             "READ",
             "CREATE",
@@ -1436,7 +1436,7 @@
       "description": "Stock and inventory management; read accounting and parties",
       "permissions": [
         {
-          "resource": "erp_stock_categories",
+          "resource": "stock_categories",
           "actions": [
             "READ",
             "CREATE",
@@ -1445,7 +1445,7 @@
           ]
         },
         {
-          "resource": "erp_stock_items",
+          "resource": "stock_items",
           "actions": [
             "READ",
             "CREATE",
@@ -1454,7 +1454,7 @@
           ]
         },
         {
-          "resource": "erp_stock_item_accounts",
+          "resource": "stock_item_accounts",
           "actions": [
             "READ",
             "CREATE",
@@ -1463,7 +1463,7 @@
           ]
         },
         {
-          "resource": "erp_stock_item_uoms",
+          "resource": "stock_item_uoms",
           "actions": [
             "READ",
             "CREATE",
@@ -1472,7 +1472,7 @@
           ]
         },
         {
-          "resource": "erp_stock_pricelists",
+          "resource": "stock_pricelists",
           "actions": [
             "READ",
             "CREATE",
@@ -1481,7 +1481,7 @@
           ]
         },
         {
-          "resource": "erp_stock_promo_bundles",
+          "resource": "stock_promo_bundles",
           "actions": [
             "READ",
             "CREATE",
@@ -1490,7 +1490,7 @@
           ]
         },
         {
-          "resource": "erp_stock_promo_items",
+          "resource": "stock_promo_items",
           "actions": [
             "READ",
             "CREATE",
@@ -1499,7 +1499,7 @@
           ]
         },
         {
-          "resource": "erp_stock_locations",
+          "resource": "stock_locations",
           "actions": [
             "READ",
             "CREATE",
@@ -1508,7 +1508,7 @@
           ]
         },
         {
-          "resource": "erp_stock_delivery_notes",
+          "resource": "stock_delivery_notes",
           "actions": [
             "READ",
             "CREATE",
@@ -1517,7 +1517,7 @@
           ]
         },
         {
-          "resource": "erp_stock_delivery_note_lines",
+          "resource": "stock_delivery_note_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -1526,7 +1526,7 @@
           ]
         },
         {
-          "resource": "erp_stock_movements",
+          "resource": "stock_movements",
           "actions": [
             "READ",
             "CREATE",
@@ -1535,7 +1535,7 @@
           ]
         },
         {
-          "resource": "erp_stock_movement_lines",
+          "resource": "stock_movement_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -1544,7 +1544,7 @@
           ]
         },
         {
-          "resource": "erp_stock_item_bundles",
+          "resource": "stock_item_bundles",
           "actions": [
             "READ",
             "CREATE",
@@ -1553,7 +1553,7 @@
           ]
         },
         {
-          "resource": "erp_stock_item_locations",
+          "resource": "stock_item_locations",
           "actions": [
             "READ",
             "CREATE",
@@ -1562,37 +1562,37 @@
           ]
         },
         {
-          "resource": "erp_party_parties",
+          "resource": "party_parties",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_uoms",
+          "resource": "config_uoms",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_price_types",
+          "resource": "config_price_types",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_currencies",
+          "resource": "config_currencies",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_report_reports",
+          "resource": "report_reports",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_base_saved_filters",
+          "resource": "base_saved_filters",
           "actions": [
             "READ",
             "CREATE",
@@ -1607,7 +1607,7 @@
       "description": "Human resources: departments, positions, employees",
       "permissions": [
         {
-          "resource": "erp_hr_departments",
+          "resource": "hr_departments",
           "actions": [
             "READ",
             "CREATE",
@@ -1616,7 +1616,7 @@
           ]
         },
         {
-          "resource": "erp_hr_positions",
+          "resource": "hr_positions",
           "actions": [
             "READ",
             "CREATE",
@@ -1625,7 +1625,7 @@
           ]
         },
         {
-          "resource": "erp_hr_employees",
+          "resource": "hr_employees",
           "actions": [
             "READ",
             "CREATE",
@@ -1634,25 +1634,25 @@
           ]
         },
         {
-          "resource": "erp_party_parties",
+          "resource": "party_parties",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_organizations",
+          "resource": "config_organizations",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_report_reports",
+          "resource": "report_reports",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_base_saved_filters",
+          "resource": "base_saved_filters",
           "actions": [
             "READ",
             "CREATE",
@@ -1667,13 +1667,13 @@
       "description": "Point-of-sale: open sessions, create orders, process payments",
       "permissions": [
         {
-          "resource": "erp_pot_terminals",
+          "resource": "pot_terminals",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_pot_sessions",
+          "resource": "pot_sessions",
           "actions": [
             "READ",
             "CREATE",
@@ -1681,7 +1681,7 @@
           ]
         },
         {
-          "resource": "erp_pot_orders",
+          "resource": "pot_orders",
           "actions": [
             "READ",
             "CREATE",
@@ -1689,7 +1689,7 @@
           ]
         },
         {
-          "resource": "erp_pot_order_lines",
+          "resource": "pot_order_lines",
           "actions": [
             "READ",
             "CREATE",
@@ -1697,32 +1697,32 @@
           ]
         },
         {
-          "resource": "erp_pot_payment_lines",
+          "resource": "pot_payment_lines",
           "actions": [
             "READ",
             "CREATE"
           ]
         },
         {
-          "resource": "erp_stock_items",
+          "resource": "stock_items",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_stock_pricelists",
+          "resource": "stock_pricelists",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_party_parties",
+          "resource": "party_parties",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_payment_modes",
+          "resource": "config_payment_modes",
           "actions": [
             "READ"
           ]
@@ -1734,163 +1734,163 @@
       "description": "Read-only access to all ERP resources",
       "permissions": [
         {
-          "resource": "erp_accounting_accounts",
+          "resource": "accounting_accounts",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_accounting_fiscal_periods",
+          "resource": "accounting_fiscal_periods",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_accounting_entries",
+          "resource": "accounting_entries",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_accounting_entry_lines",
+          "resource": "accounting_entry_lines",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_accounting_outflow_invoices",
+          "resource": "accounting_outflow_invoices",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_accounting_outflow_invoice_lines",
+          "resource": "accounting_outflow_invoice_lines",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_accounting_outflow_invoice_charges",
+          "resource": "accounting_outflow_invoice_charges",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_accounting_inflow_invoices",
+          "resource": "accounting_inflow_invoices",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_accounting_inflow_invoice_lines",
+          "resource": "accounting_inflow_invoice_lines",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_accounting_inflow_invoice_charges",
+          "resource": "accounting_inflow_invoice_charges",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_accounting_payments",
+          "resource": "accounting_payments",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_accounting_payment_allocations",
+          "resource": "accounting_payment_allocations",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_accounting_grns",
+          "resource": "accounting_grns",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_accounting_grn_lines",
+          "resource": "accounting_grn_lines",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_stock_categories",
+          "resource": "stock_categories",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_stock_items",
+          "resource": "stock_items",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_stock_locations",
+          "resource": "stock_locations",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_stock_movements",
+          "resource": "stock_movements",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_stock_pricelists",
+          "resource": "stock_pricelists",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_currencies",
+          "resource": "config_currencies",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_uoms",
+          "resource": "config_uoms",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_config_payment_modes",
+          "resource": "config_payment_modes",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_crm_leads",
+          "resource": "crm_leads",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_party_parties",
+          "resource": "party_parties",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_asset_assets",
+          "resource": "accounting_assets_assets",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_hr_employees",
+          "resource": "hr_employees",
           "actions": [
             "READ"
           ]
         },
         {
-          "resource": "erp_report_reports",
+          "resource": "report_reports",
           "actions": [
             "READ"
           ]

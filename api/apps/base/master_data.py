@@ -6,8 +6,8 @@ class MasterDataBase(ErpBase):
     __abstract__ = True
     __soft_delete__ = True
     __features__ = ["audit"]
-    __scoped_by__ = [("org_id", "erp_config_organizations")]
+    __scoped_by__ = [("org_id", "config_organizations")]
 
-    org_id: Mapped[int] = mapped_column(Integer, ForeignKey("erp_config_organizations.id"), nullable=False, index=True)
+    org_id: Mapped[int] = mapped_column(Integer, ForeignKey("config_organizations.id"), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(200))
     is_shared: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)

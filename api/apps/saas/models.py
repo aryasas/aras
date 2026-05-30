@@ -187,7 +187,7 @@ class SaaSInvoice(Aras.Model):
 
 # gemini-2-5-flash
 class RequestLog(Aras.Model):
-    __tablename__ = "aras_request_log"
+    __tablename__ = "saas_request_log"
     tenant_id: Mapped[Optional[str]] = mapped_column(String(100), index=True)
     path: Mapped[str] = mapped_column(String(255))
     method: Mapped[str] = mapped_column(String(10))

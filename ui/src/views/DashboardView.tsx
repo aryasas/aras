@@ -23,11 +23,25 @@ interface Widget {
   title: string
   widget_type: 'stat' | 'chart' | 'list' | string
   resource_name: string
+  resource_path?: string
   config_json: any
   size: string
 }
 
 type WidgetComponent = React.FC<{ widget: Widget }>
+
+// Convert seeded resource_name ("core_users") to REST path ("core/users").
+// Apps register routes as /{app}/{model-seg-with-dashes}; resource_name uses
+// the raw __tablename__ ("{app}_{model_seg}") so we split on the first underscore.
+const resourcePath = (w: Widget): string => {
+  if (w.resource_path) return w.resource_path.replace(/^\/+/, '')
+  const name = w.resource_name || ''
+  if (!name) return ''
+  if (name.includes('/')) return name.replace(/^\/+/, '')
+  const i = name.indexOf('_')
+  if (i < 0) return name
+  return `${name.slice(0, i)}/${name.slice(i + 1).replace(/_/g, '-')}`
+}
 const registry = new Map<string, WidgetComponent>()
 export const WidgetRegistry = {
   register(type: string, Component: WidgetComponent) { registry.set(type, Component) },
@@ -140,7 +154,7 @@ const ChartWidget: WidgetComponent = ({ widget }) => {
   const { notify } = useAras()
 
   useEffect(() => {
-    api.get(`/${widget.resource_name}`).then((res: any) => {
+    api.get(`/${resourcePath(widget)}`).then((res: any) => {
       const items = res.data.items || res.data || []
       const groupBy = config.group_by || 'status'
       const counts: Record<string, number> = {}
@@ -211,7 +225,7 @@ const StatWidget: WidgetComponent = ({ widget }) => {
   const { notify } = useAras()
 
   useEffect(() => {
-    api.get(`/${widget.resource_name}`).then((res: any) => {
+    api.get(`/${resourcePath(widget)}`).then((res: any) => {
       setValue(res.data.total || res.data.length || 0)
     }).catch((e) => notify(e.message, 'error'))
   }, [widget.resource_name, notify])
@@ -219,7 +233,7 @@ const StatWidget: WidgetComponent = ({ widget }) => {
   return (
     <button
       className="arc-card p-5 text-left w-full h-full hover:border-[var(--accent)] transition-colors flex flex-col gap-3"
-      onClick={() => navigate(`/${widget.resource_name.replace(/_/g, '-')}`)}
+      onClick={() => navigate(`/${resourcePath(widget)}`)}
     >
       <div className="flex items-center justify-between">
         <div className="grid place-items-center w-9 h-9 rounded-[var(--radius)]"
@@ -243,7 +257,7 @@ const ListWidget: WidgetComponent = ({ widget }) => {
   const { notify } = useAras()
 
   useEffect(() => {
-    api.get(`/${widget.resource_name}?per_page=${config.limit || 5}`).then((res: any) => {
+    api.get(`/${resourcePath(widget)}?per_page=${config.limit || 5}`).then((res: any) => {
       setItems(Array.isArray(res.data.items) ? res.data.items : Array.isArray(res.data) ? res.data : [])
     }).catch((e) => notify(e.message, 'error'))
   }, [widget.resource_name, config.limit, notify])
@@ -262,7 +276,7 @@ const ListWidget: WidgetComponent = ({ widget }) => {
             <button
               key={idx}
               className={`group w-full text-left flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--surface-2)] transition-colors ${idx > 0 ? 'border-t border-[var(--line)]' : ''}`}
-              onClick={() => navigate(`/${widget.resource_name.replace(/_/g, '-')}/${item.id}`)}
+              onClick={() => navigate(`/${resourcePath(widget)}/${item.id}`)}
             >
               <span className="arc-stat s-released">●</span>
               <span className="text-[12.5px] text-[var(--text)] truncate flex-1">{item.description || item.name || item.id}</span>

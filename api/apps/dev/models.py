@@ -78,6 +78,26 @@ class HandoffRun(Aras.Model):
     commit_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
 
+# claude-opus-4-7
+class StyleOverride(Aras.Model):
+    """
+    Universal per-element style overrides applied to live pages by the Template Builder.
+    Scope is either 'global' (all routes) or a route prefix like '/notes/' (matches startswith).
+    `selector` is a CSS selector resolved by the runtime injector against the live DOM.
+    `css_json` stores key/value CSS declarations (e.g. {"color": "#222", "padding": "12px"}).
+    """
+    __tablename__ = "dev_style_overrides"
+    __searchable_fields__ = ["scope", "selector", "label"]
+    __display_fields__ = ("scope", "selector")
+
+    scope: Mapped[str] = mapped_column(String(200), index=True, default="global")
+    selector: Mapped[str] = mapped_column(String(500), index=True)
+    label: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    css_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    text_override: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    hidden: Mapped[bool] = mapped_column(default=False)
+
+
 class TemplateAnnotation(Aras.Model):
     """
     Persists template layouts and AI annotations for the Template Builder dev tool.

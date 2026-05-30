@@ -30,14 +30,29 @@ class App(Aras):
     description: str = ""
     version: str = "1.0.0"
     icon: str = "Package"
+    hide_from_sidebar: bool = False
     have_home: bool = False
     requires: List[str] = []  # App names this app depends on (e.g. ["accounting"])
+    required: bool = False # If True, this app cannot be uninstalled
+    provides: List[str] = [] # List of capabilities provided by this app (e.g. ["core_config"])
     # Features that are off by default and require another app to be active.
     # Key = org config field name, value = required app name.
     # e.g. {"enable_perpetual_inventory": "accounting", "enable_auto_journal": "accounting"}
     optional_features: Dict[str, str] = {}
     models: List[Any] = []
     menu_groups: List[Dict[str, Any]] = [] # [{"label": "Group", "icon": "Icon", "models": ["table_name"]}]
+    
+    # New registry fields
+    config_sections: List[Any] = [] # List of ConfigSection objects declaring the app's configuration schema.
+    master_data: List[Any] = [] # List of MasterEntity objects declaring shared master data.
+    menu_entries: List[Any] = []
+    permissions: List[Any] = []
+    jobs: List[Any] = []
+
+    @classmethod
+    def get_settings(cls, db):
+        """Returns all settings for this app's namespace merged with registry defaults."""
+        return Aras.Settings.all(db, cls.app_name)
 
     @classmethod
     def _get_clean_label(cls, name: str) -> str:
@@ -128,6 +143,16 @@ class App(Aras):
                         })
                         models_already_in_menu.add(model_name)
                 
+                # Custom links: {"label": "...", "path": "...", "icon": "..."}
+                for link in group.get("links", []):
+                    group_items.append({
+                        "type": "link",
+                        "name": link.get("name") or link.get("label", "link"),
+                        "label": link.get("label", link.get("name", "Link")),
+                        "path": link["path"],
+                        "icon": link.get("icon", "ExternalLink"),
+                    })
+
                 # Also handle nested sub-apps in menu groups if any
                 for sub_app_name in group.get("apps", []):
                     # For sub-apps, we find the registered app class to get its clean path
@@ -153,7 +178,7 @@ class App(Aras):
         # 4. Add remaining visible models that weren't in any group
         standalone_items = []
         for model_name in visible_models:
-            if model_name not in models_already_in_menu and model_name not in ["auth_users", "sys_settings"]:
+            if model_name not in models_already_in_menu and model_name not in ["core_users", "core_settings"]:
                 m = models_by_table[model_name]
                 standalone_items.append({
                     "type": "model",
@@ -187,11 +212,33 @@ class App(Aras):
             "description": cls.description,
             "version": cls.version,
             "icon": cls.icon,
+            "hide_from_sidebar": cls.hide_from_sidebar,
             "have_home": cls.have_home,
             "requires": cls.requires,
+            "required": cls.required,
+            "provides": cls.provides,
             "optional_features": cls.optional_features,
             "models": [m.__tablename__ for m in cls.models if hasattr(m, "__tablename__")],
-            "menu_groups": cls.menu_groups
+            "menu_groups": cls.menu_groups,
+            "config_sections": [
+                {
+                    "key": s.key, "label": s.label, "scope": s.scope,
+                    "fields": [vars(f) for f in getattr(s, "fields", [])],
+                }
+                for s in cls.config_sections
+            ],
+            "master_data": [
+                {
+                    "key": e.key,
+                    "model_table": getattr(e.model, "__tablename__", ""),
+                    "label": e.label, "icon": e.icon, "scope": e.scope,
+                    "order": e.order, "hidden": e.hidden, "help": e.help,
+                }
+                for e in cls.master_data
+            ],
+            "menu_entries": cls.menu_entries,
+            "permissions": cls.permissions,
+            "jobs": cls.jobs
         }
 
     @classmethod

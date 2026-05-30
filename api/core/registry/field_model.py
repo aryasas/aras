@@ -3,16 +3,16 @@ Purpose: DB model for registering field-level metadata and GUI overrides.
 Context: Part of Aras.Registry namespace. Child of ResourceModel.
 Impact: Allows users to override labels, types, and visibility from the GUI.
 """
-from sqlalchemy import String, Boolean, ForeignKey
+from sqlalchemy import String, Boolean, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 from ..base.model import Model
 from ..base.field import Field
 
 class FieldModel(Model):
     """Stores metadata about individual fields/columns."""
-    __tablename__ = "aras_fields"
+    __tablename__ = "core_fields"
 
-    resource_id: Mapped[int] = Field(ForeignKey("aras_resources.id"), display_column="title")
+    resource_id: Mapped[int] = Field(ForeignKey("core_resources.id"), display_column="title")
     name: Mapped[str] = mapped_column(String(100), index=True)
     label: Mapped[str] = mapped_column(String(100))
     ui_type: Mapped[str] = mapped_column(String(50), default="string")
@@ -36,3 +36,6 @@ class FieldModel(Model):
     section: Mapped[str] = mapped_column(String(100), nullable=True)
     foldable: Mapped[bool] = mapped_column(default=False)
     default_folded: Mapped[bool] = mapped_column(default=False)
+    # claude-opus-4-7
+    # Stable user-defined ordering (lower first). 0 = unset; UIGenerator falls back to column order.
+    display_order: Mapped[int] = mapped_column(Integer, default=0)

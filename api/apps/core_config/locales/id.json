@@ -1,0 +1,20 @@
+{
+  "app.label": "Ruang Kerja",
+  "section.company": "Perusahaan",
+  "section.localization": "Lokalisasi",
+  "section.numbering": "Penomoran",
+  "section.tax": "Pajak",
+  "section.smtp": "SMTP",
+  "section.branding": "Branding",
+  "field.name": "Nama Ruang Kerja",
+  "field.legal_name": "Nama Legal",
+  "field.logo": "Logo",
+  "field.address": "Alamat",
+  "field.city": "Kota",
+  "field.country": "Negara",
+  "field.tax_id": "NPWP",
+  "field.base_currency": "Mata Uang Utama",
+  "field.fiscal_year_start": "Mulai Tahun Fiskal",
+  "field.timezone": "Zona Waktu",
+  "field.locale": "Bahasa"
+}

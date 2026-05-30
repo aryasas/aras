@@ -686,7 +686,6 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                       </div>
                     )}
                     {group.items.map((item) => {
-                      const prefix = (resource.split('/').pop() || '').toUpperCase().slice(0, 3) || 'ARC'
                       return (
                       <div key={item.id} className={`aras-list-row hidden md:grid items-center group border-b border-[var(--line)] hover:bg-[var(--surface-2)] transition-colors ${inlineEdit ? '' : 'cursor-pointer'} ${selectedIds.includes(item.id) ? 'bg-[var(--accent)]/8' : ''}`} style={{ gridTemplateColumns }} onClick={() => { if (!inlineEdit) onRowClick?.(item.id) }}>
                         <div className="px-[calc(16px*var(--app-density))] py-[calc(8px*var(--app-density))]" onClick={(e) => e.stopPropagation()}>
@@ -730,7 +729,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                                 )
                               })() : isIdCol ? (
                                 <span className="arc-id text-[12px]">
-                                  <b>{prefix}</b> · <b>{String(value)}</b>
+                                  <b>{String(value)}</b>
                                 </span>
                               ) : (
                                 <div className={`${column.primary ? 'font-semibold text-[var(--text)]' : 'text-[var(--text-2)]'} truncate text-[calc(13px*var(--app-font-scale))]`}>
@@ -752,7 +751,6 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                     })}
                     {/* Mobile cards */}
                     {group.items.map((item) => {
-                      const prefix = (resource.split('/').pop() || '').toUpperCase().slice(0, 3) || 'ARC'
                       const idField = listColumns.find((c, i) => i === 0 && (c.field.name === 'id' || c.field.name === 'number' || c.field.name === 'code'))
                       const idValue = idField ? getFieldValue(item, idField.field) : item.id
                       const primaryCol = listColumns.find((c) => c.primary) || listColumns[1] || listColumns[0]
@@ -767,7 +765,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                           <div className="pt-0.5"><StatusGlyph value={statusValue} /></div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="arc-id text-[11.5px]"><b>{prefix}</b> · <b>{String(idValue)}</b></span>
+                              <span className="arc-id text-[11.5px]"><b>{String(idValue)}</b></span>
                             </div>
                             <div className="mt-0.5 truncate text-[13.5px] font-semibold text-[var(--text)]">{String(primaryValue ?? '')}</div>
                           </div>

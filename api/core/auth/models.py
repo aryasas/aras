@@ -7,7 +7,7 @@ from passlib.context import CryptContext
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class User(Model):
-    __tablename__ = "auth_users"
+    __tablename__ = "core_users"
     __admin_only__ = True
 
     username: Mapped[str] = Field(String(64), unique=True, index=True, label="Username")
@@ -37,7 +37,7 @@ class User(Model):
 
 # claude-sonnet-4-6
 class UserPreference(Model):
-    __tablename__ = "auth_user_preferences"
+    __tablename__ = "core_user_preferences"
     __table_args__ = (UniqueConstraint("user_id", "key", name="uq_user_pref"),)
 
     user_id: Mapped[int] = Field(Integer, index=True, label="User")

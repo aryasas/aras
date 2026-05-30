@@ -17,7 +17,7 @@ import FormSettings from './FormSettings';
 import { useUIStore } from '../../store/uiStore';
 import { validateField } from '../lib/validate';
 
-interface Field {
+export interface Field {
   name: string;
   label: string;
   type: string;
@@ -57,6 +57,63 @@ interface ModelAction {
   icon?: string;
   has_input_schema?: boolean;
   input_fields?: Array<{ name: string; label: string; required: boolean; type: string }> | null;
+}
+
+interface RenderFieldOptions {
+  field: Field;
+  value: FieldProps['value'];
+  onChange: (value: FieldProps['value']) => void;
+  formData: Record<string, unknown>;
+  error?: string;
+  disabled?: boolean;
+  vocabularyGet?: (value: string) => string;
+  isVisible?: (field: Field) => boolean;
+  builderEditMode?: boolean;
+  onDragStart?: () => void;
+  onDragOver?: (event: React.DragEvent) => void;
+  onDrop?: () => void;
+}
+
+export function renderField({
+  field,
+  value,
+  onChange,
+  formData,
+  error,
+  disabled,
+  vocabularyGet = (label) => label,
+  isVisible = () => true,
+  builderEditMode = false,
+  onDragStart,
+  onDragOver,
+  onDrop,
+}: RenderFieldOptions) {
+  if (!isVisible(field)) return null;
+  const Component = resolveFieldComponent(field);
+  const colSpan = Math.max(1, Math.min(Number(field.col_span || 1), 3));
+  const errorId = `error-${field.name}`;
+  const dndProps = builderEditMode ? {
+    draggable: true,
+    onDragStart,
+    onDragOver,
+    onDrop,
+    style: { gridColumn: `span ${colSpan} / span ${colSpan}`, cursor: 'grab', outline: '1px dashed rgba(99,102,241,0.4)', outlineOffset: '4px' },
+  } : { style: { gridColumn: `span ${colSpan} / span ${colSpan}` } }
+  return (
+    <DesignElement id={`field-${field.name}`} key={field.name} className="flex flex-col gap-1.5 w-full" {...dndProps} data-field-name={field.name}>
+      <label className="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-[0.14em]">{vocabularyGet(field.label)}</label>
+      <Component
+         field={field}
+         value={value}
+         onChange={onChange}
+         formData={formData}
+         disabled={disabled}
+         aria-invalid={!!error}
+         aria-describedby={error ? errorId : undefined}
+      />
+      {error && <div id={errorId} className="text-[11px] font-medium text-rose-600">{error}</div>}
+    </DesignElement>
+  );
 }
 
 // claude-opus-4-7
@@ -226,6 +283,11 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
       const token = findDisplayToken(res.data);
       if (token) setDisplayToken(token);
       notify(`${action.label || action.name} completed`, "success");
+      const redirect = (res.data as any)?.data?.redirect ?? (res.data as any)?.redirect;
+      if (typeof redirect === 'string' && redirect) {
+        navigate(redirect);
+        return;
+      }
     } catch (err) {
       notify(`${action.label || action.name} failed`, "error");
     } finally {
@@ -250,35 +312,58 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
     return true;
   };
 
-  const renderField = (field: Field) => {
-    if (!isFieldVisible(field)) return null;
-    const Component = resolveFieldComponent(field);
-    const colSpan = Math.max(1, Math.min(Number(field.col_span || 1), 3));
-    const errorId = `error-${field.name}`;
-    return (
-      <DesignElement id={`field-${field.name}`} key={field.name} className="flex flex-col gap-1.5 w-full" style={{ gridColumn: `span ${colSpan} / span ${colSpan}` }} data-field-name={field.name}>
-        <label className="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-[0.14em]">{vocabulary.get(field.label)}</label>
-        <Component
-           field={field}
-           value={formData[field.name]}
-           onChange={(val: FieldProps['value']) => {
-             setFormData((prev: any) => ({...prev, [field.name]: val}));
-             setErrors((prev) => {
-               if (!prev[field.name]) return prev;
-               const next = { ...prev };
-               delete next[field.name];
-               return next;
-             });
-           }}
-           formData={formData}
-           disabled={field.read_only}
-           aria-invalid={!!errors[field.name]}
-           aria-describedby={errors[field.name] ? errorId : undefined}
-        />
-        {errors[field.name] && <div id={errorId} className="text-[11px] font-medium text-rose-600">{errors[field.name]}</div>}
-      </DesignElement>
-    );
-  };
+  // claude-opus-4-7
+  // Field DnD reorder — only active when the URL has __builder_edit=1 (inside the Template Builder iframe).
+  // Native HTML5 DnD writes the new order to /api/v1/field-reorder, then notifies the parent to reload.
+  const builderEditMode = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('__builder_edit') === '1'
+  const dragFieldRef = (window as any).__arasDragField || { current: null as string | null }
+  ;(window as any).__arasDragField = dragFieldRef
+
+  const handleFieldDrop = async (targetName: string) => {
+    const sourceName = dragFieldRef.current
+    dragFieldRef.current = null
+    if (!sourceName || sourceName === targetName || !metadata) return
+    const ordered = metadata.fields.filter(isFieldVisible).map((f) => f.name)
+    const from = ordered.indexOf(sourceName)
+    const to = ordered.indexOf(targetName)
+    if (from < 0 || to < 0) return
+    ordered.splice(to, 0, ordered.splice(from, 1)[0])
+    try {
+      await import('../../lib/api').then(({ default: apiClient }) =>
+        apiClient.post('/field-reorder', { resource: metadata.resource, order: ordered }),
+      )
+      if (window.parent !== window.self) {
+        window.parent.postMessage({ type: 'aras-builder-reordered' }, '*')
+      } else {
+        window.location.reload()
+      }
+    } catch (err) {
+      console.warn('field-reorder failed', err)
+    }
+  }
+
+  const renderDynamicField = (field: Field) => renderField({
+    field,
+    value: formData[field.name],
+    onChange: (val: FieldProps['value']) => {
+      setFormData((prev: any) => ({...prev, [field.name]: val}));
+      setErrors((prev) => {
+        if (!prev[field.name]) return prev;
+        const next = { ...prev };
+        delete next[field.name];
+        return next;
+      });
+    },
+    formData,
+    error: errors[field.name],
+    disabled: field.read_only,
+    vocabularyGet: vocabulary.get,
+    isVisible: isFieldVisible,
+    builderEditMode,
+    onDragStart: () => { dragFieldRef.current = field.name },
+    onDragOver: (e: React.DragEvent) => e.preventDefault(),
+    onDrop: () => handleFieldDrop(field.name),
+  });
 
   if (loading || !metadata) return <div className="p-8 text-center text-[var(--text-3)]">Loading form...</div>
 
@@ -315,7 +400,6 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
 
   const codeField = formData.number ?? formData.code ?? (currentId ? String(currentId) : 'NEW');
   const titleField = formData.name ?? formData.title ?? formData.subject ?? '';
-  const idPrefix = (resource.split('/').pop() || 'ARC').toUpperCase().slice(0, 3);
   const modelActions = (metadata.actions || []) as ModelAction[];
 
   const openSettings = () => {
@@ -374,7 +458,7 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
         <DesignElement id="form-action-band" className="flex items-center gap-2.5 px-5 sm:px-7 lg:px-8 py-2.5 border-b border-[var(--line)] sticky top-0 z-20 bg-[var(--bg)]/90 backdrop-blur flex-wrap">
           {/* Left: badge + status + tag */}
           <span className="arc-mono inline-flex items-center gap-1 h-5 px-2 rounded border border-[var(--line)] text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-2)]">
-            CHANGE&nbsp;·&nbsp;<span className="text-[var(--accent)]">{idPrefix}</span>
+            CHANGE
           </span>
           {hasStatus && statusValue != null && (
             <StatusBadge value={statusValue} />
@@ -424,7 +508,7 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
           {/* Hero title row */}
           <div className="flex items-baseline gap-3 mb-4 flex-wrap">
             <span className="arc-mono font-semibold" style={{ fontSize: 20, color: 'var(--accent)', letterSpacing: '0.01em' }}>
-              {idPrefix}&nbsp;·&nbsp;{codeField}
+              {codeField}
             </span>
             {titleField && (
               <h1 className="text-[20px] font-semibold text-[var(--text)] leading-tight" style={{ letterSpacing: '-0.015em' }}>
@@ -480,7 +564,7 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
                       {section.title}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5 mt-4">
-                      {section.fields.map(renderField)}
+                      {section.fields.map(renderDynamicField)}
                     </div>
                   </div>
                 </DesignContainer>

@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import en from '../locales/en.json';
 import id from '../locales/id.json';
+import api from '../lib/api';
 
 type Lang = 'en' | 'id';
 type Locales = typeof en;
@@ -22,18 +23,34 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const saved = localStorage.getItem(STORAGE_KEY);
     return (saved === 'en' || saved === 'id') ? saved : 'en';
   });
+  const [remoteLocales, setRemoteLocales] = useState<Partial<Record<Lang, Record<string, any>>>>({});
 
   const setLang = useCallback((newLang: Lang) => {
     setLangState(newLang);
     localStorage.setItem(STORAGE_KEY, newLang);
   }, []);
 
+  React.useEffect(() => {
+    let cancelled = false;
+    api.get(`/i18n/${lang}.json`)
+      .then((res) => {
+        if (!cancelled) setRemoteLocales((current) => ({ ...current, [lang]: res.data || {} }));
+      })
+      .catch(() => {
+        if (!cancelled) setRemoteLocales((current) => ({ ...current, [lang]: current[lang] || {} }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lang]);
+
   const t = useCallback((key: string, fallback?: string): string => {
-    const direct = (locales[lang] as Record<string, any>)[key];
+    const activeLocale = { ...(locales[lang] as Record<string, any>), ...(remoteLocales[lang] || {}) };
+    const direct = activeLocale[key];
     if (typeof direct === 'string') return direct;
 
     const keys = key.split('.');
-    let value: any = locales[lang];
+    let value: any = activeLocale;
     
     for (const k of keys) {
       if (value && typeof value === 'object' && k in value) {
@@ -44,7 +61,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
     
     return typeof value === 'string' ? value : (fallback || key);
-  }, [lang]);
+  }, [lang, remoteLocales]);
 
   return (
     <LanguageContext.Provider value={{ lang, setLang, t }}>

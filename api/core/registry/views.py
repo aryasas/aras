@@ -9,7 +9,7 @@ from .user_role import UserRole
 from .activity_log import ActivityLog
 from ..auth.models import User
 from .series import Series
-from .sys_settings import ArasSetting
+from .sys_settings import Settings
 from .translation_model import TranslationModel
 from .widget_model import WidgetModel
 from .dashboard_layout_model import DashboardLayoutModel
@@ -54,8 +54,8 @@ class SeriesView(View):
     model = Series
     title = "Series"
 
-class ArasSettingView(View):
-    model = ArasSetting
+class SettingsView(View):
+    model = Settings
     title = "System Settings"
 
 class TranslationView(View):

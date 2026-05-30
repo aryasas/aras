@@ -9,36 +9,36 @@ from apps.base import MasterDataBase, ErpBase
 
 # gemini-flash
 class Team(MasterDataBase):
-    __tablename__ = "erp_ticket_teams"
+    __tablename__ = "ticket_teams"
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    default_assignee_id: Mapped[Optional[int]] = mapped_column(ForeignKey("auth_users.id"), nullable=True)
+    default_assignee_id: Mapped[Optional[int]] = mapped_column(ForeignKey("core_users.id"), nullable=True)
 
 # gemini-flash
 class Category(MasterDataBase):
-    __tablename__ = "erp_ticket_categories"
-    team_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_ticket_teams.id"), nullable=True)
+    __tablename__ = "ticket_categories"
+    team_id: Mapped[Optional[int]] = mapped_column(ForeignKey("ticket_teams.id"), nullable=True)
     sla_hours: Mapped[float] = mapped_column(Float, default=24)
 
 # gemini-flash
 class Ticket(ErpBase):
-    __tablename__ = "erp_ticket_tickets"
+    __tablename__ = "ticket_tickets"
     __features__ = ["audit", "workflow"]
     __workflow_states__ = ["Open", "In Progress", "Pending Customer", "Resolved", "Closed"]
-    __scoped_by__ = [("org_id", "erp_config_organizations")]
+    __scoped_by__ = [("org_id", "config_organizations")]
 
-    org_id: Mapped[int] = mapped_column(Integer, ForeignKey("erp_config_organizations.id"), nullable=False, index=True)
+    org_id: Mapped[int] = mapped_column(Integer, ForeignKey("config_organizations.id"), nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(20), default="Open")
     
     subject: Mapped[str] = mapped_column(String(255))
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     ticket_type: Mapped[str] = mapped_column(String(20), default="Question", info={"choices": ["Question", "Bug", "Feature Request", "Complaint"]})
     priority: Mapped[str] = mapped_column(String(10), default="Normal", info={"choices": ["Low", "Normal", "High", "Critical"]})
-    category_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_ticket_categories.id"), nullable=True)
-    team_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_ticket_teams.id"), nullable=True)
-    assignee_id: Mapped[Optional[int]] = mapped_column(ForeignKey("auth_users.id"), nullable=True)
+    category_id: Mapped[Optional[int]] = mapped_column(ForeignKey("ticket_categories.id"), nullable=True)
+    team_id: Mapped[Optional[int]] = mapped_column(ForeignKey("ticket_teams.id"), nullable=True)
+    assignee_id: Mapped[Optional[int]] = mapped_column(ForeignKey("core_users.id"), nullable=True)
     requester_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     requester_email: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    party_id: Mapped[Optional[int]] = mapped_column(ForeignKey("erp_party_parties.id"), nullable=True)
+    party_id: Mapped[Optional[int]] = mapped_column(ForeignKey("party_parties.id"), nullable=True)
     due_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     closed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -71,11 +71,11 @@ class Ticket(ErpBase):
 
 # gemini-flash
 class TicketMessage(ErpBase):
-    __tablename__ = "erp_ticket_messages"
-    __parent__ = "erp_ticket_tickets"
-    ticket_id: Mapped[int] = mapped_column(ForeignKey("erp_ticket_tickets.id"))
+    __tablename__ = "ticket_messages"
+    __parent__ = "ticket_tickets"
+    ticket_id: Mapped[int] = mapped_column(ForeignKey("ticket_tickets.id"))
     body: Mapped[str] = mapped_column(Text)
     is_internal: Mapped[bool] = mapped_column(Boolean, default=False)
-    author_id: Mapped[Optional[int]] = mapped_column(ForeignKey("auth_users.id"), nullable=True)
+    author_id: Mapped[Optional[int]] = mapped_column(ForeignKey("core_users.id"), nullable=True)
     
     parent: Mapped["Ticket"] = relationship("Ticket", backref="messages")

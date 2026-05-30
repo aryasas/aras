@@ -5,7 +5,7 @@ from core import Aras
 from apps.base import MasterDataBase, ErpBase
 
 class Party(MasterDataBase):
-    __tablename__ = "erp_party_parties"
+    __tablename__ = "party_parties"
     __unique_together__ = [("org_id", "code")]
     __soft_delete__ = True
 
@@ -18,15 +18,15 @@ class Party(MasterDataBase):
     mobile: Mapped[str] = mapped_column(String(20), nullable=True)
     address: Mapped[str] = mapped_column(Text, nullable=True)
     tax_id: Mapped[str] = mapped_column(String(20), nullable=True, info={"pattern": "^[0-9]{1,20}$"})
-    pricelist_id: Mapped[int] = mapped_column(ForeignKey("erp_config_price_types.id"), nullable=True)
+    pricelist_id: Mapped[int] = mapped_column(ForeignKey("config_price_types.id"), nullable=True)
     
     contacts: Mapped[list["Contact"]] = relationship("Contact", back_populates="parent", cascade="all, delete-orphan")
 
 class Contact(ErpBase):
-    __tablename__ = "erp_party_contacts"
-    __parent__ = "erp_party_parties"
+    __tablename__ = "party_contacts"
+    __parent__ = "party_parties"
     
-    party_id: Mapped[int] = mapped_column(ForeignKey("erp_party_parties.id"))
+    party_id: Mapped[int] = mapped_column(ForeignKey("party_parties.id"))
     name: Mapped[str] = mapped_column(String(200))
     title: Mapped[str] = mapped_column(String(100), nullable=True)
     email: Mapped[str] = mapped_column(String(100), nullable=True)

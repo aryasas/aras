@@ -8,7 +8,10 @@ import yaml
 import json
 import logging
 import textwrap
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Type, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..base.app import App
 from sqlalchemy.orm import Session
 from ..registry.app_model import AppModel
 from ..registry.resource_model import ResourceModel
@@ -31,6 +34,35 @@ class AppInstaller(Service):
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(os.path.dirname(current_dir))
         return os.path.join(project_root, "apps")
+
+    @classmethod
+    def register_app(cls, db: Session, app_cls: Type['App']):
+        """Registers an app's config sections and seeds default settings."""
+        from ..registry.config_registry import config_registry
+        from ..registry.master_data_registry import master_data_registry
+        from ..registry.sys_settings import Settings
+        from ..registry.settings_service import SettingsService
+
+        # 1. Register sections in code registry
+        for section in app_cls.config_sections:
+            config_registry.register_section(app_cls.app_name, section)
+
+        # 2. Register master data entities
+        for entity in app_cls.master_data:
+            master_data_registry.register_entity(app_cls.app_name, entity)
+
+        # 3. Seed default values in DB
+        for section in app_cls.config_sections:
+            for field in section.fields:
+                if field.default is None:
+                    continue
+                existing = db.query(Settings).filter_by(
+                    namespace=app_cls.app_name,
+                    key=field.key,
+                ).first()
+                if not existing:
+                    logger.info(f"Seeding default setting: {app_cls.app_name}.{field.key} = {field.default}")
+                    SettingsService.set(db, app_cls.app_name, field.key, field.default)
 
     @classmethod
     def create_app_scaffold(cls, app_name: str, definition: Dict[str, Any]) -> str:
@@ -247,9 +279,9 @@ class AppInstaller(Service):
 
         # 1. Drop physical tables (Protect core tables)
         core_tables = {
-            "aras_apps", "aras_resources", "aras_fields", "aras_links",
-            "translations", "aras_activity_logs", "auth_roles",
-            "auth_permissions", "auth_user_roles", "auth_users", "sys_settings"
+            "core_apps", "core_resources", "core_fields", "core_links",
+            "core_translations", "core_activity_logs", "core_roles",
+            "core_permissions", "core_user_roles", "core_users", "core_settings"
         }
         for table_name in table_names:
             if table_name in core_tables:
