@@ -10,6 +10,7 @@ class POT(Aras.App):
     app_name = "pot"
     app_label = "Point of Transaction"
     icon = "CreditCard"
+    saas_module = "pos"
 
     master_data = [
         MasterEntity(key="pot_terminal", model=PotTerminal, scope="module", icon="Monitor", order=10),

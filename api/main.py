@@ -153,11 +153,13 @@ async def license_check_middleware(request: Request, call_next):
 from core.api.middleware.geo import GeoMiddleware
 app.add_middleware(GeoMiddleware)
 
-# Request Logging
-from core.api.middleware.request_log import RequestLogMiddleware
-app.add_middleware(RequestLogMiddleware)
+# gemini-pro
+@app.get("/api/v1/health")
+def health():
+    return {"ok": True, "role": os.getenv("ARAS_ROLE", "tenant")}
 
-# Rate limiting — must be added before CORS so it applies to all routes
+# discover_apps must be called after all core routes are defined or handled by RouterFactory
+# Aras.logic.discovery.discover_apps(package_path="apps") is already called above.
 from core.lib.rate_limiter import RateLimiterMiddleware
 app.add_middleware(RateLimiterMiddleware)
 

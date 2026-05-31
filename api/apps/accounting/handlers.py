@@ -110,6 +110,9 @@ def post_journal_entry(db: Session, item, params: dict):
     from .models import InflowInvoice, OutflowInvoice
     from .services.journal import JournalService
     from apps.stock.services.coa_resolver import CoaResolver
+    from core.registry.settings_service import SettingsService
+    if not SettingsService.get(db, "accounting", "enable_auto_journal", True):
+        return
 
     org_id = item.org_id
     lines = []

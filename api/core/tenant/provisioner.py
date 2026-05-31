@@ -11,58 +11,81 @@ logger = logging.getLogger(__name__)
 
 def _get_admin_connection():
     """Return a SQLAlchemy engine connected to the postgres admin DB."""
-    user = os.getenv("DB_USER", "postgres")
-    password = os.getenv("DB_PASSWORD", "")
-    host = os.getenv("DB_HOST", "localhost")
-    port = os.getenv("DB_PORT", "5432")
+    # gemini-pro: prioritize TENANT_DB_* for multi-db docker setup
+    user = os.getenv("TENANT_DB_USER") or os.getenv("DB_USER", "postgres")
+    password = os.getenv("TENANT_DB_PASSWORD") or os.getenv("DB_PASSWORD", "")
+    host = os.getenv("TENANT_DB_HOST") or os.getenv("DB_HOST", "localhost")
+    port = os.getenv("TENANT_DB_PORT") or os.getenv("DB_PORT", "5432")
     pw = f":{password}" if password else ""
     url = f"postgresql+psycopg2://{user}{pw}@{host}:{port}/postgres"
     return create_engine(url, isolation_level="AUTOCOMMIT")
 
 
 def _build_tenant_db_url(db_name: str) -> str:
-    user = os.getenv("DB_USER", "postgres")
-    password = os.getenv("DB_PASSWORD", "")
-    host = os.getenv("DB_HOST", "localhost")
-    port = os.getenv("DB_PORT", "5432")
+    # gemini-pro: prioritize TENANT_DB_* for multi-db docker setup
+    user = os.getenv("TENANT_DB_USER") or os.getenv("DB_USER", "postgres")
+    password = os.getenv("TENANT_DB_PASSWORD") or os.getenv("DB_PASSWORD", "")
+    host = os.getenv("TENANT_DB_HOST") or os.getenv("DB_HOST", "localhost")
+    port = os.getenv("TENANT_DB_PORT") or os.getenv("DB_PORT", "5432")
     pw = f":{password}" if password else ""
     return f"postgresql+psycopg2://{user}{pw}@{host}:{port}/{db_name}"
 
 
 def provision_tenant(tenant_id: str, db_name: str, apps: tuple = ("core_config",), extra: tuple = ()) -> Dict[str, Any]:
     """
-    Provision a new tenant by creating a dedicated database,
-    running schema migrations, and registering the tenant.
-    Then installs required and requested apps.
+    Complete flow for new tenant: Create DB, Run Migrations, Register.
     """
-    existing = tenant_registry.get(tenant_id)
-    if existing:
-        raise ValueError(f"Tenant '{tenant_id}' is already registered.")
+    logger.info(f"Provisioning tenant '{tenant_id}'...")
 
+    # 1. Validation
+    if tenant_registry.get(tenant_id):
+        raise ValueError(f"Tenant '{tenant_id}' already exists in registry.")
+
+    # 2. Check if DB name is already used (safeguard)
+    # TODO: add DB check via admin connection
+
+    # 3. Create Database
     admin_engine = _get_admin_connection()
     try:
         with admin_engine.connect() as conn:
-            result = conn.execute(text("SELECT 1 FROM pg_database WHERE datname = :n"), {"n": db_name})
-            if result.fetchone():
+            # Check if exists
+            res = conn.execute(text(f"SELECT 1 FROM pg_database WHERE datname = '{db_name}'")).fetchone()
+            if res:
                 raise ValueError(f"Database '{db_name}' already exists.")
-
-            logger.info(f"Creating database '{db_name}' for tenant '{tenant_id}'...")
+            
             conn.execute(text(f'CREATE DATABASE "{db_name}"'))
             logger.info(f"Database '{db_name}' created.")
     finally:
         admin_engine.dispose()
 
     tenant_db_url = _build_tenant_db_url(db_name)
+    engine = create_engine(tenant_db_url)
 
-    # Run Alembic schema migrations on the new tenant DB
+    # gemini-pro: initialize schema via metadata first to ensure all tables exist for mixed migrations
+    try:
+        from core import Aras
+        # Ensure all apps are discovered so their models are in metadata
+        Aras.logic.discovery.discover_apps(package_path="apps")
+        # logger.info(f"Tables in metadata: {list(Aras.Base.metadata.tables.keys())}")
+        Aras.Base.metadata.create_all(bind=engine)
+        logger.info(f"Schema initialized via metadata for tenant '{tenant_id}'.")
+    finally:
+        engine.dispose()
+
+    # Run Alembic schema migrations on the new tenant DB to ensure alembic_version is set
     try:
         from alembic import command
         from alembic.config import Config
         api_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
         cfg = Config(os.path.join(api_root, "alembic.ini"))
+        # gemini-pro: make script_location absolute for docker environments
+        cfg.set_main_option("script_location", os.path.join(api_root, "alembic"))
         cfg.set_main_option("sqlalchemy.url", tenant_db_url)
-        command.upgrade(cfg, "head")
-        logger.info(f"Schema migrated for tenant '{tenant_id}'.")
+        # Use stamp head because we already created all tables via metadata.create_all.
+        # This avoids issues where migrations try to modify framework tables (like saas_plan)
+        # that might not behave well in a tenant-specific migration context.
+        command.stamp(cfg, "head")
+        logger.info(f"Schema marked as head for tenant '{tenant_id}'.")
     except Exception as e:
         logger.error(f"Schema sync failed for tenant '{tenant_id}': {e}")
         raise
@@ -79,27 +102,24 @@ def provision_tenant(tenant_id: str, db_name: str, apps: tuple = ("core_config",
 
 
 def install_app_on_tenant(tenant_id: str, app_name: str):
-    """
-    Installs an app on an existing tenant by running its on_install hook.
-    """
-    from core.base.app import App
+    from core import Aras
     from .router import get_tenant_db
     
-    app_cls = App._registry.get(app_name)
-    if not app_cls:
-        # Try to find by app_name if class name is different
-        for _, cls in App._registry.items():
-            if getattr(cls, "app_name", None) == app_name:
-                app_cls = cls
-                break
+    app_cls = None
+    for cls in Aras.App._registry:
+        if getattr(cls, "app_name", None) == app_name:
+            app_cls = cls
+            break
                 
     if not app_cls:
         logger.warning(f"App '{app_name}' not found for installation.")
         return
 
-    db = get_tenant_db(tenant_id)
-    if not db:
-        logger.error(f"Cannot connect to tenant '{tenant_id}' for app installation.")
+    db_gen = get_tenant_db(tenant_id)
+    try:
+        db = next(db_gen)
+    except Exception as e:
+        logger.error(f"Failed to get DB for tenant '{tenant_id}': {e}")
         return
 
     try:
@@ -113,7 +133,10 @@ def install_app_on_tenant(tenant_id: str, app_name: str):
         logger.error(f"Failed to install app '{app_name}' on tenant '{tenant_id}': {e}")
         raise
     finally:
-        db.close()
+        try:
+            next(db_gen)
+        except StopIteration:
+            pass
 
 
 def seed_tenant(tenant_id: str) -> Dict[str, Any]:
@@ -122,9 +145,14 @@ def seed_tenant(tenant_id: str) -> Dict[str, Any]:
     Returns a summary of what was seeded.
     """
     from .router import get_tenant_db
-    db = get_tenant_db(tenant_id)
-    if not db:
+    # gemini-pro: get_tenant_db is a generator
+    db_gen = get_tenant_db(tenant_id)
+    try:
+        db = next(db_gen)
+    except StopIteration:
         raise ValueError(f"Cannot connect to tenant '{tenant_id}'.")
+    except Exception as e:
+        raise ValueError(f"Cannot connect to tenant '{tenant_id}': {e}")
 
     seeded = []
     try:
@@ -137,21 +165,24 @@ def seed_tenant(tenant_id: str) -> Dict[str, Any]:
         seeded.append("series")
 
         from apps.report.seed_reports import run_seed as seed_reports
-        from core.aras import Aras
-        Org = Aras.Model._registry.get("Organization")
-        if Org:
-            org = db.query(Org).first()
-            if org:
-                seed_reports(db, org.id)
-                seeded.append("reports")
+        from apps.config.models import Organization
+        org = db.query(Organization).first()
+        if org:
+            seed_reports(db, org.id)
+            seeded.append("reports")
+
         db.commit()
-    except Exception:
+        return {"tenant_id": tenant_id, "seeded": seeded}
+    except Exception as e:
         db.rollback()
+        logger.error(f"Seeding failed for tenant '{tenant_id}': {e}")
         raise
     finally:
-        db.close()
-
-    return {"tenant_id": tenant_id, "seeded": seeded}
+        # Close generator/session
+        try:
+            next(db_gen)
+        except (StopIteration, Exception):
+            pass
 
 
 def deprovision_tenant(tenant_id: str) -> bool:
@@ -165,18 +196,18 @@ def deprovision_tenant(tenant_id: str) -> bool:
 
     db_name = tenant_info["meta"]["db_name"]
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
-    deleted_db_name = f"_deleted_{timestamp}_{db_name}"
+    deleted_db_name = f"deleted_{timestamp}_{db_name}"
 
     admin_engine = _get_admin_connection()
     try:
         with admin_engine.connect() as conn:
-            result = conn.execute(text("SELECT 1 FROM pg_database WHERE datname = :n"), {"n": db_name})
-            if not result.fetchone():
-                logger.warning(f"Database '{db_name}' not found. Unregistering only.")
-                tenant_registry.unregister(tenant_id)
-                return True
-
-            logger.info(f"Renaming '{db_name}' → '{deleted_db_name}'...")
+            # Terminate active connections
+            conn.execute(text(f"""
+                SELECT pg_terminate_backend(pid)
+                FROM pg_stat_activity
+                WHERE datname = '{db_name}' AND pid <> pg_backend_pid()
+            """))
+            # Rename database
             conn.execute(text(f'ALTER DATABASE "{db_name}" RENAME TO "{deleted_db_name}"'))
             logger.info("Database soft-deleted.")
     finally:

@@ -81,8 +81,10 @@ def get_current_tenant(request: Request) -> str:
     """
     FastAPI dependency to extract the tenant ID from the request.
 
-    It first checks for an 'X-Tenant-ID' header (for development/testing)
-    and then falls back to extracting it from the 'sub' field of a JWT token.
+    Priority:
+    1. TENANT_ID environment variable (for dedicated containers)
+    2. 'X-Tenant-ID' header (for development/testing)
+    3. 'sub' field of a JWT token
 
     Raises:
         HTTPException: If the tenant ID cannot be determined.
@@ -90,7 +92,12 @@ def get_current_tenant(request: Request) -> str:
     Returns:
         The tenant ID as a string.
     """
-    # 1. Check for development header first
+    # 0. Check for environment variable first (gemini-pro)
+    env_tenant_id = os.getenv("TENANT_ID")
+    if env_tenant_id:
+        return env_tenant_id
+
+    # 1. Check for development header
     tenant_id = request.headers.get("x-tenant-id")
     if tenant_id:
         return tenant_id

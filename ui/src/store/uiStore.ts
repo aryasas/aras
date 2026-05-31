@@ -83,6 +83,8 @@ interface UIStore {
   setSubmenuOrder: (appName: string, order: string[]) => void;
   mobileSidebarOpen: boolean;
   setMobileSidebarOpen: (open: boolean) => void;
+  fullWidth: boolean;
+  setFullWidth: (v: boolean) => void;
 }
 
 const defaultDialog: DialogState = {
@@ -219,6 +221,8 @@ export const useUIStore = create<UIStore>()(
       setSubmenuOrder: (appName, order) => set((s) => ({ submenuOrder: { ...s.submenuOrder, [appName]: order } })),
       mobileSidebarOpen: false,
       setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
+      fullWidth: false,
+      setFullWidth: (fullWidth) => set({ fullWidth }),
     }),
     {
       name: 'aras-ui-prefs',

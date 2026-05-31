@@ -14,7 +14,7 @@ from core.auth.service import create_access_token, require_admin
 from datetime import datetime, timedelta
 
 router = APIRouter(prefix="", tags=["SaaS Control Panel"])
-PUBLIC_PLAN_KEYS = ("free", "lite", "growth", "business")
+PUBLIC_PLAN_KEYS = ("free", "lite", "growth", "business", "enterprise")
 
 class AdminUpdatePlanRequest(Validation):
     plan_id: int
@@ -280,8 +280,10 @@ def _plan_payload(plan: Plan) -> dict[str, Any]:
                 "crm": "crm",
                 "hr": "hr",
                 "asset": "asset",
+                "ticket": "ticket",
+                "web": "web",
             }
-            apps = ["party", "report"]
+            apps = ["party", "report", "notes"]
             for module in modules:
                 app_name = module_apps.get(module)
                 if app_name and app_name not in apps:

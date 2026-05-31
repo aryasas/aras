@@ -35,6 +35,7 @@ class App(Aras):
     requires: List[str] = []  # App names this app depends on (e.g. ["accounting"])
     required: bool = False # If True, this app cannot be uninstalled
     provides: List[str] = [] # List of capabilities provided by this app (e.g. ["core_config"])
+    saas_module: str = "" # Reference to the SaaS plan module (e.g. "pos", "accounting", "crm")
     # Features that are off by default and require another app to be active.
     # Key = org config field name, value = required app name.
     # e.g. {"enable_perpetual_inventory": "accounting", "enable_auto_journal": "accounting"}

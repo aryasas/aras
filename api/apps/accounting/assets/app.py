@@ -8,6 +8,7 @@ class Asset(Aras.App):
     parent_name = "accounting"
     app_type = "module"
     icon = "Building2"
+    saas_module = "asset"
     requires = ["accounting"]
     optional_features = {
         "enable_asset_depreciation_journal": "accounting",

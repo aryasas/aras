@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Bell, ChevronRight, CreditCard, Hexagon, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { ChevronRight, CreditCard, HelpCircle, Hexagon, Menu, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { SidebarApp, MenuItem } from '../types'
 import { useVocabulary } from '../../context/VocabularyContext'
@@ -57,7 +57,12 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
   const [isLoadingMenu, setIsLoadingMenu] = useState(false)
   const isControlPanel = getArasRole() === 'control-panel'
 
-  const apps = useMemo(() => sidebarData.filter((item) => isVisibleMenuItem(item) && !item.hide_from_sidebar), [sidebarData])
+  const apps = useMemo(() => sidebarData.filter((item) => 
+    isVisibleMenuItem(item) && 
+    !item.hide_from_sidebar && 
+    item.name !== 'settings' && 
+    item.name !== 'help'
+  ), [sidebarData])
   const initial = (user?.full_name || user?.username || 'A')[0].toUpperCase()
 
   // Derive active app directly from URL so the selector stays in sync with route changes.
@@ -235,13 +240,38 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
       >
         <div
           className="flex items-center px-4"
-          style={{ height: 52, borderBottom: '1px solid var(--line)' }}
+          style={{ 
+            height: 52, 
+            borderBottom: '1px solid var(--line)',
+            justifyContent: sidebarCollapsed ? 'center' : 'space-between',
+            padding: sidebarCollapsed ? '0' : '0 12px'
+          }}
         >
-          <Hexagon size={20} className="text-[var(--accent)] shrink-0" />
-          {!sidebarCollapsed && !iconRailCollapsed && (
-            <span className="ml-3 font-bold text-sm truncate uppercase tracking-wider text-[var(--text)]">
-              Aras
-            </span>
+          <div className="flex items-center" style={{ minWidth: 0 }}>
+            <Hexagon size={20} className="text-[var(--accent)] shrink-0" />
+            {!sidebarCollapsed && !iconRailCollapsed && (
+              <span className="ml-2.5 font-bold text-sm truncate uppercase tracking-wider text-[var(--text)]">
+                Aras
+              </span>
+            )}
+          </div>
+          {!sidebarCollapsed && (
+            <div className="flex items-center gap-0.5">
+              <button
+                onClick={toggleIconRail}
+                title="Hide Rail"
+                className="p-1.5 hover:bg-[var(--surface-2)] rounded-md text-[var(--text-3)] hover:text-[var(--text)] transition-colors"
+              >
+                <Menu size={16} />
+              </button>
+              <button
+                onClick={toggleSidebar}
+                title="Collapse"
+                className="p-1.5 hover:bg-[var(--surface-2)] rounded-md text-[var(--text-3)] hover:text-[var(--text)] transition-colors"
+              >
+                <PanelLeftClose size={16} />
+              </button>
+            </div>
           )}
         </div>
 
@@ -319,9 +349,19 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
         </div>
 
         <div className="flex flex-col gap-2 py-3 px-2" style={{ borderTop: '1px solid var(--line)' }}>
+          {sidebarCollapsed && (
+            <button
+              onClick={toggleSidebar}
+              title="Expand"
+              className="flex items-center justify-center hover:text-[var(--text)] text-[var(--text-3)] transition-colors mb-2"
+              style={{ width: '100%', height: 32, borderRadius: 8 }}
+            >
+              <PanelLeftOpen size={16} />
+            </button>
+          )}
           <button
-            onClick={toggleIconRail}
-            aria-label="Hide sidebar"
+            onClick={() => navigate('/admin/settings')}
+            title="Settings"
             className="flex items-center hover:text-[var(--text)] text-[var(--text-3)] transition-colors"
             style={{ 
               width: '100%', 
@@ -331,12 +371,12 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
               padding: sidebarCollapsed ? '0' : '0 10px'
             }}
           >
-            <Menu size={16} className="shrink-0" />
-            {!sidebarCollapsed && <span className="ml-3 text-xs font-medium">Hide Rail</span>}
+            <Settings size={16} className="shrink-0" />
+            {!sidebarCollapsed && <span className="ml-3 text-xs font-medium">Settings</span>}
           </button>
           <button
-            onClick={toggleSidebar}
-            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            onClick={() => navigate('/help')}
+            title="Help"
             className="flex items-center hover:text-[var(--text)] text-[var(--text-3)] transition-colors"
             style={{ 
               width: '100%', 
@@ -346,22 +386,14 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
               padding: sidebarCollapsed ? '0' : '0 10px'
             }}
           >
-            {sidebarCollapsed ? <PanelLeftOpen size={16} className="shrink-0" /> : <PanelLeftClose size={16} className="shrink-0" />}
-            {!sidebarCollapsed && <span className="ml-3 text-xs font-medium">Collapse</span>}
+            <HelpCircle size={16} className="shrink-0" />
+            {!sidebarCollapsed && <span className="ml-3 text-xs font-medium">Help</span>}
           </button>
           <div className="flex items-center" style={{ 
               width: '100%', 
-              height: 32, 
               justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-              padding: sidebarCollapsed ? '0' : '10px'
-            }}>
-            <Bell size={17} className="text-[var(--text-3)] shrink-0" />
-            {!sidebarCollapsed && <span className="ml-3 text-xs font-medium">Notifications</span>}
-          </div>
-          <div className="flex items-center" style={{ 
-              width: '100%', 
-              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-              padding: sidebarCollapsed ? '0' : '0 10px'
+              padding: sidebarCollapsed ? '0' : '0 10px',
+              marginTop: 4
             }}>
             <div className="arc-av shrink-0" style={{
               width: 28, height: 28,

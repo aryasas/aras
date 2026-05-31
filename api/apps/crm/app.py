@@ -7,6 +7,7 @@ class CRM(Aras.App):
     app_name = "crm"
     app_label = "CRM"
     icon = "Users"
+    saas_module = "crm"
 
     master_data = [
         MasterEntity(key="pipeline", model=Pipeline, scope="module", icon="GitBranch", order=10),

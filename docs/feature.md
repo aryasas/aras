@@ -1,3 +1,11 @@
+## Docker Multi-Tenant E2E Stack (2026-05-30)
+- [Gemini 2.5 Flash] Refreshed root `Dockerfile` and `ui/Dockerfile` with healthchecks and build arguments.
+- [Gemini 2.5 Flash] Rewrote `docker-compose.yml` for a 4-tenant multi-container environment with shared tenant Postgres.
+- [Gemini 2.5 Flash] Updated `api/core/tenant/provisioner.py` to support `TENANT_DB_*` environment variables for isolated DB host targeting.
+- [Gemini 2.5 Flash] Added `TENANT_ID` environment variable support to `api/core/tenant/router.py` for dedicated tenant containers.
+- [Gemini 2.5 Flash] Added `/api/v1/health` and `/api/v1/saas/control-panel/tenants/{tenant_id}/ping` endpoints for stack monitoring.
+- [Gemini 2.5 Flash] Created `tests/e2e/test_docker_saas_flow.py` and `Makefile` for automated stack validation.
+
 # Files Rule
 
 This file is used only to report if there are feature added

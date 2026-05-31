@@ -74,7 +74,7 @@ export const translateVocabularyText = (text: string, vocabulary: VocabularyLabe
 }
 
 export function VocabularyProvider({ children }: { children: React.ReactNode }) {
-  const { activeOrgId, organizations } = useAuthStore()
+  const { activeOrgId, organizations, token } = useAuthStore()
   const activeOrganization = organizations.find((organization) => organization.id === activeOrgId)
   const profile = activeOrganization?.profile || 'general'
   const [overrides, setOverrides] = useState<Partial<VocabularyLabels>>({})
@@ -82,7 +82,7 @@ export function VocabularyProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     let cancelled = false
 
-    if (!activeOrgId) {
+    if (!token || !activeOrgId || activeOrgId <= 0) {
       setOverrides({})
       return
     }
@@ -108,7 +108,7 @@ export function VocabularyProvider({ children }: { children: React.ReactNode }) 
     return () => {
       cancelled = true
     }
-  }, [activeOrgId, profile])
+  }, [activeOrgId, profile, token])
 
   const value = useMemo<VocabularyContextValue>(() => {
     const defaults = PROFILE_DEFAULTS[profile] || PROFILE_DEFAULTS.general

@@ -1,44 +1,173 @@
-# gemini-flash
+# gemini-pro (refreshed 2026-05-30)
 services:
   db-control-panel:
     image: postgres:16-alpine
-    environment: {POSTGRES_USER: aras, POSTGRES_PASSWORD: aras, POSTGRES_DB: control_panel}
-    volumes: [pgdata-control:/var/lib/postgresql/data]
+    environment:
+      POSTGRES_USER: aras
+      POSTGRES_PASSWORD: aras
+      POSTGRES_DB: control_panel
+    ports:
+      - "5434:5432"
+    restart: always
+    volumes:
+      - pgdata-control:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aras -d control_panel"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db-tenants:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: aras
+      POSTGRES_PASSWORD: aras
+      POSTGRES_DB: postgres
+    ports:
+      - "5433:5432"
+    restart: always
+    volumes:
+      - pgdata-tenants:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aras"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
-    ports: ["6379:6379"]
+    ports:
+      - "6379:6379"
 
   control-panel:
-    build: {context: ., dockerfile: Dockerfile}
+    build:
+      context: .
+      dockerfile: Dockerfile
     env_file: api/.env.control-panel.example
     environment:
-      CELERY_BROKER_URL: redis://redis:6379/0
-    ports: ["8000:8000"]
-    depends_on: [db-control-panel, redis]
+      ARAS_ROLE: control-panel
+      ARAS_MODE: development
+      DEBUG: "1"
+      DATABASE_URL: postgresql+psycopg2://aras:aras@db-control-panel:5432/control_panel
+      TENANT_DB_HOST: db-tenants
+      TENANT_DB_USER: aras
+      TENANT_DB_PASSWORD: aras
+      TENANT_REGISTRY_PATH: api/data/tenant_registry.json
+    ports:
+      - "8000:8000"
+    command: sh -c "python api/scripts/bootstrap_db.py && uvicorn api.main:app --host 0.0.0.0 --port 8000"
+    depends_on:
+      db-control-panel:
+        condition: service_healthy
+      db-tenants:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: always
     volumes:
       - .:/app
 
-  db-tenant:
-    image: postgres:16-alpine
-    environment: {POSTGRES_USER: aras, POSTGRES_PASSWORD: aras, POSTGRES_DB: tenant_1}
-    volumes: [pgdata-tenant:/var/lib/postgresql/data]
-
   tenant-1:
-    build: {context: ., dockerfile: Dockerfile}
+    build:
+      context: .
+      dockerfile: Dockerfile
     env_file: api/.env.tenant.example
     environment:
-      CELERY_BROKER_URL: redis://redis:6379/0
-    ports: ["8001:8000"]
-    depends_on: [db-tenant, redis, control-panel]
+      ARAS_ROLE: tenant
+      TENANT_ID: tenant-1-1
+      ARAS_CONTROL_PANEL_URL: http://control-panel:8000
+      TENANT_REGISTRY_PATH: api/data/tenant_registry.json
+    ports:
+      - "8001:8000"
+    depends_on:
+      control-panel:
+        condition: service_healthy
+      db-tenants:
+        condition: service_healthy
+    restart: always
+    volumes:
+      - .:/app
+
+  tenant-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: api/.env.tenant.example
+    environment:
+      ARAS_ROLE: tenant
+      TENANT_ID: tenant-2-2
+      ARAS_CONTROL_PANEL_URL: http://control-panel:8000
+      TENANT_REGISTRY_PATH: api/data/tenant_registry.json
+    ports:
+      - "8002:8000"
+    depends_on:
+      control-panel:
+        condition: service_healthy
+      db-tenants:
+        condition: service_healthy
+    restart: always
+    volumes:
+      - .:/app
+
+  tenant-3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: api/.env.tenant.example
+    environment:
+      ARAS_ROLE: tenant
+      TENANT_ID: tenant-3-3
+      ARAS_CONTROL_PANEL_URL: http://control-panel:8000
+      TENANT_REGISTRY_PATH: api/data/tenant_registry.json
+    ports:
+      - "8003:8000"
+    depends_on:
+      control-panel:
+        condition: service_healthy
+      db-tenants:
+        condition: service_healthy
+    restart: always
+    volumes:
+      - .:/app
+
+  tenant-4:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: api/.env.tenant.example
+    environment:
+      ARAS_ROLE: tenant
+      TENANT_ID: tenant-4-4
+      ARAS_CONTROL_PANEL_URL: http://control-panel:8000
+      TENANT_REGISTRY_PATH: api/data/tenant_registry.json
+    ports:
+      - "8004:8000"
+    depends_on:
+      control-panel:
+        condition: service_healthy
+      db-tenants:
+        condition: service_healthy
+    restart: always
     volumes:
       - .:/app
 
   ui:
-    build: {context: ui, dockerfile: Dockerfile}
-    ports: ["5173:80"]
-    depends_on: [control-panel]
+    build:
+      context: ui
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:8000
+    ports:
+      - "5173:80"
+    depends_on:
+      control-panel:
+        condition: service_healthy
+
 
 volumes:
   pgdata-control:
-  pgdata-tenant:
+  pgdata-tenants:
+
+networks:
+  default:
+    name: aras

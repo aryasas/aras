@@ -29,6 +29,7 @@ class Stock(Aras.App):
     app_name = "stock"
     app_label = "Stock"
     icon = "Package"
+    saas_module = "stock"
     requires = ["accounting"]
 
     master_data = [

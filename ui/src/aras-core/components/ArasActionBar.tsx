@@ -214,7 +214,7 @@ function FullActionBar({
   fields, visibleColumns, onVisibleColumnsChange, viewMode = 'list', onViewModeChange,
   hasTreeSupport = false, onSaveFilter, onApplySavedFilter, onDeleteSavedFilter,
   savedFilters, groupField = null, onGroupFieldChange, groupableFields = [],
-  filterChips = [], page, perPage, total, onPerPageChange,
+  filterChips = [], perPage, onPerPageChange,
 }: Omit<FullActionBarProps, 'variant'>) {
   const [savedOpen, setSavedOpen] = useState(false)
   const [actionsOpen, setActionsOpen] = useState(false)
@@ -340,12 +340,6 @@ function FullActionBar({
             </button>
           )}
         </div>
-
-        {typeof total === 'number' && typeof page === 'number' && typeof perPage === 'number' && (
-          <span className="text-[11.5px] text-[var(--text-3)]" style={{ fontFeatureSettings: '"tnum","ss01"' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-2)', fontSize: 11.5 }}>{Math.min(page * perPage, total)}</span> of {total.toLocaleString()}
-          </span>
-        )}
 
         {onPerPageChange && typeof perPage === 'number' && (
           <SimpleCombobox

@@ -30,13 +30,37 @@ class RouterFactory(Router):
         # ── 1. Initialization & Schemas ──────────────────────────────────────
         api_tag = getattr(model_class, "__app__", "Registry")
         router_prefix = prefix or f"/{model_class.__tablename__}"
-        router = APIRouter(prefix=router_prefix, tags=[api_tag])
+        
+        # gemini-pro: Get app for module protection
+        from ...base.app import App
+        app_cls = None
+        for a in App._registry.values():
+            if model_class in a.models:
+                app_cls = a
+                break
+        
         allow_public = getattr(model_class, "__public__", False)
+        saas_module = getattr(app_cls, "saas_module", "") if app_cls else ""
+
+        # Plan-gate the entire router when the model is NOT public.
+        # For __public__ models (e.g. landing/CMS reads) we leave reads open and
+        # apply the guard per-write-route inside register_crud_routes.
+        dependencies = []
+        if saas_module and not allow_public:
+            from ...auth.module_guard import require_module  # lazy: avoids core↔apps.saas circular import
+            dependencies.append(Depends(require_module(saas_module)))
+
+        router = APIRouter(prefix=router_prefix, tags=[api_tag], dependencies=dependencies)
 
         Schema, PatchSchema = _generate_pydantic_schemas(model_class)
 
+        # When the router is NOT blanket-gated but app declares a saas_module,
+        # writes must still be plan-gated. Pass the module down so crud.py can
+        # attach per-write dependencies.
+        write_saas_module = saas_module if (saas_module and allow_public) else ""
+
         # ── 2. Register Specialized Routes ───────────────────────────────────
-        register_crud_routes(router, model_class, Schema, PatchSchema, allow_public, api_tag)
+        register_crud_routes(router, model_class, Schema, PatchSchema, allow_public, api_tag, write_saas_module=write_saas_module)
         register_bulk_routes(router, model_class)
         register_m2m_routes(router, model_class)
         register_aggregate_routes(router, model_class, allow_public)

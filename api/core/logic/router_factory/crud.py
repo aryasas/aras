@@ -22,7 +22,13 @@ MAX_PER_PAGE = 200
 MAX_CSV_IMPORT_BYTES = 5 * 1024 * 1024
 ALLOWED_CSV_TYPES = {"text/csv", "application/csv", "application/vnd.ms-excel"}
 
-def register_crud_routes(router: APIRouter, model_class: Type[Any], Schema: Type[Any], PatchSchema: Type[Any], allow_public: bool, api_tag: str):
+def register_crud_routes(router: APIRouter, model_class: Type[Any], Schema: Type[Any], PatchSchema: Type[Any], allow_public: bool, api_tag: str, write_saas_module: str = ""):
+    # When the router is not blanket plan-gated (because the model is public),
+    # writes still need plan enforcement. Build a per-write dependency list here.
+    write_deps: list = []
+    if write_saas_module:
+        from ...auth.module_guard import require_module
+        write_deps.append(Depends(require_module(write_saas_module)))
     
     @router.get("/metadata", response_model=dict)
     def get_metadata(
@@ -117,7 +123,7 @@ def register_crud_routes(router: APIRouter, model_class: Type[Any], Schema: Type
 
         return StreamingResponse(generate(), media_type="text/csv", headers={"Content-Disposition": f"attachment; filename={model_class.__tablename__}_export.csv"})
 
-    @router.post("/import")
+    @router.post("/import", dependencies=write_deps)
     def import_items(
         file: UploadFile = File(...),
         mapping: Optional[str] = Query(None),
@@ -140,11 +146,11 @@ def register_crud_routes(router: APIRouter, model_class: Type[Any], Schema: Type
         data = {"message": "CSV import initiated in background", "task_id": task_id}
         return ok(data, data["message"])
 
-    @router.post("/", status_code=status.HTTP_201_CREATED)
+    @router.post("/", status_code=status.HTTP_201_CREATED, dependencies=write_deps)
     def create_item_slashed(request: Request, data: Schema, db: Session = Depends(get_db), user: Any = Depends(check_permissions(model_class.__tablename__, "CREATE"))):
         return create_item(request, data, db, user)
 
-    @router.post("", status_code=status.HTTP_201_CREATED)
+    @router.post("", status_code=status.HTTP_201_CREATED, dependencies=write_deps)
     def create_item(request: Request, data: Schema, db: Session = Depends(get_db), user: Any = Depends(check_permissions(model_class.__tablename__, "CREATE"))):
         """Creates a new record with hooks support."""
         payload = _inject_scope_payload(model_class, request, data.model_dump())
@@ -211,7 +217,7 @@ def register_crud_routes(router: APIRouter, model_class: Type[Any], Schema: Type
                 except Exception as e: logging.error(f"Error fetching child records for {child_resource_name}: {e}", exc_info=True)
         return ok(res, "Item retrieved successfully.")
 
-    @router.put("/{item_id}")
+    @router.put("/{item_id}", dependencies=write_deps)
     def update_item(request: Request, item_id: int, data: Schema, db: Session = Depends(get_db), user: Any = Depends(check_permissions(model_class.__tablename__, "UPDATE"))):
         item = model_class.get(db, item_id)
         if not item: raise ResourceNotFoundException("Item not found")
@@ -226,7 +232,7 @@ def register_crud_routes(router: APIRouter, model_class: Type[Any], Schema: Type
         model_class.resolve_labels(db, [res])
         return ok(res, "Item updated successfully.")
 
-    @router.patch("/{item_id}")
+    @router.patch("/{item_id}", dependencies=write_deps)
     def patch_item(request: Request, item_id: int, data: PatchSchema, db: Session = Depends(get_db), user: Any = Depends(check_permissions(model_class.__tablename__, "UPDATE"))):
         item = model_class.get(db, item_id)
         if not item: raise ResourceNotFoundException("Item not found")
@@ -241,7 +247,7 @@ def register_crud_routes(router: APIRouter, model_class: Type[Any], Schema: Type
         model_class.resolve_labels(db, [res])
         return ok(res, "Item patched successfully.")
 
-    @router.delete("/{item_id}")
+    @router.delete("/{item_id}", dependencies=write_deps)
     def delete_item(request: Request, item_id: int, db: Session = Depends(get_db), user: Any = Depends(check_permissions(model_class.__tablename__, "DELETE"))):
         item = model_class.get(db, item_id)
         if not item: raise ResourceNotFoundException("Item not found")

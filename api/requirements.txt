@@ -18,3 +18,4 @@ apscheduler
 celery
 redis
 alembic
+httpx

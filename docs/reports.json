@@ -805,5 +805,255 @@
     },
     "frontend": null,
     "verdict": "APPROVED"
+  },
+  {
+    "id": 47,
+    "date": "2026-05-30",
+    "feature": "Sidebar & Header UI Refinement: Move system links to bottom sidebar area, move collapse to logo area",
+    "revision_count": 1,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/components/Sidebar.tsx, ui/src/layouts/components/Header.tsx",
+      "features_added": "Settings and Help links positioned above the user profile in the Sidebar; Icon-only Collapse and Hide Rail buttons next to Sidebar logo.",
+      "fixes_applied": "Removed Notifications from Sidebar; removed redundant Help from Header; repositioned Expand button in collapsed sidebar to bottom; cleaned up unused icons.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 51,
+    "date": "2026-05-30",
+    "feature": "Silence urllib3 NotOpenSSLWarning via venv sitecustomize.py",
+    "revision_count": 1,
+    "backend": {
+      "files_written": "venv/lib/python3.9/site-packages/sitecustomize.py",
+      "features_added": "none",
+      "fixes_applied": "Added sitecustomize.py with warnings.filterwarnings for the urllib3 LibreSSL message. sitecustomize runs before any user imports, so the filter is active when urllib3 loads (filtering inside main.py/env.py was too late \u2014 urllib3 emits at its own import time). Verified silent via `alembic current`.",
+      "framework_changes": "none",
+      "issues": "Tradeoff: this is environment-local (venv-scoped) and won't follow a fresh venv. Long-term fix is upgrading off Python 3.9/LibreSSL (Python 3.9 EOL Oct 2025) or pinning urllib3<2."
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 50,
+    "date": "2026-05-30",
+    "feature": "Drop stale orphan tables: config_settings, core_sys_settings, user_access",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/alembic/versions/20260530_0003_drop_stale_tables.py",
+      "features_added": "none",
+      "fixes_applied": "Verified data already migrated to replacements (core_settings has all 8 sys_settings rows under namespace='core'; config_user_access mirrors the single user_access row; config_settings was empty). Migration drops the three stale tables with CASCADE.",
+      "framework_changes": "none",
+      "issues": "Downgrade intentionally a no-op since stale schemas should not be re-created."
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 49,
+    "date": "2026-05-30",
+    "feature": "auto_migrate: exclude __m2m__ bridge tables from orphan detection",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/logic/auto_migrate.py",
+      "features_added": "none",
+      "fixes_applied": "auto_migrate.run() now enumerates Model._registry, collects bridge_table names from each model's __m2m__, and excludes them from the orphan set. Prevents accounting_account_relations (and any future bridge-only table) from being flagged or dropped as orphan.",
+      "framework_changes": "Bridge tables declared via __m2m__ are now first-class to auto_migrate, even though they're not ORM-mapped.",
+      "issues": "Remaining orphans config_settings, core_sys_settings, user_access are genuinely stale leftovers from prior renames \u2014 not addressed here."
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 48,
+    "date": "2026-05-30",
+    "feature": "Create missing accounting_account_relations bridge table",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/alembic/versions/20260530_0002_account_relations_bridge.py",
+      "features_added": "none",
+      "fixes_applied": "Created bridge table accounting_account_relations (account_id, related_id) referenced by Account.__m2m__['related_accounts']. Stops repeated 'Failed to resolve M2M for accounting_accounts.related_accounts' errors logged on every account read. Stamped 20260530_0001 in alembic_version (core_settings migration was fully applied to DB but version row was not bumped) before upgrading to 0002.",
+      "framework_changes": "none",
+      "issues": "Alembic version drift discovered: DB schema matched 20260530_0001 but version row stayed at 20260529_0005. Resolved by stamp."
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 52,
+    "date": "2026-05-30",
+    "feature": "Add system setting toggle to enable/disable auto-journaling",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/accounting/app.py, api/apps/accounting/handlers.py, api/core/logic/builtin_handlers.py",
+      "features_added": "New ConfigField accounting.enable_auto_journal (bool, default True) in accounting app's Posting section. When off, both the accounting-specific post_journal_entry handler and the generic core builtin post_journal_entry handler return early \u2014 workflow transitions still fire, stock movements still post, but no journal entry is created. Setting is editable via the existing /admin/settings \u2192 Accounting \u2192 Posting UI (driven by config_registry + SettingsService).",
+      "fixes_applied": "none",
+      "framework_changes": "Establishes pattern: feature-flag toggles live in app config_sections (via ConfigSection/ConfigField) and are read at handler runtime via SettingsService.get(db, namespace, key, default).",
+      "issues": "Pyright flags 'core.registry.settings_service' as unresolved \u2014 pre-existing path-resolution noise across the codebase, not a runtime issue."
+    },
+    "frontend": null,
+    "input_tokens": "~14000",
+    "output_tokens": "~1600",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Single-shot wiring across 3 files; grep-led, no full-file reads beyond what was needed to place the toggle correctly.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 53,
+    "date": "2026-05-30",
+    "feature": "Generic fullWidth mode for ListView: edge-to-edge layout + status bar locked to viewport bottom (only data/table scrolls)",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/store/uiStore.ts, ui/src/layouts/MainLayout.tsx, ui/src/views/DynamicView.tsx",
+      "features_added": "Added uiStore.fullWidth + setFullWidth. MainLayout removes max-w-[1280px]/padding and switches main from overflow-y-auto to overflow-hidden when fullWidth is true. DynamicView calls setFullWidth(true) only when rendering ListView (no id), with cleanup on unmount/route change.",
+      "fixes_applied": "Status bar now stays pinned at bottom of viewport \u2014 ListView root is h-full flex flex-col with table area flex-1 overflow-auto and footer as a non-scrolling sibling. Added min-h-0 on intermediate flex wrapper so nested flex sizing works correctly.",
+      "framework_changes": "Pages can now opt into edge-to-edge layout via useUIStore().setFullWidth(true) in an effect; pattern reusable beyond ListView.",
+      "issues": "none"
+    },
+    "input_tokens": "~9000",
+    "output_tokens": "~1400",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Grep-led; no full reads of 931-line ListView \u2014 only the 4 ranges needed to confirm root/footer structure. Single-shot wiring across 3 files.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 54,
+    "date": "2026-05-30",
+    "feature": "ListView status bar: always show keyboard hints, show 'X of Y records' in footer, drop duplicate counter from action bar",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ArasActionBar.tsx, ui/src/aras-core/components/ListView.tsx",
+      "features_added": "Status footer now reports 'X of Y records' (left) and the full kb-shortcut hint cluster (right) on every page, not only the last. Hints flex-wrap rather than getting clipped.",
+      "fixes_applied": "Removed the duplicate 'X of Y' counter from ArasActionBar \u2014 count lives only in the status bar. Made ListView root w-full min-w-0 overflow-hidden and DesignContainer flex-1 min-h-0 min-w-0 so a horizontally-wide table no longer stretches the footer past the viewport (which was the real cause of the missing hints).",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~6000",
+    "output_tokens": "~900",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Two targeted edits guided by grep; no full file reads.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 55,
+    "date": "2026-05-30",
+    "feature": "Topbar background matches sidebar (var(--bg-2))",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/components/Header.tsx",
+      "features_added": "none",
+      "fixes_applied": "Header background switched from translucent color-mix over var(--bg) to solid var(--bg-2) \u2014 same token the Sidebar uses, so the two surfaces visually merge. Dropped the now-unneeded backdrop blur.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~2500",
+    "output_tokens": "~400",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Single grep pinpointed both surfaces; one-line edit.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 56,
+    "date": "2026-05-30",
+    "feature": "Stop VocabularyContext from firing GET /config/organizations/-1/vocabulary (401) on login or when 'All Organizations' is selected",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/context/VocabularyContext.tsx",
+      "features_added": "none",
+      "fixes_applied": "Skip vocabulary fetch when there is no auth token OR activeOrgId <= 0 (the -1 sentinel for 'All Organizations'). Previously the `!activeOrgId` guard let -1 through and the request also fired before login, producing the noisy 401.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~3500",
+    "output_tokens": "~500",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Grep-led; two small edits to one file plus deps array update.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 57,
+    "date": "2026-05-30",
+    "feature": "Docker E2E Multi-Tenant SaaS Stack Refresher",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "Dockerfile, ui/Dockerfile, docker-compose.yml, api/core/tenant/provisioner.py, api/core/tenant/router.py, api/main.py, api/apps/saas/routers/control_panel.py, api/requirements.txt, api/.env.control-panel.example, api/.env.tenant.example, tests/e2e/test_docker_saas_flow.py, Makefile, pytest.ini",
+      "features_added": "Multi-tenant Docker stack (1 CP, 4 Tenants, Shared DB); /api/v1/health and tenant ping endpoints; E2E test suite for 4-plan registration/provisioning flow.",
+      "fixes_applied": "Added support for TENANT_DB_* env vars to allow CP to provision on a separate DB host; added TENANT_ID env var support for dedicated tenant containers.",
+      "framework_changes": "Standardized healthcheck endpoint and multi-tenant Docker orchestration pattern.",
+      "issues": "None"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 58,
+    "date": "2026-05-30",
+    "feature": "rhf review of Gemini SaaS alignment report \u2014 fix circular import in RouterFactory module guard",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/logic/router_factory/__init__.py, docs/handoff.md",
+      "features_added": "none",
+      "fixes_applied": "Made module_guard.require_module a lazy import inside RouterFactory.create_router to break core \u2194 apps.saas.models circular import that crashed manage.py sync on boot",
+      "framework_changes": "none (restored bootability)",
+      "issues": "Gemini's top-level import would have prevented server startup; Pyright still flags App.saas_module as unknown subclass attr \u2014 needs ClassVar annotation (logged as R3 for Gemini)"
+    },
+    "frontend": null,
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Tight \u2014 verified 15 files + 4 code claims via single grep, found and fixed one critical regression, ran sync to confirm. No re-reads of files already in context.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 59,
+    "date": "2026-05-30",
+    "feature": "rhf #2 \u2014 Gemini orphan-app/DnD verification report",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "docs/handoff.md (Claude Review #2 appended)",
+      "features_added": "none",
+      "fixes_applied": "none (code unchanged; review only)",
+      "framework_changes": "none",
+      "issues": "Found critical regression: setting saas_module='web' on WebApp gates ALL web CRUD routes (incl. public landing pages) behind Business/Enterprise plan via RouterFactory dependency injection. Anonymous + Free/Lite/Growth tenants will get 403. Logged as R4/R5 for Gemini to fix."
+    },
+    "frontend": null,
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Tight \u2014 one grep verified 4 files + 3 code claims; one grep traced the module_guard 403 path. No file re-reads.",
+    "verdict": "NEEDS-FIX"
+  },
+  {
+    "id": 60,
+    "date": "2026-05-30",
+    "feature": "Fix public-CMS 403 regression \u2014 split blanket vs per-write saas_module gating",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/logic/router_factory/__init__.py, api/core/logic/router_factory/crud.py, api/apps/web/app.py, api/apps/web/models.py",
+      "features_added": "RouterFactory now routes the saas_module guard into two modes: (a) blanket router-level dep for non-public models, (b) per-write-route deps for __public__ models. crud.py accepts write_saas_module kwarg and attaches the guard only to POST/PUT/PATCH/DELETE/import.",
+      "fixes_applied": "Public landing/CMS reads (WebPage, WebMenuItem, SiteSetting, LandingSection) now stay 200 for anonymous and all plans; admin writes on those models remain plan-gated to Business/Enterprise via saas_module='web'.",
+      "framework_changes": "register_crud_routes signature gained optional write_saas_module: str = ''. Backward-compatible default.",
+      "issues": "Pyright flags App.saas_module as unknown attr (cosmetic \u2014 runtime fine). Tracked as R3."
+    },
+    "frontend": null,
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Focused \u2014 only files needed were touched, sync verified post-change.",
+    "verdict": "APPROVED"
   }
 ]

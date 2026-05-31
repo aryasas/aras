@@ -35,8 +35,7 @@ export function Header({ children }: { children?: ReactNode }) {
       style={{
         height: 52, minHeight: 52, padding: '0 18px',
         borderBottom: '1px solid var(--line)',
-        background: 'color-mix(in oklch, var(--bg) 88%, transparent)',
-        backdropFilter: 'blur(20px)',
+        background: 'var(--bg-2)',
       }}
     >
       {/* Left: hamburger (mobile) + title + breadcrumb */}

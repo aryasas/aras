@@ -17,7 +17,7 @@ export default function MainLayout() {
   const { organizations, activeOrgId, setActiveOrg } = useAuthStore()
   const location = useLocation()
 const { notify } = useAras()
-  const { closePanel, cornerMode, density, fontScale, accentColor, iconRailCollapsed, toggleIconRail, dirtyForms } = useUIStore()
+  const { closePanel, cornerMode, density, fontScale, accentColor, iconRailCollapsed, toggleIconRail, dirtyForms, fullWidth } = useUIStore()
 
   const layoutStyle = {
     '--accent': accentColor,
@@ -331,9 +331,11 @@ const { notify } = useAras()
           </div>
         </Header>
 
-        <main id="main-content" className="flex-1 overflow-y-auto min-w-0 relative flex flex-col arc-scroll">
-          <div className="flex-1 flex flex-col">
-            <div className="flex-1 max-sm:overflow-visible relative w-full max-w-[1280px] mx-auto px-4 md:px-6 lg:px-8 py-5">
+        <main id="main-content" className={`flex-1 min-w-0 relative flex flex-col arc-scroll ${fullWidth ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className={fullWidth
+              ? 'flex-1 min-h-0 relative w-full flex flex-col'
+              : 'flex-1 max-sm:overflow-visible relative w-full max-w-[1280px] mx-auto px-4 md:px-6 lg:px-8 py-5'}>
               <Outlet context={{ sidebarData }} />
             </div>
           </div>

@@ -1,12 +1,15 @@
 // claude-opus-4-7
+import { useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { DynamicForm } from '../aras-core/components/DynamicForm'
 import ListView from '../aras-core/components/ListView'
+import { useUIStore } from '../store/uiStore'
 
 export default function DynamicView() {
   const params = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const setFullWidth = useUIStore((s) => s.setFullWidth)
 
   const splat = params['*'] || ''
   const { app, model, segment1, id: paramId } = params
@@ -40,6 +43,13 @@ export default function DynamicView() {
   }
 
   const basePath = `/${resource}`
+  const isListMode = !id
+
+  useEffect(() => {
+    if (!isListMode) return
+    setFullWidth(true)
+    return () => setFullWidth(false)
+  }, [isListMode, setFullWidth])
 
   if (id) {
     return (

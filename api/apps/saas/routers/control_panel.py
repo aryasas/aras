@@ -56,6 +56,17 @@ def get_tenant_metrics(tenant_id: str, db: Session = Depends(get_db), current_us
     metrics = MetricsService.tenant_usage(db, tenant_id)
     return ok(metrics)
 
+@router.post("/tenants/{tenant_id}/ping")
+def ping_tenant(tenant_id: str, current_user=Depends(require_admin)):
+    # gemini-pro
+    import httpx, os
+    base = os.getenv("TENANT_BASE_URL_TEMPLATE", "http://{id}:8000").replace("{id}", tenant_id)
+    try:
+        r = httpx.get(f"{base}/api/v1/health", timeout=5)
+        return {"tenant_id": tenant_id, "reachable": r.status_code == 200, "status": r.status_code}
+    except Exception as e:
+        return {"tenant_id": tenant_id, "reachable": False, "error": str(e)}
+
 @router.get("/revenue")
 def get_revenue(db: Session = Depends(get_db), current_user = Depends(require_admin)):
     mrr = db.query(func.sum(SaaSPayment.amount)).filter(SaaSPayment.status == "succeeded").scalar() or 0

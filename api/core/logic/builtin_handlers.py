@@ -58,6 +58,9 @@ def post_journal_entry(db, item, params: dict):
       account_credit_id: int (simple mode)
       use_product_category_accounts: bool
     """
+    from core.registry.settings_service import SettingsService
+    if not SettingsService.get(db, "accounting", "enable_auto_journal", True):
+        return
     JournalService = ServiceRegistry.get("JournalService")
     StockComputeService = ServiceRegistry.get("StockComputeService")
     Product = ServiceRegistry.get("Product")

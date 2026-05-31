@@ -6,6 +6,7 @@ class TicketingApp(Aras.App):
     app_name = "ticket"
     app_label = "Ticketing"
     icon = "Ticket"
+    saas_module = "ticket"
     
     # Import models and views for side-effect registration
     from . import models, views # noqa: F401

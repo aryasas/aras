@@ -40,6 +40,13 @@ class ReportApp(Aras.App):
     def seed(cls, db):
         from .seed_reports import run_seed as seed_reports
         from apps.config.models import Organization
-        org = db.query(Organization).first()
-        if org:
-            seed_reports(db, org.id)
+        try:
+            org = db.query(Organization).first()
+            if org:
+                seed_reports(db, org.id)
+                db.commit()
+        except Exception as e:
+            db.rollback()
+            # Still log it but don't crash the whole bootstrap
+            import logging
+            logging.getLogger(__name__).error(f"Report seeding failed: {e}")

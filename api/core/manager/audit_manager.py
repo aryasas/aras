@@ -81,9 +81,14 @@ class AuditManager(Manager):
         if action == "UPDATE" and not changes:
             return # No relevant changes
 
+        # gemini-pro: Guard against null resource_id (NotNullViolation)
+        res_id = getattr(obj, "id", None)
+        if res_id is None:
+            return
+
         log = ActivityLog(
             resource=obj.__tablename__,
-            resource_id=obj.id,
+            resource_id=res_id,
             action=action,
             changes=changes,
             user_id=getattr(obj, "updated_by", None) or getattr(obj, "created_by", None)

@@ -48,6 +48,10 @@ def discover_apps(package_path: str = "apps"):
         return
 
     for loader, module_name, is_pkg in pkgutil.walk_packages(package.__path__, package_path + "."):
+        # gemini-pro: skip tests during discovery
+        if ".tests." in module_name or module_name.split(".")[-1].startswith("test_"):
+            continue
+            
         # Import every module in the app package to ensure full registry and integrity check
         module = importlib.import_module(module_name)
         

@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 class WebPage(Aras.Model):
     __tablename__ = "web_page"
+    __public__ = True  # public read; writes still plan-gated via write_saas_module
     slug: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
@@ -35,6 +36,7 @@ class WebPage(Aras.Model):
 
 class WebMenuItem(Aras.Model):
     __tablename__ = "web_menu_item"
+    __public__ = True  # public read
     label: Mapped[str] = mapped_column(String(100), nullable=False)
     url: Mapped[str] = mapped_column(String(500), nullable=False)
     parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("web_menu_item.id"), nullable=True)
@@ -60,6 +62,7 @@ class ContactSubmission(Aras.Model):
 
 class SiteSetting(Aras.Model):
     __tablename__ = "web_site_setting"
+    __public__ = True  # public read
     key: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     value: Mapped[str] = mapped_column(Text, nullable=False)
     label: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -69,6 +72,7 @@ class SiteSetting(Aras.Model):
 # gemini-flash
 class LandingSection(Aras.Model):
     __tablename__ = "web_landing_section"
+    __public__ = True  # public read
     key: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     subtitle: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)

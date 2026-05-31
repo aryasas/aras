@@ -1,0 +1,58 @@
+{
+    "liteco-2": {
+        "tenant_id": "liteco-2",
+        "db_url": "postgresql+psycopg2://aras:aras@db-tenants:5432/tenant_liteco-2",
+        "meta": {
+            "db_name": "tenant_liteco-2"
+        }
+    },
+    "freeco-1": {
+        "tenant_id": "freeco-1",
+        "db_url": "postgresql+psycopg2://aras:aras@db-tenants:5432/tenant_freeco-1",
+        "meta": {
+            "db_name": "tenant_freeco-1"
+        }
+    },
+    "growthco-3": {
+        "tenant_id": "growthco-3",
+        "db_url": "postgresql+psycopg2://aras:aras@db-tenants:5432/tenant_growthco-3",
+        "meta": {
+            "db_name": "tenant_growthco-3"
+        }
+    },
+    "bizco-4": {
+        "tenant_id": "bizco-4",
+        "db_url": "postgresql+psycopg2://aras:aras@db-tenants:5432/tenant_bizco-4",
+        "meta": {
+            "db_name": "tenant_bizco-4"
+        }
+    },
+    "tenant-1-1": {
+        "tenant_id": "tenant-1-1",
+        "db_url": "postgresql+psycopg2://aras:aras@db-tenants:5432/tenant_tenant-1-1",
+        "meta": {
+            "db_name": "tenant_tenant-1-1"
+        }
+    },
+    "tenant-2-2": {
+        "tenant_id": "tenant-2-2",
+        "db_url": "postgresql+psycopg2://aras:aras@db-tenants:5432/tenant_tenant-2-2",
+        "meta": {
+            "db_name": "tenant_tenant-2-2"
+        }
+    },
+    "tenant-3-3": {
+        "tenant_id": "tenant-3-3",
+        "db_url": "postgresql+psycopg2://aras:aras@db-tenants:5432/tenant_tenant-3-3",
+        "meta": {
+            "db_name": "tenant_tenant-3-3"
+        }
+    },
+    "tenant-4-4": {
+        "tenant_id": "tenant-4-4",
+        "db_url": "postgresql+psycopg2://aras:aras@db-tenants:5432/tenant_tenant-4-4",
+        "meta": {
+            "db_name": "tenant_tenant-4-4"
+        }
+    }
+}

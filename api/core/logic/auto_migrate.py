@@ -88,6 +88,23 @@ def run(engine, metadata, drop_orphan_tables: bool = False) -> MigrationReport:
         db_tables = set(insp.get_table_names())
         model_tables = set(metadata.tables.keys())
 
+        # Bridge tables declared via __m2m__ are physical but not mapped as ORM models.
+        # Treat them as expected so they don't appear as orphans.
+        m2m_bridges: set[str] = set()
+        try:
+            from ..base.model import Model  # late import to avoid cycle
+            seen = set()
+            for cls in Model._registry.values():
+                if cls in seen:
+                    continue
+                seen.add(cls)
+                for defs in (getattr(cls, "__m2m__", {}) or {}).values():
+                    bt = defs.get("bridge_table") if isinstance(defs, dict) else None
+                    if bt:
+                        m2m_bridges.add(bt)
+        except Exception as e:
+            logger.warning(f"[auto_migrate] could not enumerate m2m bridges: {e}")
+
         # 1. Create missing tables (as backup to create_all)
         for tname in sorted(model_tables - db_tables):
             try:
@@ -109,7 +126,7 @@ def run(engine, metadata, drop_orphan_tables: bool = False) -> MigrationReport:
             }
             # Transitional: skip pre-2026-05 legacy tables.
             # Remove after all deployments confirmed on `core_*` schema (target 2026-08).
-            real_orphans = [t for t in orphans if t not in core_tables and not t.startswith("aras_")]
+            real_orphans = [t for t in orphans if t not in core_tables and t not in m2m_bridges and not t.startswith("aras_")]
             
             if real_orphans:
                 logger.warning(f"[auto_migrate] Found orphan tables in DB: {real_orphans}")

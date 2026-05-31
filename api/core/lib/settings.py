@@ -7,7 +7,7 @@ _current = os.path.dirname(os.path.abspath(__file__))
 _api_root = os.path.dirname(os.path.dirname(_current))   # api/
 _project_root = os.path.dirname(_api_root)               # aras/
 
-load_dotenv(dotenv_path=os.path.join(_project_root, ".env"), override=True)
+load_dotenv(dotenv_path=os.path.join(_project_root, ".env"), override=False)
 
 _logger = logging.getLogger(__name__)
 

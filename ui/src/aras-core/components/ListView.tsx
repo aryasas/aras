@@ -489,8 +489,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   })()
 
   return (
-    <div className="aras-list-view flex flex-col h-full animate-in fade-in duration-500">
-      <DesignContainer id="list-view-layout" className="flex flex-col h-full w-full">
+    <div className="aras-list-view flex flex-col h-full w-full min-w-0 overflow-hidden animate-in fade-in duration-500">
+      <DesignContainer id="list-view-layout" className="flex flex-col flex-1 min-h-0 w-full min-w-0">
         
         <DesignElement id="toolbar" className="w-full">
           <ArasActionBar
@@ -823,22 +823,32 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
 
       </DesignContainer>
 
-      {/* Bottom status footer */}
-      <div className="flex items-center justify-between border-t border-[var(--line)] py-2 px-5 sm:px-7 lg:px-8 text-[11px] text-[var(--text-3)]">
-        <div>
-          {selectedIds.length > 0
-            ? <><span className="arc-id"><b>{selectedIds.length}</b></span> selected</>
-            : <>{total} {total === 1 ? 'record' : 'records'}</>}
+      {/* Bottom status footer — locked to viewport bottom, hints always visible */}
+      <div className="flex items-center justify-between gap-4 border-t border-[var(--line)] py-2 px-5 sm:px-7 lg:px-8 text-[11px] text-[var(--text-3)] flex-shrink-0 w-full min-w-0">
+        <div className="flex-shrink-0 whitespace-nowrap">
+          {selectedIds.length > 0 ? (
+            <><span className="arc-id"><b>{selectedIds.length}</b></span> selected</>
+          ) : (
+            <>
+              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-2)' }}>
+                {Math.min(page * perPage, total).toLocaleString()}
+              </span>
+              <span> of </span>
+              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-2)' }}>
+                {total.toLocaleString()}
+              </span>
+              <span> {total === 1 ? 'record' : 'records'}</span>
+            </>
+          )}
         </div>
-        <div className="flex items-center gap-3">
-          <span>↑↓ navigate</span>
-          <span>·</span>
-          <span>Enter open</span>
-          <span>·</span>
-          <span>/ search</span>
-          <span>·</span>
-          <span className="arc-kbd">⌘K</span>
-          <span>commands</span>
+        <div className="flex items-center gap-3 flex-wrap justify-end min-w-0">
+          <span className="whitespace-nowrap">↑↓ navigate</span>
+          <span aria-hidden>·</span>
+          <span className="whitespace-nowrap">Enter open</span>
+          <span aria-hidden>·</span>
+          <span className="whitespace-nowrap">/ search</span>
+          <span aria-hidden>·</span>
+          <span className="whitespace-nowrap"><span className="arc-kbd">⌘K</span> commands</span>
         </div>
       </div>
 

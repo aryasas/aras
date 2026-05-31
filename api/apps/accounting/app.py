@@ -55,6 +55,7 @@ class Accounting(Aras.App):
     app_name = "accounting"
     app_label = "Accounting"
     icon = "Calculator"
+    saas_module = "accounting"
 
     master_data = [
         MasterEntity(key="account", model=Account, scope="module", icon="ListTree", order=10),
@@ -69,6 +70,8 @@ class Accounting(Aras.App):
             ConfigField(key="enable_multi_currency", type="bool", default=False, label="Enable Multi-Currency"),
         ]),
         ConfigSection(key="posting", label="Posting", scope="module", fields=[
+            ConfigField(key="enable_auto_journal", type="bool", default=True, label="Enable Auto-Journaling",
+                        help="When off, workflow transitions skip the post_journal_entry handler. Useful for manual bookkeeping or staging environments."),
             ConfigField(key="auto_post_journals", type="bool", default=False, label="Auto-Post Journal Entries"),
             ConfigField(key="require_approval_above", type="number", default=0, label="Require Approval Above Amount", help="0 = no threshold"),
         ]),

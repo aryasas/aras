@@ -10,6 +10,7 @@ class HR(Aras.App):
     app_name = "hr"
     app_label = "Human Resources"
     icon = "Users"
+    saas_module = "hr"
 
     master_data = [
         MasterEntity(key="department", model=Department, scope="module", icon="Users", order=10),
