@@ -3,7 +3,6 @@ from .routers import router as _sessions_router
 from . import views  # noqa
 
 from core.registry.config_registry import ConfigSection, ConfigField
-from core.registry.master_data_registry import MasterEntity
 from .models import PotSession, PotTerminal
 
 class POT(Aras.App):
@@ -11,10 +10,6 @@ class POT(Aras.App):
     app_label = "Point of Transaction"
     icon = "CreditCard"
     saas_module = "pos"
-
-    master_data = [
-        MasterEntity(key="pot_terminal", model=PotTerminal, scope="module", icon="Monitor", order=10),
-    ]
 
     config_sections = [
         ConfigSection(key="general", label="General", scope="module", fields=[
@@ -33,7 +28,7 @@ class POT(Aras.App):
     models = [PotTerminal, PotSession]
     routers = [_sessions_router]
 
-    
+
     menu_groups = [
         {
             "label": "Master",
@@ -49,4 +44,3 @@ class POT(Aras.App):
             ],
         }
     ]
-

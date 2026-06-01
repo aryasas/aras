@@ -14,9 +14,10 @@ const Login = lazy(() => import('./views/Login'))
 const OrganizationPicker = lazy(() => import('./views/OrganizationPicker'))
 const ForgotPassword = lazy(() => import('./views/ForgotPassword'))
 const ResetPassword = lazy(() => import('./views/ResetPassword'))
-const MainLayout = lazy(() => import('./layouts/MainLayout'))
+const MainLayout = lazy(() => import('./layouts/TopMenuLayout'))
 const HomeView = lazy(() => import('./views/Home'))
 const SettingsPageView = lazy(() => import('./views/settings/SettingsPage'))
+const GlobalSettingsView = lazy(() => import('./views/GlobalSettings'))
 const MasterDataPageView = lazy(() => import('./views/master-data/MasterDataPage'))
 const DashboardSettingsView = lazy(() => import('./views/DashboardSettings'))
 const ProfileView = lazy(() => import('./views/Profile'))
@@ -219,7 +220,7 @@ function App() {
           <Route path="admin/settings" element={<SettingsPageView />} />
           <Route path="admin/master-data" element={<MasterDataPageView />} />
           <Route path="settings/dashboard" element={<DashboardSettingsView />} />
-          <Route path="settings/global" element={<Navigate to="/admin/settings" replace />} />
+          <Route path="settings/global" element={<GlobalSettingsView />} />
           <Route path="settings/audit" element={<AuditLogsView />} />
           <Route path="settings/rbac" element={<RBACManagerView />} />
           <Route path="admin/license" element={<TenantRoute><LicenseStatusView /></TenantRoute>} />
@@ -245,6 +246,8 @@ function App() {
           <Route path="help" element={<HelpUserView />} />
           <Route path="dev/table/:app/:model" element={<DynamicView />} />
           <Route path="dev/table/:app/:model/:id" element={<DynamicView />} />
+          <Route path="dev/:resource" element={<DynamicView />} />
+          <Route path="dev/:resource/:id" element={<DynamicView />} />
           <Route path="apps" element={<AppManagerView />} />
           <Route path="profile" element={<ProfileView />} />
           <Route path="reports" element={<ReportCenterView />} />

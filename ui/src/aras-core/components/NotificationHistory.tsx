@@ -41,17 +41,17 @@ const NotificationHistory: React.FC = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative flex items-center justify-center w-10 h-10 bg-[var(--aras-panel)] rounded-[var(--aras-radius)] shadow-sm border border-[var(--aras-border)] text-[var(--aras-muted)] hover:text-[var(--aras-accent)] hover:border-[var(--aras-accent)] transition-all"
+        className="relative flex items-center justify-center w-8 h-8 bg-transparent rounded-lg border border-[var(--line)] text-[var(--text-3)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-all"
         title="Notifications"
       >
         <Bell size={18} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 inline-flex w-3 h-3 bg-red-500 rounded-full border-2 border-[var(--aras-panel)]"></span>
+          <span className="absolute -top-1 -right-1 inline-flex w-3 h-3 bg-red-500 rounded-full border-2 border-[var(--bg-2)]"></span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 bg-[var(--aras-panel)] border border-[var(--aras-border)] shadow-xl rounded-[var(--aras-radius-lg)] z-50 p-4">
+        <div className="absolute right-0 mt-2 w-80 bg-[var(--bg-2)] border border-[var(--line)] shadow-xl rounded-[var(--aras-radius)] z-50 p-4">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-bold text-[var(--aras-text)]">Notifications</h4>
             <button

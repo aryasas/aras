@@ -200,6 +200,7 @@ export interface SettingsFieldSchema {
   secret?: boolean
   choices?: Array<{ label: string; value: string | number | boolean } | [string | number | boolean, string] | string>
   depends_on?: string | null
+  resource?: string | null
 }
 
 export interface SettingsSectionSchema {

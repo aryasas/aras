@@ -22,20 +22,12 @@ def get_item_stock(item_id: int, db: Session = Depends(get_db), _user=Depends(ge
     })
 
 from core.registry.config_registry import ConfigSection, ConfigField
-from core.registry.master_data_registry import MasterEntity
-from .models import ItemCategory, Location
-
 class Stock(Aras.App):
     app_name = "stock"
     app_label = "Stock"
     icon = "Package"
     saas_module = "stock"
     requires = ["accounting"]
-
-    master_data = [
-        MasterEntity(key="item_category", model=ItemCategory, scope="module", icon="FolderTree", order=10),
-        MasterEntity(key="stock_location", model=Location, scope="module", icon="MapPin", order=20),
-    ]
 
     optional_features = {
         "enable_perpetual_inventory": "accounting",

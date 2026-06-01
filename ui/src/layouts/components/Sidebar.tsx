@@ -13,6 +13,7 @@ import { SortableList, DragHandle } from '../../aras-core/components/SortableLis
 interface SidebarProps {
   sidebarData: SidebarApp[]
   currentPath: string
+  hideSection?: boolean
 }
 
 interface FlatMenuItem extends MenuItem { id: string; groupLabel?: string }
@@ -40,7 +41,7 @@ const getArasRole = () => {
   return String(injectedRole || import.meta.env.VITE_ARAS_ROLE || 'tenant')
 }
 
-export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
+export function Sidebar({ sidebarData, currentPath, hideSection = false }: SidebarProps) {
   const vocabulary = useVocabulary()
   const navigate = useNavigate()
   const { user } = useAuthStore()
@@ -232,7 +233,7 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
       <aside
         className="flex flex-col shrink-0 z-40 transition-[width] duration-300"
         style={{
-          width: iconRailCollapsed ? 0 : (sidebarCollapsed ? 56 : 180),
+          width: iconRailCollapsed ? 0 : (sidebarCollapsed ? 56 : 220),
           background: 'var(--bg-2)',
           borderRight: iconRailCollapsed ? 'none' : '1px solid var(--line)',
           overflow: iconRailCollapsed ? 'hidden' : undefined,
@@ -413,8 +414,8 @@ export function Sidebar({ sidebarData, currentPath }: SidebarProps) {
         </div>
       </aside>
 
-      {/* 200px Section panel — hidden on phones unless drawer open */}
-      {activeApp?.type !== 'link' && activeApp && !sidebarCollapsed && !iconRailCollapsed && (
+      {/* 200px Section panel — suppressed when hideSection=true (used by TopMenuLayout) */}
+      {!hideSection && activeApp?.type !== 'link' && activeApp && !sidebarCollapsed && !iconRailCollapsed && (
         <aside
           className={`flex-col shrink-0 z-30 ${mobileSidebarOpen ? 'flex' : 'max-md:hidden flex'}`}
           style={{ width: 200, background: 'var(--bg-2)', borderRight: '1px solid var(--line)' }}

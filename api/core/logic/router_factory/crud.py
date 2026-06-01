@@ -5,7 +5,7 @@ import logging
 from fastapi import APIRouter, Depends, Query, Request, status, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, text, func
 from typing import List, Type, Any, Optional
 
 from .helpers import (
@@ -48,6 +48,56 @@ def register_crud_routes(router: APIRouter, model_class: Type[Any], Schema: Type
         from ...logic.ui_generator import UIGenerator
         data = UIGenerator.generate_metadata(model_class, db=db, lang=lang, org_id=org_id)
         return ok(data, "Metadata retrieved successfully.")
+
+    @router.get("/insights")
+    # claude-sonnet-4-6
+    def get_insights(
+        request: Request,
+        record_id: Optional[int] = Query(None),
+        db: Session = Depends(get_db),
+        _: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=allow_public))
+    ):
+        # record_id → form mode: use __form_insights__ scoped to that row
+        # no record_id → list mode: use __insights__ scoped to org
+        if record_id is not None:
+            raw = getattr(model_class, "__form_insights__", []) or []
+        else:
+            raw = getattr(model_class, "__insights__", []) or []
+        scope = _get_scope(request)
+        org_id = scope.get("org_id")
+        table = model_class.__table__
+        results = []
+        for ins in raw:
+            try:
+                # "sql" = raw cross-table query with :record_id / :org_id params
+                # "agg" = simple aggregate on the model's own table
+                if "sql" in ins:
+                    params = {}
+                    if record_id is not None:
+                        params["record_id"] = record_id
+                    if org_id:
+                        params["org_id"] = org_id
+                    val = db.execute(text(ins["sql"]), params).scalar()
+                else:
+                    agg_expr = ins.get("agg", "count(*)")
+                    stmt = select(text(agg_expr)).select_from(table)
+                    if record_id is not None:
+                        stmt = stmt.where(table.c.id == record_id)
+                    elif org_id and hasattr(model_class, "org_id"):
+                        stmt = stmt.where(table.c.org_id == org_id)
+                    val = db.execute(stmt).scalar()
+                results.append({
+                    "key": ins.get("key", ins.get("label", "").lower().replace(" ", "_")),
+                    "label": ins.get("label", ""),
+                    "value": float(val) if val is not None else 0,
+                    "format": ins.get("format", "number"),
+                    "icon": ins.get("icon", None),
+                    "prefix": ins.get("prefix", None),
+                    "suffix": ins.get("suffix", None),
+                })
+            except Exception as e:
+                logging.warning(f"Insight eval failed for {model_class.__tablename__}: {e}")
+        return ok(results, "Insights retrieved.")
 
     @router.get("/")
     def list_items_slashed(

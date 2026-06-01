@@ -12,7 +12,7 @@ export default function DynamicView() {
   const setFullWidth = useUIStore((s) => s.setFullWidth)
 
   const splat = params['*'] || ''
-  const { app, model, segment1, id: paramId } = params
+  const { app, model, segment1, id: paramId, resource: resourceParam } = params
 
   let segments: string[] = []
   if (segment1) {
@@ -20,9 +20,17 @@ export default function DynamicView() {
   } else if (app && model) {
     segments = [app, model]
     if (paramId) segments.push(paramId)
+  } else if (resourceParam) {
+    // dev/:resource — e.g. "core-apps" → "core_apps"
+    const normalized = resourceParam.replace(/-/g, '_')
+    if (paramId) segments = [normalized, paramId]
+    else segments = [normalized]
   }
 
-  if (segments.length < 2) {
+  let resource = ""
+  let id: string | undefined = undefined
+
+  if (segments.length === 0) {
     return (
       <div className="arc arc-card p-10 text-center border-dashed">
         <div className="arc-id"><b>error</b>/invalid-path</div>
@@ -31,8 +39,6 @@ export default function DynamicView() {
     )
   }
 
-  let resource = ""
-  let id: string | undefined = undefined
   const lastSegment = segments[segments.length - 1]
   const isId = !isNaN(Number(lastSegment)) || lastSegment === 'new'
   if (isId) {
@@ -42,7 +48,9 @@ export default function DynamicView() {
     resource = segments.join('/')
   }
 
-  const basePath = `/${resource}`
+  // Use actual URL path as base so nav back works for both dev/:resource and dev/table/:app/:model
+  const listPath = id ? location.pathname.replace(/\/[^/]+$/, '') : location.pathname
+  const basePath = listPath
   const isListMode = !id
 
   useEffect(() => {

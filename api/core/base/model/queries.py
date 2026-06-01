@@ -144,26 +144,33 @@ class QueryMixin:
                     item[f"{col.name}_label"] = label_map[val]
 
         for col in cls.__table__.columns:
-            display_col = col.info.get("display_column")
-            if not display_col: continue
+            if not col.foreign_keys: continue
 
             target_table = None
-            if col.foreign_keys:
-                for fk in col.foreign_keys:
-                    target_table = fk.column.table.name
-                    break
+            for fk in col.foreign_keys:
+                target_table = fk.column.table.name
+                break
             if not target_table: continue
-            
-            ids = {item[col.name] for item in items if item.get(col.name) is not None}
-            if not ids: continue
-            
+
             table = cls.metadata.tables.get(target_table)
             if table is None: continue
-            
+
+            # Explicit display_column wins; fall back to common name columns
+            display_col = col.info.get("display_column")
+            if not display_col:
+                for candidate in ("display_name", "name", "title", "number", "code"):
+                    if candidate in table.columns:
+                        display_col = candidate
+                        break
+            if not display_col: continue
+
+            ids = {item[col.name] for item in items if item.get(col.name) is not None}
+            if not ids: continue
+
             link_col_name = col.info.get("link_column", "id")
             link_col = table.columns.get(link_col_name)
             display_col_obj = table.columns.get(display_col)
-            
+
             if link_col is None or display_col_obj is None: continue
             
             try:

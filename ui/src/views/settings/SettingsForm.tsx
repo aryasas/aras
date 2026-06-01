@@ -17,6 +17,7 @@ function normalizeType(type: string) {
   if (type === 'choice') return 'select'
   if (type === 'secret') return 'string'
   if (type === 'text' || type === 'list') return 'textarea'
+  if (type === 'resource') return 'many2one'
   return type
 }
 
@@ -37,7 +38,10 @@ function toDynamicField(field: SettingsFieldSchema): Field {
     read_only: false,
     hidden: false,
     options: field.choices?.map(normalizeChoice),
-    info: field.secret ? { ui_type: 'string' } : undefined,
+    info: {
+      ...(field.secret ? { ui_type: 'string' } : {}),
+      ...(field.resource ? { resource: field.resource } : {}),
+    },
   }
 }
 

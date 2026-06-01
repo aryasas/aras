@@ -1055,5 +1055,343 @@
     "cache_write_tokens": "n/a",
     "token_efficiency": "Focused \u2014 only files needed were touched, sync verified post-change.",
     "verdict": "APPROVED"
+  },
+  {
+    "id": 61,
+    "date": "2026-05-31",
+    "feature": "DynamicForm: remove meta-strip, replace badge with model title, fix breadcrumb on form open",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "none",
+      "fixes_applied": "Removed meta-strip line (owner/created_at/severity row above sections). Replaced arc-mono badge in action bar with plain model title from metadata.title. Added setPageTitle so header breadcrumb updates to model label + record name/code when form opens; clears on unmount.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Targeted 3-change edit, no file re-reads.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 62,
+    "date": "2026-05-31",
+    "feature": "InsightStrip: collapsible KPI cards between topbar and action bar for ListView and DynamicForm",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/logic/router_factory/crud.py, api/core/logic/ui_generator/__init__.py, api/apps/stock/models.py",
+      "features_added": "New GET /{resource}/insights endpoint in crud.py that evaluates __insights__ SQL aggregates scoped to org_id. Metadata response now includes insights[] array (label/format/icon/prefix/suffix). Item model seeded with 4 demo insights.",
+      "fixes_applied": "none",
+      "framework_changes": "__insights__ class attribute: list of {key, label, agg, format, icon, prefix, suffix} dicts. Framework evaluates agg as raw SQL expression.",
+      "issues": "agg uses raw SQL text \u2014 safe for developer-defined model attrs but not for user input."
+    },
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/InsightStrip.tsx, ui/src/aras-core/components/DynamicForm.tsx, ui/src/aras-core/components/ListView.tsx",
+      "features_added": "InsightStrip component: fetches /insights, renders slim metric cards (number/currency/percent formatting with k/M shorthand), collapse toggle persisted to localStorage, skeleton loading state. Wired into DynamicForm (between scroll top and action band) and ListView (between top of layout and toolbar). Only renders if metadata.insights.length > 0.",
+      "fixes_applied": "none",
+      "framework_changes": "Metadata interface in both DynamicForm and ListView extended with insights[].",
+      "issues": "none"
+    },
+    "input_tokens": "n/a",
+    "output_tokens": "n/a",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Grepped first, read only needed lines, no full file reads except short interface sections.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 63,
+    "date": "2026-05-31",
+    "feature": "DynamicForm: readable record label in action bar + model actions moved to action bar",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "Action bar title shows titleField/codeField (readable record name); model action buttons appear in action bar with accent style instead of footer",
+      "fixes_applied": "Removed redundant footer model actions block",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~8000",
+    "output_tokens": "~600",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Grepped only needed lines, no full reads.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 64,
+    "date": "2026-05-31",
+    "feature": "InsightStrip: split list vs form insights (__insights__ vs __form_insights__)",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/logic/router_factory/crud.py, api/core/logic/ui_generator/__init__.py, api/apps/stock/models.py",
+      "features_added": "__form_insights__ class attribute for per-record KPIs; /insights?record_id= scopes to that row and uses __form_insights__; metadata exposes both insights and form_insights",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/DynamicForm.tsx",
+      "features_added": "DynamicForm uses form_insights from metadata instead of insights",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~5000",
+    "output_tokens": "~700",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Grepped only needed lines.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 65,
+    "date": "2026-05-31",
+    "feature": "Item __form_insights__: rich management KPIs (qty on hand, revenue, sold qty, purchase cost, avg price)",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/stock/models.py, api/core/logic/router_factory/crud.py",
+      "features_added": "sql key in insight defs for cross-table queries; Item form insights: Qty on Hand, Total Sold Qty, Total Revenue, Total Purchased Qty, Total Purchase Cost, Avg Selling Price",
+      "fixes_applied": "status casing fixed to Posted",
+      "framework_changes": "insights endpoint now supports sql key with :record_id/:org_id params alongside simple agg",
+      "issues": "none"
+    },
+    "frontend": null,
+    "input_tokens": "~6000",
+    "output_tokens": "~800",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Grepped tables and status values before writing SQL.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 66,
+    "date": "2026-05-31",
+    "feature": "Settings: type=resource renders as many2one combobox; accounting default_currency uses config/currencies",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/registry/config_registry.py, api/core/registry/settings_service.py, api/apps/accounting/app.py",
+      "features_added": "ConfigField gains resource field; settings schema serializes resource; default_currency changed to type=resource pointing to config/currencies",
+      "fixes_applied": "none",
+      "framework_changes": "ConfigField.resource propagated through schema endpoint",
+      "issues": "none"
+    },
+    "frontend": {
+      "files_written": "ui/src/views/settings/SettingsForm.tsx, ui/src/lib/api.ts, ui/src/aras-core/SchemaRegistry.tsx",
+      "features_added": "normalizeType maps resource->many2one; toDynamicField passes info.resource; lookupResource falls back to info.resource",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~7000",
+    "output_tokens": "~900",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Traced the full stack from ConfigField -> schema API -> frontend renderer.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 67,
+    "date": "2026-05-31",
+    "feature": "TopMenuLayout \u2014 horizontal submenu strip below topbar, icon-only app rail",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/layouts/TopMenuLayout.tsx",
+      "features_added": "New layout variant: icon-only app rail on the left, submenu items rendered as a horizontal tab strip below the topbar. Sidebar2/section panel in Sidebar.tsx untouched.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~8000",
+    "output_tokens": "~2000",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Read 3 files, produced complete new layout in one shot.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 68,
+    "date": "2026-05-31",
+    "feature": "AppHome 3-column layout \u2014 groups distributed across columns, compact rows",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/AppHome.tsx",
+      "features_added": "Groups distributed round-robin across 3 columns (preserving group order); rows compact (12.5px, less padding); hero smaller; path label removed from rows",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~3000",
+    "output_tokens": "~800",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Read one file, delivered complete solution in one shot.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 69,
+    "date": "2026-05-31",
+    "feature": "Fix dev/core-apps|resources|fields \u2014 missing route + underscore mismatch",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/App.tsx, ui/src/views/DynamicView.tsx",
+      "features_added": "Added dev/:resource and dev/:resource/:id routes; DynamicView now handles single-segment hyphenated params (core-apps \u2192 core_apps)",
+      "fixes_applied": "Route was missing entirely; resource path used / separator instead of _ for framework tables",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~6000",
+    "output_tokens": "~1500",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Traced full call chain from URL \u2192 route \u2192 DynamicView \u2192 API path; fixed in two files.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 70,
+    "date": "2026-06-01",
+    "feature": "Remove redundant app settings (fiscal_year_start_month, default_currency, rounding_precision, payroll_currency)",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/accounting/app.py, api/apps/hr/app.py",
+      "features_added": "none",
+      "fixes_applied": "Removed fiscal_year_start_month (covered by FiscalPeriod table), default_currency (global setting), rounding_precision (global setting) from accounting config; removed payroll_currency (follows global setting) from hr config",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "input_tokens": "~5000",
+    "output_tokens": "~800",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Grepped directly to targeted fields; no full file reads wasted.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 71,
+    "date": "2026-06-01",
+    "feature": "Remove redundant master_data entries from all module apps + redundant config/company settings",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/accounting/app.py, api/apps/accounting/assets/app.py, api/apps/crm/app.py, api/apps/hr/app.py, api/apps/pot/app.py, api/apps/stock/app.py, api/apps/config/app.py, api/apps/config/models.py, api/apps/config/views.py",
+      "features_added": "none",
+      "fixes_applied": "Removed master_data blocks from accounting, accounting.assets, crm, hr, pot, stock (entities accessible via app menus). Removed ERP General config_section from config app (fiscal_year_start, default_currency_id, default_organization_id \u2014 covered by global prefs). Removed date_format, number_format, decimal_precision from Organization model and form layout (covered by global Formatting section in core_config).",
+      "framework_changes": "none",
+      "issues": "DB migration needed to drop date_format, number_format, decimal_precision columns from config_organizations table"
+    },
+    "frontend": null,
+    "input_tokens": "~6000",
+    "output_tokens": "~1200",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Grepped all fields first, read only relevant lines. Full redundancy map derived before touching files.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 72,
+    "date": "2026-06-01",
+    "feature": "Fix FK columns showing raw IDs in ListView",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/ListView.tsx",
+      "features_added": "none",
+      "fixes_applied": "getFieldValue now checks item[field.name + _label] for lookup fields when value is a plain integer (backend resolve_labels output)",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~8000",
+    "output_tokens": "~600",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Traced FK label pipeline from backend to frontend in minimal reads. One-line fix.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 73,
+    "date": "2026-06-01",
+    "feature": "DevTools rewrite: merge new HandoffRun interface, add Mocks/API Help tabs, fix broken CSS classes, design refinement",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/DevTools.tsx",
+      "features_added": "Mocks tab (iframe + open-in-new-tab), API Help tab (Swagger link, routes link, CRUD pattern cards, dev endpoint cards), pill-style tab bar with 4 tabs",
+      "fixes_applied": "HandoffRun interface updated to new fields (agent, task, status, started_at, finished_at, summary, branch); broken CSS classes bg-[var(--app-accent-glow)]0/20 and bg-[var(--app-accent-glow)]0 replaced; Handoff Runs RegistryCard now uses setActiveTab instead of route link",
+      "framework_changes": "All var(--app-*) design tokens replaced with non-app- variants (--surface, --text, --line, etc.) consistently; RegistryCard accepts optional onClick prop; InspectButton extracted as named component",
+      "issues": "none"
+    },
+    "input_tokens": "~7000",
+    "output_tokens": "~3500",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Full file read once, complete rewrite delivered in one shot. All 7 requirements addressed.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 73,
+    "date": "2026-06-01",
+    "feature": "DevTools overhaul: merge HandoffRuns + Mocks + API Help tabs, fix broken CSS, refine design",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/DevTools.tsx",
+      "features_added": "Mocks tab (iframe), API Help tab (Swagger, CRUD patterns, dev endpoints), HandoffRun interface updated to new agent/task/started_at schema",
+      "fixes_applied": "Broken CSS bg-[var(--app-accent-glow)]0/20 and bg-[var(--app-accent-glow)]0 classes fixed; design tokens migrated from --app-* to --surface/--text/etc; tab type extended to include mocks and api",
+      "framework_changes": "RegistryCard now accepts optional onClick to switch tabs instead of navigating",
+      "issues": "none"
+    },
+    "input_tokens": "~12000",
+    "output_tokens": "~2000",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Read full DevTools in one pass, delegated write to complex-coder. All 4 tasks + design refinement in single rewrite.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 74,
+    "date": "2026-06-01",
+    "feature": "Fix FK columns without display_column showing raw IDs in ListView",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/base/model/queries.py",
+      "features_added": "none",
+      "fixes_applied": "resolve_labels now falls back to common name columns (display_name, name, title, number, code) when display_column is not set in column info but a FK exists",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "frontend": null,
+    "input_tokens": "~4000",
+    "output_tokens": "~400",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "Grepped model + resolve_labels in 3 reads. Single backend fix covers all FK columns sitewide.",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 75,
+    "date": "2026-06-01",
+    "feature": "Replace topbar notification and tweak icons to match arc theme",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/NotificationHistory.tsx, ui/src/layouts/components/ThemeTweakPanel.tsx",
+      "features_added": "none",
+      "fixes_applied": "Bell → Inbox (notification), SlidersHorizontal → Palette (tweak panel) — both align with minimal arc SaaS aesthetic",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~2000",
+    "output_tokens": "~300",
+    "cache_read_tokens": "n/a",
+    "cache_write_tokens": "n/a",
+    "token_efficiency": "4 targeted greps + 2 reads + 4 edits. Clean, minimal.",
+    "verdict": "APPROVED"
   }
 ]

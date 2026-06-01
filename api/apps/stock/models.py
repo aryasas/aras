@@ -26,6 +26,90 @@ class Item(MasterDataBase):
     __tablename__ = "stock_items"
     __unique_together__ = [("org_id", "code")]
     __soft_delete__ = True
+    __insights__ = [
+        {"key": "total_items", "label": "Total Items", "agg": "COUNT(*)", "format": "number", "icon": "hash"},
+        {"key": "active_items", "label": "Active", "agg": "COUNT(*) FILTER (WHERE is_active = TRUE)", "format": "number", "icon": "trend"},
+        {"key": "for_sales", "label": "For Sales", "agg": "COUNT(*) FILTER (WHERE for_sales = TRUE)", "format": "number", "icon": "bar"},
+        {"key": "for_purchase", "label": "For Purchase", "agg": "COUNT(*) FILTER (WHERE for_purchase = TRUE)", "format": "number", "icon": "bar"},
+    ]
+    __form_insights__ = [
+        {
+            "key": "qty_on_hand",
+            "label": "Qty on Hand",
+            "icon": "hash",
+            "format": "number",
+            "sql": """
+                SELECT COALESCE(SUM(
+                    CASE WHEN sm.move_type IN ('receipt') THEN sml.qty
+                         WHEN sm.move_type IN ('delivery','scrap') THEN -sml.qty
+                         ELSE 0 END
+                ), 0)
+                FROM stock_movement_lines sml
+                JOIN stock_movements sm ON sm.id = sml.movement_id
+                WHERE sml.item_id = :record_id AND sm.status = 'Posted'
+            """,
+        },
+        {
+            "key": "total_sold_qty",
+            "label": "Total Sold (Qty)",
+            "icon": "trend",
+            "format": "number",
+            "sql": """
+                SELECT COALESCE(SUM(l.qty), 0)
+                FROM accounting_inflow_invoice_lines l
+                JOIN accounting_inflow_invoices inv ON inv.id = l.invoice_id
+                WHERE l.item_id = :record_id AND inv.status = 'Posted'
+            """,
+        },
+        {
+            "key": "total_revenue",
+            "label": "Total Revenue",
+            "icon": "dollar",
+            "format": "currency",
+            "sql": """
+                SELECT COALESCE(SUM(l.qty * l.unit_price), 0)
+                FROM accounting_inflow_invoice_lines l
+                JOIN accounting_inflow_invoices inv ON inv.id = l.invoice_id
+                WHERE l.item_id = :record_id AND inv.status = 'Posted'
+            """,
+        },
+        {
+            "key": "total_purchased_qty",
+            "label": "Total Purchased (Qty)",
+            "icon": "bar",
+            "format": "number",
+            "sql": """
+                SELECT COALESCE(SUM(l.qty), 0)
+                FROM accounting_outflow_invoice_lines l
+                JOIN accounting_outflow_invoices inv ON inv.id = l.invoice_id
+                WHERE l.item_id = :record_id AND inv.status = 'Posted'
+            """,
+        },
+        {
+            "key": "total_purchase_cost",
+            "label": "Total Purchase Cost",
+            "icon": "dollar",
+            "format": "currency",
+            "sql": """
+                SELECT COALESCE(SUM(l.qty * l.unit_price), 0)
+                FROM accounting_outflow_invoice_lines l
+                JOIN accounting_outflow_invoices inv ON inv.id = l.invoice_id
+                WHERE l.item_id = :record_id AND inv.status = 'Posted'
+            """,
+        },
+        {
+            "key": "avg_selling_price",
+            "label": "Avg Selling Price",
+            "icon": "trend",
+            "format": "currency",
+            "sql": """
+                SELECT COALESCE(AVG(l.unit_price), 0)
+                FROM accounting_inflow_invoice_lines l
+                JOIN accounting_inflow_invoices inv ON inv.id = l.invoice_id
+                WHERE l.item_id = :record_id AND inv.status = 'Posted'
+            """,
+        },
+    ]
 
     code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     category_id: Mapped[int] = mapped_column(ForeignKey("stock_categories.id"), nullable=True)

@@ -14,6 +14,7 @@ class ConfigField:
     depends_on: Optional[str] = None
     secret: bool = False
     choices: Optional[List[Tuple[str, str]]] = None
+    resource: Optional[str] = None  # for type="resource": e.g. "config/currencies"
 
 @dataclass
 class ConfigSection:

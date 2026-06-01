@@ -141,7 +141,8 @@ class SettingsService:
                             "label": f.label,
                             "help": f.help,
                             "secret": f.secret,
-                            "choices": f.choices
+                            "choices": f.choices,
+                            "resource": f.resource,
                         } for f in s.fields
                     ]
                 } for s in sections

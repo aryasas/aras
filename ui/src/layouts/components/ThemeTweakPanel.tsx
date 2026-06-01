@@ -71,14 +71,14 @@ export function ThemeTweakPanel() {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex items-center justify-center w-10 h-10 bg-[var(--aras-panel)] rounded-[var(--aras-radius)] shadow-sm border border-[var(--aras-border)] text-[var(--aras-muted)] hover:text-[var(--aras-accent)] hover:border-[var(--aras-accent)] transition-all"
+        className="flex items-center justify-center w-8 h-8 bg-transparent rounded-lg border border-[var(--line)] text-[var(--text-3)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-all"
         title="Tweak layout"
       >
         <SlidersHorizontal size={18} />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-[100] mt-2 w-[320px] max-w-[calc(100vw-24px)] rounded-[var(--aras-radius)] border border-[var(--aras-border)] bg-[var(--aras-panel)] p-4 shadow-2xl ring-1 ring-black/5">
+        <div className="absolute right-0 top-full z-[100] mt-2 w-[320px] max-w-[calc(100vw-24px)] rounded-[var(--aras-radius)] border border-[var(--line)] bg-[var(--bg-2)] p-4 shadow-xl">
           <div className="mb-4">
             <h3 className="text-sm font-bold text-[var(--aras-text)]">Layout Tweaks</h3>
           </div>

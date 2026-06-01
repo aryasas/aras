@@ -22,6 +22,7 @@ import { FormattingService } from '../services/FormattingService'
 import { DesignContainer } from './design/DesignContainer'
 import { DesignElement } from './design/DesignElement'
 import { SkeletonRow } from '../../components/SkeletonRow'
+import { InsightStrip } from './InsightStrip'
 
 interface Field {
   name: string
@@ -53,6 +54,7 @@ interface Metadata {
   fields: Field[]
   is_auditable?: boolean
   list_tabs?: ListTab[]
+  insights?: Array<{ key: string; label: string; format: 'number' | 'currency' | 'percent'; icon?: string | null; prefix?: string | null; suffix?: string | null }>
 }
 
 interface FilterRule {
@@ -462,8 +464,11 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
 
   const getFieldValue = (item: ListRow, field: Field): FieldValue => {
     const val = item[field.name]
-    if (field.type === 'lookup' && typeof val === 'object' && val !== null && !Array.isArray(val)) {
-      return String(val.name || val.title || val.number || val.id || '')
+    if (field.type === 'lookup') {
+      if (typeof val === 'object' && val !== null && !Array.isArray(val))
+        return String((val as Record<string, unknown>).name || (val as Record<string, unknown>).title || (val as Record<string, unknown>).number || (val as Record<string, unknown>).id || '')
+      const label = item[`${field.name}_label`]
+      if (label != null) return String(label)
     }
     return val
   }
@@ -492,6 +497,10 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     <div className="aras-list-view flex flex-col h-full w-full min-w-0 overflow-hidden animate-in fade-in duration-500">
       <DesignContainer id="list-view-layout" className="flex flex-col flex-1 min-h-0 w-full min-w-0">
         
+        {(metadata?.insights?.length ?? 0) > 0 && (
+          <InsightStrip resource={resource} insights={metadata!.insights!} />
+        )}
+
         <DesignElement id="toolbar" className="w-full">
           <ArasActionBar
             variant="full"
@@ -605,7 +614,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           </DesignElement>
         )}
 
-        <DesignElement id="table" className="border-t border-[var(--line)] flex-1 overflow-auto w-full mt-2">
+        <DesignElement id="table" className="flex-1 overflow-auto w-full">
           {isPartyResource && (
             <div className="flex flex-wrap gap-1 border-b border-[var(--app-border)] bg-[var(--app-panel-soft)] px-4 py-2">
                <span className="text-[10px] font-black uppercase text-[var(--app-muted)] px-3">Role filtering active</span>

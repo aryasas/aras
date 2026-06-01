@@ -26,6 +26,9 @@ def require_module(module_name: str) -> Callable:
         db: Session = Depends(get_db),
         current_user=Depends(get_current_user),
     ) -> None:
+        if getattr(current_user, "is_admin", False):
+            return
+
         tenant_id = getattr(current_user, "tenant_id", None)
         if not tenant_id:
             from apps.saas.models import Subscription

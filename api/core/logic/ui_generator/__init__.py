@@ -336,6 +336,14 @@ class UIGenerator(Service):
             "is_document": "series" in getattr(model_class, "__features__", []),
             "scoped_by": [list(p) for p in (getattr(model_class, "__scoped_by__", None) or [])],
             "list_tabs": getattr(model_class, "__list_tabs__", None) or [],
+            "insights": [
+                {"key": ins.get("key", ins.get("label", "").lower().replace(" ", "_")), "label": ins.get("label", ""), "format": ins.get("format", "number"), "icon": ins.get("icon", None), "prefix": ins.get("prefix", None), "suffix": ins.get("suffix", None)}
+                for ins in (getattr(model_class, "__insights__", []) or [])
+            ],
+            "form_insights": [
+                {"key": ins.get("key", ins.get("label", "").lower().replace(" ", "_")), "label": ins.get("label", ""), "format": ins.get("format", "number"), "icon": ins.get("icon", None), "prefix": ins.get("prefix", None), "suffix": ins.get("suffix", None)}
+                for ins in (getattr(model_class, "__form_insights__", []) or [])
+            ],
         }
 
         # 4. Apply Translations if lang is provided

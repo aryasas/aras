@@ -8,7 +8,6 @@ from core.logic.discovery import autodiscover_models
 from .models import * # Import all models for discovery
 from .workflow_models import * # Import all models from workflow_models for discovery
 from core.registry.series import Series # Import Series directly, autodiscovery will pick it up if it's an ArasModel
-from core.registry.config_registry import ConfigSection, ConfigField
 from core.registry.master_data_registry import MasterEntity
 
 class Config(Aras.App):
@@ -34,19 +33,6 @@ class Config(Aras.App):
         MasterEntity(key="payment_mode", model=ModeOfPayment, scope="shared", icon="CreditCard", order=70),
         MasterEntity(key="print_template", model=PrintTemplate, scope="shared", icon="Printer", order=80),
         MasterEntity(key="notification", model=Notification, scope="shared", icon="Bell", order=90),
-    ]
-
-    config_sections = [
-        ConfigSection(
-            key="erp_general", 
-            label="ERP General", 
-            scope="shared", 
-            fields=[
-                ConfigField(key="fiscal_year_start", type="number", default=1, label="Fiscal Year Start Month", help="1-12"),
-                ConfigField(key="default_currency_id", type="number", label="Default Currency ID"),
-                ConfigField(key="default_organization_id", type="number", label="Default Organization ID")
-            ]
-        )
     ]
 
     menu_groups = [

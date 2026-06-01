@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
 import {
-  RefreshCw, Check, MoreHorizontal, Share2, Copy, X, Link2, Settings
+  RefreshCw, Check, MoreHorizontal, Share2, Copy, X, Link2, Settings, Zap
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { resolveFieldComponent, type FieldProps } from '../SchemaRegistry';
@@ -16,6 +16,7 @@ import { InlineChildTable } from './InlineChildTable';
 import FormSettings from './FormSettings';
 import { useUIStore } from '../../store/uiStore';
 import { validateField } from '../lib/validate';
+import { InsightStrip } from './InsightStrip';
 
 export interface Field {
   name: string;
@@ -49,6 +50,8 @@ interface Metadata {
   layout?: any[];
   is_auditable?: boolean;
   app_name?: string;
+  insights?: Array<{ key: string; label: string; format: string; icon?: string | null; prefix?: string | null; suffix?: string | null }>;
+  form_insights?: Array<{ key: string; label: string; format: 'number' | 'currency' | 'percent'; icon?: string | null; prefix?: string | null; suffix?: string | null }>;
 }
 
 interface ModelAction {
@@ -169,6 +172,7 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
   const { notify } = useAras();
   const showPanel = useUIStore((s) => s.showPanel);
   const setDirty = useUIStore((s) => s.setDirty);
+  const setPageTitle = useUIStore((s) => s.setPageTitle);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -184,8 +188,8 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
       }
     };
     fetchMetadata();
-    return () => controller.abort();
-  }, [resource, notify]);
+    return () => { controller.abort(); setPageTitle('', '', ''); };
+  }, [resource, notify, setPageTitle]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -214,6 +218,13 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
     setDirty(dirtyKey, isDirty)
     return () => setDirty(dirtyKey, false)
   }, [dirtyKey, isDirty, setDirty])
+
+  // claude-sonnet-4-6
+  useEffect(() => {
+    if (!metadata) return;
+    const recordLabel = formData?.name || formData?.code || formData?.title || (currentId ? `#${currentId}` : 'New');
+    setPageTitle(metadata.title, '', String(recordLabel));
+  }, [metadata, formData?.name, formData?.code, formData?.title, currentId, setPageTitle]);
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -417,15 +428,6 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
   );
 
   // claude-sonnet-4-6
-  const MetaItem = ({ label, value, dot, dotColor }: { label: string; value: string; dot?: boolean; dotColor?: string }) => (
-    <span className="inline-flex items-center gap-1.5 text-[11.5px]">
-      <span className="text-[var(--text-3)]">{label}</span>
-      {dot && <span style={{ width: 6, height: 6, borderRadius: 999, background: dotColor || 'var(--text-3)', display: 'inline-block' }} />}
-      <span className="text-[var(--text)] font-medium">{value}</span>
-    </span>
-  );
-
-  // claude-sonnet-4-6
   const LIFECYCLE_STAGES = ['Draft', 'In review', 'Approved', 'Released'];
   const curStageIdx = LIFECYCLE_STAGES.findIndex(s => s.toLowerCase() === String(statusValue || '').toLowerCase().replace(/_/g, ' '));
 
@@ -433,18 +435,16 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
   const thread: any[] = Array.isArray(formData.thread) ? formData.thread
     : Array.isArray(formData.comments) ? formData.comments : [];
 
-  // Severity dot color
-  const severityDotColor = (v: string) => {
-    const s = String(v || '').toLowerCase();
-    if (s === 'high' || s === 'critical') return '#d97706';
-    if (s === 'medium') return '#f59e0b';
-    return '#6b7280';
-  };
 
   return (
     <div ref={formRef} className="aras-form-view flex w-full h-full animate-in fade-in duration-300">
       {/* Main column */}
       <div className={`flex-1 min-w-0 overflow-y-auto ${showRail ? 'border-r border-[var(--line)]' : ''}`}>
+
+        {/* ── Insight strip ── */}
+        {metadata?.form_insights?.length ? (
+          <InsightStrip resource={resource} insights={metadata.form_insights} recordId={currentId} />
+        ) : null}
 
         {/* ── Action band ── */}
         {externalUpdate && (
@@ -456,9 +456,9 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
           </div>
         )}
         <DesignElement id="form-action-band" className="flex items-center gap-2.5 px-5 sm:px-7 lg:px-8 py-2.5 border-b border-[var(--line)] sticky top-0 z-20 bg-[var(--bg)]/90 backdrop-blur flex-wrap">
-          {/* Left: badge + status + tag */}
-          <span className="arc-mono inline-flex items-center gap-1 h-5 px-2 rounded border border-[var(--line)] text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-2)]">
-            CHANGE
+          {/* Left: record label + status + tag */}
+          <span className="text-[13px] font-semibold text-[var(--text)]" style={{ letterSpacing: '-0.005em' }}>
+            {titleField || (codeField ? String(codeField).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : (metadata?.title || ''))}
           </span>
           {hasStatus && statusValue != null && (
             <StatusBadge value={statusValue} />
@@ -470,6 +470,20 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
           )}
 
           <div className="flex-1" />
+
+          {/* Model action buttons */}
+          {modelActions.map((action) => (
+            <button
+              key={action.name}
+              type="button"
+              onClick={() => handleModelAction(action)}
+              disabled={!currentId || actionLoading !== null}
+              className="h-6 px-3 rounded border border-[var(--accent)] text-[var(--accent)] text-[11.5px] font-semibold inline-flex items-center gap-1.5 hover:bg-[var(--accent)] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 transition-all"
+            >
+              <Zap size={10} />
+              {actionLoading === action.name ? 'Running…' : (action.label || action.name)}
+            </button>
+          ))}
 
           {/* Right: icon actions + defer + approve */}
           <button type="button" className="h-6 w-6 grid place-items-center rounded text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors" title="Share">
@@ -504,49 +518,6 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
 
         {/* ── Body ── */}
         <div className="px-5 sm:px-7 lg:px-8 py-7">
-
-          {/* Hero title row */}
-          <div className="flex items-baseline gap-3 mb-4 flex-wrap">
-            <span className="arc-mono font-semibold" style={{ fontSize: 20, color: 'var(--accent)', letterSpacing: '0.01em' }}>
-              {codeField}
-            </span>
-            {titleField && (
-              <h1 className="text-[20px] font-semibold text-[var(--text)] leading-tight" style={{ letterSpacing: '-0.015em' }}>
-                {titleField}
-              </h1>
-            )}
-          </div>
-
-          {/* Meta strip */}
-          <DesignElement id="meta-strip" className="flex flex-wrap items-center gap-x-6 gap-y-1.5 pb-5 border-b border-[var(--line)] mb-8">
-            {/* Owner with avatar */}
-            {(fieldNames.has('owner') && formData.owner != null) && (
-              <span className="inline-flex items-center gap-1.5 text-[11.5px]">
-                <AvatarInitial name={String(formData.owner)} size={18} />
-                <span className="text-[var(--text-3)]">Owner</span>
-                <span className="text-[var(--text)] font-medium">{String(formData.owner)}</span>
-              </span>
-            )}
-            {(fieldNames.has('created_at') && formData.created_at != null) && (
-              <MetaItem label="Created" value={String(formData.created_at).slice(0, 10)} />
-            )}
-            {(fieldNames.has('target_rev') && formData.target_rev != null) && (
-              <MetaItem label="Target rev" value={String(formData.target_rev)} />
-            )}
-            {(fieldNames.has('severity') && formData.severity != null) && (
-              <MetaItem label="Severity" value={String(formData.severity)} dot dotColor={severityDotColor(formData.severity)} />
-            )}
-            {(fieldNames.has('cost_impact') && formData.cost_impact != null) && (
-              <MetaItem label="Cost impact" value={String(formData.cost_impact)} />
-            )}
-            {/* Presence indicator */}
-            {Array.isArray(formData.viewing) && formData.viewing.length > 0 && (
-              <span className="inline-flex items-center gap-1.5 text-[11.5px] text-[var(--text-3)]">
-                <span style={{ width: 6, height: 6, borderRadius: 999, background: '#22c55e', display: 'inline-block' }} />
-                {formData.viewing[0].name || formData.viewing[0]} is viewing
-              </span>
-            )}
-          </DesignElement>
 
           {/* Numbered sections */}
           <div className="flex flex-col gap-10">
@@ -627,22 +598,6 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
             </div>
           )}
 
-          {/* Model actions footer */}
-          {modelActions.length > 0 && (
-            <DesignElement id="form-action-footer" className="mt-10 flex flex-wrap items-center gap-2 border-t border-[var(--line)] pt-5">
-              {modelActions.map((action) => (
-                <button
-                  key={action.name}
-                  type="button"
-                  onClick={() => handleModelAction(action)}
-                  disabled={!currentId || actionLoading !== null}
-                  className="h-7 px-3.5 rounded border border-[var(--line)] text-[12px] font-semibold text-[var(--text-2)] hover:text-[var(--text)] hover:border-[var(--text-3)] disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
-                >
-                  {actionLoading === action.name ? 'Running...' : (action.label || action.name)}
-                </button>
-              ))}
-            </DesignElement>
-          )}
         </div>
       </div>
 

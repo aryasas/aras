@@ -1,6 +1,5 @@
 from core import Aras
 from core.registry.config_registry import ConfigSection, ConfigField
-from core.registry.master_data_registry import MasterEntity
 from .models import Lead, Pipeline, Stage, Activity
 
 class CRM(Aras.App):
@@ -8,10 +7,6 @@ class CRM(Aras.App):
     app_label = "CRM"
     icon = "Users"
     saas_module = "crm"
-
-    master_data = [
-        MasterEntity(key="pipeline", model=Pipeline, scope="module", icon="GitBranch", order=10),
-    ]
 
     config_sections = [
         ConfigSection(key="general", label="General", scope="module", fields=[
@@ -24,10 +19,10 @@ class CRM(Aras.App):
             ConfigField(key="auto_close_stale", type="bool", default=False, label="Auto-Close Stale Deals"),
         ]),
     ]
-    
+
     models = [Lead, Pipeline, Stage, Activity]
 
-    
+
     menu_groups = [
         {
             "label": "Sales Force",
@@ -40,4 +35,3 @@ class CRM(Aras.App):
             "models": []
         }
     ]
-

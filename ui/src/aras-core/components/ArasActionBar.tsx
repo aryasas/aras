@@ -241,7 +241,7 @@ function FullActionBar({
   const groupLabel = groupableFields.find((f) => f.name === groupField)?.label ?? null
 
   return (
-    <DesignContainer id="action-bar-layout" className="aras-list-action-bar flex items-center gap-2.5 py-3.5 px-6 flex-wrap border-b border-[var(--line)]">
+    <DesignContainer id="action-bar-layout" className="aras-list-action-bar flex items-center gap-2.5 h-12 px-6 flex-wrap">
       {/* Left cluster */}
       <DesignContainer id="action-bar-left-group" className="flex items-center gap-2 flex-wrap">
         <DesignElement id="btn-add-new" tagName="button" onClick={onAdd} className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-[var(--accent)] text-white text-[12px] font-semibold hover:brightness-110 transition-all">

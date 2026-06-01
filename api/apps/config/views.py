@@ -26,7 +26,6 @@ class OrganizationView(Aras.View):
             "acc_expenses_in_valuation_id", "acc_stock_default_id"
         ]},
         {"title": "Tax Accounts", "fields": ["acc_tax_output_ppn_id", "acc_tax_input_ppn_id"]},
-        {"title": "Formatting Defaults", "fields": ["date_format", "number_format", "decimal_precision"]}
     ]
 
 class CurrencyView(Aras.View):

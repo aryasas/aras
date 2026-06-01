@@ -3,9 +3,9 @@
 import React, { useEffect } from 'react'
 import {
   Settings as SettingsIcon, Shield, Globe, Package,
-  Terminal, History, Paintbrush, Server, Key,
+  Terminal, History, Server, Key,
   LayoutDashboard, ChevronRight, SlidersHorizontal,
-  CreditCard, Users, Activity, UploadCloud, GitBranch, Database
+  CreditCard, Users, Activity, UploadCloud, Database
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
@@ -58,16 +58,14 @@ function Settings() {
     { id: 'audit',    group: 'security',    label: 'Activity Audit',     icon: <History size={14} />,         description: 'System changes and user activity logs.',           path: '/settings/audit' },
     { id: 'devtools', group: 'tools',       label: 'Developer Tools',    icon: <Terminal size={14} />,        description: 'System inspection, metadata sync, and DB stats.',  path: '/dev' },
     { id: 'tasks',    group: 'tools',       label: 'Background Tasks',   icon: <Activity size={14} />,        description: 'Enqueue async jobs and inspect task status.',      path: '/dev/tasks' },
-    { id: 'handoff',  group: 'tools',       label: 'Agent Handoff Runs', icon: <GitBranch size={14} />,       description: 'Multi-agent run history and outcomes.',            path: '/dev/handoff-runs' },
     { id: 'files',    group: 'tools',       label: 'File Manager',       icon: <UploadCloud size={14} />,     description: 'Upload framework-managed files and download by name.', path: '/settings/files' },
-    { id: 'mocks',    group: 'tools',       label: 'UI Mocks',           icon: <Paintbrush size={14} />,      description: 'Design proposals and mockups for review.',         path: '/mocks/', external: true },
   ]
   const visible = sections.filter((section) => {
     if (section.id === 'tenants' || section.id === 'cp-licenses' || section.id === 'cp-plans')
       return user?.is_admin && arasRole === 'control-panel'
     if (section.id === 'license') return user?.is_admin && arasRole !== 'control-panel'
     if (section.id === 'dashboard' || section.id === 'workspace' || section.id === 'erp-access') return user?.is_admin
-    if (section.id === 'tasks' || section.id === 'handoff') return user?.is_admin
+    if (section.id === 'tasks') return user?.is_admin
     return true
   })
 

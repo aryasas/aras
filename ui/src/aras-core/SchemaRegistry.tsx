@@ -158,7 +158,7 @@ const TextAreaInput: React.FC<FieldProps> = ({ value, onChange, field, disabled 
 );
 
 const lookupResource = (field: FieldMeta, fallback = '') =>
-  field.target_resource || infoString(field, 'target_resource') || fallback;
+  field.target_resource || infoString(field, 'target_resource') || infoString(field, 'resource') || fallback;
 
 const components: Record<string, React.FC<FieldProps>> = {
   'string': DefaultInput,

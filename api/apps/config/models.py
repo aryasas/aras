@@ -78,11 +78,6 @@ class Organization(ConfigBase):
     acc_tax_output_ppn_id: Mapped[Optional[int]] = mapped_column(ForeignKey("accounting_accounts.id"), nullable=True, info=_ACC_FK)
     acc_tax_input_ppn_id: Mapped[Optional[int]] = mapped_column(ForeignKey("accounting_accounts.id"), nullable=True, info=_ACC_FK)
     
-    # Formatting Defaults
-    date_format: Mapped[str] = mapped_column(String(20), default="DD/MM/YYYY")
-    number_format: Mapped[str] = mapped_column(String(20), default="#,###.##")
-    decimal_precision: Mapped[int] = mapped_column(Integer, default=2)
-
     # If set, account comboboxes use this org's COA instead of own (branch sharing parent ledger)
     coa_source_org_id: Mapped[Optional[int]] = mapped_column(ForeignKey("config_organizations.id"), nullable=True)
 

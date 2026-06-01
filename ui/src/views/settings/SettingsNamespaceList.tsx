@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Settings, LayoutDashboard, Globe, Shield, History, Terminal, Activity, GitBranch, UploadCloud, Package, Server, Key, CreditCard, Users, Paintbrush, Database } from 'lucide-react'
+import { Settings, LayoutDashboard, Globe, Shield, History, Terminal, Activity, UploadCloud, Package, Server, Key, CreditCard, Users, Database } from 'lucide-react'
 import { useAras } from '../../aras-core/hooks/useAras'
 import { useAuthStore } from '../../store/authStore'
 import { resolveIcon } from '../../lib/iconUtils'
@@ -37,9 +37,7 @@ const SHORTCUTS: Shortcut[] = [
   { to: '/settings/audit',              label: 'Activity Audit',      sub: 'settings/audit',        icon: History,         group: 'security' },
   { to: '/dev',                         label: 'Developer Tools',     sub: 'dev',                   icon: Terminal,        group: 'tools' },
   { to: '/dev/tasks',                   label: 'Background Tasks',    sub: 'dev/tasks',             icon: Activity,        group: 'tools', adminOnly: true },
-  { to: '/dev/handoff-runs',            label: 'Agent Handoff Runs',  sub: 'dev/handoff-runs',      icon: GitBranch,       group: 'tools', adminOnly: true },
   { to: '/settings/files',              label: 'File Manager',        sub: 'settings/files',        icon: UploadCloud,     group: 'tools' },
-  { to: '/mocks/',                      label: 'UI Mocks',            sub: 'mocks',                 icon: Paintbrush,      group: 'tools', external: true },
 ]
 
 const GROUP_LABELS: Record<Shortcut['group'], string> = {
