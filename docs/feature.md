@@ -488,3 +488,15 @@ This file is used only to report if there are feature added
 
 ## Unknown (2026-05-30)
   - [GPT (codex)] Master Data hub page, grouped rail, URL-persisted entity selection, ListView/DynamicForm embedding, API helpers, route, and Settings shortcuts
+
+
+## Scale UI to match 110% browser zoom feel at 100% — revision (2026-06-01)
+  - [GPT (codex)] Scaled requested UI sizing tokens, ARC atoms, list/header spacing, sidebar dimensions, and Lucide icon sizes to approximate 110% zoom at 100%
+
+
+## Unknown (2026-06-01)
+  - [GPT (codex)] Added Metadata Inspector, API Console, Error Log, and Cache & Registry tabs to DevTools
+
+
+## Unknown (2026-06-01)
+  - [GPT (codex)] DevTools command bar rewrite with adaptive canvas modes, scratchpad persistence, URL state, and keyboard shortcuts

@@ -325,7 +325,7 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
 
   // claude-opus-4-7
   // Field DnD reorder — only active when the URL has __builder_edit=1 (inside the Template Builder iframe).
-  // Native HTML5 DnD writes the new order to /api/v1/field-reorder, then notifies the parent to reload.
+  // Native HTML5 DnD writes the new order through the mounted dev field-reorder endpoint, then notifies the parent to reload.
   const builderEditMode = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('__builder_edit') === '1'
   const dragFieldRef = (window as any).__arasDragField || { current: null as string | null }
   ;(window as any).__arasDragField = dragFieldRef
@@ -341,7 +341,7 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
     ordered.splice(to, 0, ordered.splice(from, 1)[0])
     try {
       await import('../../lib/api').then(({ default: apiClient }) =>
-        apiClient.post('/field-reorder', { resource: metadata.resource, order: ordered }),
+        apiClient.post('/dev/dev/field-reorder', { resource: metadata.resource, order: ordered }),
       )
       if (window.parent !== window.self) {
         window.parent.postMessage({ type: 'aras-builder-reordered' }, '*')

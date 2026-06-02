@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, TextInput, Text, StyleSheet, TextInputProps, ViewStyle } from 'react-native';
 import { theme } from '../lib/theme';
+import { useDesignOverride } from '../lib/designOverrides';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -10,10 +11,15 @@ interface InputProps extends TextInputProps {
 }
 
 export const Input = ({ label, error, containerStyle, leftIcon, style, ...props }: InputProps) => {
+  const containerOverride = useDesignOverride('mobile:input');
+  const labelOverride = useDesignOverride('mobile:input-label');
+  const fieldOverride = useDesignOverride('mobile:input-field');
+  if (containerOverride.hidden) return null;
+
   return (
-    <View style={[styles.container, containerStyle]}>
-      {label && <Text style={styles.label}>{label}</Text>}
-      <View style={[styles.inputContainer, error ? styles.inputError : null, style]}>
+    <View style={[styles.container, containerOverride.style, containerStyle]}>
+      {label && <Text style={[styles.label, labelOverride.style]}>{labelOverride.textOverride || label}</Text>}
+      <View style={[styles.inputContainer, fieldOverride.style, error ? styles.inputError : null, style]}>
         {leftIcon && <View style={styles.iconContainer}>{leftIcon}</View>}
         <TextInput
           style={styles.input}

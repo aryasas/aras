@@ -195,6 +195,10 @@ export function Sidebar({ sidebarData, currentPath, hideSection = false }: Sideb
       navigate(appRoot)
       return
     }
+    if (item.have_home) {
+      navigate(appRoot)
+      return
+    }
 
     const currentAppRoot = appRoutePath(activeApp)
     if (appRoot === currentAppRoot && orderedItems[0]?.path) {
@@ -233,7 +237,7 @@ export function Sidebar({ sidebarData, currentPath, hideSection = false }: Sideb
       <aside
         className="flex flex-col shrink-0 z-40 transition-[width] duration-300"
         style={{
-          width: iconRailCollapsed ? 0 : (sidebarCollapsed ? 56 : 220),
+          width: iconRailCollapsed ? 0 : (sidebarCollapsed ? 62 : 242),
           background: 'var(--bg-2)',
           borderRight: iconRailCollapsed ? 'none' : '1px solid var(--line)',
           overflow: iconRailCollapsed ? 'hidden' : undefined,
@@ -242,14 +246,14 @@ export function Sidebar({ sidebarData, currentPath, hideSection = false }: Sideb
         <div
           className="flex items-center px-4"
           style={{ 
-            height: 52, 
+            height: 57, 
             borderBottom: '1px solid var(--line)',
             justifyContent: sidebarCollapsed ? 'center' : 'space-between',
             padding: sidebarCollapsed ? '0' : '0 12px'
           }}
         >
           <div className="flex items-center" style={{ minWidth: 0 }}>
-            <Hexagon size={20} className="text-[var(--accent)] shrink-0" />
+            <Hexagon size={22} className="text-[var(--accent)] shrink-0" />
             {!sidebarCollapsed && !iconRailCollapsed && (
               <span className="ml-2.5 font-bold text-sm truncate uppercase tracking-wider text-[var(--text)]">
                 Aras
@@ -263,14 +267,14 @@ export function Sidebar({ sidebarData, currentPath, hideSection = false }: Sideb
                 title="Hide Rail"
                 className="p-1.5 hover:bg-[var(--surface-2)] rounded-md text-[var(--text-3)] hover:text-[var(--text)] transition-colors"
               >
-                <Menu size={16} />
+                <Menu size={18} />
               </button>
               <button
                 onClick={toggleSidebar}
                 title="Collapse"
                 className="p-1.5 hover:bg-[var(--surface-2)] rounded-md text-[var(--text-3)] hover:text-[var(--text)] transition-colors"
               >
-                <PanelLeftClose size={16} />
+                <PanelLeftClose size={18} />
               </button>
             </div>
           )}
@@ -285,7 +289,7 @@ export function Sidebar({ sidebarData, currentPath, hideSection = false }: Sideb
               className="group relative flex items-center transition-all duration-200"
               style={{
                 width: '100%',
-                height: 38,
+                height: 42,
                 padding: sidebarCollapsed ? '0' : '0 10px',
                 justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
                 borderRadius: 'var(--radius)',
@@ -294,7 +298,7 @@ export function Sidebar({ sidebarData, currentPath, hideSection = false }: Sideb
                 color: isRouteMatch(currentPath, '/control-panel') ? 'var(--text)' : 'var(--text-3)',
               }}
             >
-              <CreditCard size={17} className="shrink-0" />
+              <CreditCard size={19} className="shrink-0" />
               {!sidebarCollapsed && (
                 <span className="ml-3 text-[13px] font-medium truncate opacity-90 group-hover:opacity-100">
                   Control Panel
@@ -323,7 +327,7 @@ export function Sidebar({ sidebarData, currentPath, hideSection = false }: Sideb
                 className="group relative flex items-center transition-all duration-200"
                 style={{
                   width: '100%',
-                  height: 38,
+                  height: 42,
                   padding: sidebarCollapsed ? '0' : '0 10px',
                   justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
                   borderRadius: 'var(--radius)',
@@ -332,7 +336,7 @@ export function Sidebar({ sidebarData, currentPath, hideSection = false }: Sideb
                   color: isActive ? 'var(--text)' : 'var(--text-3)',
                 }}
               >
-                <Icon size={17} className="shrink-0" />
+                <Icon size={19} className="shrink-0" />
                 {!sidebarCollapsed && (
                   <span className="ml-3 text-[13px] font-medium truncate opacity-90 group-hover:opacity-100">
                     {label}
@@ -355,9 +359,9 @@ export function Sidebar({ sidebarData, currentPath, hideSection = false }: Sideb
               onClick={toggleSidebar}
               title="Expand"
               className="flex items-center justify-center hover:text-[var(--text)] text-[var(--text-3)] transition-colors mb-2"
-              style={{ width: '100%', height: 32, borderRadius: 8 }}
+              style={{ width: '100%', height: 35, borderRadius: 8 }}
             >
-              <PanelLeftOpen size={16} />
+              <PanelLeftOpen size={18} />
             </button>
           )}
           <button
@@ -366,13 +370,13 @@ export function Sidebar({ sidebarData, currentPath, hideSection = false }: Sideb
             className="flex items-center hover:text-[var(--text)] text-[var(--text-3)] transition-colors"
             style={{ 
               width: '100%', 
-              height: 32, 
+              height: 35, 
               borderRadius: 8,
               justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
               padding: sidebarCollapsed ? '0' : '0 10px'
             }}
           >
-            <Settings size={16} className="shrink-0" />
+            <Settings size={18} className="shrink-0" />
             {!sidebarCollapsed && <span className="ml-3 text-xs font-medium">Settings</span>}
           </button>
           <button
@@ -381,13 +385,13 @@ export function Sidebar({ sidebarData, currentPath, hideSection = false }: Sideb
             className="flex items-center hover:text-[var(--text)] text-[var(--text-3)] transition-colors"
             style={{ 
               width: '100%', 
-              height: 32, 
+              height: 35, 
               borderRadius: 8,
               justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
               padding: sidebarCollapsed ? '0' : '0 10px'
             }}
           >
-            <HelpCircle size={16} className="shrink-0" />
+            <HelpCircle size={18} className="shrink-0" />
             {!sidebarCollapsed && <span className="ml-3 text-xs font-medium">Help</span>}
           </button>
           <div className="flex items-center" style={{ 
@@ -397,7 +401,7 @@ export function Sidebar({ sidebarData, currentPath, hideSection = false }: Sideb
               marginTop: 4
             }}>
             <div className="arc-av shrink-0" style={{
-              width: 28, height: 28,
+              width: 31, height: 31,
               background: 'color-mix(in oklch, var(--accent) 22%, var(--surface))',
               color: 'var(--accent)',
               boxShadow: '0 0 0 1.5px var(--accent), 0 0 0 3px var(--bg)',
@@ -418,7 +422,7 @@ export function Sidebar({ sidebarData, currentPath, hideSection = false }: Sideb
       {!hideSection && activeApp?.type !== 'link' && activeApp && !sidebarCollapsed && !iconRailCollapsed && (
         <aside
           className={`flex-col shrink-0 z-30 ${mobileSidebarOpen ? 'flex' : 'max-md:hidden flex'}`}
-          style={{ width: 200, background: 'var(--bg-2)', borderRight: '1px solid var(--line)' }}
+          style={{ width: 220, background: 'var(--bg-2)', borderRight: '1px solid var(--line)' }}
         >
           <div style={{ padding: '20px 14px 12px' }}>
             <div className="arc-id arc-dim2" style={{ textTransform: 'uppercase', letterSpacing: '.16em', paddingLeft: 4, fontSize: 10 }}>
@@ -455,7 +459,7 @@ export function Sidebar({ sidebarData, currentPath, hideSection = false }: Sideb
                       >
                         <span className="arc-mono" style={{ fontSize: 10.5, color: isActive ? 'var(--accent)' : 'var(--text-3)' }}>{n}</span>
                         <span className="truncate flex-1">{vocabulary.get(item.label || item.name)}</span>
-                        {isActive && <ChevronRight size={13} className="text-[var(--text-3)]" />}
+                        {isActive && <ChevronRight size={14} className="text-[var(--text-3)]" />}
                       </button>
                       <span className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <DragHandle />

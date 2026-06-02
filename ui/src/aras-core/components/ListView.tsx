@@ -310,6 +310,17 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     else setSelectedIds(data.map(item => item.id))
   }
 
+  // Export this page's live schema + data sample to .aras/context/ for Claude Code (CLI).
+  const handleSendToAI = async () => {
+    try {
+      const res = await api.post(`/ai-context/${resource}`, null, { params: { sample: 20 } })
+      const d = res.data
+      notify(`Context written: ${d.written} (${d.total_rows} rows). Read it in Claude Code.`, "success")
+    } catch (err) {
+      notify(getErrorMessage(err, "Failed to export AI context"), "error")
+    }
+  }
+
   const handleSelectOne = (id: string | number) => {
     if (selectedIds.includes(id)) setSelectedIds(selectedIds.filter(i => i !== id))
     else setSelectedIds([...selectedIds, id])
@@ -521,6 +532,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
             onAdd={onAdd || (() => navigate(`${resourceApiPath}/new`))}
             onArchive={metadata?.is_auditable ? () => navigate(`/${resourceApiPath}/archived`) : undefined}
             onSettings={() => showPanel('Form Settings', <FormSettings resource={resource} metadata={metadata} visibleColumns={visibleColumns} onVisibleColumnsChange={updateVisibleColumns} />, 'max-w-3xl')}
+            onSendToAI={handleSendToAI}
             fields={orderedFields}
             visibleColumns={visibleColumns}
             onVisibleColumnsChange={updateVisibleColumns}
@@ -547,7 +559,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
             <div className="flex items-center justify-between mb-3">
               <span className="text-[11px] font-semibold text-[var(--aras-muted)] uppercase tracking-wider">Filter Conditions</span>
               <button onClick={addFilter} className="text-xs font-semibold text-[var(--aras-accent)] hover:underline flex items-center gap-1">
-                <Plus size={14} /> Add Rule
+                <Plus size={15} /> Add Rule
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -578,7 +590,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                     })()}
                   </div>
                   <button onClick={() => removeFilter(i)} className="flex-shrink-0 p-2 text-[var(--aras-muted)] hover:text-rose-500 rounded-[var(--app-radius)] transition-colors">
-                    <X size={14} />
+                    <X size={15} />
                   </button>
                 </div>
               ))}
@@ -637,7 +649,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                 }
                 spans.push({ label: '', span: 1 }) // actions col
                 return (
-                  <div className="hidden md:flex sticky top-0 z-10 border-b border-[var(--line)]" style={{ background: 'var(--bg)' }}>
+                  <div className="hidden md:flex sticky top-0 z-10 border-t border-b border-[var(--line)]" style={{ background: 'var(--bg)' }}>
                     {spans.map((s, i) => (
                       <div key={i} style={{ flex: s.label ? s.span : '0 0 auto', minWidth: s.label ? undefined : i === 0 ? 48 : 100 }} className={`text-[9.5px] font-black uppercase tracking-[0.2em] px-3 py-1 ${s.label ? 'text-[var(--accent)] border-r border-[var(--line)]' : 'text-transparent'}`}>
                         {s.label || '.'}
@@ -647,11 +659,11 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                 )
               })()}
               <div className="aras-list-header hidden md:grid sticky top-0 z-10 border-b border-[var(--line)]" style={{ gridTemplateColumns, background: 'var(--bg)', fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '.14em', color: 'var(--text-3)', textTransform: 'uppercase' }}>
-                <div style={{ padding: '10px 12px' }}><button onClick={handleSelectAll} className="hover:text-[var(--app-accent)]">{selectedIds.length === data.length && data.length > 0 ? <CheckSquare size={14} className="text-[var(--app-accent)]" /> : <Square size={14} className="text-[var(--app-muted)]" />}</button></div>
+                <div style={{ padding: '10px 12px' }}><button onClick={handleSelectAll} className="hover:text-[var(--app-accent)]">{selectedIds.length === data.length && data.length > 0 ? <CheckSquare size={15} className="text-[var(--app-accent)]" /> : <Square size={15} className="text-[var(--app-muted)]" />}</button></div>
                 {listColumns.map((column) => (
                   <div key={column.key} className={`flex items-center gap-1.5 cursor-pointer hover:text-[var(--text)] transition-colors ${column.align === 'right' ? 'justify-end text-right' : ''}`} style={{ padding: '10px 12px', fontWeight: 500 }} onClick={() => { if (orderBy === column.field.name) setDesc(!desc); else { setOrderBy(column.field.name); setDesc(true); } }}>
                     {column.label}
-                    {orderBy === column.field.name && (desc ? <ChevronDown size={13} className="text-[var(--app-accent)]" /> : <ChevronUp size={13} className="text-[var(--app-accent)]" />)}
+                    {orderBy === column.field.name && (desc ? <ChevronDown size={14} className="text-[var(--app-accent)]" /> : <ChevronUp size={14} className="text-[var(--app-accent)]" />)}
                   </div>
                 ))}
                 <div style={{ padding: '10px 12px', textAlign: 'right' }}>&nbsp;</div>
@@ -668,7 +680,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                 ))
               ) : data.length === 0 ? (
                 <div className="px-6 py-20 text-center">
-                  <Search size={48} className="mb-4 text-[var(--app-border-strong)] mx-auto" />
+                  <Search size={53} className="mb-4 text-[var(--app-border-strong)] mx-auto" />
                   <p className="text-[calc(15px*var(--app-font-scale))] font-extrabold text-[var(--app-text)]">No records found.</p>
                 </div>
               ) : (
@@ -699,7 +711,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                       <div key={item.id} className={`aras-list-row hidden md:grid items-center group border-b border-[var(--line)] hover:bg-[var(--surface-2)] transition-colors ${inlineEdit ? '' : 'cursor-pointer'} ${selectedIds.includes(item.id) ? 'bg-[var(--accent)]/8' : ''}`} style={{ gridTemplateColumns }} onClick={() => { if (!inlineEdit) onRowClick?.(item.id) }}>
                         <div className="px-[calc(16px*var(--app-density))] py-[calc(8px*var(--app-density))]" onClick={(e) => e.stopPropagation()}>
                           <button onClick={() => handleSelectOne(item.id)} className={`${selectedIds.includes(item.id) ? 'text-[var(--accent)]' : 'text-[var(--text-3)]'}`}>
-                            {selectedIds.includes(item.id) ? <CheckSquare size={15} /> : <Square size={15} />}
+                            {selectedIds.includes(item.id) ? <CheckSquare size={17} /> : <Square size={17} />}
                           </button>
                         </div>
                         {listColumns.map((column, colIdx) => {
@@ -750,10 +762,10 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                         })}
                         <div className="px-[calc(16px*var(--app-density))] py-[calc(8px*var(--app-density))] flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           {inlineEdit && (
-                            <button type="button" onClick={(e) => { e.stopPropagation(); onRowClick?.(item.id) }} className="p-1.5 text-[var(--text-3)] hover:text-[var(--accent)] rounded transition-colors" title="Open form"><Pencil size={13} /></button>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); onRowClick?.(item.id) }} className="p-1.5 text-[var(--text-3)] hover:text-[var(--accent)] rounded transition-colors" title="Open form"><Pencil size={14} /></button>
                           )}
-                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteOne(item); }} className="p-1.5 text-[var(--text-3)] hover:text-rose-500 rounded transition-colors"><Trash2 size={14} /></button>
-                          {!inlineEdit && <ChevronRight size={14} className="text-[var(--text-3)]" />}
+                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteOne(item); }} className="p-1.5 text-[var(--text-3)] hover:text-rose-500 rounded transition-colors"><Trash2 size={15} /></button>
+                          {!inlineEdit && <ChevronRight size={15} className="text-[var(--text-3)]" />}
                         </div>
                       </div>
                       )
@@ -778,7 +790,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
                             </div>
                             <div className="mt-0.5 truncate text-[13.5px] font-semibold text-[var(--text)]">{String(primaryValue ?? '')}</div>
                           </div>
-                          <ChevronRight size={15} className="text-[var(--text-3)] shrink-0 mt-1" />
+                          <ChevronRight size={17} className="text-[var(--text-3)] shrink-0 mt-1" />
                         </div>
                       )
                     })}
@@ -798,7 +810,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
               className="h-7 w-7 grid place-items-center rounded-full text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title="First page"
             >
-              <ChevronsLeft size={14} />
+              <ChevronsLeft size={15} />
             </button>
             <button
               disabled={page === 1}
@@ -806,7 +818,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
               className="h-7 w-7 grid place-items-center rounded-full text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title="Previous page"
             >
-              <ChevronLeft size={14} />
+              <ChevronLeft size={15} />
             </button>
             <span className="px-3 text-[11.5px] tabular-nums text-[var(--text-2)]">
               <b>{page}</b> <span className="text-[var(--text-3)]">/ {totalPages}</span>
@@ -817,7 +829,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
               className="h-7 w-7 grid place-items-center rounded-full text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title="Next page"
             >
-              <ChevronRight size={14} />
+              <ChevronRight size={15} />
             </button>
             <button
               disabled={page === totalPages}
@@ -825,7 +837,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
               className="h-7 w-7 grid place-items-center rounded-full text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title="Last page"
             >
-              <ChevronsRight size={14} />
+              <ChevronsRight size={15} />
             </button>
           </DesignElement>
         )}

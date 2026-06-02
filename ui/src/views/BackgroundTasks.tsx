@@ -1,7 +1,7 @@
 // claude-opus-4-7
 // ARC background tasks: enqueue + poll status against /dev/tasks/*.
 import { useEffect, useState } from 'react'
-import { Activity, Play, RefreshCw, Search } from 'lucide-react'
+import { Activity, Play, RefreshCw, Search, Copy, Trash2 } from 'lucide-react'
 import api from '../lib/api'
 import { useUIStore } from '../store/uiStore'
 import { EmptyState } from '../components/EmptyState'
@@ -97,6 +97,8 @@ export default function BackgroundTasks() {
     await refreshOne(id)
   }
 
+  const forgetTask = (id: string) => setTracked(prev => prev.filter(t => t.id !== id))
+
   return (
     <div className="arc flex flex-col gap-5">
       <div className="arc-card arc-dotgrid p-6 flex items-center gap-5" style={{ background: 'var(--bg-2)' }}>
@@ -173,8 +175,14 @@ export default function BackgroundTasks() {
             <span className="arc-id shrink-0" style={{ color: statusTone(t.status?.status) }}>
               {t.status?.status || 'unknown'}
             </span>
+            <button className="arc-btn" title="Copy task JSON" onClick={() => navigator.clipboard.writeText(JSON.stringify(t, null, 2))}>
+              <Copy size={13} />
+            </button>
             <button className="arc-btn" onClick={() => refreshOne(t.id)}>
               <RefreshCw size={13} />
+            </button>
+            <button className="arc-btn" title="Forget tracked task" onClick={() => forgetTask(t.id)}>
+              <Trash2 size={13} />
             </button>
           </div>
         ))}

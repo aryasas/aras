@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { theme } from '../lib/theme';
+import { useDesignOverride } from '../lib/designOverrides';
 
 interface CardProps {
   children: React.ReactNode;
@@ -9,6 +10,9 @@ interface CardProps {
 }
 
 export const Card = ({ children, style, variant = 'elevated' }: CardProps) => {
+  const cardOverride = useDesignOverride('mobile:card', `mobile:card:${variant}`);
+  if (cardOverride.hidden) return null;
+
   const getVariantStyles = (): ViewStyle => {
     switch (variant) {
       case 'outline':
@@ -30,7 +34,7 @@ export const Card = ({ children, style, variant = 'elevated' }: CardProps) => {
     }
   };
 
-  return <View style={[styles.container, getVariantStyles(), style]}>{children}</View>;
+  return <View style={[styles.container, getVariantStyles(), cardOverride.style, style]}>{children}</View>;
 };
 
 const styles = StyleSheet.create({

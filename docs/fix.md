@@ -298,3 +298,7 @@ This file is used only to report if there are fix
 
 ## Unknown (2026-05-30)
   - [GPT (codex)] Sidebar dynamic app loop now skips apps with hide_from_sidebar
+
+
+## Unknown (2026-06-01)
+  - [GPT (codex)] Removed old tab system, sidebar nav, and command palette modal

@@ -2,6 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      try {
+        var s = JSON.parse(localStorage.getItem('aras-ui-prefs') || '{}')
+        var state = s.state || s
+        var mode = state.themeMode === 'dark' ? 'dark' : 'light'
+        if (mode === 'dark') { document.documentElement.classList.add('dark') }
+        document.documentElement.setAttribute('data-theme', mode)
+      } catch(e) {}
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

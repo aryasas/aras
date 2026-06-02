@@ -86,6 +86,20 @@ from core.response import err as aras_err
 async def aras_exception_handler(request: Request, exc: ArasException):
     return JSONResponse(status_code=exc.status, content=aras_err(exc.message, exc.detail))
 
+from apps.dev.app import error_log_entries as _dev_error_log, record_request as _dev_record_request
+import datetime as _dt
+import time as _t
+
+def _log_error(request: Request, status_code: int, message: str):
+    _dev_error_log.append({
+        "ts": _t.time(),
+        "timestamp": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+        "method": request.method,
+        "path": request.url.path,
+        "status": status_code,
+        "message": str(message)[:500],
+    })
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     logger.warning(
@@ -93,6 +107,8 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         exc.detail,
         extra={"status_code": exc.status_code, "path": request.url.path},
     )
+    if exc.status_code >= 400:
+        _log_error(request, exc.status_code, exc.detail)
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -127,6 +143,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled Exception: %s", exc, extra={"path": request.url.path})
+    _log_error(request, 500, str(exc))
     return JSONResponse(
         status_code=500,
         content={
@@ -136,6 +153,19 @@ async def generic_exception_handler(request: Request, exc: Exception):
             "error": str(exc) if settings.DEBUG else "An internal error occurred.",
         },
     )
+
+# claude-opus-4-7 — request metrics middleware
+@app.middleware("http")
+async def request_metrics_middleware(request: Request, call_next):
+    t0 = _t.time()
+    response = await call_next(request)
+    elapsed_ms = (_t.time() - t0) * 1000
+    try:
+        _dev_record_request(request.method, request.url.path, response.status_code, elapsed_ms)
+    except Exception:
+        pass
+    return response
+
 
 @app.middleware("http")
 async def license_check_middleware(request: Request, call_next):
@@ -185,6 +215,8 @@ app.include_router(Aras.api.settings.router, prefix="/api/v1")
 app.include_router(Aras.api.master_data.router, prefix="/api/v1")
 app.include_router(Aras.api.dev.router, prefix="/api/v1/dev")
 app.include_router(Aras.api.registry.router, prefix="/api/v1")
+from core.api.ai_context import router as ai_context_router
+app.include_router(ai_context_router, prefix="/api/v1")
 app.include_router(Aras.api.files.router, prefix="/api/v1")
 app.include_router(Aras.api.dashboard.router, prefix="/api/v1")
 

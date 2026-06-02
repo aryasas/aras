@@ -120,6 +120,234 @@ export default function TopMenuLayout() {
 
   useEffect(() => { closePanel() }, [location.pathname])
 
+  // Template Builder runtime for the layout that is actually mounted by App.tsx.
+  // Applies saved overrides on normal pages and installs pick/drag tools inside builder previews.
+  useEffect(() => {
+    let cancelled = false
+    const path = location.pathname || '/'
+    api.get(`/dev/dev/style-overrides?path=${encodeURIComponent(path)}`)
+      .then((res) => {
+        if (cancelled) return
+        const rows: Array<{ selector: string; css_json: Record<string, any>; hidden: boolean; text_override: string | null }> = Array.isArray(res.data) ? res.data : []
+        const cssParts: string[] = []
+        for (const row of rows) {
+          const decls: string[] = []
+          if (row.hidden) decls.push('display: none !important')
+          for (const [key, value] of Object.entries(row.css_json || {})) {
+            if (value == null || value === '') continue
+            if (key.startsWith('@media') && typeof value === 'object' && !Array.isArray(value)) {
+              const mediaDecls = Object.entries(value)
+                .filter(([, nestedValue]) => nestedValue != null && nestedValue !== '')
+                .map(([nestedKey, nestedValue]) => `${nestedKey}: ${nestedValue}`)
+              if (mediaDecls.length) cssParts.push(`${key} { ${row.selector} { ${mediaDecls.join('; ')} } }`)
+              continue
+            }
+            decls.push(`${key}: ${value}`)
+          }
+          if (decls.length) cssParts.push(`${row.selector} { ${decls.join('; ')} }`)
+        }
+        let tag = document.getElementById('aras-style-overrides') as HTMLStyleElement | null
+        if (!tag) {
+          tag = document.createElement('style')
+          tag.id = 'aras-style-overrides'
+          document.head.appendChild(tag)
+        }
+        tag.textContent = cssParts.join('\n')
+
+        const applyText = () => {
+          for (const row of rows) {
+            if (!row.text_override) continue
+            try {
+              document.querySelectorAll(row.selector).forEach((el) => {
+                const target = el as HTMLElement
+                if (target.dataset.arasTextApplied === row.text_override) return
+                target.textContent = row.text_override
+                target.dataset.arasTextApplied = row.text_override
+              })
+            } catch { /* ignore invalid selector */ }
+          }
+        }
+        applyText()
+        window.setTimeout(applyText, 250)
+      })
+      .catch(() => { /* overrides are non-critical */ })
+    return () => { cancelled = true }
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('__builder_preview') !== '1') return
+    if (window.top === window.self) return
+
+    const computeSelector = (el: Element): string => {
+      if (el.id) return `#${CSS.escape(el.id)}`
+      const arasId = (el as HTMLElement).dataset?.arasId
+      if (arasId) return `[data-aras-id="${arasId}"]`
+      const testId = (el as HTMLElement).dataset?.testid
+      if (testId) return `[data-testid="${testId}"]`
+      const path: string[] = []
+      let node: Element | null = el
+      let depth = 0
+      while (node && node.nodeType === 1 && depth < 7) {
+        let segment = node.tagName.toLowerCase()
+        const parent = node.parentElement
+        if (parent) {
+          const siblings = Array.from(parent.children).filter((child) => child.tagName === node!.tagName)
+          if (siblings.length > 1) segment += `:nth-of-type(${siblings.indexOf(node) + 1})`
+        }
+        path.unshift(segment)
+        node = node.parentElement
+        depth++
+      }
+      return path.join(' > ')
+    }
+
+    const outline = document.createElement('div')
+    outline.style.cssText = 'position:fixed;pointer-events:none;border:2px solid #2563eb;background:rgba(37,99,235,0.08);z-index:2147483647;transition:all 0.05s;border-radius:4px;'
+    outline.style.display = 'none'
+    document.body.appendChild(outline)
+
+    let editMode = params.get('__builder_edit') === '1'
+    let toolMode = 'select'
+    let dragSource: Element | null = null
+
+    const enableDrag = () => {
+      if (!editMode) return
+      document.body.setAttribute('data-aras-edit-mode', '1')
+      document.body.setAttribute('data-aras-builder-tool', toolMode)
+      document.querySelectorAll('*').forEach((el) => {
+        const target = el as HTMLElement
+        if (!target.hasAttribute('draggable')) target.draggable = true
+      })
+    }
+
+    const disableDrag = () => {
+      document.body.removeAttribute('data-aras-edit-mode')
+      document.body.removeAttribute('data-aras-builder-tool')
+    }
+
+    const move = (event: MouseEvent) => {
+      if (!editMode) { outline.style.display = 'none'; return }
+      const target = event.target as Element | null
+      if (!target || target === outline) return
+      const rect = target.getBoundingClientRect()
+      outline.style.display = 'block'
+      outline.style.left = `${rect.left}px`
+      outline.style.top = `${rect.top}px`
+      outline.style.width = `${rect.width}px`
+      outline.style.height = `${rect.height}px`
+    }
+
+    const click = (event: MouseEvent) => {
+      if (!editMode || toolMode !== 'select') return
+      event.preventDefault()
+      event.stopPropagation()
+      const target = event.target as Element | null
+      if (!target) return
+      const computed = window.getComputedStyle(target)
+      window.parent.postMessage({
+        type: 'aras-builder-pick',
+        payload: {
+          selector: computeSelector(target),
+          tag: target.tagName.toLowerCase(),
+          text: (target.textContent || '').slice(0, 200),
+          styles: {
+            color: computed.color,
+            backgroundColor: computed.backgroundColor,
+            fontSize: computed.fontSize,
+            fontWeight: computed.fontWeight,
+            padding: computed.padding,
+            margin: computed.margin,
+            borderRadius: computed.borderRadius,
+            border: computed.border,
+            display: computed.display,
+            textAlign: computed.textAlign,
+          },
+        },
+      }, '*')
+    }
+
+    const blockNav = (event: Event) => {
+      if (!editMode) return
+      const target = event.target as Element | null
+      if (target?.closest('a,button,[role="button"]')) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    }
+
+    const onDragStart = (event: DragEvent) => {
+      if (!editMode || (toolMode !== 'reorder' && !event.altKey)) return
+      dragSource = event.target as Element
+      try { event.dataTransfer?.setData('text/plain', 'aras-reorder') } catch {}
+    }
+
+    const onDragOver = (event: DragEvent) => {
+      if (editMode && dragSource) event.preventDefault()
+    }
+
+    const onDrop = (event: DragEvent) => {
+      if (!editMode || !dragSource) return
+      event.preventDefault()
+      const target = event.target as Element | null
+      if (!target || target === dragSource) { dragSource = null; return }
+      const parent = dragSource.parentElement
+      if (!parent || !parent.contains(target)) { dragSource = null; return }
+      const targetChild = Array.from(parent.children).find((child) => child === target || child.contains(target))
+      if (!targetChild) { dragSource = null; return }
+      const siblings = Array.from(parent.children)
+      const fromIndex = siblings.indexOf(dragSource)
+      const toIndex = siblings.indexOf(targetChild)
+      if (fromIndex < 0 || toIndex < 0) { dragSource = null; return }
+      const next = siblings.slice()
+      next.splice(toIndex, 0, next.splice(fromIndex, 1)[0])
+      window.parent.postMessage({
+        type: 'aras-builder-reorder',
+        patches: next.map((el, index) => ({
+          selector: computeSelector(el),
+          css_json: { order: String(index) },
+          label: `Reorder ${index + 1}`,
+        })),
+      }, '*')
+      dragSource = null
+    }
+
+    const onParentMessage = (event: MessageEvent) => {
+      if (!event.data || typeof event.data !== 'object') return
+      if (event.data.type === 'aras-builder-set-mode') {
+        editMode = Boolean(event.data.edit)
+        toolMode = event.data.tool === 'reorder' ? 'reorder' : 'select'
+        if (editMode) enableDrag()
+        else { disableDrag(); outline.style.display = 'none' }
+      }
+      if (event.data.type === 'aras-builder-reload') window.location.reload()
+    }
+
+    document.addEventListener('mousemove', move, true)
+    document.addEventListener('click', click, true)
+    document.addEventListener('click', blockNav, true)
+    document.addEventListener('dragstart', onDragStart, true)
+    document.addEventListener('dragover', onDragOver, true)
+    document.addEventListener('drop', onDrop, true)
+    window.addEventListener('message', onParentMessage)
+
+    if (editMode) enableDrag()
+    window.parent.postMessage({ type: 'aras-builder-ready', path: window.location.pathname }, '*')
+
+    return () => {
+      document.removeEventListener('mousemove', move, true)
+      document.removeEventListener('click', click, true)
+      document.removeEventListener('click', blockNav, true)
+      document.removeEventListener('dragstart', onDragStart, true)
+      document.removeEventListener('dragover', onDragOver, true)
+      document.removeEventListener('drop', onDrop, true)
+      window.removeEventListener('message', onParentMessage)
+      outline.remove()
+      disableDrag()
+    }
+  }, [])
+
   useEffect(() => {
     if (activeOrgId === null && organizations.length > 0) setActiveOrg(organizations[0].id)
   }, [activeOrgId, organizations, setActiveOrg])

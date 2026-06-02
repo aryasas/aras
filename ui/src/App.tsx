@@ -22,8 +22,8 @@ const MasterDataPageView = lazy(() => import('./views/master-data/MasterDataPage
 const DashboardSettingsView = lazy(() => import('./views/DashboardSettings'))
 const ProfileView = lazy(() => import('./views/Profile'))
 const DynamicView = lazy(() => import('./views/DynamicView'))
-const ReportCenterView = lazy(() => import('./views/ReportCenter'))
 const DevToolsView = lazy(() => import('./views/DevTools'))
+const ReportCenterView = lazy(() => import('./views/ReportCenter'))
 const TemplateBuilderView = lazy(() => import('./views/TemplateBuilder'))
 const AppManagerView = lazy(() => import('./views/AppManager'))
 const AuditLogsView = lazy(() => import('./views/AuditLogs'))
@@ -44,6 +44,7 @@ const InspectRoutesView = lazy(() => import('./views/InspectRoutes'))
 const HealthIntegrityView = lazy(() => import('./views/HealthIntegrity'))
 const HandoffRunsView = lazy(() => import('./views/HandoffRuns'))
 const BackgroundTasksView = lazy(() => import('./views/BackgroundTasks'))
+const ActivityHeatmapView = lazy(() => import('./views/ActivityHeatmap'))
 const FileManagerView = lazy(() => import('./views/FileManager'))
 const ArchivedView = lazy(() => import('./views/ArchivedView'))
 const PosView = lazy(() => import('./views/PosView'))
@@ -111,7 +112,7 @@ function App() {
     }
     Object.entries(vars).forEach(([key, value]) => root.style.setProperty(key, value))
     root.classList.toggle('dark', themeMode === 'dark')
-    root.setAttribute('data-theme', themeMode === 'dark' ? 'dark' : 'light')
+    root.setAttribute('data-theme', themeMode)
   }, [accentColor, cornerMode, density, fontScale, themeMode]);
 
   useEffect(() => {
@@ -232,6 +233,7 @@ function App() {
           <Route path="dev/routes" element={<InspectRoutesView />} />
           <Route path="dev/handoff-runs" element={<HandoffRunsView />} />
           <Route path="dev/tasks" element={<BackgroundTasksView />} />
+          <Route path="dev/activity-heatmap" element={<ActivityHeatmapView />} />
           <Route path="settings/files" element={<FileManagerView />} />
           <Route path="admin/tenants" element={<Navigate to="/control-panel/tenants" replace />} />
           <Route path="saas-admin" element={<Navigate to="/control-panel" replace />} />

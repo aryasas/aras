@@ -108,7 +108,7 @@ const s = StyleSheet.create({
 export function StatusGlyph({ value }: { value: any }) {
   const v = String(value || '').toLowerCase();
   let glyph = '○';
-  let color = C.text3;
+  let color: string = C.text3;
   if (/(in[_\s-]?progress|progress|active|working)/.test(v)) { glyph = '◐'; color = theme.arc.accent; }
   else if (/(review|pending|awaiting)/.test(v)) { glyph = '△'; color = theme.arc.warn; }
   else if (/(released|approved|done|complete)/.test(v)) { glyph = '●'; color = '#7CD27F'; }

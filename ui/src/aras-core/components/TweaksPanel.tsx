@@ -221,8 +221,8 @@ export function TweaksPanel() {
           </div>
           <div className="twk-body">
             <Section label="Theme">
-              <Seg<'normal' | 'dark'> label="Mode" value={themeMode === 'light' ? 'normal' : themeMode}
-                   options={[{ value: 'normal', label: 'Light' }, { value: 'dark', label: 'Dark' }]}
+              <Seg<'light' | 'dark'> label="Mode" value={themeMode}
+                   options={[{ value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }]}
                    onChange={setThemeMode} />
               <ColorRow label="Accent" value={accentColor} onChange={setAccentColor} />
             </Section>

@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
   Archive, ChevronDown, Download, Edit3, FileText, Filter, LayoutGrid,
-  List, MoreHorizontal, Plus, Search, Settings, Trash2, Upload, X
+  List, MoreHorizontal, Plus, Search, Settings, Sparkles, Trash2, Upload, X
 } from 'lucide-react'
 import { DesignContainer } from './design/DesignContainer'
 import { DesignElement } from './design/DesignElement'
@@ -63,6 +63,7 @@ interface FullActionBarProps {
   onAdd: () => void
   onArchive?: () => void
   onSettings?: () => void
+  onSendToAI?: () => void
   fields: ActionBarField[]
   visibleColumns: string[]
   onVisibleColumnsChange: (cols: string[]) => void
@@ -124,7 +125,7 @@ function SimpleActionBar({
           onClick={onAdd}
           className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-[var(--accent)] text-white text-[12px] font-semibold hover:brightness-110 transition-all"
         >
-          <Plus size={13} /> Add row
+          <Plus size={14} /> Add row
         </button>
 
         {selectedCount > 0 && (
@@ -132,7 +133,7 @@ function SimpleActionBar({
             {selectedCount} selected
             {onBulkDelete && (
               <button type="button" onClick={onBulkDelete} className="opacity-70 hover:opacity-100 hover:text-rose-500" title="Delete selected">
-                <Trash2 size={11} />
+                <Trash2 size={12} />
               </button>
             )}
           </span>
@@ -147,7 +148,7 @@ function SimpleActionBar({
         <div className="relative" ref={searchRef}>
           {searchOpen || search ? (
             <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-3)]" size={12} />
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-3)]" size={13} />
               <input
                 type="text"
                 autoFocus
@@ -158,13 +159,13 @@ function SimpleActionBar({
               />
               {search && (
                 <button onClick={() => { onSearchChange(''); setSearchOpen(false) }} className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-3)] hover:text-[var(--text)]">
-                  <X size={12} />
+                  <X size={13} />
                 </button>
               )}
             </div>
           ) : (
             <button type="button" onClick={() => setSearchOpen(true)} className={iconChip} title="Search">
-              <Search size={12} />
+              <Search size={13} />
             </button>
           )}
         </div>
@@ -172,7 +173,7 @@ function SimpleActionBar({
         {/* Column picker */}
         <div className="relative" ref={colRef}>
           <button type="button" className={chip} onClick={() => setColOpen(!colOpen)}>
-            <Settings size={12} /> Columns
+            <Settings size={13} /> Columns
           </button>
           {colOpen && (
             <div className="absolute right-0 top-full z-50 mt-1.5 w-56 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-2 shadow-lg">
@@ -210,7 +211,7 @@ function SimpleActionBar({
 function FullActionBar({
   title, search, onSearchChange, isFilterOpen, onFilterToggle, filterCount,
   selectedCount, onBulkEdit, onBulkDelete, onExport, isExporting, onImport,
-  onColumnPickerToggle, isColumnPickerOpen, onAdd, onArchive, onSettings,
+  onColumnPickerToggle, isColumnPickerOpen, onAdd, onArchive, onSettings, onSendToAI,
   fields, visibleColumns, onVisibleColumnsChange, viewMode = 'list', onViewModeChange,
   hasTreeSupport = false, onSaveFilter, onApplySavedFilter, onDeleteSavedFilter,
   savedFilters, groupField = null, onGroupFieldChange, groupableFields = [],
@@ -245,7 +246,7 @@ function FullActionBar({
       {/* Left cluster */}
       <DesignContainer id="action-bar-left-group" className="flex items-center gap-2 flex-wrap">
         <DesignElement id="btn-add-new" tagName="button" onClick={onAdd} className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-[var(--accent)] text-white text-[12px] font-semibold hover:brightness-110 transition-all">
-          <Plus size={13} />New
+          <Plus size={14} />New
         </DesignElement>
 
         <button
@@ -254,7 +255,7 @@ function FullActionBar({
           className={isFilterOpen || filterCount > 0 ? chipActive : chip}
           aria-expanded={isFilterOpen}
         >
-          <Filter size={12} />
+          <Filter size={13} />
           Filter{filterCount > 0 ? ` · ${filterCount}` : ''}
         </button>
 
@@ -262,21 +263,21 @@ function FullActionBar({
           <span key={i} className={chipActive}>
             {c.label}
             {c.onRemove && (
-              <button type="button" onClick={c.onRemove} className="opacity-60 hover:opacity-100"><X size={11} /></button>
+              <button type="button" onClick={c.onRemove} className="opacity-60 hover:opacity-100"><X size={12} /></button>
             )}
           </span>
         ))}
 
         {filterCount > 0 && (
           <button type="button" onClick={onSaveFilter} className={iconChip} title="Save filter">
-            <Plus size={12} />
+            <Plus size={13} />
           </button>
         )}
 
         {savedFilters.length > 0 && (
           <div className="relative" ref={savedRef}>
             <button type="button" onClick={() => setSavedOpen(!savedOpen)} className={chip}>
-              Saved <ChevronDown size={11} />
+              Saved <ChevronDown size={12} />
             </button>
             {savedOpen && (
               <div className="absolute left-0 top-full z-50 mt-1.5 w-60 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-1.5 shadow-lg">
@@ -294,7 +295,7 @@ function FullActionBar({
                       onClick={(e) => { e.stopPropagation(); onDeleteSavedFilter(f.id) }}
                       className="mr-1 grid h-6 w-6 place-items-center rounded text-[var(--text-3)] opacity-0 transition-all hover:text-rose-500 group-hover:opacity-100"
                     >
-                      <X size={12} />
+                      <X size={13} />
                     </button>
                   </div>
                 ))}
@@ -306,8 +307,8 @@ function FullActionBar({
         {selectedCount > 0 && (
           <span className={chipActive}>
             {selectedCount} selected
-            <button type="button" onClick={onBulkEdit} className="opacity-70 hover:opacity-100" title="Bulk edit"><Edit3 size={11} /></button>
-            <button type="button" onClick={onBulkDelete} className="opacity-70 hover:opacity-100 hover:text-rose-500" title="Bulk delete"><Trash2 size={11} /></button>
+            <button type="button" onClick={onBulkEdit} className="opacity-70 hover:opacity-100" title="Bulk edit"><Edit3 size={12} /></button>
+            <button type="button" onClick={onBulkDelete} className="opacity-70 hover:opacity-100 hover:text-rose-500" title="Bulk delete"><Trash2 size={12} /></button>
           </span>
         )}
       </DesignContainer>
@@ -319,7 +320,7 @@ function FullActionBar({
         <div className="relative" ref={searchRef}>
           {searchOpen || search ? (
             <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-3)]" size={12} />
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-3)]" size={13} />
               <input
                 type="text"
                 autoFocus
@@ -330,13 +331,13 @@ function FullActionBar({
               />
               {search && (
                 <button onClick={() => { onSearchChange(''); setSearchOpen(false) }} className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-3)] hover:text-[var(--text)]">
-                  <X size={12} />
+                  <X size={13} />
                 </button>
               )}
             </div>
           ) : (
             <button type="button" onClick={() => setSearchOpen(true)} className={iconChip} title="Search">
-              <Search size={12} />
+              <Search size={13} />
             </button>
           )}
         </div>
@@ -354,7 +355,7 @@ function FullActionBar({
         {onGroupFieldChange && groupableFields.length > 0 && (
           <div className="relative" ref={groupRef}>
             <button type="button" onClick={() => setGroupOpen(!groupOpen)} className={groupField ? chipActive : chip}>
-              Group{groupLabel ? `: ${groupLabel}` : ''} <ChevronDown size={11} />
+              Group{groupLabel ? `: ${groupLabel}` : ''} <ChevronDown size={12} />
             </button>
             {groupOpen && (
               <div className="absolute right-0 top-full z-50 mt-1.5 w-52 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-1.5 shadow-lg">
@@ -382,7 +383,7 @@ function FullActionBar({
 
         <div className="relative" ref={columnsRef}>
           <button type="button" className={chip} onClick={onColumnPickerToggle}>
-            <Settings size={12} /> Columns
+            <Settings size={13} /> Columns
           </button>
           {isColumnPickerOpen && (
             <div className="absolute right-0 top-full z-50 mt-1.5 w-60 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-2 shadow-lg">
@@ -408,44 +409,50 @@ function FullActionBar({
           )}
         </div>
 
+        {onSendToAI && (
+          <button type="button" onClick={onSendToAI} className={iconChip} title="Send page context to Claude Code (CLI)">
+            <Sparkles size={13} />
+          </button>
+        )}
+
         {onSettings && (
           <button type="button" onClick={onSettings} className={iconChip} title="Settings">
-            <Settings size={12} />
+            <Settings size={13} />
           </button>
         )}
 
         {onViewModeChange && (
           <div className="flex h-7 overflow-hidden rounded-full border border-[var(--line)]">
             <button type="button" onClick={() => onViewModeChange('list')} className={`grid w-7 place-items-center ${viewMode === 'list' ? 'text-[var(--accent)]' : 'text-[var(--text-3)] hover:text-[var(--text)]'}`} title="List">
-              <List size={12} />
+              <List size={13} />
             </button>
             {hasTreeSupport && (
               <button type="button" onClick={() => onViewModeChange('tree')} className={`grid w-7 place-items-center border-l border-[var(--line)] ${viewMode === 'tree' ? 'text-[var(--accent)]' : 'text-[var(--text-3)] hover:text-[var(--text)]'}`} title="Tree">
-                <LayoutGrid size={12} />
+                <LayoutGrid size={13} />
               </button>
             )}
             <button type="button" onClick={() => onViewModeChange('report')} className={`grid w-7 place-items-center border-l border-[var(--line)] ${viewMode === 'report' ? 'text-[var(--accent)]' : 'text-[var(--text-3)] hover:text-[var(--text)]'}`} title="Report">
-              <FileText size={12} />
+              <FileText size={13} />
             </button>
           </div>
         )}
 
         <div className="relative" ref={actionsRef}>
           <button type="button" onClick={() => setActionsOpen(!actionsOpen)} className={iconChip} title="More">
-            <MoreHorizontal size={13} />
+            <MoreHorizontal size={14} />
           </button>
           {actionsOpen && (
             <div className="absolute right-0 top-full z-50 mt-1.5 w-44 overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-lg">
               <button type="button" onClick={() => { onExport(); setActionsOpen(false) }} disabled={isExporting} className="flex w-full items-center gap-2 px-3 py-2 text-[12px] font-medium text-[var(--text)] hover:bg-[var(--surface-2)] disabled:opacity-50">
-                <Download size={13} /> Export CSV
+                <Download size={14} /> Export CSV
               </button>
               <label className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-[12px] font-medium text-[var(--text)] hover:bg-[var(--surface-2)]">
-                <Upload size={13} /> Import CSV
+                <Upload size={14} /> Import CSV
                 <input type="file" accept=".csv" className="hidden" onChange={(e) => { onImport(e); setActionsOpen(false) }} />
               </label>
               {onArchive && (
                 <button type="button" onClick={() => { onArchive(); setActionsOpen(false) }} className="flex w-full items-center gap-2 px-3 py-2 text-[12px] font-medium text-[var(--text)] hover:bg-[var(--surface-2)]">
-                  <Archive size={13} /> View Archive
+                  <Archive size={14} /> View Archive
                 </button>
               )}
             </div>

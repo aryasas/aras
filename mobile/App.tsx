@@ -14,6 +14,7 @@ import {
 import AppNavigator from './src/navigation/AppNavigator';
 import { theme } from './src/lib/theme';
 import { LanguageProvider } from './src/context/LanguageContext';
+import { DesignOverrideProvider } from './src/lib/designOverrides';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -34,10 +35,12 @@ export default function App() {
 
   return (
     <LanguageProvider>
-      <SafeAreaProvider>
-        <AppNavigator />
-        <StatusBar style="dark" />
-      </SafeAreaProvider>
+      <DesignOverrideProvider>
+        <SafeAreaProvider>
+          <AppNavigator />
+          <StatusBar style="dark" />
+        </SafeAreaProvider>
+      </DesignOverrideProvider>
     </LanguageProvider>
   );
 }

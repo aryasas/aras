@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
 import { theme } from '../lib/theme';
+import { useDesignOverride } from '../lib/designOverrides';
 
 interface ButtonProps {
   title: string;
@@ -25,6 +26,10 @@ export const Button = ({
   textStyle,
   icon,
 }: ButtonProps) => {
+  const buttonOverride = useDesignOverride('mobile:button', `mobile:button:${variant}`);
+  const textOverride = useDesignOverride('mobile:button-text', `mobile:button-text:${variant}`);
+  if (buttonOverride.hidden) return null;
+
   const getVariantStyles = (): ViewStyle => {
     switch (variant) {
       case 'secondary':
@@ -74,6 +79,7 @@ export const Button = ({
         getVariantStyles(),
         getSizeStyles(),
         disabled && styles.disabled,
+        buttonOverride.style,
         style,
       ]}
     >
@@ -82,8 +88,8 @@ export const Button = ({
       ) : (
         <>
           {icon && <React.Fragment>{icon}</React.Fragment>}
-          <Text style={[styles.text, getTextVariantStyles(), textStyle, icon ? { marginLeft: theme.spacing.sm } : null]}>
-            {title}
+          <Text style={[styles.text, getTextVariantStyles(), textOverride.style, textStyle, icon ? { marginLeft: theme.spacing.sm } : null]}>
+            {textOverride.textOverride || buttonOverride.textOverride || title}
           </Text>
         </>
       )}

@@ -50,16 +50,23 @@ const { notify } = useAras()
   useEffect(() => {
     let cancelled = false
     const path = location.pathname || '/'
-    api.get(`/style-overrides?path=${encodeURIComponent(path)}`)
+    api.get(`/dev/dev/style-overrides?path=${encodeURIComponent(path)}`)
       .then((res) => {
         if (cancelled) return
-        const rows: Array<{ selector: string; css_json: Record<string, string>; hidden: boolean; text_override: string | null }> = Array.isArray(res.data) ? res.data : []
+        const rows: Array<{ selector: string; css_json: Record<string, any>; hidden: boolean; text_override: string | null }> = Array.isArray(res.data) ? res.data : []
         const cssParts: string[] = []
         for (const row of rows) {
           const decls: string[] = []
           if (row.hidden) decls.push('display: none !important')
           for (const [k, v] of Object.entries(row.css_json || {})) {
             if (v == null || v === '') continue
+            if (k.startsWith('@media') && typeof v === 'object' && !Array.isArray(v)) {
+              const mediaDecls = Object.entries(v)
+                .filter(([, nestedValue]) => nestedValue != null && nestedValue !== '')
+                .map(([nestedKey, nestedValue]) => `${nestedKey}: ${nestedValue}`)
+              if (mediaDecls.length) cssParts.push(`${k} { ${row.selector} { ${mediaDecls.join('; ')} } }`)
+              continue
+            }
             decls.push(`${k}: ${v}`)
           }
           if (decls.length) cssParts.push(`${row.selector} { ${decls.join('; ')} }`)
@@ -132,6 +139,7 @@ const { notify } = useAras()
     document.body.appendChild(outline)
 
     let editMode = params.get('__builder_edit') === '1'
+    let toolMode = 'select'
     let lastTarget: Element | null = null
 
     // claude-opus-4-7
@@ -188,9 +196,10 @@ const { notify } = useAras()
       if (a) { e.preventDefault(); e.stopPropagation() }
     }
 
-    // CSS-order DnD — handled via native HTML5 drag, but only on container children when alt-key drag is used.
+    // CSS-order DnD — handled via native HTML5 drag. Drag mode allows direct drag;
+    // select mode still supports alt+drag for power users.
     const onDragStart = (e: DragEvent) => {
-      if (!editMode || !e.altKey) return
+      if (!editMode || (toolMode !== 'reorder' && !e.altKey)) return
       dragSrc = e.target as Element
       try { e.dataTransfer?.setData('text/plain', 'aras-reorder') } catch {}
     }
@@ -223,6 +232,7 @@ const { notify } = useAras()
     const enableDrag = () => {
       if (!editMode) return
       document.body.setAttribute('data-aras-edit-mode', '1')
+      document.body.setAttribute('data-aras-builder-tool', toolMode)
       document.querySelectorAll('*').forEach((el) => {
         if (!(el as HTMLElement).hasAttribute('draggable')) (el as HTMLElement).draggable = true
       })
@@ -245,6 +255,7 @@ const { notify } = useAras()
       if (!e.data || typeof e.data !== 'object') return
       if (e.data.type === 'aras-builder-set-mode') {
         editMode = !!e.data.edit
+        toolMode = e.data.tool === 'reorder' ? 'reorder' : 'select'
         if (editMode) enableDrag()
         else { disableDrag(); outline.style.display = 'none' }
       }
@@ -331,13 +342,11 @@ const { notify } = useAras()
           </div>
         </Header>
 
-        <main id="main-content" className={`flex-1 min-w-0 relative flex flex-col arc-scroll ${fullWidth ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className={fullWidth
-              ? 'flex-1 min-h-0 relative w-full flex flex-col'
-              : 'flex-1 max-sm:overflow-visible relative w-full max-w-[1280px] mx-auto px-4 md:px-6 lg:px-8 py-5'}>
-              <Outlet context={{ sidebarData }} />
-            </div>
+        <main id="main-content" className="flex-1 min-w-0 min-h-0 relative flex flex-col overflow-hidden">
+          <div className={fullWidth
+            ? 'flex-1 min-h-0 relative w-full flex flex-col overflow-hidden'
+            : 'flex-1 min-h-0 arc-scroll overflow-y-auto relative w-full max-w-[1280px] mx-auto px-4 md:px-6 lg:px-8 py-5'}>
+            <Outlet context={{ sidebarData }} />
           </div>
         </main>
       </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Globe, Search, Shield, ChevronLeft } from 'lucide-react'
+import { Globe, Search, Shield, ChevronLeft, Copy, ExternalLink } from 'lucide-react'
 import api from '../lib/api'
 import { useNavigate } from 'react-router-dom'
 import ArasTable from '../aras-core/components/ArasTable'
@@ -8,6 +8,11 @@ interface RouteInfo {
   path: string
   name: string
   methods: string[]
+  tags?: string[]
+  summary?: string
+  endpoint?: string
+  response_model?: string
+  auth?: string
 }
 
 export default function InspectRoutes() {
@@ -25,8 +30,14 @@ export default function InspectRoutes() {
 
   const filteredRoutes = routes.filter(r => 
     r.path.toLowerCase().includes(search.toLowerCase()) || 
-    (r.name && r.name.toLowerCase().includes(search.toLowerCase()))
+    (r.name && r.name.toLowerCase().includes(search.toLowerCase())) ||
+    (r.tags || []).join(' ').toLowerCase().includes(search.toLowerCase())
   ).sort((a, b) => a.path.localeCompare(b.path))
+
+  const copyCurl = async (route: RouteInfo) => {
+    const method = route.methods.find(m => !['OPTIONS', 'HEAD'].includes(m)) || 'GET'
+    await navigator.clipboard.writeText(`curl -X ${method} "${window.location.origin}${route.path}"`)
+  }
 
   return (
     <div className="p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -81,14 +92,23 @@ export default function InspectRoutes() {
           { key: 'name', label: 'Internal Name', render: (_: any, route: RouteInfo) => (
             <span className="text-sm font-bold text-[var(--app-muted)] italic">{route.name || '-'}</span>
           )},
-          { key: 'scope', label: 'Security Scope', align: 'right' as const, render: (_: any, route: RouteInfo) => (
-            route.path.includes('/dev/') ? (
+          { key: 'tags', label: 'Tags', render: (_: any, route: RouteInfo) => (
+            <div className="flex flex-wrap gap-1">{(route.tags || []).slice(0, 2).map(t => <span key={t} className="px-2 py-0.5 rounded bg-[var(--app-panel-soft)] text-[10px] font-bold text-[var(--app-muted)]">{t}</span>)}</div>
+          )},
+          { key: 'scope', label: 'Security Scope', render: (_: any, route: RouteInfo) => (
+            route.auth === 'admin' || route.path.includes('/dev/') ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black uppercase rounded-full border border-amber-100"><Shield size={12} /> Maintenance</span>
             ) : route.path.includes('/auth/') ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black uppercase rounded-full border border-blue-100">Identity</span>
             ) : (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--app-panel-soft)] text-[var(--app-muted)] text-[10px] font-black uppercase rounded-full border border-[var(--app-border)]">Resource</span>
             )
+          )},
+          { key: 'actions', label: '', align: 'right' as const, render: (_: any, route: RouteInfo) => (
+            <div className="flex justify-end gap-1">
+              <button className="p-1.5 rounded hover:bg-[var(--app-panel-soft)] text-[var(--app-muted)]" title="Copy curl" onClick={(e) => { e.stopPropagation(); copyCurl(route) }}><Copy size={13} /></button>
+              <a className="p-1.5 rounded hover:bg-[var(--app-panel-soft)] text-[var(--app-muted)]" title="Open route" href={route.path} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}><ExternalLink size={13} /></a>
+            </div>
           )},
         ]
         return (

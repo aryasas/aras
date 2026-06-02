@@ -103,7 +103,7 @@ export function InsightStrip({ resource, insights, recordId }: Props) {
             return (
               <div
                 key={ins.key ?? i}
-                className="flex flex-col gap-0.5 rounded-[6px] border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 min-w-0"
+                className="flex flex-col gap-0.5 rounded-[var(--aras-radius)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 min-w-0"
               >
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <IconComp size={11} className="shrink-0 text-[var(--accent)]" />

@@ -46,14 +46,14 @@ export function Header({ children }: { children?: ReactNode }) {
           className="md:hidden inline-flex items-center justify-center text-[var(--text-2)] hover:text-[var(--text)]"
           style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--line)' }}
         >
-          <Menu size={16} />
+          <Menu size={18} />
         </button>
         <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', letterSpacing: '-.005em' }}>
           {pageTitle || 'Aras'}
         </span>
         {breadcrumbs && (
           <span className="flex items-center gap-1.5 truncate" style={{ fontSize: 12, color: 'var(--text-3)' }}>
-            <ChevronRight size={11} />
+            <ChevronRight size={12} />
             <span className="truncate">{breadcrumbs}</span>
           </span>
         )}
@@ -80,7 +80,7 @@ export function Header({ children }: { children?: ReactNode }) {
 
         {/* Language Switcher */}
         <div className="hidden md:flex items-center gap-1 mr-1">
-          <Globe size={14} className="text-[var(--text-3)] mr-0.5" />
+          <Globe size={15} className="text-[var(--text-3)] mr-0.5" />
           <button
             onClick={() => setLang('en')}
             style={{
@@ -131,7 +131,7 @@ export function Header({ children }: { children?: ReactNode }) {
                 onClick={() => setAccountOpen(false)}
                 className="flex items-center gap-2 px-3 py-2 text-[13px] text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]"
               >
-                <User size={14} />
+                <User size={15} />
                 Profile
               </Link>
               {canOpenWorkspaceSettings ? (
@@ -140,7 +140,7 @@ export function Header({ children }: { children?: ReactNode }) {
                   onClick={() => setAccountOpen(false)}
                   className="flex items-center gap-2 px-3 py-2 text-[13px] text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)]"
                 >
-                  <Settings size={14} />
+                  <Settings size={15} />
                   Settings
                 </Link>
               ) : null}

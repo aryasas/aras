@@ -14,7 +14,7 @@ One tag per function, on the line above the def/class. Be honest — if the code
 `# claude-sonnet-4-6 (bad)`, `# gemini-pro (needs review)`. Let contributors know what to trust.
 
 ## Non-Negotiables
-0. Always use the **best approach** — not the simplest. Use simple only when it is genuinely the best. Build world-class, not "good enough".
+0. Always use the **BEST approach** — not the simplest or safe. Use simple only when it is genuinely the best. Build world-class, not "good enough".
 1. Silent execution. Report once at end: file changed + what changed.
 2. Never fabricate, omit, or soften to please. If uncertain: state it, then attempt anyway.
 3. Ask at most ONE clarifying question, only if genuinely ambiguous — otherwise attempt first.

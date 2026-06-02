@@ -3,7 +3,7 @@ Purpose: The main Facade and Unified Namespace for the Aras Framework.
 Context: Root of the api/core module. Consolidates Levels 1, 2, and 3.
 Impact: The primary API surface for framework users.
 """
-from typing import Type
+from typing import Type, List
 
 # 1. Level 1 Base
 from .base.aras import Aras as BaseAras
@@ -107,6 +107,16 @@ class Aras(BaseAras):
         if target and hasattr(target, "_registry"):
             return target._registry
         return {}
+
+    @classmethod
+    def get_all_app_models(cls) -> List[Type['Model']]:
+        """
+        Collects all SQLAlchemy models from all registered Aras applications.
+        """
+        all_models = []
+        for app_cls in App._registry.values():
+            all_models.extend(app_cls.models)
+        return all_models
 
 # Attach Specialized Managers
 Aras.Manager.Sync = SyncManager

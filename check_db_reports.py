@@ -18,7 +18,8 @@ def check_reports():
             print(f"ID: {row[0]}, Code: {row[1]}, Name: {row[2]}, OrgID: {row[3]}")
             
         orgs = db.execute(text("SELECT id, name FROM erp_config_organizations")).fetchall()
-        print("\nOrganizations:")
+        print("
+Organizations:")
         for row in orgs:
             print(f"ID: {row[0]}, Name: {row[1]}")
             

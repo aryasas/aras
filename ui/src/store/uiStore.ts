@@ -32,7 +32,7 @@ interface UIStore {
   dialog: DialogState;
   panel: PanelState;
   darkMode: boolean;
-  themeMode: 'light' | 'normal' | 'dark';
+  themeMode: 'light' | 'dark';
   cornerMode: 'rounded' | 'square';
   density: 'compact' | 'regular' | 'comfy';
   accentColor: string;
@@ -107,7 +107,7 @@ export const useUIStore = create<UIStore>()(
       dialog: defaultDialog,
       panel: defaultPanel,
       darkMode: false,
-      themeMode: 'normal',
+      themeMode: 'light',
       cornerMode: 'rounded',
       density: 'regular',
       accentColor: '#4F46E5',
@@ -149,13 +149,14 @@ export const useUIStore = create<UIStore>()(
       toggleDarkMode: () => {
         const next = !get().darkMode
         document.documentElement.classList.toggle('dark', next)
-        set({ darkMode: next, themeMode: next ? 'dark' : 'normal' })
+        set({ darkMode: next, themeMode: next ? 'dark' : 'light' })
       },
       toggleSidebar: () => set({ sidebarCollapsed: !get().sidebarCollapsed }),
       toggleIconRail: () => set({ iconRailCollapsed: !get().iconRailCollapsed }),
       setTopbarNavStyle: (topbarNavStyle) => set({ topbarNavStyle }),
       setThemeMode: (themeMode) => {
         document.documentElement.classList.toggle('dark', themeMode === 'dark')
+        document.documentElement.setAttribute('data-theme', themeMode === 'dark' ? 'dark' : 'light')
         set({ themeMode, darkMode: themeMode === 'dark' })
       },
       setCornerMode: (cornerMode) => set({ cornerMode }),
@@ -239,8 +240,14 @@ export const useUIStore = create<UIStore>()(
         inlineEdit: s.inlineEdit,
         submenuOrder: s.submenuOrder,
       }),
+      migrate: (persisted: any) => {
+        if (persisted?.themeMode && persisted.themeMode !== 'dark') persisted.themeMode = 'light'
+        return persisted
+      },
       onRehydrateStorage: () => (state) => {
-        if (state?.themeMode === 'dark' || state?.darkMode) document.documentElement.classList.add('dark')
+        const mode = state?.themeMode === 'dark' ? 'dark' : 'light'
+        if (mode === 'dark' || state?.darkMode) document.documentElement.classList.add('dark')
+        document.documentElement.setAttribute('data-theme', mode)
       },
     }
   )

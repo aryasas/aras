@@ -21,10 +21,9 @@ export default function DynamicView() {
     segments = [app, model]
     if (paramId) segments.push(paramId)
   } else if (resourceParam) {
-    // dev/:resource — e.g. "core-apps" → "core_apps"
-    const normalized = resourceParam.replace(/-/g, '_')
-    if (paramId) segments = [normalized, paramId]
-    else segments = [normalized]
+    // Derive segments from pathname to preserve app prefix (e.g. /dev/style-overrides → dev/style_overrides)
+    const pathSegments = location.pathname.replace(/^\//, '').split('/').filter(Boolean)
+    segments = pathSegments.map(s => s.replace(/-/g, '_'))
   }
 
   let resource = ""

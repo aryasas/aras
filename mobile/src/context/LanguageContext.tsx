@@ -1,8 +1,8 @@
 // claude-haiku-4-5
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import en from '../locales/en.json';
 import id from '../locales/id.json';
+import { getStoredValue, setStoredValue } from '../lib/storage';
 
 type Lang = 'en' | 'id';
 type Locales = typeof en;
@@ -26,7 +26,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     const loadLang = async () => {
       try {
-        const saved = await AsyncStorage.getItem(STORAGE_KEY);
+        const saved = await getStoredValue(STORAGE_KEY);
         if (saved === 'en' || saved === 'id') {
           setLangState(saved);
         }
@@ -42,7 +42,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const setLang = useCallback(async (newLang: Lang) => {
     setLangState(newLang);
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, newLang);
+      await setStoredValue(STORAGE_KEY, newLang);
     } catch (e) {
       console.error('Failed to save language', e);
     }
