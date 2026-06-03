@@ -1,11 +1,11 @@
 from datetime import date, datetime, timezone
 from typing import Optional
 from sqlalchemy import String, ForeignKey, Float, Date, Integer, Boolean, Numeric, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship, object_session
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core import Aras, LinkedDoc
 from core.response import ok
 from core.exceptions import ValidationException
-from apps.base import MasterDataBase, DocumentBase, LineItemBase
+from apps.base import MasterDataBase, DocumentBase, LineItemBase, TradeDocumentBase
 
 class Account(MasterDataBase):
     __tablename__ = "accounting_accounts"
@@ -103,7 +103,7 @@ class JournalEntryLine(LineItemBase):
 
 from .services.recalc_mixin import DocumentRecalcMixin
 
-class InflowInvoice(DocumentBase, DocumentRecalcMixin):
+class InflowInvoice(TradeDocumentBase, DocumentRecalcMixin):
     __tablename__ = "accounting_inflow_invoices"
     __soft_delete__ = True
     __linked_docs__ = [
@@ -111,29 +111,12 @@ class InflowInvoice(DocumentBase, DocumentRecalcMixin):
         LinkedDoc(table="stock_movements", filters={"origin_model": "@class_name", "origin_id": "@id"}, cascade=True),
     ]
 
-    party_id: Mapped[int] = mapped_column(ForeignKey("party_parties.id"))
-    currency_id: Mapped[int] = mapped_column(ForeignKey("config_currencies.id"), nullable=True)
-    pricelist_id: Mapped[Optional[int]] = mapped_column(ForeignKey("config_price_types.id"), nullable=True)
-    doc_type: Mapped[str] = mapped_column(String(20), default="Invoice", info={"choices": ["Order", "Invoice"]})
-    location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("stock_locations.id"), nullable=True)
-    journal_entry_id: Mapped[Optional[int]] = mapped_column(ForeignKey("accounting_entries.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "accounting/entries", "display_column": "number", "read_only": True})
-    stock_movement_id: Mapped[Optional[int]] = mapped_column(ForeignKey("stock_movements.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "stock/movements", "display_column": "number", "read_only": True})
-    pos_session_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("pot_sessions.id"), nullable=True, info={"hidden": True}
-    )
-
     lines: Mapped[list["InflowInvoiceLine"]] = relationship("InflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["InflowInvoiceCharge"]] = relationship("InflowInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
 
-    subtotal: Mapped[float] = mapped_column(Float, default=0)
-    total_charge: Mapped[float] = mapped_column(Float, default=0)
-    total_amount: Mapped[float] = mapped_column(Float, default=0)
-
-    @property
-    def journal_entries(self) -> list["JournalEntry"]:
-        db = object_session(self)
-        if db is None: return []
-        return db.query(JournalEntry).filter_by(source_type="InflowInvoice", source_id=self.id).all()
+    def get_gl_side(self) -> str: return "credit"
+    def get_payment_type(self) -> str: return "receivable"
+    def get_stock_movement_type(self) -> str: return "delivery"
 
     @Aras.model_action(name="create_invoice", permission="edit", label="Create Invoice")
     def create_invoice(self, db):
@@ -170,57 +153,6 @@ class InflowInvoice(DocumentBase, DocumentRecalcMixin):
         self.status = "Posted"
         return ok(invoice.to_dict(), message="Invoice created successfully.")
 
-    @property
-    @Aras.computed_field
-    def amount_paid(self) -> float:
-        db = object_session(self)
-        if db is None:
-            return 0.0
-        rows = db.query(PaymentAllocation).filter_by(invoice_type="InflowInvoice", invoice_id=self.id).all()
-        return sum(r.amount for r in rows)
-
-    @property
-    @Aras.computed_field
-    def amount_due(self) -> float:
-        return self.total_amount - self.amount_paid
-
-    @Aras.on_delete
-    def _cascade_payments(self, db):
-        allocs = db.query(PaymentAllocation).filter(
-            PaymentAllocation.invoice_type == "InflowInvoice",
-            PaymentAllocation.invoice_id == self.id
-        ).all()
-        payment_ids = {a.payment_id for a in allocs}
-        for a in allocs:
-            db.delete(a)
-        if payment_ids:
-            db.flush()
-            for pid in payment_ids:
-                if db.query(PaymentAllocation).filter_by(payment_id=pid).count() == 0:
-                    p = db.get(Payment, pid)
-                    if p and not getattr(p, "deleted_at", None):
-                        p.delete_self(db)
-
-    @Aras.model_action(name="post", permission="edit", label="Post Invoice")
-    def post(self, db):
-        if self.status != "Draft":
-            raise ValidationException(f"Invoice is already {self.status}.")
-        from core.logic.handler_registry import HandlerRegistry
-        for handler_name in ("post_stock_movement", "post_journal_entry"):
-            fn = HandlerRegistry.resolve(handler_name)
-            if fn is None:
-                raise ValidationException(f"Workflow handler '{handler_name}' not registered.")
-            fn(db=db, item=self, params={})
-        self.status = "Posted"
-        return ok({"status": self.status}, message="Inflow Invoice posted successfully.")
-
-    @Aras.computed_field
-    def payment_allocations(self) -> list["PaymentAllocation"]:
-        db = object_session(self)
-        if db is None:
-            return []
-        return db.query(PaymentAllocation).filter_by(invoice_type="InflowInvoice", invoice_id=self.id).all()
-
 class InflowInvoiceLine(LineItemBase):
     __tablename__ = "accounting_inflow_invoice_lines"
     __soft_delete__ = True
@@ -245,7 +177,7 @@ class InflowInvoiceCharge(LineItemBase):
     parent: Mapped["InflowInvoice"] = relationship("InflowInvoice", back_populates="charges")
 
 
-class OutflowInvoice(DocumentBase, DocumentRecalcMixin):
+class OutflowInvoice(TradeDocumentBase, DocumentRecalcMixin):
     __tablename__ = "accounting_outflow_invoices"
     __soft_delete__ = True
     __linked_docs__ = [
@@ -253,30 +185,14 @@ class OutflowInvoice(DocumentBase, DocumentRecalcMixin):
         LinkedDoc(table="stock_movements", filters={"origin_model": "@class_name", "origin_id": "@id"}, cascade=True),
     ]
 
-    party_id: Mapped[int] = mapped_column(ForeignKey("party_parties.id"))
-    currency_id: Mapped[int] = mapped_column(ForeignKey("config_currencies.id"), nullable=True)
-    pricelist_id: Mapped[Optional[int]] = mapped_column(ForeignKey("config_price_types.id"), nullable=True)
-    doc_type: Mapped[str] = mapped_column(String(20), default="Invoice", info={"choices": ["Order", "Invoice"]})
-    location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("stock_locations.id"), nullable=True)
     grn_id: Mapped[Optional[int]] = mapped_column(ForeignKey("accounting_grns.id"), nullable=True)
-    journal_entry_id: Mapped[Optional[int]] = mapped_column(ForeignKey("accounting_entries.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "accounting/entries", "display_column": "number", "read_only": True})
-    stock_movement_id: Mapped[Optional[int]] = mapped_column(ForeignKey("stock_movements.id"), nullable=True, info={"ui_type": "lookup", "target_resource": "stock/movements", "display_column": "number", "read_only": True})
-    pos_session_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("pot_sessions.id"), nullable=True, info={"hidden": True}
-    )
 
     lines: Mapped[list["OutflowInvoiceLine"]] = relationship("OutflowInvoiceLine", back_populates="parent", cascade="all, delete-orphan")
     charges: Mapped[list["OutflowInvoiceCharge"]] = relationship("OutflowInvoiceCharge", back_populates="parent", cascade="all, delete-orphan")
 
-    subtotal: Mapped[float] = mapped_column(Float, default=0)
-    total_charge: Mapped[float] = mapped_column(Float, default=0)
-    total_amount: Mapped[float] = mapped_column(Float, default=0)
-
-    @property
-    def journal_entries(self) -> list["JournalEntry"]:
-        db = object_session(self)
-        if db is None: return []
-        return db.query(JournalEntry).filter_by(source_type="OutflowInvoice", source_id=self.id).all()
+    def get_gl_side(self) -> str: return "debit"
+    def get_payment_type(self) -> str: return "payable"
+    def get_stock_movement_type(self) -> str: return "receipt"
 
     @Aras.model_action(name="create_invoice", permission="edit", label="Create Invoice")
     def create_invoice(self, db):
@@ -312,57 +228,6 @@ class OutflowInvoice(DocumentBase, DocumentRecalcMixin):
             ))
         self.status = "Posted"
         return ok(invoice.to_dict(), message="Invoice created successfully.")
-
-    @property
-    @Aras.computed_field
-    def amount_paid(self) -> float:
-        db = object_session(self)
-        if db is None:
-            return 0.0
-        rows = db.query(PaymentAllocation).filter_by(invoice_type="OutflowInvoice", invoice_id=self.id).all()
-        return sum(r.amount for r in rows)
-
-    @property
-    @Aras.computed_field
-    def amount_due(self) -> float:
-        return self.total_amount - self.amount_paid
-
-    @Aras.on_delete
-    def _cascade_payments(self, db):
-        allocs = db.query(PaymentAllocation).filter(
-            PaymentAllocation.invoice_type == "OutflowInvoice",
-            PaymentAllocation.invoice_id == self.id
-        ).all()
-        payment_ids = {a.payment_id for a in allocs}
-        for a in allocs:
-            db.delete(a)
-        if payment_ids:
-            db.flush()
-            for pid in payment_ids:
-                if db.query(PaymentAllocation).filter_by(payment_id=pid).count() == 0:
-                    p = db.get(Payment, pid)
-                    if p and not getattr(p, "deleted_at", None):
-                        p.delete_self(db)
-
-    @Aras.model_action(name="post", permission="edit", label="Post Invoice")
-    def post(self, db):
-        if self.status != "Draft":
-            raise ValidationException(f"Invoice is already {self.status}.")
-        from core.logic.handler_registry import HandlerRegistry
-        for handler_name in ("post_stock_movement", "post_journal_entry"):
-            fn = HandlerRegistry.resolve(handler_name)
-            if fn is None:
-                raise ValidationException(f"Workflow handler '{handler_name}' not registered.")
-            fn(db=db, item=self, params={})
-        self.status = "Posted"
-        return ok({"status": self.status}, message="Outflow Invoice posted successfully.")
-
-    @Aras.computed_field
-    def payment_allocations(self) -> list["PaymentAllocation"]:
-        db = object_session(self)
-        if db is None:
-            return []
-        return db.query(PaymentAllocation).filter_by(invoice_type="OutflowInvoice", invoice_id=self.id).all()
 
 class OutflowInvoiceLine(LineItemBase):
     __tablename__ = "accounting_outflow_invoice_lines"
@@ -453,7 +318,7 @@ class PaymentAllocation(LineItemBase):
     @property
     @Aras.computed_field
     def invoice_number(self) -> str:
-        db = object_session(self)
+        db = self.db_session
         if db is None:
             return ""
         if self.invoice_type == "InflowInvoice":

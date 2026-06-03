@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Key, RefreshCw, XCircle } from 'lucide-react'
 import api from '../lib/api'
 import { Card } from '../components/Card'
 import { PageShell } from '../components/PageShell'
 import { useAras } from '../aras-core/hooks/useAras'
+import { useAsyncData } from '../hooks/useAsyncData'
+import { fmtDate } from '../lib/formatters'
 
 interface LicenseStatusResponse {
   valid: boolean
@@ -22,35 +24,30 @@ const daysColor = (days?: number | null) => {
   return 'text-red-600'
 }
 
+// claude-sonnet-4-6
 export default function LicenseStatus() {
-  const { notify, formatDate } = useAras()
-  const [status, setStatus] = useState<LicenseStatusResponse | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { notify } = useAras()
   const [activating, setActivating] = useState(false)
   const [activateOpen, setActivateOpen] = useState(false)
   const [token, setToken] = useState('')
 
+  const { data: status, loading, reload: reloadStatus } = useAsyncData<LicenseStatusResponse>(
+    async () => {
+      try {
+        const res = await api.get('/license/status')
+        return res.data
+      } catch (err: any) {
+        notify(err.response?.data?.detail || 'Could not load license status', 'error')
+        throw err
+      }
+    }
+  )
+
   const expiryValue = status?.expires_at ?? status?.expiry_date ?? null
   const expiryLabel = useMemo(() => {
     if (!expiryValue) return 'Not provided'
-    return formatDate ? formatDate(expiryValue) : new Date(expiryValue).toLocaleDateString()
-  }, [expiryValue, formatDate])
-
-  const loadStatus = async () => {
-    setLoading(true)
-    try {
-      const response = await api.get('/license/status')
-      setStatus(response.data)
-    } catch (err: any) {
-      notify(err.response?.data?.detail || 'Could not load license status', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    loadStatus()
-  }, [])
+    return fmtDate(expiryValue)
+  }, [expiryValue])
 
   const activateLicense = async () => {
     const trimmed = token.trim()
@@ -62,7 +59,7 @@ export default function LicenseStatus() {
       setToken('')
       setActivateOpen(false)
       notify('License activated', 'success')
-      await loadStatus()
+      reloadStatus()
     } catch (err: any) {
       notify(err.response?.data?.detail || 'Failed to activate license', 'error')
     } finally {

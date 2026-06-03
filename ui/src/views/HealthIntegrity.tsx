@@ -1,23 +1,18 @@
-import { useState, useEffect } from 'react'
 import * as LucideIcons from 'lucide-react'
 import api from '../lib/api'
 import { devApi } from './devtools/devApi'
+import { useAsyncData } from '../hooks/useAsyncData'
+
+interface HealthData { stats: any[]; info: any }
 
 export default function HealthIntegrityView() {
-  const [stats, setStats] = useState<any[]>([])
-  const [info, setInfo] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    Promise.all([
-      api.get(devApi.stats),
-      api.get(devApi.info)
-    ]).then(([statsRes, infoRes]) => {
-      setStats(statsRes.data)
-      setInfo(infoRes.data)
-      setLoading(false)
-    })
-  }, [])
+  // claude-sonnet-4-6
+  const { data, loading } = useAsyncData<HealthData>(async () => {
+    const [statsRes, infoRes] = await Promise.all([api.get(devApi.stats), api.get(devApi.info)])
+    return { stats: statsRes.data, info: infoRes.data }
+  })
+  const stats = data?.stats ?? []
+  const info = data?.info ?? null
 
   if (loading) return <div className="p-12 text-center animate-pulse text-[var(--app-muted)]">Analyzing system health...</div>
 

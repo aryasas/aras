@@ -5,6 +5,7 @@ import { EmptyState } from '../components/EmptyState'
 import { LoadingState } from '../components/LoadingState'
 import { useUIStore } from '../store/uiStore'
 import { devApi } from './devtools/devApi'
+import { useAsyncData } from '../hooks/useAsyncData'
 
 type ActionName = 'create' | 'update' | 'delete' | 'read'
 
@@ -68,29 +69,16 @@ function buildFallbackCalendar(days: number, totals: ResourceTotals): DayBucket[
 export default function ActivityHeatmap() {
   const setPageTitle = useUIStore((s) => s.setPageTitle)
   const [days, setDays] = useState(90)
-  const [payload, setPayload] = useState<HeatmapResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  const load = () => {
-    setLoading(true)
-    api.get(devApi.activityHeatmap, { params: { days } })
-      .then((res) => {
-        setPayload(res.data)
-        setError(res.data?.error || null)
-      })
-      .catch((e) => setError(e?.response?.data?.detail || e.message || 'Failed to load activity heatmap'))
-      .finally(() => setLoading(false))
-  }
+  const { data: payload, loading, error, reload } = useAsyncData<HeatmapResponse>(
+    () => api.get(devApi.activityHeatmap, { params: { days } }).then((r) => r.data),
+    [days],
+  )
 
   useEffect(() => {
     setPageTitle('Activity Heatmap', 'Calendar view of framework audit activity.', 'DEV')
     return () => setPageTitle('', '', '')
   }, [setPageTitle])
-
-  useEffect(() => {
-    load()
-  }, [days])
 
   const calendar = useMemo(() => {
     if (!payload) return []
@@ -151,7 +139,7 @@ export default function ActivityHeatmap() {
               </button>
             ))}
           </div>
-          <button onClick={load} className="arc-btn" disabled={loading}>
+          <button onClick={reload} className="arc-btn" disabled={loading}>
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
         </div>

@@ -5,6 +5,7 @@ import { Activity, Play, RefreshCw, Search, Copy, Trash2 } from 'lucide-react'
 import api from '../lib/api'
 import { useUIStore } from '../store/uiStore'
 import { EmptyState } from '../components/EmptyState'
+import { StatusBadge } from '../components/StatusBadge'
 
 interface TaskStatus {
   task_id: string
@@ -31,13 +32,6 @@ function saveTracked(items: TrackedTask[]) {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(items.slice(0, 50))) } catch { /* ignore */ }
 }
 
-const statusTone = (s?: string): string => {
-  const v = (s || '').toLowerCase()
-  if (v === 'success' || v === 'finished' || v === 'done') return 'var(--success, #2e7d32)'
-  if (v === 'failed' || v === 'error') return 'var(--danger, #c62828)'
-  if (v === 'started' || v === 'running' || v === 'queued' || v === 'pending') return 'var(--accent)'
-  return 'var(--text-3)'
-}
 
 export default function BackgroundTasks() {
   const setPageTitle = useUIStore((s) => s.setPageTitle)
@@ -172,9 +166,7 @@ export default function BackgroundTasks() {
                 {t.status?.error && <> · <span style={{ color: 'var(--danger, #c62828)' }}>{t.status.error}</span></>}
               </div>
             </div>
-            <span className="arc-id shrink-0" style={{ color: statusTone(t.status?.status) }}>
-              {t.status?.status || 'unknown'}
-            </span>
+            <StatusBadge status={t.status?.status} />
             <button className="arc-btn" title="Copy task JSON" onClick={() => navigator.clipboard.writeText(JSON.stringify(t, null, 2))}>
               <Copy size={13} />
             </button>

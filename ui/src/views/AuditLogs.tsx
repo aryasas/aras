@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import api from '../lib/api'
 import { Search, Clock, User, ArrowRight, RefreshCw, Database, Plus, Edit2, Trash2 } from 'lucide-react'
 import Combobox from '../aras-core/components/Combobox'
+import { useAsyncData } from '../hooks/useAsyncData'
+import { fmtDateTime } from '../lib/formatters'
 
 interface LogEntry {
   id: number
@@ -67,7 +69,7 @@ function LogCard({ entry }: { entry: LogEntry }) {
             )}
             <span className="ml-auto flex items-center gap-1 text-xs text-[var(--app-muted)]">
               <Clock size={11} />
-              {new Date(entry.created_at).toLocaleString()}
+              {fmtDateTime(entry.created_at)}
             </span>
             {changedFields.length > 0 && (
               <span className="text-xs text-indigo-500 font-medium">{changedFields.length} field{changedFields.length !== 1 ? 's' : ''} changed</span>
@@ -102,41 +104,34 @@ function LogCard({ entry }: { entry: LogEntry }) {
   )
 }
 
+// claude-sonnet-4-6
 const AuditLogs = () => {
-  const [entries, setEntries] = useState<LogEntry[]>([])
-  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(30)
-  const [totalPages, setTotalPages] = useState(1)
   const [actionFilter, setActionFilter] = useState<string>('')
 
-  const fetchLogs = useCallback(async () => {
-    setLoading(true)
-    try {
-      const filters: any[] = []
-      if (actionFilter) filters.push({ field: 'action', op: '=', value: actionFilter })
-      const res = await api.get('/aras_activity_logs/', {
-        params: {
-          page,
-          per_page: perPage,
-          search: search || undefined,
-          filters: filters.length ? JSON.stringify(filters) : undefined,
-          order_by: 'id',
-          desc: true,
-        }
-      })
-      setEntries(res.data.items ?? [])
-      setTotalPages(res.data.pages ?? 1)
-    } catch {
-      setEntries([])
-    } finally {
-      setLoading(false)
-    }
+  const { data, loading, reload } = useAsyncData<{ items: LogEntry[]; pages: number }>(async () => {
+    const filters: any[] = []
+    if (actionFilter) filters.push({ field: 'action', op: '=', value: actionFilter })
+    const res = await api.get('/aras_activity_logs/', {
+      params: {
+        page,
+        per_page: perPage,
+        search: search || undefined,
+        filters: filters.length ? JSON.stringify(filters) : undefined,
+        order_by: 'id',
+        desc: true,
+      }
+    })
+    return res.data
   }, [page, perPage, search, actionFilter])
 
-  useEffect(() => { fetchLogs() }, [fetchLogs])
-  useEffect(() => { setPage(1) }, [search, actionFilter])
+  const entries = data?.items ?? []
+  const totalPages = data?.pages ?? 1
+
+  const setSearchAndReset = (v: string) => { setSearch(v); setPage(1) }
+  const setActionFilterAndReset = (v: string) => { setActionFilter(v); setPage(1) }
 
   return (
     <div className="space-y-6">
@@ -145,7 +140,7 @@ const AuditLogs = () => {
           <h1 className="text-3xl font-extrabold text-[var(--app-text)] tracking-tight">System Audit Trail</h1>
           <p className="text-[var(--app-muted)] mt-1">Full change history — click any entry to expand the field diff.</p>
         </div>
-        <button onClick={fetchLogs} className="flex items-center gap-2 px-4 py-2 bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius)] text-sm font-medium text-slate-600 hover:bg-[var(--app-panel-soft)] transition-all">
+        <button onClick={reload} className="flex items-center gap-2 px-4 py-2 bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius)] text-sm font-medium text-slate-600 hover:bg-[var(--app-panel-soft)] transition-all">
           <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh
         </button>
       </div>
@@ -158,14 +153,14 @@ const AuditLogs = () => {
             className="w-full pl-9 pr-4 py-2 bg-[var(--app-panel)] border border-[var(--app-border)] rounded-[var(--app-radius)] text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
             placeholder="Search resource, user..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => setSearchAndReset(e.target.value)}
           />
         </div>
         <div className="flex gap-2">
           {(['', 'INSERT', 'UPDATE', 'DELETE'] as const).map(a => (
             <button
               key={a}
-              onClick={() => setActionFilter(a)}
+              onClick={() => setActionFilterAndReset(a)}
               className={`px-3 py-1.5 rounded-[var(--app-radius)] text-xs font-bold border transition-all ${actionFilter === a ? 'bg-[var(--app-accent)] text-white border-indigo-600' : 'bg-[var(--app-panel)] border-[var(--app-border)] text-slate-600 hover:bg-[var(--app-panel-soft)]'}`}
             >
               {a || 'All'}

@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Copy, CreditCard, Eye, EyeOff } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { MODULE_LABELS, formatPrice } from '../lib/planUtils'
+import { MODULE_LABELS } from '../lib/planUtils'
+import { formatCurrency } from '../lib/formatters'
 import { useNotify } from '../aras-core/contexts/NotificationContext'
 
 interface Plan {
@@ -362,7 +363,7 @@ export default function CustomerPortal() {
                 <p className="text-xs text-[var(--text-3)]">{subscription.tenant_id}</p>
                 <h2 className="mt-1 text-2xl font-bold">{subscription.plan.name}</h2>
                 <p className="mt-1 text-sm text-[var(--text-2)]">
-                  {formatPrice(subscription.plan.price)}
+                  {formatCurrency(subscription.plan.price, subscription.plan.currency)}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-1">
                   {subscription.plan.active_modules.map((m) => (
@@ -408,7 +409,7 @@ export default function CustomerPortal() {
               </div>
               <div>
                 <p className="text-xs text-[var(--text-3)]">Amount</p>
-                <p className="mt-1 text-sm font-medium">{formatPrice(subscription.plan.price)}</p>
+                <p className="mt-1 text-sm font-medium">{formatCurrency(subscription.plan.price, subscription.plan.currency)}</p>
               </div>
               <div>
                 <p className="text-xs text-[var(--text-3)]">Trial ends</p>
@@ -539,7 +540,7 @@ export default function CustomerPortal() {
                 <div key={p.id} className="flex items-center justify-between rounded-[var(--radius)] border border-[var(--line)] px-4 py-3">
                   <div>
                     <p className="font-semibold">{p.name}</p>
-                    <p className="text-xs text-[var(--text-2)]">Rp {p.price.toLocaleString('id-ID')}/bulan · {p.max_users === -1 ? 'Unlimited' : p.max_users} pengguna</p>
+                    <p className="text-xs text-[var(--text-2)]">{formatCurrency(p.price, p.currency)} · {p.max_users === -1 ? 'Unlimited' : p.max_users} pengguna</p>
                   </div>
                   <Link
                     to={`/signup?plan=${p.plan_key}`}

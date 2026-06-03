@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { X } from 'lucide-react'
 import api from '../lib/api'
 import ArasTable from '../aras-core/components/ArasTable'
+import { useAsyncData } from '../hooks/useAsyncData'
 
 type AccessScope = 'ALL' | 'SPECIFIC' | 'NONE'
 
@@ -26,27 +27,24 @@ const scopeLabels: Record<AccessScope, string> = {
   NONE: 'No Access',
 }
 
+// claude-sonnet-4-6
 const ErpUserAccess = () => {
-  const [users, setUsers] = useState<UserRow[]>([])
-  const [orgs, setOrgs] = useState<OrgRow[]>([])
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null)
   const [panelOpen, setPanelOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [scope, setScope] = useState<AccessScope>('NONE')
   const [selectedOrgIds, setSelectedOrgIds] = useState<number[]>([])
 
-  const fetchData = async () => {
+  const { data, reload: reloadData } = useAsyncData<{ users: UserRow[]; orgs: OrgRow[] }>(async () => {
     const [usersRes, orgsRes] = await Promise.all([
       api.get('/config/erp-rbac/users'),
       api.get('/config/erp-rbac/orgs'),
     ])
-    setUsers(usersRes.data)
-    setOrgs(orgsRes.data)
-  }
+    return { users: usersRes.data, orgs: orgsRes.data }
+  })
 
-  useEffect(() => {
-    fetchData()
-  }, [])
+  const users = data?.users ?? []
+  const orgs = data?.orgs ?? []
 
   const openPanel = (user: UserRow) => {
     setSelectedUser(user)
@@ -78,7 +76,7 @@ const ErpUserAccess = () => {
         scope,
         org_ids: scope === 'SPECIFIC' ? selectedOrgIds : [],
       })
-      await fetchData()
+      await reloadData()
       closePanel()
     } finally {
       setSaving(false)
@@ -90,7 +88,7 @@ const ErpUserAccess = () => {
     setSaving(true)
     try {
       await api.delete(`/config/erp-rbac/users/${selectedUser.id}`)
-      await fetchData()
+      await reloadData()
       closePanel()
     } finally {
       setSaving(false)

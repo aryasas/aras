@@ -2,6 +2,7 @@ import { useLocation } from 'react-router-dom'
 import { useNotify } from '../contexts/NotificationContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import api from '../../lib/api'
+import { formatCurrency as formatMoney } from '../../lib/formatters'
 
 export const useAras = () => {
   const notify = useNotify()
@@ -15,6 +16,6 @@ export const useAras = () => {
     api,
     appName,
     formatDate: (date: string) => new Date(date).toLocaleDateString(),
-    formatCurrency: (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
+    formatCurrency: (amount: number) => formatMoney(amount)
   }
 }

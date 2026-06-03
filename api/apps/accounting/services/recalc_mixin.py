@@ -1,6 +1,6 @@
 from core import Aras
+from core.lib import math_utils
 from typing import Any
-from sqlalchemy.orm import object_session
 
 class DocumentRecalcMixin:
     """
@@ -14,11 +14,11 @@ class DocumentRecalcMixin:
         Calculates subtotal from lines, updates charges (supporting percent/fixed),
         and sets the final total_amount.
         """
-        db = object_session(self)
+        db = self.db_session
         
         # 1. Calculate Subtotal from lines: qty * (unit_price - discount)
         for line in self.lines:
-            line.amount = line.qty * (line.unit_price - line.discount)
+            line.amount = math_utils.line_amount(line.qty, line.unit_price, line.discount)
         self.subtotal = sum(line.amount for line in self.lines)
         
         # 2. Update Charges and calculate total_charge
@@ -30,7 +30,7 @@ class DocumentRecalcMixin:
                 master = db.get(Charge, c.charge_id)
                 if master:
                     if master.calc_method == "Percent":
-                        c.amount = self.subtotal * (master.rate / 100.0)
+                        c.amount = math_utils.apply_percent_charge(self.subtotal, master.rate)
                     elif master.calc_method == "Fixed":
                         # If it's fixed, we might prefer the master amount if the line amount is 0
                         # or just keep the line amount if it was manually overridden.
@@ -46,7 +46,7 @@ class DocumentRecalcMixin:
         total_tax = getattr(self, 'total_tax', 0)
         
         # 4. Set Final Total Amount
-        self.total_amount = self.subtotal + total_tax + self.total_charge
+        self.total_amount = math_utils.invoice_total(self.subtotal, total_tax, self.total_charge)
 
     def recalc(self):
         """Public method to trigger recalculation."""

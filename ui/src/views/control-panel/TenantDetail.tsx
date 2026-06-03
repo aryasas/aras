@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, CreditCard, Database, FileText, KeyRound, Users } from 'lucide-react'
 import api from '../../lib/api'
+import { formatCurrency } from '../../lib/formatters'
 
 interface TenantMetrics {
   storage_bytes?: number
@@ -28,8 +29,8 @@ function bytes(value?: number) {
   return `${Math.round(amount / 1024)} KB`
 }
 
-function money(value?: number, currency = 'IDR') {
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency, maximumFractionDigits: currency === 'IDR' ? 0 : 2 }).format(Number(value || 0))
+function money(value?: number, currency?: string) {
+  return formatCurrency(Number(value || 0), currency)
 }
 
 function Sparkline({ values }: { values: number[] }) {
@@ -137,7 +138,7 @@ export default function TenantDetail() {
                   <p className="font-semibold text-[var(--text)]">{invoice.number || `Invoice #${invoice.id}`}</p>
                   <p className="text-xs text-[var(--text-3)]">{invoice.due_at ? new Date(invoice.due_at).toLocaleDateString('id-ID') : 'No due date'} · {invoice.status || 'unpaid'}</p>
                 </div>
-                <p className="font-semibold">{money(invoice.amount, invoice.currency || 'IDR')}</p>
+                <p className="font-semibold">{money(invoice.amount, invoice.currency)}</p>
               </div>
             ))}
           </div>

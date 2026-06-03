@@ -1,11 +1,13 @@
 // claude-opus-4-7
 // ARC handoff runs viewer: lists agent handoff records from /dev/dev_handoff_runs.
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { History, RefreshCw, GitBranch } from 'lucide-react'
 import api from '../lib/api'
 import { useUIStore } from '../store/uiStore'
 import { LoadingState } from '../components/LoadingState'
 import { EmptyState } from '../components/EmptyState'
+import { useAsyncData } from '../hooks/useAsyncData'
+import { StatusBadge } from '../components/StatusBadge'
 
 interface HandoffRun {
   id: number
@@ -21,31 +23,17 @@ interface HandoffRun {
 
 const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : '—')
 
-const statusTone = (s?: string | null): string => {
-  const v = (s || '').toLowerCase()
-  if (v.includes('success') || v.includes('done') || v.includes('approved')) return 'var(--success, #2e7d32)'
-  if (v.includes('fail') || v.includes('error') || v.includes('reject')) return 'var(--danger, #c62828)'
-  if (v.includes('run') || v.includes('progress')) return 'var(--accent)'
-  return 'var(--text-3)'
-}
 
 export default function HandoffRuns() {
   const setPageTitle = useUIStore((s) => s.setPageTitle)
-  const [runs, setRuns] = useState<HandoffRun[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  const load = () => {
-    setLoading(true)
-    api.get('/dev/dev_handoff_runs', { params: { limit: 100, sort: 'id', order: 'desc' } })
-      .then((res) => { setRuns(res.data?.items || []); setError(null) })
-      .catch((e) => setError(e?.response?.data?.detail || e.message || 'Failed to load handoff runs'))
-      .finally(() => setLoading(false))
-  }
+  const { data, loading, error, reload } = useAsyncData<{ items: HandoffRun[] }>(
+    () => api.get('/dev/dev_handoff_runs', { params: { limit: 100, sort: 'id', order: 'desc' } }).then((r) => r.data),
+  )
+  const runs = data?.items ?? []
 
   useEffect(() => {
     setPageTitle('Agent Handoff Runs', 'History of multi-agent task executions.', 'DEV')
-    load()
     return () => setPageTitle('', '', '')
   }, [setPageTitle])
 
@@ -61,7 +49,7 @@ export default function HandoffRuns() {
           <h1 className="text-[20px] font-semibold text-[var(--text)] tracking-tight mt-0.5">Agent Handoff Runs</h1>
           <div className="arc-dim text-[12px] mt-0.5">{runs.length} records · latest first</div>
         </div>
-        <button onClick={load} className="arc-btn" disabled={loading}>
+        <button onClick={reload} className="arc-btn" disabled={loading}>
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
         </button>
       </div>
@@ -91,9 +79,7 @@ export default function HandoffRuns() {
                   started {fmt(r.started_at)} · finished {fmt(r.finished_at)}
                 </div>
               </div>
-              <span className="arc-id shrink-0" style={{ color: statusTone(r.status) }}>
-                {(r.status || 'unknown').toLowerCase()}
-              </span>
+              <StatusBadge status={r.status} />
             </div>
           ))}
         </section>

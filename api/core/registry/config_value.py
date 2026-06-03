@@ -1,5 +1,5 @@
 # gemini-flash
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import String, JSON, DateTime, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from ..base.model import Model
@@ -27,4 +27,4 @@ class ConfigValueAudit(Model):
     old_value: Mapped[dict] = mapped_column(JSON, nullable=True)
     new_value: Mapped[dict] = mapped_column(JSON, nullable=True)
     user_id: Mapped[int] = mapped_column(nullable=True)
-    ts: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

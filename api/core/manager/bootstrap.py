@@ -14,6 +14,7 @@ def run(db: Session) -> None:
     _seed_admin(db)
     _seed_widgets(db)
     _seed_settings(db)
+    _seed_i18n(db)
     _seed_framework_rbac(db)
     _run_app_seeds(db)
     _seed_saas_plans(db)
@@ -93,6 +94,17 @@ def _seed_framework_rbac(db: Session) -> None:
     from core.seeds.loader import load_rbac
     seed_file = Path(__file__).parent.parent / "seeds" / "rbac_framework.yaml"
     load_rbac(seed_file, db)
+
+
+def _seed_i18n(db: Session) -> None:
+    from core.lib.i18n import seed_locale_translations
+    result = seed_locale_translations(db)
+    logger.info(
+        "Locale translations seeded: inserted=%d updated=%d skipped=%d",
+        result["inserted"],
+        result["updated"],
+        result["skipped"],
+    )
 
 
 def _run_app_seeds(db: Session) -> None:

@@ -2,12 +2,12 @@
 from core import Aras
 from ..models import RequestLog
 from sqlalchemy import func
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 class MetricsService(Aras):
     @classmethod
     def tenant_usage(cls, db, tenant_id):
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         thirty_days_ago = now - timedelta(days=30)
         
         request_count = db.query(func.count(RequestLog.id)).filter(

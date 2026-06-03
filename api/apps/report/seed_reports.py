@@ -1,9 +1,9 @@
 # claude-sonnet-4-6
 from sqlalchemy.orm import Session
 from core import Aras
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-TODAY = datetime.now().date()
+TODAY = datetime.now(timezone.utc).date()
 DATE_FROM = (TODAY - timedelta(days=365)).isoformat()
 DATE_TO = TODAY.isoformat()
 

@@ -6,6 +6,7 @@ from ..logic.permissions import check_permissions, RBAC
 from ..logic.ui_generator import UIGenerator
 from ..auth.service import get_current_user_optional, require_admin
 from ..auth.models import User
+from ..lib.i18n import load_locale_bundle
 
 if TYPE_CHECKING:
     from ..aras import Aras
@@ -77,6 +78,14 @@ def get_resource_metadata(
     if view_cls:
         return view_cls.render_metadata(db=db, lang=lang)
     return UIGenerator.generate_metadata(model_class, db=db, lang=lang)
+
+@router.get("/i18n/{lang}.json")
+def get_locale_bundle(
+    lang: str,
+    db: Session = Depends(get_db),
+):
+    """Returns a flat locale bundle for public and backend UI strings."""
+    return load_locale_bundle(lang, db=db)
 
 @router.get("/models")
 def get_registered_models(_ = Depends(require_admin)):

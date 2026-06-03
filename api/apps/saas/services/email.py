@@ -27,16 +27,30 @@ class ConsoleTransport(EmailTransport):
 
 # claude-sonnet-4-6
 class SMTPTransport(EmailTransport):
+    def __init__(self, db=None):
+        self._db = db
+
+    def _cfg(self, key: str, env_key: str, default: str = "") -> str:
+        if self._db:
+            try:
+                from core.lib.config import ConfigService
+                val = ConfigService.get(self._db, f"core.{key}")
+                if val:
+                    return str(val)
+            except Exception:
+                pass
+        return os.getenv(env_key, default)
+
     def send(self, to: str, subject: str, html: Optional[str] = None, text: Optional[str] = None):
-        smtp_host = os.getenv("SMTP_HOST")
+        smtp_host = self._cfg("smtp_host", "SMTP_HOST")
         if not smtp_host:
             logging.error("SMTP_HOST not set for SMTPTransport")
             return
-            
-        smtp_port = int(os.getenv("SMTP_PORT", 587))
-        smtp_user = os.getenv("SMTP_USER")
-        smtp_pass = os.getenv("SMTP_PASS")
-        smtp_from = os.getenv("SMTP_FROM", "noreply@aras.com")
+
+        smtp_port = int(self._cfg("smtp_port", "SMTP_PORT") or 587)
+        smtp_user = self._cfg("smtp_user", "SMTP_USER")
+        smtp_pass = self._cfg("smtp_password", "SMTP_PASS")
+        smtp_from = self._cfg("smtp_from", "SMTP_FROM", "noreply@aras.com")
 
         msg = EmailMessage()
         if text:
@@ -93,16 +107,16 @@ class ResendTransport(EmailTransport):
             logging.error(f"Failed to send email via Resend to {to}: {e}")
 
 # claude-sonnet-4-6
-def get_transport() -> EmailTransport:
+def get_transport(db=None) -> EmailTransport:
     backend = os.getenv("EMAIL_BACKEND", "console").lower()
     if backend == "smtp":
-        return SMTPTransport()
+        return SMTPTransport(db=db)
     elif backend == "resend":
         return ResendTransport()
     return ConsoleTransport()
 
 # claude-sonnet-4-6
-def send_setup_email(to_email: str, token: str, company_name: str):
+def send_setup_email(to_email: str, token: str, company_name: str, db=None):
     setup_url = f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/portal/setup?token={token}"
     subject = f"Welcome to Aras! Complete your setup for {company_name}"
     text = f"""
@@ -127,4 +141,4 @@ def send_setup_email(to_email: str, token: str, company_name: str):
     <p>Best regards,<br>Aras Team</p>
     """
     
-    get_transport().send(to_email, subject, html=html, text=text)
+    get_transport(db=db).send(to_email, subject, html=html, text=text)

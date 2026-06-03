@@ -9,6 +9,13 @@ from ..base.model import Model
 from ..registry.activity_log import ActivityLog
 from .manager import Manager
 
+PII_FIELDS = frozenset({
+    'password', 'password_hash', 'token', 'refresh_token', 'secret',
+    'email', 'phone', 'address', 'card', 'pan', 'cvv',
+    'bank_account', 'tax_id', 'national_id', 'passport',
+})
+
+# claude-sonnet-4-6
 class AuditManager(Manager):
     """
     Handles automated auditing for all models marked with the 'audit' feature.
@@ -63,20 +70,29 @@ class AuditManager(Manager):
                         
                         # Only log if they are actually different (avoid redundant logs)
                         if old_val != new_val:
-                            changes[col.name] = [cls._serialize(old_val), cls._serialize(new_val)]
-        
+                            if col.name.lower() in PII_FIELDS:
+                                changes[col.name] = ["[redacted]", "[redacted]"]
+                            else:
+                                changes[col.name] = [cls._serialize(old_val), cls._serialize(new_val)]
+
         elif action == "INSERT":
             # Log all non-null initial values
             for col in obj.__table__.columns:
                 val = getattr(obj, col.name, None)
                 if val is not None:
-                    changes[col.name] = [None, cls._serialize(val)]
+                    if col.name.lower() in PII_FIELDS:
+                        changes[col.name] = [None, "[redacted]"]
+                    else:
+                        changes[col.name] = [None, cls._serialize(val)]
 
         elif action == "DELETE":
             # Log final state before deletion
             for col in obj.__table__.columns:
                 val = getattr(obj, col.name, None)
-                changes[col.name] = [cls._serialize(val), None]
+                if col.name.lower() in PII_FIELDS:
+                    changes[col.name] = ["[redacted]", None]
+                else:
+                    changes[col.name] = [cls._serialize(val), None]
 
         if action == "UPDATE" and not changes:
             return # No relevant changes

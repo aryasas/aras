@@ -26,3 +26,8 @@ class CoreConfigApp(App):
     @classmethod
     def on_uninstall(cls, db, tenant_id):
         hooks.on_uninstall(db, tenant_id)
+
+    @classmethod
+    def seed(cls, db):
+        from core.lib.i18n import seed_locale_translations
+        seed_locale_translations(db)

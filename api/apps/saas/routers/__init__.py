@@ -11,7 +11,7 @@ from core.auth.models import User
 from ..services.license_service import LicenseService
 from core.auth.license import verify_license_token
 from core.auth.service import create_access_token, require_admin
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter(prefix="", tags=["SaaS Control Panel"])
 PUBLIC_PLAN_KEYS = ("free", "lite", "growth", "business", "enterprise")
@@ -226,7 +226,7 @@ def portal_payment_dev_bypass(
     if sub.status not in ("pending", "trial", "active"):
         raise HTTPException(status_code=400, detail=f"Cannot activate subscription in status {sub.status}")
 
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     sub.status = "active"
     sub.started_at = sub.started_at or now
     sub.expires_at = now + timedelta(days=30)

@@ -1,10 +1,10 @@
 # gemini-flash
 import logging
 import concurrent.futures
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from core import Aras
 from core.lib.query_builder import QueryBuilder
-from sqlalchemy.orm import Session, object_session
+from sqlalchemy.orm import Session
 from sqlalchemy import func, case, and_
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ class ReportService(Aras.Service):
     @classmethod
     def generate(cls, report_instance, filters=None, db=None, current_user=None):
         """Execute a database-defined builtin or ORM report."""
-        db = db or object_session(report_instance)
+        db = db or report_instance.db_session
         if not db:
             return {"error": "Database session not found for report instance."}
 
@@ -89,7 +89,7 @@ class ReportService(Aras.Service):
             "__builtins__": {} # NO __builtins__
         }
 
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
         try:
             # Wrap in executor for timeout
             with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -97,7 +97,7 @@ class ReportService(Aras.Service):
                 future.result(timeout=5) # 5s timeout
             
             result_data = safe_globals.get("result")
-            duration = (datetime.now() - start_time).total_seconds()
+            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
             
             # Log execution
             logger.info(f"Script report execution: user_id={current_user.id}, report_id={report.id}, duration={duration}s")

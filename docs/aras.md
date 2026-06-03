@@ -578,3 +578,52 @@ Be honest about quality: `# claude-sonnet-4-6 (bad)`, `# gemini-pro (needs revie
 ---
 ## Framework Change: Unknown (2026-05-30)
   - [GPT (codex)] Exported DynamicForm renderField for shared schema-driven settings rendering
+
+
+---
+## Compliance & Global Market Standards (2026-06-03)
+
+Aras targets EU, US, and SEA markets. All agents must read and enforce these before writing any code.
+
+### Payment Data — PCI-DSS SAQ-A
+- **Never** store PAN (card number), CVV, expiry, or bank credentials in DB, logs, or memory
+- Payment processing: Stripe/Midtrans/Xendit tokenization only — our DB stores only `payment_token` (opaque reference)
+- We are SAQ-A scope: redirect/iframe to PSP only, never handle raw card data server-side
+- Never log request/response bodies on payment endpoints
+- No payment data in URL params
+
+### GDPR (EU) / PDPA (SEA)
+- PII fields must be tagged `pii=True` in model field metadata: `email`, `phone`, `address`, `name`, `ip_address`, `device_id`
+- Audit diff redaction: `PII_FIELDS = {'password', 'token', 'secret', 'email', 'phone', 'address', 'card', 'pan', 'cvv'}` — redact before storing diff
+- Right to erasure: user deletion anonymizes `user_id` in audit logs (replace with `"[deleted]"`), does NOT cascade-delete records
+- Retention: `retention_days` column required on `AuditLog` and all log models; cron cleanup job required
+- Consent: marketing opt-in stored with `consented_at` timestamp
+
+### Password & Auth
+- Passwords: bcrypt only, min length enforced server-side before hashing
+- JWT: access token 15min expiry, refresh 7d with rotation on use
+- Rate limiting: auth endpoints 5 attempts/min per IP + per username (not just per IP)
+- No password/token in logs, audit diff, or error messages
+
+### Timezone — UTC everywhere
+- All `DateTime` columns: `DateTime(timezone=True)` — store UTC
+- Code: `datetime.now(timezone.utc)` always, never naive `datetime.now()`
+- Display: convert to user locale at render layer only
+
+### i18n / Currency
+- No hardcoded currency symbols (Rp, $, €) — `formatCurrency(amount, orgConfig)` always
+- No hardcoded date formats — `Intl.DateTimeFormat` with locale from org config
+- Error messages: use error keys, translate at display layer (Accept-Language or frontend i18n)
+
+### General Security
+- SQLAlchemy ORM only — no raw SQL string interpolation
+- CORS: explicit allowlist in production, never `*`
+- File uploads: MIME + extension whitelist, store outside webroot
+- No secrets/keys in source code or git history
+- CSP headers on all HTML responses
+
+---
+## Framework Change: TradeDocumentBase & math_utils (2026-06-03)
+- [Gemini 2.5 Flash] Introduced `TradeDocumentBase` in `api/apps/base/trade_document.py` for shared ERP document logic.
+- [Gemini 2.5 Flash] Added `math_utils.py` for standardized ERP calculations.
+- [Gemini 2.5 Flash] Added `db_session` property to `Aras.Model`.

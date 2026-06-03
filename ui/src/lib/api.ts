@@ -1,5 +1,7 @@
 import axios from 'axios'
 import { cleanResourcePath } from './resourceUtils'
+import en from '../locales/en.json'
+import id from '../locales/id.json'
 
 const DEV_MULTI_TENANT = import.meta.env.VITE_DEV_MULTI_TENANT === 'true'
 const TENANT_STORAGE_KEY = 'tenant_id'
@@ -28,15 +30,56 @@ interface ApiEnvelope<T = unknown> {
   message?: string | null
   error?: string | { message?: string; detail?: unknown } | null
   detail?: string | null
+  error_key?: string | null
 }
 
+type Lang = 'en' | 'id'
+const LOCALES: Record<Lang, Record<string, unknown>> = { en, id }
+
 function getEnvelopeErrorMessage(value: ApiEnvelope | Record<string, any>): string {
+  const translated = getEnvelopeErrorTranslation(value)
+  if (translated) return translated
   const error = value.error
   if (typeof error === 'string') return error
   if (error && typeof error === 'object' && typeof error.message === 'string') return error.message
   if (typeof value.detail === 'string') return value.detail
   if (typeof value.message === 'string') return value.message
   return 'Request failed'
+}
+
+function getEnvelopeErrorKey(value: ApiEnvelope | Record<string, any>): string | undefined {
+  const error = value.error
+  if (typeof value.error_key === 'string' && value.error_key) return value.error_key
+  if (typeof (value as any).error_key === 'string' && (value as any).error_key) return (value as any).error_key
+  if (error && typeof error === 'object') {
+    if (typeof (error as any).error_key === 'string' && (error as any).error_key) return (error as any).error_key
+    if (typeof (error as any).key === 'string' && (error as any).key) return (error as any).key
+  }
+  return undefined
+}
+
+function lookupLocaleString(locale: Record<string, unknown>, key: string): string | undefined {
+  if (!key) return undefined
+  const direct = locale[key]
+  if (typeof direct === 'string') return direct
+
+  const parts = key.split('.')
+  let current: unknown = locale
+  for (const part of parts) {
+    if (current && typeof current === 'object' && part in current) {
+      current = (current as Record<string, unknown>)[part]
+    } else {
+      return undefined
+    }
+  }
+  return typeof current === 'string' ? current : undefined
+}
+
+function getEnvelopeErrorTranslation(value: ApiEnvelope | Record<string, any>): string | undefined {
+  const key = getEnvelopeErrorKey(value)
+  if (!key) return undefined
+  const lang = (localStorage.getItem('aras_lang') === 'id' ? 'id' : 'en') as Lang
+  return lookupLocaleString(LOCALES[lang], key)
 }
 
 function getEnvelopeErrorCode(value: ApiEnvelope | Record<string, any>): string | undefined {
@@ -89,7 +132,7 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Normalize error responses and handle 401
+      // Normalize error responses and handle 401
 api.interceptors.response.use(
   (response) => {
     if (isApiEnvelope(response.data)) {
@@ -101,8 +144,9 @@ api.interceptors.response.use(
         const errorData = {
           ...response.data, // Preserve original data
           message: errorMessage,
-          detail: response.data.detail || errorMessage, // Ensure detail is also set for consistency
-          error: response.data.error || errorMessage, // Ensure error is also set
+          detail: errorMessage,
+          error: errorMessage,
+          error_key: response.data.error_key || getEnvelopeErrorKey(response.data),
         };
 
         const error = new Error(errorMessage) as Error & { response?: typeof response; code?: string };
@@ -136,10 +180,11 @@ api.interceptors.response.use(
       // This makes it consistent for consumers
       error.response.data = {
         ...d, // Preserve original data
-        error: d.error || errorMessage,
-        detail: d.detail || errorMessage,
-        message: d.message || errorMessage,
+        error: errorMessage,
+        detail: errorMessage,
+        message: errorMessage,
         code: d.code || error.code,
+        error_key: d.error_key || getEnvelopeErrorKey(d),
       };
     }
     if (error.response?.status === 401) {

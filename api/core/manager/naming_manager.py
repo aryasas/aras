@@ -4,7 +4,7 @@ Context: Level 2 Manager.
 Impact: Provides atomic incrementing and formatting for naming series.
 """
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
@@ -26,7 +26,7 @@ class SeriesManager(Manager):
         stmt = select(Series).where(Series.key == key).with_for_update()
         series = db.scalar(stmt)
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         year = now.year
 
         if not series:
@@ -71,7 +71,7 @@ class SeriesManager(Manager):
         series = db.scalar(sa_select(Series).where(Series.key == key))
         if not series:
             return None
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         year = now.year
         current_val = series.next_value
         if series.config.get("reset_yearly") and series.last_reset_year != year:

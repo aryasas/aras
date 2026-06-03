@@ -143,14 +143,20 @@ class Model(Aras, Base, QueryMixin, HookMixin, SerializationMixin):
     __m2m__: dict = {}
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    created_at: Mapped[datetime] = mapped_column(default=func.now(), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(default=func.now(), onupdate=func.now(), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now(), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), server_default=func.now())
     created_by: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     updated_by: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     _SKIP   = frozenset({"id", "created_at", "updated_at", "created_by", "updated_by", "deleted_at"})
     _SYSTEM = frozenset({"id", "created_at", "updated_at", "deleted_at", "created_by", "updated_by"})
+
+    @property
+    def db_session(self):
+        """Returns the current SQLAlchemy session for this object."""
+        from sqlalchemy.orm import object_session
+        return object_session(self)
 
     @classmethod
     def get(cls: Type[T], db: Session, item_id) -> Optional[T]:
@@ -174,24 +180,6 @@ class Model(Aras, Base, QueryMixin, HookMixin, SerializationMixin):
         if user_id:
             if is_new: self.created_by = user_id
             self.updated_by = user_id
-
-        # ── Series Generation ──
-        if is_new:
-            try:
-                from ...service_registry import ServiceRegistry
-                FieldModel = ServiceRegistry.get("FieldModel")
-                ResourceModel = ServiceRegistry.get("ResourceModel")
-                SeriesManager = ServiceRegistry.get("SeriesManager")
-                if ResourceModel and FieldModel and SeriesManager:
-                    res_rec = db.query(ResourceModel).filter(ResourceModel.name == self.__tablename__).first()
-                    if res_rec:
-                        fields_with_series = db.query(FieldModel).filter(FieldModel.resource_id == res_rec.id, FieldModel.series.isnot(None), FieldModel.series != "").all()
-                        for f_meta in fields_with_series:
-                            if not getattr(self, f_meta.name, None):
-                                series_key = f"{self.__tablename__}_{f_meta.name}"
-                                generated = SeriesManager.get_next(db, key=series_key, default_prefix=f_meta.series)
-                                setattr(self, f_meta.name, generated)
-            except Exception as e: logging.error(f"[Model] Series generation failed: {e}")
 
         # ── Parent Fallback ──
         parent_table = getattr(self.__class__, "__parent__", None)

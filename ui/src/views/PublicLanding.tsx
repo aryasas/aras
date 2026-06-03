@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MODULE_LABELS } from '../lib/planUtils'
+import { formatCurrency } from '../lib/formatters'
 import { useLanguage } from '../context/LanguageContext'
 import { useAuthStore } from '../store/authStore'
 import { useNotify } from '../aras-core/contexts/NotificationContext'
@@ -51,9 +52,9 @@ export default function PublicLanding() {
   const [landingError, setLandingError] = useState<string | null>(null)
   const [sectionsByKey, setSectionsByKey] = useState<Record<string, LandingSection>>({})
   const moduleLabel = (module: string) => t(`public.modules.${module}`, MODULE_LABELS[module] ?? module)
-  const formatLandingPrice = (price: number) => {
+  const formatLandingPrice = (price: number, currency?: string) => {
     if (price === 0) return t('public.pricing.free', 'Gratis')
-    return `Rp ${price.toLocaleString('id-ID')}`
+    return formatCurrency(price, currency)
   }
   const planFeatures = (plan: Plan) => {
     if (lang === 'en' && EN_PLAN_FEATURES[plan.plan_key]) return EN_PLAN_FEATURES[plan.plan_key]
@@ -213,7 +214,7 @@ export default function PublicLanding() {
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-[var(--text)] md:text-6xl">
             {hero?.title || t('public.hero.titleTop', 'Kelola bisnis lebih mudah,')}<br />
-            <span className="text-[var(--accent)]">{hero?.subtitle || t('public.hero.titleAccent', 'mulai dari Rp 0')}</span>
+            <span className="text-[var(--accent)]">{hero?.subtitle || `mulai dari ${formatLandingPrice(0)}`}</span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-[var(--text-2)]">
             {hero?.body || t('public.hero.description', 'POS, stok, hutang piutang, dan laporan keuangan dalam satu platform.')}
@@ -285,7 +286,7 @@ export default function PublicLanding() {
                   <div>
                     <h3 className="font-bold text-[var(--text)]">{plan.name}</h3>
                     <div className="mt-3">
-                      <span className="text-3xl font-bold">{formatLandingPrice(plan.price)}</span>
+                      <span className="text-3xl font-bold">{formatLandingPrice(plan.price, plan.currency)}</span>
                       {plan.price > 0 && <span className="text-sm text-[var(--text-3)]">{t('public.pricing.perMonth', '/bulan')}</span>}
                     </div>
 

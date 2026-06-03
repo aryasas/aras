@@ -41,7 +41,7 @@ class PaymentProviderRegistry(Aras):
     @classmethod
     def handle_webhook_success(cls, db, provider_code, event):
         from ..models import SaaSPayment, SaaSInvoice, Subscription
-        from datetime import datetime
+        from datetime import datetime, timezone
         # 1. Update/Create Payment
         payment = db.query(SaaSPayment).filter_by(provider_payment_id=event.payment_id, provider_code=provider_code).first()
         if not payment:
@@ -65,7 +65,7 @@ class PaymentProviderRegistry(Aras):
             invoice = db.query(SaaSInvoice).filter_by(subscription_id=payment.subscription_id, status="unpaid").first()
             if invoice:
                 invoice.status = "paid"
-                invoice.paid_at = datetime.now()
+                invoice.paid_at = datetime.now(timezone.utc)
                 invoice.payment_id = payment.id
             
             # 3. Fire Subscription.approve if pending

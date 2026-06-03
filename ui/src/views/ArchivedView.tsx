@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, RotateCcw, Archive } from 'lucide-react'
 import api from '../lib/api'
@@ -7,6 +7,7 @@ import { useAras } from '../aras-core/hooks/useAras'
 import { LoadingState } from '../components/LoadingState'
 import { EmptyState } from '../components/EmptyState'
 import ArasTable from '../aras-core/components/ArasTable'
+import { useAsyncData } from '../hooks/useAsyncData'
 
 interface Field {
   name: string
@@ -16,6 +17,9 @@ interface Field {
   list_hidden?: boolean
 }
 
+interface MetaResult { title: string; columns: Field[] }
+interface RowsResult { rows: any[] }
+
 export default function ArchivedView() {
   const params = useParams()
   const navigate = useNavigate()
@@ -23,45 +27,29 @@ export default function ArchivedView() {
   const resource = useMemo(() => params['*'] || '', [params])
   const cleanResource = useMemo(() => cleanResourcePath(resource), [resource])
 
-  const [rows, setRows] = useState<any[]>([])
-  const [columns, setColumns] = useState<Field[]>([])
-  const [resourceTitle, setResourceTitle] = useState('')
-  const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<string | number | null>(null)
 
-  const loadMetadata = useCallback(async () => {
-    if (!cleanResource) return
+  const { data: meta } = useAsyncData<MetaResult>(async () => {
     try {
       const res = await api.get(`/${cleanResource}/metadata`)
-      const meta = res.data?.data ?? res.data
-      setResourceTitle(meta?.title ?? cleanResource)
-      const cols: Field[] = (meta?.fields ?? []).filter(
-        (f: Field) => !f.hidden && !f.list_hidden && f.type !== 'child_table'
-      ).slice(0, 6)
-      setColumns(cols)
+      const m = res.data?.data ?? res.data
+      const cols: Field[] = (m?.fields ?? [])
+        .filter((f: Field) => !f.hidden && !f.list_hidden && f.type !== 'child_table')
+        .slice(0, 6)
+      return { title: m?.title ?? cleanResource, columns: cols }
     } catch {
-      // fallback: show id + name columns
-      setColumns([{ name: 'id', label: 'ID', type: 'integer' }, { name: 'number', label: 'Number', type: 'text' }])
+      return { title: cleanResource, columns: [{ name: 'id', label: 'ID', type: 'integer' }, { name: 'number', label: 'Number', type: 'text' }] }
     }
   }, [cleanResource])
 
-  const loadRows = useCallback(async () => {
-    if (!cleanResource) return
-    try {
-      setLoading(true)
-      const res = await api.get(`/${cleanResource}/deleted`)
-      setRows(res.data?.data?.items ?? res.data?.items ?? res.data ?? [])
-    } catch (err: any) {
-      notify(err.message || 'Failed to load archived records', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }, [cleanResource, notify])
+  const { data: rowsData, loading, reload: reloadRows } = useAsyncData<RowsResult>(async () => {
+    const res = await api.get(`/${cleanResource}/deleted`)
+    return { rows: res.data?.data?.items ?? res.data?.items ?? res.data ?? [] }
+  }, [cleanResource])
 
-  useEffect(() => {
-    loadMetadata()
-    loadRows()
-  }, [loadMetadata, loadRows])
+  const rows = rowsData?.rows ?? []
+  const columns = meta?.columns ?? []
+  const resourceTitle = meta?.title ?? cleanResource
 
   const restore = async () => {
     if (!selectedId) return
@@ -69,7 +57,7 @@ export default function ArchivedView() {
       await api.post(`/${cleanResource}/${selectedId}/restore`)
       notify('Record restored', 'success')
       setSelectedId(null)
-      loadRows()
+      reloadRows()
     } catch (err: any) {
       notify(err.message || 'Failed to restore record', 'error')
     }

@@ -92,5 +92,11 @@
   "public.modules.pos": "POS",
   "public.modules.stock": "Stok",
   "public.modules.receivable": "Hutang Piutang",
-  "public.modules.accounting": "Accounting"
+  "public.modules.accounting": "Accounting",
+  "validation.required": "Kolom ini wajib diisi.",
+  "validation.unique": "Nilai ini harus unik.",
+  "record.not_found": "Data yang diminta tidak ditemukan.",
+  "auth.invalid_credentials": "Email atau kata sandi tidak valid.",
+  "auth.token_expired": "Sesi Anda telah berakhir. Silakan masuk kembali.",
+  "permission.denied": "Anda tidak memiliki izin untuk melakukan tindakan ini."
 }

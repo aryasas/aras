@@ -92,5 +92,11 @@
   "public.modules.pos": "POS",
   "public.modules.stock": "Inventory",
   "public.modules.receivable": "Payables/Receivables",
-  "public.modules.accounting": "Accounting"
+  "public.modules.accounting": "Accounting",
+  "validation.required": "This field is required.",
+  "validation.unique": "This value must be unique.",
+  "record.not_found": "The requested record could not be found.",
+  "auth.invalid_credentials": "Invalid email or password.",
+  "auth.token_expired": "Your session has expired. Please sign in again.",
+  "permission.denied": "You do not have permission to perform this action."
 }

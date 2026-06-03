@@ -128,32 +128,28 @@ class Item(MasterDataBase):
     @Aras.computed_field
     def qty_on_hand(self) -> float:
         from .services.stock import StockComputeService
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
+        db = self.db_session
         if not db: return 0
         return StockComputeService.compute_qty(db, self.id)
 
     @Aras.computed_field
     def stock_by_location(self) -> list:
         from .services.stock import StockComputeService
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
+        db = self.db_session
         if not db: return []
         return StockComputeService.compute_qty_by_location(db, self.id)
 
     @Aras.computed_field
     def default_sale_price(self) -> float:
         from .services.price import PriceService
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
+        db = self.db_session
         if not db: return 0.0
         return PriceService.get_price(db, self.id)
 
     @Aras.computed_field
     def default_purchase_price(self) -> float:
         from .services.price import PriceService
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
+        db = self.db_session
         if not db: return 0.0
         return PriceService.get_price(db, self.id)
 

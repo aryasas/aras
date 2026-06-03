@@ -1,9 +1,10 @@
 # gemini-flash
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import String, JSON, DateTime, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 from ..base.model import Model
 
+# claude-sonnet-4-6
 class AuditLog(Model):
     """Generic audit log for all system changes."""
     __tablename__ = "core_audit_log"
@@ -15,4 +16,5 @@ class AuditLog(Model):
     row_id: Mapped[str] = mapped_column(String(100), index=True)
     action: Mapped[str] = mapped_column(String(20), index=True) # "insert", "update", "delete"
     diff_json: Mapped[dict] = mapped_column(JSON, nullable=True)
-    ts: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    retention_days: Mapped[int] = mapped_column(Integer, nullable=True)  # NULL = keep forever

@@ -22,7 +22,7 @@ def setup_subscription(db):
     db.add(sub)
     db.commit()
     
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     inv = SaaSInvoice(
         subscription_id=sub.id,
         number="INV-123",

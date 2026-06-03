@@ -524,3 +524,19 @@ This file is used only to report if there are feature added
 
 ## Unknown (2026-06-03)
   - [GPT (codex)] automatic dark-mode app config, secure-store plugin registration, login autofill and workspace URL normalization, time-aware home greeting, POS skeleton loading and invoice change display, unsaved-changes protection
+
+
+## Unknown (2026-06-03)
+  - [GPT (codex)] Frontend CRUD hooks for model fetch, list views, and form state
+
+
+## Global Market Compliance — PCI-DSS, GDPR, PDPA, Password Policy, Audit PII Masking, Timezone UTC, Currency i18n (2026-06-03)
+  - [GPT (codex)] locale-aware currency formatting, Intl-based date formatting, localized API error mapping, and baseline accessibility wrappers
+
+
+## Global Market Compliance — PCI-DSS, GDPR, PDPA, Password Policy, Audit PII Masking, Timezone UTC, Currency i18n — revision (2026-06-03)
+  - [GPT (codex)] public landing hero currency fallback polish
+
+
+## Global Market Compliance — PCI-DSS, GDPR, PDPA, Password Policy, Audit PII Masking, Timezone UTC, Currency i18n — revision (2026-06-03)
+  - [GPT (codex)] localized backend error keys for EN and ID

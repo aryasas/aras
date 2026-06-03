@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { MODULE_LABELS, formatPrice } from '../lib/planUtils'
+import { MODULE_LABELS } from '../lib/planUtils'
+import { formatCurrency } from '../lib/formatters'
 import { useLanguage } from '../context/LanguageContext'
 import { useNotify } from '../aras-core/contexts/NotificationContext'
 
@@ -55,11 +56,9 @@ export default function CustomerSignup() {
   const [plansError, setPlansError] = useState<string | null>(null)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const moduleLabel = (module: string) => t(`public.modules.${module}`, MODULE_LABELS[module] ?? module)
-  const localizedPrice = (price: number) => {
+  const localizedPrice = (price: number, currency?: string) => {
     if (price === 0) return t('public.pricing.free', 'Gratis')
-    return lang === 'id'
-      ? formatPrice(price)
-      : `Rp ${price.toLocaleString('id-ID')}${t('public.pricing.perMonth', '/month')}`
+    return `${formatCurrency(price, currency)}${t('public.pricing.perMonth', '/month')}`
   }
   const planFeatures = (plan: Plan) => {
     if (lang === 'en' && EN_PLAN_FEATURES[plan.plan_key]) return EN_PLAN_FEATURES[plan.plan_key]
@@ -254,7 +253,7 @@ export default function CustomerSignup() {
               <option value="">{t('public.signup.planPlaceholder', '-- Pilih paket --')}</option>
               {plans.map((p) => (
                 <option key={p.id} value={p.plan_key}>
-                  {p.name} — {localizedPrice(p.price)}
+                  {p.name} — {localizedPrice(p.price, p.currency)}
                 </option>
               ))}
             </select>
@@ -300,7 +299,7 @@ export default function CustomerSignup() {
               <p className="text-xs font-semibold uppercase text-[var(--text-3)]">{t('public.signup.selectedPlan', 'Paket Dipilih')}</p>
               <h3 className="mt-2 text-xl font-bold">{selectedPlan.name}</h3>
               <p className="text-2xl font-bold text-[var(--accent)]">
-                {localizedPrice(selectedPlan.price)}
+                {localizedPrice(selectedPlan.price, selectedPlan.currency)}
               </p>
 
               <div className="mt-4 flex flex-wrap gap-1">

@@ -29,10 +29,13 @@ class PotSession(DocumentBase):
 
     @Aras.computed_field
     def total_sales(self) -> float:
+        """
+        Calculates total sales for the session.
+        Note: Uses raw SQL for line amount calculation (math_utils logic in SQL).
+        """
         from apps.accounting.models import InflowInvoice, InflowInvoiceLine
         from sqlalchemy import func, select
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
+        db = self.db_session
         if not db: return 0.0
         stmt = (
             select(func.sum(InflowInvoiceLine.qty * (InflowInvoiceLine.unit_price - InflowInvoiceLine.discount)))
@@ -43,10 +46,13 @@ class PotSession(DocumentBase):
 
     @Aras.computed_field
     def total_purchase(self) -> float:
+        """
+        Calculates total purchase for the session.
+        Note: Uses raw SQL for line amount calculation (math_utils logic in SQL).
+        """
         from apps.accounting.models import OutflowInvoice, OutflowInvoiceLine
         from sqlalchemy import func, select
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
+        db = self.db_session
         if not db: return 0.0
         stmt = (
             select(func.sum(OutflowInvoiceLine.qty * (OutflowInvoiceLine.unit_price - OutflowInvoiceLine.discount)))
@@ -59,8 +65,7 @@ class PotSession(DocumentBase):
     def invoice_count(self) -> int:
         from apps.accounting.models import InflowInvoice, OutflowInvoice
         from sqlalchemy import func, select
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
+        db = self.db_session
         if not db: return 0
         inflow = db.scalar(select(func.count(InflowInvoice.id)).where(InflowInvoice.pos_session_id == self.id)) or 0
         outflow = db.scalar(select(func.count(OutflowInvoice.id)).where(OutflowInvoice.pos_session_id == self.id)) or 0
@@ -70,8 +75,7 @@ class PotSession(DocumentBase):
     def payment_summary(self) -> list:
         from apps.accounting.models import InflowInvoice, OutflowInvoice, Payment, PaymentAllocation
         from sqlalchemy import func, select
-        from sqlalchemy.orm import object_session
-        db = object_session(self)
+        db = self.db_session
         if not db: return []
 
         in_ids = db.scalars(select(InflowInvoice.id).where(InflowInvoice.pos_session_id == self.id)).all()
@@ -110,8 +114,6 @@ class PotSession(DocumentBase):
 
     @Aras.model_action(name="shift_report", permission="read", label="Shift Report")
     def shift_report(self, db):
-        from sqlalchemy.orm import object_session
-        s = object_session(self)
         return ok({
             "session_id": self.id,
             "session_number": self.number,

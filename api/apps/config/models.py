@@ -176,9 +176,7 @@ class Organization(ConfigBase):
     def before_save(self, is_new: bool, db=None):
         from apps.accounting.models import Account
         from core.exceptions import ValidationException
-        if db is None:
-            from sqlalchemy.orm import object_session
-            db = object_session(self)
+        db = db or self.db_session
         if not db:
             return
         lookup_org_id = self.coa_source_org_id or self.id
@@ -198,8 +196,7 @@ class Organization(ConfigBase):
 # after_insert fires after INSERT is flushed, so self.id is guaranteed to exist
 @event.listens_for(Organization, "after_insert")
 def _seed_reports_for_new_org(mapper, connection, target):
-    from sqlalchemy.orm import object_session
-    db = object_session(target)
+    db = target.db_session
     if db is None:
         return
     try:

@@ -634,7 +634,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
           )}
           {viewMode === 'list' && (
             <div className="md:overflow-x-auto">
-              <div className="aras-list-table md:[min-width:var(--list-min-width)]" style={{ '--list-min-width': typeof listMinWidth === 'number' ? `${listMinWidth}px` : listMinWidth } as CSSProperties & Record<'--list-min-width', string>}>
+            <div className="aras-list-table md:[min-width:var(--list-min-width)]" aria-live="polite" aria-busy={loading} style={{ '--list-min-width': typeof listMinWidth === 'number' ? `${listMinWidth}px` : listMinWidth } as CSSProperties & Record<'--list-min-width', string>}>
               {/* Section header row — only when at least one visible column has a section */}
               {listColumns.some(c => c.field.section) && (() => {
                 // Build section spans: [{label, span}] where span = number of grid columns
@@ -670,14 +670,16 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
               </div>
 
               {loading ? (
-                Array.from({ length: 10 }).map((_, i) => (
-                  <SkeletonRow 
-                    key={i} 
-                    variant="grid" 
-                    columns={listColumns.length + 2} 
-                    gridTemplateColumns={gridTemplateColumns} 
-                  />
-                ))
+                <div role="status" aria-label="Loading...">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <SkeletonRow
+                      key={i}
+                      variant="grid"
+                      columns={listColumns.length + 2}
+                      gridTemplateColumns={gridTemplateColumns}
+                    />
+                  ))}
+                </div>
               ) : data.length === 0 ? (
                 <div className="px-6 py-20 text-center">
                   <Search size={53} className="mb-4 text-[var(--app-border-strong)] mx-auto" />

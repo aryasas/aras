@@ -18,7 +18,7 @@ class NumberingService:
         Generates the next sequential number for a document type.
         Atomic via SELECT ... FOR UPDATE.
         """
-        now = datetime.datetime.now()
+        now = datetime.datetime.now(datetime.timezone.utc)
         year = now.year
         
         # 1. Get format from config
@@ -48,7 +48,7 @@ class NumberingService:
     @classmethod
     def peek(cls, db: Session, doc_type: str, org_id: int = 0) -> str:
         """Returns the next formatted number without incrementing."""
-        now = datetime.datetime.now()
+        now = datetime.datetime.now(datetime.timezone.utc)
         year = now.year
         format_key = f"core_config.numbering.{doc_type}"
         fmt = config.get(db, format_key)

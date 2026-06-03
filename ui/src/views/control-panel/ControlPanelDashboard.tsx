@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertCircle, Building2, RefreshCw, TrendingDown, TrendingUp } from 'lucide-react'
 import api from '../../lib/api'
+import { formatCurrency } from '../../lib/formatters'
 
 interface RevenueSummary {
   mrr?: number
@@ -30,13 +31,8 @@ interface PaymentRow {
   created_at?: string
 }
 
-function money(value?: number, currency = 'IDR') {
-  const amount = Number(value || 0)
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: currency === 'IDR' ? 0 : 2,
-  }).format(amount)
+function money(value?: number, currency?: string) {
+  return formatCurrency(Number(value || 0), currency)
 }
 
 function pct(value?: number) {
@@ -155,7 +151,7 @@ export default function ControlPanelDashboard() {
                   <p className="truncate text-sm font-semibold text-[var(--text)]">{payment.provider_payment_id || `Payment #${payment.id}`}</p>
                   <p className="text-xs text-[var(--text-3)]">{payment.provider_code || 'provider'} · {payment.status || 'unknown'}</p>
                 </div>
-                <p className="shrink-0 text-sm font-semibold">{money(payment.amount, payment.currency || 'IDR')}</p>
+                <p className="shrink-0 text-sm font-semibold">{money(payment.amount, payment.currency)}</p>
               </div>
             ))}
           </div>

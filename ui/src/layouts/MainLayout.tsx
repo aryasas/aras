@@ -298,10 +298,13 @@ const { notify } = useAras()
 
   return (
     <div className="arc arc-bg arc-dotgrid h-screen w-full overflow-hidden flex font-sans antialiased" style={layoutStyle}>
-      <Sidebar
-        sidebarData={sidebarData}
-        currentPath={location.pathname}
-      />
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[9999] focus:rounded focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:shadow-lg">Skip to content</a>
+      <nav aria-label="Main navigation">
+        <Sidebar
+          sidebarData={sidebarData}
+          currentPath={location.pathname}
+        />
+      </nav>
       {iconRailCollapsed && (
         <button
           onClick={toggleIconRail}

@@ -6,6 +6,7 @@ Registered in HandlerRegistry so they can be triggered by WorkflowManager
 from sqlalchemy.orm import Session
 from core.logic.handler_registry import HandlerRegistry
 from core.manager.naming_manager import SeriesManager
+from core.lib import math_utils
 
 
 @HandlerRegistry.register(
@@ -18,23 +19,20 @@ def post_stock_movement(db: Session, item, params: dict):
     from apps.stock.models import StockMovement, StockMovementLine, Location, Item
     from apps.stock.services.uom import UomService
     from apps.stock.services.valuation import InventoryValuationService
-    from .models import InflowInvoice, OutflowInvoice
 
     org = db.get(Organization, item.org_id)
     if not org or not org.enable_perpetual_inventory:
         return
 
-    if isinstance(item, OutflowInvoice) and item.grn_id:
+    if getattr(item, "grn_id", None):
         return  # GRN already created the incoming movement
 
-    if isinstance(item, InflowInvoice):
-        move_type = "delivery"
-        loc_field = "from_location_id"
-    elif isinstance(item, OutflowInvoice):
-        move_type = "receipt"
-        loc_field = "to_location_id"
-    else:
+    try:
+        move_type = item.get_stock_movement_type()
+    except (AttributeError, NotImplementedError):
         return
+
+    loc_field = "from_location_id" if move_type == "delivery" else "to_location_id"
 
     loc = db.query(Location).filter_by(org_id=item.org_id, location_type="Internal").first()
     loc_id = loc.id if loc else None
@@ -78,7 +76,7 @@ def post_stock_movement(db: Session, item, params: dict):
                 from_location_id=loc_id,
             )
         else:
-            unit_cost = float(line.unit_price - line.discount)
+            unit_cost = math_utils.line_total(1.0, line.unit_price, line.discount)
             sm_line = StockMovementLine(
                 movement_id=movement.id,
                 item_id=line.item_id,
@@ -101,13 +99,9 @@ def post_stock_movement(db: Session, item, params: dict):
 
 @HandlerRegistry.register(
     "post_journal_entry",
-    "Create JournalEntry from invoice lines. "
-    "InflowInvoice credit: DR AR / CR Revenue. "
-    "InflowInvoice paid (params.payment_account_id set): DR Cash / CR Revenue — single entry linked to payment. "
-    "OutflowInvoice: DR Stock/Expense / CR AP."
+    "Create JournalEntry from invoice lines using TradeDocumentBase methods."
 )
-def post_journal_entry(db: Session, item, params: dict):
-    from .models import InflowInvoice, OutflowInvoice
+def post_invoice_gl(db: Session, item, params: dict):
     from .services.journal import JournalService
     from apps.stock.services.coa_resolver import CoaResolver
     from core.registry.settings_service import SettingsService
@@ -115,141 +109,97 @@ def post_journal_entry(db: Session, item, params: dict):
         return
 
     org_id = item.org_id
+    gl_side = item.get_gl_side()  # credit for Sales, debit for Purchase
+    payment_type = item.get_payment_type()  # receivable for Sales, payable for Purchase
     lines = []
 
-    if isinstance(item, InflowInvoice):
-        payment_account_id = params.get("payment_account_id")
-        payment = params.get("payment")
-
-        if payment_account_id:
-            # Cash/immediate-payment sale: one entry DR Cash / CR Revenue
-            for inv_line in item.lines:
-                rev = CoaResolver.resolve_revenue_account(db, inv_line.item_id, org_id)
-                if not rev:
-                    raise ValueError(f"Revenue account not found for item {inv_line.item_id}")
-                line_total = float(inv_line.qty) * float(inv_line.unit_price - inv_line.discount)
-                lines.append({
-                    "account_id": rev.id,
-                    "debit": 0,
-                    "credit": line_total,
-                    "description": f"Revenue {item.number}",
-                })
-            for charge in item.charges:
-                _append_charge_line(db, charge, lines, side="credit")
-
-            total_credit = sum(l["credit"] for l in lines)
-            amount_paid_param = float(params.get("amount_paid", total_credit))
-
-            if amount_paid_param < total_credit:
-                # Partial payment: DR Cash + DR AR / CR Revenue
-                ar_account = CoaResolver.resolve_ar_account(db, org_id)
-                if not ar_account:
-                    raise ValueError("AR account not configured for this org.")
-                lines.insert(0, {
-                    "account_id": ar_account.id,
-                    "debit": round(total_credit - amount_paid_param, 10),
-                    "credit": 0,
-                    "description": f"Partial receivable {item.number}",
-                })
-                lines.insert(0, {
-                    "account_id": payment_account_id,
-                    "debit": amount_paid_param,
-                    "credit": 0,
-                    "description": f"Partial payment received {item.number}",
-                })
-            else:
-                lines.insert(0, {
-                    "account_id": payment_account_id,
-                    "debit": total_credit,
-                    "credit": 0,
-                    "description": f"Payment received {item.number}",
-                })
-            entry = JournalService.post_entry(
-                db, org_id, lines,
-                reference=item.number,
-                narrative=f"Cash sale {item.number}",
-                currency_id=item.currency_id,
-                source_type="InflowInvoice",
-                source_id=item.id,
-            )
-            item.journal_entry_id = entry.id
-            if payment is not None:
-                payment.journal_entry_id = entry.id
-
+    # 1. Primary lines (Revenue or Stock/Expense)
+    for inv_line in item.lines:
+        if payment_type == "receivable":
+            acct = CoaResolver.resolve_revenue_account(db, inv_line.item_id, org_id)
         else:
-            # Credit sale: DR AR / CR Revenue
-            ar_account = CoaResolver.resolve_ar_account(db, org_id)
-            if not ar_account:
-                raise ValueError("AR account not configured for this org.")
-            lines.append({
-                "account_id": ar_account.id,
-                "debit": float(item.total_amount),
-                "credit": 0,
-                "description": f"Receivable {item.number}",
-            })
-            for inv_line in item.lines:
-                rev = CoaResolver.resolve_revenue_account(db, inv_line.item_id, org_id)
-                if not rev:
-                    raise ValueError(f"Revenue account not found for item {inv_line.item_id}")
-                line_total = float(inv_line.qty) * float(inv_line.unit_price - inv_line.discount)
-                lines.append({
-                    "account_id": rev.id,
-                    "debit": 0,
-                    "credit": line_total,
-                    "description": f"Revenue {item.number}",
-                })
-            for charge in item.charges:
-                _append_charge_line(db, charge, lines, side="credit")
-            entry = JournalService.post_entry(
-                db, org_id, lines,
-                reference=item.number,
-                narrative=f"Credit sale {item.number}",
-                currency_id=item.currency_id,
-                source_type="InflowInvoice",
-                source_id=item.id,
-            )
-            item.journal_entry_id = entry.id
-
-    elif isinstance(item, OutflowInvoice):
-        from apps.stock.models import Item as StockItem
-        for inv_line in item.lines:
+            from apps.stock.models import Item as StockItem
             product = db.get(StockItem, inv_line.item_id)
             if product and product.is_stock_item:
                 acct = CoaResolver.resolve_stock_account(db, inv_line.item_id, org_id)
-                acc_label = "Stock"
             else:
                 acct = CoaResolver.resolve_expense_account(db, inv_line.item_id, org_id)
-                acc_label = "Expense"
-            if not acct:
-                raise ValueError(f"{acc_label} account not found for item {inv_line.item_id}")
-            line_total = float(inv_line.qty) * float(inv_line.unit_price - inv_line.discount)
-            lines.append({
-                "account_id": acct.id,
-                "debit": line_total,
-                "credit": 0,
-                "description": f"Purchase {item.number}",
-            })
-        for charge in item.charges:
-            _append_charge_line(db, charge, lines, side="debit")
 
-        ap_account = CoaResolver.resolve_ap_account(db, org_id)
-        if not ap_account:
-            raise ValueError("AP account not configured for this org.")
+        if not acct:
+            raise ValueError(f"Account not found for item {inv_line.item_id}")
+        
+        line_total = math_utils.line_total(inv_line.qty, inv_line.unit_price, inv_line.discount)
         lines.append({
-            "account_id": ap_account.id,
-            "debit": 0,
-            "credit": float(item.total_amount),
-            "description": f"Payable {item.number}",
+            "account_id": acct.id,
+            "debit": line_total if gl_side == "debit" else 0,
+            "credit": line_total if gl_side == "credit" else 0,
+            "description": f"Line: {item.number}",
         })
-        entry = JournalService.post_entry(
-            db, org_id, lines,
-            reference=item.number,
-            narrative=f"Auto-posted from Outflow Invoice {item.number}",
-            currency_id=item.currency_id,
-            source_type="OutflowInvoice",
-            source_id=item.id,
-        )
-        item.journal_entry_id = entry.id
+
+    # 2. Charges
+    for charge in item.charges:
+        _append_charge_line(db, charge, lines, side=gl_side)
+
+    # 3. Offset line (AR or AP or Cash)
+    payment_account_id = params.get("payment_account_id")
+    payment = params.get("payment")
+
+    if payment_account_id and payment_type == "receivable":
+        # Cash/immediate-payment sale logic (InflowInvoice)
+        total_credit = sum(l["credit"] for l in lines)
+        amount_paid_param = float(params.get("amount_paid", total_credit))
+
+        if amount_paid_param < total_credit:
+            ar_account = CoaResolver.resolve_ar_account(db, org_id)
+            if not ar_account: raise ValueError("AR account not configured.")
+            lines.insert(0, {
+                "account_id": ar_account.id,
+                "debit": round(total_credit - amount_paid_param, 10),
+                "credit": 0,
+                "description": f"Partial receivable {item.number}",
+            })
+            lines.insert(0, {
+                "account_id": payment_account_id,
+                "debit": amount_paid_param,
+                "credit": 0,
+                "description": f"Partial payment received {item.number}",
+            })
+        else:
+            lines.insert(0, {
+                "account_id": payment_account_id,
+                "debit": total_credit,
+                "credit": 0,
+                "description": f"Payment received {item.number}",
+            })
+    else:
+        # Standard Credit sale or Purchase
+        if payment_type == "receivable":
+            offset_acct = CoaResolver.resolve_ar_account(db, org_id)
+        else:
+            offset_acct = CoaResolver.resolve_ap_account(db, org_id)
+        
+        if not offset_acct:
+            raise ValueError(f"{payment_type.capitalize()} account not configured.")
+
+        total_amount = float(item.total_amount)
+        lines.append({
+            "account_id": offset_acct.id,
+            "debit": 0 if gl_side == "debit" else total_amount,
+            "credit": total_amount if gl_side == "debit" else 0,
+            "description": f"{payment_type.capitalize()} {item.number}",
+        })
+
+    entry = JournalService.post_entry(
+        db, org_id, lines,
+        reference=item.number,
+        narrative=f"Auto-posted from {item.__class__.__name__} {item.number}",
+        currency_id=item.currency_id,
+        source_type=item.__class__.__name__,
+        source_id=item.id,
+    )
+    item.journal_entry_id = entry.id
+    if payment is not None:
+        payment.journal_entry_id = entry.id
 
 
 def _append_charge_line(db, charge, lines: list, side: str):

@@ -70,6 +70,55 @@ Rules that always apply regardless of mode:
 - **Comments:** Only explain non-obvious WHY (workarounds, hidden constraints, subtle invariants). Never explain WHAT—code clarity via meaningful names is preferred. Add comments during active work for new code and existing code in same read—no dedicated comment session.
 - English for all code comments. Code: short, simple, clean, DRY.
 
+## Compliance & Security Standards (NON-NEGOTIABLE)
+
+Aras targets EU, US, and SEA markets. All code must meet these standards by default — no exceptions, no "we'll add it later".
+
+### What We NEVER store
+- Raw card numbers (PAN), CVV, expiry — use Stripe/Midtrans/Xendit tokenization only
+- Bank account credentials — OAuth/open-banking tokens only, never raw credentials
+- Any cardholder data in logs, audit trail, or DB — PCI-DSS PA-DSS scope zero
+
+### GDPR (EU) — applies to any EU user data
+- Personal data fields must be tagged `pii=True` in model metadata
+- Audit diffs must redact PII fields before storage (see `PII_FIELDS` in `audit_manager.py`)
+- Right to erasure: user deletion must anonymize `user_id` references, not cascade-delete audit records
+- Data retention: `retention_days` column required on all audit/log models
+- Consent: no marketing email/tracking without explicit opt-in stored with timestamp
+
+### PDPA (Thailand/ID) / PDPA-equivalent (SEA)
+- Same PII tagging and retention rules as GDPR
+- Cross-border data transfer requires explicit consent or adequacy decision
+
+### PCI-DSS (if payment data touches our servers)
+- We are SAQ-A scope only (redirect/iframe to payment provider) — never SAQ-D
+- Never log request bodies on payment endpoints
+- HTTPS enforced everywhere; no mixed content
+- No payment-related data in URL params (no `?card=...`)
+
+### Password & Auth
+- Passwords: bcrypt only, min length enforced server-side before hashing (not just client)
+- Tokens: JWT, short expiry (access 15min, refresh 7d), rotation on use
+- Rate limiting: auth endpoints max 5 attempts/min per IP + per username
+- No password in logs, audit trail, or error messages
+
+### General Security Defaults
+- All API responses strip stack traces in production (`ARAS_ENV=production`)
+- SQL: SQLAlchemy ORM only — no raw string interpolation in queries
+- File uploads: MIME type + extension whitelist, scan for malicious content, store outside webroot
+- CORS: explicit allowlist — never `*` in production
+- CSP headers on all HTML responses
+- No sensitive data (keys, tokens, passwords) in source code or git history
+
+### Timezone
+- All `DateTime` columns: `timezone=True` — store UTC, display per user locale
+- Never use `datetime.now()` — always `datetime.now(timezone.utc)` or `func.now()` with UTC DB server
+
+### i18n / Locale
+- No hardcoded currency symbols (Rp, $, €) — always through `formatCurrency(amount, orgConfig)`
+- No hardcoded locale formats — always `Intl.DateTimeFormat` with locale from org config
+- Error messages: use error keys, translate at display layer
+
 ## After `rhf` Review
 Run: `python tools/multi_agent.py --submit-review`
 

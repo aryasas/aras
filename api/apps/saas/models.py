@@ -3,7 +3,7 @@ from sqlalchemy import String, Integer, Boolean, JSON, ForeignKey, DateTime, tex
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from core import Aras
 from core.response import ok
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # claude-sonnet-4-6
 class Plan(Aras.Model):
@@ -82,7 +82,7 @@ class Subscription(Aras.Model):
             result = Provisioner.provision_tenant(db, self)
             self.tenant_id = result["tenant_id"]
             self.status = "active"
-            self.started_at = datetime.now()
+            self.started_at = datetime.now(timezone.utc)
             
             # Send setup email
             send_setup_email(self.email, result["setup_token"], self.company_name)

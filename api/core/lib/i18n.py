@@ -1,6 +1,6 @@
-from typing import Dict, Any, Optional
+from pathlib import Path
+from typing import Dict, Any, Optional, Iterable
 import json
-import os
 from ..base.service import Service
 from sqlalchemy.orm import Session
 
@@ -9,6 +9,114 @@ from ..registry.translation_model import TranslationModel
 from ..registry.app_model import AppModel
 from ..registry.resource_model import ResourceModel
 from ..registry.field_model import FieldModel
+
+_API_ROOT = Path(__file__).resolve().parents[2]
+_UI_LOCALE_DIR = _API_ROOT.parent / "ui" / "src" / "locales"
+
+
+def _locale_sources() -> list[Path]:
+    sources: list[Path] = []
+
+    ui_dir = _UI_LOCALE_DIR
+    if ui_dir.exists() and ui_dir.is_dir():
+        sources.append(ui_dir)
+
+    apps_root = _API_ROOT / "apps"
+    if apps_root.exists() and apps_root.is_dir():
+        for app_dir in sorted(apps_root.iterdir()):
+            locales_dir = app_dir / "locales"
+            if locales_dir.exists() and locales_dir.is_dir():
+                sources.append(locales_dir)
+
+    return sources
+
+
+def _load_locale_files(lang_code: str) -> Dict[str, str]:
+    """Load flat locale bundles from disk for a specific language."""
+    bundle: Dict[str, str] = {}
+    for source_dir in _locale_sources():
+        path = source_dir / f"{lang_code}.json"
+        if not path.exists():
+            continue
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                for key, value in data.items():
+                    if isinstance(key, str) and isinstance(value, str):
+                        bundle[key] = value
+        except Exception:
+            continue
+    return bundle
+
+
+def load_locale_bundle(lang_code: str, db: Optional[Session] = None) -> Dict[str, str]:
+    """Return a merged locale bundle with DB overrides when present."""
+    bundle = _load_locale_files("en")
+    if lang_code and lang_code != "en":
+        bundle.update(_load_locale_files(lang_code))
+
+    if db is not None and lang_code:
+        db_rows = db.query(TranslationModel).filter(
+            TranslationModel.language_code == lang_code,
+            TranslationModel.registry_type == "locale",
+        ).all()
+        for row in db_rows:
+            if row.property_name:
+                bundle[row.property_name] = row.translated_value
+
+    return bundle
+
+
+def seed_locale_translations(db: Session, lang_codes: Optional[Iterable[str]] = None) -> dict:
+    """
+    Seed flat locale bundles into TranslationModel.
+
+    Locale files are stored as generic `locale` rows so the registry can manage
+    them, while metadata translations remain free to use app/resource/field rows.
+    """
+    if lang_codes is None:
+        lang_codes = sorted({
+            path.stem
+            for source_dir in _locale_sources()
+            for path in source_dir.glob("*.json")
+            if path.is_file()
+        })
+
+    inserted = 0
+    updated = 0
+    skipped = 0
+
+    for lang_code in lang_codes:
+        bundle = _load_locale_files(lang_code)
+        if not bundle:
+            continue
+
+        for key, value in bundle.items():
+            row = db.query(TranslationModel).filter(
+                TranslationModel.language_code == lang_code,
+                TranslationModel.registry_type == "locale",
+                TranslationModel.registry_id == 0,
+                TranslationModel.property_name == key,
+            ).first()
+            if not row:
+                db.add(TranslationModel(
+                    registry_type="locale",
+                    registry_id=0,
+                    language_code=lang_code,
+                    property_name=key,
+                    translated_value=value,
+                ))
+                inserted += 1
+            elif row.translated_value != value:
+                row.translated_value = value
+                updated += 1
+            else:
+                skipped += 1
+
+    db.commit()
+    return {"inserted": inserted, "updated": updated, "skipped": skipped}
+
 
 class TranslationService(Service):
     """
@@ -51,6 +159,8 @@ class TranslationService(Service):
                 field_name, resource_name = field_details[t.registry_id]
                 if resource_name: # Ensure resource name was found
                     key_parts = ['field', resource_name, field_name, t.property_name]
+            elif t.registry_type == 'locale':
+                key_parts = [t.property_name]
             else:
                 # Fallback for general translations not linked to specific registry item by ID
                 # Or for cases where registry_id lookup failed (e.g., deleted item)

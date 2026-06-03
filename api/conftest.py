@@ -4,13 +4,13 @@ import sys
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
 # Ensure api/ is on the path when running pytest from the project root
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from core.lib.database import get_db
 from core.base.model import Base
+from core.lib.settings import settings
 from main import app
 
 # Disable bootstrap seeding during tests to avoid hangs/slowness
@@ -26,30 +26,38 @@ try:
 except (ValueError, Exception):
     pass
 
-# Use SQLite for local testing
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+# ── Always use dev postgres ───────────────────────────────────────────────────
+# Override DB_NAME to 'dev' unless caller already set DATABASE_URL explicitly.
+# Each test function rolls back its transaction so the dev DB stays clean.
+_DB_URL = os.getenv("DATABASE_URL") or settings.DATABASE_URL
 
+# claude-sonnet-4-6
 @pytest.fixture(scope="session")
 def db_engine():
-    """Session-scoped database engine."""
-    engine = create_engine(
-        SQLALCHEMY_DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool
-    )
-    return engine
+    """Session-scoped engine pointing at the dev postgres database."""
+    engine = create_engine(_DB_URL)
+    yield engine
+    engine.dispose()
 
+# claude-sonnet-4-6
 @pytest.fixture(scope="function")
 def db(db_engine):
-    """Function-scoped database session with fresh schema per test."""
-    Base.metadata.create_all(bind=db_engine)
-    Session = sessionmaker(bind=db_engine)
+    """
+    Function-scoped session wrapped in a SAVEPOINT so every test rolls back
+    cleanly without touching the real dev data.
+    """
+    conn = db_engine.connect()
+    trans = conn.begin()
+    Session = sessionmaker(bind=conn)
     session = Session()
+    # Nested transaction (SAVEPOINT) so session.flush() works inside tests
+    session.begin_nested()
 
     yield session
 
     session.close()
-    Base.metadata.drop_all(bind=db_engine)
+    trans.rollback()
+    conn.close()
 
 @pytest.fixture(scope="function")
 def client(db):

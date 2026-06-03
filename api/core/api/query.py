@@ -45,6 +45,14 @@ def execute_query(
     scope = getattr(getattr(fastapi_request, "state", None), "scope", None)
     if scope:
         scoped_by = getattr(model_class, "__scoped_by__", None) or []
+        is_unscoped = getattr(model_class, "__unscoped__", False)
+        # aras_* registry models are implicitly unscoped
+        is_registry = getattr(model_class, "__tablename__", "").startswith("aras_") or getattr(model_class, "__tablename__", "").startswith("core_")
+        if not scoped_by and not is_unscoped and not is_registry:
+            logger.warning(
+                f"[M3] Model '{model_class.__name__}' has no __scoped_by__ and no __unscoped__ = True — "
+                f"scope filter skipped. Declare __unscoped__ = True if this model is intentionally global."
+            )
         col_names = {c.name for c in model_class.__table__.columns}
         for item in scoped_by:
             field = item[0] if isinstance(item, (list, tuple)) else item

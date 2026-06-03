@@ -1,4 +1,6 @@
 // claude-sonnet-4-6
+import { formatCurrency } from './formatters'
+
 export const MODULE_LABELS: Record<string, string> = {
   pos: 'POS',
   stock: 'Stok',
@@ -6,7 +8,7 @@ export const MODULE_LABELS: Record<string, string> = {
   accounting: 'Accounting',
 }
 
-export function formatPrice(price: number): string {
+export function formatPrice(price: number, currency?: string): string {
   if (price === 0) return 'Gratis'
-  return `Rp ${price.toLocaleString('id-ID')}/bulan`
+  return formatCurrency(price, currency)
 }

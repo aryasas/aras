@@ -326,3 +326,19 @@ This file is used only to report if there are fix
 
 ## Unknown (2026-06-03)
   - [GPT (codex)] updated profile persistence to PUT /auth/me with name and email, renamed auth state to name, enabled StatusBar auto, added axios timeout, capped POS cart quantities at stock, added logout confirmation
+
+
+## Unknown (2026-06-03)
+  - [GPT (codex)] Auto-load by id, paged list loading, dirty/reset/submit handling
+
+
+## Global Market Compliance — PCI-DSS, GDPR, PDPA, Password Policy, Audit PII Masking, Timezone UTC, Currency i18n (2026-06-03)
+  - [GPT (codex)] removed hardcoded currency literals from the requested views, replaced currency helpers with shared formatter usage, and added aria-live/skip-link/nav semantics
+
+
+## Global Market Compliance — PCI-DSS, GDPR, PDPA, Password Policy, Audit PII Masking, Timezone UTC, Currency i18n — revision (2026-06-03)
+  - [GPT (codex)] replaced the empty currency fallback in the hero subtitle with the existing localized pricing helper
+
+
+## Global Market Compliance — PCI-DSS, GDPR, PDPA, Password Policy, Audit PII Masking, Timezone UTC, Currency i18n — revision (2026-06-03)
+  - [GPT (codex)] added translations for validation, not found, auth, and permission error codes

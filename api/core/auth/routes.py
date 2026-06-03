@@ -6,6 +6,7 @@ from datetime import timedelta
 from ..base.validation import Validation
 from ..lib.database import get_db
 from ..lib.settings import settings
+from ..lib.config import ConfigService
 from .service import (
     create_access_token, 
     get_current_user, 
@@ -112,7 +113,13 @@ def change_password(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect old password"
         )
-    
+
+    min_len = int(ConfigService.get(db, "core.password_min_length") or 8)
+    if len(data.new_password) < min_len:
+        raise HTTPException(status_code=422, detail=f"Password must be at least {min_len} characters")
+    if data.new_password == current_user.username:
+        raise HTTPException(status_code=422, detail="Password cannot be the same as your username")
+
     current_user.password_hash = User.hash_password(data.new_password)
     db.commit()
     return {"message": "Password changed successfully"}
@@ -153,6 +160,10 @@ def reset_password(
             detail="User not found"
         )
     
+    min_len = int(ConfigService.get(db, "core.password_min_length") or 8)
+    if len(data.new_password) < min_len:
+        raise HTTPException(status_code=422, detail=f"Password must be at least {min_len} characters")
+
     user.password_hash = User.hash_password(data.new_password)
     db.commit()
     return {"message": "Password has been reset successfully"}

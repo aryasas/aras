@@ -1,13 +1,13 @@
 # gemini-2-5-flash
 from core import Aras
 from ..models import Subscription, SaaSInvoice, SaaSPayment
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 
 class BillingService(Aras):
     @classmethod
     def generate_due_invoices(cls, db):
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         due_subs = db.query(Subscription).filter(
             Subscription.status == "active",
             Subscription.next_billing_at <= now
@@ -35,7 +35,7 @@ class BillingService(Aras):
 
     @classmethod
     def enforce_overdue(cls, db):
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         overdue_invoices = db.query(SaaSInvoice).filter(
             SaaSInvoice.status == "unpaid",
             SaaSInvoice.due_at + timedelta(days=7) <= now
@@ -59,7 +59,7 @@ class BillingService(Aras):
         # claude-sonnet-4-6
         from .email import get_transport
         
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         # Invoices overdue by more than 1 day but less than 7 days
         unpaid_invoices = db.query(SaaSInvoice).filter(
             SaaSInvoice.status == "unpaid",
