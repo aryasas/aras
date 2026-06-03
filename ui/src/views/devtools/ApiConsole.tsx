@@ -41,6 +41,7 @@ type OpenAPI = {
 }
 
 type AuthMode = 'session' | 'anonymous' | 'bearer'
+type WorkspaceMode = 'run' | 'explore' | 'debug'
 
 type TestDraft = {
   operationKey: string
@@ -199,6 +200,7 @@ const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
 ]
 
 const STORAGE_KEYS = {
+  mode: 'devtools:test-lab:mode',
   baseUrl: 'devtools:test-lab:base-url',
   authMode: 'devtools:test-lab:auth-mode',
   bearerToken: 'devtools:test-lab:bearer-token',
@@ -563,6 +565,7 @@ export default function ApiConsole() {
   const [ops, setOps] = useState<Operation[]>([])
   const [loadingSpec, setLoadingSpec] = useState(false)
   const [loadError, setLoadError] = useState('')
+  const [mode, setMode] = useState<WorkspaceMode>(() => (localStorage.getItem(STORAGE_KEYS.mode) as WorkspaceMode) || 'run')
   const [filter, setFilter] = useState('')
   const [pathLookup, setPathLookup] = useState('')
   const [selected, setSelected] = useState<Operation | null>(null)
@@ -704,6 +707,10 @@ export default function ApiConsole() {
     localStorage.setItem(STORAGE_KEYS.historySearch, historySearch)
   }, [historySearch])
 
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.mode, mode)
+  }, [mode])
+
   const groupedOps = useMemo(() => {
     const q = filter.trim().toLowerCase()
     const filtered = ops.filter(operation => {
@@ -727,6 +734,11 @@ export default function ApiConsole() {
   }, [history, historySearch])
 
   const selectedSnapshot = snapshots.find(snapshot => snapshot.id === selectedSnapshotId) || null
+  const latestRun = history[0] || null
+  const showWorkspace = mode !== 'run'
+  const showAdvanced = mode === 'debug'
+  const showHistory = mode !== 'run'
+  const showSnapshots = mode !== 'run'
 
   const draft = selected ? buildDraft(selected, {
     pathVals,
@@ -1271,6 +1283,25 @@ export default function ApiConsole() {
       .finally(() => setLoadingSpec(false))
   }
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey)) return
+      const key = event.key.toLowerCase()
+      if (key === 'enter' && draft && selected) {
+        event.preventDefault()
+        runCurrent()
+      } else if (event.shiftKey && key === 's' && draft && selected) {
+        event.preventDefault()
+        saveCurrent()
+      } else if (event.shiftKey && key === 'r') {
+        event.preventDefault()
+        refreshSpec()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [draft, selected, runCurrent, saveCurrent, refreshSpec])
+
   const copyCurl = async () => {
     if (!draft || !selected) return
     const operation = resolveDraftOperation(draft) || selected
@@ -1323,6 +1354,9 @@ export default function ApiConsole() {
             <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--text-3)]">
               OpenAPI runner
             </span>
+            <span className="rounded-full border border-[var(--line)] bg-[var(--surface-2)] px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--text-3)]">
+              {mode}
+            </span>
           </div>
           <p className="mt-1 text-sm font-medium text-[var(--text-3)]">
             Run endpoints, switch auth context, save repeatable cases, and replay failures with assertions.
@@ -1330,6 +1364,25 @@ export default function ApiConsole() {
         </div>
 
         <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="flex rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-2)] p-1">
+            {([
+              { key: 'run', label: 'Run' },
+              { key: 'explore', label: 'Explore' },
+              { key: 'debug', label: 'Debug' },
+            ] as const).map(option => (
+              <button
+                key={option.key}
+                onClick={() => setMode(option.key)}
+                className={`h-8 rounded-[var(--radius)] px-3 text-xs font-black ${
+                  mode === option.key
+                    ? 'border border-[var(--line)] bg-[var(--surface)] text-[var(--text)] shadow-sm'
+                    : 'text-[var(--text-3)] hover:text-[var(--text-2)]'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
           <button
             onClick={refreshSpec}
             className="flex h-9 items-center gap-2 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)] px-3 text-xs font-black text-[var(--text)] hover:bg-[var(--surface-2)]"
@@ -1424,26 +1477,26 @@ export default function ApiConsole() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-3)]">Timeout ms</label>
-                  <input
-                    value={requestTimeoutMs}
-                    onChange={event => setRequestTimeoutMs(event.target.value)}
-                    placeholder="5000"
-                    className="h-9 w-full rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-2)] px-3 text-sm font-semibold text-[var(--text)] outline-none focus:border-[var(--accent)]"
-                  />
+                <div className={showAdvanced ? 'grid grid-cols-2 gap-2' : 'hidden'}>
+                  <div>
+                    <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-3)]">Timeout ms</label>
+                    <input
+                      value={requestTimeoutMs}
+                      onChange={event => setRequestTimeoutMs(event.target.value)}
+                      placeholder="5000"
+                      className="h-9 w-full rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-2)] px-3 text-sm font-semibold text-[var(--text)] outline-none focus:border-[var(--accent)]"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-3)]">Delay ms</label>
+                    <input
+                      value={artificialDelayMs}
+                      onChange={event => setArtificialDelayMs(event.target.value)}
+                      placeholder="0"
+                      className="h-9 w-full rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-2)] px-3 text-sm font-semibold text-[var(--text)] outline-none focus:border-[var(--accent)]"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-3)]">Delay ms</label>
-                  <input
-                    value={artificialDelayMs}
-                    onChange={event => setArtificialDelayMs(event.target.value)}
-                    placeholder="0"
-                    className="h-9 w-full rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-2)] px-3 text-sm font-semibold text-[var(--text)] outline-none focus:border-[var(--accent)]"
-                  />
-                </div>
-              </div>
 
               <div>
                 <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-3)]">Jump to path</label>
@@ -1522,7 +1575,7 @@ export default function ApiConsole() {
             </div>
           </section>
 
-          <section className="rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
+          <section className={`rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-4 ${showWorkspace ? '' : 'hidden'}`}>
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sm font-black text-[var(--text)]">
                 <Save size={16} />
@@ -1651,8 +1704,7 @@ export default function ApiConsole() {
               )}
             </div>
           </section>
-
-          <section className="rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
+          <section className={`rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-4 ${showAdvanced ? '' : 'hidden'}`}>
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sm font-black text-[var(--text)]">
                 <Shield size={16} />
@@ -1689,7 +1741,7 @@ export default function ApiConsole() {
             </div>
           </section>
 
-          <section className="rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
+          <section className={`rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-4 ${showWorkspace ? '' : 'hidden'}`}>
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sm font-black text-[var(--text)]">
                 <Play size={16} />
@@ -1772,7 +1824,7 @@ export default function ApiConsole() {
             </div>
           </section>
 
-          <section className="rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
+          <section className={`rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-4 ${showWorkspace ? '' : 'hidden'}`}>
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sm font-black text-[var(--text)]">
                 <Upload size={16} />
@@ -1824,6 +1876,30 @@ export default function ApiConsole() {
                     </button>
                   </div>
                 </div>
+
+                {latestRun && (
+                  <div className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-2)] p-3">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-3)]">Run report</div>
+                        <div className="mt-1 truncate text-sm font-black text-[var(--text)]">{latestRun.summary}</div>
+                        <div className="mt-0.5 text-xs font-mono text-[var(--text-3)]">
+                          {new Date(latestRun.at).toLocaleString()} · {latestRun.method} · {latestRun.path}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase ${
+                          latestRun.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {latestRun.ok ? 'PASS' : 'FAIL'}
+                        </span>
+                        <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1 text-[10px] font-black uppercase text-[var(--text-3)]">
+                          {latestRun.status} · {latestRun.ms} ms
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {pathParams.length > 0 && (
                   <FieldGroup title="Path Parameters">
@@ -1986,7 +2062,7 @@ export default function ApiConsole() {
             </div>
 
             <div className="space-y-5">
-              <section className="rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
+              <section className={`rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-4 ${showHistory ? '' : 'hidden'}`}>
                 <div className="mb-2 flex items-center gap-2 text-sm font-black text-[var(--text)]">
                   <Copy size={16} />
                   Request Preview
@@ -1996,7 +2072,7 @@ export default function ApiConsole() {
                 </pre>
               </section>
 
-              <section className="rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
+              <section className={`rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-4 ${showHistory ? '' : 'hidden'}`}>
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 text-sm font-black text-[var(--text)]">
                     <History size={16} />
@@ -2068,7 +2144,7 @@ export default function ApiConsole() {
                 </div>
               </section>
 
-              <section className="rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
+              <section className={`rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-4 ${showSnapshots ? '' : 'hidden'}`}>
                 <div className="mb-3 flex items-center gap-2 text-sm font-black text-[var(--text)]">
                   <Download size={16} />
                   Snapshots

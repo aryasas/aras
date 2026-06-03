@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "date": "2026-06-03",
+    "feature": "Test Lab usability pass",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/devtools/ApiConsole.tsx, ui/src/views/DevTools.tsx, ui/src/views/devtools/RouteDebugger.tsx, docs/reports.json",
+      "features_added": "Added a mode switch, a clearer run report, and a cleaner default path in Test Lab so the latest result is visible immediately while scenarios stay in the primary flow.",
+      "fixes_applied": "Simplified the primary workflow, added a last-run summary card, hid administrative panels behind the debug mode, and aligned the surrounding DevTools labels for clearer operator-facing navigation.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 2,
+    "date": "2026-06-03",
+    "feature": "Test Lab comfort pass",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/devtools/ApiConsole.tsx, ui/src/views/DevTools.tsx, ui/src/views/devtools/RouteDebugger.tsx, docs/reports.json",
+      "features_added": "Added run, explore, and debug modes; keyboard shortcuts for run, save, and refresh; and a clearer default focus on the latest run report.",
+      "fixes_applied": "Reduced on-screen density by hiding saved cases, profiles, history, snapshots, and import/export behind workspace modes while keeping the request runner and scenario flow prominent.",
+      "framework_changes": "none",
+      "issues": "Playwright smoke sessions were started for desktop and mobile, but the sandbox did not return a clean final teardown status."
+    },
+    "verdict": "APPROVED"
+  }
+]

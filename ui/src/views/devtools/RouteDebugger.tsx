@@ -125,7 +125,7 @@ export default function RouteDebugger() {
               <div className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-3)]">Debug Flow</div>
               <div className="mt-3 grid gap-2 text-sm text-[var(--text-2)]">
                 <p>1. Copy the route path or open Swagger.</p>
-                <p>2. Use the Test Lab tab to run the operation with the current login token.</p>
+                <p>2. Use the Test Lab run view to execute the operation with the current login token.</p>
                 <p>3. Watch Timeline and Logs while reproducing the request.</p>
               </div>
             </div>

@@ -135,7 +135,7 @@ export default function DevTools() {
     { key: 'models', label: 'Models', hint: 'Model registry', icon: <Boxes size={13} /> },
     { key: 'cache', label: 'Cache', hint: 'Metadata cache controls', icon: <Trash2 size={13} /> },
     { key: 'commands', label: 'Commands', hint: 'Command launcher', icon: <Command size={13} /> },
-    { key: 'console', label: 'Test Lab', hint: 'OpenAPI runner, assertions, history', icon: <Zap size={13} /> },
+    { key: 'console', label: 'Test Lab', hint: 'Run API requests, scenarios, and reports', icon: <Zap size={13} /> },
     { key: 'sql', label: 'SQL Runner', hint: 'Read-only SQL tools', icon: <TerminalIcon size={13} /> },
     { key: 'access', label: 'Access', hint: 'RBAC matrix and simulator', icon: <Shield size={13} /> },
     { key: 'handoff', label: 'Handoff', hint: 'Agent run history', icon: <GitBranch size={13} /> },
@@ -626,7 +626,7 @@ export default function DevTools() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {[
                 { path: '/api/v1/dev/info', desc: 'Framework version, engine type, discovered apps.' },
-                { path: '/api/v1/dev/stats', desc: 'Row counts for all aras/system tables.' },
+                { path: '/api/v1/dev/stats', desc: 'Row counts for framework and system tables.' },
                 { path: '/api/v1/dev/inspect/models', desc: 'Full schema detail for all registered models.' },
                 { path: '/api/v1/dev/inspect/env', desc: 'Active environment config (redacts secrets).' },
                 { path: '/api/v1/dev/inspect/routes', desc: 'All registered API routes with methods and tags.' },
