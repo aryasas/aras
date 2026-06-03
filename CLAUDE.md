@@ -74,35 +74,30 @@ Rules that always apply regardless of mode:
 Run: `python tools/multi_agent.py --submit-review`
 
 ## Reporting (standalone use)
-After completing any direct coding task (not via multi_agent.py), append one entry to `docs/reports.json`:
+After completing any direct coding task (not via multi_agent.py), submit a report directly to the DB:
 
-```json
-{
-  "id": <next integer>,
-  "date": "<YYYY-MM-DD>",
-  "feature": "<short description of what was built or fixed>",
-  "revision_count": 0,
-  "backend": {
-    "files_written": "<comma-separated paths, or none>",
-    "features_added": "<description, or none>",
-    "fixes_applied": "<description, or none>",
-    "framework_changes": "<description, or none>",
-    "issues": "<description, or none>"
-  },
-  "frontend": {
-    "files_written": "<comma-separated paths, or none>",
-    "features_added": "<description, or none>",
-    "fixes_applied": "<description, or none>",
-    "framework_changes": "<description, or none>",
-    "issues": "<description, or none>"
-  },
-  "input_tokens": "<count>",
-  "output_tokens": "<count>",
-  "cache_read_tokens": "<count>",
-  "cache_write_tokens": "<count>",
-  "token_efficiency": "<what was delivered vs tokens spent — be honest>",
-  "verdict": "APPROVED"
-}
+```bash
+python tools/agent_report.py \
+  --feature "<short description of what was built or fixed>" \
+  --backend "<comma-separated backend files, or omit>" \
+  --frontend "<comma-separated frontend files, or omit>" \
+  --input-tokens <count> \
+  --output-tokens <count> \
+  --cache-read-tokens <count> \
+  --cache-write-tokens <count> \
+  --verdict APPROVED
 ```
 
-Use `null` for `backend` or `frontend` if that side was not touched. `id` = last entry id + 1.
+Or from Python:
+```python
+from tools.agent_report import agent_report
+agent_report(
+    feature="...",
+    backend_files="...",   # omit if none
+    frontend_files="...",  # omit if none
+    input_tokens=0,
+    output_tokens=0,
+    issues="...",          # omit if none
+    verdict="APPROVED",
+)
+```

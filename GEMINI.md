@@ -6,24 +6,15 @@ If you receive a prompt containing `ARAS_AGENT_ROLE=backend-worker`, you are bei
 Read `docs/agents.md` (Gemini Worker Rules section) for your role, constraints, and required AGENT REPORT format.
 
 ## Reporting (standalone use)
-After completing any direct coding task (not via multi_agent.py), append one entry to `docs/reports.json`:
+After completing any direct coding task (not via multi_agent.py), submit a report directly to the DB:
 
-```json
-{
-  "id": <next integer>,
-  "date": "<YYYY-MM-DD>",
-  "feature": "<short description of what was built or fixed>",
-  "revision_count": 0,
-  "backend": {
-    "files_written": "<comma-separated paths, or none>",
-    "features_added": "<description, or none>",
-    "fixes_applied": "<description, or none>",
-    "framework_changes": "<description, or none>",
-    "issues": "<description, or none>"
-  },
-  "frontend": null,
-  "verdict": "APPROVED"
-}
+```bash
+python tools/agent_report.py \
+  --feature "<short description of what was built or fixed>" \
+  --backend "<comma-separated backend files, or omit>" \
+  --frontend "<comma-separated frontend files, or omit>" \
+  --gemini-prompt-tokens <count> \
+  --gemini-completion-tokens <count> \
+  --issues "<description, or omit>" \
+  --verdict APPROVED
 ```
-
-`id` = last entry id in the file + 1. If you also touched frontend files, fill `frontend` instead of leaving it `null`.

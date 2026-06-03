@@ -366,15 +366,25 @@ After any direct task, append to relevant docs **before** reporting done:
 | Who | How |
 |---|---|
 | `multi_agent.py` | Automatic after each run |
-| Any AI directly | Write docs above, then run `mhl` |
-| Human directly | Run `mhl` with `author=human` |
+| Any AI directly | Write docs above, then run `mhl` + `agent_report.py` |
+| Human directly | Run `mhl` with `author=human` + `agent_report.py` |
 
-### `mhl` Command
+### `mhl` Command (doc logging only)
 ```
 python tools/multi_agent.py --log-manual \
   feature='<name>' author='<AI or human>' mode='claude-direct' \
   files='<comma-separated>' features='<added or none>' fixes='<fixed or none>' \
   framework='<changes or none>' issues='<issues or none>'
+```
+
+### Report to DB
+```
+python tools/agent_report.py \
+  --feature '<name>' \
+  --backend '<files>' \
+  --frontend '<files>' \
+  --input-tokens <n> --output-tokens <n> \
+  --verdict APPROVED
 ```
 
 ### File Reading
