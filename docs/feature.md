@@ -500,3 +500,27 @@ This file is used only to report if there are feature added
 
 ## Unknown (2026-06-01)
   - [GPT (codex)] DevTools command bar rewrite with adaptive canvas modes, scratchpad persistence, URL state, and keyboard shortcuts
+
+
+## Unknown (2026-06-03)
+  - [GPT (codex)] 401 logout handling, metadata-driven mobile resource form, cursor-style list pagination, real sidebar-driven home dashboard
+
+
+## Mobile production-ready: 401 interceptor, metadata-driven form, pagination, real dashboard, navigation wiring (2026-06-03)
+  - [GPT (codex)] 401 auto-logout, metadata-driven form with all field types, cursor pagination, real sidebar dashboard
+
+
+## Unknown (2026-06-03)
+  - [GPT (codex)] Searchable lookup modal, server-side filtered lists, shell-backed settings, loading skeletons, and zero-app empty state
+
+
+## Unknown (2026-06-03)
+  - [GPT (codex)] toast overlay, full-screen error boundary, deep-linkable navigation, workspace URL onboarding, remember-me auth, offline banners, server-side search, empty-state CTAs, profile modal, POS screen stub
+
+
+## Unknown — revision (2026-06-03)
+  - [GPT (codex)] Full POS session picker, product grid, cart strip, and checkout modal flow
+
+
+## Unknown (2026-06-03)
+  - [GPT (codex)] automatic dark-mode app config, secure-store plugin registration, login autofill and workspace URL normalization, time-aware home greeting, POS skeleton loading and invoice change display, unsaved-changes protection

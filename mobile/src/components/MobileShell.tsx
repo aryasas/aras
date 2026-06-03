@@ -2,7 +2,8 @@
 // ARC mobile shell: top bar (ArcMark + centered title + headerRight) and
 // floating 5-tab bottom bar with rounded glass surface.
 import React, { ReactNode } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Home, Box, Inbox, MessageSquare, BarChart3 } from 'lucide-react-native';
 import { theme } from '../lib/theme';
 
@@ -28,6 +29,7 @@ interface ShellProps {
   headerRight?: ReactNode;
   hideTopBar?: boolean;
   onTabPress?: (tab: string) => void;
+  navigation?: any;
   children: ReactNode;
 }
 
@@ -39,7 +41,20 @@ const TABS = [
   { key: 'you', label: 'You', Icon: BarChart3 },
 ] as const;
 
-export function MobileShell({ active, title, headerRight, hideTopBar, onTabPress, children }: ShellProps) {
+const TAB_ROUTES: Partial<Record<string, string>> = {
+  home: 'AppHome',
+  items: 'AppsList',
+  you: 'Settings',
+};
+
+export function MobileShell({ active, title, headerRight, hideTopBar, onTabPress, navigation, children }: ShellProps) {
+  const handleTabPress = (key: string) => {
+    if (onTabPress) { onTabPress(key); return; }
+    if (!navigation || key === active) return;
+    const route = TAB_ROUTES[key];
+    if (route) navigation.navigate(route);
+  };
+
   return (
     <SafeAreaView style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.bg} />
@@ -60,7 +75,7 @@ export function MobileShell({ active, title, headerRight, hideTopBar, onTabPress
                 key={key}
                 style={s.tab}
                 activeOpacity={0.7}
-                onPress={() => onTabPress?.(key)}
+                onPress={() => handleTabPress(key)}
               >
                 <View style={[s.tabIconWrap, isActive && s.tabIconWrapActive]}>
                   <Icon size={18} color={isActive ? C.text : C.text3} strokeWidth={isActive ? 2.2 : 1.7} />
@@ -76,7 +91,7 @@ export function MobileShell({ active, title, headerRight, hideTopBar, onTabPress
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
+  root: { flex: 1, backgroundColor: C.bg },
   topBar: { height: 44, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
   topSide: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
   topTitle: { color: C.text2, fontSize: 14, fontWeight: '500', textAlign: 'center' },

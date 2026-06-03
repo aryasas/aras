@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Plus, Trash2, Loader2, Copy, Check, Wand2 } from 'lucide-react'
 import api from '../../lib/api'
 import { devApi } from './devApi'

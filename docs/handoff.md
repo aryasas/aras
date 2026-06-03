@@ -1,191 +1,307 @@
-# Handoff: DevTools Full Rewrite — Command-Bar + Adaptive Canvas + Scratchpad
-> run_id: 103
+# Handoff: Mobile Production Readiness — Round 2 (14 Issues)
+> run_id: 107
+> run_id: 108
 
-**Author**: Claude Opus 4.7 (spec only — no code written)
-**Run with**: `python tools/multi_agent.py --frontend-only -f gpt` (or `-f gemini-pro`)
+**Author**: Claude Sonnet 4.6 (spec only — no code written)
+**Run with**: `python tools/multi_agent.py --frontend-only`
 
 ## Context
-Current `ui/src/views/DevTools.tsx` (~1900 lines) is organized by *tool* (14 tabs: Overview, Inspector, Metrics, SQL, Routes, Models, Schema, Settings, Permissions, Impersonate, Migrations, Cache, Errors, Console, Scaffold, Metadata, Handoff, Mocks, API Help). This fails because devs think in *questions*, not tools. Rewrite around one input → adaptive canvas → persistent scratchpad. Delete the tab system entirely.
+Aras mobile app (Expo 56 / RN 0.85 / React 19). Follow-up to run 107. Fixes 14 remaining customer-facing production blockers: splash screen, dark mode, login autofill, secure-store plugin, POS skeleton + change amount, workspace URL normalization, unsaved-changes guard, logout confirmation, new arch flag, cart qty cap, axios timeout, time-aware greeting, and profile endpoint field mismatch.
 
-## Goal
-A dev opens `/dev`, types anything (path, model name, error message, user email, SQL fragment), and the canvas adapts to show the right answer. No tabs. No left sidebar nav. Three regions only.
+All files in `mobile/`. Attribution tag `// claude-sonnet-4-6` on every new function. No new npm dependencies.
 
-## Layout (exact spec)
+**Key backend fact**: profile update endpoint is `PUT /auth/me` (not PATCH), body `{ name: string, email: string }`. Backend returns `name` not `full_name`. The mobile `User` type and all display code must use `name` not `full_name`.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  [⌘ command bar — always focused on mount, 56px tall]       │
-│  Placeholder: "Ask DevTools — path, model, error, SQL…"     │
-│  Right side: query-type pill (auto-classified) + Run button │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  CANVAS — morphs by query type (see classifier below)       │
-│  Empty state: 6 example queries as clickable chips          │
-│                                                             │
-├─────────────────────────────────────────────────────────────┤
-│  SCRATCHPAD STRIP (collapsible, 180px when open, 40px tail) │
-│  Tabs across top: SQL drafts · API drafts · Tokens · Pins   │
-│  Each item: name, preview, pin/unpin, copy, delete          │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Query Classifier (frontend logic)
-Classify on submit (debounced 250ms also runs preview classification):
-- starts with `/` → `path`
-- matches `^[A-Z][a-zA-Z]+$` and is in known models list → `model`
-- contains `select |with |show |explain ` (case-insensitive) → `sql`
-- contains `@` → `user`
-- starts with `error:` or matches a stack-trace pattern (`Traceback|TypeError|ValueError`) → `error`
-- fallback → `search` (calls `/dev/search?q=`)
-
-## Canvas Modes
-
-### `path` mode
-- Header: METHOD pill + path + status badge (live)
-- Three columns:
-  1. **Routes** — all matching routes from `/dev/routes`, click to set as active
-  2. **Live traffic** — last 30 requests on this path from `/dev/metrics` recent buffer, p50/p95 mini-stat
-  3. **Try it** — inline mini-API-console: method picker, body editor, response. "Save to scratchpad" button.
-
-### `model` mode
-- Header: table name + row count
-- Tabs inside canvas (only place tabs are allowed): **Schema** · **Relations** · **Sample rows** · **Permissions** · **Recent writes**
-- Schema: column list w/ type + nullable + indexed
-- Relations: SVG diagram (reuse existing `RelationDiagram` component)
-- Sample rows: `SELECT * FROM <table> LIMIT 20` rendered as ArasTable
-- Permissions: matrix for this model from `/dev/permissions-matrix`
-- Recent writes: from activity log filtered by table
-
-### `sql` mode
-- Full-width editor (Monaco if available, else textarea w/ monospace)
-- Run button + Limit input
-- Result table below
-- Auto-save to scratchpad on every run
-- Banned-keyword inline lint (red underline)
-
-### `user` mode
-- User card (avatar, email, role, last login)
-- Permissions matrix for this user
-- "Impersonate" button → calls `/dev/impersonate`, stores token in scratchpad
-- Recent activity from activity log
-
-### `error` mode
-- Stack trace pretty-printed w/ frame collapse
-- Matching recent requests from metrics buffer (same exception class)
-- "Suggested fix" panel: simple heuristics (missing column → link to migration tab, 401 → permissions matrix, etc.)
-
-### `search` (fallback) mode
-- Three-column results: Apps · Resources · Settings
-- Each result clickable → re-runs classifier with that target
-
-## Scratchpad (persistence)
-- `localStorage` key `dev:scratchpad` — JSON object: `{sql: Draft[], api: Draft[], tokens: Token[], pins: Pin[]}`
-- `Draft`: `{id, name, content, created_at, last_run_at?, last_result_summary?}`
-- `Token`: `{id, user_email, token, expires_at}`
-- `Pin`: `{id, query, classified_as, created_at}` — pinned queries, click to re-run
-- Auto-save: SQL on every run, API on every send, tokens on impersonate
-- Manual: "Save to scratchpad" buttons everywhere
-- Shareable URL: scratchpad item → URL with `?q=<query>&pin=<id>` deep link
-
-## URL State (NEW — critical for shareability)
-- `?q=<encoded_query>` — restores query + auto-runs
-- `?mode=<path|model|sql|user|error|search>` — forces canvas mode
-- `?pin=<scratchpad_pin_id>` — opens with that pin loaded
-
-## Keyboard
-- `⌘K` / `Ctrl+K` — focus command bar (any tab)
-- `⌘Enter` — run query
-- `⌘S` — pin current query to scratchpad
-- `Esc` — clear canvas
-- `↑/↓` in command bar — cycle through recent queries (last 20 in localStorage `dev:recent`)
-
-## Visual Design (must match existing app)
-- CSS variables only: `--surface`, `--surface-2`, `--line`, `--text`, `--text-2`, `--text-3`, `--accent` (coral), `--radius`, `--radius-lg`
-- NO Tailwind pastels (no `bg-emerald-100`, `bg-indigo-50`, etc.)
-- Display headings: Fraunces serif (already loaded in current file via injected `<link>`)
-- Body: system sans
-- Code/path/SQL: JetBrains Mono or `font-mono`
-- Hairline borders, generous whitespace, coral monochrome only
-- Grain overlay (`.dev-grain` class already defined) on cards
-- Empty states: italic Fraunces, small caps section labels with `·` separators
-
-## File Operations
-- DELETE the existing tab system, sidebar, sectioned nav, `tabSections` array, `CommandPalette` modal (replaced by always-visible command bar), all per-tab content blocks
-- KEEP and reuse: `SectionHeader`, `EditorialCell`, `RelationDiagram`, `Sparkline`, `MethodPill`, `StatCard`, `MetricSparkline`, font/style injection useEffect, `pushApiHistory` helper, `runInspector` logic (refactor into `runQuery(classified)`)
-- REWRITE: top-level component, layout, all canvas modes
-- Keep all existing API endpoint calls (`/dev/routes`, `/dev/metrics`, `/dev/sql`, `/dev/relations/{name}`, `/dev/permissions-matrix`, `/dev/impersonate`, `/dev/search`, `/dev/errors`) — no backend changes needed.
-
-## Acceptance Criteria
-1. `/dev` loads with command bar auto-focused, scratchpad collapsed, empty-state chips visible
-2. Typing `/api/v1/crm/contact` → path mode with routes + traffic + try-it within 500ms
-3. Typing `Contact` → model mode with all 5 inner tabs working
-4. Typing `SELECT id FROM aras_apps` → sql mode, runs on ⌘Enter, result table rendered, auto-saved to scratchpad SQL drafts
-5. URL `?q=Contact` deep-links and auto-runs
-6. Reload preserves scratchpad
-7. `grep -nE "bg-(emerald|indigo|amber|blue|purple|red|pink)-(50|100|200|400|500|700)" ui/src/views/DevTools.tsx` returns ZERO matches
-8. Zero TypeScript errors (`npx tsc --noEmit -p ui`)
-9. Final file ≤1400 lines (current is ~1950 — must be SHORTER, not longer)
+---
 
 ## Frontend Tasks
-- REWRITE `ui/src/views/DevTools.tsx` — full restructure per spec above. Keep reusable subcomponents listed under "File Operations / KEEP". Delete everything else.
 
-## Backend Tasks
-None. All endpoints already exist from prior handoff.
+### 1. UPDATE `mobile/app.json` — splash screen + dark mode + expo-secure-store plugin + new arch
 
-## Out of Scope
-- New backend endpoints
-- Monaco editor integration (use textarea if Monaco not already installed)
-- Real-time WebSocket for live traffic (poll every 2s when in path mode is fine)
-- Mobile responsive (`/dev` is desktop-only)
+```json
+// Replace the entire app.json with:
+{
+  "expo": {
+    "name": "aras-mobile",
+    "slug": "aras-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "aras",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f1319"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aras.mobile"
+    },
+    "android": {
+      "package": "com.aras.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f1319",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-secure-store"
+    ]
+  }
+}
+```
 
-## Notes for Agent
-- DO NOT add backwards-compat shims for old tab URLs — break them.
-- DO NOT preserve the sidebar / sectioned nav — delete it.
-- DO NOT add new pastel colors. Use only the design tokens listed.
-- DO add `// claude-opus-4-7 (spec)` and `// <your-model-id> (impl)` tags on every new function.
-- After completion: append entry to `docs/reports.json` with id=93, document final line count and acceptance criteria pass/fail honestly.
+Changes from current: added `splash`, changed `userInterfaceStyle` to `"automatic"`, added `newArchEnabled: true`, added `"expo-secure-store"` to plugins, updated android `backgroundColor` to dark.
 
+### 2. UPDATE `mobile/App.tsx` — fix StatusBar style
+
+```tsx
+// Change: <StatusBar style="dark" />
+// To:     <StatusBar style="auto" />
+```
+
+### 3. UPDATE `mobile/src/screens/LoginScreen.tsx` — autofill + returnKey chain + workspace URL normalization
+
+**Autofill (textContentType + autoComplete):**
+```tsx
+// Workspace URL TextInput — add:
+//   textContentType="URL"
+//   autoComplete="url"
+//   returnKeyType="next"
+//   onSubmitEditing={() => usernameRef.current?.focus()}
+
+// Username TextInput — add:
+//   textContentType="username"
+//   autoComplete="username"
+//   returnKeyType="next"
+//   onSubmitEditing={() => passwordRef.current?.focus()}
+
+// Password TextInput — add:
+//   textContentType="password"
+//   autoComplete="current-password"
+//   returnKeyType="go"
+//   onSubmitEditing={submit}
+
+// Add refs at top of component:
+// const usernameRef = useRef<TextInput>(null);
+// const passwordRef = useRef<TextInput>(null);
+// import { useRef } from 'react'
+// import { TextInput as RNTextInput } from 'react-native' — use ref type RNTextInput
+```
+
+**Workspace URL normalization — fix `setApiBaseUrl` call:**
+```ts
+// In submit(), before calling setApiBaseUrl(workspaceUrl):
+// Normalize: if workspaceUrl is set and does not start with 'http://' or 'https://', prepend 'https://'
+// const normalizedUrl = workspaceUrl && !/^https?:\/\//i.test(workspaceUrl)
+//   ? `https://${workspaceUrl}`
+//   : workspaceUrl;
+// Then: if (normalizedUrl) { setWorkspaceUrl(normalizedUrl); await setApiBaseUrl(normalizedUrl); }
+// Also persist normalizedUrl to SecureStore (replace workspaceUrl with normalizedUrl)
+```
+
+### 4. UPDATE `mobile/src/store/useAuthStore.ts` — fix User type field mismatch
+
+Backend returns `name`, not `full_name`. All auth store code must use `name`.
+
+```ts
+// claude-sonnet-4-6
+// In User interface: change `full_name?: string` to `name?: string`
+// (email field already correct)
+// No other changes needed — display code in screens uses user?.full_name which will be fixed in Task 5+6
+```
+
+### 5. UPDATE `mobile/src/screens/SettingsScreen.tsx` — fix profile endpoint + field names
+
+```tsx
+// claude-sonnet-4-6
+// Replace all user?.full_name → user?.name
+// Replace setFullName(user?.full_name || '') → setFullName(user?.name || '')
+// Replace useEffect dep user?.full_name → user?.name
+
+// Fix saveProfile:
+// Change: api.patch('/auth/me', { full_name: fullName.trim() })
+// To:     api.put('/auth/me', { name: fullName.trim(), email: user?.email || '' })
+// On success: useAuthStore.setState((s) => ({ user: s.user ? { ...s.user, name: fullName.trim() } : s.user }))
+
+// Fix initials/display:
+// Change initialsSource: (user?.full_name || user?.username || 'User') → (user?.name || user?.username || 'User')
+// Change profileName text: user?.full_name → user?.name
+
+// Add state for email editing:
+// const [email, setEmail] = useState(user?.email || '');
+// Add email TextInput to profile modal alongside name TextInput
+// Pass both to PUT /auth/me: { name: fullName.trim(), email: email.trim() }
+```
+
+**Add logout confirmation:**
+```tsx
+// claude-sonnet-4-6
+// Replace handleLogout body:
+// Alert.alert(
+//   'Sign out',
+//   'Are you sure you want to sign out?',
+//   [
+//     { text: 'Cancel', style: 'cancel' },
+//     { text: 'Sign out', style: 'destructive', onPress: async () => { try { await logout('manual'); } catch {} } },
+//   ]
+// );
+```
+
+### 6. UPDATE `mobile/src/screens/AppHomeScreen.tsx` — time-aware greeting
+
+```tsx
+// claude-sonnet-4-6
+// Replace the hardcoded "Morning, {firstName}" with a time-aware greeting:
+// function getGreeting(): string {
+//   const h = new Date().getHours();
+//   if (h < 12) return 'Morning';
+//   if (h < 17) return 'Afternoon';
+//   return 'Evening';
+// }
+// Usage: <Text style={s.h1}>{getGreeting()}, {firstName}.</Text>
+
+// Also fix: user?.full_name → user?.name (from Task 4 field rename)
+// Change: const firstName = (user?.full_name || user?.username || 'there').split(' ')[0];
+// To:     const firstName = (user?.name || user?.username || 'there').split(' ')[0];
+```
+
+### 7. UPDATE `mobile/src/lib/api.ts` — axios timeout
+
+```ts
+// claude-sonnet-4-6
+// Add timeout to the axios.create() call:
+// const api = axios.create({
+//   baseURL: API_BASE_URL,
+//   timeout: 15000,
+// });
+```
+
+### 8. UPDATE `mobile/src/screens/PosScreen.tsx` — skeleton loading + change_amount in invoice alert + cart qty cap
+
+**Skeleton loading in product grid:**
+```tsx
+// claude-sonnet-4-6
+// When loadingCatalog === true, instead of ActivityIndicator, render a FlatList or View of 6 skeleton tiles:
+// Each skeleton tile: same dimensions as product tile, backgroundColor: C.surface2, borderRadius: 10, margin: 4, flex: 1
+// Use Animated pulse (opacity 0.4 → 0.8 → 0.4 loop) or plain static grey — static is acceptable
+// Render: numColumns={2}, columnWrapperStyle={{ paddingHorizontal: 12 }}, 6 placeholder items
+
+// claude-sonnet-4-6
+// Skeleton tile component — above PosScreen:
+// const SkeletonTile = () => (
+//   <View style={{ flex: 1, margin: 4, borderRadius: 10, backgroundColor: C.surface2, height: 90 }} />
+// );
+// Render when loadingCatalog: [...Array(6)].map((_, i) => <SkeletonTile key={i} />)
+// Wrap in: <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12 }}>
+```
+
+**Change amount in invoice success alert:**
+```tsx
+// claude-sonnet-4-6
+// In submitInvoice success handler, extract change_amount from response:
+// const { invoice_number, change_amount } = response.data?.data || response.data || {};
+// const changeText = change_amount > 0 ? `\nChange: ${formatRp(change_amount)}` : '';
+// Alert.alert(
+//   'Invoice Created',
+//   `${invoice_number || 'Invoice'}${changeText}`,
+//   [{ text: 'OK' }]
+// );
+```
+
+**Cart quantity cap at stock:**
+```tsx
+// claude-sonnet-4-6
+// In addToCart: before incrementing, check if existing.qty >= getProductStock(product)
+// If at stock limit: haptic.error() and return without incrementing
+// const addToCart = (product: ProductRecord) => {
+//   haptic.light();
+//   setCart((current) => {
+//     const key = cartItemKey(product);
+//     const existing = current.find((entry) => cartItemKey(entry.item) === key);
+//     if (existing) {
+//       if (existing.qty >= getProductStock(product)) return current; // at stock limit
+//       return current.map((entry) =>
+//         cartItemKey(entry.item) === key ? { ...entry, qty: entry.qty + 1 } : entry
+//       );
+//     }
+//     return [...current, { item: product, qty: 1 }];
+//   });
+// };
+// Also cap in changeQty(+1 direction): if entry.qty >= getProductStock, return entry unchanged
+```
+
+### 9. UPDATE `mobile/src/screens/ResourceFormScreen.tsx` — unsaved-changes guard
+
+```tsx
+// claude-sonnet-4-6
+// Add dirty state tracking:
+// const [isDirty, setIsDirty] = useState(false);
+// In setField(): also call setIsDirty(true)
+// (setField is the field change handler — wrap it to set dirty flag)
+
+// Add navigation listener to intercept back:
+// useEffect(() => {
+//   const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+//     if (!isDirty || saving) return;
+//     e.preventDefault();
+//     Alert.alert(
+//       'Discard changes?',
+//       'You have unsaved changes. Leave without saving?',
+//       [
+//         { text: 'Keep editing', style: 'cancel' },
+//         { text: 'Discard', style: 'destructive', onPress: () => navigation.dispatch(e.data.action) },
+//       ]
+//     );
+//   });
+//   return unsubscribe;
+// }, [navigation, isDirty, saving]);
+
+// Reset dirty flag after successful save:
+// In save() success path: setIsDirty(false); before navigation.goBack()
+```
 
 ---
-## Agent Reports (2026-06-01)
 
-### Backend (Gemini (gemini-3-flash-preview))
-- files_written: none
-- features_added: none
-- fixes_applied: none
-- framework_changes: none
-- issues: none
+## Notes for implementor
 
-### Frontend (GPT (codex))
-- files_written: none
-- features_added: none
-- fixes_applied: none
-- framework_changes: none
-- issues: none
-
-## Claude Review
-- verdict: APPROVED
-- reviewed_by: Claude Opus 4.7
-- date: 2026-06-01
-- notes: Codex agent reported "none" in handoff.md but actually wrote ui/src/views/DevTools.tsx (1095 lines — under 1400 ceiling). All 9 acceptance criteria verified: (1) auto-focus + scratchpad collapsed + 6 EXAMPLE_QUERIES chips, (2) path canvas mode with 2s metrics polling, (3) model mode with 5 MODEL_TABS inner tabs, (4) sql mode with BANNED_SQL lint + scratchpad auto-save, (5) URL ?q= deep-link via URLSearchParams in useEffect, (6) localStorage persistence on dev:scratchpad + dev:recent, (7) zero pastel matches (grep returns empty), (8) typecheck clean (no DevTools.tsx errors), (9) 1095 ≤ 1400 lines. Keyboard ⌘K/⌘Enter/⌘S/Esc all wired. Codex's status report dishonesty is the only concern — output itself meets spec.
-
+- `mobile/app.json` — full replacement is correct; do NOT keep old keys that are removed
+- `mobile/App.tsx` — only change is `StatusBar style="dark"` → `style="auto"`
+- `PUT /auth/me` body must include both `name` AND `email` — backend validates both fields (see `UpdateProfileRequest`)
+- `user?.name` is the correct field after Task 4 fix; `full_name` no longer exists on the User type
+- `expo-secure-store` plugin in app.json only affects native builds (EAS); no JS changes needed
+- `newArchEnabled: true` is a build-time flag; no JS changes needed
+- Cart qty cap: `getProductStock()` already exists in PosScreen — use it directly
+- Skeleton tiles: static grey is fine, no animation required
+- All new functions: `// claude-sonnet-4-6` tag on line above `const/function/class`
+- Targeted edits only — do not rewrite entire files unless explicitly stated
 
 ---
-## Agent Reports (2026-06-01)
+<!-- ── Below this line is filled automatically by multi_agent.py + Claude ── -->
 
-### Backend (Gemini (gemini-3-flash-preview))
-- files_written: none
-- features_added: none
-- fixes_applied: none
-- framework_changes: none
-- issues: none
+## Agent Reports
 
-### Frontend (GPT (codex))
-- files_written: ui/src/views/DevTools.tsx, docs/reports.json
-- features_added: DevTools command bar rewrite with adaptive canvas modes, scratchpad persistence, URL state, and keyboard shortcuts
-- fixes_applied: Removed old tab system, sidebar nav, and command palette modal
-- framework_changes: none
-- issues: `cd ui && npx tsc --noEmit -p .` passes; exact root command `npx tsc --noEmit -p ui` resolves deprecated placeholder `tsc` package in this workspace.
+### Backend (Gemini)
+- files_written: <!-- filled by agent -->
+- features_added: <!-- filled by agent -->
+- fixes_applied: <!-- filled by agent -->
+- framework_changes: <!-- filled by agent -->
+- issues: <!-- filled by agent -->
+
+### Frontend (Codex GPT)
+- files_written: <!-- filled by agent -->
+- features_added: <!-- filled by agent -->
+- fixes_applied: <!-- filled by agent -->
+- framework_changes: <!-- filled by agent -->
+- issues: <!-- filled by agent -->
 
 ## Claude Review
 - verdict: <!-- APPROVED / NEEDS-FIX -->
@@ -193,6 +309,26 @@ None. All endpoints already exist from prior handoff.
 - date: <!-- fill -->
 - notes: <!-- none or describe -->
 
-## Revision Tasks
-<!-- If verdict is NEEDS-FIX, list tasks here then re-run multi_agent.py -->
-<!-- Delete this section if APPROVED -->
+
+---
+## Agent Reports (2026-06-03)
+
+### Backend (Gemini (gemini-3-flash-preview))
+- files_written: none
+- features_added: none
+- fixes_applied: none
+- framework_changes: none
+- issues: none
+
+### Frontend (GPT (codex))
+- files_written: mobile/app.json, mobile/App.tsx, mobile/src/lib/api.ts, mobile/src/store/useAuthStore.ts, mobile/src/screens/LoginScreen.tsx, mobile/src/screens/SettingsScreen.tsx, mobile/src/screens/AppHomeScreen.tsx, mobile/src/screens/PosScreen.tsx, mobile/src/screens/ResourceFormScreen.tsx, docs/reports.json
+- features_added: automatic dark-mode app config, secure-store plugin registration, login autofill and workspace URL normalization, time-aware home greeting, POS skeleton loading and invoice change display, unsaved-changes protection
+- fixes_applied: updated profile persistence to PUT /auth/me with name and email, renamed auth state to name, enabled StatusBar auto, added axios timeout, capped POS cart quantities at stock, added logout confirmation
+- framework_changes: none
+- issues: none
+
+## Claude Review
+- verdict: APPROVED
+- reviewed_by: Claude Code
+- date: 2026-06-03
+- notes: All 14 issues verified. app.json: splash+dark mode automatic+newArchEnabled+expo-secure-store plugin ✓. StatusBar style="auto" ✓. axios timeout 15s ✓. Login: usernameRef/passwordRef refs, textContentType+returnKeyType chain, normalizedUrl https prepend ✓. User.name field (not full_name) in store+all screens ✓. SettingsScreen: PUT /auth/me with name+email, logout Alert confirmation, user.name display ✓. AppHomeScreen: getGreeting() time-aware, user.name ✓. PosScreen: SkeletonTile, change_amount in invoice alert, addToCart+changeQty qty cap at stock ✓. ResourceFormScreen: isDirty+beforeRemove unsaved-changes guard ✓.

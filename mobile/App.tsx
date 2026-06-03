@@ -38,7 +38,7 @@ export default function App() {
       <DesignOverrideProvider>
         <SafeAreaProvider>
           <AppNavigator />
-          <StatusBar style="dark" />
+          <StatusBar style="auto" />
         </SafeAreaProvider>
       </DesignOverrideProvider>
     </LanguageProvider>

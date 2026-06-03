@@ -1,5 +1,3 @@
-import React from 'react'
-
 // claude-opus-4-8
 // Generic column/row grid for raw dev responses (SQL results, relations, matrices).
 // Distinct from ArasTable (metadata-driven) — this renders arbitrary {columns, rows}.

@@ -1653,7 +1653,7 @@
   {
     "id": 90,
     "date": "2026-06-01",
-    "feature": "DevTools redesign — industrial terminal/IDE aesthetic with vertical sidebar nav",
+    "feature": "DevTools redesign \u2014 industrial terminal/IDE aesthetic with vertical sidebar nav",
     "revision_count": 0,
     "backend": null,
     "frontend": {
@@ -1667,20 +1667,20 @@
     "output_tokens": "~2000",
     "cache_read_tokens": "n/a",
     "cache_write_tokens": "n/a",
-    "token_efficiency": "surgical edits only — layout restructure, no logic touched, no file rewrite",
+    "token_efficiency": "surgical edits only \u2014 layout restructure, no logic touched, no file rewrite",
     "verdict": "APPROVED"
   },
   {
     "id": 91,
     "date": "2026-06-01",
-    "feature": "DevTools power tools expansion — Cmd+K palette, live metrics, SQL console, route inspector, model viewer, migrations, permissions matrix, impersonation, scaffold generator",
+    "feature": "DevTools power tools expansion \u2014 Cmd+K palette, live metrics, SQL console, route inspector, model viewer, migrations, permissions matrix, impersonation, scaffold generator",
     "revision_count": 0,
     "backend": {
       "files_written": "api/apps/dev/app.py, api/main.py",
       "features_added": "GET /dev/metrics (live request stats with p50/p95/p99 + sparkline buckets), POST /dev/sql (read-only SQL whitelist), GET /dev/migrations (Alembic head vs current), GET /dev/relations/{name} (FK + reverse-link), POST /dev/impersonate (30min admin token), GET /dev/permissions-matrix, POST /dev/scaffold (app/model generator), GET /dev/activity-heatmap, GET /dev/search; request_metrics_middleware wired in main.py",
-      "fixes_applied": "Removed SqlQuery pydantic class — integrity_checker rejected non-Aras component in app module; use Dict payload instead",
+      "fixes_applied": "Removed SqlQuery pydantic class \u2014 integrity_checker rejected non-Aras component in app module; use Dict payload instead",
       "framework_changes": "In-memory request metrics buffer with record_request() called from middleware",
-      "issues": "Pre-existing pyright stubs flag dynamic Aras attrs (User, SettingsModel, Manager.Sync) — runtime-attached, not from this change"
+      "issues": "Pre-existing pyright stubs flag dynamic Aras attrs (User, SettingsModel, Manager.Sync) \u2014 runtime-attached, not from this change"
     },
     "frontend": {
       "files_written": "ui/src/views/DevTools.tsx",
@@ -1693,19 +1693,19 @@
     "output_tokens": "~9000",
     "cache_read_tokens": "n/a",
     "cache_write_tokens": "n/a",
-    "token_efficiency": "Continued after sub-agent hit org limit — built remaining frontend + integrity fix directly in one shot.",
+    "token_efficiency": "Continued after sub-agent hit org limit \u2014 built remaining frontend + integrity fix directly in one shot.",
     "verdict": "APPROVED"
   },
   {
     "id": 92,
     "date": "2026-06-01",
-    "feature": "DevTools editorial polish pass — Fraunces serif display, grain overlay, coral monochrome, EditorialCell + RelationDiagram, removed all dark slate panels",
+    "feature": "DevTools editorial polish pass \u2014 Fraunces serif display, grain overlay, coral monochrome, EditorialCell + RelationDiagram, removed all dark slate panels",
     "revision_count": 1,
     "backend": null,
     "frontend": {
       "files_written": "ui/src/views/DevTools.tsx",
-      "features_added": "SectionHeader with eyebrow + ornament rule; EditorialCell for hairline-bordered grid blocks; RelationDiagram SVG (referenced_by → table → references with arrow markers); area-fill Sparkline with gradient + −60s/−30s/now axis; Fraunces serif via injected Google Fonts link; .dev-grain SVG noise overlay; .dev-card-hover transition",
-      "fixes_applied": "Replaced dark bg-slate-900/950 Advanced Inspection + Handoff drawer + API console with cream design-token variants; removed all 22 font-black occurrences (→ font-semibold); replaced 5-color pastel RegistryCard system with single coral hover line; kept semantic status badges (HTTP method pills, ok/error/pending) intact",
+      "features_added": "SectionHeader with eyebrow + ornament rule; EditorialCell for hairline-bordered grid blocks; RelationDiagram SVG (referenced_by \u2192 table \u2192 references with arrow markers); area-fill Sparkline with gradient + \u221260s/\u221230s/now axis; Fraunces serif via injected Google Fonts link; .dev-grain SVG noise overlay; .dev-card-hover transition",
+      "fixes_applied": "Replaced dark bg-slate-900/950 Advanced Inspection + Handoff drawer + API console with cream design-token variants; removed all 22 font-black occurrences (\u2192 font-semibold); replaced 5-color pastel RegistryCard system with single coral hover line; kept semantic status badges (HTTP method pills, ok/error/pending) intact",
       "framework_changes": "none",
       "issues": "Inline settings editor still deep-links to /admin/settings; permissions matrix remains read-only; no motion library used (CSS-only transitions)"
     },
@@ -1719,7 +1719,7 @@
   {
     "id": 93,
     "date": "2026-06-01",
-    "feature": "DevTools full rewrite — command bar, adaptive canvas modes, persistent scratchpad, and shareable URL state",
+    "feature": "DevTools full rewrite \u2014 command bar, adaptive canvas modes, persistent scratchpad, and shareable URL state",
     "revision_count": 0,
     "backend": null,
     "frontend": {
@@ -1734,11 +1734,11 @@
   {
     "id": 94,
     "date": "2026-06-01",
-    "feature": "AI layout/ai endpoint — structural layout_json generation from natural language instruction",
+    "feature": "AI layout/ai endpoint \u2014 structural layout_json generation from natural language instruction",
     "revision_count": 0,
     "backend": {
       "files_written": "api/apps/dev/ui_router.py",
-      "features_added": "POST /dev/layout/ai — fetches resource fields from DB, builds prompt with layout_json schema doc, calls claude-3-5-sonnet-20241022 via Anthropic SDK (same mechanism as ai_style_edit), validates JSON array + field name references, returns {layout_json, applied:false} without persisting",
+      "features_added": "POST /dev/layout/ai \u2014 fetches resource fields from DB, builds prompt with layout_json schema doc, calls claude-3-5-sonnet-20241022 via Anthropic SDK (same mechanism as ai_style_edit), validates JSON array + field name references, returns {layout_json, applied:false} without persisting",
       "fixes_applied": "none",
       "framework_changes": "none",
       "issues": "none"
@@ -1987,6 +1987,261 @@
       "fixes_applied": "Replaced scattered DevTools endpoint literals in existing panels with centralized constants and added /dev?tab=routes query support for direct deep links.",
       "framework_changes": "DevTools frontend now uses ui/src/views/devtools/devApi.ts as the canonical mapping for core dev routes versus app-mounted dev routes.",
       "issues": "Expo reachability is a browser-level no-cors probe, so it can distinguish reachable versus blocked/unavailable but cannot inspect Expo internals."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 109,
+    "date": "2026-06-03",
+    "feature": "DevTools Test Lab upgrade",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/devtools/ApiConsole.tsx, ui/src/views/DevTools.tsx, ui/src/views/devtools/RouteDebugger.tsx, docs/reports.json",
+      "features_added": "Upgraded the API Console into a Test Lab with OpenAPI-driven endpoint jumping, auth presets, base URL override, custom headers, path/query/header/body editors, saved cases, assertions, cURL copy, and run history.",
+      "fixes_applied": "Preserved request state correctly when loading saved cases, handled OpenAPI header parameters separately, and kept the tab/workbench labels aligned with the new testing flow.",
+      "framework_changes": "none",
+      "issues": "Frontend build still reports pre-existing TypeScript errors in DataGrid, TopMenuLayout, LogStream, ScaffoldTab, and TemplateBuilder."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 110,
+    "date": "2026-06-03",
+    "feature": "Mobile production-ready round 2 frontend fixes",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "mobile/src/screens/ResourceFormScreen.tsx, mobile/src/screens/ResourceListScreen.tsx, mobile/src/screens/SettingsScreen.tsx, mobile/src/screens/AppMenuScreen.tsx, mobile/src/screens/AppHomeScreen.tsx",
+      "features_added": "Added searchable lookup selection, required-field validation, delete actions, server-side filtered lists, shell-backed settings, loading skeletons, and the zero-app empty state.",
+      "fixes_applied": "Coerced select option comparison to string values, routed list filters through API query params, swapped settings into MobileShell, and updated resource form titles for new records.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 110,
+    "date": "2026-06-03",
+    "feature": "DevTools Test Lab scenarios and snapshots",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/devtools/ApiConsole.tsx, docs/reports.json",
+      "features_added": "Added saved profiles, scenario steps with variable capture, snapshot saving and diffing, history pinning and filtering, export/import of cases, and request timeout/delay fault controls.",
+      "fixes_applied": "Normalized older saved cases from localStorage, preserved profile and case deep links during hydration, and aligned cURL/export previews with the actual request context.",
+      "framework_changes": "none",
+      "issues": "Frontend build still reports pre-existing TypeScript errors in DataGrid, TopMenuLayout, LogStream, ScaffoldTab, and TemplateBuilder."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 111,
+    "date": "2026-06-03",
+    "feature": "Frontend build cleanup",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/DataGrid.tsx, ui/src/layouts/TopMenuLayout.tsx, ui/src/views/devtools/LogStream.tsx, ui/src/views/devtools/ScaffoldTab.tsx, ui/src/views/TemplateBuilder.tsx, docs/reports.json",
+      "features_added": "none",
+      "fixes_applied": "Removed unused React imports, fixed nullable text override assignment in the top menu, and dropped dead TemplateBuilder history state and unused EyeOff import so the UI builds cleanly.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 112,
+    "date": "2026-06-03",
+    "feature": "mha spec: mobile POS screen (product grid, cart, checkout modal, session picker)",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "docs/handoff.md (run_id 106)",
+      "features_added": "PosScreen spec: product FlatList grid, cart strip, checkout Modal, payment mode selector, change calculation, session picker for null sessionId, AppMenuScreen POS path guard, AppNavigator registration",
+      "fixes_applied": "ResourceListScreen stale closure fix: fetchPage default param changed from activeFilter=filter to activeFilter=null, initial call passes null explicitly",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~8000",
+    "output_tokens": "~1200",
+    "cache_read_tokens": "~0",
+    "cache_write_tokens": "~0",
+    "token_efficiency": "spec written with full API contract from routers.py read; stale closure fix delivered inline",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 113,
+    "date": "2026-06-03",
+    "feature": "Test Lab export initialization fix",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/devtools/ApiConsole.tsx, docs/reports.json",
+      "features_added": "none",
+      "fixes_applied": "Moved the Test Lab export helper above the useMemo that consumes it so the component no longer throws Cannot access 'exportCurrentDraft' before initialization at render time.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 114,
+    "date": "2026-06-03",
+    "feature": "Test Lab scenario templates",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/devtools/ApiConsole.tsx, docs/reports.json",
+      "features_added": "Added one-click scenario templates for Dev Snapshot, Route Audit, and System Watch, each loading a multi-step run from real dev endpoints.",
+      "fixes_applied": "none",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 115,
+    "date": "2026-06-03",
+    "feature": "Test Lab scenario report",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/devtools/ApiConsole.tsx, docs/reports.json",
+      "features_added": "Added a persisted in-session scenario report that lists each step's endpoint, status, and latency after a run completes.",
+      "fixes_applied": "Scenario runs no longer end with only a transient completion message; the last run now leaves a structured report visible in the Scenario panel.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 115,
+    "date": "2026-06-03",
+    "feature": "mha spec run 107 \u2014 mobile production readiness (15 customer issues)",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "docs/handoff.md",
+      "features_added": "Spec: toast system, error boundary, deep linking, workspace URL onboarding, AppMenuScreen MobileShell conversion, SettingsScreen wired items, server-side search, empty CTAs, offline banners, pull-to-refresh, keyboard-aware scroll, haptics, biometric remember-me, version display, OfflineBanner component",
+      "fixes_applied": "none (spec only)",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~8000",
+    "output_tokens": "~2500",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "Spec for 15 production issues across 10+ files in one handoff \u2014 dense coverage, no wasted tokens",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 116,
+    "date": "2026-06-03",
+    "feature": "Test Lab scenario endpoint fix",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/devtools/ApiConsole.tsx, docs/reports.json",
+      "features_added": "none",
+      "fixes_applied": "Changed the Dev Snapshot template to use the real backend routes /dev/system-info and /dev/metrics instead of stale /dev/info and /dev/stats paths.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 117,
+    "date": "2026-06-03",
+    "feature": "DevTools endpoint path recheck",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/devtools/devApi.ts, ui/src/views/HealthIntegrity.tsx, ui/src/views/DevTools.tsx, ui/src/views/devtools/DevHealthPanel.tsx, ui/src/views/devtools/ApiConsole.tsx, docs/reports.json",
+      "features_added": "none",
+      "fixes_applied": "Normalized the devtools framework info and registry stats calls to the mounted /api/v1/dev/dev/* routes, and updated the health panel plus dev endpoint help text to match the real router layout.",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 118,
+    "date": "2026-06-03",
+    "feature": "Mobile production readiness frontend pass",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "mobile/src/lib/toast.ts, mobile/src/components/ToastOverlay.tsx, mobile/src/components/ErrorBoundary.tsx, mobile/src/lib/apiBaseUrl.ts, mobile/src/lib/haptics.ts, mobile/src/components/OfflineBanner.tsx, mobile/src/screens/PosScreen.tsx, mobile/src/lib/auth.ts, mobile/src/lib/api.ts, mobile/src/store/useAuthStore.ts, mobile/src/navigation/AppNavigator.tsx, mobile/src/screens/LoginScreen.tsx, mobile/src/screens/AppHomeScreen.tsx, mobile/src/screens/AppMenuScreen.tsx, mobile/src/screens/SettingsScreen.tsx, mobile/src/screens/ResourceListScreen.tsx, mobile/src/screens/ResourceFormScreen.tsx, docs/reports.json",
+      "features_added": "Toast system and overlay, full-screen error boundary, deep-linkable authenticated navigator, workspace URL onboarding, remember-me auth, offline banners, server-side search, empty CTAs, profile modal, and POS screen stub",
+      "fixes_applied": "Wired dead settings actions, added pull-to-refresh and keyboard-aware forms, added save/delete feedback toasts and haptics, and routed network failures into inline/offline states instead of dead-end errors",
+      "framework_changes": "none",
+      "issues": "expo-constants was resolved through Expo's nested package path in this workspace"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 119,
+    "date": "2026-06-03",
+    "feature": "Mobile production readiness revision pass",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "mobile/src/screens/SettingsScreen.tsx, mobile/package.json, mobile/src/screens/PosScreen.tsx, docs/reports.json",
+      "features_added": "Full POS session picker, product grid, cart strip, and checkout modal flow",
+      "fixes_applied": "Replaced the brittle expo-constants deep import with a direct package import and implemented the run-106 POS screen revision spec",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 120,
+    "date": "2026-06-03",
+    "feature": "DevTools smoke test coverage",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/views/devtools/devApi.ts, ui/src/views/HealthIntegrity.tsx, ui/src/views/DevTools.tsx, ui/src/views/devtools/DevHealthPanel.tsx, ui/src/views/devtools/ApiConsole.tsx, ui/tests/devtools.spec.ts, docs/reports.json",
+      "features_added": "Playwright smoke coverage for the DevTools shell and Test Lab scenario runner across desktop and mobile viewports",
+      "fixes_applied": "Normalized devtools API path mapping and Test Lab base URL handling, then replaced brittle selectors with stable assertions for the route debugger and scenario report",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 116,
+    "date": "2026-06-03",
+    "feature": "mha spec run 108 \u2014 mobile production readiness round 2 (14 issues)",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "docs/handoff.md",
+      "features_added": "Spec: splash screen, dark mode automatic, expo-secure-store plugin, newArchEnabled, StatusBar auto, login autofill+returnKey chain, workspace URL https normalization, User.name field fix, PUT /auth/me with name+email, logout confirmation, time-aware greeting, axios 15s timeout, POS skeleton tiles+change_amount alert+cart qty cap, unsaved-changes guard",
+      "fixes_applied": "none (spec only)",
+      "framework_changes": "none",
+      "issues": "none"
+    },
+    "input_tokens": "~6000",
+    "output_tokens": "~2000",
+    "cache_read_tokens": "0",
+    "cache_write_tokens": "0",
+    "token_efficiency": "All 14 issues specced with exact code, correct backend endpoint verified (PUT not PATCH, name not full_name), one run",
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 117,
+    "date": "2026-06-03",
+    "feature": "Mobile production readiness round 2 frontend fixes",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "mobile/app.json, mobile/App.tsx, mobile/src/lib/api.ts, mobile/src/store/useAuthStore.ts, mobile/src/screens/LoginScreen.tsx, mobile/src/screens/SettingsScreen.tsx, mobile/src/screens/AppHomeScreen.tsx, mobile/src/screens/PosScreen.tsx, mobile/src/screens/ResourceFormScreen.tsx, docs/reports.json",
+      "features_added": "Automatic dark-mode app config, secure-store plugin registration, login autofill and workspace URL normalization, time-aware home greeting, POS skeleton loading and invoice change display, and unsaved-changes protection",
+      "fixes_applied": "Updated profile persistence to PUT /auth/me with name and email, renamed auth state to name, enabled StatusBar auto, added axios timeout, capped POS cart quantities at stock, and added logout confirmation",
+      "framework_changes": "none",
+      "issues": "none"
     },
     "verdict": "APPROVED"
   }

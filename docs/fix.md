@@ -302,3 +302,27 @@ This file is used only to report if there are fix
 
 ## Unknown (2026-06-01)
   - [GPT (codex)] Removed old tab system, sidebar nav, and command palette modal
+
+
+## Unknown (2026-06-03)
+  - [GPT (codex)] Replaced demo form/home content, added MobileShell navigation prop usage, dynamic metadata choice chips
+
+
+## Mobile production-ready: 401 interceptor, metadata-driven form, pagination, real dashboard, navigation wiring (2026-06-03)
+  - [GPT (codex)] Removed ARC-PLM demo content, replaced hardcoded filters with dynamic choices, wired MobileShell navigation prop
+
+
+## Unknown (2026-06-03)
+  - [GPT (codex)] Required-field validation, 422 parsing, delete action, new-record shell title, select option coercion, and filter refetch behavior
+
+
+## Unknown (2026-06-03)
+  - [GPT (codex)] wired dead settings actions, added pull-to-refresh and keyboard-aware forms, added save/delete toasts and haptics, and routed network failures into inline/offline states instead of dead-end errors
+
+
+## Unknown — revision (2026-06-03)
+  - [GPT (codex)] Replaced the brittle expo-constants deep import with a direct package import and implemented the run-106 POS screen revision spec
+
+
+## Unknown (2026-06-03)
+  - [GPT (codex)] updated profile persistence to PUT /auth/me with name and email, renamed auth state to name, enabled StatusBar auto, added axios timeout, capped POS cart quantities at stock, added logout confirmation

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import * as LucideIcons from 'lucide-react'
 import api from '../lib/api'
+import { devApi } from './devtools/devApi'
 
 export default function HealthIntegrityView() {
   const [stats, setStats] = useState<any[]>([])
@@ -9,8 +10,8 @@ export default function HealthIntegrityView() {
 
   useEffect(() => {
     Promise.all([
-      api.get('/dev/stats'),
-      api.get('/dev/info')
+      api.get(devApi.stats),
+      api.get(devApi.info)
     ]).then(([statsRes, infoRes]) => {
       setStats(statsRes.data)
       setInfo(infoRes.data)

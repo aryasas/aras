@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Trash2, Pause, Play, Copy, X } from 'lucide-react'
 import api from '../../lib/api'
 import { devApi } from './devApi'

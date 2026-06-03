@@ -160,9 +160,10 @@ export default function TopMenuLayout() {
             try {
               document.querySelectorAll(row.selector).forEach((el) => {
                 const target = el as HTMLElement
-                if (target.dataset.arasTextApplied === row.text_override) return
-                target.textContent = row.text_override
-                target.dataset.arasTextApplied = row.text_override
+                const overrideText = row.text_override || ''
+                if (target.dataset.arasTextApplied === overrideText) return
+                target.textContent = overrideText
+                target.dataset.arasTextApplied = overrideText
               })
             } catch { /* ignore invalid selector */ }
           }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Database, RefreshCw, Cpu, Layout, Users, Settings, GitBranch, HelpCircle, X, ExternalLink, Code2, Globe, CalendarDays, Activity as ActivityIcon, Boxes, GitCompare, Command, Trash2, Search, Wrench, ShieldCheck, Smartphone, Route } from 'lucide-react'
+import { Database, RefreshCw, Cpu, Layout, Users, Settings, GitBranch, HelpCircle, X, ExternalLink, Code2, Globe, CalendarDays, Activity as ActivityIcon, Boxes, GitCompare, Command, Trash2, Search, Wrench, ShieldCheck, Route } from 'lucide-react'
 import api from '../lib/api'
 import ArasTable from '../aras-core/components/ArasTable'
 import { MetadataService } from '../aras-core/services/MetadataService'
@@ -135,7 +135,7 @@ export default function DevTools() {
     { key: 'models', label: 'Models', hint: 'Model registry', icon: <Boxes size={13} /> },
     { key: 'cache', label: 'Cache', hint: 'Metadata cache controls', icon: <Trash2 size={13} /> },
     { key: 'commands', label: 'Commands', hint: 'Command launcher', icon: <Command size={13} /> },
-    { key: 'console', label: 'API Console', hint: 'OpenAPI request runner', icon: <Zap size={13} /> },
+    { key: 'console', label: 'Test Lab', hint: 'OpenAPI runner, assertions, history', icon: <Zap size={13} /> },
     { key: 'sql', label: 'SQL Runner', hint: 'Read-only SQL tools', icon: <TerminalIcon size={13} /> },
     { key: 'access', label: 'Access', hint: 'RBAC matrix and simulator', icon: <Shield size={13} /> },
     { key: 'handoff', label: 'Handoff', hint: 'Agent run history', icon: <GitBranch size={13} /> },
@@ -331,7 +331,7 @@ export default function DevTools() {
                   badge
                   onClick={() => {
                     const last = localStorage.getItem('template-studio:last') || ''
-                    const ref = (() => { try { const u = new URL(document.referrer); return u.origin === location.origin ? u.pathname : '' } catch { return '' } })()
+                    const ref = (() => { try { const u = new URL(document.referrer); return u.origin === window.location.origin ? u.pathname : '' } catch { return '' } })()
                     const from = ref || last
                     navigate(from ? `/dev/template-builder?from=${encodeURIComponent(from)}` : '/dev/template-builder')
                   }}
@@ -366,11 +366,11 @@ export default function DevTools() {
           <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <WorkflowCard
               title="Debug an API route"
-              desc="Open route explorer, then run the selected endpoint in the API console."
+              desc="Open route explorer, then run the selected endpoint in Test Lab."
               icon={<Route size={18} />}
               actions={[
                 { label: 'Routes', onClick: () => setActiveTab('routes') },
-                { label: 'API Console', onClick: () => setActiveTab('console') },
+                { label: 'Test Lab', onClick: () => setActiveTab('console') },
                 { label: 'Swagger', onClick: () => window.open(getApiDocsUrl(), '_blank', 'noopener,noreferrer') },
               ]}
             />

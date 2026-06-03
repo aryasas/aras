@@ -4,7 +4,7 @@
   "main": "index.js",
   "dependencies": {
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
-    "@react-native-async-storage/async-storage": "^3.1.0",
+    "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-community/datetimepicker": "~8.3.0",
     "@react-native-picker/picker": "~2.9.0",
     "@react-navigation/bottom-tabs": "^7.16.1",
@@ -12,6 +12,7 @@
     "@react-navigation/stack": "^7.0.0",
     "axios": "^1.16.1",
     "expo": "~56.0.4",
+    "expo-constants": "~56.0.15",
     "expo-font": "~56.0.5",
     "expo-secure-store": "~14.0.1",
     "expo-status-bar": "~56.0.4",

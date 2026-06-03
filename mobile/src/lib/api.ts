@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { getOrgId, getToken, logout } from './auth';
+import { getOrgId, getToken } from './auth';
+import { useAuthStore } from '../store/useAuthStore';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
 
@@ -15,6 +16,7 @@ interface ApiEnvelope<T = unknown> {
   detail?: string | null;
 }
 
+// claude-sonnet-4-6
 function getEnvelopeErrorMessage(value: ApiEnvelope | Record<string, any>): string {
   const error = value.error;
   if (typeof error === 'string') return error;
@@ -24,6 +26,7 @@ function getEnvelopeErrorMessage(value: ApiEnvelope | Record<string, any>): stri
   return 'Request failed';
 }
 
+// claude-sonnet-4-6
 function isApiEnvelope(value: unknown): value is ApiEnvelope {
   return (
     typeof value === 'object' &&
@@ -35,6 +38,7 @@ function isApiEnvelope(value: unknown): value is ApiEnvelope {
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 15000,
 });
 
 api.interceptors.request.use(async (config) => {
@@ -90,7 +94,7 @@ api.interceptors.response.use(
       };
     }
     if (error.response?.status === 401) {
-      await logout();
+      await useAuthStore.getState().logout('session_expired');
     }
     return Promise.reject(error);
   }

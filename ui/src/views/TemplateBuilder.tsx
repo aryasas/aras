@@ -5,7 +5,6 @@ import {
   AlignLeft,
   AlignRight,
   Eye,
-  EyeOff,
   Laptop,
   MousePointer2,
   Move,
@@ -184,7 +183,6 @@ export default function TemplateBuilder() {
   const [textEnabled, setTextEnabled] = useState(false)
   const [scope, setScope] = useState<string>(fromPath)
   const [overrides, setOverrides] = useState<Override[]>([])
-  const [history, setHistory] = useState<Override[]>([])
   const [aiPrompt, setAiPrompt] = useState('')
   const [aiBusy, setAiBusy] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -218,12 +216,6 @@ export default function TemplateBuilder() {
       setOverrides(Array.isArray(res.data) ? res.data : [])
     } catch {
       setOverrides([])
-    }
-    try {
-      const res = await api.get(`${DEV_UI}/style-overrides/history?path=${encodeURIComponent(nativePreview ? 'mobile' : fromPath)}&limit=18`)
-      setHistory(Array.isArray(res.data) ? res.data : [])
-    } catch {
-      setHistory([])
     }
   }, [fromPath, nativePreview])
 
