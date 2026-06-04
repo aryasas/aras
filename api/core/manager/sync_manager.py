@@ -152,65 +152,7 @@ class SyncManager(Manager):
             from core.registry.widget_model import WidgetModel
         except ImportError:
             return
-
-        defaults = [
-            {
-                "name": "total_products",
-                "title": "Total Products",
-                "widget_type": "stat",
-                "resource_name": "stock_items",
-                "config_json": {"icon": "Package", "color": "indigo"},
-                "size": "col-span-1",
-                "order": 1
-            },
-            {
-                "name": "recent_movements",
-                "title": "Recent Stock Movements",
-                "widget_type": "list",
-                "resource_name": "stock_movements",
-                "config_json": {"limit": 5},
-                "size": "col-span-2",
-                "order": 2
-            },
-            {
-                "name": "total_accounts",
-                "title": "Total Accounts",
-                "widget_type": "stat",
-                "resource_name": "accounting_accounts",
-                "config_json": {"icon": "Calculator", "color": "emerald"},
-                "size": "col-span-1",
-                "order": 3
-            },
-            {
-                "name": "recent_entries",
-                "title": "Recent Journal Entries",
-                "widget_type": "list",
-                "resource_name": "accounting_entries",
-                "config_json": {"limit": 5},
-                "size": "col-span-2",
-                "order": 4
-            },
-            {
-                "name": "total_customers",
-                "title": "Total Customers",
-                "widget_type": "stat",
-                "resource_name": "party_parties",
-                "config_json": {"icon": "Users", "color": "indigo"},
-                "size": "col-span-1",
-                "order": 5
-            }
-        ]
-
-        for w in defaults:
-            row = db.query(WidgetModel).filter(WidgetModel.name == w["name"]).first()
-            if not row:
-                logger.info(f"Seeding widget: {w['name']}")
-                db.add(WidgetModel(**w))
-            elif row.resource_name != w["resource_name"]:
-                logger.info(f"Updating stale widget resource_name: {w['name']} ({row.resource_name} -> {w['resource_name']})")
-                row.resource_name = w["resource_name"]
-        
-        db.flush()
+        WidgetModel.seed_defaults(db)
 
     @classmethod
     def sync_app(cls, db: Session, app_cls: Type[App]):

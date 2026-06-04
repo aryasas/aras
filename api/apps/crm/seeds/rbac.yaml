@@ -1,0 +1,12 @@
+# CRM baseline RBAC
+roles:
+  - name: User
+    permissions:
+      - resource: crm_pipelines
+        actions: [READ, CREATE, UPDATE]
+      - resource: crm_stages
+        actions: [READ, CREATE, UPDATE]
+      - resource: crm_leads
+        actions: [READ, CREATE, UPDATE]
+      - resource: crm_activities
+        actions: [READ, CREATE, UPDATE]

@@ -87,6 +87,15 @@ Every app needs three things to have visible resources in the UI:
 3. **Audience Routing:** Endpoints/pages about *my own instance* live under `/admin/*` (tenant deployments). Endpoints/pages about *other tenants/licenses* live under `/control-panel/*` (Control Panel deployment). No surface does both.
 4. **Database & Storage Naming:** Database and storage names follow the same prefix rule as tables: `core_*` for framework state, `<role>_*` (e.g. `tenant_<id>`, `control_panel`) for deployment artifacts. No product-name prefix anywhere. (Note: existing deployments must run `python tools/rename_tenant_dbs.py` once to migrate live DBs; the legacy fallback in `config.py` keeps the app working in the meantime).
 
+### App Type Contract
+
+- `framework` - dev/infra tooling that ships with the framework. Lives in `api/apps/` but is not a domain product.
+- `platform` - the hosted-product control plane, such as `saas` for billing, tenancy, and provisioning. Stays in `api/apps/` and is not a reusable plugin.
+- `app` - a real domain product such as accounting, stock, crm, settings, web, notes, or ticket.
+- `module` - a sub-module of another app, with `parent_name` set.
+- Cross-app product fixtures like demo or sample data do not live in `api/apps/`; they live in `api/seeds/`.
+- `api/apps/` holds only registered apps, meaning something with an `App` subclass.
+
 ## Model Rules
 
 - `__tablename__` — REQUIRED, `{table_prefix}_{table}` where `table_prefix` matches the app's `table_prefix` attr (e.g. `erp_accounting_accounts` for app `accounting` with `table_prefix="erp_accounting"`)
@@ -197,7 +206,7 @@ ERP domains are top-level standalone apps — no parent app. Each inherits `Aras
 | `report` | `erp_report` | Reports |
 | `config` | `erp_config` | Configuration |
 
-Shared utilities live in `api/apps/erp/base/` (`saved_filter_router`, `series_router`, `SavedFilter`, ERP abstract bases). ERP abstract bases (`DocumentBase`, `LineItemBase`, `MasterDataBase`, `ConfigBase`) are ERP-specific — not framework primitives.
+Shared utilities live in `core/workspace/` (`saved_filter_router`, `series_router`, `SavedFilter`). `TradeDocumentBase` lives in `apps/accounting/trade_document.py`. The generic ORM bases (`DocumentBase`, `LineItemBase`, `MasterDataBase`, `ConfigBase`) live in `core/base/orm.py`. `apps/base` no longer exists.
 
 Full sub-app and base tables: → `framework_ref.md` L344–381
 
@@ -627,3 +636,39 @@ Aras targets EU, US, and SEA markets. All agents must read and enforce these bef
 - [Gemini 2.5 Flash] Introduced `TradeDocumentBase` in `api/apps/base/trade_document.py` for shared ERP document logic.
 - [Gemini 2.5 Flash] Added `math_utils.py` for standardized ERP calculations.
 - [Gemini 2.5 Flash] Added `db_session` property to `Aras.Model`.
+
+
+---
+## Framework Change: RBAC tiering — framework owns the model/loader; apps own their permission data; product roles stay in the Settings app. Rename apps/config → apps/settings. Add `App.rbac_file` convention + `get_custom_permissions()` hook. — revision (2026-06-04)
+  - [Gemini (gemini-3-flash-preview)] App base class extended for RBAC discovery; bootstrap logic decentralized.
+
+
+---
+## Framework Change: Unknown (2026-06-04)
+  - [GPT (codex)] core/plugins import invariant now excludes apps entirely; workspace shared infra now lives under core.workspace
+
+
+---
+## Framework Change: Unknown (2026-06-04)
+  - [GPT (codex)] added app_type="platform" contract and documented apps/ tier fixture rules
+
+
+---
+## Framework Change: Unknown (2026-06-04)
+  - [GPT (codex)] ConfigSection now serializes/preserves optional setup_step metadata through manifests
+
+
+---
+## Framework Change: Unknown (2026-06-04)
+  - [GPT (codex)] core seed catalog/runner now supports convention RBAC discovery and running the top-level demo seed through the dev seed API
+
+
+---
+## Framework Change: Unknown (2026-06-04)
+  - [GPT (codex)] WidgetModel now owns canonical generic/trade widget definitions, app-aware default widget selection, and serialized default widget payload generation
+
+
+---
+## Framework Change: Unknown — revision (2026-06-04)
+  - [GPT (codex)] <short description or 'none'>
+  - [GPT (codex)] <short description or 'none'>

@@ -162,7 +162,7 @@ export const PosScreen = ({ route, navigation }: any) => {
       setLoadingCatalog(true);
       const [itemsResponse, paymentModesResponse] = await Promise.all([
         api.get(`/pot/sessions/${sessionId}/items?mode=sales`),
-        api.get('/config/payment-modes?page=1&page_size=100'),
+        api.get('/settings/payment-modes?page=1&page_size=100'),
       ]);
 
       setProducts(extractItems<ProductRecord>(itemsResponse.data));

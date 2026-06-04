@@ -38,7 +38,7 @@ TABLES_WITH_TIMESTAMPS = [
     ("saas_plan", ["created_at", "updated_at", "deleted_at"]),
     ("saas_invoice", ["created_at", "updated_at", "deleted_at"]),
     ("saas_payment", ["created_at", "updated_at", "deleted_at"]),
-    ("config_organizations", ["created_at", "updated_at", "deleted_at"]),
+    ("core_organizations", ["created_at", "updated_at", "deleted_at"]),
 ]
 
 

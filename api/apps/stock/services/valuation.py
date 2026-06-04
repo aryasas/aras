@@ -1,13 +1,16 @@
 from sqlalchemy.orm import Session
 from typing import Optional
+import logging
 
-from apps.stock.models import StockMovementLine
-from apps.config.models import Organization
+from apps.stock.models import Item, StockMovementLine
+from apps.accounting.services.org_defaults import stock_default
+from core.exceptions import ValidationException
+
+logger = logging.getLogger(__name__)
 
 
 def _get_valuation_method(db: Session, org_id: int) -> str:
-    org = db.get(Organization, org_id)
-    return (org.stock_valuation_method if org else None) or "FIFO"
+    return stock_default(db, org_id, "stock_valuation_method", "FIFO")
 
 
 class InventoryValuationService:
@@ -44,6 +47,23 @@ class InventoryValuationService:
                 StockMovementLine.item_id == item_id,
                 StockMovementLine.qty_remaining > 0,
             ).order_by(StockMovementLine.created_at).all()
+
+        available = float(sum(float(line.qty_remaining or 0) for line in lines))
+        if qty > available:
+            item = db.get(Item, item_id)
+            item_label = getattr(item, "name", None) or getattr(item, "code", None) or str(item_id)
+            if stock_default(db, org_id, "allow_zero_stock", False):
+                logger.warning(
+                    "Insufficient stock allowed by config for item %s in org %s: need %s, have %s",
+                    item_label,
+                    org_id,
+                    qty,
+                    available,
+                )
+            else:
+                raise ValidationException(
+                    f"Insufficient stock for {item_label}: need {qty}, have {available}"
+                )
 
         for line in lines:
             if remaining <= 0:

@@ -342,3 +342,38 @@ This file is used only to report if there are fix
 
 ## Global Market Compliance — PCI-DSS, GDPR, PDPA, Password Policy, Audit PII Masking, Timezone UTC, Currency i18n — revision (2026-06-03)
   - [GPT (codex)] added translations for validation, not found, auth, and permission error codes
+
+
+## RBAC tiering — framework owns the model/loader; apps own their permission data; product roles stay in the Settings app. Rename apps/config → apps/settings. Add `App.rbac_file` convention + `get_custom_permissions()` hook. — revision (2026-06-04)
+  - [Gemini (gemini-3-flash-preview)] Renamed config app to settings to resolve architectural coupling.
+
+
+## Unknown (2026-06-04)
+  - [GPT (codex)] removed apps.base package/shim, repointed imports, and dropped the plugin apps.base isolation exception
+
+
+## Unknown (2026-06-04)
+  - [GPT (codex)] updated seed import path, removed stale apps/demo usage, refreshed apps-tier docs
+
+
+## Unknown (2026-06-04)
+  - [GPT (codex)] Company and Localization marked as first-run setup steps; settings router mounted so /settings/setup is reachable
+
+
+## Unknown (2026-06-04)
+  - [GPT (codex)] seed catalog now includes convention RBAC and demo seed entries; oversell blocking, journal balancing, and payment over-allocation now raise validation errors correctly
+
+
+## Unknown (2026-06-04)
+  - [GPT (codex)] GET /accounting/organizations/{org_id}/vocabulary now resolves profile defaults when override rows are absent, profile vocabulary upserts are idempotent, manual vocabulary writes now satisfy OrganizationVocabulary table requirements
+  - [GPT (codex)] Removed hardcoded profile picker options, eliminated duplicated frontend profile defaults in favor of the profiles endpoint, and kept vocabulary cache invalidation in sync after profile changes
+
+
+## Unknown (2026-06-04)
+  - [GPT (codex)] Made widget seeding idempotent across sync/bootstrap and prevented trade widgets from leaking into non-trade default dashboards
+  - [GPT (codex)] removed the TradeDashboard home fork and deleted the unused TradeDashboard view
+
+
+## Unknown — revision (2026-06-04)
+  - [GPT (codex)] <short description or 'none'>
+  - [GPT (codex)] <short description or 'none'>

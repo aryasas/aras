@@ -4,6 +4,24 @@ from . import views # Trigger view registration
 from .routers import router as report_router
 
 from core.registry.config_registry import ConfigSection, ConfigField
+from apps.accounting.services.vocabulary import apply_profile_vocabulary
+
+# claude-opus-4-8
+# Inverted hook: report seeding on org creation. Lives app-side (not in the
+# framework Organization model) to keep core free of apps/* imports.
+from sqlalchemy import event
+from core.workspace.models import Organization
+
+@event.listens_for(Organization, "after_insert")
+def _seed_reports_for_new_org(mapper, connection, target):
+    db = getattr(target, "db_session", None)
+    if db is None:
+        return
+    try:
+        from apps.report.seed_reports import run_seed
+        run_seed(db, target.id)
+    except Exception:
+        pass
 
 class ReportApp(Aras.App):
     app_name = "report"
@@ -38,15 +56,32 @@ class ReportApp(Aras.App):
 
     @classmethod
     def seed(cls, db):
+        # Self-contained report seeding (moved out of core bootstrap so the
+        # framework never references the report/config apps). Cleans orphan
+        # reports, ensures a default org exists, seeds reports for every org.
+        import logging
+        from sqlalchemy import or_
         from .seed_reports import run_seed as seed_reports
-        from apps.config.models import Organization
+        from .models import Report
+        from core.workspace.models import Organization
+        log = logging.getLogger(__name__)
         try:
-            org = db.query(Organization).first()
-            if org:
-                seed_reports(db, org.id)
+            deleted = db.query(Report).filter(or_(Report.code.is_(None), Report.code == "")).delete()
+            if deleted:
                 db.commit()
+                log.info("Removed %d orphaned report(s) with no code.", deleted)
+
+            orgs = db.query(Organization).all()
+            if not orgs:
+                org = Organization(name="Default", code="default")
+                db.add(org)
+                db.commit()
+                apply_profile_vocabulary(db, org.id, org.profile)
+                db.commit()
+                orgs = [org]
+            for org in orgs:
+                seed_reports(db, org.id)
+            db.commit()
         except Exception as e:
             db.rollback()
-            # Still log it but don't crash the whole bootstrap
-            import logging
-            logging.getLogger(__name__).error(f"Report seeding failed: {e}")
+            log.error("Report seeding failed: %s", e, exc_info=True)

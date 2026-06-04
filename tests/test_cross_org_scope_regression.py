@@ -2,7 +2,7 @@ import uuid
 
 
 def _scoped_user_setup():
-    from apps.config.erp_rbac import ErpUserAccess, ensure_erp_role
+    from apps.settings.erp_rbac import ErpUserAccess, ensure_erp_role
     from core.auth.models import User
     from core.lib.database import SessionLocal
     from core.registry.permission import Permission
@@ -18,7 +18,7 @@ def _scoped_user_setup():
     try:
         org_a_id = db.execute(
             text(
-                "INSERT INTO erp_config_organizations "
+                "INSERT INTO erp_core_organizations "
                 "(name, code, profile, unit_type, is_group, is_default, fiscal_year_start_month, "
                 "default_charge_enable, enable_perpetual_inventory, enable_provisional_non_stock, "
                 "avg_cost_by_location, allow_zero_stock, stock_valuation_method, date_format, "
@@ -30,7 +30,7 @@ def _scoped_user_setup():
         ).scalar_one()
         org_b_id = db.execute(
             text(
-                "INSERT INTO erp_config_organizations "
+                "INSERT INTO erp_core_organizations "
                 "(name, code, profile, unit_type, is_group, is_default, fiscal_year_start_month, "
                 "default_charge_enable, enable_perpetual_inventory, enable_provisional_non_stock, "
                 "avg_cost_by_location, allow_zero_stock, stock_valuation_method, date_format, "

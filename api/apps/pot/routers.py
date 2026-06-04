@@ -16,13 +16,14 @@ def _computed_value(item, name: str, default=0):
     return value() if callable(value) else value
 
 def _org_base_currency_id(db: Session, org_id: int):
-    from apps.config.models import Organization
+    from core.workspace.models import Organization
     org = db.get(Organization, org_id)
     return org.base_currency_id if org else None
 
 def _payment_account_id(db: Session, org_id: int, payment_mode_id: Optional[int]):
     from apps.accounting.models import Account
-    from apps.config.models import Organization, OrganizationPaymentAccount
+    from core.workspace.models import Organization
+    from plugins.commerce.models import OrganizationPaymentAccount
     from sqlalchemy import select
 
     if payment_mode_id:

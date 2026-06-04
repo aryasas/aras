@@ -7,7 +7,12 @@ import { useUIStore } from '../../store/uiStore'
 
 interface SettingsFormProps {
   namespace: string
+  focusSectionKey?: string | null
   onDirtyChange?: (dirty: boolean) => void
+}
+
+function sectionAnchorId(sectionKey: string) {
+  return `settings-section-${sectionKey.replace(/[^a-zA-Z0-9_-]/g, '-')}`
 }
 
 type FormErrors = Record<string, Record<string, string>>
@@ -60,7 +65,7 @@ function hasSectionChanges(section: SettingsSectionSchema, values: SettingsValue
   return section.fields.some((field) => values[section.key]?.[field.key] !== initialValues[section.key]?.[field.key])
 }
 
-export default function SettingsForm({ namespace, onDirtyChange }: SettingsFormProps) {
+export default function SettingsForm({ namespace, focusSectionKey, onDirtyChange }: SettingsFormProps) {
   const { notify } = useAras()
   const setDirty = useUIStore((state) => state.setDirty)
   const [sections, setSections] = useState<SettingsSectionSchema[]>([])
@@ -96,6 +101,13 @@ export default function SettingsForm({ namespace, onDirtyChange }: SettingsFormP
 
   const dirty = useMemo(() => JSON.stringify(values) !== JSON.stringify(initialValues), [values, initialValues])
   const dirtyKey = `settings:${namespace}`
+
+  useEffect(() => {
+    if (!focusSectionKey || loading) return
+    const target = document.getElementById(sectionAnchorId(focusSectionKey))
+    if (!target) return
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [focusSectionKey, loading, sections])
 
   useEffect(() => {
     setDirty(dirtyKey, dirty)
@@ -177,8 +189,15 @@ export default function SettingsForm({ namespace, onDirtyChange }: SettingsFormP
     <div className="flex max-w-[920px] flex-col gap-5 pb-20">
       {sections.map((section) => {
         const sectionDirty = hasSectionChanges(section, values, initialValues)
+        const isFocused = focusSectionKey === section.key
         return (
-          <section key={section.key} className="rounded-[var(--aras-radius-lg)] border border-[var(--line)] bg-[var(--surface)] shadow-sm">
+          <section
+            key={section.key}
+            id={sectionAnchorId(section.key)}
+            className={`rounded-[var(--aras-radius-lg)] border bg-[var(--surface)] shadow-sm ${
+              isFocused ? 'border-[var(--accent)]' : 'border-[var(--line)]'
+            }`}
+          >
             <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-5 py-4">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">

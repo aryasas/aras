@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from typing import List, Any, Optional, Dict
 from ..lib.database import get_db
@@ -8,6 +8,48 @@ from ..auth.service import get_current_user
 from ..base.validation import Validation
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
+
+
+# claude-opus-4-8
+def _default_layout_payload(layout: DashboardLayoutModel) -> Dict[str, Any]:
+    return {
+        "layout_id": layout.id,
+        "name": layout.name,
+        "is_default": True,
+        "layout_config": layout.layout_config,
+    }
+
+
+# claude-opus-4-8
+def _ensure_trade_default_layout(
+    db: Session,
+    user: Any,
+    org_id: Optional[int],
+) -> Optional[DashboardLayoutModel]:
+    if not org_id or not WidgetModel.is_trade_org(db, org_id):
+        return None
+
+    widgets = WidgetModel.get_default_widget_payloads(db, org_id=org_id)
+    if not widgets:
+        return None
+
+    layout = db.query(DashboardLayoutModel).filter(
+        DashboardLayoutModel.user_id == user.id,
+        DashboardLayoutModel.is_default == True,
+    ).first()
+    if layout:
+        return layout
+
+    return DashboardLayoutModel.create(
+        db,
+        {
+            "name": "Default Dashboard",
+            "user_id": user.id,
+            "layout_config": {"widgets": widgets},
+            "is_default": True,
+        },
+        user_id=user.id,
+    )
 
 class DashboardLayoutCreate(Validation):
     name: str
@@ -163,6 +205,7 @@ def update_widget_order(
 
 @router.get("/widgets", response_model=Dict[str, Any]) # Changed response_model to dict for layout
 def get_widgets(
+    request: Request,
     db: Session = Depends(get_db),
     user: Any = Depends(get_current_user)
 ):
@@ -176,21 +219,14 @@ def get_widgets(
     ).first()
 
     if default_layout:
-        return {
-            "layout_id": default_layout.id,
-            "name": default_layout.name,
-            "is_default": True,
-            "layout_config": default_layout.layout_config
-        }
+        return _default_layout_payload(default_layout)
     else:
-        # Fallback to system-defined widgets
-        from core.logic.discovery import resolve_resource_path
-        system_widgets = WidgetModel.get_default_widgets(db)
-        widgets_out = []
-        for w in system_widgets:
-            d = w.to_dict()
-            d["resource_path"] = resolve_resource_path(w.resource_name) or w.resource_name
-            widgets_out.append(d)
+        org_id = getattr(request.state, "org_id", None) or None
+        trade_layout = _ensure_trade_default_layout(db, user, org_id)
+        if trade_layout:
+            return _default_layout_payload(trade_layout)
+
+        widgets_out = WidgetModel.get_default_widget_payloads(db, org_id=org_id)
         return {
             "name": "System Default Dashboard",
             "is_default": False,

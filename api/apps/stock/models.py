@@ -7,7 +7,7 @@ from decimal import Decimal
 from core import Aras, LinkedDoc
 from core.response import ok, err
 from core.exceptions import ValidationException
-from apps.base import MasterDataBase, DocumentBase, LineItemBase, ErpBase
+from core.base.orm import MasterDataBase, DocumentBase, LineItemBase, AuditedBase
 
 
 
@@ -154,12 +154,12 @@ class Item(MasterDataBase):
         return PriceService.get_price(db, self.id)
 
 
-class ItemAccount(ErpBase):
+class ItemAccount(AuditedBase):
     __tablename__ = "stock_item_accounts"
     __parent__ = "stock_items"
-    __scoped_by__ = [("org_id", "config_organizations")]
+    __scoped_by__ = [("org_id", "core_organizations")]
     item_id: Mapped[int] = mapped_column(ForeignKey("stock_items.id"))
-    org_id: Mapped[Optional[int]] = mapped_column(ForeignKey("config_organizations.id"), nullable=True)
+    org_id: Mapped[Optional[int]] = mapped_column(ForeignKey("core_organizations.id"), nullable=True)
     account_income_id: Mapped[Optional[int]] = mapped_column(ForeignKey("accounting_accounts.id"), nullable=True)
     account_cogs_id: Mapped[Optional[int]] = mapped_column(ForeignKey("accounting_accounts.id"), nullable=True)
     account_expense_id: Mapped[Optional[int]] = mapped_column(ForeignKey("accounting_accounts.id"), nullable=True)
@@ -167,12 +167,12 @@ class ItemAccount(ErpBase):
     parent: Mapped["Item"] = relationship("Item", back_populates="accounts")
 
 
-class ItemUom(ErpBase):
+class ItemUom(AuditedBase):
     __tablename__ = "stock_item_uoms"
     __parent__ = "stock_items"
-    __scoped_by__ = [("org_id", "config_organizations")]
+    __scoped_by__ = [("org_id", "core_organizations")]
     item_id: Mapped[int] = mapped_column(ForeignKey("stock_items.id"))
-    org_id: Mapped[Optional[int]] = mapped_column(ForeignKey("config_organizations.id"), nullable=True)
+    org_id: Mapped[Optional[int]] = mapped_column(ForeignKey("core_organizations.id"), nullable=True)
     uom_id: Mapped[int] = mapped_column(ForeignKey("config_uoms.id"), info={"display_column": "name"})
     factor: Mapped[float] = mapped_column(Float, default=1.0)
 
@@ -308,7 +308,7 @@ class StockMovementLine(LineItemBase):
     parent: Mapped["StockMovement"] = relationship("StockMovement", back_populates="lines")
 
 
-class ItemBundle(ErpBase):
+class ItemBundle(AuditedBase):
     __tablename__ = "stock_item_bundles"
     __parent__ = "stock_items"
     bundle_item_id: Mapped[int] = mapped_column(ForeignKey("stock_items.id"))     # bundle being defined
@@ -319,7 +319,7 @@ class ItemBundle(ErpBase):
 
 
 
-class ItemLocation(ErpBase):
+class ItemLocation(AuditedBase):
     __tablename__ = "stock_item_locations"
     __parent__ = "stock_items"
     item_id: Mapped[int] = mapped_column(ForeignKey("stock_items.id"))

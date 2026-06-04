@@ -8,57 +8,22 @@ from core.service_registry import ServiceRegistry
 logger = logging.getLogger(__name__)
 
 def register_services():
-    """Register all discovered services."""
-    # 1. Accounting Services
-    try:
-        from apps.accounting.services.journal import JournalService
-        ServiceRegistry.register("JournalService", JournalService)
-        from apps.accounting.services.payment import PaymentService
-        ServiceRegistry.register("PaymentService", PaymentService)
-        from apps.accounting.models import InflowInvoice, InflowInvoiceLine
-        ServiceRegistry.register("InflowInvoice", InflowInvoice)
-        ServiceRegistry.register("InflowInvoiceLine", InflowInvoiceLine)
-    except ImportError:
-        pass
+    """Register all discovered services.
 
-    # 2. Stock Services
-    try:
-        from apps.stock.services.stock import StockComputeService
-        ServiceRegistry.register("StockComputeService", StockComputeService)
-        from apps.stock.services.price import PriceService
-        ServiceRegistry.register("PriceService", PriceService)
-        from apps.stock.services.valuation import InventoryValuationService
-        ServiceRegistry.register("InventoryValuationService", InventoryValuationService)
-        from apps.stock.models import StockMovement, StockMovementLine, Product, ProductCategory
-        ServiceRegistry.register("StockMovement", StockMovement)
-        ServiceRegistry.register("StockMovementLine", StockMovementLine)
-        ServiceRegistry.register("Product", Product)
-        ServiceRegistry.register("ProductCategory", ProductCategory)
-    except ImportError:
-        pass
+    Each app exposes its own services via App.register_services() (a hook called
+    here generically). Core never imports an app — apps push their capabilities
+    into ServiceRegistry by key, and core resolves them with ServiceRegistry.get.
+    """
+    from core.base.app import App
 
-    # 3. SaaS Services
-    try:
-        from apps.saas.services.license_service import LicenseService
-        ServiceRegistry.register("LicenseService", LicenseService)
-        from apps.saas.models import Plan, Subscription
-        ServiceRegistry.register("Plan", Plan)
-        ServiceRegistry.register("Subscription", Subscription)
-    except ImportError:
-        pass
-    
-    # 4. Config Services
-    try:
-        from apps.config.models import Organization, Notification
-        ServiceRegistry.register("Organization", Organization)
-        ServiceRegistry.register("Notification", Notification)
-        from apps.config.erp_rbac import get_access, get_user_org_list
-        ServiceRegistry.register("get_access", get_access)
-        ServiceRegistry.register("get_user_org_list", get_user_org_list)
-    except ImportError:
-        pass
+    # App-provided services (inverted: apps register themselves, core just drives)
+    for app_cls in App._registry.values():
+        try:
+            app_cls.register_services()
+        except Exception as e:  # an app's optional deps may be absent; keep booting
+            logger.warning("register_services failed for %s: %s", getattr(app_cls, "app_name", "?"), e)
 
-    # 5. Core Registry & Managers
+    # Core Registry & Managers
     try:
         from core.registry.field_model import FieldModel
         from core.registry.resource_model import ResourceModel

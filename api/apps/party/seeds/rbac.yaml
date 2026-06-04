@@ -1,0 +1,8 @@
+# Party baseline RBAC
+roles:
+  - name: User
+    permissions:
+      - resource: party_parties
+        actions: [READ, CREATE, UPDATE]
+      - resource: party_contacts
+        actions: [READ, CREATE, UPDATE]

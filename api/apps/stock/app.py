@@ -3,6 +3,7 @@ from . import views # Trigger view registration
 
 from core.logic.discovery import autodiscover_models
 from .models import * # Import all models for discovery
+from .config_models import StockConfig  # noqa: F401 — typed per-org config
 from .services import posting as _posting  # noqa: F401 — registers on_transition callbacks
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -22,6 +23,7 @@ def get_item_stock(item_id: int, db: Session = Depends(get_db), _user=Depends(ge
     })
 
 from core.registry.config_registry import ConfigSection, ConfigField
+from .seeds.standard import seed_trade_uoms
 class Stock(Aras.App):
     app_name = "stock"
     app_label = "Stock"
@@ -48,8 +50,30 @@ class Stock(Aras.App):
         ]),
     ]
 
-    models = autodiscover_models(__name__, ["models"])
+    config_model = StockConfig
+    seeds = [seed_trade_uoms]
+
+    models = autodiscover_models(__name__, ["models", "config_models"])
     routers = [stock_extra_router]
+
+    @classmethod
+    def register_services(cls):
+        from core.service_registry import ServiceRegistry
+        from .services.stock import StockComputeService
+        from .services.price import PriceService
+        from .services.valuation import InventoryValuationService
+        from .models import StockMovement, StockMovementLine, Item, ItemCategory
+        ServiceRegistry.register("StockComputeService", StockComputeService)
+        ServiceRegistry.register("PriceService", PriceService)
+        ServiceRegistry.register("InventoryValuationService", InventoryValuationService)
+        ServiceRegistry.register("StockMovement", StockMovement)
+        ServiceRegistry.register("StockMovementLine", StockMovementLine)
+        # Canonical keys are Item/ItemCategory; legacy Product/ProductCategory
+        # keys kept for builtin_handlers cogs mode until catalog split lands.
+        ServiceRegistry.register("Item", Item)
+        ServiceRegistry.register("ItemCategory", ItemCategory)
+        ServiceRegistry.register("Product", Item)
+        ServiceRegistry.register("ProductCategory", ItemCategory)
 
     menu_groups = [
         {
@@ -68,4 +92,3 @@ class Stock(Aras.App):
             "models": ["stock_pricelists", "stock_promo_bundles"]
         }
     ]
-

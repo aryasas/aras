@@ -10,7 +10,7 @@ from core.base.model import Model
 from core.logic.ui_generator import UIGenerator
 # Import apps to trigger model registration
 from apps.stock import models as stock_models
-from apps.config import models as config_models
+from apps.settings import models as config_models
 from apps.accounting import models as accounting_models
 from apps.crm import models as crm_models
 from apps.pot import models as pos_models

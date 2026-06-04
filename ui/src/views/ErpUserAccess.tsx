@@ -37,8 +37,8 @@ const ErpUserAccess = () => {
 
   const { data, reload: reloadData } = useAsyncData<{ users: UserRow[]; orgs: OrgRow[] }>(async () => {
     const [usersRes, orgsRes] = await Promise.all([
-      api.get('/config/erp-rbac/users'),
-      api.get('/config/erp-rbac/orgs'),
+      api.get('/settings/access/users'),
+      api.get('/settings/access/orgs'),
     ])
     return { users: usersRes.data, orgs: orgsRes.data }
   })
@@ -72,7 +72,7 @@ const ErpUserAccess = () => {
     if (!selectedUser) return
     setSaving(true)
     try {
-      await api.post(`/config/erp-rbac/users/${selectedUser.id}`, {
+      await api.post(`/settings/access/users/${selectedUser.id}`, {
         scope,
         org_ids: scope === 'SPECIFIC' ? selectedOrgIds : [],
       })
@@ -87,7 +87,7 @@ const ErpUserAccess = () => {
     if (!selectedUser) return
     setSaving(true)
     try {
-      await api.delete(`/config/erp-rbac/users/${selectedUser.id}`)
+      await api.delete(`/settings/access/users/${selectedUser.id}`)
       await reloadData()
       closePanel()
     } finally {

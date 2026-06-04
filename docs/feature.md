@@ -540,3 +540,39 @@ This file is used only to report if there are feature added
 
 ## Global Market Compliance — PCI-DSS, GDPR, PDPA, Password Policy, Audit PII Masking, Timezone UTC, Currency i18n — revision (2026-06-03)
   - [GPT (codex)] localized backend error keys for EN and ID
+
+
+## RBAC tiering — framework owns the model/loader; apps own their permission data; product roles stay in the Settings app. Rename apps/config → apps/settings. Add `App.rbac_file` convention + `get_custom_permissions()` hook. — revision (2026-06-04)
+  - [Gemini (gemini-3-flash-preview)] RBAC three-tier model, App.rbac_file convention, App.get_custom_permissions hook, generic RBAC bootstrap pass.
+
+
+## Unknown (2026-06-04)
+  - [GPT (codex)] moved shared saved-filter UI infra into core.workspace and moved TradeDocumentBase into accounting
+
+
+## Unknown (2026-06-04)
+  - [GPT (codex)] relocated demo seed fixtures to api/seeds and relabeled saas as a platform app
+
+
+## Unknown (2026-06-04)
+  - [GPT (codex)] setup_step onboarding metadata and /api/v1/settings/setup checklist endpoint
+
+
+## Unknown (2026-06-04)
+  - [GPT (codex)] trade-ready standard seeds for org 1 and a new report dashboard API endpoint
+  - [GPT (codex)] Trade owner home dashboard view with KPI cards, quick actions, recent activity, low stock lists, typed report API client, and root-route switching that keeps the existing dashboard at /dashboard
+
+
+## Unknown (2026-06-04)
+  - [GPT (codex)] canonical backend profile catalog with 11 profiles and metadata, profile vocabulary apply/resolve service, GET /accounting/vocabulary/profiles, PUT /accounting/organizations/{org_id}/profile, seeded/resolved vocabulary for reports and trade dashboard payloads
+  - [GPT (codex)] Backend-driven vocabulary profile catalog consumption, setup-card organization type chooser, live org profile refresh, and trade dashboard KPI labels sourced from resolved vocabulary
+
+
+## Unknown (2026-06-04)
+  - [GPT (codex)] Seeded trade_kpi/trade_list dashboard widgets, auto-created trade default dashboard layouts for trade users, and kept generic widget fallback for non-trade orgs
+  - [GPT (codex)] trade_kpi and trade_list dashboard widgets with shared cached /report/dashboard fetch, payload-label-driven KPI titles, and unified dashboard home routing
+
+
+## Unknown — revision (2026-06-04)
+  - [GPT (codex)] <short description or 'none'>
+  - [GPT (codex)] <short description or 'none'>

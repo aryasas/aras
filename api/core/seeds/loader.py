@@ -24,35 +24,23 @@ def load_rbac(path: Union[str, Path], db: Session) -> dict:
     data = _parse(path)
     roles_data = data.get("roles", [])
 
-    from core.registry.role import Role
-    from core.registry.permission import Permission
-
     roles_created = 0
     perms_created = 0
     skipped = 0
 
     for role_def in roles_data:
-        role = db.query(Role).filter(Role.name == role_def["name"]).first()
-        if not role:
-            role = Role(name=role_def["name"], description=role_def.get("description", ""))
-            db.add(role)
-            db.flush()
+        # Idempotently ensure role exists and has perms
+        created, perms = upsert_permissions(
+            db, 
+            role_def["name"], 
+            permissions=[(p["resource"], p["actions"]) for p in role_def.get("permissions", [])],
+            description=role_def.get("description", "")
+        )
+        if created:
             roles_created += 1
-            logger.info("Created role: %s", role.name)
         else:
             skipped += 1
-
-        existing_perms = {
-            (p.resource, p.action)
-            for p in db.query(Permission).filter(Permission.role_id == role.id).all()
-        }
-
-        for perm_def in role_def.get("permissions", []):
-            resource = perm_def["resource"]
-            for action in perm_def["actions"]:
-                if (resource, action) not in existing_perms:
-                    db.add(Permission(role_id=role.id, resource=resource, action=action))
-                    perms_created += 1
+        perms_created += perms
 
     db.commit()
     logger.info(
@@ -60,6 +48,45 @@ def load_rbac(path: Union[str, Path], db: Session) -> dict:
         roles_created, perms_created, skipped,
     )
     return {"roles_created": roles_created, "permissions_created": perms_created, "skipped": skipped}
+
+
+def upsert_permissions(db: Session, role_name: str, resource: str = None, actions: list[str] = None, permissions: list = None, description: str = "") -> tuple[bool, int]:
+    """# claude-opus-4-8
+    Idempotently ensure a role exists and has the given (resource, action) perms.
+    Can be called with a single resource/actions pair, or a list of (resource, actions) tuples.
+    Returns (created, perms_count).
+    """
+    from core.registry.role import Role
+    from core.registry.permission import Permission
+
+    role = db.query(Role).filter(Role.name == role_name).first()
+    created = False
+    if not role:
+        role = Role(name=role_name, description=description)
+        db.add(role)
+        db.flush()
+        created = True
+        logger.info("Created role: %s", role.name)
+
+    existing_perms = {
+        (p.resource, p.action)
+        for p in db.query(Permission).filter(Permission.role_id == role.id).all()
+    }
+
+    perms_created = 0
+    
+    # Normalize inputs
+    perm_list = permissions or []
+    if resource and actions:
+        perm_list.append((resource, actions))
+    
+    for res, acts in perm_list:
+        for action in acts:
+            if (res, action) not in existing_perms:
+                db.add(Permission(role_id=role.id, resource=res, action=action))
+                perms_created += 1
+                
+    return created, perms_created
 
 
 def _parse(path: Path) -> dict:

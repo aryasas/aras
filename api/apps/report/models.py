@@ -3,7 +3,7 @@ from typing import Optional
 from datetime import datetime
 from sqlalchemy import String, Text, JSON, ForeignKey, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from apps.base import MasterDataBase
+from core.base.orm import MasterDataBase
 from core import Aras
 from core.response import ok
 from core.exceptions import ValidationException

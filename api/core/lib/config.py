@@ -87,15 +87,18 @@ class ConfigService:
             if f.key == field_key:
                 target_field = f
                 break
-        
-        if not target_field:
+
+        # Dynamic sections (e.g. core_config.numbering) accept arbitrary field keys
+        # whose values are supplied at runtime and have no predeclared ConfigField.
+        if not target_field and not getattr(section, "dynamic", False):
             raise ValueError(f"Field '{field_key}' not found in section '{section_key}'.")
 
-        if target_field.validator and not target_field.validator(value):
+        if target_field and target_field.validator and not target_field.validator(value):
             raise ValueError(f"Validation failed for config '{key}'.")
 
+        is_secret = bool(target_field and target_field.secret)
         stored_value = value
-        if target_field.secret and value and value != "••••":
+        if is_secret and value and value != "••••":
             stored_value = encrypt(value, tenant_id)
 
         val_row = db.query(ConfigValue).filter_by(scope_key=section_key, field_key=field_key).first()
@@ -103,23 +106,23 @@ class ConfigService:
         
         if val_row:
             old_value = val_row.value_json
-            if value == "••••" and target_field.secret:
+            if value == "••••" and is_secret:
                 # Don't overwrite with mask
                 pass
             else:
                 val_row.value_json = stored_value
         else:
-            if value == "••••" and target_field.secret:
+            if value == "••••" and is_secret:
                 stored_value = ""
             val_row = ConfigValue(scope_key=section_key, field_key=field_key, value_json=stored_value)
             db.add(val_row)
-        
+
         # Record audit
         audit = ConfigValueAudit(
             scope_key=section_key,
             field_key=field_key,
-            old_value=old_value if not target_field.secret else "••••",
-            new_value=stored_value if not target_field.secret else "••••",
+            old_value=old_value if not is_secret else "••••",
+            new_value=stored_value if not is_secret else "••••",
             user_id=user_id
         )
         db.add(audit)

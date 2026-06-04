@@ -33,7 +33,7 @@ const SHORTCUTS: Shortcut[] = [
   { to: '/settings/dashboard',          label: 'Dashboard Builder',   sub: 'settings/dashboard',    icon: LayoutDashboard, group: 'preferences', adminOnly: true },
   { to: '/settings/global',             label: 'Global Preferences',  sub: 'settings/global',       icon: Globe,           group: 'preferences' },
   { to: '/settings/rbac',               label: 'Security & Auth',     sub: 'settings/rbac',         icon: Shield,          group: 'security' },
-  { to: '/config/user-access',          label: 'ERP User Access',     sub: 'config/user-access',    icon: Users,           group: 'security', adminOnly: true },
+  { to: '/settings/user-access',          label: 'ERP User Access',     sub: 'settings/user-access',    icon: Users,           group: 'security', adminOnly: true },
   { to: '/settings/audit',              label: 'Activity Audit',      sub: 'settings/audit',        icon: History,         group: 'security' },
   { to: '/dev',                         label: 'Developer Tools',     sub: 'dev',                   icon: Terminal,        group: 'tools' },
   { to: '/dev/tasks',                   label: 'Background Tasks',    sub: 'dev/tasks',             icon: Activity,        group: 'tools', adminOnly: true },
@@ -107,7 +107,7 @@ export default function SettingsNamespaceList({ selectedNamespace, onSelect, onL
   if (namespaces.length === 0) {
     return (
       <div className="p-5 text-center text-[12px] text-[var(--text-3)]">
-        No settings namespaces are available.
+        No app settings are available.
       </div>
     )
   }
@@ -142,7 +142,7 @@ export default function SettingsNamespaceList({ selectedNamespace, onSelect, onL
           })}
         </div>
       ))}
-      <div className="arc-mono mb-1 mt-3 px-3 pt-1 text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">Namespaces</div>
+      <div className="arc-mono mb-1 mt-3 px-3 pt-1 text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">App Settings</div>
       {namespaces.map((namespace) => {
         const Icon = namespace.icon ? resolveIcon(namespace.icon) : Settings
         const active = selectedNamespace === namespace.name

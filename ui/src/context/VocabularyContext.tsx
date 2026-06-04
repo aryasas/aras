@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type React from 'react'
 import api from '../lib/api'
+import { vocabularyApi, type VocabularyProfile } from '../lib/api'
 import { useAuthStore } from '../store/authStore'
 
 export type VocabularyKey = 'trx_in' | 'trx_out' | 'party' | 'pot'
@@ -17,21 +18,114 @@ interface VocabularyContextValue extends VocabularyLabels {
   get: (key: VocabularyKey | string) => string
 }
 
-export const PROFILE_DEFAULTS: Record<string, VocabularyLabels> = {
-  general: { trx_in: 'Inflow', trx_out: 'Outflow', party: 'Party', pot: 'Transaction Point' },
-  retail: { trx_in: 'Sales', trx_out: 'Purchase', party: 'Customer', pot: 'Point of Sale' },
-  school: { trx_in: 'Tuition', trx_out: 'Expenditure', party: 'Student', pot: 'Payment Counter' },
-  coop: { trx_in: 'Savings', trx_out: 'Loan', party: 'Member', pot: 'Teller' },
-  npo: { trx_in: 'Donation', trx_out: 'Program Cost', party: 'Donor', pot: 'Collection Point' },
-  library: { trx_in: 'Membership', trx_out: 'Procurement', party: 'Member', pot: 'Circulation Desk' },
-  hospital: { trx_in: 'Patient Bill', trx_out: 'Procurement', party: 'Patient', pot: 'Registration' },
-  government: { trx_in: 'Revenue', trx_out: 'Expenditure', party: 'Citizen', pot: 'Service Counter' },
+const GENERAL_PROFILE_FALLBACK: VocabularyProfile = {
+  key: 'general',
+  display_name: 'General',
+  description: 'Generic inflow and outflow vocabulary.',
+  labels: { trx_in: 'Inflow', trx_out: 'Outflow', party: 'Party', pot: 'Transaction Point' },
 }
 
 const VOCABULARY_KEYS = new Set<VocabularyKey>(['trx_in', 'trx_out', 'party', 'pot'])
 export const vocabularyCache = new Map<number, Partial<VocabularyLabels>>()
+let profileCatalogCache: VocabularyProfile[] | null = null
+let profileCatalogPromise: Promise<VocabularyProfile[]> | null = null
 
 const VocabularyContext = createContext<VocabularyContextValue | null>(null)
+
+// claude-opus-4-8
+const normalizeProfileCatalog = (profiles: VocabularyProfile[] | null | undefined) =>
+  profiles && profiles.length > 0 ? profiles : [GENERAL_PROFILE_FALLBACK]
+
+// claude-opus-4-8
+const getProfileDefaults = (profiles: VocabularyProfile[], profile: string): VocabularyLabels =>
+  profiles.find((item) => item.key === profile)?.labels || profiles.find((item) => item.key === 'general')?.labels || GENERAL_PROFILE_FALLBACK.labels
+
+// claude-opus-4-8
+export function invalidateVocabularyCache(orgId?: number) {
+  if (typeof orgId === 'number') {
+    vocabularyCache.delete(orgId)
+    return
+  }
+  vocabularyCache.clear()
+}
+
+// claude-opus-4-8
+export function invalidateVocabularyProfileCatalog() {
+  profileCatalogCache = null
+  profileCatalogPromise = null
+}
+
+// claude-opus-4-8
+function loadVocabularyProfiles() {
+  if (profileCatalogCache) return Promise.resolve(profileCatalogCache)
+  if (profileCatalogPromise) return profileCatalogPromise
+
+  profileCatalogPromise = vocabularyApi.listProfiles()
+    .then((profiles) => {
+      profileCatalogCache = normalizeProfileCatalog(profiles)
+      return profileCatalogCache
+    })
+    .catch((error) => {
+      profileCatalogCache = [GENERAL_PROFILE_FALLBACK]
+      throw error
+    })
+    .finally(() => {
+      profileCatalogPromise = null
+    })
+
+  return profileCatalogPromise
+}
+
+// claude-opus-4-8
+export function useVocabularyProfiles() {
+  const [profiles, setProfiles] = useState<VocabularyProfile[]>(() => normalizeProfileCatalog(profileCatalogCache))
+  const [loading, setLoading] = useState(() => !profileCatalogCache)
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (profileCatalogCache) {
+      setProfiles(normalizeProfileCatalog(profileCatalogCache))
+      setLoading(false)
+      return
+    }
+
+    setLoading(true)
+    loadVocabularyProfiles()
+      .then((catalog) => {
+        if (!cancelled) setProfiles(normalizeProfileCatalog(catalog))
+      })
+      .catch((error) => {
+        console.error('Failed to load vocabulary profiles', error)
+        if (!cancelled) setProfiles([GENERAL_PROFILE_FALLBACK])
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return {
+    profiles,
+    loading,
+    refresh: async () => {
+      invalidateVocabularyProfileCatalog()
+      try {
+        const catalog = await loadVocabularyProfiles()
+        setProfiles(normalizeProfileCatalog(catalog))
+        return catalog
+      } catch (error) {
+        setProfiles([GENERAL_PROFILE_FALLBACK])
+        throw error
+      } finally {
+        setLoading(false)
+      }
+    },
+  }
+}
 
 const normalizeVocabulary = (data: unknown): Partial<VocabularyLabels> => {
   if (!data) return {}
@@ -78,6 +172,7 @@ export function VocabularyProvider({ children }: { children: React.ReactNode }) 
   const activeOrganization = organizations.find((organization) => organization.id === activeOrgId)
   const profile = activeOrganization?.profile || 'general'
   const [overrides, setOverrides] = useState<Partial<VocabularyLabels>>({})
+  const { profiles } = useVocabularyProfiles()
 
   useEffect(() => {
     let cancelled = false
@@ -93,7 +188,7 @@ export function VocabularyProvider({ children }: { children: React.ReactNode }) 
       return
     }
 
-    api.get(`/config/organizations/${activeOrgId}/vocabulary`)
+    api.get(`/accounting/organizations/${activeOrgId}/vocabulary`)
       .then((res) => {
         const normalized = normalizeVocabulary(res.data)
         vocabularyCache.set(activeOrgId, normalized)
@@ -111,7 +206,7 @@ export function VocabularyProvider({ children }: { children: React.ReactNode }) 
   }, [activeOrgId, profile, token])
 
   const value = useMemo<VocabularyContextValue>(() => {
-    const defaults = PROFILE_DEFAULTS[profile] || PROFILE_DEFAULTS.general
+    const defaults = getProfileDefaults(profiles, profile)
     const labels = { ...defaults, ...overrides }
 
     return {
@@ -122,7 +217,7 @@ export function VocabularyProvider({ children }: { children: React.ReactNode }) 
         return translateVocabularyText(key, labels)
       },
     }
-  }, [overrides, profile])
+  }, [overrides, profile, profiles])
 
   return (
     <VocabularyContext.Provider value={value}>
@@ -134,7 +229,7 @@ export function VocabularyProvider({ children }: { children: React.ReactNode }) 
 export const useVocabulary = () => {
   const context = useContext(VocabularyContext)
   if (!context) {
-    const labels = PROFILE_DEFAULTS.general
+    const labels = GENERAL_PROFILE_FALLBACK.labels
     return {
       ...labels,
       profile: 'general',

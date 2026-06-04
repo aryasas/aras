@@ -71,7 +71,7 @@ def admin_user(db):
 @pytest.fixture(scope="function")
 def org(db):
     """Returns a test organization."""
-    from apps.config.models import Organization
+    from apps.settings.models import Organization
     org = Organization(name="Test Org", code="TORG")
     db.add(org)
     db.commit()

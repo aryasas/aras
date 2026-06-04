@@ -1,0 +1,44 @@
+# Settings baseline RBAC (includes base/master/config resources)
+roles:
+  - name: User
+    permissions:
+      - resource: core_organizations
+        actions: [READ]
+      - resource: core_currencies
+        actions: [READ]
+      - resource: config_uoms
+        actions: [READ]
+      - resource: config_price_types
+        actions: [READ]
+      - resource: config_charges
+        actions: [READ]
+      - resource: config_exchange_rates
+        actions: [READ]
+      - resource: settings
+        actions: [READ]
+      - resource: config_payment_modes
+        actions: [READ]
+      - resource: config_payment_accounts
+        actions: [READ]
+      - resource: core_print_templates
+        actions: [READ]
+      - resource: core_notifications
+        actions: [READ]
+      - resource: accounting_org_vocabulary
+        actions: [READ]
+      - resource: accounting_org_posting_rules
+        actions: [READ]
+      - resource: core_workflow_templates
+        actions: [READ]
+      - resource: core_workflow_states
+        actions: [READ]
+      - resource: core_workflow_transitions
+        actions: [READ]
+      - resource: core_workflow_actions
+        actions: [READ]
+      - resource: core_saved_filters
+        actions: [READ, CREATE, UPDATE, DELETE]
+      - resource: master_data
+        actions: [READ]
+      - resource: core_user_access
+        actions: [READ]

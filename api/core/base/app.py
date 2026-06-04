@@ -24,7 +24,7 @@ class App(Aras):
 
     app_name: str = ""
     parent_name: str = "" # Reference to a parent app name
-    app_type: str = "app"  # "framework" | "app" | "module"
+    app_type: str = "app"  # "framework" | "platform" | "app" | "module"
     table_prefix: str = ""  # Override for stripping tablename prefix (e.g. "erp_accounting" when app_name is "accounting")
     app_label: str = ""
     description: str = ""
@@ -44,11 +44,32 @@ class App(Aras):
     menu_groups: List[Dict[str, Any]] = [] # [{"label": "Group", "icon": "Icon", "models": ["table_name"]}]
     
     # New registry fields
+    config_model: Any = None # Optional AppConfig subclass: this app's typed per-org config, served generically by the framework.
     config_sections: List[Any] = [] # List of ConfigSection objects declaring the app's configuration schema.
     master_data: List[Any] = [] # List of MasterEntity objects declaring shared master data.
+    seeds: List[Any] = []  # Declarative seeds (core.seeds.Seed instances or callables) run at bootstrap. See core/seeds/base.py.
+    rbac_file: str = "seeds/rbac.yaml" # # claude-opus-4-8 - convention: relative path to that app's RBAC data.
     menu_entries: List[Any] = []
     permissions: List[Any] = []
     jobs: List[Any] = []
+
+    @classmethod
+    def get_custom_permissions(cls, db) -> list:
+        """# claude-opus-4-8
+        Override to return a list of {"role": str, "resource": str, "actions": [str,...]} dicts.
+        Default: none. Lets an app supply dynamic/computed perms without a static file."""
+        return []
+
+    @classmethod
+    def register_services(cls):
+        """Optional hook: register this app's services/models into ServiceRegistry.
+
+        Apps override this to expose capabilities to the framework by KEY
+        (e.g. ServiceRegistry.register("JournalService", ...)), so core code
+        resolves them via ServiceRegistry.get(...) without importing the app —
+        preserving the core↛apps invariant. Default no-op.
+        """
+        return None
 
     @classmethod
     def get_settings(cls, db):
@@ -223,7 +244,7 @@ class App(Aras):
             "menu_groups": cls.menu_groups,
             "config_sections": [
                 {
-                    "key": s.key, "label": s.label, "scope": s.scope,
+                    "key": s.key, "label": s.label, "scope": s.scope, "setup_step": s.setup_step,
                     "fields": [vars(f) for f in getattr(s, "fields", [])],
                 }
                 for s in cls.config_sections

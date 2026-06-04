@@ -65,17 +65,19 @@ def post_journal_entry(db, item, params: dict):
     StockComputeService = ServiceRegistry.get("StockComputeService")
     Product = ServiceRegistry.get("Product")
     ProductCategory = ServiceRegistry.get("ProductCategory")
-    Organization = ServiceRegistry.get("Organization")
+    from core.config import AppConfigRegistry
 
     mode = params.get("mode", "simple")
     org_id = getattr(item, "org_id", None)
-    org = db.get(Organization, org_id) if org_id else None
+    # Read accounting defaults by key — framework never imports the accounting app.
+    # Returns None when accounting isn't installed; handlers below then no-op.
+    acc_cfg = AppConfigRegistry.get(db, "accounting", org_id) if org_id else None
     lines = []
 
     if mode == "simple":
         amount = getattr(item, "total_amount", getattr(item, "amount", 0)) or 0
-        debit_id = params.get("account_debit_id") or (org.acc_receivable_default_id if org else None)
-        credit_id = params.get("account_credit_id") or (org.acc_income_default_id if org else None)
+        debit_id = params.get("account_debit_id") or getattr(acc_cfg, "acc_receivable_default_id", None)
+        credit_id = params.get("account_credit_id") or getattr(acc_cfg, "acc_income_default_id", None)
         if debit_id and credit_id:
             lines = [
                 {"account_id": debit_id, "debit": amount, "credit": 0, "description": f"Dr {item.__class__.__name__} {getattr(item, 'number', '')}"},
@@ -97,11 +99,11 @@ def post_journal_entry(db, item, params: dict):
                     cogs_id = getattr(cat, "account_cogs_id", None)
                     inv_id = getattr(cat, "account_stock_id", None)
 
-            if org:
-                cogs_id = cogs_id or org.acc_cogs_default_id
-                inv_id = inv_id or org.acc_inventory_default_id
-                ar_id = org.acc_receivable_default_id
-                rev_id = org.acc_income_default_id
+            if acc_cfg:
+                cogs_id = cogs_id or acc_cfg.acc_cogs_default_id
+                inv_id = inv_id or acc_cfg.acc_inventory_default_id
+                ar_id = acc_cfg.acc_receivable_default_id
+                rev_id = acc_cfg.acc_income_default_id
 
             if cogs_id and inv_id and cost_amt:
                 lines += [

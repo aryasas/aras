@@ -160,16 +160,18 @@ def seed_tenant(tenant_id: str) -> Dict[str, Any]:
         seed_basic_data(db=db)
         seeded.append("basic")
 
-        from apps.config.seed_series import run as seed_series
-        seed_series(db=db)
-        seeded.append("series")
-
-        from apps.report.seed_reports import run_seed as seed_reports
-        from apps.config.models import Organization
-        org = db.query(Organization).first()
-        if org:
-            seed_reports(db, org.id)
-            seeded.append("reports")
+        # Inverted: run every installed app's seed() — core no longer imports
+        # apps.settings/apps.report here. Each app owns its tenant seed logic.
+        from core.base.app import App
+        for app_cls in App._registry.values():
+            seed = getattr(app_cls, "seed", None)
+            if seed is None:
+                continue
+            try:
+                seed(db)
+                seeded.append(app_cls.app_name)
+            except Exception as e:
+                logger.error("Tenant seed failed for app %s: %s", getattr(app_cls, "app_name", "?"), e)
 
         db.commit()
         return {"tenant_id": tenant_id, "seeded": seeded}

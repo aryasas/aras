@@ -4,6 +4,8 @@ import { masterDataApi, type MasterDataEntity, type MasterDataSchema } from '../
 import { resolveIcon } from '../../lib/iconUtils'
 import { useAras } from '../../aras-core/hooks/useAras'
 
+const HIDDEN_SINGLETON_ENTITIES = new Set(['organization'])
+
 interface MasterDataRailProps {
   selectedEntity: string | null
   onSelect: (entity: MasterDataEntity) => void
@@ -21,8 +23,16 @@ export default function MasterDataRail({ selectedEntity, onSelect, onLoaded }: M
     masterDataApi.getSchema()
       .then((nextSchema) => {
         if (cancelled) return
-        setSchema(nextSchema)
-        onLoaded?.(nextSchema)
+        const filteredSchema = {
+          groups: nextSchema.groups
+            .map((group) => ({
+              ...group,
+              entities: group.entities.filter((entity) => !HIDDEN_SINGLETON_ENTITIES.has(entity.key)),
+            }))
+            .filter((group) => group.entities.length > 0),
+        }
+        setSchema(filteredSchema)
+        onLoaded?.(filteredSchema)
       })
       .catch((err) => {
         if (cancelled) return

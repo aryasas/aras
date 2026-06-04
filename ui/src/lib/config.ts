@@ -53,27 +53,28 @@ export function splitConfigKey(key: string) {
 }
 
 export async function getSections(params?: { scope?: ConfigScope }) {
-  const res = await api.get<ConfigSectionSummary[]>('/config/sections', { params })
+  const res = await api.get<ConfigSectionSummary[]>('/settings/sections', { params })
   return res.data
 }
 
-export async function getSection(key: string) {
-  const res = await api.get<ConfigSectionDetail>(`/config/sections/${encodeURIComponent(key)}`)
+export async function getSection(key: string): Promise<ConfigSectionDetail> {
+  const res = await api.get<ConfigSectionDetail>(`/settings/sections/${encodeURIComponent(key)}`)
   return res.data
 }
 
-export async function saveSection(key: string, values: Record<string, unknown>) {
-  const res = await api.put(`/config/sections/${encodeURIComponent(key)}`, values)
+export async function saveSection(key: string, values: Record<string, any>): Promise<void> {
+  const res = await api.put(`/settings/sections/${encodeURIComponent(key)}`, values)
   return res.data
 }
 
-export async function rotateSecret(sectionKey: string, fieldKey: string, value: string) {
+export async function rotateSecret(sectionKey: string, fieldKey: string): Promise<any> {
   const res = await api.post(
-    `/config/sections/${encodeURIComponent(sectionKey)}/rotate-secret/${encodeURIComponent(fieldKey)}`,
-    { value },
+    `/settings/sections/${encodeURIComponent(sectionKey)}/rotate-secret/${encodeURIComponent(fieldKey)}`,
+    {}
   )
   return res.data
 }
+
 
 export async function setConfig(key: string, value: unknown) {
   const { sectionKey, fieldKey } = splitConfigKey(key)

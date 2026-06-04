@@ -42,7 +42,7 @@ def get_printable_document(
     org_name = ""
     org_id = getattr(record, "org_id", None)
     if org_id:
-        Organization = Aras.Model.get_model("config_organizations")
+        Organization = Aras.Model.get_model("core_organizations")
         org = db.get(Organization, org_id)
         if org:
             org_name = getattr(org, "trade_name", None) or getattr(org, "name", "")

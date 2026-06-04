@@ -28,7 +28,7 @@ def upgrade() -> None:
         sa.Column('updated_by', sa.Integer(), nullable=True),
         sa.Column('deleted_at', sa.DateTime(), nullable=True),
         sa.ForeignKeyConstraint(['default_assignee_id'], ['auth_users.id'], ),
-        sa.ForeignKeyConstraint(['org_id'], ['erp_config_organizations.id'], ),
+        sa.ForeignKeyConstraint(['org_id'], ['erp_core_organizations.id'], ),
         sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_erp_ticket_teams_org_id'), 'erp_ticket_teams', ['org_id'], unique=False)
@@ -47,7 +47,7 @@ def upgrade() -> None:
         sa.Column('created_by', sa.Integer(), nullable=True),
         sa.Column('updated_by', sa.Integer(), nullable=True),
         sa.Column('deleted_at', sa.DateTime(), nullable=True),
-        sa.ForeignKeyConstraint(['org_id'], ['erp_config_organizations.id'], ),
+        sa.ForeignKeyConstraint(['org_id'], ['erp_core_organizations.id'], ),
         sa.ForeignKeyConstraint(['team_id'], ['erp_ticket_teams.id'], ),
         sa.PrimaryKeyConstraint('id')
     )
@@ -79,7 +79,7 @@ def upgrade() -> None:
         sa.Column('deleted_at', sa.DateTime(), nullable=True),
         sa.ForeignKeyConstraint(['assignee_id'], ['auth_users.id'], ),
         sa.ForeignKeyConstraint(['category_id'], ['erp_ticket_categories.id'], ),
-        sa.ForeignKeyConstraint(['org_id'], ['erp_config_organizations.id'], ),
+        sa.ForeignKeyConstraint(['org_id'], ['erp_core_organizations.id'], ),
         sa.ForeignKeyConstraint(['party_id'], ['erp_party_parties.id'], ),
         sa.ForeignKeyConstraint(['team_id'], ['erp_ticket_teams.id'], ),
         sa.PrimaryKeyConstraint('id')

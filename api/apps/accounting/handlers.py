@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from core.logic.handler_registry import HandlerRegistry
 from core.manager.naming_manager import SeriesManager
 from core.lib import math_utils
+from core.exceptions import ValidationException
 
 
 @HandlerRegistry.register(
@@ -15,13 +16,12 @@ from core.lib import math_utils
     "Skipped when perpetual inventory is disabled or GRN already created the movement."
 )
 def post_stock_movement(db: Session, item, params: dict):
-    from apps.config.models import Organization
     from apps.stock.models import StockMovement, StockMovementLine, Location, Item
     from apps.stock.services.uom import UomService
     from apps.stock.services.valuation import InventoryValuationService
+    from apps.accounting.services.org_defaults import stock_default
 
-    org = db.get(Organization, item.org_id)
-    if not org or not org.enable_perpetual_inventory:
+    if not stock_default(db, item.org_id, "enable_perpetual_inventory", False):
         return
 
     if getattr(item, "grn_id", None):
@@ -102,7 +102,7 @@ def post_stock_movement(db: Session, item, params: dict):
     "Create JournalEntry from invoice lines using TradeDocumentBase methods."
 )
 def post_invoice_gl(db: Session, item, params: dict):
-    from .services.journal import JournalService
+    from .services.journal import JournalService, balance_journal_lines
     from apps.stock.services.coa_resolver import CoaResolver
     from core.registry.settings_service import SettingsService
     if not SettingsService.get(db, "accounting", "enable_auto_journal", True):
@@ -151,7 +151,8 @@ def post_invoice_gl(db: Session, item, params: dict):
 
         if amount_paid_param < total_credit:
             ar_account = CoaResolver.resolve_ar_account(db, org_id)
-            if not ar_account: raise ValueError("AR account not configured.")
+            if not ar_account:
+                raise ValidationException("AR account not configured.")
             lines.insert(0, {
                 "account_id": ar_account.id,
                 "debit": round(total_credit - amount_paid_param, 10),
@@ -179,7 +180,7 @@ def post_invoice_gl(db: Session, item, params: dict):
             offset_acct = CoaResolver.resolve_ap_account(db, org_id)
         
         if not offset_acct:
-            raise ValueError(f"{payment_type.capitalize()} account not configured.")
+            raise ValidationException(f"{payment_type.capitalize()} account not configured.")
 
         total_amount = float(item.total_amount)
         lines.append({
@@ -189,6 +190,7 @@ def post_invoice_gl(db: Session, item, params: dict):
             "description": f"{payment_type.capitalize()} {item.number}",
         })
 
+    lines = balance_journal_lines(db, org_id, lines)
     entry = JournalService.post_entry(
         db, org_id, lines,
         reference=item.number,
@@ -203,7 +205,7 @@ def post_invoice_gl(db: Session, item, params: dict):
 
 
 def _append_charge_line(db, charge, lines: list, side: str):
-    from apps.config.models import Charge
+    from plugins.commerce.models import Charge
     charge_def = db.get(Charge, charge.charge_id)
     if not charge_def:
         return

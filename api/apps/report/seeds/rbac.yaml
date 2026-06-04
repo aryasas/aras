@@ -1,0 +1,6 @@
+# Reports baseline RBAC
+roles:
+  - name: User
+    permissions:
+      - resource: report_reports
+        actions: [READ, CREATE, UPDATE]

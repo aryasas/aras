@@ -2,6 +2,55 @@ import React from 'react';
 import Combobox from './components/Combobox';
 import MultiSelectCombobox from './components/MultiSelectCombobox';
 import { FileField } from './components/FileField';
+import { useVocabularyProfiles } from '../context/VocabularyContext';
+import api from '../lib/api';
+
+// claude-opus-4-8
+// Unit-type options sourced from the backend (GET /core-config/unit-types), cached
+// module-wide like the profile catalog. The inline list is a fallback ONLY on fetch
+// failure — the backend (core/workspace) is the single source of truth.
+const UNIT_TYPE_FALLBACK: Option[] = [
+  { label: 'Organization', value: 'organization' },
+  { label: 'Group', value: 'group' },
+  { label: 'Branch', value: 'branch' },
+  { label: 'Outlet', value: 'outlet' },
+  { label: 'Warehouse', value: 'warehouse' },
+];
+let unitTypeCache: Option[] | null = null;
+let unitTypePromise: Promise<Option[]> | null = null;
+
+// claude-opus-4-8
+function loadUnitTypes(): Promise<Option[]> {
+  if (unitTypeCache) return Promise.resolve(unitTypeCache);
+  if (unitTypePromise) return unitTypePromise;
+  unitTypePromise = api
+    .get<Array<{ key: string; label: string }>>('/core-config/unit-types')
+    .then((res) => {
+      unitTypeCache = (res.data || []).map((o) => ({ label: o.label, value: o.key }));
+      if (!unitTypeCache.length) unitTypeCache = UNIT_TYPE_FALLBACK;
+      return unitTypeCache;
+    })
+    .catch(() => {
+      unitTypeCache = UNIT_TYPE_FALLBACK;
+      return unitTypeCache;
+    });
+  return unitTypePromise;
+}
+
+// claude-opus-4-8
+function useUnitTypes(): Option[] {
+  const [options, setOptions] = React.useState<Option[]>(() => unitTypeCache ?? UNIT_TYPE_FALLBACK);
+  React.useEffect(() => {
+    let cancelled = false;
+    loadUnitTypes().then((opts) => {
+      if (!cancelled) setOptions(opts);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return options;
+}
 
 interface Option {
   label: string;
@@ -160,6 +209,41 @@ const TextAreaInput: React.FC<FieldProps> = ({ value, onChange, field, disabled 
 const lookupResource = (field: FieldMeta, fallback = '') =>
   field.target_resource || infoString(field, 'target_resource') || infoString(field, 'resource') || fallback;
 
+// claude-opus-4-8
+const ProfilePickerInput: React.FC<FieldProps> = (props) => {
+  const { profiles } = useVocabularyProfiles()
+
+  return (
+    <Combobox
+      options={profiles.map((profile) => ({
+        label: profile.display_name,
+        value: profile.key,
+      }))}
+      value={scalarValue(props.value)}
+      onChange={props.onChange}
+      placeholder={`Select ${props.field.label}...`}
+      disabled={props.disabled}
+      variant="simple"
+    />
+  )
+}
+
+// claude-opus-4-8
+const UnitTypePickerInput: React.FC<FieldProps> = (props) => {
+  const options = useUnitTypes()
+
+  return (
+    <Combobox
+      options={options}
+      value={scalarValue(props.value)}
+      onChange={props.onChange}
+      placeholder={`Select ${props.field.label}...`}
+      disabled={props.disabled}
+      variant="simple"
+    />
+  )
+}
+
 const components: Record<string, React.FC<FieldProps>> = {
   'string': DefaultInput,
   'email': DefaultInput,
@@ -201,21 +285,7 @@ const components: Record<string, React.FC<FieldProps>> = {
       />
     );
   },
-  'profile_picker': (props) => (
-    <Combobox
-      options={[
-        { label: 'General', value: 'general' },
-        { label: 'Restaurant', value: 'restaurant' },
-        { label: 'Retail', value: 'retail' },
-        { label: 'Manufacturing', value: 'manufacturing' },
-      ]}
-      value={scalarValue(props.value)}
-      onChange={props.onChange}
-      placeholder={`Select ${props.field.label}...`}
-      disabled={props.disabled}
-      variant="simple"
-    />
-  ),
+  'profile_picker': ProfilePickerInput,
   'org_picker': (props) => (
     <Combobox
       resource={lookupResource(props.field, 'config/organizations')}
@@ -225,22 +295,7 @@ const components: Record<string, React.FC<FieldProps>> = {
       disabled={props.disabled}
     />
   ),
-  'unit_type_picker': (props) => (
-    <Combobox
-      options={[
-        { label: 'Organization', value: 'organization' },
-        { label: 'Group', value: 'group' },
-        { label: 'Branch', value: 'branch' },
-        { label: 'Outlet', value: 'outlet' },
-        { label: 'Warehouse', value: 'warehouse' },
-      ]}
-      value={scalarValue(props.value)}
-      onChange={props.onChange}
-      placeholder={`Select ${props.field.label}...`}
-      disabled={props.disabled}
-      variant="simple"
-    />
-  ),
+  'unit_type_picker': UnitTypePickerInput,
   'bridge': (props) => (
     <MultiSelectCombobox 
       resource={lookupResource(props.field)}

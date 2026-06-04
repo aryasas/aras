@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Settings } from 'lucide-react'
 import SettingsForm from './SettingsForm'
@@ -6,12 +6,28 @@ import SettingsNamespaceList from './SettingsNamespaceList'
 import type { SettingsNamespace } from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
 
+function namespaceFromSectionKey(sectionKey: string | null) {
+  if (!sectionKey || !sectionKey.includes('.')) return null
+  return sectionKey.split('.').slice(0, -1).join('.')
+}
+
 export default function SettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const setPageTitle = useUIStore((state) => state.setPageTitle)
   const [namespaces, setNamespaces] = useState<SettingsNamespace[]>([])
-  const [selectedNamespace, setSelectedNamespace] = useState<string | null>(searchParams.get('ns'))
+  const [selectedNamespace, setSelectedNamespace] = useState<string | null>(
+    searchParams.get('ns') || namespaceFromSectionKey(searchParams.get('section'))
+  )
   const [dirty, setDirty] = useState(false)
+  const focusedSectionKey = searchParams.get('section')
+
+  const setRouteSelection = useCallback((namespace: string, sectionKey?: string | null, replace = false) => {
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.set('ns', namespace)
+    if (sectionKey) nextParams.set('section', sectionKey)
+    else nextParams.delete('section')
+    setSearchParams(nextParams, { replace })
+  }, [searchParams, setSearchParams])
 
   useEffect(() => {
     setPageTitle('Settings', 'Configure framework and app settings from one surface.', 'ADMIN / SETTINGS')
@@ -19,34 +35,39 @@ export default function SettingsPage() {
   }, [setPageTitle])
 
   useEffect(() => {
-    const next = searchParams.get('ns')
+    const next = searchParams.get('ns') || namespaceFromSectionKey(searchParams.get('section'))
     if (next && next !== selectedNamespace) setSelectedNamespace(next)
   }, [searchParams, selectedNamespace])
 
   const handleLoaded = useCallback((items: SettingsNamespace[]) => {
     setNamespaces(items)
-    const current = new URLSearchParams(window.location.search).get('ns')
+    const nextSearch = new URLSearchParams(window.location.search)
+    const currentSection = nextSearch.get('section')
+    const current = nextSearch.get('ns') || namespaceFromSectionKey(currentSection)
     if (!current && items[0]) {
       setSelectedNamespace(items[0].name)
-      setSearchParams({ ns: items[0].name }, { replace: true })
+      setRouteSelection(items[0].name, currentSection, true)
     }
-  }, [setSearchParams])
+  }, [setRouteSelection])
 
   const selectNamespace = (namespace: string) => {
     if (namespace === selectedNamespace) return
     if (dirty && !window.confirm('Discard unsaved settings changes?')) return
     setSelectedNamespace(namespace)
-    setSearchParams({ ns: namespace })
+    setRouteSelection(namespace, null)
   }
 
-  const selected = namespaces.find((item) => item.name === selectedNamespace)
+  const selected = useMemo(
+    () => namespaces.find((item) => item.name === selectedNamespace),
+    [namespaces, selectedNamespace]
+  )
 
   return (
     <div className="flex min-h-full bg-[var(--bg)]">
       <aside className="hidden w-72 shrink-0 border-r border-[var(--line)] bg-[var(--bg-2)] md:block">
         <div className="border-b border-[var(--line)] px-5 py-4">
           <div className="arc-id arc-dim2">settings</div>
-          <h1 className="mt-1 text-[16px] font-semibold text-[var(--text)]">Namespaces</h1>
+          <h1 className="mt-1 text-[16px] font-semibold text-[var(--text)]">App Settings</h1>
         </div>
         <SettingsNamespaceList selectedNamespace={selectedNamespace} onSelect={selectNamespace} onLoaded={handleLoaded} />
       </aside>
@@ -69,10 +90,15 @@ export default function SettingsPage() {
         </div>
 
         {selectedNamespace ? (
-          <SettingsForm key={selectedNamespace} namespace={selectedNamespace} onDirtyChange={setDirty} />
+          <SettingsForm
+            key={selectedNamespace}
+            namespace={selectedNamespace}
+            focusSectionKey={focusedSectionKey}
+            onDirtyChange={setDirty}
+          />
         ) : (
           <div className="max-w-[920px] rounded-[var(--aras-radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-8 text-center text-[13px] text-[var(--text-3)]">
-            Select a namespace to edit settings.
+            Select an app settings namespace to edit settings.
           </div>
         )}
       </main>

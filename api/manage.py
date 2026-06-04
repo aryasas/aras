@@ -11,6 +11,68 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from core import Aras
 
+
+def _discover_for_management() -> None:
+    Aras.logic.discovery.discover_apps(package_path="apps")
+
+
+def _sync_registry(drop_orphans: bool = False) -> None:
+    print("Discovering apps...")
+    _discover_for_management()
+
+    print("Registering core master data...")
+    from core.registry.master_data_entities import register_core_entities
+    register_core_entities()
+
+    print("Running auto-migration...")
+    from core.logic import auto_migrate
+    from core.base.model import Base
+    auto_migrate.run(Aras.engine, Base.metadata, drop_orphan_tables=drop_orphans)
+
+    print("Synchronizing metadata...")
+    db = next(Aras.get_db())
+    try:
+        Aras.Manager.Sync.sync_all(db)
+    finally:
+        db.close()
+
+
+def _seed_single_app(app_cls, db) -> list[str]:
+    from core.manager.bootstrap import _run_app_rbac
+    from core.seeds.base import run_app_seeds
+
+    seeded: list[str] = []
+
+    entries = getattr(app_cls, "seeds", None) or []
+    if entries:
+        run_app_seeds(app_cls, db)
+        seeded.extend(
+            getattr(entry, "label", None) or getattr(entry, "__name__", repr(entry))
+            for entry in entries
+        )
+
+    _run_app_rbac(app_cls, db)
+
+    seed = app_cls.__dict__.get("seed")
+    if seed is not None:
+        seed(db)
+        seeded.append("legacy seed")
+
+    return seeded
+
+
+def _print_install_plan(order, include_demo: bool, org_id: int) -> None:
+    print("Install plan:")
+    total = len(order)
+    for index, app_cls in enumerate(order, start=1):
+        seed_labels = []
+        for entry in getattr(app_cls, "seeds", None) or []:
+            seed_labels.append(getattr(entry, "label", None) or getattr(entry, "__name__", repr(entry)))
+        suffix = f" seeds=[{', '.join(seed_labels)}]" if seed_labels else " seeds=[none]"
+        print(f"[{index}/{total}] {getattr(app_cls, 'app_type', 'app')}: {app_cls.app_name}{suffix}")
+    if include_demo:
+        print(f"[demo] demo seed for org_id={org_id}")
+
 def main():
     parser = argparse.ArgumentParser(description="Aras Framework Manager")
     subparsers = parser.add_subparsers(dest="command")
@@ -28,6 +90,11 @@ def main():
     # Install
     install_parser = subparsers.add_parser("install", help="Install app from YAML")
     install_parser.add_argument("file", help="Path to YAML file")
+
+    install_all_parser = subparsers.add_parser("install-all", help="Install all discovered apps in dependency order")
+    install_all_parser.add_argument("--demo", action="store_true", help="Run demo seed after app installs")
+    install_all_parser.add_argument("--org-id", type=int, default=1, help="Organization ID for demo seed")
+    install_all_parser.add_argument("--dry-run", action="store_true", help="Print the resolved plan without changing anything")
 
     # Discover
     discover_parser = subparsers.add_parser("discover", help="List discovered apps")
@@ -75,21 +142,7 @@ def main():
 
 
     if args.command == "sync":
-        print("Discovering apps...")
-        Aras.logic.discovery.discover_apps(package_path="apps")
-
-        print("Registering core master data...")
-        from core.registry.master_data_entities import register_core_entities
-        register_core_entities()
-
-        print("Running auto-migration...")
-        from core.logic import auto_migrate
-        from core.base.model import Base
-        auto_migrate.run(Aras.engine, Base.metadata, drop_orphan_tables=args.drop_orphans)
-
-        print("Synchronizing metadata...")
-        db = next(Aras.get_db())
-        Aras.Manager.Sync.sync_all(db)
+        _sync_registry(drop_orphans=args.drop_orphans)
         print("Done.")
 
     elif args.command == "migrate":
@@ -164,7 +217,7 @@ def main():
             print(f"Error: App '{args.name}' not found in registry.")
 
     elif args.command == "discover":
-        Aras.logic.discovery.discover_apps(package_path="apps")
+        _discover_for_management()
         registered_apps = Aras.App._registry
         if not registered_apps:
             print("No apps discovered.")
@@ -172,6 +225,48 @@ def main():
             print(f"Discovered {len(registered_apps)} apps:")
             for name, cls in registered_apps.items():
                 print(f"- {name} ({cls.app_label}) v{getattr(cls, 'version', '1.0.0')}")
+
+    elif args.command == "install-all":
+        from core.manager.install_order import resolve_install_order
+        from core.registry.app_model import AppModel
+
+        _discover_for_management()
+        order = resolve_install_order()
+
+        if args.dry_run:
+            _print_install_plan(order, include_demo=args.demo, org_id=args.org_id)
+            return
+
+        _sync_registry()
+        db = next(Aras.get_db())
+        try:
+            app_rows = {
+                row.name: row
+                for row in db.query(AppModel).filter(AppModel.name.in_([app.app_name for app in order])).all()
+            }
+            total = len(order)
+            for index, app_cls in enumerate(order, start=1):
+                app_row = app_rows.get(app_cls.app_name)
+                if app_row:
+                    app_row.is_active = True
+                    db.flush()
+                seeded = _seed_single_app(app_cls, db)
+                db.commit()
+                summary = ", ".join(seeded) if seeded else "none"
+                print(f"[{index}/{total}] {getattr(app_cls, 'app_type', 'app')}: {app_cls.app_name} ... seeded ({summary})")
+
+            if args.demo:
+                from seeds.demo import run_seed as seed_demo_data
+
+                seed_demo_data(db, args.org_id)
+                db.commit()
+                print(f"[demo] demo data seeded for org_id={args.org_id}")
+        except Exception as e:
+            db.rollback()
+            print(f"Install-all failed: {e}")
+            sys.exit(1)
+        finally:
+            db.close()
 
     elif args.command == "check":
         print("Running Health Checks...")
@@ -195,11 +290,11 @@ def main():
     elif args.command == "seed":
         # Imports here, specifically for the seed command
         from core.lib.database import SessionLocal
-        from apps.seed_demo import run_seed as seed_demo_data
-        from apps.config.models import Organization
+        from seeds.demo import run_seed as seed_demo_data
+        from core.workspace.models import Organization
 
         print("Discovering apps...")
-        Aras.logic.discovery.discover_apps(package_path="apps")
+        _discover_for_management()
 
         print(f"Seeding initial data for org ID: {args.org_id}...")
         db = SessionLocal()

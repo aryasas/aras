@@ -26,7 +26,7 @@ class DocumentRecalcMixin:
         for c in self.charges:
             if db and hasattr(c, 'charge_id') and c.charge_id:
                 # Lazy import to avoid circular dependency
-                from apps.config.models import Charge
+                from plugins.commerce.models import Charge
                 master = db.get(Charge, c.charge_id)
                 if master:
                     if master.calc_method == "Percent":

@@ -3,19 +3,28 @@
 // Stat widgets are mono-readout; charts keep their data viz but live inside arc-cards.
 import React, { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import api from '../lib/api'
+import api, {
+  getTradeDashboard,
+  type TradeDashboardData,
+  type TradeDashboardLowStockItem,
+  type TradeDashboardRecentDocument,
+} from '../lib/api'
 import { useAras } from '../aras-core/hooks/useAras'
 import { resolveIcon } from '../lib/iconUtils'
 import { LoadingState } from '../components/LoadingState'
 import { EmptyState } from '../components/EmptyState'
 import { useUIStore } from '../store/uiStore'
+import { useAuthStore } from '../store/authStore'
+import { useVocabulary } from '../context/VocabularyContext'
+import { formatCurrency } from '../lib/formatters'
+import { FormattingService } from '../aras-core/services/FormattingService'
 import {
   DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical } from 'lucide-react'
+import { AlertTriangle, GripVertical } from 'lucide-react'
 
 interface Widget {
   id: number
@@ -29,6 +38,9 @@ interface Widget {
 }
 
 type WidgetComponent = React.FC<{ widget: Widget }>
+type TradeMetricKey = 'today_sales' | 'month_profit' | 'receivables_total' | 'overdue_count' | 'low_stock_count'
+type TradeListSource = 'low_stock_items' | 'recent_documents'
+type TradeLabels = NonNullable<TradeDashboardData['labels']>
 
 // Convert seeded resource_name ("core_users") to REST path ("core/users").
 // Apps register routes as /{app}/{model-seg-with-dashes}; resource_name uses
@@ -46,6 +58,177 @@ const registry = new Map<string, WidgetComponent>()
 export const WidgetRegistry = {
   register(type: string, Component: WidgetComponent) { registry.set(type, Component) },
   get(type: string) { return registry.get(type) },
+}
+
+// claude-opus-4-8
+function useTradeDashboardData() {
+  const activeOrgId = useAuthStore((state) => state.activeOrgId)
+  const vocabulary = useVocabulary()
+  const [data, setData] = useState<TradeDashboardData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+
+    getTradeDashboard(activeOrgId ?? undefined)
+      .then((payload) => {
+        if (cancelled) return
+        setData(payload)
+      })
+      .catch((err: any) => {
+        if (cancelled) return
+        setError(err.message || 'Failed to load trade dashboard.')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeOrgId])
+
+  return {
+    data,
+    loading,
+    error,
+    labels: (data?.labels || vocabulary) as TradeLabels,
+  }
+}
+
+// claude-opus-4-8
+function formatTradeCount(value: number, locale: string) {
+  return new Intl.NumberFormat(locale).format(value)
+}
+
+// claude-opus-4-8
+function formatTradePercent(value: number, locale: string) {
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(Math.abs(value)) + '%'
+}
+
+// claude-opus-4-8
+function formatTradeDate(value: string | null | undefined, locale: string) {
+  if (!value) return 'No date'
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(value))
+}
+
+// claude-opus-4-8
+function pluralizeLabel(label: string) {
+  if (/[^aeiou]y$/i.test(label)) return `${label.slice(0, -1)}ies`
+  return label.endsWith('s') ? label : `${label}s`
+}
+
+// claude-opus-4-8
+function resolveTradeWidgetTitle(widget: Widget, labels: TradeLabels, metric?: TradeMetricKey) {
+  const config = widget.config_json || {}
+  const labelKey = config.title_key as keyof TradeLabels | undefined
+  const labelValue = labelKey && labels[labelKey] ? labels[labelKey] : null
+
+  if (metric === 'today_sales' && labelValue) return `Today's ${labelValue}`
+  if (metric === 'receivables_total' && labelValue) return `Owed by ${pluralizeLabel(labelValue)}`
+  if (metric === 'month_profit') return 'This Month Profit'
+  return widget.title
+}
+
+// claude-opus-4-8
+function tradeKpiEmptyState(metric: TradeMetricKey, data: TradeDashboardData | null, labels: TradeLabels) {
+  if (!data) return null
+  if (metric === 'today_sales' && !data.today_sales && data.recent_documents.length === 0) {
+    return `No ${labels.trx_in.toLowerCase()} yet today`
+  }
+  if (metric === 'month_profit' && !data.month_profit && data.recent_documents.length === 0) {
+    return 'No profit data yet this month'
+  }
+  if (metric === 'receivables_total' && !data.receivables_total && !data.overdue_count) {
+    return `No ${pluralizeLabel(labels.party).toLowerCase()} owe you right now`
+  }
+  if (metric === 'overdue_count' && !data.overdue_count) {
+    return 'No overdue invoices'
+  }
+  if (metric === 'low_stock_count' && !data.low_stock_count) {
+    return 'No low stock items'
+  }
+  return null
+}
+
+// claude-opus-4-8
+function TradeWidgetSkeleton() {
+  return <div className="arc-card p-6 h-full min-h-[180px] animate-pulse" />
+}
+
+// claude-opus-4-8
+function TradeWidgetError({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="arc-card p-5 h-full flex flex-col gap-3">
+      <div className="arc-dim text-[10.5px] uppercase tracking-[0.12em] font-medium">{title}</div>
+      <div className="flex items-start gap-2 text-sm text-[var(--text)]">
+        <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: 'var(--danger)' }} />
+        <span>{message}</span>
+      </div>
+    </div>
+  )
+}
+
+// claude-opus-4-8
+function TradeWidgetEmpty({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="arc-card p-5 h-full flex flex-col gap-3 justify-center">
+      <div className="arc-dim text-[10.5px] uppercase tracking-[0.12em] font-medium">{title}</div>
+      <div className="text-sm arc-dim">{message}</div>
+    </div>
+  )
+}
+
+// claude-opus-4-8
+function tradeDocumentLabel(type?: string | null) {
+  if (!type) return 'Document'
+  const value = String(type)
+  return value.charAt(0).toUpperCase() + value.slice(1)
+}
+
+// claude-opus-4-8
+function LowStockListRow({ item, locale }: { item: TradeDashboardLowStockItem; locale: string }) {
+  const qty = Number(item.balance || 0)
+
+  return (
+    <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[12.5px] font-medium text-[var(--text)] truncate">{item.name || item.code || 'Unnamed item'}</span>
+          {item.code ? <span className="arc-id arc-dim2">{item.code}</span> : null}
+        </div>
+        <div className="text-[12px] arc-dim mt-1">
+          Balance {formatTradeCount(qty, locale)}{item.uom ? ` ${item.uom}` : ''}
+        </div>
+      </div>
+      <div className="arc-id arc-tnum text-[var(--accent)]">{formatTradeCount(qty, locale)}</div>
+    </div>
+  )
+}
+
+// claude-opus-4-8
+function RecentDocumentListRow({ item, locale }: { item: TradeDashboardRecentDocument; locale: string }) {
+  return (
+    <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="arc-stat s-released">{tradeDocumentLabel(item.type)}</span>
+          <span className="text-[12.5px] font-medium text-[var(--text)]">{item.number || 'No number'}</span>
+          {item.status ? <span className="arc-id arc-dim2">{item.status}</span> : null}
+        </div>
+        <div className="text-[12px] arc-dim mt-1">
+          {(item.party_name || 'No party')} · {formatTradeDate(item.doc_date, locale)}
+        </div>
+      </div>
+      <div className="arc-id arc-tnum">{formatCurrency(item.amount || 0)}</div>
+    </div>
+  )
 }
 
 function SortableTile({ widget }: { widget: Widget }) {
@@ -289,6 +472,107 @@ const ListWidget: WidgetComponent = ({ widget }) => {
   )
 }
 
+// claude-opus-4-8
+const TradeKpiWidget: WidgetComponent = ({ widget }) => {
+  const navigate = useNavigate()
+  const { data, loading, error, labels } = useTradeDashboardData()
+  const config = widget.config_json || {}
+  const metric = config.metric as TradeMetricKey
+  const locale = FormattingService.getConfig().language || 'en-US'
+  const title = resolveTradeWidgetTitle(widget, labels, metric)
+  const empty = tradeKpiEmptyState(metric, data, labels)
+
+  if (loading) return <TradeWidgetSkeleton />
+  if (error) return <TradeWidgetError title={title} message={error} />
+  if (!data) return <TradeWidgetEmpty title={title} message="No dashboard data available." />
+
+  const metricValue = Number((data as Record<string, unknown>)[metric] || 0)
+  if (empty) return <TradeWidgetEmpty title={title} message={empty} />
+
+  const content = (
+    <>
+      <div>
+        <div className="arc-dim text-[10.5px] uppercase tracking-[0.12em] font-medium">{title}</div>
+        <div className="arc-mono arc-tnum text-[26px] font-medium text-[var(--text)] tracking-tight mt-1">
+          {metric === 'today_sales' || metric === 'month_profit' || metric === 'receivables_total'
+            ? formatCurrency(metricValue)
+            : formatTradeCount(metricValue, locale)}
+        </div>
+      </div>
+
+      {metric === 'month_profit' ? (
+        <div className="flex items-center gap-2 text-[12px] font-medium">
+          <span style={{ color: data.month_profit_change_pct >= 0 ? '#10b981' : 'var(--danger)' }}>
+            {data.month_profit_change_pct >= 0 ? '▲' : '▼'}
+          </span>
+          <span className="arc-dim">
+            {formatTradePercent(data.month_profit_change_pct || 0, locale)} vs previous month
+          </span>
+        </div>
+      ) : null}
+
+      {metric === 'receivables_total' ? (
+        <div className="text-[12px] arc-dim">
+          {formatTradeCount(data.overdue_count || 0, locale)} overdue invoice{(data.overdue_count || 0) === 1 ? '' : 's'}
+        </div>
+      ) : null}
+    </>
+  )
+
+  const className = 'arc-card p-5 text-left w-full h-full hover:border-[var(--accent)] transition-colors flex flex-col justify-between gap-4'
+  if (config.link) {
+    return (
+      <button className={className} onClick={() => navigate(config.link)}>
+        {content}
+      </button>
+    )
+  }
+
+  return <div className={className}>{content}</div>
+}
+
+// claude-opus-4-8
+const TradeListWidget: WidgetComponent = ({ widget }) => {
+  const { data, loading, error } = useTradeDashboardData()
+  const config = widget.config_json || {}
+  const source = config.source as TradeListSource
+  const locale = FormattingService.getConfig().language || 'en-US'
+  const items = source === 'low_stock_items' ? (data?.low_stock_items || []) : (data?.recent_documents || [])
+
+  if (loading) return <TradeWidgetSkeleton />
+  if (error) return <TradeWidgetError title={widget.title} message={error} />
+
+  return (
+    <div className="arc-card overflow-hidden h-full flex flex-col">
+      <div className="px-4 py-2.5 border-b border-[var(--line)] flex items-center justify-between" style={{ background: 'var(--surface-2)' }}>
+        <span className="arc-id"><b>recent</b>/{widget.resource_name}</span>
+        <span className="text-[12.5px] font-medium text-[var(--text)]">{widget.title}</span>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {items.length === 0 ? (
+          <div className="px-4 py-4 text-sm arc-dim">
+            {source === 'low_stock_items' ? 'All stock healthy' : 'No recent activity yet'}
+          </div>
+        ) : source === 'low_stock_items' ? (
+          (items as TradeDashboardLowStockItem[]).map((item, idx) => (
+            <div key={(item.code || item.name || 'item') + '-' + String(idx)} className={idx > 0 ? 'border-t border-[var(--line)]' : ''}>
+              <LowStockListRow item={item} locale={locale} />
+            </div>
+          ))
+        ) : (
+          (items as TradeDashboardRecentDocument[]).map((item, idx) => (
+            <div key={(item.type || 'document') + '-' + (item.number || String(idx))} className={idx > 0 ? 'border-t border-[var(--line)]' : ''}>
+              <RecentDocumentListRow item={item} locale={locale} />
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
 WidgetRegistry.register('stat', StatWidget)
 WidgetRegistry.register('chart', ChartWidget)
 WidgetRegistry.register('list', ListWidget)
+WidgetRegistry.register('trade_kpi', TradeKpiWidget)
+WidgetRegistry.register('trade_list', TradeListWidget)

@@ -6,14 +6,19 @@ import logging
 
 from core.lib.database import get_db
 from core.auth.service import get_current_user
-from apps.saas.models import Plan
+from core.service_registry import ServiceRegistry
 
 logger = logging.getLogger(__name__)
 
 
+# Module gating is a SaaS capability; if the saas app isn't installed the
+# Subscription/Plan models are absent and every guard is a no-op pass-through.
+# Models resolved by key so core never imports apps (core↛apps invariant).
 # claude-sonnet-4-6
-def get_tenant_plan(db: Session, tenant_id: str) -> Optional[Plan]:
-    from apps.saas.models import Subscription
+def get_tenant_plan(db: Session, tenant_id: str):
+    Subscription = ServiceRegistry.get("Subscription")
+    if Subscription is None:
+        return None
     from sqlalchemy.orm import joinedload
     sub = db.query(Subscription).options(joinedload(Subscription.plan)).filter_by(tenant_id=tenant_id).first()
     return sub.plan if sub else None
@@ -29,9 +34,12 @@ def require_module(module_name: str) -> Callable:
         if getattr(current_user, "is_admin", False):
             return
 
+        Subscription = ServiceRegistry.get("Subscription")
+        if Subscription is None:
+            return  # saas app not installed — no module gating
+
         tenant_id = getattr(current_user, "tenant_id", None)
         if not tenant_id:
-            from apps.saas.models import Subscription
             sub = db.query(Subscription).filter(
                 Subscription.email == current_user.email,
                 Subscription.status.in_(["active", "trial"]),
@@ -47,7 +55,7 @@ def require_module(module_name: str) -> Callable:
                 raise HTTPException(status_code=403, detail="Plan configuration not found.")
             request.state.tenant_plan = plan
 
-        plan: Plan = request.state.tenant_plan
+        plan = request.state.tenant_plan
         active_modules = plan.active_modules or []
 
         if module_name not in active_modules:

@@ -1,0 +1,32 @@
+# Stock baseline RBAC
+roles:
+  - name: User
+    permissions:
+      - resource: stock_categories
+        actions: [READ, CREATE, UPDATE]
+      - resource: stock_items
+        actions: [READ, CREATE, UPDATE]
+      - resource: stock_item_accounts
+        actions: [READ, CREATE, UPDATE]
+      - resource: stock_item_uoms
+        actions: [READ, CREATE, UPDATE]
+      - resource: stock_pricelists
+        actions: [READ, CREATE, UPDATE]
+      - resource: stock_promo_bundles
+        actions: [READ, CREATE, UPDATE]
+      - resource: stock_promo_items
+        actions: [READ, CREATE, UPDATE]
+      - resource: stock_locations
+        actions: [READ, CREATE, UPDATE]
+      - resource: stock_delivery_notes
+        actions: [READ, CREATE, UPDATE]
+      - resource: stock_delivery_note_lines
+        actions: [READ, CREATE, UPDATE]
+      - resource: stock_movements
+        actions: [READ, CREATE, UPDATE]
+      - resource: stock_movement_lines
+        actions: [READ, CREATE, UPDATE]
+      - resource: stock_item_bundles
+        actions: [READ, CREATE, UPDATE]
+      - resource: stock_item_locations
+        actions: [READ, CREATE, UPDATE]

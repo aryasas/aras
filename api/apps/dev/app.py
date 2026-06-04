@@ -65,6 +65,13 @@ class Dev(Aras.App):
         style_public_router
     ]
 
+    @classmethod
+    def register_services(cls):
+        from core.service_registry import ServiceRegistry
+        from .models import HandoffRun, TemplateAnnotation
+        ServiceRegistry.register("HandoffRun", HandoffRun)
+        ServiceRegistry.register("TemplateAnnotation", TemplateAnnotation)
+
     @staticmethod
     def seed(db: Session):
         from . import seed_templates

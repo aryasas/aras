@@ -1,0 +1,10 @@
+# HR baseline RBAC
+roles:
+  - name: User
+    permissions:
+      - resource: hr_departments
+        actions: [READ, CREATE, UPDATE]
+      - resource: hr_positions
+        actions: [READ, CREATE, UPDATE]
+      - resource: hr_employees
+        actions: [READ, CREATE, UPDATE]

@@ -11,11 +11,25 @@ from ..base.model import Model
 
 class WorkflowManager(Manager):
 
+    # DB-driven workflow models live in an app (config); resolve them by key so
+    # core never imports the app. When no app provides them, DB templates are
+    # absent and the engine falls back to code-defined __transitions__.
+    @staticmethod
+    def _wf_models():
+        from core.service_registry import ServiceRegistry
+        return (
+            ServiceRegistry.get("WorkflowTemplate"),
+            ServiceRegistry.get("WorkflowTransition"),
+            ServiceRegistry.get("WorkflowState"),
+        )
+
     @classmethod
     def _load_db_template(cls, db: Session, document_type: str):
         """Returns active WorkflowTemplate for this document_type, or None."""
+        WorkflowTemplate, _, _ = cls._wf_models()
+        if WorkflowTemplate is None:
+            return None
         try:
-            from apps.config.workflow_models import WorkflowTemplate
             return db.query(WorkflowTemplate).filter(
                 WorkflowTemplate.document_type == document_type,
                 WorkflowTemplate.is_active == True,
@@ -30,7 +44,7 @@ class WorkflowManager(Manager):
         if db:
             template = cls._load_db_template(db, item.__tablename__)
             if template:
-                from apps.config.workflow_models import WorkflowTransition, WorkflowState
+                _, WorkflowTransition, WorkflowState = cls._wf_models()
                 transitions = (
                     db.query(WorkflowTransition)
                     .join(WorkflowState, WorkflowTransition.from_state_id == WorkflowState.id)
@@ -83,7 +97,7 @@ class WorkflowManager(Manager):
         template = cls._load_db_template(db, item.__tablename__)
 
         if template:
-            from apps.config.workflow_models import WorkflowTransition, WorkflowState
+            _, WorkflowTransition, WorkflowState = cls._wf_models()
             transition_row = (
                 db.query(WorkflowTransition)
                 .join(WorkflowState, WorkflowTransition.from_state_id == WorkflowState.id)

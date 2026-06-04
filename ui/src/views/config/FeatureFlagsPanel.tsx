@@ -26,7 +26,7 @@ function FeatureFlagSection({ section }: { section: ConfigSectionSummary }) {
       <div className="divide-y divide-[var(--aras-border)]">
         {fields.length === 0 ? (
           <div className="px-4 py-5 text-[12px] text-[var(--aras-muted)]">No flags registered.</div>
-        ) : fields.map((field) => {
+        ) : fields.map((field: NonNullable<typeof sectionQuery.data>['fields'][number]) => {
           const enabled = Boolean(field.value ?? field.default)
           return (
             <button
@@ -51,7 +51,7 @@ function FeatureFlagSection({ section }: { section: ConfigSectionSummary }) {
 export default function FeatureFlagsPanel() {
   const sectionsQuery = useSections({ scope: 'feature' })
   const grouped = useMemo(() => {
-    return (sectionsQuery.data || []).reduce<Record<string, ConfigSectionSummary[]>>((acc, section) => {
+    return (sectionsQuery.data || []).reduce<Record<string, ConfigSectionSummary[]>>((acc, section: ConfigSectionSummary) => {
       const owner = ownerName(section)
       acc[owner] = [...(acc[owner] || []), section]
       return acc

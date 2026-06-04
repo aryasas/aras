@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { lazy, Suspense, useEffect } from 'react'
-import api from './lib/api'
 import { useAuthStore } from './store/authStore'
 import { useUIStore } from './store/uiStore'
 import { CommandPalette } from './aras-core/components/CommandPalette'
@@ -46,6 +45,7 @@ const HandoffRunsView = lazy(() => import('./views/HandoffRuns'))
 const BackgroundTasksView = lazy(() => import('./views/BackgroundTasks'))
 const ActivityHeatmapView = lazy(() => import('./views/ActivityHeatmap'))
 const FileManagerView = lazy(() => import('./views/FileManager'))
+const SeedManagerView = lazy(() => import('./views/SeedManager'))
 const ArchivedView = lazy(() => import('./views/ArchivedView'))
 const PosView = lazy(() => import('./views/PosView'))
 const SmartDispatcher = lazy(() => import('./views/SmartDispatcher'))
@@ -226,7 +226,7 @@ function App() {
           <Route path="settings/rbac" element={<RBACManagerView />} />
           <Route path="admin/license" element={<TenantRoute><LicenseStatusView /></TenantRoute>} />
           <Route path="preview/:slug" element={<WebPageView />} />
-          <Route path="config/user-access" element={<ErpUserAccess />} />
+          <Route path="settings/user-access" element={<ErpUserAccess />} />
           <Route path="dev" element={<DevToolsView />} />
           <Route path="dev/template-builder" element={<TemplateBuilderView />} />
           <Route path="dev/health" element={<HealthIntegrityView />} />
@@ -235,6 +235,7 @@ function App() {
           <Route path="dev/tasks" element={<BackgroundTasksView />} />
           <Route path="dev/activity-heatmap" element={<ActivityHeatmapView />} />
           <Route path="settings/files" element={<FileManagerView />} />
+          <Route path="admin/seeder" element={<SeedManagerView />} />
           <Route path="admin/tenants" element={<Navigate to="/control-panel/tenants" replace />} />
           <Route path="saas-admin" element={<Navigate to="/control-panel" replace />} />
           <Route path="saas-admin/tenants/:id" element={<LegacyTenantDetailRedirect />} />

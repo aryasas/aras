@@ -1,0 +1,14 @@
+# POS baseline RBAC
+roles:
+  - name: User
+    permissions:
+      - resource: pot_terminals
+        actions: [READ, CREATE, UPDATE]
+      - resource: pot_sessions
+        actions: [READ, CREATE, UPDATE]
+      - resource: pot_orders
+        actions: [READ, CREATE, UPDATE]
+      - resource: pot_order_lines
+        actions: [READ, CREATE, UPDATE]
+      - resource: pot_payment_lines
+        actions: [READ, CREATE, UPDATE]

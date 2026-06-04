@@ -33,6 +33,16 @@ def setup_logging():
     logging.getLogger("uvicorn.error").setLevel(logging.WARNING)
     logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
 
+    # claude-opus-4-8
+    # Every model is intentionally dual-mounted: app-prefixed (/accounting/accounts)
+    # for clean REST URLs AND root-level (/accounting_accounts) for dashboard/UI
+    # compatibility. Both share operation IDs, so FastAPI emits a "Duplicate
+    # Operation ID" UserWarning per route at openapi generation — thousands of lines
+    # of harmless noise. The dual-mount is load-bearing (frontend hits the root
+    # paths), so silence this one warning rather than break the contract.
+    import warnings
+    warnings.filterwarnings("ignore", message="Duplicate Operation ID", module="fastapi")
+
 setup_logging()
 logger = logging.getLogger(__name__)
 
@@ -211,8 +221,6 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(Aras.api.query.router, prefix="/api/v1")
 app.include_router(Aras.api.workflow.router, prefix="/api/v1")
 app.include_router(Aras.api.admin.router, prefix="/api/v1/admin")
-app.include_router(Aras.api.settings.router, prefix="/api/v1")
-app.include_router(Aras.api.master_data.router, prefix="/api/v1")
 app.include_router(Aras.api.dev.router, prefix="/api/v1/dev")
 app.include_router(Aras.api.registry.router, prefix="/api/v1")
 from core.api.ai_context import router as ai_context_router
@@ -228,16 +236,18 @@ if aras_role == "control-panel":
     from apps.saas.routers.control_panel import router as cp_router
     app.include_router(cp_router, prefix="/api/v1/saas")
 
-# core_config app
-from apps.core_config.router import router as core_config_router
+# core_config app (framework tier: core/workspace)
+from core.workspace.router import router as core_config_router
 app.include_router(core_config_router, prefix="/api/v1")
+app.include_router(Aras.api.settings.router, prefix="/api/v1")
+app.include_router(Aras.api.master_data.router, prefix="/api/v1")
 
 # WebSocket — real-time push
 from core.api.websocket import router as ws_router
 app.include_router(ws_router, prefix="/api/v1")
 
 # Saved filters
-from apps.base.saved_filter_router import router as saved_filter_router
+from core.workspace.saved_filter_router import router as saved_filter_router
 app.include_router(saved_filter_router, prefix="/api/v1")
 
 # Dynamic App Discovery & Route Registration

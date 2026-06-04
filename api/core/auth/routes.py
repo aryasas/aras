@@ -58,12 +58,11 @@ def read_users_me(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Plugin integration point: ERP provides org list when installed
-    try:
-        from apps.config.erp_rbac import get_user_org_list
-        companies = get_user_org_list(db, current_user)
-    except ImportError:
-        companies = []
+    # Plugin integration point: an app provides org list when installed.
+    # Resolved by key so core never imports the app (core↛apps invariant).
+    from core.service_registry import ServiceRegistry
+    get_user_org_list = ServiceRegistry.get("get_user_org_list")
+    companies = get_user_org_list(db, current_user) if get_user_org_list else []
     default_org = next((c for c in companies if c.get("is_default")), None)
     default_org_id = default_org["id"] if default_org else (companies[0]["id"] if companies else None)
     return {

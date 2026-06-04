@@ -1,0 +1,36 @@
+# Accounting baseline RBAC
+roles:
+  - name: User
+    permissions:
+      - resource: accounting_accounts
+        actions: [READ, CREATE, UPDATE]
+      - resource: accounting_fiscal_periods
+        actions: [READ, CREATE, UPDATE]
+      - resource: accounting_entries
+        actions: [READ, CREATE, UPDATE]
+      - resource: accounting_entry_lines
+        actions: [READ, CREATE, UPDATE]
+      - resource: accounting_outflow_invoices
+        actions: [READ, CREATE, UPDATE]
+      - resource: accounting_outflow_invoice_lines
+        actions: [READ, CREATE, UPDATE]
+      - resource: accounting_outflow_invoice_charges
+        actions: [READ, CREATE, UPDATE]
+      - resource: accounting_inflow_invoices
+        actions: [READ, CREATE, UPDATE]
+      - resource: accounting_inflow_invoice_lines
+        actions: [READ, CREATE, UPDATE]
+      - resource: accounting_inflow_invoice_charges
+        actions: [READ, CREATE, UPDATE]
+      - resource: accounting_payments
+        actions: [READ, CREATE, UPDATE]
+      - resource: accounting_payment_allocations
+        actions: [READ, CREATE, UPDATE]
+      - resource: accounting_grns
+        actions: [READ, CREATE, UPDATE]
+      - resource: accounting_grn_lines
+        actions: [READ, CREATE, UPDATE]
+      - resource: accounting_assets_categories
+        actions: [READ, CREATE, UPDATE]
+      - resource: accounting_assets_assets
+        actions: [READ, CREATE, UPDATE]

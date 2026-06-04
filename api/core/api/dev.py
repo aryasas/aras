@@ -21,7 +21,10 @@ def create_handoff_run(
     db: Session = Depends(get_db),
     _: Any = Depends(require_admin),
 ):
-    from apps.dev.models import HandoffRun
+    from core.service_registry import ServiceRegistry
+    HandoffRun = ServiceRegistry.get("HandoffRun")
+    if HandoffRun is None:
+        raise HTTPException(status_code=404, detail="Dev tooling not installed")
     valid = {k: v for k, v in payload.items() if hasattr(HandoffRun, k)}
     run = HandoffRun(**valid)  # type: ignore[arg-type]
     db.add(run)
@@ -38,7 +41,10 @@ def list_handoff_runs(
     db: Session = Depends(get_db),
     _: Any = Depends(require_admin),
 ):
-    from apps.dev.models import HandoffRun
+    from core.service_registry import ServiceRegistry
+    HandoffRun = ServiceRegistry.get("HandoffRun")
+    if HandoffRun is None:
+        raise HTTPException(status_code=404, detail="Dev tooling not installed")
     col = getattr(HandoffRun, sort, HandoffRun.id)
     direction = col.desc() if order == "desc" else col.asc()
     runs = db.query(HandoffRun).order_by(direction).limit(limit).all()
@@ -52,7 +58,10 @@ def patch_handoff_run(
     db: Session = Depends(get_db),
     _: Any = Depends(require_admin),
 ):
-    from apps.dev.models import HandoffRun
+    from core.service_registry import ServiceRegistry
+    HandoffRun = ServiceRegistry.get("HandoffRun")
+    if HandoffRun is None:
+        raise HTTPException(status_code=404, detail="Dev tooling not installed")
     run = db.get(HandoffRun, run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
@@ -318,7 +327,10 @@ def list_dev_template_trees(
     _: Any = Depends(require_admin)
 ):
     """Returns a list of all template trees."""
-    from apps.dev.models import TemplateAnnotation
+    from core.service_registry import ServiceRegistry
+    TemplateAnnotation = ServiceRegistry.get("TemplateAnnotation")
+    if TemplateAnnotation is None:
+        return []
     from sqlalchemy import func
     
     # We want unique template names and their latest update time

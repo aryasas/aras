@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional
 from sqlalchemy.orm import Session
-from apps.config.models import ExchangeRate
+from plugins.commerce.models import ExchangeRate
 
 
 class FxService:

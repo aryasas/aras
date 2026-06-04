@@ -5,7 +5,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core import Aras, LinkedDoc
 from core.response import ok
 from core.exceptions import ValidationException
-from apps.base import MasterDataBase, DocumentBase, LineItemBase, TradeDocumentBase
+from core.base.orm import MasterDataBase, DocumentBase, LineItemBase
+from apps.accounting.trade_document import TradeDocumentBase
 
 class Account(MasterDataBase):
     __tablename__ = "accounting_accounts"
@@ -56,7 +57,7 @@ class JournalEntry(DocumentBase):
     __tablename__ = "accounting_entries"
     __soft_delete__ = True
 
-    currency_id: Mapped[int] = mapped_column(ForeignKey("config_currencies.id"))
+    currency_id: Mapped[int] = mapped_column(ForeignKey("core_currencies.id"))
     narrative: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     source_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     source_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -255,7 +256,7 @@ class OutflowInvoiceCharge(LineItemBase):
 class Payment(DocumentBase):
     __tablename__ = "accounting_payments"
 
-    currency_id: Mapped[int] = mapped_column(ForeignKey("config_currencies.id"))
+    currency_id: Mapped[int] = mapped_column(ForeignKey("core_currencies.id"))
     payment_type: Mapped[str] = mapped_column(String(20), info={"choices": ["Incoming", "Outgoing"]})
     party_type: Mapped[str] = mapped_column(String(20), info={"choices": ["Customer", "Supplier", "Other"]})
     party_id: Mapped[Optional[int]] = mapped_column(

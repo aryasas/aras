@@ -2,7 +2,8 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from ..models import Item, ItemCategory, ItemAccount
 from apps.accounting.models import Account
-from apps.config.models import Organization
+from core.workspace.models import Organization
+from apps.accounting.services.org_defaults import acc_default
 
 
 class CoaResolver:
@@ -47,10 +48,10 @@ class CoaResolver:
             if cat and cat.account_stock_id:
                 return db.get(Account, cat.account_stock_id)
 
-        co = db.get(Organization, org_id)
-        if co and co.acc_inventory_default_id:
-            return db.get(Account, co.acc_inventory_default_id)
-            
+        inv_id = acc_default(db, org_id, "acc_inventory_default_id")
+        if inv_id:
+            return db.get(Account, inv_id)
+
         effective_org_id = CoaResolver._get_effective_org_id(db, org_id)
         return db.query(Account).filter(
             Account.org_id == effective_org_id,
@@ -64,9 +65,9 @@ class CoaResolver:
         if acc_id:
             return db.get(Account, acc_id)
 
-        co = db.get(Organization, org_id)
-        if co and co.acc_cogs_default_id:
-            return db.get(Account, co.acc_cogs_default_id)
+        cogs_id = acc_default(db, org_id, "acc_cogs_default_id")
+        if cogs_id:
+            return db.get(Account, cogs_id)
 
         effective_org_id = CoaResolver._get_effective_org_id(db, org_id)
         return db.query(Account).filter(
@@ -81,9 +82,9 @@ class CoaResolver:
         if acc_id:
             return db.get(Account, acc_id)
 
-        co = db.get(Organization, org_id)
-        if co and co.acc_income_default_id:
-            return db.get(Account, co.acc_income_default_id)
+        income_id = acc_default(db, org_id, "acc_income_default_id")
+        if income_id:
+            return db.get(Account, income_id)
 
         effective_org_id = CoaResolver._get_effective_org_id(db, org_id)
         return db.query(Account).filter(
@@ -98,9 +99,9 @@ class CoaResolver:
         if acc_id:
             return db.get(Account, acc_id)
 
-        co = db.get(Organization, org_id)
-        if co and co.acc_cogs_default_id:
-            return db.get(Account, co.acc_cogs_default_id)
+        cogs_id = acc_default(db, org_id, "acc_cogs_default_id")
+        if cogs_id:
+            return db.get(Account, cogs_id)
 
         effective_org_id = CoaResolver._get_effective_org_id(db, org_id)
         return db.query(Account).filter(
@@ -111,10 +112,10 @@ class CoaResolver:
 
     @staticmethod
     def resolve_ar_account(db: Session, org_id: int) -> Optional[Account]:
-        co = db.get(Organization, org_id)
-        if co and co.acc_receivable_default_id:
-            return db.get(Account, co.acc_receivable_default_id)
-        
+        ar_id = acc_default(db, org_id, "acc_receivable_default_id")
+        if ar_id:
+            return db.get(Account, ar_id)
+
         effective_org_id = CoaResolver._get_effective_org_id(db, org_id)
         return db.query(Account).filter(
             Account.org_id == effective_org_id,
@@ -124,10 +125,10 @@ class CoaResolver:
 
     @staticmethod
     def resolve_ap_account(db: Session, org_id: int) -> Optional[Account]:
-        co = db.get(Organization, org_id)
-        if co and co.acc_payable_default_id:
-            return db.get(Account, co.acc_payable_default_id)
-        
+        ap_id = acc_default(db, org_id, "acc_payable_default_id")
+        if ap_id:
+            return db.get(Account, ap_id)
+
         effective_org_id = CoaResolver._get_effective_org_id(db, org_id)
         return db.query(Account).filter(
             Account.org_id == effective_org_id,

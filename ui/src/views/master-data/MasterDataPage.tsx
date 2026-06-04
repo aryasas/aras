@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Database } from 'lucide-react'
 import { DynamicForm } from '../../aras-core/components/DynamicForm'
 import ListView from '../../aras-core/components/ListView'
@@ -8,11 +8,14 @@ import { cleanResourcePath } from '../../lib/resourceUtils'
 import type { MasterDataEntity, MasterDataSchema } from '../../lib/api'
 import MasterDataRail from './MasterDataRail'
 
+const SINGLETON_SETTINGS_ENTITIES = new Set(['organization'])
+
 function resourceFromEntity(entity: MasterDataEntity) {
   return cleanResourcePath(entity.resource_url.replace(/^\/api\/v1\/?/, ''))
 }
 
 export default function MasterDataPage() {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const setPageTitle = useUIStore((state) => state.setPageTitle)
   const [entities, setEntities] = useState<MasterDataEntity[]>([])
@@ -26,11 +29,17 @@ export default function MasterDataPage() {
 
   useEffect(() => {
     const next = searchParams.get('entity')
+    if (next && SINGLETON_SETTINGS_ENTITIES.has(next)) {
+      navigate('/admin/settings', { replace: true })
+      return
+    }
     if (next && next !== selectedKey) setSelectedKey(next)
-  }, [searchParams, selectedKey])
+  }, [navigate, searchParams, selectedKey])
 
   const handleLoaded = useCallback((schema: MasterDataSchema) => {
-    const nextEntities = schema.groups.flatMap((group) => group.entities)
+    const nextEntities = schema.groups
+      .flatMap((group) => group.entities)
+      .filter((entity) => !SINGLETON_SETTINGS_ENTITIES.has(entity.key))
     setEntities(nextEntities)
     const current = new URLSearchParams(window.location.search).get('entity')
     if (!current && nextEntities[0]) {

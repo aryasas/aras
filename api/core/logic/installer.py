@@ -51,6 +51,12 @@ class AppInstaller(Service):
         for entity in app_cls.master_data:
             master_data_registry.register_entity(app_cls.app_name, entity)
 
+        # 2b. Register this app's typed config model (key-addressed; framework
+        # reads it without importing the app — preserves core↛apps invariant).
+        if getattr(app_cls, "config_model", None) is not None:
+            from ..config.registry import app_config_registry
+            app_config_registry.register(app_cls.app_name, app_cls.config_model)
+
         # 3. Seed default values in DB
         for section in app_cls.config_sections:
             for field in section.fields:

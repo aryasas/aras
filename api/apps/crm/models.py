@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core import Aras
 from core.response import ok, err
 from core.exceptions import ValidationException
-from apps.base import MasterDataBase, LineItemBase, ErpBase
+from core.base.orm import MasterDataBase, LineItemBase, AuditedBase
 
 
 
@@ -67,7 +67,7 @@ class Lead(MasterDataBase):
 
         return ok({"id": party.id}, message=f"Party {party.name} created successfully.")
 
-class Activity(ErpBase):
+class Activity(AuditedBase):
     __tablename__ = "crm_activities"
     __parent__ = "crm_leads"
     

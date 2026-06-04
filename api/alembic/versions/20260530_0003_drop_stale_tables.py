@@ -3,7 +3,7 @@
 Removes orphan tables left behind by prior renames/migrations:
 - config_settings (empty; superseded by core_settings)
 - core_sys_settings (8 rows already migrated to core_settings by 20260530_0001)
-- user_access (1 row already mirrored in config_user_access)
+- user_access (1 row already mirrored in core_user_access)
 
 Revision ID: 20260530_0003
 Revises: 20260530_0002

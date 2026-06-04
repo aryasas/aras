@@ -9,6 +9,7 @@ class ConfigField:
     type: str  # "string" | "text" | "number" | "bool" | "choice" | "color" | "image" | "secret" | "list"
     default: Any = None
     label: str = ""
+    required: bool = False
     validator: Optional[Callable[[Any], bool]] = None
     help: str = ""
     depends_on: Optional[str] = None
@@ -24,11 +25,15 @@ class ConfigSection:
     order: int = 100
     scope: str = "module"  # "core" | "module" | "shared" | "feature"
     fields: List[ConfigField] = field(default_factory=list)
+    setup_step: Optional[int] = None
     required_by: Tuple[str, ...] = ()
     extends: Optional[str] = None
     read_hook: Optional[Callable] = None
     write_hook: Optional[Callable] = None
     hidden: bool = False
+    # When True, the section accepts arbitrary field keys not declared in `fields`
+    # (e.g. core_config.numbering, whose keys are document series seeded at runtime).
+    dynamic: bool = False
 
 class ConfigRegistry(Registry[ConfigSection]):
     """Registry for configuration sections and fields."""
@@ -57,6 +62,7 @@ class ConfigRegistry(Registry[ConfigSection]):
                     order=section.get("order", 100),
                     scope=section.get("scope", "module"),
                     fields=fields,
+                    setup_step=section.get("setup_step"),
                     required_by=section.get("required_by", ()),
                     extends=section.get("extends"),
                     read_hook=section.get("read_hook"),

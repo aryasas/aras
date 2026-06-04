@@ -6,6 +6,7 @@ from core import Aras
 from core.lib.query_builder import QueryBuilder
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case, and_
+from apps.accounting.services.vocabulary import resolve_labels
 
 logger = logging.getLogger(__name__)
 
@@ -170,6 +171,7 @@ def _parse_date(val):
 def _sales_summary(db: Session, org_id: int, params: dict, columns: list):
     from apps.accounting.models import InflowInvoice
     from apps.party.models import Party
+    labels = resolve_labels(db, org_id)
     date_from = _parse_date(params.get("date_from"))
     date_to = _parse_date(params.get("date_to"))
     status = params.get("status") or None
@@ -195,7 +197,7 @@ def _sales_summary(db: Session, org_id: int, params: dict, columns: list):
     q = q.order_by(InflowInvoice.doc_date.desc()).limit(MAX_REPORT_ROWS)
 
     data = [row._asdict() for row in q.all()]
-    return {"title": "Sales Summary", "data": data, "columns": columns}
+    return {"title": f'{labels["trx_in"]} Summary', "label": labels["trx_in"], "data": data, "columns": columns}
 
 
 # claude-sonnet-4-6
@@ -203,6 +205,7 @@ def _sales_summary(db: Session, org_id: int, params: dict, columns: list):
 def _purchase_summary(db: Session, org_id: int, params: dict, columns: list):
     from apps.accounting.models import OutflowInvoice
     from apps.party.models import Party
+    labels = resolve_labels(db, org_id)
     date_from = _parse_date(params.get("date_from"))
     date_to = _parse_date(params.get("date_to"))
     status = params.get("status") or None
@@ -228,7 +231,7 @@ def _purchase_summary(db: Session, org_id: int, params: dict, columns: list):
     q = q.order_by(OutflowInvoice.doc_date.desc()).limit(MAX_REPORT_ROWS)
 
     data = [row._asdict() for row in q.all()]
-    return {"title": "Purchase Summary", "data": data, "columns": columns}
+    return {"title": f'{labels["trx_out"]} Summary', "label": labels["trx_out"], "data": data, "columns": columns}
 
 
 # claude-sonnet-4-6
@@ -411,7 +414,7 @@ def _ap_aging(db: Session, org_id: int, params: dict, columns: list):
 @ReportService.register("stock_summary")
 def _stock_summary(db: Session, org_id: int, params: dict, columns: list):
     from apps.stock.models import Item, StockMovement, StockMovementLine
-    from apps.config.models import Uom
+    from plugins.commerce.models import Uom
 
     inbound_location = func.coalesce(StockMovementLine.to_location_id, StockMovement.to_location_id)
     outbound_location = func.coalesce(StockMovementLine.from_location_id, StockMovement.from_location_id)

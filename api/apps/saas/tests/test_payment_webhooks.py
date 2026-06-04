@@ -3,13 +3,16 @@ import pytest
 from unittest.mock import MagicMock, patch
 import hashlib
 import json
-from datetime import datetime, timedelta
+import uuid
+from datetime import datetime, timedelta, timezone
 from apps.saas.models import SaaSPayment, SaaSInvoice, Subscription, Plan
 
 # claude-sonnet-4-6
 @pytest.fixture
 def setup_subscription(db):
-    plan = Plan(plan_key="lite", name="Lite", price=100000, currency="IDR")
+    # Unique plan_key per run: default plans (incl. "lite") are seeded into the
+    # persisted DB by SaaSApp.seed, so a fixed key collides on uq_saas_plan_plan_key.
+    plan = Plan(plan_key=f"lite-{uuid.uuid4().hex[:8]}", name="Lite", price=100000, currency="IDR")
     db.add(plan)
     db.commit()
     

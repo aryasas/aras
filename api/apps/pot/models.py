@@ -4,10 +4,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from pydantic import BaseModel as PydanticBaseModel
 from core import Aras
 from core.response import ok
-from apps.base import DocumentBase, LineItemBase, ErpBase
+from core.base.orm import DocumentBase, LineItemBase, AuditedBase
 
 
-class PotTerminal(ErpBase):
+class PotTerminal(AuditedBase):
     __tablename__ = "pot_terminals"
 
     name: Mapped[str] = mapped_column(String(100))
@@ -92,7 +92,7 @@ class PotSession(DocumentBase):
         )
         rows = db.execute(stmt).all()
 
-        from apps.config.models import ModeOfPayment
+        from plugins.commerce.models import ModeOfPayment
         summary = []
         for mode_id, total in rows:
             mode_obj = db.get(ModeOfPayment, mode_id)

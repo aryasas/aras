@@ -21,6 +21,7 @@ from core.registry.config_registry import ConfigSection, ConfigField
 class SaaSApp(App):
     app_name = "saas"
     app_label = "SaaS Control Panel"
+    app_type = "platform"
     icon = "Cloud"
     have_home = True
     config_sections = [
@@ -39,6 +40,15 @@ class SaaSApp(App):
     ]
     routers = [router, payments_router, billing_router]
     models = autodiscover_models(__name__, ["models"])
+
+    @classmethod
+    def register_services(cls):
+        from core.service_registry import ServiceRegistry
+        from .services.license_service import LicenseService
+        from .models import Plan, Subscription
+        ServiceRegistry.register("LicenseService", LicenseService)
+        ServiceRegistry.register("Plan", Plan)
+        ServiceRegistry.register("Subscription", Subscription)
 
     @classmethod
     def seed(cls, db):

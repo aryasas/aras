@@ -211,6 +211,28 @@ export interface SettingsNamespace {
   icon?: string
 }
 
+export interface SettingsSetupStep {
+  key: string
+  label: string
+  icon?: string
+  setup_step: number
+  complete: boolean
+}
+
+export interface VocabularyLabels {
+  trx_in: string
+  trx_out: string
+  party: string
+  pot: string
+}
+
+export interface VocabularyProfile {
+  key: string
+  display_name: string
+  description: string
+  labels: VocabularyLabels
+}
+
 export interface MasterDataEntity {
   key: string
   label: string
@@ -264,9 +286,108 @@ export interface SettingsSchema {
 
 export type SettingsValues = Record<string, Record<string, unknown>>
 
+export interface SeedCatalogSeed {
+  key: string
+  label: string
+  optional: boolean
+  app_name: string
+}
+
+export interface SeedCatalogEntry {
+  app_name: string
+  app_label: string
+  seeds: SeedCatalogSeed[]
+}
+
+export interface SeedRunResult {
+  key: string
+  status: 'ran' | 'skipped' | 'error'
+  message: string
+}
+
+export interface TradeDashboardRecentDocument {
+  type: string
+  number: string
+  status?: string | null
+  doc_date?: string | null
+  party_name?: string | null
+  amount?: number | null
+}
+
+export interface TradeDashboardLowStockItem {
+  code?: string | null
+  name?: string | null
+  uom?: string | null
+  balance?: number | null
+}
+
+export interface TradeDashboardData {
+  today_sales: number
+  month_profit: number
+  month_profit_change_pct: number
+  receivables_total: number
+  overdue_count: number
+  labels?: VocabularyLabels | null
+  low_stock_count: number
+  low_stock_items: TradeDashboardLowStockItem[]
+  recent_documents: TradeDashboardRecentDocument[]
+}
+
+const tradeDashboardCache = new Map<number | 'default', TradeDashboardData>()
+const tradeDashboardPromiseCache = new Map<number | 'default', Promise<TradeDashboardData>>()
+
+// claude-opus-4-8
+function getTradeDashboardCacheKey(orgId?: number) {
+  return typeof orgId === 'number' ? orgId : 'default'
+}
+
+// claude-opus-4-8
+async function fetchTradeDashboard(orgId?: number) {
+  const query = typeof orgId === 'number' ? `?org_id=${orgId}` : ''
+  const res = await api.get<TradeDashboardData>(`/report/dashboard${query}`)
+  return res.data
+}
+
+// claude-opus-4-8
+export function invalidateTradeDashboard(orgId?: number) {
+  if (typeof orgId === 'number') {
+    tradeDashboardCache.delete(orgId)
+    tradeDashboardPromiseCache.delete(orgId)
+    return
+  }
+  tradeDashboardCache.clear()
+  tradeDashboardPromiseCache.clear()
+}
+
+// claude-opus-4-8
+export function getTradeDashboard(orgId?: number) {
+  const key = getTradeDashboardCacheKey(orgId)
+  const cached = tradeDashboardCache.get(key)
+  if (cached) return Promise.resolve(cached)
+
+  const inFlight = tradeDashboardPromiseCache.get(key)
+  if (inFlight) return inFlight
+
+  const request = fetchTradeDashboard(orgId)
+    .then((payload) => {
+      tradeDashboardCache.set(key, payload)
+      return payload
+    })
+    .finally(() => {
+      tradeDashboardPromiseCache.delete(key)
+    })
+
+  tradeDashboardPromiseCache.set(key, request)
+  return request
+}
+
 export const settingsApi = {
   async listNamespaces() {
     const res = await api.get<SettingsNamespace[]>('/settings')
+    return res.data
+  },
+  async getSetup() {
+    const res = await api.get<SettingsSetupStep[]>('/settings/setup')
     return res.data
   },
   async getSchema(namespace: string) {
@@ -290,6 +411,37 @@ export const masterDataApi = {
   },
   async getSchema() {
     const res = await api.get<MasterDataSchema>('/master-data/schema')
+    return res.data
+  },
+}
+
+export const seedApi = {
+  async list() {
+    const res = await api.get<SeedCatalogEntry[]>('/dev/seeds')
+    return res.data
+  },
+  async run(keys: string[], orgId: number) {
+    const res = await api.post<SeedRunResult[]>('/dev/seeds/run', {
+      keys,
+      org_id: orgId,
+    })
+    return res.data
+  },
+}
+
+export const reportApi = {
+  async dashboard(orgId?: number) {
+    return fetchTradeDashboard(orgId)
+  },
+}
+
+export const vocabularyApi = {
+  async listProfiles() {
+    const res = await api.get<VocabularyProfile[]>('/accounting/vocabulary/profiles')
+    return res.data
+  },
+  async updateOrganizationProfile(orgId: number, profile: string) {
+    const res = await api.put<{ profile: string; labels: VocabularyLabels }>(`/accounting/organizations/${orgId}/profile`, { profile })
     return res.data
   },
 }

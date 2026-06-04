@@ -1,5 +1,5 @@
 from core import Aras
-from apps.base.document import DOC_LAYOUT_HEADER, DOC_LAYOUT_NOTES
+from core.base.orm import DOC_LAYOUT_HEADER, DOC_LAYOUT_NOTES
 from .models import ItemCategory, Item, Location, StockMovement, PriceList, PromoBundle, \
     ItemUom, ItemBundle, ItemLocation, PromoBundleItem, StockMovementLine, DeliveryNote, \
     ItemAccount, DeliveryNoteLine

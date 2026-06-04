@@ -1,6 +1,6 @@
 from core import Aras
 from core.response import ok, err
-from apps.base.document import DOC_LAYOUT_HEADER, DOC_LAYOUT_NOTES
+from core.base.orm import DOC_LAYOUT_HEADER, DOC_LAYOUT_NOTES
 from .models import Account, JournalEntry, JournalEntryLine, InflowInvoice, OutflowInvoice, Payment, FiscalPeriod
 
 class AccountView(Aras.View):

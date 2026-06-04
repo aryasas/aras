@@ -17,11 +17,11 @@ from main import app
 from core.manager import bootstrap
 bootstrap.run = lambda db: None
 
-# Disable Organization seeding hook
+# Disable Organization report-seeding hook (now attached app-side in apps.report.app)
 from sqlalchemy import event
-from apps.config.models import Organization
-from apps.config.models import _seed_reports_for_new_org
+from core.workspace.models import Organization
 try:
+    from apps.report.app import _seed_reports_for_new_org
     event.remove(Organization, "after_insert", _seed_reports_for_new_org)
 except (ValueError, Exception):
     pass
@@ -93,7 +93,7 @@ def admin_user(db):
 @pytest.fixture(scope="function")
 def org(db):
     """Returns a test organization."""
-    from apps.config.models import Organization
+    from core.workspace.models import Organization
     import uuid
     uid = str(uuid.uuid4())[:8]
     org = Organization(name=f"Test Org {uid}", code=f"T{uid}")

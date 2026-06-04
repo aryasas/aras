@@ -9,7 +9,7 @@ def resolve_account(db: Session, product_id: int, org_id: int, account_type: str
     account_type: 'income', 'cogs', 'expense'
     """
     from ..models import Item as Product, ItemAccount as ProductAccount, ItemCategory as ProductCategory
-    from apps.config.models import Organization
+    from core.workspace.models import Organization
 
     product = db.get(Product, product_id)
     if not product:

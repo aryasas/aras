@@ -38,7 +38,7 @@ const sections: Section[] = [
     items: [
       { label: 'Auto CRUD', desc: 'RouterFactory generates GET/POST/PATCH/DELETE + bulk-delete + query + export for every registered model.' },
       { label: 'Custom Action', desc: 'Decorate a Model method with @model_action. Appears as button in DynamicForm.', code: '@model_action(label="Post", icon="Check")\ndef post(self, db, user_id):\n    ...' },
-      { label: 'Scoping', desc: '__scoped_by__ = [["org_id","erp_config_organizations"]] - filters all list queries to current organization.' },
+      { label: 'Scoping', desc: '__scoped_by__ = [["org_id","core_organizations"]] - filters all list queries to current organization.' },
       { label: 'Dev Endpoints', desc: 'GET /dev/inspect/routes — full route map. GET /dev/inspect/models — memory registry. GET /dev/inspect/env — sanitized env.' },
     ]
   },

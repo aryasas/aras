@@ -5,7 +5,7 @@ from sqlalchemy import String, ForeignKey, Boolean, Text, Float, Date, DateTime,
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core import Aras
 from core.response import ok
-from apps.base import MasterDataBase, ErpBase
+from core.base.orm import MasterDataBase, AuditedBase
 
 # gemini-flash
 class Team(MasterDataBase):
@@ -20,13 +20,13 @@ class Category(MasterDataBase):
     sla_hours: Mapped[float] = mapped_column(Float, default=24)
 
 # gemini-flash
-class Ticket(ErpBase):
+class Ticket(AuditedBase):
     __tablename__ = "ticket_tickets"
     __features__ = ["audit", "workflow"]
     __workflow_states__ = ["Open", "In Progress", "Pending Customer", "Resolved", "Closed"]
-    __scoped_by__ = [("org_id", "config_organizations")]
+    __scoped_by__ = [("org_id", "core_organizations")]
 
-    org_id: Mapped[int] = mapped_column(Integer, ForeignKey("config_organizations.id"), nullable=False, index=True)
+    org_id: Mapped[int] = mapped_column(Integer, ForeignKey("core_organizations.id"), nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(20), default="Open")
     
     subject: Mapped[str] = mapped_column(String(255))
@@ -70,7 +70,7 @@ class Ticket(ErpBase):
         return ok()
 
 # gemini-flash
-class TicketMessage(ErpBase):
+class TicketMessage(AuditedBase):
     __tablename__ = "ticket_messages"
     __parent__ = "ticket_tickets"
     ticket_id: Mapped[int] = mapped_column(ForeignKey("ticket_tickets.id"))

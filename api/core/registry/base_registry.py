@@ -27,9 +27,19 @@ class Registry(Generic[T]):
         return self._entries.get((app_name, key))
 
     def get_by_full_key(self, full_key: str) -> Optional[T]:
-        """Lookup by 'app_name.key' string."""
+        """Lookup a section by its stored section key (e.g. 'core_config.numbering').
+
+        Sections are stored as (app_name, section.key) where section.key already
+        carries any app prefix, so we match on the second tuple element directly.
+        Falls back to the legacy 'app_name.key' split for callers that pass a
+        bare app-scoped key.
+        """
         if "." not in full_key:
             return None
+        for (app_name, key), entry in self._entries.items():
+            if key == full_key:
+                return entry
+        # Legacy fallback: treat the leading segment as the app name.
         app_name, key = full_key.split(".", 1)
         return self.get(app_name, key)
 

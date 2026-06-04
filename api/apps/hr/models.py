@@ -2,7 +2,7 @@ from typing import Optional
 from datetime import date
 from sqlalchemy import String, ForeignKey, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from apps.base import MasterDataBase
+from core.base.orm import MasterDataBase
 
 class Department(MasterDataBase):
     __tablename__ = "hr_departments"

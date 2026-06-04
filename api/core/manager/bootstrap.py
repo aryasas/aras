@@ -4,7 +4,6 @@ Called once from the FastAPI lifespan after sync completes.
 """
 import logging
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +16,6 @@ def run(db: Session) -> None:
     _seed_i18n(db)
     _seed_framework_rbac(db)
     _run_app_seeds(db)
-    _seed_saas_plans(db)
-    _seed_reports(db)
 
 
 def _seed_admin(db: Session) -> None:
@@ -41,26 +38,8 @@ def _seed_admin(db: Session) -> None:
 def _seed_widgets(db: Session) -> None:
     from core.registry.widget_model import WidgetModel
 
-    if db.query(WidgetModel).first():
-        return
     logger.info("Seeding default widgets...")
-    db.add_all([
-        WidgetModel(
-            name="total_users", title="Total Users", widget_type="stat",
-            resource_name="core_users",
-            config_json={"icon": "Users", "color": "indigo"}, order=1,
-        ),
-        WidgetModel(
-            name="recent_activity", title="Recent Activity", widget_type="list",
-            resource_name="core_activity_logs",
-            config_json={"limit": 5}, order=2, size="col-span-2",
-        ),
-        WidgetModel(
-            name="active_apps", title="Installed Apps", widget_type="stat",
-            resource_name="core_apps",
-            config_json={"icon": "Package", "color": "emerald"}, order=3,
-        ),
-    ])
+    WidgetModel.seed_defaults(db)
     db.commit()
     logger.info("Default widgets seeded.")
 
@@ -107,47 +86,66 @@ def _seed_i18n(db: Session) -> None:
     )
 
 
+# claude-sonnet-4-6
 def _run_app_seeds(db: Session) -> None:
-    # Import app seed modules so their @register decorators fire before run_all.
-    # Add new app seeds here as: try: import apps.<name>.seed_rbac; except ImportError: pass
-    try:
-        import apps.config.seed_rbac  # noqa: F401
-    except ImportError:
-        pass
+    """Run every installed app's seed() and the decorator-based seed registry.
+
+    Inverted: core no longer names apps (saas/settings/report). Each app owns its
+    seed logic in App.seed(db); core just iterates the app registry. Apps that
+    register seeds via @core.seeds.register still fire through registry.run_all.
+    """
+    from core.base.app import App
     from core.seeds import registry
+    from core.seeds.base import run_app_seeds
+
     registry.run_all(db)
 
+    for app_cls in App._registry.values():
+        # Declarative seeds (App.seeds list) — the generic, preferred mechanism.
+        run_app_seeds(app_cls, db)
 
-def _seed_saas_plans(db: Session) -> None:
-    try:
-        from apps.saas.plans import seed_default_plans
-        seed_default_plans(db)
-    except ImportError:
-        pass
+        # # claude-opus-4-8 - Generic per-app RBAC pass
+        try:
+            _run_app_rbac(app_cls, db)
+        except Exception as e:
+            db.rollback()
+            logger.error("RBAC seed failed for app %s: %s", getattr(app_cls, "app_name", "?"), e, exc_info=True)
+
+        # Legacy imperative App.seed(db) override — kept for apps not yet migrated.
+        seed = getattr(app_cls, "seed", None)
+        if seed is None:
+            continue
+        try:
+            seed(db)
+        except Exception as e:  # one app's seed failing must not abort boot
+            db.rollback()
+            logger.error("Seed failed for app %s: %s", getattr(app_cls, "app_name", "?"), e, exc_info=True)
 
 
-def _seed_reports(db: Session) -> None:
-    # claude-sonnet-4-6
-    try:
-        from apps.report.seed_reports import run_seed
-        from apps.config.models import Organization
+def _run_app_rbac(app_cls, db: Session) -> None:
+    """# claude-opus-4-8
+    Runs RBAC discovery for an app: static file + custom hook.
+    """
+    import inspect
+    from pathlib import Path
+    from core.seeds.loader import load_rbac, upsert_permissions
 
-        from apps.report.models import Report
-        deleted = db.query(Report).filter(or_(Report.code.is_(None), Report.code == '')).delete()
-        if deleted:
-            db.commit()
-            logger.info(f"Removed {deleted} orphaned report(s) with no code.")
+    # 1. Static RBAC file
+    rbac_rel_path = getattr(app_cls, "rbac_file", None)
+    if rbac_rel_path:
+        app_file = inspect.getfile(app_cls)
+        rbac_path = Path(app_file).parent / rbac_rel_path
+        if rbac_path.exists():
+            load_rbac(rbac_path, db)
 
-        orgs = db.query(Organization).all()
-        if not orgs:
-            logger.info("Creating default organization for reports...")
-            org = Organization(name="Default", code="default")
-            db.add(org)
-            db.commit()
-            orgs = [org]
-        for org in orgs:
-            logger.info(f"Seeding reports for org {org.id}...")
-            run_seed(db, org.id)
-        logger.info("Reports seeded successfully.")
-    except (ImportError, Exception) as e:
-        logger.error(f"Report seeding failed: {e}", exc_info=True)
+    # 2. Custom permissions hook
+    custom_perms = app_cls.get_custom_permissions(db)
+    if custom_perms:
+        for perm in custom_perms:
+            upsert_permissions(
+                db, 
+                role_name=perm["role"], 
+                resource=perm["resource"], 
+                actions=perm["actions"]
+            )
+        db.commit()

@@ -2,7 +2,7 @@ from typing import Optional
 from datetime import date
 from sqlalchemy import String, ForeignKey, Date, Float, Integer
 from sqlalchemy.orm import Mapped, mapped_column
-from apps.base import MasterDataBase
+from core.base.orm import MasterDataBase
 
 class AssetCategory(MasterDataBase):
     __tablename__ = "accounting_assets_categories"

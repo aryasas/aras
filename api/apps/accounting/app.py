@@ -1,10 +1,14 @@
 from core import Aras
 from . import views # Trigger view registration
 from . import handlers as _handlers  # noqa: F401 — registers workflow handlers
+from . import org_actions as _org_actions  # noqa: F401 — attaches mirror_coa to Organization
 from .routers.print_router import router as print_router
+from .vocabulary_router import vocabulary_router
+from .seeds.standard import seed_trade_defaults
 
 from core.logic.discovery import autodiscover_models
 from .models import * # Import all models for discovery
+from .config_models import AccountingConfig  # noqa: F401 — typed per-org config
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -67,10 +71,13 @@ class Accounting(Aras.App):
         ]),
     ]
 
-    routers = [print_router, accounting_api_router]
+    routers = [print_router, accounting_api_router, vocabulary_router]
+    seeds = [seed_trade_defaults]
+
+    config_model = AccountingConfig
 
     models = autodiscover_models(__name__, [
-        "models"
+        "models", "config_models", "org_presets"
     ])
 
     menu_groups = [
@@ -102,10 +109,21 @@ class Accounting(Aras.App):
     ]
 
     @classmethod
+    def register_services(cls):
+        from core.service_registry import ServiceRegistry
+        from .services.journal import JournalService
+        from .services.payment import PaymentService
+        from .models import InflowInvoice, InflowInvoiceLine
+        ServiceRegistry.register("JournalService", JournalService)
+        ServiceRegistry.register("PaymentService", PaymentService)
+        ServiceRegistry.register("InflowInvoice", InflowInvoice)
+        ServiceRegistry.register("InflowInvoiceLine", InflowInvoiceLine)
+
+    @classmethod
     def seed(cls, db):
         from .seed_coa import seed_coa
         # Use first org for COA seed if available
-        from apps.config.models import Organization
+        from core.workspace.models import Organization
         org = db.query(Organization).first()
         if org:
             seed_coa(db, org.id)

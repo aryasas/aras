@@ -1,7 +1,7 @@
+import json
 import os
 import platform
 import psutil
-import json
 from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -10,8 +10,14 @@ from core.lib.database import get_db
 from core.response import ok
 from core import Aras
 from core.lib.settings import settings
+from core.auth.service import require_admin
 
 dev_general_router = APIRouter(tags=["Developer General Tools"])
+
+
+class SeedRunRequest(BaseModel):
+    keys: List[str]
+    org_id: int
 
 class ImpersonateRequest(BaseModel):
     user_id: int
@@ -247,3 +253,74 @@ def get_apps_status():
             "routers_count": len(cls.routers) if hasattr(cls, "routers") and isinstance(cls.routers, list) else 0
         })
     return ok(apps)
+
+
+@dev_general_router.get("/dev/seeds")
+def list_seed_catalog(
+    db: Session = Depends(get_db),
+    current_user: object = Depends(require_admin),
+):
+    del db, current_user
+    from core.seeds.base import seed_catalog
+
+    return ok(seed_catalog())
+
+
+@dev_general_router.post("/dev/seeds/run")
+def run_selected_seeds(
+    payload: SeedRunRequest,
+    db: Session = Depends(get_db),
+    current_user: object = Depends(require_admin),
+):
+    del current_user
+    from core.seeds.base import execute_seed_entry, seed_catalog, iter_seed_entries
+    from core.base.app import App
+
+    requested_keys = [key for key in payload.keys if key]
+    if not requested_keys:
+        raise HTTPException(status_code=400, detail="At least one seed key is required.")
+    if payload.org_id < 1:
+        raise HTTPException(status_code=400, detail="org_id must be a positive integer.")
+
+    catalog_index = {
+        item["key"]: item
+        for app_cls in App._registry.values()
+        for item in iter_seed_entries(app_cls)
+    }
+    # Force catalog evaluation so both API surfaces share the same ordering source.
+    for group in seed_catalog():
+        for item in group.get("seeds", []):
+            if item["key"] == "demo:all":
+                from seeds.demo import run_seed
+
+                catalog_index[item["key"]] = {
+                    "app_cls": None,
+                    "app_name": item["app_name"],
+                    "app_label": group.get("app_label", item["app_name"]),
+                    "entry": run_seed,
+                    "owner_dir": None,
+                    "key": item["key"],
+                    "label": item["label"],
+                    "optional": item["optional"],
+                }
+
+    results = []
+    seen: set[str] = set()
+    for key in requested_keys:
+        if key in seen:
+            results.append({"key": key, "status": "skipped", "message": "Duplicate key ignored."})
+            continue
+        seen.add(key)
+        entry_info = catalog_index.get(key)
+        if not entry_info:
+            results.append({"key": key, "status": "error", "message": "Unknown seed key."})
+            continue
+        try:
+            execute_seed_entry(entry_info, db, org_id=payload.org_id)
+            db.commit()
+            results.append({"key": key, "status": "ran", "message": "Seed completed."})
+        except Exception as exc:
+            db.rollback()
+            results.append({"key": key, "status": "error", "message": str(exc)[:300]})
+
+    return ok(results)
