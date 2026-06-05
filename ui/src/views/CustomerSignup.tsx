@@ -40,6 +40,7 @@ const initialForm = {
   full_name: '',
   phone: '',
   plan_key: '',
+  marketing_consent: false,
 }
 
 export default function CustomerSignup() {
@@ -115,6 +116,7 @@ export default function CustomerSignup() {
         full_name: form.full_name,
         phone: form.phone || undefined,
         plan_id: selectedPlan?.id ?? undefined,
+        marketing_consent: form.marketing_consent,
       }
       const res = await fetch('/api/v1/saas/signup', {
         method: 'POST',
@@ -277,6 +279,16 @@ export default function CustomerSignup() {
               </button>
             </div>
           )}
+
+          <label className="flex items-start gap-3 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">
+            <input
+              type="checkbox"
+              checked={form.marketing_consent}
+              onChange={(e) => setForm({ ...form, marketing_consent: e.target.checked })}
+              className="mt-0.5 h-4 w-4 rounded border-[var(--line)] text-[var(--accent)] focus:ring-2 focus:ring-[var(--aras-accent-glow)]"
+            />
+            <span>{t('public.signup.marketingConsent', 'I agree to receive product updates and marketing emails')}</span>
+          </label>
 
           <button
             type="submit"

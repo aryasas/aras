@@ -1,4 +1,5 @@
 # gemini-flash
+from datetime import date
 from typing import Optional, List
 from sqlalchemy import String, ForeignKey, Float, Date, Integer
 from sqlalchemy.orm import Mapped, mapped_column
@@ -7,6 +8,7 @@ from core.response import ok
 from core.exceptions import ValidationException
 from core.base.orm import DocumentBase
 
+# gpt-5
 class TradeDocumentBase(DocumentBase):
     """
     Base class for Inflow (Sales) and Outflow (Purchase) invoices/orders.
@@ -19,6 +21,7 @@ class TradeDocumentBase(DocumentBase):
     pricelist_id: Mapped[Optional[int]] = mapped_column(ForeignKey("config_price_types.id"), nullable=True)
     doc_type: Mapped[str] = mapped_column(String(20), default="Invoice", info={"choices": ["Order", "Invoice"]})
     location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("stock_locations.id"), nullable=True)
+    due_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     
     # Financial fields
     subtotal: Mapped[float] = mapped_column(Float, default=0)

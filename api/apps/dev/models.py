@@ -5,6 +5,7 @@ from datetime import datetime
 from core import Aras
 
 
+# unattributed (pre-tagging)
 class HandoffRun(Aras.Model):
     __tablename__ = "dev_handoff_runs"
     __searchable_fields__ = ["feature", "mode", "status"]
@@ -98,6 +99,7 @@ class StyleOverride(Aras.Model):
     hidden: Mapped[bool] = mapped_column(default=False)
 
 
+# unattributed (pre-tagging)
 class TemplateAnnotation(Aras.Model):
     """
     Persists template layouts and AI annotations for the Template Builder dev tool.

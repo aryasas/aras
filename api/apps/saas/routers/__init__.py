@@ -25,6 +25,7 @@ class SignupRequest(Validation):
     full_name: str
     phone: Optional[str] = None
     plan_id: Optional[int] = None
+    marketing_consent: bool = False
 
 class ConsumerRegisterRequest(SignupRequest):
     password: str
@@ -119,9 +120,10 @@ def get_tenant_config(
     }
 
 
-# claude-opus-4-7
+# gpt-5
 @router.post("/signup")
 def signup(data: SignupRequest, db: Session = Depends(get_db)):
+    consent_at = datetime.now(timezone.utc) if data.marketing_consent else None
     existing = db.query(Subscription).filter_by(email=data.email).first()
     if existing:
         return JSONResponse(
@@ -134,6 +136,8 @@ def signup(data: SignupRequest, db: Session = Depends(get_db)):
         full_name=data.full_name,
         phone=data.phone,
         plan_id=data.plan_id,
+        marketing_consent=data.marketing_consent,
+        consent_at=consent_at,
         status="pending",
         auto_renew=True,
     )
@@ -144,10 +148,12 @@ def signup(data: SignupRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/portal/register")
+# gpt-5
 def portal_register(data: ConsumerRegisterRequest, db: Session = Depends(get_db)):
     """Self-service consumer registration. Payment/activation happens separately."""
     from core.lib.helpers import slugify
 
+    consent_at = datetime.now(timezone.utc) if data.marketing_consent else None
     if len(data.password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
     if db.query(User).filter_by(email=data.email).first() or db.query(Subscription).filter_by(email=data.email).first():
@@ -162,6 +168,8 @@ def portal_register(data: ConsumerRegisterRequest, db: Session = Depends(get_db)
         password_hash=User.hash_password(data.password),
         is_active=True,
         is_admin=False,
+        marketing_consent=data.marketing_consent,
+        consent_at=consent_at,
     )
     db.add(user)
     sub = Subscription(
@@ -170,6 +178,8 @@ def portal_register(data: ConsumerRegisterRequest, db: Session = Depends(get_db)
         full_name=data.full_name,
         phone=data.phone,
         plan_id=data.plan_id,
+        marketing_consent=data.marketing_consent,
+        consent_at=consent_at,
         status="pending",
         auto_renew=True,
     )

@@ -40,6 +40,14 @@ class SaaSApp(App):
     ]
     routers = [router, payments_router, billing_router]
     models = autodiscover_models(__name__, ["models"])
+    jobs = [
+        {
+            "key": "billing-daily",
+            "schedule_cron": "0 2 * * *",
+            "handler_path": "apps.saas.cron.billing_job",
+            "enabled_default": True,
+        }
+    ]
 
     @classmethod
     def register_services(cls):

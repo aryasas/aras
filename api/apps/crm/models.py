@@ -10,11 +10,13 @@ from core.base.orm import MasterDataBase, LineItemBase, AuditedBase
 
 
 
+# unattributed (pre-tagging)
 class Pipeline(MasterDataBase):
     __tablename__ = "crm_pipelines"
     
     stages: Mapped[list["Stage"]] = relationship("Stage", back_populates="parent", cascade="all, delete-orphan")
 
+# unattributed (pre-tagging)
 class Stage(LineItemBase):
     __tablename__ = "crm_stages"
     __parent__ = "crm_pipelines"
@@ -26,6 +28,7 @@ class Stage(LineItemBase):
     
     parent: Mapped["Pipeline"] = relationship("Pipeline", back_populates="stages")
 
+# unattributed (pre-tagging)
 class Lead(MasterDataBase):
     __tablename__ = "crm_leads"
     
@@ -42,6 +45,7 @@ class Lead(MasterDataBase):
     priority: Mapped[str] = mapped_column(String(10), default="Normal", info={"choices": ["Low", "Normal", "High", "Very High"]})
     description: Mapped[str] = mapped_column(Text, nullable=True)
 
+    # unattributed (pre-tagging)
     @Aras.model_action(name="convert", permission="edit", label="Convert to Party")
     def convert_to_party(self, db):
         from apps.party.models import Party
@@ -67,6 +71,7 @@ class Lead(MasterDataBase):
 
         return ok({"id": party.id}, message=f"Party {party.name} created successfully.")
 
+# unattributed (pre-tagging)
 class Activity(AuditedBase):
     __tablename__ = "crm_activities"
     __parent__ = "crm_leads"

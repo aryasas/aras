@@ -51,6 +51,14 @@ class Stock(Aras.App):
     ]
 
     config_model = StockConfig
+    jobs = [
+        {
+            "key": "low-stock-digest",
+            "schedule_cron": "0 7 * * *",
+            "handler_path": "apps.stock.jobs.send_low_stock_digest",
+            "enabled_default": True,
+        }
+    ]
     seeds = [seed_trade_uoms]
 
     models = autodiscover_models(__name__, ["models", "config_models"])

@@ -7,6 +7,7 @@ from core.response import ok
 from core.base.orm import DocumentBase, LineItemBase, AuditedBase
 
 
+# unattributed (pre-tagging)
 class PotTerminal(AuditedBase):
     __tablename__ = "pot_terminals"
 
@@ -19,6 +20,7 @@ class PotTerminal(AuditedBase):
     receipt_footer: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
 
+# unattributed (pre-tagging)
 class PotSession(DocumentBase):
     __tablename__ = "pot_sessions"
 
@@ -27,6 +29,7 @@ class PotSession(DocumentBase):
     closing_balance: Mapped[float] = mapped_column(Float, default=0)
     mode: Mapped[str] = mapped_column(String(20), default="sales", info={"choices": ["sales", "purchase", "both"]})
 
+    # unattributed (pre-tagging)
     @Aras.computed_field
     def total_sales(self) -> float:
         """
@@ -44,6 +47,7 @@ class PotSession(DocumentBase):
         )
         return db.scalar(stmt) or 0.0
 
+    # unattributed (pre-tagging)
     @Aras.computed_field
     def total_purchase(self) -> float:
         """
@@ -61,6 +65,7 @@ class PotSession(DocumentBase):
         )
         return db.scalar(stmt) or 0.0
 
+    # unattributed (pre-tagging)
     @Aras.computed_field
     def invoice_count(self) -> int:
         from apps.accounting.models import InflowInvoice, OutflowInvoice
@@ -71,6 +76,7 @@ class PotSession(DocumentBase):
         outflow = db.scalar(select(func.count(OutflowInvoice.id)).where(OutflowInvoice.pos_session_id == self.id)) or 0
         return inflow + outflow
 
+    # unattributed (pre-tagging)
     @Aras.computed_field
     def payment_summary(self) -> list:
         from apps.accounting.models import InflowInvoice, OutflowInvoice, Payment, PaymentAllocation
@@ -99,19 +105,23 @@ class PotSession(DocumentBase):
             summary.append({"mode_name": mode_obj.name if mode_obj else "Unknown", "total_amount": float(total)})
         return summary
 
+    # unattributed (pre-tagging)
     class _CloseSessionInput(PydanticBaseModel):
         closing_balance: float = 0.0
 
+    # unattributed (pre-tagging)
     @Aras.model_action(name="open_pos", permission="edit", label="Open POS")
     def open_pos(self, db):
         return ok({"redirect": f"/pot/sessions/{self.id}/pos"}, message="")
 
+    # unattributed (pre-tagging)
     @Aras.model_action(name="close_session", permission="edit", label="Close Session", input_schema=_CloseSessionInput)
     def close_session(self, db, data: _CloseSessionInput):
         self.closing_balance = data.closing_balance
         self.status = "Posted"
         return ok({"status": self.status}, message="POT Session closed successfully.")
 
+    # unattributed (pre-tagging)
     @Aras.model_action(name="shift_report", permission="read", label="Shift Report")
     def shift_report(self, db):
         return ok({

@@ -1,0 +1,11 @@
+# Aras pre-commit hooks. Install with: pip install pre-commit && pre-commit install
+# The attribution check is warn-only (never blocks); set args: [--strict] to enforce.
+repos:
+  - repo: local
+    hooks:
+      - id: attribution-tags
+        name: AI attribution tags (warn)
+        entry: python tools/check_attribution.py
+        language: system
+        types: [python]
+        pass_filenames: true

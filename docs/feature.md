@@ -576,3 +576,33 @@ This file is used only to report if there are feature added
 ## Unknown — revision (2026-06-04)
   - [GPT (codex)] <short description or 'none'>
   - [GPT (codex)] <short description or 'none'>
+
+
+## Unknown — revision (2026-06-05)
+  - [GPT (codex)] SecurityHeadersMiddleware registered in api/main.py with CSP and standard security headers on all responses; HSTS is gated to non-DEBUG boot
+
+
+## Unknown — revision (2026-06-05)
+  - [GPT (codex)] Added `Field(..., pii=...)` metadata support; tagged requested PII fields in User, Organization, Subscription, Party, and Contact; added SaaS timezone-aware DateTime migration with down_revision `20260603_0001`
+
+
+## Unknown — revision (2026-06-05)
+  - [GPT (codex)] timestamped marketing consent on User and Subscription, authenticated /api/v1/auth/erase-me endpoint, reusable marketing consent guard
+  - [GPT (codex)] Added an unchecked marketing-consent signup checkbox, localized label strings, and signup payload wiring for `marketing_consent`
+
+
+## Unknown — revision (2026-06-05)
+  - [GPT (codex)] TaxRate master data; line-level `tax_rate_id`/`tax_amount`; invoice `total_tax`; tax-aware recalc for exclusive and inclusive pricing; GL tax legs with account aggregation/fallback; builtin `tax_summary` report; backend metadata now emits `total_tax` on invoice forms and `tax_rate_id`/`tax_amount` on line forms, so generic form rendering was sufficient and no explicit frontend UI was needed
+
+
+## Unknown — revision (2026-06-05)
+  - [GPT (codex)] CSV/XLSX import parsing helper, POST /import/preview dry-run validation with rollback, existing /import updated to reuse parsed rows for background import
+  - [GPT (codex)] Server-backed import preview wiring in ImportMapping with CSV/XLSX support in file pickers and localized preview/status strings
+
+
+## Unknown — revision (2026-06-05)
+  - [GPT (codex)] Registry-driven APScheduler runner with jobs `saas:billing-daily`=`0 2 * * *`, `stock:low-stock-digest`=`0 7 * * *`, `accounting:overdue-ar-digest`=`0 8 * * *`; low-stock digest; overdue-AR digest; payment confirmation email hooked in `api/apps/accounting/models.py` `Payment.post`
+
+
+## Unknown — revision (2026-06-05)
+  - [GPT (codex)] PurchaseOrder and PurchaseOrderLine models, GRN creation from PO, 3-way PO↔GRN↔invoice match service with tolerance-based validation, GRN/PO/invoice linkage, and a best-effort builtin cash_flow report with tests

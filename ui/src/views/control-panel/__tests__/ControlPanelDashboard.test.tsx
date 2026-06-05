@@ -1,8 +1,10 @@
 // @ts-nocheck
 import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
-const readControlPanelView = (name: string) => readFileSync(new URL(`../${name}.tsx`, import.meta.url), 'utf8')
-const readApp = () => readFileSync(new URL('../../../App.tsx', import.meta.url), 'utf8')
+// claude-sonnet-4-6: resolve from cwd (ui/); import.meta.url isn't a file: URL under vitest
+const readControlPanelView = (name: string) => readFileSync(resolve(process.cwd(), 'src/views/control-panel', `${name}.tsx`), 'utf8')
+const readApp = () => readFileSync(resolve(process.cwd(), 'src/App.tsx'), 'utf8')
 
 describe('Control Panel routing and views', () => {
   it('loads the tenant list from the control-panel API and navigates to tenant detail', () => {

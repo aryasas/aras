@@ -2,6 +2,7 @@ from typing import Optional
 from sqlalchemy import String, Integer, Boolean, JSON, ForeignKey, DateTime, text, func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from core import Aras
+from core.base.field import Field
 from core.response import ok
 from datetime import datetime, timedelta, timezone
 
@@ -36,27 +37,29 @@ class Plan(Aras.Model):
     trial_days: Mapped[int] = mapped_column(Integer, default=14)
     annual_discount_pct: Mapped[int] = mapped_column(Integer, default=0)
 
-# claude-opus-4-7
+# gpt-5
 class Subscription(Aras.Model):
     __tablename__ = "saas_subscription"
     __admin_only__ = True
     # Signup-time fields (filled on /signup, before approval)
-    email: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
-    company_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    full_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    email: Mapped[str] = Field(String(255), index=True, nullable=False, pii=True)
+    company_name: Mapped[str] = Field(String(255), nullable=False, pii=True)
+    full_name: Mapped[Optional[str]] = Field(String(255), nullable=True, pii=True)
+    phone: Mapped[Optional[str]] = Field(String(50), nullable=True, pii=True)
+    marketing_consent: Mapped[bool] = Field(Boolean, default=False, label="Marketing Consent")
+    consent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     # Tenant identity (assigned on approve)
     tenant_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, unique=True)
     plan_id: Mapped[Optional[int]] = mapped_column(ForeignKey("saas_plan.id"), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="pending", info={"choices": ["pending", "trial", "active", "suspended", "cancelled", "rejected"]})
-    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     auto_renew: Mapped[bool] = mapped_column(Boolean, default=True)
     notes: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     billing_cycle: Mapped[str] = mapped_column(String(20), default="monthly") # monthly, annual
-    next_billing_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    next_billing_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     default_provider_code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    trial_ends_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    trial_ends_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     plan = relationship("Plan")
 
@@ -101,12 +104,14 @@ class Subscription(Aras.Model):
         self.status = "rejected"
         return ok({}, message="Signup rejected.")
 
+    # unattributed (pre-tagging)
     @Aras.model_action(name="issue_license", permission="edit", label="Issue License", icon="Key")
     def issue_license(self, db):
         from .services.license_service import LicenseService
         token = LicenseService.issue_license(db, self.id, 30)
         return ok({"display_token": token}, message="License issued successfully.")
 
+    # unattributed (pre-tagging)
     @Aras.model_action(name="suspend", permission="edit", label="Suspend", icon="Ban")
     def suspend(self, db):
         from .services.license_service import LicenseService
@@ -116,6 +121,7 @@ class Subscription(Aras.Model):
             LicenseService.revoke_license(db, token_obj.id)
         return ok({}, message="Subscription suspended and license revoked.")
 
+    # unattributed (pre-tagging)
     @Aras.model_action(name="activate", permission="edit", label="Activate", icon="CheckCircle")
     def activate(self, db):
         from .services.license_service import LicenseService
@@ -123,24 +129,26 @@ class Subscription(Aras.Model):
         token = LicenseService.issue_license(db, self.id, 30)
         return ok({"display_token": token}, message="Subscription activated.")
 
+# gpt-5
 class LicenseToken(Aras.Model):
     __tablename__ = "saas_license_token"
     __admin_only__ = True
     subscription_id: Mapped[int] = mapped_column(ForeignKey("saas_subscription.id"))
     token: Mapped[str] = mapped_column(String(1000), nullable=False)
-    issued_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    issued_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     revoked: Mapped[bool] = mapped_column(Boolean, default=False)
 
     subscription = relationship("Subscription")
 
+# gpt-5
 class ActivationRequest(Aras.Model):
     __tablename__ = "saas_activation_request"
     __admin_only__ = True
     tenant_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     instance_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="pending", info={"choices": ["pending", "approved", "rejected"]})
-    requested_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    requested_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
 # gemini-2-5-flash
@@ -168,24 +176,24 @@ class SaaSPayment(Aras.Model):
     
     subscription = relationship("Subscription")
 
-# gemini-2-5-flash
+# gpt-5
 class SaaSInvoice(Aras.Model):
     __tablename__ = "saas_invoice"
     subscription_id: Mapped[int] = mapped_column(ForeignKey("saas_subscription.id"))
     number: Mapped[str] = mapped_column(String(50), unique=True)
-    period_start: Mapped[datetime] = mapped_column(DateTime)
-    period_end: Mapped[datetime] = mapped_column(DateTime)
+    period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     amount: Mapped[int] = mapped_column(Integer)
     currency: Mapped[str] = mapped_column(String(10))
     status: Mapped[str] = mapped_column(String(20), default="unpaid") # unpaid, paid, void, overdue
-    due_at: Mapped[datetime] = mapped_column(DateTime)
-    paid_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    paid_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     payment_id: Mapped[Optional[int]] = mapped_column(ForeignKey("saas_payment.id"), nullable=True)
 
     subscription = relationship("Subscription")
     payment = relationship("SaaSPayment")
 
-# gemini-2-5-flash
+# gpt-5
 class RequestLog(Aras.Model):
     __tablename__ = "saas_request_log"
     tenant_id: Mapped[Optional[str]] = mapped_column(String(100), index=True)
@@ -193,7 +201,5 @@ class RequestLog(Aras.Model):
     method: Mapped[str] = mapped_column(String(10))
     status: Mapped[int] = mapped_column(Integer)
     duration_ms: Mapped[int] = mapped_column(Integer)
-    ts: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-
-
+    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
 

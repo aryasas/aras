@@ -97,6 +97,7 @@ def post_stock_movement(db: Session, item, params: dict):
         db.add(sm_line)
 
 
+# gpt-5
 @HandlerRegistry.register(
     "post_journal_entry",
     "Create JournalEntry from invoice lines using TradeDocumentBase methods."
@@ -128,7 +129,7 @@ def post_invoice_gl(db: Session, item, params: dict):
         if not acct:
             raise ValueError(f"Account not found for item {inv_line.item_id}")
         
-        line_total = math_utils.line_total(inv_line.qty, inv_line.unit_price, inv_line.discount)
+        line_total = _line_gl_amount(inv_line)
         lines.append({
             "account_id": acct.id,
             "debit": line_total if gl_side == "debit" else 0,
@@ -139,6 +140,9 @@ def post_invoice_gl(db: Session, item, params: dict):
     # 2. Charges
     for charge in item.charges:
         _append_charge_line(db, charge, lines, side=gl_side)
+
+    if float(getattr(item, "total_tax", 0) or 0) > 0:
+        lines.extend(_build_tax_lines(db, item, org_id, gl_side))
 
     # 3. Offset line (AR or AP or Cash)
     payment_account_id = params.get("payment_account_id")
@@ -204,6 +208,7 @@ def post_invoice_gl(db: Session, item, params: dict):
         payment.journal_entry_id = entry.id
 
 
+# gpt-5
 def _append_charge_line(db, charge, lines: list, side: str):
     from plugins.commerce.models import Charge
     charge_def = db.get(Charge, charge.charge_id)
@@ -219,3 +224,48 @@ def _append_charge_line(db, charge, lines: list, side: str):
         })
     elif lines:
         lines[-1][side] = float(lines[-1][side]) + float(charge.amount)
+
+
+# gpt-5
+def _line_gl_amount(inv_line) -> float:
+    gross_amount = float(getattr(inv_line, "amount", 0) or math_utils.line_total(inv_line.qty, inv_line.unit_price, inv_line.discount))
+    tax_amount = float(getattr(inv_line, "tax_amount", 0) or 0)
+    tax_rate = getattr(inv_line, "tax_rate", None)
+    if tax_rate and getattr(tax_rate, "is_inclusive", False):
+        return round(gross_amount - tax_amount, 10)
+    return gross_amount
+
+
+# gpt-5
+def _build_tax_lines(db: Session, item, org_id: int, gl_side: str) -> list[dict]:
+    from apps.accounting.models import Account
+    from apps.stock.services.coa_resolver import CoaResolver
+
+    account_totals: dict[int, float] = {}
+    direction = "payable" if gl_side == "credit" else "receivable"
+
+    for inv_line in item.lines:
+        tax_amount = float(getattr(inv_line, "tax_amount", 0) or 0)
+        if tax_amount <= 0:
+            continue
+
+        tax_rate = getattr(inv_line, "tax_rate", None)
+        account = None
+        if tax_rate and getattr(tax_rate, "tax_account_id", None):
+            account = db.get(Account, tax_rate.tax_account_id)
+        if account is None:
+            account = CoaResolver.resolve_tax_account(db, org_id, direction)
+        if account is None:
+            raise ValidationException("Tax account not configured.")
+
+        account_totals[account.id] = round(account_totals.get(account.id, 0.0) + tax_amount, 10)
+
+    tax_lines = []
+    for account_id, amount in account_totals.items():
+        tax_lines.append({
+            "account_id": account_id,
+            "debit": amount if gl_side == "debit" else 0,
+            "credit": amount if gl_side == "credit" else 0,
+            "description": f"Tax: {item.number}",
+        })
+    return tax_lines

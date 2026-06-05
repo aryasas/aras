@@ -2,11 +2,13 @@ import json
 import csv
 import io
 import logging
+from pathlib import Path
 from fastapi import APIRouter, Depends, Query, Request, status, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select, text, func
 from typing import List, Type, Any, Optional
+from pydantic import ValidationError
 
 from .helpers import (
     _apply_scope_filters, _inject_scope_payload, _check_scope_ownership, 
@@ -19,8 +21,138 @@ from ...exceptions import ValidationException, ResourceNotFoundException
 from ...response import ok
 
 MAX_PER_PAGE = 200
-MAX_CSV_IMPORT_BYTES = 5 * 1024 * 1024
-ALLOWED_CSV_TYPES = {"text/csv", "application/csv", "application/vnd.ms-excel"}
+MAX_IMPORT_BYTES = 5 * 1024 * 1024
+MAX_IMPORT_PREVIEW_ROWS = 200
+ALLOWED_IMPORT_TYPES = {
+    "text/csv",
+    "application/csv",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+}
+ALLOWED_IMPORT_EXTENSIONS = {".csv", ".xlsx"}
+
+
+# gpt-5
+def _normalize_import_mapping(mapping: Optional[dict]) -> dict[str, str]:
+    if mapping is None:
+        return {}
+    if not isinstance(mapping, dict):
+        raise ValidationException("Invalid mapping format")
+    return {
+        str(source): str(target)
+        for source, target in mapping.items()
+        if source and target
+    }
+
+
+# gpt-5
+def _clean_import_row(row: dict[str, Any]) -> dict[str, Any]:
+    cleaned_row: dict[str, Any] = {}
+    for key, value in row.items():
+        if key is None:
+            continue
+        normalized_key = str(key).strip()
+        if not normalized_key:
+            continue
+        if isinstance(value, str):
+            value = value.strip()
+        cleaned_row[normalized_key] = None if value == "" else value
+    return cleaned_row
+
+
+# gpt-5
+def _apply_import_mapping(row: dict[str, Any], mapping: dict[str, str]) -> dict[str, Any]:
+    if not mapping:
+        return row
+    mapped_row: dict[str, Any] = {}
+    for source_key, value in row.items():
+        target_key = mapping.get(source_key)
+        if target_key:
+            mapped_row[target_key] = value
+    return mapped_row
+
+
+# gpt-5
+def _parse_csv_import(content: bytes, mapping: dict[str, str]) -> list[dict[str, Any]]:
+    stream = io.StringIO(content.decode("utf-8-sig"))
+    reader = csv.DictReader(stream)
+    return [_apply_import_mapping(_clean_import_row(row), mapping) for row in reader]
+
+
+# gpt-5
+def _load_openpyxl_workbook(content: bytes):
+    try:
+        from openpyxl import load_workbook
+    except ModuleNotFoundError as exc:
+        raise ValidationException("XLSX import requires openpyxl to be installed") from exc
+    return load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+
+
+# gpt-5
+def _parse_xlsx_import(content: bytes, mapping: dict[str, str]) -> list[dict[str, Any]]:
+    workbook = _load_openpyxl_workbook(content)
+    try:
+        worksheet = workbook.worksheets[0]
+        rows = worksheet.iter_rows(values_only=True)
+        headers_row = next(rows, None)
+        if headers_row is None:
+            return []
+        headers = [str(cell).strip() if cell is not None else "" for cell in headers_row]
+        parsed_rows: list[dict[str, Any]] = []
+        for values in rows:
+            raw_row = {
+                headers[index]: values[index]
+                for index in range(len(headers))
+                if headers[index]
+            }
+            parsed_rows.append(_apply_import_mapping(_clean_import_row(raw_row), mapping))
+        return parsed_rows
+    finally:
+        workbook.close()
+
+
+# gpt-5
+def _parse_import_file(file: UploadFile, mapping: Optional[dict]) -> list[dict[str, Any]]:
+    extension = Path(file.filename or "").suffix.lower()
+    if extension not in ALLOWED_IMPORT_EXTENSIONS:
+        raise ValidationException("Only CSV and XLSX files are supported")
+    if file.content_type and file.content_type not in ALLOWED_IMPORT_TYPES:
+        raise ValidationException("Only CSV and XLSX files are supported")
+
+    parsed_mapping = _normalize_import_mapping(mapping)
+    content = file.file.read(MAX_IMPORT_BYTES + 1)
+    if len(content) > MAX_IMPORT_BYTES:
+        raise ValidationException("Import file is too large")
+
+    if extension == ".csv":
+        return _parse_csv_import(content, parsed_mapping)
+    if extension == ".xlsx":
+        return _parse_xlsx_import(content, parsed_mapping)
+    raise ValidationException("Unsupported import file format")
+
+
+# gpt-5
+def _parse_import_mapping_param(mapping: Optional[str]) -> Optional[dict]:
+    if not mapping:
+        return None
+    try:
+        parsed_mapping = json.loads(mapping)
+    except (json.JSONDecodeError, TypeError):
+        raise ValidationException("Invalid mapping format")
+    return _normalize_import_mapping(parsed_mapping)
+
+
+# gpt-5
+def _extract_import_errors(exc: Exception) -> list[str]:
+    if isinstance(exc, ValidationError):
+        return [
+            f"{'.'.join(str(part) for part in err['loc'])}: {err['msg']}"
+            for err in exc.errors()
+        ]
+    detail = getattr(exc, "detail", None)
+    if isinstance(detail, list):
+        return [str(item) for item in detail]
+    return [str(detail or exc)]
 
 def register_crud_routes(router: APIRouter, model_class: Type[Any], Schema: Type[Any], PatchSchema: Type[Any], allow_public: bool, api_tag: str, write_saas_module: str = ""):
     # When the router is not blanket plan-gated (because the model is public),
@@ -173,27 +305,63 @@ def register_crud_routes(router: APIRouter, model_class: Type[Any], Schema: Type
 
         return StreamingResponse(generate(), media_type="text/csv", headers={"Content-Disposition": f"attachment; filename={model_class.__tablename__}_export.csv"})
 
+    @router.post("/import/preview", dependencies=write_deps)
+    # gpt-5
+    def preview_import_items(
+        request: Request,
+        file: UploadFile = File(...),
+        mapping: Optional[str] = Query(None),
+        db: Session = Depends(get_db),
+        user: Any = Depends(check_permissions(model_class.__tablename__, "CREATE"))
+    ):
+        """Validates import rows without committing them."""
+        parsed_mapping = _parse_import_mapping_param(mapping)
+        data_to_preview = _parse_import_file(file, parsed_mapping)
+
+        rows = []
+        valid_count = 0
+        invalid_count = 0
+        for index, row in enumerate(data_to_preview, start=1):
+            payload = _inject_scope_payload(model_class, request, dict(row))
+            row_result = {"row": index, "ok": True, "errors": [], "data": payload}
+            savepoint = db.begin_nested()
+            try:
+                validated_payload = Schema(**payload).model_dump()
+                model_class.create(db, validated_payload, user_id=user.id)
+            except Exception as exc:
+                row_result["ok"] = False
+                row_result["errors"] = _extract_import_errors(exc)
+                invalid_count += 1
+            else:
+                valid_count += 1
+            finally:
+                savepoint.rollback()
+
+            if len(rows) < MAX_IMPORT_PREVIEW_ROWS:
+                rows.append(row_result)
+
+        data = {
+            "total": len(data_to_preview),
+            "valid": valid_count,
+            "invalid": invalid_count,
+            "rows": rows,
+            "sample": rows[:20],
+        }
+        return ok(data, "Import preview generated successfully")
+
     @router.post("/import", dependencies=write_deps)
+    # gpt-5
     def import_items(
         file: UploadFile = File(...),
         mapping: Optional[str] = Query(None),
         user: Any = Depends(check_permissions(model_class.__tablename__, "CREATE"))
     ):
-        """Imports records from a CSV file via background task with optional mapping."""
-        if not file.filename.endswith(".csv"): raise ValidationException("Only CSV files are supported")
-        if file.content_type and file.content_type not in ALLOWED_CSV_TYPES: raise ValidationException("Only CSV files are supported")
-        parsed_mapping = None
-        if mapping:
-            try: parsed_mapping = json.loads(mapping)
-            except (json.JSONDecodeError, TypeError): raise ValidationException("Invalid mapping format")
-        content = file.file.read(MAX_CSV_IMPORT_BYTES + 1)
-        if len(content) > MAX_CSV_IMPORT_BYTES: raise ValidationException("CSV import file is too large")
-        stream = io.StringIO(content.decode("utf-8"))
-        reader = csv.DictReader(stream)
-        data_to_import = list(reader)
+        """Imports records from a CSV or XLSX file via background task."""
+        parsed_mapping = _parse_import_mapping_param(mapping)
+        data_to_import = _parse_import_file(file, parsed_mapping)
         from ...manager.task_manager import TaskManager
-        task_id = TaskManager.enqueue_task('task_manager.import_csv_task', model_class_name=model_class.__tablename__, data=data_to_import, user_id=user.id, mapping=parsed_mapping)
-        data = {"message": "CSV import initiated in background", "task_id": task_id}
+        task_id = TaskManager.enqueue_task('task_manager.import_csv_task', model_class_name=model_class.__tablename__, data=data_to_import, user_id=user.id)
+        data = {"message": "Import initiated in background", "task_id": task_id}
         return ok(data, data["message"])
 
     @router.post("/", status_code=status.HTTP_201_CREATED, dependencies=write_deps)

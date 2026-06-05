@@ -116,28 +116,32 @@ const infoString = (field: FieldMeta, key: string): string | undefined => {
   return typeof value === 'string' ? value : undefined;
 };
 
-const DefaultInput: React.FC<FieldProps> = ({ value, onChange, field, disabled }) => {
+const DefaultInput: React.FC<FieldProps> = ({ value, onChange, field, disabled, ...aria }) => {
   const commonClass = "w-full h-8 px-3 bg-[var(--surface)] border border-[var(--line)] rounded-[6px] text-[12px] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/10 outline-none transition-all placeholder:text-[var(--text-3)] shadow-sm disabled:opacity-50 disabled:bg-[var(--surface-2)]";
   return (
-    <input 
+    <input
       type={field.type === 'email' ? 'email' : 'text'}
       value={inputValue(value)}
       onChange={(e) => onChange(e.target.value)}
       className={commonClass}
       disabled={disabled}
       placeholder={`Enter ${field.label.toLowerCase()}...`}
+      aria-invalid={aria['aria-invalid']}
+      aria-describedby={aria['aria-describedby']}
     />
   );
 };
 
-const NumberInput: React.FC<FieldProps> = ({ value, onChange, disabled }) => (
-  <input 
+const NumberInput: React.FC<FieldProps> = ({ value, onChange, disabled, ...aria }) => (
+  <input
     type="number"
     value={inputValue(value)}
     onChange={(e) => onChange(e.target.value)}
     className="w-full h-8 px-3 bg-[var(--surface)] border border-[var(--line)] rounded-[6px] text-[12px] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/10 outline-none transition-all shadow-sm disabled:opacity-50 disabled:bg-[var(--surface-2)]"
     disabled={disabled}
     placeholder="0.00"
+    aria-invalid={aria['aria-invalid']}
+    aria-describedby={aria['aria-describedby']}
   />
 );
 
@@ -195,14 +199,16 @@ const SelectInput: React.FC<FieldProps> = ({ value, onChange, field, disabled })
 );
 
 
-const TextAreaInput: React.FC<FieldProps> = ({ value, onChange, field, disabled }) => (
-  <textarea 
+const TextAreaInput: React.FC<FieldProps> = ({ value, onChange, field, disabled, ...aria }) => (
+  <textarea
     rows={4}
-    value={inputValue(value)} 
+    value={inputValue(value)}
     onChange={(e) => onChange(e.target.value)}
     disabled={disabled}
     className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--line)] rounded-[6px] text-[12px] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/10 outline-none transition-all shadow-sm placeholder:text-[var(--text-3)] disabled:opacity-50 disabled:bg-[var(--surface-2)]"
     placeholder={`Enter ${field.label.toLowerCase()}...`}
+    aria-invalid={aria['aria-invalid']}
+    aria-describedby={aria['aria-describedby']}
   />
 );
 

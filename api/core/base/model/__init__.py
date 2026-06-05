@@ -256,6 +256,27 @@ class Model(Aras, Base, QueryMixin, HookMixin, SerializationMixin):
             if user_id: self.updated_by = user_id
         else: db.delete(self)
 
+    # gpt-5
+    def anonymize_self(self, db: Session, user_id: int = None):
+        from ...manager.audit_manager import _is_pii
+        tombstone = f"[erased:{self.__tablename__}:{self.id}]"
+        for col in self.__table__.columns:
+            if col.name in self._SYSTEM or not _is_pii(col):
+                continue
+            if isinstance(col.type, String):
+                value = tombstone
+                if getattr(col.type, "length", None):
+                    value = value[:col.type.length]
+                setattr(self, col.name, value)
+            else:
+                setattr(self, col.name, None)
+        was_soft_delete = self.__soft_delete__
+        self.__soft_delete__ = True
+        try:
+            self.delete_self(db, user_id=user_id)
+        finally:
+            self.__soft_delete__ = was_soft_delete
+
     def __repr__(self): return f"<{self.__class__.__name__} id={getattr(self, 'id', '?')}>"
 
 class SoftModel(Model):

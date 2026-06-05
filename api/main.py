@@ -191,6 +191,7 @@ async def license_check_middleware(request: Request, call_next):
 
 # Geo Middleware
 from core.api.middleware.geo import GeoMiddleware
+from core.api.middleware.security_headers import SecurityHeadersMiddleware
 app.add_middleware(GeoMiddleware)
 
 # gemini-pro
@@ -211,6 +212,7 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept", "X-Org-ID", "X-Scope-Org-ID", "X-Tenant-ID"],
 )
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Core Routes
 from core.auth.routes import router as auth_router

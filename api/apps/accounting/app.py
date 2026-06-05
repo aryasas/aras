@@ -69,12 +69,24 @@ class Accounting(Aras.App):
             ConfigField(key="auto_post_journals", type="bool", default=False, label="Auto-Post Journal Entries"),
             ConfigField(key="require_approval_above", type="number", default=0, label="Require Approval Above Amount", help="0 = no threshold"),
         ]),
+        ConfigSection(key="matching", label="Matching", scope="module", fields=[
+            ConfigField(key="match_qty_tolerance_pct", type="number", default=0, label="Quantity Tolerance %"),
+            ConfigField(key="match_price_tolerance_pct", type="number", default=0, label="Price Tolerance %"),
+        ]),
     ]
 
     routers = [print_router, accounting_api_router, vocabulary_router]
     seeds = [seed_trade_defaults]
 
     config_model = AccountingConfig
+    jobs = [
+        {
+            "key": "overdue-ar-digest",
+            "schedule_cron": "0 8 * * *",
+            "handler_path": "apps.accounting.notifications.send_overdue_ar_digest",
+            "enabled_default": True,
+        }
+    ]
 
     models = autodiscover_models(__name__, [
         "models", "config_models", "org_presets"
@@ -84,7 +96,7 @@ class Accounting(Aras.App):
         {
             "label": "General Ledger",
             "icon": "Book",
-            "models": ["accounting_accounts", "accounting_entries", "accounting_fiscal_periods"]
+            "models": ["accounting_accounts", "accounting_entries", "accounting_fiscal_periods", "accounting_tax_rates"]
         },
         {
             "label": "Inflow",
@@ -94,7 +106,7 @@ class Accounting(Aras.App):
         {
             "label": "Outflow",
             "icon": "ArrowUpRight",
-            "models": ["accounting_outflow_invoices", "accounting_grns"]
+            "models": ["accounting_purchase_orders", "accounting_outflow_invoices", "accounting_grns"]
         },
         {
             "label": "Payments",
@@ -108,16 +120,23 @@ class Accounting(Aras.App):
         }
     ]
 
+    # claude-sonnet-4-6
     @classmethod
     def register_services(cls):
         from core.service_registry import ServiceRegistry
         from .services.journal import JournalService
         from .services.payment import PaymentService
-        from .models import InflowInvoice, InflowInvoiceLine
+        from .services.org_defaults import acc_default, stock_default
+        from .models import InflowInvoice, InflowInvoiceLine, Account, OutflowInvoice, OutflowInvoiceLine
         ServiceRegistry.register("JournalService", JournalService)
         ServiceRegistry.register("PaymentService", PaymentService)
         ServiceRegistry.register("InflowInvoice", InflowInvoice)
         ServiceRegistry.register("InflowInvoiceLine", InflowInvoiceLine)
+        ServiceRegistry.register("OutflowInvoice", OutflowInvoice)
+        ServiceRegistry.register("OutflowInvoiceLine", OutflowInvoiceLine)
+        ServiceRegistry.register("Account", Account)
+        ServiceRegistry.register("acc_default", acc_default)
+        ServiceRegistry.register("acc_stock_default", stock_default)
 
     @classmethod
     def seed(cls, db):

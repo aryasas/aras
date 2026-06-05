@@ -15,6 +15,10 @@ PII_FIELDS = frozenset({
     'bank_account', 'tax_id', 'national_id', 'passport',
 })
 
+# gpt-5
+def _is_pii(col) -> bool:
+    return bool(col.info.get("pii")) or col.name.lower() in PII_FIELDS
+
 # claude-sonnet-4-6
 class AuditManager(Manager):
     """
@@ -70,7 +74,7 @@ class AuditManager(Manager):
                         
                         # Only log if they are actually different (avoid redundant logs)
                         if old_val != new_val:
-                            if col.name.lower() in PII_FIELDS:
+                            if _is_pii(col):
                                 changes[col.name] = ["[redacted]", "[redacted]"]
                             else:
                                 changes[col.name] = [cls._serialize(old_val), cls._serialize(new_val)]
@@ -80,7 +84,7 @@ class AuditManager(Manager):
             for col in obj.__table__.columns:
                 val = getattr(obj, col.name, None)
                 if val is not None:
-                    if col.name.lower() in PII_FIELDS:
+                    if _is_pii(col):
                         changes[col.name] = [None, "[redacted]"]
                     else:
                         changes[col.name] = [None, cls._serialize(val)]
@@ -89,7 +93,7 @@ class AuditManager(Manager):
             # Log final state before deletion
             for col in obj.__table__.columns:
                 val = getattr(obj, col.name, None)
-                if col.name.lower() in PII_FIELDS:
+                if _is_pii(col):
                     changes[col.name] = ["[redacted]", None]
                 else:
                     changes[col.name] = [cls._serialize(val), None]

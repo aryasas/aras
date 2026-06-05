@@ -4,14 +4,17 @@ from sqlalchemy import String, ForeignKey, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core.base.orm import MasterDataBase
 
+# unattributed (pre-tagging)
 class Department(MasterDataBase):
     __tablename__ = "hr_departments"
     parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("hr_departments.id"), nullable=True)
 
+# unattributed (pre-tagging)
 class Position(MasterDataBase):
     __tablename__ = "hr_positions"
     department_id: Mapped[Optional[int]] = mapped_column(ForeignKey("hr_departments.id"), nullable=True)
 
+# unattributed (pre-tagging)
 class Employee(MasterDataBase):
     __tablename__ = "hr_employees"
     party_id: Mapped[Optional[int]] = mapped_column(ForeignKey("party_parties.id"), nullable=True)

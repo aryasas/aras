@@ -1,10 +1,11 @@
 # gemini-2-5-flash
-from apscheduler.schedulers.background import BackgroundScheduler
-from .services.billing import BillingService
-from core import Aras
 import logging
 
+# gpt-5
 def billing_job():
+    from .services.billing import BillingService
+    from core import Aras
+
     logging.info("Running billing job...")
     db = next(Aras.get_db())
     try:
@@ -16,12 +17,8 @@ def billing_job():
     finally:
         db.close()
 
+# gpt-5
 def setup_cron():
-    import os
-    if os.getenv("ARAS_CRON_ENABLED") != "1":
-        return
-        
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(billing_job, 'cron', hour=2)
-    scheduler.start()
-    logging.info("SaaS Cron started (daily at 02:00 UTC)")
+    from core.registry.job_runner import start_jobs
+
+    start_jobs()

@@ -390,5 +390,110 @@
         "meta": {
             "db_name": "tenant_68_test_co"
         }
+    },
+    "test-co-70": {
+        "tenant_id": "test-co-70",
+        "db_url": "postgresql+psycopg2://aras@localhost:5432/tenant_70_test_co",
+        "meta": {
+            "db_name": "tenant_70_test_co"
+        }
+    },
+    "test-co-71": {
+        "tenant_id": "test-co-71",
+        "db_url": "postgresql+psycopg2://aras@localhost:5432/tenant_71_test_co",
+        "meta": {
+            "db_name": "tenant_71_test_co"
+        }
+    },
+    "test-co-72": {
+        "tenant_id": "test-co-72",
+        "db_url": "postgresql+psycopg2://aras@localhost:5432/tenant_72_test_co",
+        "meta": {
+            "db_name": "tenant_72_test_co"
+        }
+    },
+    "test-co-74": {
+        "tenant_id": "test-co-74",
+        "db_url": "postgresql+psycopg2://aras@localhost:5432/tenant_74_test_co",
+        "meta": {
+            "db_name": "tenant_74_test_co"
+        }
+    },
+    "test-co-75": {
+        "tenant_id": "test-co-75",
+        "db_url": "postgresql+psycopg2://aras@localhost:5432/tenant_75_test_co",
+        "meta": {
+            "db_name": "tenant_75_test_co"
+        }
+    },
+    "test-co-76": {
+        "tenant_id": "test-co-76",
+        "db_url": "postgresql+psycopg2://aras@localhost:5432/tenant_76_test_co",
+        "meta": {
+            "db_name": "tenant_76_test_co"
+        }
+    },
+    "test-co-78": {
+        "tenant_id": "test-co-78",
+        "db_url": "postgresql+psycopg2://aras@localhost:5432/tenant_78_test_co",
+        "meta": {
+            "db_name": "tenant_78_test_co"
+        }
+    },
+    "test-co-79": {
+        "tenant_id": "test-co-79",
+        "db_url": "postgresql+psycopg2://aras@localhost:5432/tenant_79_test_co",
+        "meta": {
+            "db_name": "tenant_79_test_co"
+        }
+    },
+    "test-co-80": {
+        "tenant_id": "test-co-80",
+        "db_url": "postgresql+psycopg2://aras@localhost:5432/tenant_80_test_co",
+        "meta": {
+            "db_name": "tenant_80_test_co"
+        }
+    },
+    "test-co-82": {
+        "tenant_id": "test-co-82",
+        "db_url": "postgresql+psycopg2://aras@localhost:5432/tenant_82_test_co",
+        "meta": {
+            "db_name": "tenant_82_test_co"
+        }
+    },
+    "test-co-83": {
+        "tenant_id": "test-co-83",
+        "db_url": "postgresql+psycopg2://aras@localhost:5432/tenant_83_test_co",
+        "meta": {
+            "db_name": "tenant_83_test_co"
+        }
+    },
+    "test-co-84": {
+        "tenant_id": "test-co-84",
+        "db_url": "postgresql+psycopg2://aras@localhost:5432/tenant_84_test_co",
+        "meta": {
+            "db_name": "tenant_84_test_co"
+        }
+    },
+    "test-co-86": {
+        "tenant_id": "test-co-86",
+        "db_url": "postgresql+psycopg2://aras@localhost:5432/tenant_86_test_co",
+        "meta": {
+            "db_name": "tenant_86_test_co"
+        }
+    },
+    "test-co-87": {
+        "tenant_id": "test-co-87",
+        "db_url": "postgresql+psycopg2://aras@localhost:5432/tenant_87_test_co",
+        "meta": {
+            "db_name": "tenant_87_test_co"
+        }
+    },
+    "test-co-88": {
+        "tenant_id": "test-co-88",
+        "db_url": "postgresql+psycopg2://aras@localhost:5432/tenant_88_test_co",
+        "meta": {
+            "db_name": "tenant_88_test_co"
+        }
     }
 }

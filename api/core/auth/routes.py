@@ -7,6 +7,7 @@ from ..base.validation import Validation
 from ..lib.database import get_db
 from ..lib.settings import settings
 from ..lib.config import ConfigService
+from ..response import ok
 from .service import (
     create_access_token, 
     get_current_user, 
@@ -99,6 +100,17 @@ def update_profile(
     current_user.email = data.email
     db.commit()
     return {"message": "Profile updated successfully"}
+
+
+# gpt-5
+@router.post("/erase-me")
+def erase_me(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    current_user.anonymize_self(db, user_id=current_user.id)
+    db.commit()
+    return ok({"erased": True})
 
 
 @router.post("/change-password")

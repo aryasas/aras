@@ -8,6 +8,7 @@ from core import Aras
 from core.response import ok
 from core.exceptions import ValidationException
 
+# unattributed (pre-tagging)
 class Report(MasterDataBase):
     __tablename__ = "report_reports"
 
@@ -25,6 +26,7 @@ class Report(MasterDataBase):
 
     script_approved_by = relationship("core.auth.models.User", foreign_keys=[script_approved_by_id])
 
+    # unattributed (pre-tagging)
     def before_save(self, is_new: bool, db=None):
         super().before_save(is_new, db=db)
         if self.report_type not in {"builtin", "orm", "script"}:
@@ -34,6 +36,7 @@ class Report(MasterDataBase):
         # Note: In a real scenario, we'd check if script attribute is dirty, 
         # but here we follow the handoff which focuses on the execution gate.
 
+    # unattributed (pre-tagging)
     @Aras.model_action(name="generate_report", permission="read", label="Generate Report", icon="Play")
     def generate_report(self, db, current_user=None):
         """

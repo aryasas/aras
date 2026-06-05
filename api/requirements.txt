@@ -21,3 +21,4 @@ alembic
 httpx
 psutil
 anthropic
+openpyxl

@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
 import { createDefaultRecord } from '../../lib/schemaUtils';
+import { formatCurrency } from '../../lib/formatters';
 
 type ChildRow = Record<string, unknown> & { id?: string | number; __aras_empty_row?: boolean; notes?: string };
 type InputValue = string | number | readonly string[] | undefined;
@@ -16,6 +17,7 @@ interface ChildField {
   name: string;
   label: string;
   type: string;
+  read_only?: boolean;
   hidden?: boolean;
   form_hidden?: boolean;
   list_hidden?: boolean;
@@ -175,7 +177,7 @@ export const InlineChildTable: React.FC<InlineChildTableProps> = ({
 
   const formatMoney = (value: unknown) => {
     const num = Number(value ?? 0);
-    return `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return formatCurrency(num);
   };
 
   const columnMinWidth = (field: ChildField) => {

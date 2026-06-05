@@ -4,6 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from core import Aras
 from core.base.orm import AuditedBase
 
+# unattributed (pre-tagging)
 class Note(Aras.Model):
     __tablename__ = "notes_note"
     __features__ = ["audit"]
@@ -17,6 +18,7 @@ class Note(Aras.Model):
 # Moved from the orphan apps/app_core (which had no app.py, so core_notes was
 # never mapped despite apps/base/document.py holding an FK to it). Tablename
 # preserved — no schema change.
+# unattributed (pre-tagging)
 class DocumentNote(AuditedBase):
     __tablename__ = "core_notes"
     __features__ = ["audit"]

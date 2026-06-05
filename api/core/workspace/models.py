@@ -28,7 +28,8 @@ UNIT_TYPE_OPTIONS: list[dict[str, str]] = [
     {"key": "warehouse", "label": "Warehouse"},
 ]
 
-
+ 
+# gpt-5
 class Organization(ConfigBase):
     __tablename__ = "core_organizations"
 
@@ -42,12 +43,12 @@ class Organization(ConfigBase):
     parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("core_organizations.id"), nullable=True)
 
     # Identity & Details
-    legal_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    trade_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    tax_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    email: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    legal_name: Mapped[Optional[str]] = Field(String(255), nullable=True, pii=True)
+    trade_name: Mapped[Optional[str]] = Field(String(255), nullable=True, pii=True)
+    tax_id: Mapped[Optional[str]] = Field(String(50), nullable=True, pii=True)
+    address: Mapped[Optional[str]] = Field(Text, nullable=True, pii=True)
+    phone: Mapped[Optional[str]] = Field(String(50), nullable=True, pii=True)
+    email: Mapped[Optional[str]] = Field(String(120), nullable=True, pii=True)
     website: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     logo_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 

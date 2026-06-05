@@ -11,6 +11,7 @@ from core.base.orm import MasterDataBase, DocumentBase, LineItemBase, AuditedBas
 
 
 
+# unattributed (pre-tagging)
 class ItemCategory(MasterDataBase):
     __tablename__ = "stock_categories"
     __soft_delete__ = True
@@ -22,6 +23,7 @@ class ItemCategory(MasterDataBase):
     account_purchase_id: Mapped[Optional[int]] = mapped_column(ForeignKey("accounting_accounts.id"), nullable=True)
 
 
+# unattributed (pre-tagging)
 class Item(MasterDataBase):
     __tablename__ = "stock_items"
     __unique_together__ = [("org_id", "code")]
@@ -125,6 +127,7 @@ class Item(MasterDataBase):
     pricelists: Mapped[list["PriceList"]] = relationship("PriceList", back_populates="item", cascade="all, delete-orphan", foreign_keys="[PriceList.item_id]")
     accounts: Mapped[list["ItemAccount"]] = relationship("ItemAccount", back_populates="parent", cascade="all, delete-orphan")
 
+    # unattributed (pre-tagging)
     @Aras.computed_field
     def qty_on_hand(self) -> float:
         from .services.stock import StockComputeService
@@ -132,6 +135,7 @@ class Item(MasterDataBase):
         if not db: return 0
         return StockComputeService.compute_qty(db, self.id)
 
+    # unattributed (pre-tagging)
     @Aras.computed_field
     def stock_by_location(self) -> list:
         from .services.stock import StockComputeService
@@ -139,6 +143,7 @@ class Item(MasterDataBase):
         if not db: return []
         return StockComputeService.compute_qty_by_location(db, self.id)
 
+    # unattributed (pre-tagging)
     @Aras.computed_field
     def default_sale_price(self) -> float:
         from .services.price import PriceService
@@ -146,6 +151,7 @@ class Item(MasterDataBase):
         if not db: return 0.0
         return PriceService.get_price(db, self.id)
 
+    # unattributed (pre-tagging)
     @Aras.computed_field
     def default_purchase_price(self) -> float:
         from .services.price import PriceService
@@ -154,6 +160,7 @@ class Item(MasterDataBase):
         return PriceService.get_price(db, self.id)
 
 
+# unattributed (pre-tagging)
 class ItemAccount(AuditedBase):
     __tablename__ = "stock_item_accounts"
     __parent__ = "stock_items"
@@ -167,6 +174,7 @@ class ItemAccount(AuditedBase):
     parent: Mapped["Item"] = relationship("Item", back_populates="accounts")
 
 
+# unattributed (pre-tagging)
 class ItemUom(AuditedBase):
     __tablename__ = "stock_item_uoms"
     __parent__ = "stock_items"
@@ -179,6 +187,7 @@ class ItemUom(AuditedBase):
     parent: Mapped["Item"] = relationship("Item", back_populates="uoms")
 
 
+# unattributed (pre-tagging)
 class PriceList(MasterDataBase):
     __tablename__ = "stock_pricelists"
     __parent__ = "stock_items"
@@ -197,6 +206,7 @@ class PriceList(MasterDataBase):
 
     item: Mapped["Item"] = relationship("Item", back_populates="pricelists", foreign_keys=[item_id])
 
+# unattributed (pre-tagging)
 class PromoBundle(MasterDataBase):
     __tablename__ = "stock_promo_bundles"
     price_type_id: Mapped[int] = mapped_column(ForeignKey("config_price_types.id"), nullable=True)
@@ -206,6 +216,7 @@ class PromoBundle(MasterDataBase):
 
     items: Mapped[list["PromoBundleItem"]] = relationship("PromoBundleItem", back_populates="parent", cascade="all, delete-orphan")
 
+# unattributed (pre-tagging)
 class PromoBundleItem(LineItemBase):
     __tablename__ = "stock_promo_items"
     __parent__ = "stock_promo_bundles"
@@ -217,6 +228,7 @@ class PromoBundleItem(LineItemBase):
 
     parent: Mapped["PromoBundle"] = relationship("PromoBundle", back_populates="items")
 
+# unattributed (pre-tagging)
 class Location(MasterDataBase):
     __tablename__ = "stock_locations"
     parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("stock_locations.id"), nullable=True)
@@ -226,6 +238,7 @@ class Location(MasterDataBase):
     parent: Mapped[Optional["Location"]] = relationship("Location", remote_side="Location.id", backref="children")
 
 
+# unattributed (pre-tagging)
 class DeliveryNote(DocumentBase):
     __tablename__ = "stock_delivery_notes"
 
@@ -234,6 +247,7 @@ class DeliveryNote(DocumentBase):
     
     lines: Mapped[list["DeliveryNoteLine"]] = relationship("DeliveryNoteLine", back_populates="parent", cascade="all, delete-orphan")
 
+    # unattributed (pre-tagging)
     @Aras.model_action(name="post", permission="edit", label="Post Delivery")
     def post(self, db):
         from .services.workflow import StockWorkflowService
@@ -242,6 +256,7 @@ class DeliveryNote(DocumentBase):
             return ok({"status": self.status}, message="Delivery Note posted successfully.")
         raise ValidationException("Failed to post delivery note.")
 
+    # unattributed (pre-tagging)
     @Aras.model_action(name="create_invoice", permission="edit", label="Create Invoice")
     def create_invoice(self, db):
         from .services.workflow import StockWorkflowService
@@ -249,6 +264,7 @@ class DeliveryNote(DocumentBase):
         return ok(invoice.to_dict(), message="Invoice created from Delivery Note successfully.")
 
 
+# unattributed (pre-tagging)
 class DeliveryNoteLine(LineItemBase):
     __tablename__ = "stock_delivery_note_lines"
     __parent__ = "stock_delivery_notes"
@@ -259,6 +275,7 @@ class DeliveryNoteLine(LineItemBase):
     
     parent: Mapped["DeliveryNote"] = relationship("DeliveryNote", back_populates="lines")
 
+# unattributed (pre-tagging)
 class StockMovement(DocumentBase):
     __tablename__ = "stock_movements"
     __soft_delete__ = True
@@ -276,6 +293,7 @@ class StockMovement(DocumentBase):
 
     lines: Mapped[list["StockMovementLine"]] = relationship("StockMovementLine", back_populates="parent", cascade="all, delete-orphan")
 
+    # unattributed (pre-tagging)
     @Aras.model_action(name="post", permission="edit", label="Confirm Movement")
     def post(self, db):
         from core.logic.transition_registry import TransitionRegistry
@@ -290,6 +308,7 @@ class StockMovement(DocumentBase):
 
 
 
+# unattributed (pre-tagging)
 class StockMovementLine(LineItemBase):
     __tablename__ = "stock_movement_lines"
     __soft_delete__ = True
@@ -308,6 +327,7 @@ class StockMovementLine(LineItemBase):
     parent: Mapped["StockMovement"] = relationship("StockMovement", back_populates="lines")
 
 
+# unattributed (pre-tagging)
 class ItemBundle(AuditedBase):
     __tablename__ = "stock_item_bundles"
     __parent__ = "stock_items"
@@ -319,9 +339,11 @@ class ItemBundle(AuditedBase):
 
 
 
+# gpt-5
 class ItemLocation(AuditedBase):
     __tablename__ = "stock_item_locations"
     __parent__ = "stock_items"
     item_id: Mapped[int] = mapped_column(ForeignKey("stock_items.id"))
     location_id: Mapped[int] = mapped_column(ForeignKey("stock_locations.id"))
-
+    min_qty: Mapped[float] = mapped_column(Float, default=0.0)
+    max_qty: Mapped[float] = mapped_column(Float, default=0.0)

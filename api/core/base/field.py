@@ -5,11 +5,13 @@ Impact: Enables automatic form generation and validation in the frontend.
 """
 from sqlalchemy.orm import mapped_column
 
+# gpt-5
 def Field(*args,
           label: str = None,
           ui_type: str = None,
           read_only: bool = False,
           hidden: bool = False,
+          pii: bool = False,
           searchable: bool = True,
           link_column: str = None,
           display_column: str = None,
@@ -27,6 +29,7 @@ def Field(*args,
         ui_type: Frontend component type (e.g., 'currency', 'date', 'image').
         read_only: If true, the GUI will disable editing.
         hidden: If true, the field won't show in standard forms/lists.
+        pii: If true, audit/storage paths can treat the field as personal data.
         searchable: If true, the field is indexed for global search.
         link_column: For lookups, the target field (usually 'id').
         display_column: For lookups, the target field to display (e.g., 'name').
@@ -44,6 +47,7 @@ def Field(*args,
         "ui_type": ui_type,
         "read_only": read_only,
         "hidden": hidden,
+        "pii": pii,
         "searchable": searchable,
         "link_column": link_column,
         "display_column": display_column,

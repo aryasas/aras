@@ -5,6 +5,7 @@ from core import Aras
 from core.response import ok
 from datetime import datetime, timezone
 
+# unattributed (pre-tagging)
 class WebPage(Aras.Model):
     __tablename__ = "web_page"
     __public__ = True  # public read; writes still plan-gated via write_saas_module
@@ -18,6 +19,7 @@ class WebPage(Aras.Model):
     template: Mapped[str] = mapped_column(String(50), default="default", info={"choices": ["default", "full_width", "landing"]})
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
 
+    # unattributed (pre-tagging)
     @Aras.model_action(name="publish", permission="edit", label="Publish", icon="Check")
     def publish(self, db):
         self.is_published = True
@@ -26,6 +28,7 @@ class WebPage(Aras.Model):
         db.flush()
         return ok({}, message="Page published.")
 
+    # unattributed (pre-tagging)
     @Aras.model_action(name="unpublish", permission="edit", label="Unpublish", icon="X")
     def unpublish(self, db):
         self.is_published = False
@@ -34,6 +37,7 @@ class WebPage(Aras.Model):
         db.flush()
         return ok({}, message="Page unpublished.")
 
+# unattributed (pre-tagging)
 class WebMenuItem(Aras.Model):
     __tablename__ = "web_menu_item"
     __public__ = True  # public read
@@ -46,6 +50,7 @@ class WebMenuItem(Aras.Model):
 
     parent = relationship(lambda: WebMenuItem, remote_side="WebMenuItem.id", backref="children")
 
+# unattributed (pre-tagging)
 class ContactSubmission(Aras.Model):
     __tablename__ = "web_contact_submission"
     name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -55,11 +60,13 @@ class ContactSubmission(Aras.Model):
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     replied_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # unattributed (pre-tagging)
     @Aras.model_action(name="mark_read", permission="edit", label="Mark Read", icon="MailOpen")
     def mark_read(self, db):
         self.is_read = True
         return ok({}, message="Marked as read.")
 
+# unattributed (pre-tagging)
 class SiteSetting(Aras.Model):
     __tablename__ = "web_site_setting"
     __public__ = True  # public read

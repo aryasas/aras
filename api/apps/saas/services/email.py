@@ -115,6 +115,15 @@ def get_transport(db=None) -> EmailTransport:
         return ResendTransport()
     return ConsoleTransport()
 
+# gpt-5
+def ensure_marketing_consent(recipient) -> bool:
+    consent = bool(getattr(recipient, "marketing_consent", False))
+    consent_at = getattr(recipient, "consent_at", None)
+    if consent and consent_at:
+        return True
+    logging.warning("Refusing marketing email for recipient without explicit consent")
+    return False
+
 # claude-sonnet-4-6
 def send_setup_email(to_email: str, token: str, company_name: str, db=None):
     setup_url = f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/portal/setup?token={token}"

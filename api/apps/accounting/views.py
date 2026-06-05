@@ -1,8 +1,9 @@
 from core import Aras
 from core.response import ok, err
 from core.base.orm import DOC_LAYOUT_HEADER, DOC_LAYOUT_NOTES
-from .models import Account, JournalEntry, JournalEntryLine, InflowInvoice, OutflowInvoice, Payment, FiscalPeriod
+from .models import Account, JournalEntry, JournalEntryLine, InflowInvoice, OutflowInvoice, Payment, FiscalPeriod, TaxRate
 
+# gpt-5
 class AccountView(Aras.View):
     model = Account
     icon = "List"
@@ -34,6 +35,18 @@ class FiscalPeriodView(Aras.View):
         },
     ]
 
+# gpt-5
+class TaxRateView(Aras.View):
+    model = TaxRate
+    title = "Tax Rates"
+    layout = [
+        {
+            "key": "tax_rate",
+            "title": "Tax Rate",
+            "fields": ["name", "rate", "is_inclusive", "tax_account_id", "is_active"],
+        },
+    ]
+
 class JournalEntryView(Aras.View):
     model = JournalEntry
     icon = "Book"
@@ -61,7 +74,7 @@ class InflowInvoiceView(Aras.View):
         {"title": "Items", "fields": ["lines"]},
         {"title": "Taxes & Charges", "fields": ["charges"]},
         {"title": "Financials", "tabs": [
-            {"title": "Financials", "fields": ["subtotal", "total_charge", "total_amount"]},
+            {"title": "Financials", "fields": ["subtotal", "total_tax", "total_charge", "total_amount"]},
             {"title": "Payments", "fields": ["amount_paid", "amount_due", "payment_allocations"]},
             {"title": "Journal Entries", "fields": ["journal_entries"]},
         ]},
@@ -77,7 +90,7 @@ class OutflowInvoiceView(Aras.View):
         {"title": "Items", "fields": ["lines"]},
         {"title": "Taxes & Charges", "fields": ["charges"]},
         {"title": "Financials", "tabs": [
-            {"title": "Financials", "fields": ["subtotal", "total_charge", "total_amount"]},
+            {"title": "Financials", "fields": ["subtotal", "total_tax", "total_charge", "total_amount"]},
             {"title": "Payments", "fields": ["amount_paid", "amount_due", "payment_allocations"]},
             {"title": "Journal Entries", "fields": ["journal_entries"]},
         ]},

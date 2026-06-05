@@ -43,6 +43,7 @@ class Ticket(AuditedBase):
     resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     closed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
+    # unattributed (pre-tagging)
     @Aras.model_action(name="assign", permission="edit", label="Assign")
     def assign(self, db, assignee_id: int):
         self.assignee_id = assignee_id
@@ -50,18 +51,21 @@ class Ticket(AuditedBase):
             self.status = "In Progress"
         return ok({"assignee_id": assignee_id})
 
+    # unattributed (pre-tagging)
     @Aras.model_action(name="resolve", permission="edit", label="Resolve")
     def resolve(self, db):
         self.status = "Resolved"
         self.resolved_at = datetime.utcnow()
         return ok()
 
+    # unattributed (pre-tagging)
     @Aras.model_action(name="close", permission="edit", label="Close")
     def close(self, db):
         self.status = "Closed"
         self.closed_at = datetime.utcnow()
         return ok()
 
+    # unattributed (pre-tagging)
     @Aras.model_action(name="reopen", permission="edit", label="Reopen")
     def reopen(self, db):
         self.status = "Open"

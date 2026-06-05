@@ -1,7 +1,9 @@
 // @ts-nocheck
 import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
-const readView = (name: string) => readFileSync(new URL(`../${name}.tsx`, import.meta.url), 'utf8')
+// claude-sonnet-4-6: resolve from cwd (ui/); import.meta.url isn't a file: URL under vitest
+const readView = (name: string) => readFileSync(resolve(process.cwd(), 'src/views', `${name}.tsx`), 'utf8')
 
 describe('public page error states', () => {
   it('PublicLanding renders a retryable load failure instead of falling back silently', () => {

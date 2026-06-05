@@ -151,7 +151,7 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
                </button>
                <label className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[13px] font-bold text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] transition-colors cursor-pointer">
                   <Upload size={16} className="text-[var(--aras-muted)]" /> Import CSV
-                  <input type="file" accept=".csv" className="hidden" onChange={(e) => { onImport(e); setIsActionsOpen(false); }} />
+                  <input type="file" accept=".csv,.xlsx" className="hidden" onChange={(e) => { onImport(e); setIsActionsOpen(false); }} />
                </label>
                {onArchive && (
                 <button onClick={() => { onArchive(); setIsActionsOpen(false); }} className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[13px] font-bold text-[var(--aras-text)] hover:bg-[var(--aras-panel-soft)] rounded-[var(--aras-radius)] transition-colors">

@@ -32,14 +32,14 @@ _redis = _make_redis_client()
 class RateLimiterMiddleware(BaseHTTPMiddleware):
     """
     Sliding-window rate limiter.
-    Defaults: 200 requests per 60s per IP. Auth endpoints: 10 per 60s.
+    Defaults: 200 requests per 60s per IP. Auth endpoints: 5 per 60s.
     Key: user_id post-auth, IP otherwise.
     Uses Redis backend when REDIS_URL is set; gracefully falls back to in-memory.
     """
     _windows: dict = defaultdict(deque)
 
     _ROUTE_LIMITS: dict = {
-        "/api/v1/auth/token": (10, 60),
+        "/api/v1/auth/token": (5, 60),
         "/api/v1/auth/register": (5, 60),
         "/api/v1/auth/forgot-password": (5, 300),
         "/api/v1/auth/reset-password": (5, 300),

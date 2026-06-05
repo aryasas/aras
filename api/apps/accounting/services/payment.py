@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy.orm import Session
 from core.exceptions import ValidationException
@@ -104,6 +105,19 @@ class PaymentService:
         else:
             invoices = []
         return invoices
+
+    @staticmethod
+    # gpt-5
+    def get_overdue_invoices(db: Session, org_id: int) -> list:
+        """Returns overdue receivable invoices for an organization."""
+        today = datetime.now(timezone.utc).date()
+        invoices = db.query(InflowInvoice).filter(
+            InflowInvoice.org_id == org_id,
+            InflowInvoice.status.in_(["Posted", "Partial"]),
+            InflowInvoice.due_date.isnot(None),
+            InflowInvoice.due_date < today,
+        ).order_by(InflowInvoice.due_date.asc(), InflowInvoice.doc_date.asc()).all()
+        return [invoice for invoice in invoices if float(invoice.amount_due or 0) > 0.01]
 
     @staticmethod
     def auto_allocate(db: Session, payment: Payment) -> dict:

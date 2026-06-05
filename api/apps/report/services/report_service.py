@@ -5,7 +5,7 @@ from datetime import date, datetime, timezone
 from core import Aras
 from core.lib.query_builder import QueryBuilder
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case, and_
+from sqlalchemy import func, case, and_, or_
 from apps.accounting.services.vocabulary import resolve_labels
 
 logger = logging.getLogger(__name__)
@@ -410,6 +410,97 @@ def _ap_aging(db: Session, org_id: int, params: dict, columns: list):
     return {"title": "AP Aging", "data": data[:MAX_REPORT_ROWS], "columns": columns}
 
 
+# gpt-5
+@ReportService.register("cash_flow")
+def _cash_flow(db: Session, org_id: int, params: dict, columns: list):
+    from apps.accounting.config_models import AccountingConfig
+    from apps.accounting.models import Payment, JournalEntry, JournalEntryLine, Account
+
+    date_from = _parse_date(params.get("date_from"))
+    date_to = _parse_date(params.get("date_to"))
+    if not date_from or not date_to:
+        return {"title": "Cash Flow", "data": [], "columns": columns}
+
+    inflows = (
+        db.query(func.coalesce(func.sum(Payment.amount), 0.0))
+        .filter(
+            Payment.org_id == org_id,
+            Payment.status == "Posted",
+            Payment.payment_type == "Incoming",
+            Payment.doc_date >= date_from,
+            Payment.doc_date <= date_to,
+        )
+        .scalar()
+    ) or 0.0
+    outflows = (
+        db.query(func.coalesce(func.sum(Payment.amount), 0.0))
+        .filter(
+            Payment.org_id == org_id,
+            Payment.status == "Posted",
+            Payment.payment_type == "Outgoing",
+            Payment.doc_date >= date_from,
+            Payment.doc_date <= date_to,
+        )
+        .scalar()
+    ) or 0.0
+
+    config = db.query(AccountingConfig).filter_by(org_id=org_id).first()
+    cash_account_ids = {
+        account_id
+        for account_id in (
+            getattr(config, "acc_cash_default_id", None),
+            getattr(config, "acc_bank_default_id", None),
+        )
+        if account_id
+    }
+    if not cash_account_ids:
+        fallback_rows = (
+            db.query(Account.id)
+            .filter(
+                Account.org_id == org_id,
+                Account.account_type == "asset_current",
+                or_(Account.name.ilike("%cash%"), Account.name.ilike("%bank%"), Account.code.ilike("%111%")),
+            )
+            .all()
+        )
+        cash_account_ids = {row.id for row in fallback_rows}
+
+    def _balance_as_of(as_of_date):
+        if not cash_account_ids:
+            return 0.0
+        return (
+            db.query(func.coalesce(func.sum(JournalEntryLine.debit - JournalEntryLine.credit), 0.0))
+            .join(JournalEntry, JournalEntry.id == JournalEntryLine.entry_id)
+            .filter(
+                JournalEntry.org_id == org_id,
+                JournalEntry.status == "Posted",
+                JournalEntryLine.account_id.in_(cash_account_ids),
+                JournalEntry.doc_date <= as_of_date,
+            )
+            .scalar()
+        ) or 0.0
+
+    opening_anchor = date_from.fromordinal(date_from.toordinal() - 1)
+    opening_balance = _balance_as_of(opening_anchor)
+    closing_balance = _balance_as_of(date_to)
+    net_cash_movement = inflows - outflows
+
+    return {
+        "title": "Cash Flow",
+        "data": [
+            {
+                "opening_bank_balance": opening_balance,
+                "cash_inflows": inflows,
+                "cash_outflows": outflows,
+                "net_cash_movement": net_cash_movement,
+                "closing_bank_balance": closing_balance,
+                "scope_note": "Best-effort summary from posted payments plus cash/bank GL balances.",
+            }
+        ],
+        "columns": columns,
+    }
+
+
 # claude-sonnet-4-6
 @ReportService.register("stock_summary")
 def _stock_summary(db: Session, org_id: int, params: dict, columns: list):
@@ -468,3 +559,46 @@ def _accounts_receivable(db: Session, org_id: int, params: dict, columns: list):
             "date": inv.doc_date, "total_amount": inv.total_amount, "balance": balance,
         })
     return {"title": "Accounts Receivable Aging", "data": data, "columns": columns}
+
+
+# gpt-5
+@ReportService.register("tax_summary")
+def _tax_summary(db: Session, org_id: int, params: dict, columns: list):
+    from apps.accounting.models import InflowInvoice, InflowInvoiceLine, OutflowInvoice, OutflowInvoiceLine, TaxRate
+
+    date_from = _parse_date(params.get("date_from"))
+    date_to = _parse_date(params.get("date_to"))
+    grouped: dict[tuple[str, str, int], dict] = {}
+
+    def collect(invoice_model, line_model, direction: str):
+        q = (
+            db.query(line_model, invoice_model.doc_date, TaxRate)
+            .join(invoice_model, invoice_model.id == line_model.invoice_id)
+            .join(TaxRate, TaxRate.id == line_model.tax_rate_id)
+            .filter(invoice_model.org_id == org_id, line_model.tax_amount > 0)
+        )
+        if date_from:
+            q = q.filter(invoice_model.doc_date >= date_from)
+        if date_to:
+            q = q.filter(invoice_model.doc_date <= date_to)
+
+        for line, doc_date, tax_rate in q.all():
+            period = doc_date.strftime("%Y-%m") if doc_date else ""
+            key = (period, direction, tax_rate.id)
+            base_amount = float(line.amount) - float(line.tax_amount) if tax_rate.is_inclusive else float(line.amount)
+            row = grouped.setdefault(key, {
+                "period": period,
+                "direction": direction,
+                "tax_rate": tax_rate.name,
+                "rate": float(tax_rate.rate),
+                "taxable_base": 0.0,
+                "tax_amount": 0.0,
+            })
+            row["taxable_base"] = round(row["taxable_base"] + base_amount, 10)
+            row["tax_amount"] = round(row["tax_amount"] + float(line.tax_amount), 10)
+
+    collect(InflowInvoice, InflowInvoiceLine, "Output Tax")
+    collect(OutflowInvoice, OutflowInvoiceLine, "Input Tax")
+
+    data = sorted(grouped.values(), key=lambda row: (row["period"], row["direction"], row["tax_rate"]))[:MAX_REPORT_ROWS]
+    return {"title": "Tax Summary", "data": data, "columns": columns}

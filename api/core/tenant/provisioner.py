@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 from datetime import datetime, timezone
 from typing import Dict, Any
@@ -7,6 +8,28 @@ from sqlalchemy import create_engine, text
 from .registry import tenant_registry
 
 logger = logging.getLogger(__name__)
+
+# Postgres database identifier: must start with a letter/underscore, then
+# letters/digits/underscores, max 63 chars. Anything else is rejected before it
+# can reach a CREATE/ALTER DATABASE statement (which cannot use bind params).
+_DB_IDENTIFIER_RE = re.compile(r"^[a-z_][a-z0-9_]{0,62}$")
+
+
+# claude-opus-4-8
+def _validate_db_identifier(name: str) -> str:
+    """Reject any db_name that is not a safe Postgres identifier (SQLi guard)."""
+    if not isinstance(name, str) or not _DB_IDENTIFIER_RE.match(name):
+        raise ValueError(
+            f"Invalid database identifier {name!r}: must match {_DB_IDENTIFIER_RE.pattern}"
+        )
+    return name
+
+
+# claude-opus-4-8
+def _quote_db_identifier(conn, name: str) -> str:
+    """Validate then quote a db identifier via the dialect preparer (no hand-rolled quotes)."""
+    _validate_db_identifier(name)
+    return conn.dialect.identifier_preparer.quote(name)
 
 
 def _get_admin_connection():
@@ -40,20 +63,22 @@ def provision_tenant(tenant_id: str, db_name: str, apps: tuple = ("core_config",
     # 1. Validation
     if tenant_registry.get(tenant_id):
         raise ValueError(f"Tenant '{tenant_id}' already exists in registry.")
-
-    # 2. Check if DB name is already used (safeguard)
-    # TODO: add DB check via admin connection
+    _validate_db_identifier(db_name)  # SQLi guard before any raw DDL
 
     # 3. Create Database
     admin_engine = _get_admin_connection()
     try:
         with admin_engine.connect() as conn:
-            # Check if exists
-            res = conn.execute(text(f"SELECT 1 FROM pg_database WHERE datname = '{db_name}'")).fetchone()
+            # Check if exists (bind param — no interpolation)
+            res = conn.execute(
+                text("SELECT 1 FROM pg_database WHERE datname = :db_name"),
+                {"db_name": db_name},
+            ).fetchone()
             if res:
                 raise ValueError(f"Database '{db_name}' already exists.")
-            
-            conn.execute(text(f'CREATE DATABASE "{db_name}"'))
+
+            # CREATE DATABASE cannot bind identifiers → validate + dialect-quote.
+            conn.execute(text(f'CREATE DATABASE {_quote_db_identifier(conn, db_name)}'))
             logger.info(f"Database '{db_name}' created.")
     finally:
         admin_engine.dispose()
@@ -197,20 +222,26 @@ def deprovision_tenant(tenant_id: str) -> bool:
         return False
 
     db_name = tenant_info["meta"]["db_name"]
+    _validate_db_identifier(db_name)  # SQLi guard (registry value, but never trust)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
-    deleted_db_name = f"deleted_{timestamp}_{db_name}"
+    deleted_db_name = _validate_db_identifier(f"deleted_{timestamp}_{db_name}"[:63])
 
     admin_engine = _get_admin_connection()
     try:
         with admin_engine.connect() as conn:
-            # Terminate active connections
-            conn.execute(text(f"""
-                SELECT pg_terminate_backend(pid)
-                FROM pg_stat_activity
-                WHERE datname = '{db_name}' AND pid <> pg_backend_pid()
-            """))
-            # Rename database
-            conn.execute(text(f'ALTER DATABASE "{db_name}" RENAME TO "{deleted_db_name}"'))
+            # Terminate active connections (bind param — no interpolation)
+            conn.execute(
+                text(
+                    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+                    "WHERE datname = :db_name AND pid <> pg_backend_pid()"
+                ),
+                {"db_name": db_name},
+            )
+            # Rename cannot bind identifiers → validate + dialect-quote both sides.
+            conn.execute(text(
+                f'ALTER DATABASE {_quote_db_identifier(conn, db_name)} '
+                f'RENAME TO {_quote_db_identifier(conn, deleted_db_name)}'
+            ))
             logger.info("Database soft-deleted.")
     finally:
         admin_engine.dispose()

@@ -17,6 +17,14 @@ from main import app
 from core.manager import bootstrap
 bootstrap.run = lambda db: None
 
+# claude-sonnet-4-6
+# Populate ServiceRegistry once (apps register their cross-app services/models).
+# Real boot does this via service_bootstrap; tests stub bootstrap.run, so we drive
+# it explicitly here — otherwise registry-resolved deps (e.g. stock→accounting's
+# Account/JournalService) come back None and raise at call time.
+from core.manager import service_bootstrap
+service_bootstrap.register_services()
+
 # Disable Organization report-seeding hook (now attached app-side in apps.report.app)
 from sqlalchemy import event
 from core.workspace.models import Organization

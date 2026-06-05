@@ -23,6 +23,9 @@ import { DesignContainer } from './design/DesignContainer'
 import { DesignElement } from './design/DesignElement'
 import { SkeletonRow } from '../../components/SkeletonRow'
 import { InsightStrip } from './InsightStrip'
+import {
+  type FieldValue, getErrorMessage, isCanceledError, renderCellValue, StatusGlyph,
+} from './listView.helpers'
 
 interface Field {
   name: string
@@ -71,7 +74,6 @@ interface SavedFilter {
   is_default: boolean;
 }
 
-type FieldValue = string | number | boolean | null | Record<string, unknown> | unknown[]
 type ListRow = Record<string, FieldValue> & { id: string | number }
 type ListParams = {
   page: number
@@ -81,15 +83,6 @@ type ListParams = {
   search?: string
   filters?: string
 }
-type ApiError = Error & {
-  name?: string
-  response?: { data?: { detail?: string } }
-}
-
-const getErrorMessage = (err: unknown, fallback: string) =>
-  (err as ApiError).response?.data?.detail || fallback
-
-const isCanceledError = (err: unknown) => (err as ApiError).name === 'CanceledError'
 
 const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   resource: string,
@@ -909,56 +902,6 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
       )}
     </div>
   )
-}
-
-const roleColors: Record<string, string> = {
-  customer: 'bg-sky-50 text-sky-700 border-sky-100',
-  supplier: 'bg-amber-50 text-amber-700 border-amber-100',
-  member: 'bg-violet-50 text-violet-700 border-violet-100',
-  other: 'bg-[var(--aras-panel-soft)] text-[var(--aras-muted)] border-[var(--aras-border)]',
-}
-
-// claude-opus-4-7
-const STATUS_GLYPH: Record<string, { ch: string; color: string }> = {
-  in_progress: { ch: '◐', color: 'var(--accent)' },
-  'in progress': { ch: '◐', color: 'var(--accent)' },
-  draft:       { ch: '○', color: 'var(--text-3)' },
-  open:        { ch: '○', color: 'var(--text-3)' },
-  in_review:   { ch: '△', color: '#d97706' },
-  'in review': { ch: '△', color: '#d97706' },
-  pending:     { ch: '△', color: '#d97706' },
-  released:    { ch: '●', color: '#059669' },
-  active:      { ch: '●', color: '#059669' },
-  posted:      { ch: '●', color: '#059669' },
-  approved:    { ch: '●', color: '#059669' },
-  blocked:     { ch: '✕', color: '#e11d48' },
-  cancelled:   { ch: '✕', color: '#e11d48' },
-  rejected:    { ch: '✕', color: '#e11d48' },
-}
-// claude-opus-4-7
-function StatusGlyph({ value }: { value: FieldValue }) {
-  const key = String(value ?? '').toLowerCase().trim()
-  const g = STATUS_GLYPH[key] || { ch: '○', color: 'var(--text-3)' }
-  return <span style={{ color: g.color, fontFamily: 'Geist Mono, ui-monospace, monospace', fontSize: 13 }}>{g.ch}</span>
-}
-
-const renderCellValue = (value: FieldValue, type: string, fieldName?: string) => {
-  if (value === null || value === undefined) return <span className="text-[var(--aras-muted)]">-</span>
-  if (fieldName === 'status' || fieldName === 'state' || type === 'boolean') {
-    const rawLabel = typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)
-    return <span className="inline-flex items-center gap-2 text-[13px] font-medium capitalize text-[var(--text-2)]"><StatusGlyph value={rawLabel} />{rawLabel.replace(/_/g, ' ')}</span>
-  }
-  if (fieldName === 'role') {
-    return <span className={`inline-flex rounded-[var(--aras-radius)] border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${roleColors[String(value)] || roleColors.other}`}>{String(value)}</span>
-  }
-  switch (type) {
-    case 'currency': return <span className="text-[var(--aras-text)] font-bold">{FormattingService.formatCurrency(Number(value || 0))}</span>
-    case 'date':
-    case 'datetime': return FormattingService.formatDate(String(value))
-    default:
-      if (typeof value === 'object') return <span className="text-[var(--aras-muted)] italic text-xs">{JSON.stringify(value).slice(0, 60)}</span>
-      return String(value)
-  }
 }
 
 export default ListView

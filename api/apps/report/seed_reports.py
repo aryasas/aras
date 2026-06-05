@@ -124,6 +124,24 @@ REPORTS = [
         "filters_json": [],
     },
     {
+        "code": "cash_flow",
+        "name": "Cash Flow",
+        "module": "accounting",
+        "report_type": "builtin",
+        "columns_json": [
+            {"field": "opening_bank_balance", "label": "Opening Bank Balance", "type": "currency"},
+            {"field": "cash_inflows", "label": "Cash Inflows", "type": "currency"},
+            {"field": "cash_outflows", "label": "Cash Outflows", "type": "currency"},
+            {"field": "net_cash_movement", "label": "Net Cash Movement", "type": "currency"},
+            {"field": "closing_bank_balance", "label": "Closing Bank Balance", "type": "currency"},
+            {"field": "scope_note", "label": "Scope", "type": "string"},
+        ],
+        "filters_json": [
+            {"field": "date_from", "label": "Date From", "type": "date", "default": DATE_FROM},
+            {"field": "date_to", "label": "Date To", "type": "date", "default": DATE_TO},
+        ],
+    },
+    {
         "code": "stock_summary",
         "name": "Stock Summary",
         "module": "stock",
@@ -169,6 +187,24 @@ REPORTS = [
             {"field": "balance",      "label": "Balance",  "type": "currency"},
         ],
         "filters_json": [],
+    },
+    {
+        "code": "tax_summary",
+        "name": "Tax Summary",
+        "module": "accounting",
+        "report_type": "builtin",
+        "columns_json": [
+            {"field": "period", "label": "Period", "type": "string"},
+            {"field": "direction", "label": "Direction", "type": "string"},
+            {"field": "tax_rate", "label": "Tax Rate", "type": "string"},
+            {"field": "rate", "label": "Rate %", "type": "number"},
+            {"field": "taxable_base", "label": "Taxable Base", "type": "currency"},
+            {"field": "tax_amount", "label": "Tax Amount", "type": "currency"},
+        ],
+        "filters_json": [
+            {"field": "date_from", "label": "Date From", "type": "date", "default": DATE_FROM},
+            {"field": "date_to", "label": "Date To", "type": "date", "default": DATE_TO},
+        ],
     },
 ]
 

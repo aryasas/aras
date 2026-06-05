@@ -1,0 +1,6 @@
+#!/bin/sh
+# Aras pre-commit hook (committed copy). Install with:
+#   ln -sf ../../scripts/git-hooks/pre-commit .git/hooks/pre-commit
+# Warns about untagged def/class in staged Python files; never blocks the commit.
+python3 tools/check_attribution.py
+exit 0

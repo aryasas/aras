@@ -672,3 +672,23 @@ Aras targets EU, US, and SEA markets. All agents must read and enforce these bef
 ## Framework Change: Unknown — revision (2026-06-04)
   - [GPT (codex)] <short description or 'none'>
   - [GPT (codex)] <short description or 'none'>
+
+
+---
+## Framework Change: Unknown — revision (2026-06-05)
+  - [GPT (codex)] `Field()` now carries `pii` into SQLAlchemy `info`; Party and Contact models were present and tagged; inline audit proof produced `['[redacted]', '[redacted]']` for both tagged `Organization.email` and fallback untagged `LegacyAuditCheck.address`
+
+
+---
+## Framework Change: Unknown — revision (2026-06-05)
+  - [GPT (codex)] added base-model anonymize_self support and User model_action anonymize
+
+
+---
+## Framework Change: Unknown — revision (2026-06-05)
+  - [GPT (codex)] Alembic migration `20260605_0003_tax_engine.py` added with `down_revision=20260605_0002`; `alembic heads` resolves to single head `20260605_0003`; `python manage.py sync` run; real boot via `uvicorn main:app --host 127.0.0.1 --port 8798` returned OpenAPI 200 and invoice metadata exposed the tax fields
+
+
+---
+## Framework Change: Unknown — revision (2026-06-05)
+  - [GPT (codex)] Core now starts one registry-driven background scheduler via `api/core/registry/job_runner.py`, and SaaS cron delegates into that shared runner instead of creating a separate scheduler

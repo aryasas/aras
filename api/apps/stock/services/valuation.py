@@ -3,14 +3,23 @@ from typing import Optional
 import logging
 
 from apps.stock.models import Item, StockMovementLine
-from apps.accounting.services.org_defaults import stock_default
+from core.service_registry import ServiceRegistry
 from core.exceptions import ValidationException
 
 logger = logging.getLogger(__name__)
 
 
+# claude-sonnet-4-6
+def _get_stock_default():
+    fn = ServiceRegistry.get("acc_stock_default")
+    if fn is None:
+        raise RuntimeError("AccountingService 'acc_stock_default' not registered; is the accounting app installed?")
+    return fn
+
+
+# claude-sonnet-4-6
 def _get_valuation_method(db: Session, org_id: int) -> str:
-    return stock_default(db, org_id, "stock_valuation_method", "FIFO")
+    return _get_stock_default()(db, org_id, "stock_valuation_method", "FIFO")
 
 
 class InventoryValuationService:
@@ -52,7 +61,7 @@ class InventoryValuationService:
         if qty > available:
             item = db.get(Item, item_id)
             item_label = getattr(item, "name", None) or getattr(item, "code", None) or str(item_id)
-            if stock_default(db, org_id, "allow_zero_stock", False):
+            if _get_stock_default()(db, org_id, "allow_zero_stock", False):
                 logger.warning(
                     "Insufficient stock allowed by config for item %s in org %s: need %s, have %s",
                     item_label,

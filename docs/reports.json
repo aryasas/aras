@@ -43,5 +43,71 @@
     },
     "frontend": null,
     "verdict": "APPROVED"
+  },
+  {
+    "id": 4,
+    "date": "2026-06-05",
+    "feature": "P3.1 — decouple Stock↔Accounting circular coupling via ServiceRegistry",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/apps/accounting/app.py, api/apps/stock/services/coa_resolver.py, api/apps/stock/services/valuation.py, api/apps/stock/services/workflow.py, api/tests/test_app_coupling.py, api/conftest.py",
+      "features_added": "accounting.register_services() now registers JournalService/PaymentService/Account/Inflow+OutflowInvoice(+Line)/acc_default/acc_stock_default into ServiceRegistry; stock services resolve them at call time; AST-based test_app_coupling locks out module-level apps.accounting imports.",
+      "fixes_applied": "Removed module-level from apps.accounting imports in 3 stock services (kills import cycle); removed stale SalesInvoice/SalesInvoiceLine import (class never existed) -> OutflowInvoice via registry; conftest now drives service_bootstrap.register_services() so registry-resolved deps aren't None in tests (fixed 9 regressions).",
+      "framework_changes": "App↔app cross-calls in stock now go through core ServiceRegistry instead of direct imports.",
+      "issues": "none"
+    },
+    "frontend": null,
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 5,
+    "date": "2026-06-05",
+    "feature": "P3.2 — frontend framework tests (Vitest + RTL) for aras-core",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/package.json, ui/vitest.config.ts, ui/src/test/setup.ts, ui/src/test/renderWithRouter.tsx, ui/src/aras-core/__tests__/SchemaRegistry.test.tsx, ui/src/aras-core/__tests__/Combobox.test.tsx, ui/src/aras-core/__tests__/useAras.test.tsx, ui/src/aras-core/__tests__/DynamicForm.renderField.test.tsx, ui/src/aras-core/__tests__/ListView.test.tsx, ui/src/views/__tests__/public-error-states.test.ts, ui/src/views/config/__tests__/ConfigPage.test.tsx, ui/src/views/control-panel/__tests__/ControlPanelDashboard.test.tsx",
+      "features_added": "Installed vitest+@testing-library(react/jest-dom/user-event)+jsdom; added vitest config (jsdom env, globals, setup), test/test:watch scripts; 30 new aras-core tests covering SchemaRegistry field/filter resolution, Combobox static-options behavior, useAras derivations, DynamicForm.renderField, ListView data-loading.",
+      "fixes_applied": "Fixed 3 pre-existing view test files that could never run (import.meta.url isn't a file: URL under vitest -> resolve from process.cwd()). Full UI suite now 43 passing; tsc --noEmit clean.",
+      "framework_changes": "Frontend now has a unit/component test harness (was zero-test).",
+      "issues": "Surfaced (not fixed, noted for P3.3): ListView refetch loop (metadata/fetchData effect deps change identity each render -> 'Maximum update depth'); scalar inputs in SchemaRegistry don't forward aria-invalid/aria-describedby from renderField."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 6,
+    "date": "2026-06-05",
+    "feature": "P3.3 — attribution sweep + CI warn + oversized-component helper splits",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "tools/check_attribution.py, .pre-commit-config.yaml, scripts/git-hooks/pre-commit, api/apps/accounting/models.py, api/apps/config/models.py, api/apps/pot/models.py, api/apps/saas/models.py, api/apps/stock/models.py (+6 other apps/*/models.py)",
+      "features_added": "Attribution checker (tools/check_attribution.py): warns on untagged def/class in staged Python files (--all sweeps apps/*/models.py, --strict exits 1, default warn-only). Wired as a pre-commit hook (.pre-commit-config.yaml local hook + scripts/git-hooks/pre-commit symlinked into .git/hooks, warn-only exit 0).",
+      "fixes_applied": "Backfilled 96 '# unattributed (pre-tagging)' markers above untagged def/class across 11 apps/*/models.py files so the checker is clean going forward without fabricating model authorship.",
+      "framework_changes": "Every AI-written def/class is now CI-discoverable; new untagged code surfaces at commit time.",
+      "issues": null
+    },
+    "frontend": {
+      "files_written": "ui/src/aras-core/components/listView.helpers.tsx, ui/src/aras-core/components/ListView.tsx, ui/src/aras-core/components/dynamicForm.helpers.tsx, ui/src/aras-core/components/DynamicForm.tsx, ui/src/aras-core/__tests__/listViewHelpers.test.tsx, ui/src/aras-core/__tests__/dynamicFormHelpers.test.tsx",
+      "features_added": "Extracted pure helpers/types into co-located *.helpers.tsx: ListView -> FieldValue, ApiError, getErrorMessage, isCanceledError, roleColors, STATUS_GLYPH, StatusGlyph, renderCellValue (964->907L); DynamicForm -> Field, RenderFieldOptions, renderField, STATUS_GLYPH, StatusBadge, findDisplayToken (725->621L), re-exporting renderField+Field to preserve the public API used by RBACManager/DynamicView/SettingsForm/MasterDataPage. Added 15 helper tests (9 listView + 6 dynamicForm). UI suite now 58 passing, tsc clean.",
+      "fixes_applied": null,
+      "framework_changes": "Two largest framework components shrunk; their previously-inline render/format logic is now independently unit-tested.",
+      "issues": "Deliberately did NOT consolidate the 3 Combobox variants: SimpleCombobox is chrome-only with a distinct API (size/align/width/title/SimpleOption) used in 5 layout files; MultiSelectCombobox handles array/m2m values. They are a deliberate feature tier, not redundancy — merging would lower quality. Deeper stateful-JSX sub-component splits (List/Filter/Toolbar, Section/InlineTable) left as optional follow-up; the pure-helper extraction tier is the low-risk, high-value cut."
+    },
+    "verdict": "APPROVED"
+  },
+  {
+    "id": 7,
+    "date": "2026-06-05",
+    "feature": "Fix a11y gap surfaced in P3.2/P3.3 — scalar inputs now forward aria-invalid/aria-describedby",
+    "revision_count": 0,
+    "backend": null,
+    "frontend": {
+      "files_written": "ui/src/aras-core/SchemaRegistry.tsx, ui/src/aras-core/__tests__/DynamicForm.renderField.test.tsx",
+      "features_added": null,
+      "fixes_applied": "DefaultInput, NumberInput, and TextAreaInput now forward aria-invalid + aria-describedby (declared on FieldProps and already passed by renderField) to the real <input>/<textarea>, so assistive tech links validation errors to the field. Only the two aria keys are read from rest props — no stray FieldProps leak to the DOM. Upgraded the renderField test from documenting the gap to asserting the full aria contract on the input.",
+      "framework_changes": "Form validation errors are now programmatically associated with their inputs (WCAG 1.3.1 / 3.3.1).",
+      "issues": "Re-examined the 'ListView refetch loop' flagged in id 5/6: it was a TEST artifact (incomplete uiStore mock made setPageTitle a new identity each render). Production ListView memoizes fetchData via useCallback with a complete, stable dep list and the effect depends on [fetchData, metadata] — no production infinite loop. No change needed."
+    },
+    "verdict": "APPROVED"
   }
 ]

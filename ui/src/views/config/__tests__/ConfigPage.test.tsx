@@ -1,8 +1,10 @@
 // @ts-nocheck
 import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
-const readConfigView = (name: string) => readFileSync(new URL(`../${name}.tsx`, import.meta.url), 'utf8')
-const readLib = () => readFileSync(new URL('../../../lib/config.ts', import.meta.url), 'utf8')
+// claude-sonnet-4-6: resolve from cwd (ui/); import.meta.url isn't a file: URL under vitest
+const readConfigView = (name: string) => readFileSync(resolve(process.cwd(), 'src/views/config', `${name}.tsx`), 'utf8')
+const readLib = () => readFileSync(resolve(process.cwd(), 'src/lib/config.ts'), 'utf8')
 
 describe('ConfigPage wiring', () => {
   it('loads sections and switches the active section', () => {

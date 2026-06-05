@@ -377,3 +377,33 @@ This file is used only to report if there are fix
 ## Unknown — revision (2026-06-04)
   - [GPT (codex)] <short description or 'none'>
   - [GPT (codex)] <short description or 'none'>
+
+
+## Unknown — revision (2026-06-05)
+  - [GPT (codex)] Added P0.1 lock-in tests for database identifier validation and early rejection before any SQL execution
+
+
+## Unknown — revision (2026-06-05)
+  - [GPT (codex)] Audit redaction now prefers `col.info['pii']` with legacy name fallback; converted requested SaaS DateTime columns to `timezone=True`; preserved existing column types/nullability/defaults aside from the specified timezone change
+
+
+## Unknown — revision (2026-06-05)
+  - [GPT (codex)] anonymize_self now tombstones PII and forces soft-delete semantics during erasure so rows are preserved with deleted_at set
+
+
+## Unknown — revision (2026-06-05)
+  - [GPT (codex)] Inclusive tax no longer inflates invoice totals twice; sales GL proof verified at 100 base + 11 tax = AR debit 111 / revenue credit 100 / tax payable credit 11; purchase GL proof verified at 100 base + 11 tax = expense-or-stock debit 100 / tax receivable debit 11 / AP credit 111; back-compat verified for no-tax invoices (`total_tax` 0, totals unchanged, existing invoice flow tests passed)
+  - [GPT (codex)] Replaced hardcoded child-line currency display with shared formatCurrency for tax_amount/amount columns; verified metadata-driven invoice forms already expose total_tax plus line tax_rate_id (lookup) and tax_amount (read_only), so no explicit invoice UI was needed; `cd ui && npx tsc --noEmit` passed.
+
+
+## Unknown — revision (2026-06-05)
+  - [GPT (codex)] import mapping now applies uniformly for CSV and XLSX; preview proves invalid rows are rejected without committing
+  - [GPT (codex)] Import action is now disabled when preview returns invalid rows; preview counts and per-row server errors are rendered
+
+
+## Unknown — revision (2026-06-05)
+  - [GPT (codex)] Added missing stock reorder threshold fields on `stock_item_locations`; added invoice `due_date` for overdue-AR checks; verified dynamic handler resolution with no `from apps` import in core runner; `tests/test_framework_isolation.py` passed; real boot on port 8800 returned OpenAPI 200 and scheduler started with 3 jobs
+
+
+## Unknown — revision (2026-06-05)
+  - [GPT (codex)] GRN creation now uses framework save flow so numbers are assigned; GRN receive no longer passes invalid org_id into StockMovementLine; recalc mixin now tolerates documents without charges
