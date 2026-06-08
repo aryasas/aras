@@ -24,8 +24,11 @@ def test_provision_tenant_db_naming():
         actual_db_name = args[1]
         
         assert actual_tenant_id == tenant_id
-        assert actual_db_name == f"tenant_{tenant_id}"
-        assert re.match(r"^tenant_[a-zA-Z0-9_-]+$", actual_db_name)
+        # P0.1 security fix: db_name is sanitized to a valid unquoted Postgres identifier
+        # (^[a-z_][a-z0-9_]{0,62}$) — hyphens become underscores. tenant_test-tenant would be
+        # invalid SQL, so the secure output is tenant_test_tenant.
+        assert actual_db_name == "tenant_" + tenant_id.replace("-", "_")
+        assert re.match(r"^tenant_[a-z0-9_]+$", actual_db_name)
 
 def test_provision_tenant_custom_db_naming():
     """Assert custom DB name is preserved."""

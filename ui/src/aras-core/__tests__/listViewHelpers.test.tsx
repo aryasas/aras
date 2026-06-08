@@ -21,7 +21,7 @@ const text = (node: React.ReactNode) => {
 describe('renderCellValue', () => {
   it('renders a dash for null/undefined', () => {
     expect(text(renderCellValue(null, 'string'))).toBe('-')
-    expect(text(renderCellValue(undefined, 'string'))).toBe('-')
+    expect(text(renderCellValue(undefined as never, 'string'))).toBe('-')
   })
 
   it('renders booleans as Yes/No with a status glyph', () => {

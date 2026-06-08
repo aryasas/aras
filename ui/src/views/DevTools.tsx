@@ -47,7 +47,7 @@ interface HandoffRun {
   branch: string
 }
 
-type DevTabKey = 'overview' | 'workbench' | 'system' | 'schema' | 'timeline' | 'routes' | 'models' | 'cache' | 'commands' | 'console' | 'sql' | 'access' | 'handoff' | 'mocks' | 'api' | 'scaffold' | 'logs'
+type DevTabKey = 'overview' | 'workbench' | 'schema' | 'timeline' | 'routes' | 'models' | 'cache' | 'commands' | 'console' | 'sql' | 'access' | 'handoff' | 'mocks' | 'api' | 'scaffold' | 'logs'
 
 interface DevTab {
   key: DevTabKey
@@ -126,9 +126,8 @@ export default function DevTools() {
   }, [activeTab])
 
   const tabs: DevTab[] = [
-    { key: 'overview', label: 'Overview', hint: 'Status and shortcuts' },
+    { key: 'overview', label: 'Overview', hint: 'Status, shortcuts, and runtime' },
     { key: 'workbench', label: 'Workbench', hint: 'Common dev workflows', icon: <Wrench size={13} /> },
-    { key: 'system', label: 'System', hint: 'Runtime and environment', icon: <Cpu size={13} /> },
     { key: 'schema', label: 'Schema', hint: 'Database model drift', icon: <GitCompare size={13} /> },
     { key: 'timeline', label: 'Timeline', hint: 'Request metrics', icon: <ActivityIcon size={13} /> },
     { key: 'routes', label: 'Routes', hint: 'Route debugger', icon: <Route size={13} /> },
@@ -222,142 +221,123 @@ export default function DevTools() {
       <DevHealthPanel />
 
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <TenantSwitcher />
+        <div className="space-y-6">
+          {/* ── At-a-glance stat strip ── */}
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--line)] sm:grid-cols-3 lg:grid-cols-5">
+            <StatCell icon={<Cpu size={16} />} label="Engine" value={info ? `${info.engine} ${info.version}` : '—'} />
+            <StatCell icon={<Boxes size={16} />} label="Apps" value={info ? String(info.apps_discovered.length) : '—'} />
+            <StatCell icon={<GitCompare size={16} />} label="Models" value={info ? String(info.total_models) : '—'} />
+            <StatCell icon={<Database size={16} />} label="Tables" value={String(stats.length)} />
+            <StatCell
+              icon={<AlertTriangle size={16} />}
+              label="Errors"
+              value={String(stats.find(s => s.table === 'dev_error_logs')?.rows || 0)}
+              tone={(Number(stats.find(s => s.table === 'dev_error_logs')?.rows) || 0) > 0 ? 'warn' : 'default'}
+            />
+          </div>
 
-          {/* Design Mode */}
-          <div className="bg-[var(--surface)] p-6 rounded-[var(--radius-lg)] border border-[var(--line)] shadow-sm">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="p-2.5 bg-pink-50 text-pink-600 rounded-[var(--radius)]">
-                <Layout size={20} />
-              </div>
-              <h2 className="text-base font-black text-[var(--text)]">Design Mode</h2>
+          {/* ── Quick actions toolbar ── */}
+          <div className="rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="text-xs font-black uppercase tracking-[0.18em] text-[var(--text-3)]">Quick actions</h2>
+              <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-[var(--text-2)]">
+                <span>Design Mode</span>
+                <span
+                  onClick={toggleDesignMode}
+                  className={`flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${designMode ? 'bg-[var(--accent)]' : 'bg-[var(--muted)]'}`}
+                >
+                  <span className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${designMode ? 'translate-x-4' : 'translate-x-0'}`} />
+                </span>
+              </label>
             </div>
-            <p className="text-sm text-[var(--text-3)] mb-5 leading-relaxed">
-              Highlight editable elements on the current page. Click any element to inspect and adjust its styles.
-            </p>
-            <div className="flex items-center justify-between p-3.5 bg-[var(--surface-2)] rounded-[var(--radius)] border border-[var(--line)]">
-              <span className="font-semibold text-sm text-[var(--text)]">{designMode ? 'Enabled' : 'Disabled'}</span>
-              <div
-                onClick={toggleDesignMode}
-                className={`w-11 h-6 rounded-full p-0.5 cursor-pointer transition-colors duration-300 flex items-center ${designMode ? 'bg-pink-500' : 'bg-[var(--muted)]'}`}
-              >
-                <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 ${designMode ? 'translate-x-5' : 'translate-x-0'}`} />
-              </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+              <ActionChip
+                icon={<RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />}
+                label="Sync Now"
+                sub="Force update"
+                primary
+                disabled={syncing}
+                onClick={handleSync}
+              />
+              <ActionChip
+                icon={<Layout size={16} />}
+                label="Builder"
+                sub="Layout annotator"
+                badge
+                onClick={() => {
+                  const last = localStorage.getItem('template-studio:last') || ''
+                  const ref = (() => { try { const u = new URL(document.referrer); return u.origin === window.location.origin ? u.pathname : '' } catch { return '' } })()
+                  const from = ref || last
+                  navigate(from ? `/dev/template-builder?from=${encodeURIComponent(from)}` : '/dev/template-builder')
+                }}
+              />
+              <ActionChip icon={<Route size={16} />} label="Routes" sub="Explorer" onClick={() => setActiveTab('routes')} />
+              <ActionChip icon={<ActivityIcon size={16} />} label="Tasks" sub="Queue" onClick={() => navigate('/dev/tasks')} />
+              <ActionChip icon={<CalendarDays size={16} />} label="Heatmap" sub="Activity" onClick={() => navigate('/dev/activity-heatmap')} />
+              <ActionChip icon={<HelpCircle size={16} />} label="Dev Help" sub="Reference" onClick={() => navigate('/dev/help')} />
             </div>
           </div>
 
-          {/* Framework Info */}
-          <div className="bg-[var(--surface)] p-6 rounded-[var(--radius-lg)] border border-[var(--line)] shadow-sm">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-[var(--radius)]">
-                <Cpu size={20} />
+          {/* ── Context: tenant + framework info ── */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <TenantSwitcher />
+            <div className="lg:col-span-2 rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-6 shadow-sm">
+              <div className="mb-4 flex items-center gap-2.5">
+                <span className="grid h-9 w-9 place-items-center rounded-[var(--radius)] bg-[var(--surface-2)] text-[var(--accent)]"><Cpu size={18} /></span>
+                <h2 className="text-base font-black text-[var(--text)]">Framework Info</h2>
               </div>
-              <h2 className="text-base font-black text-[var(--text)]">Framework Info</h2>
-            </div>
-            {info ? (
-              <div className="space-y-3">
-                <InfoRow label="Engine Version" value={info.version} />
-                <InfoRow label="Engine Type" value={info.engine} />
-                <InfoRow label="Apps Discovered" value={info.apps_discovered.length.toString()} />
-                <InfoRow label="Total Models" value={info.total_models.toString()} />
-                <div className="mt-4 pt-4 border-t border-[var(--line)]">
-                  <h3 className="text-xs font-bold text-[var(--text-3)] uppercase tracking-wider mb-2.5">Discovered Apps</h3>
-                  <div className="flex flex-wrap gap-1.5">
-                    {info.apps_discovered.map(app => (
-                      <span key={app} className="px-2.5 py-1 bg-[var(--surface-2)] text-[var(--text-2)] text-xs font-semibold rounded-[var(--radius)] border border-[var(--line)]">
-                        {app}
-                      </span>
-                    ))}
-                  </div>
+              {info ? (
+                <div className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
+                  <InfoRow label="Engine Version" value={info.version} />
+                  <InfoRow label="Engine Type" value={info.engine} />
+                  <InfoRow label="Apps Discovered" value={info.apps_discovered.length.toString()} />
+                  <InfoRow label="Total Models" value={info.total_models.toString()} />
                 </div>
-              </div>
-            ) : (
-              <div className="animate-pulse space-y-3">
-                <div className="h-4 bg-[var(--surface-2)] rounded w-3/4" />
-                <div className="h-4 bg-[var(--surface-2)] rounded w-1/2" />
-              </div>
-            )}
+              ) : (
+                <div className="animate-pulse space-y-3">
+                  <div className="h-4 w-3/4 rounded bg-[var(--surface-2)]" />
+                  <div className="h-4 w-1/2 rounded bg-[var(--surface-2)]" />
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Database Stats */}
-          <div className="lg:col-span-2 bg-[var(--surface)] p-6 rounded-[var(--radius-lg)] border border-[var(--line)] shadow-sm">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-[var(--radius)]">
-                <Database size={20} />
-              </div>
-              <h2 className="text-base font-black text-[var(--text)]">Database Statistics</h2>
+          {/* ── Runtime telemetry (merged from former System tab) ── */}
+          <section>
+            <h2 className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-[var(--text-3)]">Runtime</h2>
+            <SystemTab />
+          </section>
+
+          {/* ── Registry shortcuts ── */}
+          <section>
+            <h2 className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-[var(--text-3)]">Registries</h2>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <RegistryCard title="System Users" count={stats.find(s => s.table === 'core_users')?.rows as number || 0} icon={<Users size={22} />} to="/dev/users" color="slate" />
+              <RegistryCard title="System Settings" count={stats.find(s => s.table === 'core_settings')?.rows as number || 0} icon={<Settings size={22} />} to="/admin/settings" color="slate" />
+              <RegistryCard title="Handoff Runs" count={stats.find(s => s.table === 'dev_handoff_runs')?.rows as number || 0} icon={<GitBranch size={22} />} color="slate" onClick={() => setActiveTab('handoff')} />
+              <RegistryCard title="Template Annotations" count={stats.find(s => s.table === 'dev_template_annotations')?.rows as number || 0} icon={<Layout size={22} />} to="/dev/template-annotations" color="slate" />
             </div>
-            {/* claude-sonnet-4-6 */}
+          </section>
+
+          {/* ── Database statistics ── */}
+          <section className="rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-6 shadow-sm">
+            <div className="mb-4 flex items-center gap-2.5">
+              <span className="grid h-9 w-9 place-items-center rounded-[var(--radius)] bg-[var(--surface-2)] text-[var(--accent)]"><Database size={18} /></span>
+              <h2 className="text-base font-black text-[var(--text)]">Database Statistics</h2>
+              <span className="ml-auto text-xs font-bold text-[var(--text-3)]">{stats.length} tables</span>
+            </div>
             {(() => {
               const dbStatColumns = [
-                { key: 'table', label: 'Table Name', render: (v: string) => <code className="text-[var(--accent)] font-bold text-xs bg-indigo-50 px-2 py-0.5 rounded">{v}</code> },
-                { key: 'rows', label: 'Row Count', align: 'right' as const, render: (v: any) => <span className="font-mono font-bold text-sm text-[var(--text)]">{Number(v).toLocaleString()}</span> },
+                { key: 'table', field: 'table', label: 'Table Name', render: (v: any) => <code className="rounded bg-[var(--surface-2)] px-2 py-0.5 text-xs font-bold text-[var(--accent)]">{String(v)}</code> },
+                { key: 'rows', field: 'rows', label: 'Row Count', align: 'right' as const, render: (v: any) => <span className="font-mono text-sm font-bold text-[var(--text)]">{Number(v).toLocaleString()}</span> },
               ]
               return (
-                <div className="overflow-hidden border border-[var(--line)] rounded-[var(--radius)]">
+                <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)]">
                   <ArasTable columns={dbStatColumns} rows={stats} rowKey={(stat) => stat.table} />
                 </div>
               )
             })()}
-          </div>
-
-          {/* Registry Shortcuts */}
-          <div className="lg:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <RegistryCard title="System Users" count={stats.find(s => s.table === 'auth_users')?.rows as number || 0} icon={<Users size={22} />} to="/dev/users" color="indigo" />
-            <RegistryCard title="System Settings" count={stats.find(s => s.table === 'core_settings')?.rows as number || 0} icon={<Settings size={22} />} to="/admin/settings" color="slate" />
-            <RegistryCard
-              title="Handoff Runs"
-              count={stats.find(s => s.table === 'dev_handoff_runs')?.rows as number || 0}
-              icon={<GitBranch size={22} />}
-              color="purple"
-              onClick={() => setActiveTab('handoff')}
-            />
-            <RegistryCard title="Template Annotations" count={stats.find(s => s.table === 'dev_template_annotations')?.rows as number || 0} icon={<Layout size={22} />} to="/dev/template-annotations" color="blue" />
-          </div>
-
-          {/* Advanced Inspection */}
-          <div className="lg:col-span-3 bg-slate-900 p-7 rounded-[var(--radius-lg)] text-white overflow-hidden relative">
-            <div className="relative z-10">
-              <h2 className="text-xl font-black mb-1">Advanced Inspection</h2>
-              <p className="text-slate-400 mb-6 text-sm font-medium">Deep dive into framework internals and runtime state.</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-                <InspectButton
-                  label="Builder"
-                  sub="Layout Annotator"
-                  iconBg="bg-pink-500/20"
-                  iconColor="text-pink-400"
-                  icon={<Layout size={18} />}
-                  badge
-                  onClick={() => {
-                    const last = localStorage.getItem('template-studio:last') || ''
-                    const ref = (() => { try { const u = new URL(document.referrer); return u.origin === window.location.origin ? u.pathname : '' } catch { return '' } })()
-                    const from = ref || last
-                    navigate(from ? `/dev/template-builder?from=${encodeURIComponent(from)}` : '/dev/template-builder')
-                  }}
-                />
-                <button
-                  onClick={handleSync}
-                  disabled={syncing}
-                  className="p-3.5 bg-[var(--accent)] hover:bg-indigo-700 rounded-[var(--radius)] border border-indigo-500/50 transition-all flex flex-col items-center gap-2 group disabled:opacity-50"
-                >
-                  <div className="p-2 bg-white/10 text-white rounded group-hover:rotate-180 transition-transform duration-500">
-                    <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
-                  </div>
-                  <div className="text-center">
-                    <div className="font-bold text-xs">Sync Now</div>
-                    <div className="text-[10px] text-indigo-300">Force Update</div>
-                  </div>
-                </button>
-                <InspectButton label="Dev Help" sub="Reference" iconBg="bg-emerald-500/20" iconColor="text-emerald-400" icon={<HelpCircle size={18} />} onClick={() => navigate('/dev/help')} />
-                <InspectButton label="Heatmap" sub="Activity" iconBg="bg-orange-500/20" iconColor="text-orange-300" icon={<CalendarDays size={18} />} onClick={() => navigate('/dev/activity-heatmap')} />
-                <InspectButton label="Routes" sub="Explorer" iconBg="bg-blue-500/20" iconColor="text-blue-300" icon={<Globe size={18} />} onClick={() => setActiveTab('routes')} />
-                <InspectButton label="Tasks" sub="Queue" iconBg="bg-violet-500/20" iconColor="text-violet-300" icon={<ActivityIcon size={18} />} onClick={() => navigate('/dev/tasks')} />
-              </div>
-            </div>
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--accent)]/10 blur-[100px] -mr-32 -mt-32 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-600/10 blur-[100px] -ml-32 -mb-32 pointer-events-none" />
-          </div>
+          </section>
         </div>
       )}
 
@@ -527,7 +507,6 @@ export default function DevTools() {
       )}
 
       {activeTab === 'scaffold' && <ScaffoldTab />}
-      {activeTab === 'system' && <SystemTab />}
       {activeTab === 'schema' && <SchemaTab />}
       {activeTab === 'timeline' && <RequestTimeline />}
       {activeTab === 'routes' && <RouteDebugger />}
@@ -540,34 +519,7 @@ export default function DevTools() {
       {activeTab === 'logs' && <LogStream />}
 
       {/* Mocks Tab */}
-      {activeTab === 'mocks' && (
-        // claude-sonnet-4-6
-        <div>
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h2 className="text-xl font-black text-[var(--text)]">Mock Server</h2>
-              <p className="text-[var(--text-3)] mt-1 text-sm">Inspect and manage API mocks via the mock server UI.</p>
-            </div>
-            <a
-              href="/mocks/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--surface-2)] hover:bg-[var(--surface)] border border-[var(--line)] rounded-[var(--radius)] font-semibold text-sm transition-all"
-            >
-              <ExternalLink size={13} />
-              Open in new tab
-            </a>
-          </div>
-          <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[var(--radius-lg)] overflow-hidden">
-            <iframe
-              src="/mocks/"
-              title="Mock Server"
-              className="w-full border-0"
-              style={{ height: '700px' }}
-            />
-          </div>
-        </div>
-      )}
+      {activeTab === 'mocks' && <MockGallery />}
 
       {/* API Help Tab */}
       {activeTab === 'api' && (
@@ -675,6 +627,155 @@ function InspectButton({ label, sub, iconBg, iconColor, icon, onClick, badge }: 
         <div className="font-bold text-xs">{label}</div>
         <div className="text-[10px] text-slate-400">{sub}</div>
       </div>
+    </button>
+  )
+}
+
+// claude-opus-4-8
+type MockEntry = { path: string; title: string; group: 'App Prototypes' | 'Components' }
+
+const MOCK_ENTRIES: MockEntry[] = [
+  { path: 'aras-studio/', title: 'Aras Studio', group: 'App Prototypes' },
+  { path: 'erp-unified/', title: 'ERP Unified', group: 'App Prototypes' },
+  { path: 'erp-modern/', title: 'ERP Modern', group: 'App Prototypes' },
+  { path: 'erp-modern-app/', title: 'ERP Modern App', group: 'App Prototypes' },
+  { path: 'erp-web/', title: 'ERP Web', group: 'App Prototypes' },
+  { path: 'erp-generic/', title: 'ERP Generic', group: 'App Prototypes' },
+  { path: 'erp-editorial/', title: 'ERP Editorial', group: 'App Prototypes' },
+  { path: 'erp-mobile/', title: 'ERP Mobile', group: 'App Prototypes' },
+  { path: 'erp-expo-web/', title: 'ERP Expo (Web)', group: 'App Prototypes' },
+  { path: 'erp-expo-native/', title: 'ERP Expo (Native)', group: 'App Prototypes' },
+  { path: 'real-layout/', title: 'Real Layout', group: 'App Prototypes' },
+  { path: 'implementation-prototype/', title: 'Implementation Prototype', group: 'App Prototypes' },
+  { path: 'mock-by-gemini/', title: 'Mock by Gemini', group: 'App Prototypes' },
+  { path: 'datatable.html', title: 'Data Table', group: 'Components' },
+  { path: 'datatable-light.html', title: 'Data Table (Light)', group: 'Components' },
+  { path: 'form.html', title: 'Form', group: 'Components' },
+  { path: 'form-light.html', title: 'Form (Light)', group: 'Components' },
+  { path: 'formview-proposal.html', title: 'Form View Proposal', group: 'Components' },
+  { path: 'listview-proposal.html', title: 'List View Proposal', group: 'Components' },
+]
+
+// claude-opus-4-8
+function MockCard({ entry }: { entry: MockEntry }) {
+  const url = `/mocks/${entry.path}`
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--accent)] hover:shadow-lg"
+    >
+      {/* Scaled live preview — iframe at 1280px wide shrunk into the thumb */}
+      <div className="relative h-44 overflow-hidden border-b border-[var(--line)] bg-[var(--surface-2)]">
+        <iframe
+          src={url}
+          title={entry.title}
+          loading="lazy"
+          tabIndex={-1}
+          aria-hidden
+          className="origin-top-left border-0"
+          style={{ width: 1280, height: 800, transform: 'scale(0.32)', pointerEvents: 'none' }}
+        />
+        {/* click shield so the whole card opens the mock */}
+        <span className="absolute inset-0" />
+        <span className="absolute right-2 top-2 flex items-center gap-1 rounded-[var(--radius)] bg-[var(--surface)]/90 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-[var(--text-2)] opacity-0 backdrop-blur transition-opacity group-hover:opacity-100">
+          <ExternalLink size={11} /> Open
+        </span>
+      </div>
+      <div className="flex items-center justify-between gap-2 p-3">
+        <span className="truncate text-sm font-black text-[var(--text)]">{entry.title}</span>
+        <code className="shrink-0 truncate text-[11px] font-medium text-[var(--text-3)]">{entry.path}</code>
+      </div>
+    </a>
+  )
+}
+
+// claude-opus-4-8
+function MockGallery() {
+  const [q, setQ] = useState('')
+  const filtered = MOCK_ENTRIES.filter(
+    e => e.title.toLowerCase().includes(q.toLowerCase()) || e.path.toLowerCase().includes(q.toLowerCase())
+  )
+  const groups = ['App Prototypes', 'Components'] as const
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-black text-[var(--text)]">Mock Gallery</h2>
+          <p className="mt-1 text-sm text-[var(--text-3)]">Static UI prototypes served from <code className="text-[var(--text-2)]">/mocks/</code>. Click a card to open full-size.</p>
+        </div>
+        <div className="relative">
+          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-3)]" />
+          <input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Filter mocks…"
+            className="w-56 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)] py-2 pl-9 pr-3 text-sm text-[var(--text)] outline-none focus:border-[var(--accent)]"
+          />
+        </div>
+      </div>
+
+      {groups.map(group => {
+        const items = filtered.filter(e => e.group === group)
+        if (items.length === 0) return null
+        return (
+          <section key={group}>
+            <h3 className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-[var(--text-3)]">{group}<span className="ml-2 text-[var(--text-3)]/60">{items.length}</span></h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {items.map(e => <MockCard key={e.path} entry={e} />)}
+            </div>
+          </section>
+        )
+      })}
+
+      {filtered.length === 0 && (
+        <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--line)] py-16 text-center text-sm text-[var(--text-3)]">
+          No mocks match “{q}”.
+        </div>
+      )}
+    </div>
+  )
+}
+
+// claude-sonnet-4-6
+function StatCell({ icon, label, value, tone = 'default' }: {
+  icon: React.ReactNode; label: string; value: string; tone?: 'default' | 'warn'
+}) {
+  return (
+    <div className="bg-[var(--surface)] p-4">
+      <div className="flex items-center gap-1.5 text-[var(--text-3)]">
+        <span className={tone === 'warn' ? 'text-amber-500' : ''}>{icon}</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.16em]">{label}</span>
+      </div>
+      <div className={`mt-1.5 truncate text-lg font-black ${tone === 'warn' ? 'text-amber-500' : 'text-[var(--text)]'}`}>{value}</div>
+    </div>
+  )
+}
+
+// claude-sonnet-4-6
+function ActionChip({ icon, label, sub, onClick, primary, badge, disabled }: {
+  icon: React.ReactNode; label: string; sub: string; onClick: () => void; primary?: boolean; badge?: boolean; disabled?: boolean
+}) {
+  const base = 'group flex items-center gap-3 rounded-[var(--radius)] border p-3 text-left transition-all disabled:opacity-50'
+  const skin = primary
+    ? 'border-[var(--accent)] bg-[var(--accent)] text-white hover:opacity-90'
+    : 'border-[var(--line)] bg-[var(--surface-2)] text-[var(--text)] hover:border-[var(--accent)]'
+  return (
+    <button onClick={onClick} disabled={disabled} className={`${base} ${skin}`}>
+      <span className={`relative grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius)] ${primary ? 'bg-white/15' : 'bg-[var(--surface)] text-[var(--accent)]'} transition-transform group-hover:scale-110`}>
+        {icon}
+        {badge && (
+          <span className="absolute -right-1 -top-1 flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-pink-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-pink-500" />
+          </span>
+        )}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-black leading-tight">{label}</span>
+        <span className={`block text-[11px] font-medium ${primary ? 'text-white/70' : 'text-[var(--text-3)]'}`}>{sub}</span>
+      </span>
     </button>
   )
 }

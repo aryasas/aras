@@ -1,5 +1,6 @@
 from core import Aras
 from . import views # Trigger view registration
+from . import reports  # noqa: F401  # registers builtin reports with the engine
 
 from core.logic.discovery import autodiscover_models
 from .models import * # Import all models for discovery

@@ -24,7 +24,7 @@ class Report(MasterDataBase):
     script_approved_by_id: Mapped[Optional[int]] = mapped_column(ForeignKey("core_users.id"), nullable=True)
     script_approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
-    script_approved_by = relationship("core.auth.models.User", foreign_keys=[script_approved_by_id])
+    script_approved_by = relationship("User", foreign_keys=[script_approved_by_id])
 
     # unattributed (pre-tagging)
     def before_save(self, is_new: bool, db=None):

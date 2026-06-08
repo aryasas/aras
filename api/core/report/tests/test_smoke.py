@@ -1,5 +1,5 @@
 import pytest
-from apps.report.models import Report
+from core.report.models import Report
 from core.auth.models import User
 
 # gemini-flash

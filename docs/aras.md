@@ -692,3 +692,24 @@ Aras targets EU, US, and SEA markets. All agents must read and enforce these bef
 ---
 ## Framework Change: Unknown — revision (2026-06-05)
   - [GPT (codex)] Core now starts one registry-driven background scheduler via `api/core/registry/job_runner.py`, and SaaS cron delegates into that shared runner instead of creating a separate scheduler
+
+
+---
+## Framework Change: Compliance Hardening Round 2 (2026-06-05)
+  - [Gemini] Region support in tenant provisioning
+
+
+---
+## Framework Change: Compliance Hardening Round 2 (2026-06-05)
+  - [Gemini (gemini-3-flash-preview)] None
+
+---
+## Framework Change: Decouple core report engine from apps (2026-06-08)
+- [Gemini 2.5 Flash] Moved all business-specific builtin reports and dashboard logic out of `core/report` into `apps/accounting` and `apps/stock`.
+- [Gemini 2.5 Flash] Genericized `ReportService` and `ReportApp` to have zero `apps.*` imports.
+- [Gemini 2.5 Flash] Relocated finance and trade-dashboard endpoints to `apps/accounting/routers/report_router.py`.
+
+
+---
+## Framework Change: Split report from "app with app-coupling" into a generic framework engine (core) + app-owned report definitions (inversion of control) — revision (2026-06-08)
+  - [Gemini (gemini-3-flash-preview)] Genericized ReportService and Report router; simplified ReportApp seeding to remove app-specific logic.

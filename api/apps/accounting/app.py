@@ -3,8 +3,10 @@ from . import views # Trigger view registration
 from . import handlers as _handlers  # noqa: F401 — registers workflow handlers
 from . import org_actions as _org_actions  # noqa: F401 — attaches mirror_coa to Organization
 from .routers.print_router import router as print_router
+from .routers.report_router import router as report_router
 from .vocabulary_router import vocabulary_router
 from .seeds.standard import seed_trade_defaults
+from . import reports  # noqa: F401  # registers builtin reports with the engine
 
 from core.logic.discovery import autodiscover_models
 from .models import * # Import all models for discovery
@@ -75,7 +77,7 @@ class Accounting(Aras.App):
         ]),
     ]
 
-    routers = [print_router, accounting_api_router, vocabulary_router]
+    routers = [print_router, accounting_api_router, vocabulary_router, report_router]
     seeds = [seed_trade_defaults]
 
     config_model = AccountingConfig

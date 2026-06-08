@@ -1,17 +1,28 @@
 import { create } from 'zustand'
 
 const TOKEN_KEY = 'aras_token'
+export const ALL_ORGS = -1
+
+function getSessionStorage() {
+  return typeof globalThis !== 'undefined' && 'sessionStorage' in globalThis ? globalThis.sessionStorage : null
+}
+
+function getLocalStorage() {
+  return typeof globalThis !== 'undefined' && 'localStorage' in globalThis ? globalThis.localStorage : null
+}
 
 function getStoredToken() {
-  const sessionToken = sessionStorage.getItem(TOKEN_KEY)
+  const sessionStorageRef = getSessionStorage()
+  const localStorageRef = getLocalStorage()
+  const sessionToken = sessionStorageRef?.getItem(TOKEN_KEY)
   if (sessionToken) return sessionToken
 
-  const legacyToken = localStorage.getItem(TOKEN_KEY)
+  const legacyToken = localStorageRef?.getItem(TOKEN_KEY)
   if (legacyToken) {
-    sessionStorage.setItem(TOKEN_KEY, legacyToken)
-    localStorage.removeItem(TOKEN_KEY)
+    sessionStorageRef?.setItem(TOKEN_KEY, legacyToken)
+    localStorageRef?.removeItem(TOKEN_KEY)
   }
-  return legacyToken
+  return legacyToken || null
 }
 
 interface User {
@@ -49,27 +60,29 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   token: getStoredToken(),
   organizations: [],
-  activeOrgId: Number(localStorage.getItem('org_id')) || null,
+  activeOrgId: Number(getLocalStorage()?.getItem('org_id')) || null,
   activeApps: [],
   optionalFeatures: {},
   setUser: (user) => set({ user }),
   setToken: (token) => {
-    localStorage.removeItem(TOKEN_KEY)
-    if (token) sessionStorage.setItem(TOKEN_KEY, token)
-    else sessionStorage.removeItem(TOKEN_KEY)
+    const localStorageRef = getLocalStorage()
+    const sessionStorageRef = getSessionStorage()
+    localStorageRef?.removeItem(TOKEN_KEY)
+    if (token) sessionStorageRef?.setItem(TOKEN_KEY, token)
+    else sessionStorageRef?.removeItem(TOKEN_KEY)
     set({ token })
   },
   setOrganizations: (organizations) => set((state) => {
     const activeOrgStillAllowed = state.activeOrgId !== null && (
-      state.activeOrgId === -1 ||
+      state.activeOrgId === ALL_ORGS ||
       organizations.some((organization) => organization.id === state.activeOrgId)
     )
     const autoSelect = !activeOrgStillAllowed && organizations.length > 0 ? organizations[0].id : null
 
     if (autoSelect !== null) {
-      localStorage.setItem('org_id', String(autoSelect))
+      getLocalStorage()?.setItem('org_id', String(autoSelect))
     } else if (state.activeOrgId !== null && !activeOrgStillAllowed) {
-      localStorage.removeItem('org_id')
+      getLocalStorage()?.removeItem('org_id')
     }
 
     return {
@@ -78,15 +91,15 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   }),
   setActiveOrg: (id) => {
-    if (id === null) localStorage.removeItem('org_id')
-    else localStorage.setItem('org_id', String(id))
+    if (id === null) getLocalStorage()?.removeItem('org_id')
+    else getLocalStorage()?.setItem('org_id', String(id))
     set({ activeOrgId: id })
   },
   setCapabilities: (activeApps, optionalFeatures) => set({ activeApps, optionalFeatures }),
   logout: () => {
-    sessionStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem('org_id')
+    getSessionStorage()?.removeItem(TOKEN_KEY)
+    getLocalStorage()?.removeItem(TOKEN_KEY)
+    getLocalStorage()?.removeItem('org_id')
     set({ user: null, token: null, organizations: [], activeOrgId: null, activeApps: [], optionalFeatures: {} })
   },
 }))

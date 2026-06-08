@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 from apps.accounting.handlers import post_invoice_gl
-from apps.report.services.report_service import ReportService
+from core.report.services.report_service import ReportService
 from core.exceptions import ValidationException
 from core.lib import math_utils
 
@@ -359,7 +359,7 @@ def test_post_invoice_gl_raises_when_tax_account_missing(db, org, tax_party, tax
 # gpt-5
 def test_tax_summary_report_groups_output_and_input(db, org, tax_party, supplier_party, tax_currency, tax_item, tax_uom, tax_rates):
     from apps.accounting.models import InflowInvoice, InflowInvoiceLine, OutflowInvoice, OutflowInvoiceLine
-    from apps.report.models import Report
+    from core.report.models import Report
 
     sales_invoice = InflowInvoice(
         org_id=org.id,

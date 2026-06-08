@@ -6,9 +6,10 @@ import uuid
 def test_cash_flow_report_seeds_and_runs(db, org):
     from apps.accounting.config_models import AccountingConfig
     from apps.accounting.models import Account, JournalEntry, JournalEntryLine, Payment
-    from apps.report.models import Report
-    from apps.report.seed_reports import run_seed
-    from apps.report.services.report_service import ReportService
+    from core.report.models import Report
+    from core.report.seed_reports import run_seed
+    from core.report.services.report_service import ReportService
+    from apps.accounting import reports as _reports  # noqa: F401  # register builtins
     from core.workspace.models import Currency
 
     currency = Currency(name="USD", code=f"CF{str(uuid.uuid4())[:4]}", symbol="$")

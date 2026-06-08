@@ -1,5 +1,5 @@
 from apps.accounting.services.vocabulary import apply_profile_vocabulary
-from apps.report.services.report_service import _sales_summary
+from apps.accounting.reports import _sales_summary
 
 
 # claude-opus-4-8

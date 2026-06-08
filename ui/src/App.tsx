@@ -8,6 +8,8 @@ import SidePanel from './aras-core/components/SidePanel'
 import { FormattingService } from './aras-core/services/FormattingService'
 import { VocabularyProvider } from './context/VocabularyContext'
 import { connectArasWebSocket, disconnectArasWebSocket } from './lib/ws'
+import api from './lib/api'
+import CookieConsent from './components/CookieConsent'
 
 const Login = lazy(() => import('./views/Login'))
 const OrganizationPicker = lazy(() => import('./views/OrganizationPicker'))
@@ -16,7 +18,7 @@ const ResetPassword = lazy(() => import('./views/ResetPassword'))
 const MainLayout = lazy(() => import('./layouts/TopMenuLayout'))
 const HomeView = lazy(() => import('./views/Home'))
 const SettingsPageView = lazy(() => import('./views/settings/SettingsPage'))
-const GlobalSettingsView = lazy(() => import('./views/GlobalSettings'))
+const AccessPanelView = lazy(() => import('./views/settings/AccessPanel'))
 const MasterDataPageView = lazy(() => import('./views/master-data/MasterDataPage'))
 const DashboardSettingsView = lazy(() => import('./views/DashboardSettings'))
 const ProfileView = lazy(() => import('./views/Profile'))
@@ -26,8 +28,6 @@ const ReportCenterView = lazy(() => import('./views/ReportCenter'))
 const TemplateBuilderView = lazy(() => import('./views/TemplateBuilder'))
 const AppManagerView = lazy(() => import('./views/AppManager'))
 const AuditLogsView = lazy(() => import('./views/AuditLogs'))
-const RBACManagerView = lazy(() => import('./views/RBACManager'))
-const ErpUserAccess = lazy(() => import('./views/ErpUserAccess'))
 const LicenseStatusView = lazy(() => import('./views/LicenseStatus'))
 const WebPageView = lazy(() => import('./views/WebPageView'))
 const ContactView = lazy(() => import('./views/ContactView'))
@@ -90,6 +90,7 @@ const LegacyTenantDetailRedirect = () => {
   return <Navigate to={`/control-panel/tenants/${id}`} replace />
 }
 
+// gpt-5.4
 function App() {
   const { showAlert, showConfirm, showError } = useUIStore();
   const { themeMode, cornerMode, density, fontScale, accentColor } = useUIStore();
@@ -181,6 +182,7 @@ function App() {
   return (
     <Router>
       <VocabularyProvider>
+      <CookieConsent />
       <CommandPalette />
       <GlobalDialog />
       <SidePanel />
@@ -218,15 +220,21 @@ function App() {
           <Route index element={<HomeView />} />
           <Route path="dashboard" element={<HomeView />} />
           <Route path="settings" element={<Navigate to="/admin/settings" replace />} />
-          <Route path="admin/settings" element={<SettingsPageView />} />
+          <Route path="admin/settings" element={<SettingsPageView />}>
+            <Route path="dashboard" element={<DashboardSettingsView />} />
+            <Route path="preferences" element={<Navigate to="/admin/settings?ns=core" replace />} />
+            <Route path="audit" element={<AuditLogsView />} />
+            <Route path="access" element={<AccessPanelView />} />
+            <Route path="files" element={<FileManagerView />} />
+          </Route>
           <Route path="admin/master-data" element={<MasterDataPageView />} />
-          <Route path="settings/dashboard" element={<DashboardSettingsView />} />
-          <Route path="settings/global" element={<GlobalSettingsView />} />
-          <Route path="settings/audit" element={<AuditLogsView />} />
-          <Route path="settings/rbac" element={<RBACManagerView />} />
+          <Route path="settings/dashboard" element={<Navigate to="/admin/settings/dashboard" replace />} />
+          <Route path="settings/global" element={<Navigate to="/admin/settings?ns=core" replace />} />
+          <Route path="settings/audit" element={<Navigate to="/admin/settings/audit" replace />} />
+          <Route path="settings/rbac" element={<Navigate to="/admin/settings/access" replace />} />
           <Route path="admin/license" element={<TenantRoute><LicenseStatusView /></TenantRoute>} />
           <Route path="preview/:slug" element={<WebPageView />} />
-          <Route path="settings/user-access" element={<ErpUserAccess />} />
+          <Route path="settings/user-access" element={<Navigate to="/admin/settings/access" replace />} />
           <Route path="dev" element={<DevToolsView />} />
           <Route path="dev/template-builder" element={<TemplateBuilderView />} />
           <Route path="dev/health" element={<HealthIntegrityView />} />
@@ -234,7 +242,7 @@ function App() {
           <Route path="dev/handoff-runs" element={<HandoffRunsView />} />
           <Route path="dev/tasks" element={<BackgroundTasksView />} />
           <Route path="dev/activity-heatmap" element={<ActivityHeatmapView />} />
-          <Route path="settings/files" element={<FileManagerView />} />
+          <Route path="settings/files" element={<Navigate to="/admin/settings/files" replace />} />
           <Route path="admin/seeder" element={<SeedManagerView />} />
           <Route path="admin/tenants" element={<Navigate to="/control-panel/tenants" replace />} />
           <Route path="saas-admin" element={<Navigate to="/control-panel" replace />} />

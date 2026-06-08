@@ -29,7 +29,7 @@ service_bootstrap.register_services()
 from sqlalchemy import event
 from core.workspace.models import Organization
 try:
-    from apps.report.app import _seed_reports_for_new_org
+    from core.report.app import _seed_reports_for_new_org
     event.remove(Organization, "after_insert", _seed_reports_for_new_org)
 except (ValueError, Exception):
     pass

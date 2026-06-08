@@ -486,7 +486,7 @@ const TradeKpiWidget: WidgetComponent = ({ widget }) => {
   if (error) return <TradeWidgetError title={title} message={error} />
   if (!data) return <TradeWidgetEmpty title={title} message="No dashboard data available." />
 
-  const metricValue = Number((data as Record<string, unknown>)[metric] || 0)
+  const metricValue = Number(((data as unknown as Record<string, unknown>)[metric]) || 0)
   if (empty) return <TradeWidgetEmpty title={title} message={empty} />
 
   const content = (

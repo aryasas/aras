@@ -23,6 +23,10 @@ class User(Model):
     is_admin: Mapped[bool] = Field(Boolean, default=False, label="Is Administrator")
     marketing_consent: Mapped[bool] = Field(Boolean, default=False, label="Marketing Consent")
     consent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    # gemini-3-flash-preview
+    consent_version: Mapped[Optional[str]] = Field(String(32), nullable=True, label="Consent Version")
+    # gemini-3-flash-preview
+    consent_text_hash: Mapped[Optional[str]] = Field(String(64), nullable=True, label="Consent Text Hash")
 
     def verify_password(self, password: str) -> bool:
         return pwd_context.verify(password, self.password_hash)

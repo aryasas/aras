@@ -81,7 +81,8 @@ describe('ListView data loading', () => {
   it('passes an abort signal to the metadata request', async () => {
     renderWithRouter(<ListView resource="item" />)
     await waitFor(() => {
-      const metaCall = get.mock.calls.find((c) => String(c[0]).startsWith('/metadata/'))
+      const metaCall = (get.mock.calls as unknown as Array<[unknown, { signal?: AbortSignal }?]>)
+        .find(([url]) => String(url).startsWith('/metadata/'))
       expect(metaCall?.[1]).toHaveProperty('signal')
     })
   })

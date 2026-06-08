@@ -407,3 +407,29 @@ This file is used only to report if there are fix
 
 ## Unknown — revision (2026-06-05)
   - [GPT (codex)] GRN creation now uses framework save flow so numbers are assigned; GRN receive no longer passes invalid org_id into StockMovementLine; recalc mixin now tolerates documents without charges
+
+
+## Unknown (2026-06-05)
+  - [GPT (codex)] hard logout on refresh failure, root-mounted consent gating, localized consent/cookie copy
+
+
+## CSP Nonce Prod-Breaking Bug (2026-06-05)
+- [Gemini (gemini-3-flash-preview)] Fixed prod-breaking CSP issue where inline bootstrap script was blocked; implemented automated sha256 hashing of `ui/index.html` inline scripts in `security_headers.py`.
+
+
+## Compliance Hardening Round 2 (2026-06-05)
+  - [Gemini (gemini-3-flash-preview)] CSP nonce prod-breaking bug
+
+
+## Unknown (2026-06-05)
+  - [GPT (codex)] pinned the inline theme bootstrap as a CSP-managed script with a backend hash sync note to preserve pre-paint theme initialization
+
+
+## Refine navigation, settings, and workspace switching for easier menu & view access (2026-06-05)
+  - [GPT (codex)] removed duplicated nav logic and dead nav/settings files, preserved first-login workspace chooser flow, hardened authStore for test environments, resolved unrelated frontend type/build blockers needed for verification
+## Decoupled core report engine from business apps (2026-06-08)\n- [Gemini 2.5 Flash] Removed illegal core->apps dependencies in report module.
+
+
+## Split report from "app with app-coupling" into a generic framework engine (core) + app-owned report definitions (inversion of control) — revision (2026-06-08)
+  - [Gemini (gemini-3-flash-preview)] Removed illegal core->apps dependencies in api/core/report/, ensuring the framework core remains generic and decoupled.
+  - [GPT (codex)] updated the trade dashboard API call from `/report/dashboard` to `/accounting/dashboard`

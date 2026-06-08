@@ -5,7 +5,7 @@ import {
   RefreshCw, Check, MoreHorizontal, Share2, Copy, X, Link2, Settings, Zap
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { resolveFieldComponent, type FieldProps } from '../SchemaRegistry';
+import type { FieldProps } from '../SchemaRegistry';
 import { useAras } from '../hooks/useAras';
 import { useVocabulary } from '../../context/VocabularyContext';
 import { createDefaultRecord } from '../../lib/schemaUtils';

@@ -31,10 +31,9 @@ const Login = () => {
       setToken(response.data.access_token)
       const me = await api.get('/auth/me')
       const organizations = me.data.organizations || []
-      const defaultOrgId = me.data.default_org_id || (organizations.length > 0 ? organizations[0].id : null)
       setUser(me.data)
       setOrganizations(organizations)
-      setActiveOrg(defaultOrgId)
+      setActiveOrg(organizations.length === 1 ? organizations[0].id : null)
       navigate('/')
     } catch (err: unknown) {
       const detail =

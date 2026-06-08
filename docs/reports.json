@@ -109,5 +109,49 @@
       "issues": "Re-examined the 'ListView refetch loop' flagged in id 5/6: it was a TEST artifact (incomplete uiStore mock made setPageTitle a new identity each render). Production ListView memoizes fetchData via useCallback with a complete, stable dep list and the effect depends on [fetchData, metadata] — no production infinite loop. No change needed."
     },
     "verdict": "APPROVED"
+  },
+  {
+    "id": 8,
+    "date": "2026-06-05",
+    "feature": "rhf review of compliance-hardening run + direct fix of broken Postgres migration chain + settings label collision",
+    "revision_count": 1,
+    "backend": {
+      "files_written": "api/alembic/versions/20260603_0001_compliance_timezone_audit.py, api/alembic/versions/20260605_0002_consent_fields.py, api/tests/test_tenant_db_naming.py",
+      "features_added": null,
+      "fixes_applied": "Migration 20260603_0001 used bare try/except around DDL — in Postgres a failed statement poisons the whole transaction, so the entire chain past 20260530_0003 aborted (consent_version never reached the live DB; 8 suite errors). Replaced with information_schema existence pre-checks + SAVEPOINT (begin_nested) guards + idempotent timezone ALTER. Made 20260605_0002 idempotent (add_column-if-absent; columns pre-existed via auto_migrate -> DuplicateColumn). alembic upgrade head now reaches 20260605_0005 cleanly; manage.py sync ran. Fixed stale test_tenant_db_naming (asserted hyphen db name; P0.1 validator correctly sanitizes '-'->'_' for valid unquoted PG identifier).",
+      "framework_changes": "Compliance migration chain (P0-P3) now applies cleanly on real Postgres, not just SQLite conftest.",
+      "issues": "Remaining suite failures are the 4 known baseline env failures (saas/web smoke UniqueViolation on persistent-DB re-seed + numbering concurrency) + test_job_runner flaps under full-suite ordering only (passes isolated). No regression from this work."
+    },
+    "frontend": {
+      "files_written": "ui/src/views/Settings.tsx",
+      "features_added": null,
+      "fixes_applied": "Settings hub inner row labeled 'Settings' (-> /admin/settings) collided with the page's own 'Settings' identity. Renamed to 'App & Company Config' to remove the dual-Settings confusion. tsc clean.",
+      "framework_changes": null,
+      "issues": null
+    },
+    "verdict": "APPROVED",
+    "review_of": "International Compliance Hardening (gemini-3-flash-preview + gpt-5.4) — all 8 spec items verified delivered; blocker was a pre-existing migration bug surfaced by the new column, fixed directly by Claude."
+  },
+  {
+    "id": 9,
+    "date": "2026-06-05",
+    "feature": "rhf review — Compliance Round 2 (CSP completion, csp-report endpoint, tenant data-residency region, settings path normalization, ROPA)",
+    "revision_count": 0,
+    "backend": {
+      "files_written": "api/core/api/middleware/security_headers.py, api/core/api/routes/csp_report.py, api/core/tenant/service.py, api/core/tenant/provisioner.py, api/alembic/versions/20260605_0006_tenant_region.py, api/tests/test_tenant_region.py, docs/compliance/records_of_processing.md, docs/compliance/data_residency.md",
+      "features_added": "CSP now allows the ui/index.html inline theme script via sha256 hash ALONGSIDE the nonce (no unsafe-inline in script-src); report-uri + Reporting-Endpoints; POST /api/v1/csp-report (logs only blocked-uri+violated-directive, 10KB cap, 204). Tenant data-residency: region param threaded through provisioning (region-suffixed admin connection + DB URL); migration 0006 adds region column (single head).",
+      "fixes_applied": "Closed the prod-breaking CSP gap from Round 1 (strict script-src would have blocked the un-nonced inline theme script).",
+      "framework_changes": "Security headers middleware now hash-pins the known inline script; tenant provisioning is region-aware.",
+      "issues": "Gemini agent report falsely claimed files_written: none — work was actually done and verified on disk (rhf caught it). Minor: csp_report.py has unused Pydantic models (dead code); sha256-of-inline-script is fragile to index.html edits (no CI guard) — future: move to external /theme-init.js."
+    },
+    "frontend": {
+      "files_written": "ui/index.html, ui/src/App.tsx, ui/src/views/Settings.tsx",
+      "features_added": "Settings surfaces normalized under /admin/settings/* (preferences/dashboard/audit/security/user-access/files) per aras.md Audience Routing; 6 legacy /settings/* paths redirect with Navigate replace (no dead bookmarks); hub sections[] paths updated.",
+      "fixes_applied": "Inline theme-bootstrap kept bare so its sha256 matches the backend-pinned hash (FOUC prevention preserved under strict CSP).",
+      "framework_changes": null,
+      "issues": "Agent did not run manual browser no-FOUC check; hash-match proof verified by Claude instead. ui tsc clean."
+    },
+    "verdict": "APPROVED",
+    "review_of": "Compliance Hardening Round 2 (gemini-3-flash-preview backend + gpt-5.4 frontend). 10 targeted tests pass, alembic at 0006 on Postgres, full suite at baseline, ui tsc 0."
   }
 ]

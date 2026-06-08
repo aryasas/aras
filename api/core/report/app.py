@@ -4,7 +4,6 @@ from . import views # Trigger view registration
 from .routers import router as report_router
 
 from core.registry.config_registry import ConfigSection, ConfigField
-from apps.accounting.services.vocabulary import apply_profile_vocabulary
 
 # claude-opus-4-8
 # Inverted hook: report seeding on org creation. Lives app-side (not in the
@@ -18,7 +17,7 @@ def _seed_reports_for_new_org(mapper, connection, target):
     if db is None:
         return
     try:
-        from apps.report.seed_reports import run_seed
+        from core.report.seed_reports import run_seed
         run_seed(db, target.id)
     except Exception:
         pass
@@ -56,9 +55,8 @@ class ReportApp(Aras.App):
 
     @classmethod
     def seed(cls, db):
-        # Self-contained report seeding (moved out of core bootstrap so the
-        # framework never references the report/config apps). Cleans orphan
-        # reports, ensures a default org exists, seeds reports for every org.
+        # Self-contained report seeding. Cleans orphan reports and seeds 
+        # reports for every EXISTING organization.
         import logging
         from sqlalchemy import or_
         from .seed_reports import run_seed as seed_reports
@@ -72,13 +70,6 @@ class ReportApp(Aras.App):
                 log.info("Removed %d orphaned report(s) with no code.", deleted)
 
             orgs = db.query(Organization).all()
-            if not orgs:
-                org = Organization(name="Default", code="default")
-                db.add(org)
-                db.commit()
-                apply_profile_vocabulary(db, org.id, org.profile)
-                db.commit()
-                orgs = [org]
             for org in orgs:
                 seed_reports(db, org.id)
             db.commit()

@@ -21,8 +21,8 @@ export default function OrganizationPicker() {
           <div className="w-14 h-14 bg-[var(--app-accent)] rounded-[var(--app-radius-lg)] flex items-center justify-center shadow-lg shadow-indigo-100 mb-5">
             <Building2 className="text-white" size={26} />
           </div>
-          <h1 className="text-2xl font-bold text-[var(--app-text)]">Select Organization</h1>
-          <p className="text-[var(--app-muted)] mt-2">Choose the organization workspace for this session.</p>
+          <h1 className="text-2xl font-bold text-[var(--app-text)]">Select Workspace</h1>
+          <p className="text-[var(--app-muted)] mt-2">Choose the organization workspace for this session before entering the app shell.</p>
         </div>
 
         <div className="p-4 space-y-2">
@@ -40,7 +40,14 @@ export default function OrganizationPicker() {
                   <span className="h-10 w-10 rounded-[var(--app-radius)] bg-[var(--app-panel-soft)] text-slate-600 flex items-center justify-center shrink-0">
                     <Building2 size={18} />
                   </span>
-                  <span className="font-semibold text-[var(--app-text)] truncate">{organization.name}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold text-[var(--app-text)]">{organization.name}</span>
+                    {organization.unit_type || organization.is_group ? (
+                      <span className="mt-1 inline-flex rounded-full bg-[var(--app-panel-soft)] px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-[var(--app-muted)]">
+                        {organization.is_group ? 'Group' : organization.unit_type}
+                      </span>
+                    ) : null}
+                  </span>
                 </span>
                 {isActive && <CheckCircle2 className="text-[var(--app-accent)] shrink-0" size={20} />}
               </button>

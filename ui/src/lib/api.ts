@@ -1,27 +1,18 @@
-import axios from 'axios'
+import axios, { type InternalAxiosRequestConfig } from 'axios'
 import { cleanResourcePath } from './resourceUtils'
 import en from '../locales/en.json'
 import id from '../locales/id.json'
+import { useAuthStore } from '../store/authStore'
 
 const DEV_MULTI_TENANT = import.meta.env.VITE_DEV_MULTI_TENANT === 'true'
 const TENANT_STORAGE_KEY = 'tenant_id'
 const TOKEN_STORAGE_KEY = 'aras_token'
+const PUBLIC_PATHS = ['/login', '/welcome', '/signup', '/portal', '/portal/setup', '/forgot-password', '/reset-password', '/contact']
+const AUTH_REFRESH_SKIP_PATHS = new Set(['/auth/token', '/auth/refresh'])
 
-function getAuthToken() {
-  const sessionToken = sessionStorage.getItem(TOKEN_STORAGE_KEY)
-  if (sessionToken) return sessionToken
-
-  const legacyToken = localStorage.getItem(TOKEN_STORAGE_KEY)
-  if (legacyToken) {
-    sessionStorage.setItem(TOKEN_STORAGE_KEY, legacyToken)
-    localStorage.removeItem(TOKEN_STORAGE_KEY)
-  }
-  return legacyToken
-}
-
-function clearAuthToken() {
-  sessionStorage.removeItem(TOKEN_STORAGE_KEY)
-  localStorage.removeItem(TOKEN_STORAGE_KEY)
+type RetryableRequestConfig = InternalAxiosRequestConfig & {
+  _retry?: boolean
+  skipAuthRefresh?: boolean
 }
 
 interface ApiEnvelope<T = unknown> {
@@ -36,6 +27,40 @@ interface ApiEnvelope<T = unknown> {
 type Lang = 'en' | 'id'
 const LOCALES: Record<Lang, Record<string, unknown>> = { en, id }
 
+export interface AuthSessionPayload {
+  access_token: string
+  refresh_token?: string
+  token_type?: string
+}
+
+export interface ConsentPolicy {
+  version: string
+  text: Record<Lang, string>
+}
+
+let refreshTokenMemory: string | null = null
+let refreshRequest: Promise<AuthSessionPayload> | null = null
+
+// gpt-5.4
+function getAuthToken() {
+  const sessionToken = sessionStorage.getItem(TOKEN_STORAGE_KEY)
+  if (sessionToken) return sessionToken
+
+  const legacyToken = localStorage.getItem(TOKEN_STORAGE_KEY)
+  if (legacyToken) {
+    sessionStorage.setItem(TOKEN_STORAGE_KEY, legacyToken)
+    localStorage.removeItem(TOKEN_STORAGE_KEY)
+  }
+  return legacyToken
+}
+
+// gpt-5.4
+function clearAuthToken() {
+  sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+  localStorage.removeItem(TOKEN_STORAGE_KEY)
+}
+
+// gpt-5.4
 function getEnvelopeErrorMessage(value: ApiEnvelope | Record<string, any>): string {
   const translated = getEnvelopeErrorTranslation(value)
   if (translated) return translated
@@ -47,6 +72,7 @@ function getEnvelopeErrorMessage(value: ApiEnvelope | Record<string, any>): stri
   return 'Request failed'
 }
 
+// gpt-5.4
 function getEnvelopeErrorKey(value: ApiEnvelope | Record<string, any>): string | undefined {
   const error = value.error
   if (typeof value.error_key === 'string' && value.error_key) return value.error_key
@@ -58,6 +84,7 @@ function getEnvelopeErrorKey(value: ApiEnvelope | Record<string, any>): string |
   return undefined
 }
 
+// gpt-5.4
 function lookupLocaleString(locale: Record<string, unknown>, key: string): string | undefined {
   if (!key) return undefined
   const direct = locale[key]
@@ -75,6 +102,7 @@ function lookupLocaleString(locale: Record<string, unknown>, key: string): strin
   return typeof current === 'string' ? current : undefined
 }
 
+// gpt-5.4
 function getEnvelopeErrorTranslation(value: ApiEnvelope | Record<string, any>): string | undefined {
   const key = getEnvelopeErrorKey(value)
   if (!key) return undefined
@@ -82,6 +110,7 @@ function getEnvelopeErrorTranslation(value: ApiEnvelope | Record<string, any>): 
   return lookupLocaleString(LOCALES[lang], key)
 }
 
+// gpt-5.4
 function getEnvelopeErrorCode(value: ApiEnvelope | Record<string, any>): string | undefined {
   const error = value.error
   if (error && typeof error === 'object' && typeof (error as any).code === 'string') return (error as any).code
@@ -89,6 +118,7 @@ function getEnvelopeErrorCode(value: ApiEnvelope | Record<string, any>): string 
   return undefined
 }
 
+// gpt-5.4
 function isApiEnvelope(value: unknown): value is ApiEnvelope {
   return (
     typeof value === 'object' &&
@@ -98,112 +128,236 @@ function isApiEnvelope(value: unknown): value is ApiEnvelope {
   )
 }
 
+// gpt-5.4
+function setRefreshToken(token: string | null) {
+  refreshTokenMemory = token
+}
 
+// gpt-5.4
+function syncAccessToken(token: string | null) {
+  const store = useAuthStore.getState()
+  if (store.token !== token) {
+    store.setToken(token)
+  }
+  if (!token) {
+    clearAuthToken()
+  }
+}
+
+// gpt-5.4
+function setRequestHeader(config: RetryableRequestConfig, key: string, value: string) {
+  const headers = config.headers ?? {}
+  if (typeof (headers as { set?: (name: string, val: string) => void }).set === 'function') {
+    ;(headers as { set: (name: string, val: string) => void }).set(key, value)
+  } else {
+    ;(headers as Record<string, string>)[key] = value
+  }
+  config.headers = headers
+}
+
+// gpt-5.4
+function getApiPath(url?: string) {
+  if (!url) return ''
+  const withoutOrigin = url.replace(/^https?:\/\/[^/]+/i, '')
+  const [path] = withoutOrigin.split('?')
+  const normalized = path.startsWith('/api/v1') ? path.slice('/api/v1'.length) || '/' : path
+  return normalized.startsWith('/') ? normalized : `/${normalized}`
+}
+
+// gpt-5.4
+function isPublicPath(pathname: string) {
+  return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`)) || pathname.startsWith('/p/')
+}
+
+// gpt-5.4
+function hardLogout(redirectToLogin = true) {
+  setRefreshToken(null)
+  useAuthStore.getState().logout()
+  clearAuthToken()
+
+  if (!redirectToLogin) return
+
+  if (!isPublicPath(window.location.pathname)) {
+    window.location.href = '/login'
+  }
+}
+
+// gpt-5.4
+function storeAuthPayload(path: string, payload: unknown) {
+  if (!AUTH_REFRESH_SKIP_PATHS.has(path)) return
+  if (!payload || typeof payload !== 'object') return
+
+  const tokenPayload = payload as Partial<AuthSessionPayload>
+  if (typeof tokenPayload.access_token === 'string' && tokenPayload.access_token) {
+    syncAccessToken(tokenPayload.access_token)
+  }
+  if (typeof tokenPayload.refresh_token === 'string' && tokenPayload.refresh_token) {
+    setRefreshToken(tokenPayload.refresh_token)
+  }
+}
+
+// gpt-5.4
+function normalizeConsentPolicy(payload: unknown): ConsentPolicy {
+  const source = (payload && typeof payload === 'object' ? payload : {}) as Record<string, any>
+  const version = typeof source.version === 'string' && source.version ? source.version : 'unknown'
+  const textSource =
+    (source.text && typeof source.text === 'object' ? source.text : null) ||
+    (source.canonical_text && typeof source.canonical_text === 'object' ? source.canonical_text : null)
+
+  return {
+    version,
+    text: {
+      en:
+        (typeof textSource?.en === 'string' && textSource.en) ||
+        (typeof source.text_en === 'string' && source.text_en) ||
+        '',
+      id:
+        (typeof textSource?.id === 'string' && textSource.id) ||
+        (typeof source.text_id === 'string' && source.text_id) ||
+        '',
+    },
+  }
+}
+
+// gpt-5.4
+async function refreshSession(): Promise<AuthSessionPayload> {
+  if (refreshRequest) return refreshRequest
+
+  const refreshToken = refreshTokenMemory
+  const payload = refreshToken ? { refresh_token: refreshToken } : undefined
+
+  refreshRequest = api
+    .post<AuthSessionPayload>('/auth/refresh', payload, { skipAuthRefresh: true } as RetryableRequestConfig)
+    .then((response) => {
+      const session = response.data
+      if (!session?.access_token) {
+        throw new Error('Refresh response missing access token')
+      }
+      storeAuthPayload('/auth/refresh', session)
+      return session
+    })
+    .catch((error) => {
+      hardLogout()
+      throw error
+    })
+    .finally(() => {
+      refreshRequest = null
+    })
+
+  return refreshRequest
+}
 
 const api = axios.create({
   baseURL: '/api/v1',
+  withCredentials: true,
 })
 
-// Attach JWT to every request
 api.interceptors.request.use((config) => {
-  if (config.url && !/^https?:\/\//i.test(config.url)) {
-    const [path, query] = config.url.split('?')
+  const requestConfig = config as RetryableRequestConfig
+
+  if (requestConfig.url && !/^https?:\/\//i.test(requestConfig.url)) {
+    const [path, query] = requestConfig.url.split('?')
     const leadingSlash = path.startsWith('/') ? '/' : ''
-    config.url = `${leadingSlash}${cleanResourcePath(path)}${query ? `?${query}` : ''}`
+    requestConfig.url = `${leadingSlash}${cleanResourcePath(path)}${query ? `?${query}` : ''}`
   }
 
-  const token = getAuthToken()
+  const token = useAuthStore.getState().token ?? getAuthToken()
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+    setRequestHeader(requestConfig, 'Authorization', `Bearer ${token}`)
   }
 
   const orgId = localStorage.getItem('org_id')
   if (orgId && orgId !== '-1') {
-    config.headers['X-Org-ID'] = orgId
+    setRequestHeader(requestConfig, 'X-Org-ID', orgId)
   }
 
   if (DEV_MULTI_TENANT) {
     const tenantId = localStorage.getItem(TENANT_STORAGE_KEY)
     if (tenantId) {
-      config.headers['X-Tenant-ID'] = tenantId
+      setRequestHeader(requestConfig, 'X-Tenant-ID', tenantId)
     }
   }
 
-  return config
+  return requestConfig
 })
 
-      // Normalize error responses and handle 401
 api.interceptors.response.use(
   (response) => {
+    const path = getApiPath(response.config.url)
+
     if (isApiEnvelope(response.data)) {
       if (!response.data.success) {
-        // Prefer `error` from envelope, then `message`, then fallback
-        const errorMessage = getEnvelopeErrorMessage(response.data);
-
-        // Ensure the error object passed to consumers has the right structure
+        const errorMessage = getEnvelopeErrorMessage(response.data)
         const errorData = {
-          ...response.data, // Preserve original data
+          ...response.data,
           message: errorMessage,
           detail: errorMessage,
           error: errorMessage,
           error_key: response.data.error_key || getEnvelopeErrorKey(response.data),
-        };
+        }
 
-        const error = new Error(errorMessage) as Error & { response?: typeof response; code?: string };
-        error.code = getEnvelopeErrorCode(response.data);
-        error.response = { ...response, data: errorData }; // Attach enriched error data to response
-        return Promise.reject(error);
+        const envelopeError = new Error(errorMessage) as Error & { response?: typeof response; code?: string }
+        envelopeError.code = getEnvelopeErrorCode(response.data)
+        envelopeError.response = { ...response, data: errorData }
+        return Promise.reject(envelopeError)
       }
-      response.data = response.data.data; // Extract actual data for successful responses
+      response.data = response.data.data
     }
-    return response;
+
+    storeAuthPayload(path, response.data)
+    return response
   },
-  (error) => {
+  async (error) => {
     if (error.response?.data) {
-      const d = error.response.data;
-      let errorMessage = 'Request failed';
+      const d = error.response.data
+      let errorMessage = 'Request failed'
 
       if (isApiEnvelope(d)) {
-        errorMessage = getEnvelopeErrorMessage(d);
+        errorMessage = getEnvelopeErrorMessage(d)
       } else if (typeof d === 'object') {
-        // For non-envelope responses (e.g., FastAPI validation errors)
-        errorMessage = getEnvelopeErrorMessage(d);
+        errorMessage = getEnvelopeErrorMessage(d)
       } else if (typeof d === 'string') {
-        errorMessage = d;
+        errorMessage = d
       }
 
-      // Ensure error.message reflects the primary error message
-      error.message = errorMessage;
-      error.code = getEnvelopeErrorCode(d);
-
-      // Normalize error.response.data to contain 'error', 'detail', and 'message'
-      // This makes it consistent for consumers
+      error.message = errorMessage
+      error.code = getEnvelopeErrorCode(d)
       error.response.data = {
-        ...d, // Preserve original data
+        ...d,
         error: errorMessage,
         detail: errorMessage,
         message: errorMessage,
         code: d.code || error.code,
         error_key: d.error_key || getEnvelopeErrorKey(d),
-      };
+      }
     }
+
+    const requestConfig = (error.config || {}) as RetryableRequestConfig
+    const path = getApiPath(requestConfig.url)
+
     if (error.response?.status === 401) {
-      clearAuthToken();
-      const path = window.location.pathname;
-      const publicPaths = ['/login', '/welcome', '/signup', '/portal', '/portal/setup', '/forgot-password', '/reset-password', '/contact'];
-      const isPublic = publicPaths.some((p) => path === p || path.startsWith(p + '/')) || path.startsWith('/p/');
-      if (!isPublic) {
-        window.location.href = '/login';
+      if (!requestConfig._retry && !requestConfig.skipAuthRefresh && !AUTH_REFRESH_SKIP_PATHS.has(path)) {
+        requestConfig._retry = true
+        try {
+          const session = await refreshSession()
+          setRequestHeader(requestConfig, 'Authorization', `Bearer ${session.access_token}`)
+          return api(requestConfig)
+        } catch (refreshError) {
+          return Promise.reject(refreshError)
+        }
       }
+
+      hardLogout()
     } else if (error.response?.status === 402) {
-      const path = window.location.pathname;
-      if (!path.startsWith('/portal')) {
-        window.location.href = '/portal?tab=billing';
+      const currentPath = window.location.pathname
+      if (!currentPath.startsWith('/portal')) {
+        window.location.href = '/portal?tab=billing'
       }
     }
-    return Promise.reject(error);
-  }
-);
+
+    return Promise.reject(error)
+  },
+)
 
 export interface SettingsNamespace {
   name: string
@@ -344,7 +498,7 @@ function getTradeDashboardCacheKey(orgId?: number) {
 // claude-opus-4-8
 async function fetchTradeDashboard(orgId?: number) {
   const query = typeof orgId === 'number' ? `?org_id=${orgId}` : ''
-  const res = await api.get<TradeDashboardData>(`/report/dashboard${query}`)
+  const res = await api.get<TradeDashboardData>(`/accounting/dashboard${query}`)
   return res.data
 }
 
@@ -379,6 +533,32 @@ export function getTradeDashboard(orgId?: number) {
 
   tradeDashboardPromiseCache.set(key, request)
   return request
+}
+
+export const authApi = {
+  async refresh() {
+    return refreshSession()
+  },
+  async logout() {
+    const refreshToken = refreshTokenMemory
+    try {
+      const res = await api.post(
+        '/auth/logout',
+        refreshToken ? { refresh_token: refreshToken } : undefined,
+        { skipAuthRefresh: true } as RetryableRequestConfig,
+      )
+      return res.data
+    } finally {
+      hardLogout(false)
+    }
+  },
+}
+
+export const consentApi = {
+  async getPolicy() {
+    const res = await api.get<ConsentPolicy>('/consent/policy')
+    return normalizeConsentPolicy(res.data)
+  },
 }
 
 export const settingsApi = {

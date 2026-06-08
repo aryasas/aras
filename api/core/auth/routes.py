@@ -34,6 +34,11 @@ class ResetPasswordRequest(Validation):
     token: str
     new_password: str
 
+from .refresh import create_refresh_token, rotate_refresh_token, revoke_refresh_token
+
+class RefreshRequest(Validation):
+    refresh_token: str
+
 @router.post("/token")
 def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -51,7 +56,53 @@ def login_for_access_token(
         data={"sub": user.username, "purpose": "access"},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    refresh_token = create_refresh_token(db, user.id)
+    return {
+        "access_token": access_token, 
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+# gemini-3-flash-preview
+@router.post("/refresh")
+def refresh_token(
+    data: RefreshRequest,
+    db: Session = Depends(get_db)
+):
+    result = rotate_refresh_token(db, data.refresh_token)
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+        )
+    
+    new_refresh_token, user_id = result
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+        
+    access_token = create_access_token(
+        data={"sub": user.username, "purpose": "access"},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+    return {
+        "access_token": access_token,
+        "refresh_token": new_refresh_token,
+        "token_type": "bearer"
+    }
+
+# gemini-3-flash-preview
+@router.post("/logout")
+def logout(
+    data: RefreshRequest,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(get_current_user)
+):
+    revoke_refresh_token(db, data.refresh_token)
+    return {"message": "Logged out successfully"}
 
 
 @router.get("/me")

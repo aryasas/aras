@@ -125,8 +125,8 @@ export function useSaveSection() {
 export function useRotateSecret() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ sectionKey, fieldKey, value }: { sectionKey: string; fieldKey: string; value: string }) =>
-      rotateSecret(sectionKey, fieldKey, value),
+    mutationFn: ({ sectionKey, fieldKey }: { sectionKey: string; fieldKey: string; value: string }) =>
+      rotateSecret(sectionKey, fieldKey),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: configKeys.section(variables.sectionKey) })
       configQueryClient.invalidateQueries({ queryKey: ['config'] })

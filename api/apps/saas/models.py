@@ -48,6 +48,10 @@ class Subscription(Aras.Model):
     phone: Mapped[Optional[str]] = Field(String(50), nullable=True, pii=True)
     marketing_consent: Mapped[bool] = Field(Boolean, default=False, label="Marketing Consent")
     consent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    # gemini-3-flash-preview
+    consent_version: Mapped[Optional[str]] = Field(String(32), nullable=True, label="Consent Version")
+    # gemini-3-flash-preview
+    consent_text_hash: Mapped[Optional[str]] = Field(String(64), nullable=True, label="Consent Text Hash")
     # Tenant identity (assigned on approve)
     tenant_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, unique=True)
     plan_id: Mapped[Optional[int]] = mapped_column(ForeignKey("saas_plan.id"), nullable=True)
@@ -60,6 +64,8 @@ class Subscription(Aras.Model):
     next_billing_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     default_provider_code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     trial_ends_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    # gemini-3-flash-preview
+    region: Mapped[Optional[str]] = mapped_column(String(20), nullable=True, default="sea")
 
     plan = relationship("Plan")
 
@@ -82,7 +88,8 @@ class Subscription(Aras.Model):
         from .services.provisioner import Provisioner
         from .services.email import send_setup_email
         try:
-            result = Provisioner.provision_tenant(db, self)
+            # gemini-3-flash-preview: pass region to provisioner
+            result = Provisioner.provision_tenant(db, self, region=self.region)
             self.tenant_id = result["tenant_id"]
             self.status = "active"
             self.started_at = datetime.now(timezone.utc)

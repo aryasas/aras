@@ -6,6 +6,7 @@ import { MODULE_LABELS } from '../lib/planUtils'
 import { formatCurrency } from '../lib/formatters'
 import { useLanguage } from '../context/LanguageContext'
 import { useNotify } from '../aras-core/contexts/NotificationContext'
+import { consentApi, type ConsentPolicy } from '../lib/api'
 
 interface Plan {
   id: number
@@ -43,6 +44,7 @@ const initialForm = {
   marketing_consent: false,
 }
 
+// gpt-5.4
 export default function CustomerSignup() {
   const { lang, setLang, t } = useLanguage()
   const showNotification = useNotify()
@@ -56,6 +58,9 @@ export default function CustomerSignup() {
   const [plansLoading, setPlansLoading] = useState(true)
   const [plansError, setPlansError] = useState<string | null>(null)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
+  const [consentPolicy, setConsentPolicy] = useState<ConsentPolicy | null>(null)
+  const [consentLoading, setConsentLoading] = useState(true)
+  const [consentError, setConsentError] = useState<string | null>(null)
   const moduleLabel = (module: string) => t(`public.modules.${module}`, MODULE_LABELS[module] ?? module)
   const localizedPrice = (price: number, currency?: string) => {
     if (price === 0) return t('public.pricing.free', 'Gratis')
@@ -65,6 +70,7 @@ export default function CustomerSignup() {
     if (lang === 'en' && EN_PLAN_FEATURES[plan.plan_key]) return EN_PLAN_FEATURES[plan.plan_key]
     return plan.features?.included ?? []
   }
+  const consentText = consentPolicy ? consentPolicy.text[lang] || consentPolicy.text.en || consentPolicy.text.id : ''
 
   const loadPlans = useCallback(async () => {
     setPlansLoading(true)
@@ -88,6 +94,33 @@ export default function CustomerSignup() {
   useEffect(() => {
     loadPlans()
   }, [loadPlans])
+
+  useEffect(() => {
+    let cancelled = false
+
+    consentApi
+      .getPolicy()
+      .then((policy) => {
+        if (cancelled) return
+        setConsentPolicy(policy)
+        setConsentError(null)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        setConsentPolicy(null)
+        setConsentError(t('consent.loadFailed', 'Consent policy unavailable right now.'))
+        console.error(err)
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setConsentLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [t])
 
   useEffect(() => {
     fetch('/api/v1/saas/payments/methods')
@@ -117,6 +150,7 @@ export default function CustomerSignup() {
         phone: form.phone || undefined,
         plan_id: selectedPlan?.id ?? undefined,
         marketing_consent: form.marketing_consent,
+        consent_version: form.marketing_consent ? consentPolicy?.version : undefined,
       }
       const res = await fetch('/api/v1/saas/signup', {
         method: 'POST',
@@ -285,9 +319,22 @@ export default function CustomerSignup() {
               type="checkbox"
               checked={form.marketing_consent}
               onChange={(e) => setForm({ ...form, marketing_consent: e.target.checked })}
+              disabled={consentLoading || !consentPolicy}
               className="mt-0.5 h-4 w-4 rounded border-[var(--line)] text-[var(--accent)] focus:ring-2 focus:ring-[var(--aras-accent-glow)]"
             />
-            <span>{t('public.signup.marketingConsent', 'I agree to receive product updates and marketing emails')}</span>
+            <span className="space-y-2">
+              <span className="block font-medium text-[var(--text)]">
+                {t('consent.marketingOptIn', 'I agree to receive product updates and marketing emails')}
+              </span>
+              <span className="block text-xs text-[var(--text-3)]">
+                {consentPolicy
+                  ? `${t('consent.versionLabel', 'Consent version')}: ${consentPolicy.version}`
+                  : consentLoading
+                    ? t('consent.loading', 'Loading consent policy...')
+                    : consentError || t('consent.unavailable', 'Consent policy is unavailable.')}
+              </span>
+              {consentText ? <span className="block whitespace-pre-wrap text-xs leading-5 text-[var(--text-2)]">{consentText}</span> : null}
+            </span>
           </label>
 
           <button

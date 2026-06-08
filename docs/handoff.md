@@ -1,144 +1,163 @@
-# Handoff Spec — Phase 3.1: Decouple Stock↔Accounting Circular Coupling
-> run_id: 148
+# Handoff Spec
 
-**Backend agent: Sonnet. Frontend agent: Sonnet.**
-Run with: `python tools/multi_agent.py -b sonnet -f sonnet`
-
-## Context
-Phase 3.1 of the roadmap — release-readiness. The framework-isolation test (core↛apps) is ALREADY
-green; this is about APP↔APP coupling, specifically the BIDIRECTIONAL Stock↔Accounting cycle that
-risks import-order failures and blocks extracting either app:
-- **stock → accounting** (the dangerous MODULE-LEVEL half):
-  - `apps/stock/services/workflow.py:3` `from apps.accounting.models import SalesInvoice, SalesInvoiceLine`
-    — ⚠️ `SalesInvoice`/`SalesInvoiceLine` may be STALE names (models are now `InflowInvoice`/
-    `OutflowInvoice`). VERIFY: `rg -n "class SalesInvoice" apps/accounting`. If they don't exist,
-    this is a latent ImportError waiting to fire — fix it.
-  - `apps/stock/services/workflow.py:4` `from apps.accounting.services.journal import JournalService`
-  - `apps/stock/services/valuation.py:6` `from apps.accounting.services.org_defaults import stock_default`
-  - `apps/stock/services/coa_resolver.py:4,6` `from apps.accounting.models import Account` +
-    `from apps.accounting.services.org_defaults import acc_default`
-  - `apps/stock/services/posting.py:73` (already lazy/in-function — lower priority)
-- **accounting → stock** (the other half; mostly already lazy/in-function in `handlers.py`,
-  `payment.py`) — leave the in-function ones; they don't cause import cycles.
-
-`ServiceRegistry` (`core/service_registry.py`) is the decoupling tool: `register(name, obj)` /
-`get(name)`. Apps register their services/models in `register_services()` (see
-`core/workspace/app.py:36` for the pattern; `core/base/app.py:64` documents the hook). Accounting
-should register the services/models stock needs; stock resolves them via `ServiceRegistry.get(...)`
-instead of `from apps.accounting...`.
-
-Tier invariants unchanged. Attribution `# <model>` tag per new/changed fn/class.
+> Written by: Claude Code (claude-opus-4-8)
+> Date: 2026-06-08
+> Feature: Make DevTools a first-class framework module — surface its 16 tools through the standard menu system (sidebar app + TopMenuBar) and DELETE its bespoke in-page tab strip. One navigation system, fully framework-native (Option B).
 
 ---
 
-## P3.1a — Accounting registers what Stock consumes
-In `apps/accounting/app.py`, implement/extend `register_services()` (classmethod, like
-`core/workspace/app.py:36`) to register the symbols stock imports module-level:
-- `ServiceRegistry.register("JournalService", JournalService)`
-- `ServiceRegistry.register("Account", Account)` (the model)
-- the `org_defaults` helpers `stock_default` / `acc_default` — register as
-  `ServiceRegistry.register("acc_stock_default", stock_default)` and
-  `ServiceRegistry.register("acc_default", acc_default)` (or wrap them in a small services object and
-  register that — choose the cleaner option; functions are fine).
-- Confirm `register_services()` is actually CALLED during app load (grep how `register_services` is
-  invoked by the loader — `core/base/app.py`/discovery; workspace's version runs, so accounting's
-  will too once defined). If accounting already has a `register_services`, extend it; don't clobber
-  existing registrations.
+## Context & Problem
 
-## P3.1b — Stock resolves via ServiceRegistry (kill module-level apps imports)
-Rewrite the stock services to NOT import accounting at module load:
-- `apps/stock/services/coa_resolver.py`: replace the two top-level
-  `from apps.accounting...` with `ServiceRegistry.get("Account")` / `get("acc_default")` AT CALL TIME
-  (inside the methods that use them). Import `ServiceRegistry` from core (that's allowed — core is a
-  lower tier).
-- `apps/stock/services/valuation.py`: same for `stock_default` → `ServiceRegistry.get("acc_stock_default")`.
-- `apps/stock/services/workflow.py`: same for `JournalService` → `ServiceRegistry.get("JournalService")`,
-  and FIX the stale `SalesInvoice`/`SalesInvoiceLine` import — resolve the correct current model(s)
-  (`InflowInvoice`/`OutflowInvoice`) via `ServiceRegistry.get(...)` (register them in accounting's
-  `register_services` too) or via in-function import of the correct names. If `workflow.py`'s
-  `SalesInvoice` usage is DEAD code (the names don't exist and nothing calls it), remove the dead
-  path and note it — don't keep a broken import alive.
-- Guard `ServiceRegistry.get(...)` returning None (service not yet registered) with a clear error,
-  not an AttributeError — e.g. raise a descriptive RuntimeError "AccountingService 'X' not registered;
-  is the accounting app installed?".
+On `/admin/dev` two horizontal navigation systems stack:
+1. The framework's `TopMenuBar` (app module strip, driven by the active app's `menu_groups`).
+2. DevTools' OWN bespoke 16-tab strip rendered inside `ui/src/views/DevTools.tsx`.
 
-## P3.1c — App-coupling assertion (lock it in)
-- Add a test (e.g. `api/tests/test_app_coupling.py`) asserting that
-  `apps/stock/services/{coa_resolver,valuation,workflow}.py` contain NO MODULE-LEVEL
-  `from apps.accounting` import (parse the file's top-level AST / or regex the import lines outside
-  functions). In-function imports are allowed; module-level ones fail the test. This prevents the
-  cycle from creeping back. Keep it narrow (these 3 files) so it's not brittle.
+This is a double menu. The fix (Option B, user-chosen): DevTools stops shipping its own tab strip and instead exposes its 16 tools as normal menu entries through the framework's existing menu mechanism. After this change, navigating DevTools uses the SAME `TopMenuBar` every other app uses; each tool is its own route.
 
-## OUT OF SCOPE
-- The report app's lazy in-function `from apps.accounting...` imports (read-only consumer, low risk —
-  do NOT churn ~20 of them this run). POT's imports (note them as a follow-up but don't refactor now
-  unless trivial). accounting→stock in-function imports. Phase 0/1/2 code. Frontend (none expected).
-
-## Verification (agents MUST run before reporting)
-1. `rg -n "^from apps\.accounting|^\s{0,4}from apps\.accounting" apps/stock/services/coa_resolver.py
-   apps/stock/services/valuation.py apps/stock/services/workflow.py` → NO module-level matches
-   (in-function indented imports are OK if clearly inside a def).
-2. `rg -n "class SalesInvoice" apps/accounting` — confirm whether it ever existed; the stale import
-   must be gone either way.
-3. `cd api && python -m pytest tests/test_app_coupling.py tests/test_framework_isolation.py -q` → green.
-4. `cd api && python -m pytest tests/ apps/stock apps/accounting apps/report apps/pot -q -p no:warnings`
-   → no NEW failures (the stock posting/valuation/workflow paths still work — these are the risky ones).
-5. Real boot `--port 8802` → openapi 200, no ImportError/tracebacks, accounting+stock both load. Kill.
-6. Smoke the actual integration: a stock receipt that posts a journal (GRN.receive → valuation →
-   journal) still works end-to-end in a test, proving ServiceRegistry resolution works at runtime,
-   not just at import.
-
-Report: every file changed; whether `SalesInvoice` was stale/dead; what accounting registered;
-the coupling-test approach; confirmation the stock→journal integration still runs.
-
-## Agent Reports
-<!-- agents fill this -->
-
-## Claude Review
-<!-- Claude fills verdict after reviewing agent output -->
-
-## Revision Tasks
-<!-- If verdict is NEEDS-FIX, list tasks here then re-run multi_agent.py -->
-
+**Key enabling fact (already verified — DO NOT add new framework plumbing):**
+`api/core/base/app.py` menu builder ALREADY supports custom links inside `menu_groups`:
+```python
+# Custom links: {"label": "...", "path": "...", "icon": "..."}
+for link in group.get("links", []):
+    group_items.append({"type": "link", "name": ..., "label": ..., "path": link["path"], "icon": ...})
+```
+So DevTools' tools are expressed as `links` in `menu_groups` — ZERO backend framework changes needed. The frontend `TopMenuBar` already renders `type: "link"` items as navigation to their `path`.
 
 ---
-## Agent Reports (revision (2026-06-05))
 
-### Backend (Claude (claude-sonnet-4-6))
-- files_written: none
-- features_added: none
-- fixes_applied: none
-- framework_changes: none
-- issues: none
+## The 16 DevTools tools (current tab → component → target route)
 
-### Frontend (Claude (claude-sonnet-4-6))
-- files_written: none
-- features_added: none
-- fixes_applied: none
-- framework_changes: none
-- issues: No frontend tasks in this spec. The spec explicitly states "Frontend (none expected)" under OUT OF SCOPE. All tasks (P3.1a, P3.1b, P3.1c) are backend-only — ServiceRegistry registration, stock service rewrites, and coupling assertion tests. Frontend worker has nothing to implement.
+Current tabs live in `ui/src/views/DevTools.tsx` `tabs[]` (lines ~128-145). Each maps to a render block or component:
 
-## Claude Review
-- verdict: APPROVED
-- reviewed_by: Claude Code (opus-4-8)
-- date: 2026-06-05
-- notes: |
-    Implementation correct despite the agent's misleading "files_written: none" report — the
-    files WERE edited. Verified on disk:
-    - No module-level `from apps.accounting` in coa_resolver/valuation/workflow (AST + rg confirmed).
-    - Stale `SalesInvoice`/`SalesInvoiceLine` removed (class never existed in accounting); workflow
-      now resolves `OutflowInvoice`/`OutflowInvoiceLine` via ServiceRegistry at call time.
-    - `apps/accounting/app.py::register_services` registers JournalService, PaymentService,
-      Inflow/OutflowInvoice(+Line), Account, acc_default, acc_stock_default. Loader
-      (service_bootstrap.register_services) drives it at boot.
-    - Resolvers guard None with descriptive RuntimeError, not AttributeError.
-    - tests/test_app_coupling.py: AST-based, top-level-only, narrow to the 3 files. Robust.
-    - test_app_coupling + test_framework_isolation green (5 passed).
-    - Real boot port 8802: openapi 200, "Service registration completed.", no ImportError/RuntimeError.
-    REGRESSION FOUND & FIXED BY CLAUDE: decoupling broke 9 tests (stock guardrails + accounting
-    invoice_flow) — conftest stubs bootstrap, so ServiceRegistry was empty in pytest and resolvers
-    raised "Account not registered". Fix: conftest.py now calls service_bootstrap.register_services()
-    at import time (mirrors real boot). Full stock+accounting+report+pot suite now green (1 xfail baseline).
+| Tool | Component (in `ui/src/views/devtools/` unless noted) | New route | Icon |
+|------|------|------|------|
+| Overview | inline block in DevTools.tsx (+ `<SystemTab/>`, `<TenantSwitcher/>`) → extract to `views/devtools/OverviewTab.tsx` | `/admin/dev` (index) | LayoutDashboard |
+| Workbench | inline block in DevTools.tsx (WorkflowCards) → extract to `views/devtools/WorkbenchTab.tsx` | `/admin/dev/workbench` | Wrench |
+| Schema | `SchemaTab` | `/admin/dev/schema` | GitCompare |
+| Timeline | `RequestTimeline` | `/admin/dev/timeline` | Activity |
+| Routes | `RouteDebugger` | `/admin/dev/routes-debug` | Route |
+| Models | `ModelRegistry` | `/admin/dev/models` | Boxes |
+| Cache | `CacheControl` | `/admin/dev/cache` | Trash2 |
+| Commands | `DevCommandPalette` | `/admin/dev/commands` | Command |
+| Test Lab | `ApiConsole` | `/admin/dev/test-lab` | Zap |
+| SQL Runner | `SqlRunner` | `/admin/dev/sql` | Terminal |
+| Access | `AccessTab` | `/admin/dev/access` | Shield |
+| Handoff | inline block in DevTools.tsx (handoff runs table + drawer) → extract to `views/devtools/HandoffTab.tsx` | `/admin/dev/handoff` | GitBranch |
+| Mocks | `MockGallery` (currently defined INSIDE DevTools.tsx) → extract to `views/devtools/MockGallery.tsx` | `/admin/dev/mocks` | Globe |
+| API Help | inline block in DevTools.tsx → extract to `views/devtools/ApiHelpTab.tsx` | `/admin/dev/api-help` | Code2 |
+| Scaffold | `ScaffoldTab` | `/admin/dev/scaffold` | Code2 |
+| Logs | `LogStream` | `/admin/dev/logs` | AlertTriangle |
 
-## Revision Tasks
-<!-- APPROVED — none -->
+> NOTE on route naming: existing `App.tsx` ALREADY has `dev/routes`, `dev/health`, `dev/tasks`, `dev/template-builder`, `dev/help`, `dev/activity-heatmap`, `dev/handoff-runs`, and catch-alls `dev/:resource` + `dev/table/...`. To avoid collisions, use the NEW paths in the table above (e.g. `routes-debug`, `test-lab`). The catch-all `dev/:resource` MUST be declared AFTER all explicit dev tool routes or it will swallow them.
+
+---
+
+## Backend Tasks (Gemini)
+
+### 1. Give the dev app real `menu_groups` of links
+UPDATE `api/apps/dev/app.py` (the `DevToolsApp` class).
+- Keep `hide_from_sidebar` ABSENT/False (DevTools must appear in the sidebar icon rail as a normal app).
+- Keep `have_home = True` (so clicking the app navigates to its home `/admin/dev`).
+- Add a `menu_groups` class attribute grouping the 16 tools as **links** (NOT models). Group them logically:
+  ```python
+  menu_groups = [
+      {"label": "Inspect", "icon": "Search", "links": [
+          {"name": "dev_overview", "label": "Overview", "path": "/admin/dev", "icon": "LayoutDashboard"},
+          {"name": "dev_schema", "label": "Schema", "path": "/admin/dev/schema", "icon": "GitCompare"},
+          {"name": "dev_models", "label": "Models", "path": "/admin/dev/models", "icon": "Boxes"},
+          {"name": "dev_routes", "label": "Routes", "path": "/admin/dev/routes-debug", "icon": "Route"},
+          {"name": "dev_timeline", "label": "Timeline", "path": "/admin/dev/timeline", "icon": "Activity"},
+      ]},
+      {"label": "Operate", "icon": "Wrench", "links": [
+          {"name": "dev_workbench", "label": "Workbench", "path": "/admin/dev/workbench", "icon": "Wrench"},
+          {"name": "dev_cache", "label": "Cache", "path": "/admin/dev/cache", "icon": "Trash2"},
+          {"name": "dev_commands", "label": "Commands", "path": "/admin/dev/commands", "icon": "Command"},
+          {"name": "dev_sql", "label": "SQL Runner", "path": "/admin/dev/sql", "icon": "Terminal"},
+          {"name": "dev_access", "label": "Access", "path": "/admin/dev/access", "icon": "Shield"},
+      ]},
+      {"label": "Build & Test", "icon": "Code", "links": [
+          {"name": "dev_testlab", "label": "Test Lab", "path": "/admin/dev/test-lab", "icon": "Zap"},
+          {"name": "dev_scaffold", "label": "Scaffold", "path": "/admin/dev/scaffold", "icon": "Code2"},
+          {"name": "dev_mocks", "label": "Mocks", "path": "/admin/dev/mocks", "icon": "Globe"},
+          {"name": "dev_apihelp", "label": "API Help", "path": "/admin/dev/api-help", "icon": "Code2"},
+          {"name": "dev_handoff", "label": "Handoff", "path": "/admin/dev/handoff", "icon": "GitBranch"},
+          {"name": "dev_logs", "label": "Logs", "path": "/admin/dev/logs", "icon": "AlertTriangle"},
+      ]},
+  ]
+  ```
+  (Exact grouping/labels above are the target; keep all 16 tools.)
+- The dev app's `models = [...]` list (Aras.AppModel etc.) must NOT appear as standalone menu items cluttering the strip. The menu builder auto-appends visible models not in any group into a "General" group. To suppress that, the dev app's framework/registry models are introspection models, not CRUD destinations — verify they are already non-visible in the menu (check `_view_label`/visible_models logic in `api/core/base/app.py`); if they DO leak into the menu, the cleanest fix is to ensure those models are marked hidden from menu (e.g. `__hidden__`/menu-exclude flag the framework already honors — confirm the attribute name in `app.py` before using; do NOT invent a new one). Report what you found.
+
+### 2. Sync so the manifest persists
+- After editing, the menu_groups land in the DB-backed app manifest via the registry sync engine on `python manage.py sync` (run by the user). No migration needed. Confirm `get_manifest()` emits the new `menu_groups`.
+
+### 3. Verify
+- `cd api && python manage.py sync` (user runs) → dev app manifest carries the 3 groups, 16 links.
+- The `/app-menu/dev` (or equivalent menu endpoint the frontend calls — see `ui/src/layouts/hooks/useAppMenu.ts`, it requests `normalizeRoutePath(activeApp.path||/dev).replace(/^\//,'')`) returns the grouped link menu.
+
+---
+
+## Frontend Tasks (Codex)
+
+### 1. Extract each DevTools tab body into its own routed view
+The bespoke tab strip in `ui/src/views/DevTools.tsx` is being DELETED. Each tool becomes a standalone view rendered by a route.
+- Tools already backed by a standalone component (`SchemaTab`, `RequestTimeline`, `RouteDebugger`, `ModelRegistry`, `CacheControl`, `DevCommandPalette`, `ApiConsole`, `SqlRunner`, `AccessTab`, `LogStream`, `ScaffoldTab`) — just route to them directly.
+- Tools currently inline inside DevTools.tsx — EXTRACT into new files under `ui/src/views/devtools/`:
+  - `OverviewTab.tsx` — the overview block (stat strip, quick actions, tenant switcher, framework info, `<SystemTab/>`, registries, DB stats). Move the overview-only helper components it uses (`StatCell`, `ActionChip`, `InfoRow`, `RegistryCard`, and the data fetch for `info`/`stats`) with it.
+  - `WorkbenchTab.tsx` — the workbench WorkflowCards block (and `WorkflowCard`, `InspectButton`, `MiniMetric` helpers if only used here).
+  - `HandoffTab.tsx` — handoff runs table + detail drawer + `fetchHandoffRuns`.
+  - `MockGallery.tsx` — move the `MockGallery`/`MockCard`/`MOCK_ENTRIES` currently defined inside DevTools.tsx into this file; export default.
+  - `ApiHelpTab.tsx` — the API Help block (Swagger links + endpoint list).
+- Each extracted view is self-contained (does its own data fetching). Preserve all current behavior, styling (design tokens — `var(--surface)` etc.), and the `MockGallery` live-preview design just built.
+
+### 2. Replace the DevTools shell
+`ui/src/views/DevTools.tsx` becomes a THIN layout/index:
+- DELETE the `tabs[]` array, the tab strip render (the `filteredTabs.map(...)` button bar), the `activeTab` state, the `?tab=` syncing, and all the `{activeTab === '...' && ...}` blocks.
+- KEEP a slim DevTools header if useful (title + global Sync button + `<DevHealthPanel/>`), OR drop the header entirely and let each routed view stand alone — choose the cleaner result; the module strip (`TopMenuBar`) now provides tool navigation.
+- DevTools.tsx (route `/admin/dev`) should render the Overview view as the index.
+
+### 3. Register routes in `ui/src/App.tsx`
+Add explicit routes (lazy-imported) for every tool, placed BEFORE the existing catch-all `dev/:resource` routes (lines ~260-261) so they aren't swallowed:
+```tsx
+<Route path="dev" element={<DevToolsView />} />            {/* index = Overview */}
+<Route path="dev/workbench" element={<WorkbenchTab />} />
+<Route path="dev/schema" element={<SchemaTab />} />
+<Route path="dev/timeline" element={<RequestTimeline />} />
+<Route path="dev/routes-debug" element={<RouteDebugger />} />
+<Route path="dev/models" element={<ModelRegistry />} />
+<Route path="dev/cache" element={<CacheControl />} />
+<Route path="dev/commands" element={<DevCommandPalette />} />
+<Route path="dev/test-lab" element={<ApiConsole />} />
+<Route path="dev/sql" element={<SqlRunner />} />
+<Route path="dev/access" element={<AccessTab />} />
+<Route path="dev/handoff" element={<HandoffTab />} />
+<Route path="dev/mocks" element={<MockGallery />} />
+<Route path="dev/api-help" element={<ApiHelpTab />} />
+<Route path="dev/scaffold" element={<ScaffoldTab />} />
+<Route path="dev/logs" element={<LogStream />} />
+{/* existing dev/template-builder, dev/health, dev/tasks, dev/help, dev/activity-heatmap, dev/handoff-runs stay */}
+{/* the catch-all dev/:resource and dev/table/* MUST remain AFTER all of the above */}
+```
+Ensure the existing `dev/routes` (InspectRoutesView) and the new `dev/routes-debug` (RouteDebugger) don't conflict — they are different tools; keep both.
+
+### 4. Update internal navigation
+- Anywhere in the codebase that did `setActiveTab('handoff')`, `?tab=...`, or navigated within DevTools via tab state must now use the new routes (e.g. `navigate('/admin/dev/handoff')`). Grep `setActiveTab`, `?tab=`, and `activeTab` usages outside DevTools.tsx (e.g. `DevHealthPanel.tsx`, `DevCommandPalette.tsx`) and repoint them.
+- The DevCommandPalette tool entries that jump to tabs must navigate to routes instead.
+
+### 5. Verify
+- `cd ui && npx tsc --noEmit` → clean.
+- `/admin/dev` shows the module strip (3 groups, 16 links) from `TopMenuBar`, NO second bespoke tab strip, and renders Overview.
+- Each link routes to the correct tool view.
+
+---
+
+## Invariants (must hold)
+- NO new framework menu plumbing — reuse the existing `menu_groups[].links` mechanism in `api/core/base/app.py`.
+- DevTools has exactly ONE navigation system after this change (the framework `TopMenuBar`); the bespoke `tabs[]` strip is gone.
+- All 16 tools remain reachable; no tool lost.
+- `dev/:resource` catch-all stays LAST among dev routes.
+- Design tokens preserved; the new MockGallery preview UI preserved.
+- Frontend `tsc --noEmit` clean; backend `manage.py sync` emits the new menu.
+
+---
+<!-- ── Below this line is filled automatically by multi_agent.py + Claude ── -->

@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 
 class Provisioner(Aras):
     @classmethod
-    def provision_tenant(cls, db, subscription):
+    def provision_tenant(cls, db, subscription, region: str = None):
         """
         Full flow:
         1. Core provision (DB + migrations + registry)
@@ -22,11 +22,11 @@ class Provisioner(Aras):
         tenant_id = f"{slug}-{subscription.id}"
         db_name = f"tenant_{subscription.id}_{slug.replace('-', '_')}"
         
-        logging.info(f"Provisioning tenant for sub {subscription.id}: {tenant_id}")
+        logging.info(f"Provisioning tenant for sub {subscription.id}: {tenant_id} (region: {region})")
         
         try:
             # 1. Create DB and run migrations
-            core_provision_tenant(tenant_id, db_name)
+            core_provision_tenant(tenant_id, db_name, region=region)
             
             # 2. Seed basic data
             seed_tenant(tenant_id)

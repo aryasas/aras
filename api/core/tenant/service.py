@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 
 from core.tenant.registry import tenant_registry
 from core.tenant.provisioner import provision_tenant as _provision_tenant
@@ -18,11 +19,11 @@ def _slugify_db_name(tenant_id: str) -> str:
         slug = f"t_{slug}"
     return f"tenant_{slug}"[:63]
 
-def provision_tenant(db, tenant_id: str, apps=("core_config",), existing=False, db_name=None):
+def provision_tenant(db, tenant_id: str, apps=("core_config",), existing=False, db_name=None, region: Optional[str] = None):
     # Normalize default; validate any caller-supplied name early for a clean 400.
     db_name = db_name or _slugify_db_name(tenant_id)
     _validate_db_identifier(db_name)
-    return _provision_tenant(tenant_id, db_name)
+    return _provision_tenant(tenant_id, db_name, apps=apps, region=region)
 
 def delete_tenant(db, tenant_id: str):
     ok = _deprovision_tenant(tenant_id)

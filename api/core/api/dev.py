@@ -168,9 +168,10 @@ def get_db_stats(
         "core_apps", "core_resources", "core_fields",
         "core_links", "core_activity_logs", "core_users",
         "core_roles", "core_permissions", "core_settings",
-        "dev_handoff_runs"
+        "dev_handoff_runs", "dev_template_annotations",
     ]
 
+    # gemini-3-flash-preview
     stats = []
     for table in tables:
         try:
@@ -178,6 +179,13 @@ def get_db_stats(
             stats.append({"table": table, "rows": count})
         except Exception:
             stats.append({"table": table, "rows": 0})
+
+    # in-memory error log (not a DB table)
+    try:
+        from apps.dev.metrics_router import error_log_entries
+        stats.append({"table": "dev_error_logs", "rows": len(error_log_entries)})
+    except Exception:
+        stats.append({"table": "dev_error_logs", "rows": 0})
 
     return stats
 

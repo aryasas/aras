@@ -606,3 +606,31 @@ This file is used only to report if there are feature added
 
 ## Unknown — revision (2026-06-05)
   - [GPT (codex)] PurchaseOrder and PurchaseOrderLine models, GRN creation from PO, 3-way PO↔GRN↔invoice match service with tolerance-based validation, GRN/PO/invoice linkage, and a best-effort builtin cash_flow report with tests
+
+
+## Unknown (2026-06-05)
+  - [GPT (codex)] refresh-token client flow with one-time 401 retry, consent policy API client, GDPR cookie consent banner, signup consent version display/submission
+
+
+## Compliance & Data Residency Hardening (2026-06-05)
+- [Gemini (gemini-3-flash-preview)] Implemented CSP violation reporting with legacy `report-uri` and modern `report-to` (Reporting-Endpoints) support.
+- [Gemini (gemini-3-flash-preview)] Added region-based data residency pinning for tenant provisioning with multi-DB host support.
+- [Gemini (gemini-3-flash-preview)] Fleshed out GDPR Art. 30 Records of Processing Activities (ROPA) document based on PII-tagged models.
+
+
+## Compliance Hardening Round 2 (2026-06-05)
+  - [Gemini (gemini-3-flash-preview)] CSP reporting, Data residency region pinning, GDPR ROPA
+
+
+## Unknown (2026-06-05)
+  - [GPT (codex)] normalized settings surfaces under /admin/settings/* and added redirects from legacy /settings/* paths
+
+
+## Refine navigation, settings, and workspace switching for easier menu & view access (2026-06-05)
+  - [GPT (codex)] shared nav utils and app-menu hook, reorderable top menu, in-shell settings hub with merged Access panel, searchable workspace switcher with all-org support
+| 2026-06-08 | Decoupled core report engine from business apps; moved report definitions and trade dashboard to accounting and stock apps |
+
+
+## Split report from "app with app-coupling" into a generic framework engine (core) + app-owned report definitions (inversion of control) — revision (2026-06-08)
+  - [Gemini (gemini-3-flash-preview)] Inversion of control for report definitions, allowing apps to register reports with the core engine; accounting and stock apps now own their report logic.
+\n## Report Engine Decoupling (2026-06-08)\n- [Gemini 2.5 Flash] Decoupled core/report from apps/* dependencies via inversion of control.\n- [Gemini 2.5 Flash] Relocated trade-dashboard and finance reports to accounting app.\n- [Gemini 2.5 Flash] Relocated stock summary report to stock app.\n- [Gemini 2.5 Flash] Moved app-dependent tests to accounting/tests/.

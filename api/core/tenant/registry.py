@@ -55,7 +55,7 @@ class TenantRegistry:
                 json.dump(self._tenants, f, indent=4)
 
     def register(
-        self, tenant_id: str, db_url: str, meta: Optional[Dict[str, Any]] = None
+        self, tenant_id: str, db_url: str, meta: Optional[Dict[str, Any]] = None, region: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Registers a new tenant or updates an existing one.
@@ -64,12 +64,18 @@ class TenantRegistry:
             tenant_id: The unique identifier for the tenant.
             db_url: The database connection URL for the tenant.
             meta: Optional dictionary for additional metadata.
+            region: Optional region for data residency (e.g. 'eu', 'us', 'sea').
 
         Returns:
             The full record of the registered tenant.
         """
         with self._lock:
-            tenant_data = {"tenant_id": tenant_id, "db_url": db_url, "meta": meta or {}}
+            tenant_data = {
+                "tenant_id": tenant_id, 
+                "db_url": db_url, 
+                "region": region,
+                "meta": meta or {}
+            }
             self._tenants[tenant_id] = tenant_data
             self._save()
             return tenant_data

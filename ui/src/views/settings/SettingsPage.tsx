@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Outlet, useOutlet, useSearchParams } from 'react-router-dom'
 import { Settings } from 'lucide-react'
 import SettingsForm from './SettingsForm'
 import SettingsNamespaceList from './SettingsNamespaceList'
@@ -12,6 +12,7 @@ function namespaceFromSectionKey(sectionKey: string | null) {
 }
 
 export default function SettingsPage() {
+  const outlet = useOutlet()
   const [searchParams, setSearchParams] = useSearchParams()
   const setPageTitle = useUIStore((state) => state.setPageTitle)
   const [namespaces, setNamespaces] = useState<SettingsNamespace[]>([])
@@ -67,7 +68,7 @@ export default function SettingsPage() {
       <aside className="hidden w-72 shrink-0 border-r border-[var(--line)] bg-[var(--bg-2)] md:block">
         <div className="border-b border-[var(--line)] px-5 py-4">
           <div className="arc-id arc-dim2">settings</div>
-          <h1 className="mt-1 text-[16px] font-semibold text-[var(--text)]">App Settings</h1>
+          <h1 className="mt-1 text-[16px] font-semibold text-[var(--text)]">Settings Hub</h1>
         </div>
         <SettingsNamespaceList selectedNamespace={selectedNamespace} onSelect={selectNamespace} onLoaded={handleLoaded} />
       </aside>
@@ -84,12 +85,14 @@ export default function SettingsPage() {
           <div className="min-w-0">
             <h2 className="truncate text-[20px] font-semibold text-[var(--text)]">{selected?.label || selectedNamespace || 'Settings'}</h2>
             <p className="arc-mono mt-0.5 truncate text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">
-              {selectedNamespace ? `namespace/${selectedNamespace}` : 'select a namespace'}
+              {outlet ? 'settings/workbench' : selectedNamespace ? `namespace/${selectedNamespace}` : 'select a namespace'}
             </p>
           </div>
         </div>
 
-        {selectedNamespace ? (
+        {outlet ? (
+          <Outlet />
+        ) : selectedNamespace ? (
           <SettingsForm
             key={selectedNamespace}
             namespace={selectedNamespace}

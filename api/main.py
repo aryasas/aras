@@ -47,6 +47,8 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 # Discover and load all apps
+import core.settings  # framework-tier app — not under apps/, must be explicit  # noqa: F401
+import core.report   # framework-tier app — not under apps/, must be explicit  # noqa: F401
 Aras.logic.discovery.discover_apps(package_path="apps")
 
 # Register core master data entities
@@ -218,6 +220,12 @@ app.add_middleware(SecurityHeadersMiddleware)
 from core.auth.routes import router as auth_router
 from core.auth.service import get_current_user
 app.include_router(auth_router, prefix="/api/v1")
+
+# gemini-3-flash-preview
+from core.registry.consent_policy import router as consent_router
+from core.api.routes.csp_report import router as csp_report_router
+app.include_router(consent_router, prefix="/api/v1")
+app.include_router(csp_report_router, prefix="/api/v1")
 
 # Tier 2 API Routers
 app.include_router(Aras.api.query.router, prefix="/api/v1")

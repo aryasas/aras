@@ -2,7 +2,7 @@ import os
 import re
 import logging
 from datetime import datetime, timezone
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from sqlalchemy import create_engine, text
 from .registry import tenant_registry
@@ -32,33 +32,35 @@ def _quote_db_identifier(conn, name: str) -> str:
     return conn.dialect.identifier_preparer.quote(name)
 
 
-def _get_admin_connection():
+def _get_admin_connection(region: Optional[str] = None):
     """Return a SQLAlchemy engine connected to the postgres admin DB."""
     # gemini-pro: prioritize TENANT_DB_* for multi-db docker setup
-    user = os.getenv("TENANT_DB_USER") or os.getenv("DB_USER", "postgres")
-    password = os.getenv("TENANT_DB_PASSWORD") or os.getenv("DB_PASSWORD", "")
-    host = os.getenv("TENANT_DB_HOST") or os.getenv("DB_HOST", "localhost")
-    port = os.getenv("TENANT_DB_PORT") or os.getenv("DB_PORT", "5432")
+    suffix = f"_{region.upper()}" if region else ""
+    user = os.getenv(f"TENANT_DB_USER{suffix}") or os.getenv("TENANT_DB_USER") or os.getenv("DB_USER", "postgres")
+    password = os.getenv(f"TENANT_DB_PASSWORD{suffix}") or os.getenv("TENANT_DB_PASSWORD") or os.getenv("DB_PASSWORD", "")
+    host = os.getenv(f"TENANT_DB_HOST{suffix}") or os.getenv("TENANT_DB_HOST") or os.getenv("DB_HOST", "localhost")
+    port = os.getenv(f"TENANT_DB_PORT{suffix}") or os.getenv("TENANT_DB_PORT") or os.getenv("DB_PORT", "5432")
     pw = f":{password}" if password else ""
     url = f"postgresql+psycopg2://{user}{pw}@{host}:{port}/postgres"
     return create_engine(url, isolation_level="AUTOCOMMIT")
 
 
-def _build_tenant_db_url(db_name: str) -> str:
+def _build_tenant_db_url(db_name: str, region: Optional[str] = None) -> str:
     # gemini-pro: prioritize TENANT_DB_* for multi-db docker setup
-    user = os.getenv("TENANT_DB_USER") or os.getenv("DB_USER", "postgres")
-    password = os.getenv("TENANT_DB_PASSWORD") or os.getenv("DB_PASSWORD", "")
-    host = os.getenv("TENANT_DB_HOST") or os.getenv("DB_HOST", "localhost")
-    port = os.getenv("TENANT_DB_PORT") or os.getenv("DB_PORT", "5432")
+    suffix = f"_{region.upper()}" if region else ""
+    user = os.getenv(f"TENANT_DB_USER{suffix}") or os.getenv("TENANT_DB_USER") or os.getenv("DB_USER", "postgres")
+    password = os.getenv(f"TENANT_DB_PASSWORD{suffix}") or os.getenv("TENANT_DB_PASSWORD") or os.getenv("DB_PASSWORD", "")
+    host = os.getenv(f"TENANT_DB_HOST{suffix}") or os.getenv("TENANT_DB_HOST") or os.getenv("DB_HOST", "localhost")
+    port = os.getenv(f"TENANT_DB_PORT{suffix}") or os.getenv("TENANT_DB_PORT") or os.getenv("DB_PORT", "5432")
     pw = f":{password}" if password else ""
     return f"postgresql+psycopg2://{user}{pw}@{host}:{port}/{db_name}"
 
 
-def provision_tenant(tenant_id: str, db_name: str, apps: tuple = ("core_config",), extra: tuple = ()) -> Dict[str, Any]:
+def provision_tenant(tenant_id: str, db_name: str, apps: tuple = ("core_config",), extra: tuple = (), region: Optional[str] = None) -> Dict[str, Any]:
     """
     Complete flow for new tenant: Create DB, Run Migrations, Register.
     """
-    logger.info(f"Provisioning tenant '{tenant_id}'...")
+    logger.info(f"Provisioning tenant '{tenant_id}' (region: {region or 'default'})...")
 
     # 1. Validation
     if tenant_registry.get(tenant_id):
@@ -66,7 +68,7 @@ def provision_tenant(tenant_id: str, db_name: str, apps: tuple = ("core_config",
     _validate_db_identifier(db_name)  # SQLi guard before any raw DDL
 
     # 3. Create Database
-    admin_engine = _get_admin_connection()
+    admin_engine = _get_admin_connection(region)
     try:
         with admin_engine.connect() as conn:
             # Check if exists (bind param — no interpolation)
@@ -83,7 +85,7 @@ def provision_tenant(tenant_id: str, db_name: str, apps: tuple = ("core_config",
     finally:
         admin_engine.dispose()
 
-    tenant_db_url = _build_tenant_db_url(db_name)
+    tenant_db_url = _build_tenant_db_url(db_name, region)
     engine = create_engine(tenant_db_url)
 
     # gemini-pro: initialize schema via metadata first to ensure all tables exist for mixed migrations
@@ -115,8 +117,17 @@ def provision_tenant(tenant_id: str, db_name: str, apps: tuple = ("core_config",
         logger.error(f"Schema sync failed for tenant '{tenant_id}': {e}")
         raise
 
-    tenant_info = tenant_registry.register(tenant_id, db_url=tenant_db_url, meta={"db_name": db_name})
-    logger.info(f"Tenant '{tenant_id}' provisioned and registered.")
+    # If only one DB target is configured, default region and record it
+    # We use the provided region or default to what's available
+    effective_region = region or os.getenv("TENANT_DEFAULT_REGION", "sea")
+    
+    tenant_info = tenant_registry.register(
+        tenant_id, 
+        db_url=tenant_db_url, 
+        meta={"db_name": db_name},
+        region=effective_region
+    )
+    logger.info(f"Tenant '{tenant_id}' provisioned and registered in region '{effective_region}'.")
 
     # Install apps
     all_apps = list(apps) + list(extra)
