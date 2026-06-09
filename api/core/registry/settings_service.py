@@ -9,11 +9,22 @@ from .config_registry import config_registry, ConfigField, ConfigSection
 logger = logging.getLogger(__name__)
 
 class SettingsService:
-    _cache: Dict[tuple[str, str], Any] = {}
+    _cache: Dict[tuple[str, str, str], Any] = {}
+
+    @classmethod
+    def _resolve_level(cls, namespace: str, key: str) -> str:
+        section = cls._get_section_for_field(namespace, key)
+        if section and getattr(section, "level", None):
+            return section.level
+        sections = config_registry.by_app(namespace)
+        if sections and getattr(sections[0], "level", None):
+            return sections[0].level
+        return "app"
 
     @classmethod
     def get(cls, db: Session, namespace: str, key: str, default: Any = None) -> Any:
-        cache_key = (namespace, key)
+        level = cls._resolve_level(namespace, key)
+        cache_key = (namespace, key, level)
         if cache_key in cls._cache:
             return cls._cache[cache_key]
 
@@ -21,7 +32,7 @@ class SettingsService:
         field_def = cls._get_field_def(namespace, key)
         
         # 2. Check DB for override
-        row = db.query(Settings).filter_by(namespace=namespace, key=key).first()
+        row = db.query(Settings).filter_by(namespace=namespace, key=key, level=level).first()
         
         if row:
             value = cls._cast_value(row.value, field_def.type if field_def else row.value_type)
@@ -36,6 +47,7 @@ class SettingsService:
     @classmethod
     def set(cls, db: Session, namespace: str, key: str, value: Any, user_id: int = None) -> Settings:
         field_def = cls._get_field_def(namespace, key)
+        level = cls._resolve_level(namespace, key)
         
         if field_def and field_def.validator:
             if not field_def.validator(value):
@@ -49,7 +61,7 @@ class SettingsService:
         value_type = field_def.type if field_def else "str"
         is_secret = field_def.secret if field_def else False
 
-        row = db.query(Settings).filter_by(namespace=namespace, key=key).first()
+        row = db.query(Settings).filter_by(namespace=namespace, key=key, level=level).first()
         if row:
             row.value = str_value
             row.value_type = value_type
@@ -59,6 +71,7 @@ class SettingsService:
             row = Settings(
                 namespace=namespace,
                 key=key,
+                level=level,
                 value=str_value,
                 value_type=value_type,
                 is_secret=is_secret,
@@ -94,12 +107,18 @@ class SettingsService:
             result[section.key] = section_data
             
         # 2. Overlay with DB values
-        rows = db.query(Settings).filter_by(namespace=namespace).all()
+        level = "app"
+        if sections:
+            level = sections[0].level
+        rows = db.query(Settings).filter_by(namespace=namespace, level=level).all()
         for row in rows:
             # Find which section this key belongs to
             section_key = None
             field_def = None
+            dynamic_section = None
             for section in sections:
+                if getattr(section, "dynamic", False) and dynamic_section is None:
+                    dynamic_section = section
                 for f in section.fields:
                     if f.key == row.key:
                         section_key = section.key
@@ -112,6 +131,9 @@ class SettingsService:
                 if field_def.secret and not reveal_secrets:
                     val = "***"
                 result[section_key][row.key] = val
+            elif dynamic_section:
+                result.setdefault(dynamic_section.key, {})
+                result[dynamic_section.key][row.key] = cls._cast_value(row.value, row.value_type)
                 
         return result
 
@@ -126,7 +148,7 @@ class SettingsService:
 
     @classmethod
     def schema(cls, namespace: str) -> dict:
-        sections = config_registry.by_app(namespace)
+        sections = [s for s in config_registry.by_app(namespace) if not s.hidden]
         return {
             "namespace": namespace,
             "sections": [
@@ -134,6 +156,7 @@ class SettingsService:
                     "key": s.key,
                     "label": s.label,
                     "icon": s.icon,
+                    "order": s.order,
                     "fields": [
                         {
                             "key": f.key,
@@ -152,7 +175,8 @@ class SettingsService:
     @classmethod
     def invalidate_cache(cls, namespace: str, key: str = None):
         if key:
-            cls._cache.pop((namespace, key), None)
+            level = cls._resolve_level(namespace, key)
+            cls._cache.pop((namespace, key, level), None)
         else:
             keys_to_remove = [k for k in cls._cache.keys() if k[0] == namespace]
             for k in keys_to_remove:

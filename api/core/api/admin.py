@@ -160,7 +160,7 @@ def get_quick_actions(
     # 2. Standard Routes
     standard_routes = [
         {"label": "Dashboard", "target": "/dashboard", "icon": "LayoutDashboard"},
-        {"label": "Settings", "target": "/settings", "icon": "Settings"},
+        {"label": "Administration", "target": "/settings", "icon": "Settings"},
         {"label": "User Profile", "target": "/profile", "icon": "User"},
     ]
     for r in standard_routes:

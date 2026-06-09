@@ -161,6 +161,7 @@ class WidgetModel(Model):
     Widgets can be Stats, Charts, or Recent Activity lists.
     """
     __tablename__ = "core_widgets"
+    __hidden__ = True
 
     name = Column(String(100), nullable=False)
     title = Column(String(100), nullable=False)

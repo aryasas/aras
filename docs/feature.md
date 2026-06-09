@@ -1,3 +1,8 @@
+## Custom Page Render Mode & DevTools Migration (2026-06-08)
+- [Gemini 2.5 Flash] Added generic `type: "custom"` support to `App.get_menu_structure` for rendering app-owned React components via metadata.
+- [Gemini 2.5 Flash] Implemented `__hidden__` flag for models to suppress them from the menu strip.
+- [Gemini 2.5 Flash] Migrated DevTools 16 tools to custom pages and hid all introspection models.
+
 ## Docker Multi-Tenant E2E Stack (2026-05-30)
 - [Gemini 2.5 Flash] Refreshed root `Dockerfile` and `ui/Dockerfile` with healthchecks and build arguments.
 - [Gemini 2.5 Flash] Rewrote `docker-compose.yml` for a 4-tenant multi-container environment with shared tenant Postgres.
@@ -634,3 +639,15 @@ This file is used only to report if there are feature added
 ## Split report from "app with app-coupling" into a generic framework engine (core) + app-owned report definitions (inversion of control) — revision (2026-06-08)
   - [Gemini (gemini-3-flash-preview)] Inversion of control for report definitions, allowing apps to register reports with the core engine; accounting and stock apps now own their report logic.
 \n## Report Engine Decoupling (2026-06-08)\n- [Gemini 2.5 Flash] Decoupled core/report from apps/* dependencies via inversion of control.\n- [Gemini 2.5 Flash] Relocated trade-dashboard and finance reports to accounting app.\n- [Gemini 2.5 Flash] Relocated stock summary report to stock app.\n- [Gemini 2.5 Flash] Moved app-dependent tests to accounting/tests/.
+
+
+## Custom Page Render Mode & DevTools Migration (2026-06-08)
+  - [Gemini 2.5 Flash] Added generic type: "custom" support to App.get_menu_structure for custom React components. Implemented __hidden__ flag for models.
+
+
+## (1) Add a generic **Custom Page** render mode to the framework — a third metadata-driven view type alongside the existing ListView and FormView/AppHome, letting any app declare a menu entry/route that renders an app-owned React component. (2) Make DevTools a first-class framework module that consumes this new mode — surface its 16 tools through the standard menu system (sidebar app + TopMenuBar) as custom pages, and DELETE its bespoke in-page tab strip. DevTools is the proving consumer of the generic loader. (2026-06-08)
+  - [GPT (codex)] Generic metadata-driven custom-page rendering via registry/dispatcher, plus DevTools converted into 16 framework-routed custom pages with extracted Overview, Workbench, Handoff, Mock Gallery, and API Help views
+
+
+## Consolidate admin surfaces into one self-contained `admin` app — rename the (2026-06-09)
+  - [GPT (codex)] Administration shell now includes seeder, license, health, background tasks, and activity heatmap child routes with left-rail shortcuts and dev custom-page registrations for template builder and dev help

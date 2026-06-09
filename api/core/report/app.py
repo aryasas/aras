@@ -25,7 +25,9 @@ def _seed_reports_for_new_org(mapper, connection, target):
 class ReportApp(Aras.App):
     app_name = "report"
     app_label = "Reports"
+    app_type = "framework"  # platform facility (org-seeded report defs), not an installable extension
     icon = "FileBarChart"
+    hide_from_sidebar = True  # accessed via /reports route, not a sidebar app
 
     config_sections = [
         ConfigSection(key="general", label="General", scope="module", fields=[

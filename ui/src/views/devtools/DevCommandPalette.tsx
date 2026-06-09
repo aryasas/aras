@@ -14,7 +14,7 @@ export default function DevCommandPalette() {
   const [message, setMessage] = useState('')
 
   const commands: CommandItem[] = useMemo(() => [
-    { label: 'Open route debugger', detail: 'DevTools / Routes', run: () => navigate('/dev?tab=routes') },
+    { label: 'Open route debugger', detail: 'DevTools / Routes', run: () => navigate('/admin/dev/routes-debug') },
     { label: 'Open activity heatmap', detail: '/dev/activity-heatmap', run: () => navigate('/dev/activity-heatmap') },
     { label: 'Open background tasks', detail: '/dev/tasks', run: () => navigate('/dev/tasks') },
     { label: 'Open dev help', detail: '/dev/help', run: () => navigate('/dev/help') },

@@ -41,6 +41,7 @@ def autodiscover_models(package_name: str, module_names: list[str]) -> list:
 # never via product discovery (which only scans apps/).
 FRAMEWORK_APP_MODULES = [
     "core.workspace",
+    "core.settings",
 ]
 
 

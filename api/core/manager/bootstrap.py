@@ -49,18 +49,22 @@ def _seed_settings(db: Session) -> None:
     from core.lib.settings import settings
 
     defaults = [
-        {"namespace": "core", "key": "app_name",              "value": settings.APP_NAME,  "description": "Application display name"},
-        {"namespace": "core", "key": "maintenance_mode",      "value": "false",             "description": "Disable public access"},
-        {"namespace": "core", "key": "default_language",      "value": "en",                "description": "System-wide default language"},
-        {"namespace": "core", "key": "date_format",           "value": "YYYY-MM-DD",        "description": "Global date format"},
-        {"namespace": "core", "key": "number_format",         "value": "#,###.##",          "description": "Global number format"},
-        {"namespace": "core", "key": "decimal_precision",     "value": "2",                 "description": "Global decimal precision"},
-        {"namespace": "core", "key": "currency_symbol",       "value": "$",                 "description": "Global currency symbol"},
-        {"namespace": "core", "key": "language_default",      "value": "en",                "description": "Global default language"},
+        {"namespace": "core", "key": "app_name",          "value": settings.APP_NAME, "description": "Application display name", "level": "framework"},
+        {"namespace": "core", "key": "maintenance_mode",  "value": "false",            "description": "Disable public access", "level": "framework"},
+        {"namespace": "core", "key": "default_language",  "value": "en",               "description": "System-wide default language", "level": "framework"},
+        {"namespace": "core", "key": "date_format",       "value": "YYYY-MM-DD",       "description": "Global date format", "level": "framework"},
+        {"namespace": "core", "key": "number_format",     "value": "#,###.##",         "description": "Global number format", "level": "framework"},
+        {"namespace": "core", "key": "decimal_precision", "value": "2",                "description": "Global decimal precision", "level": "framework"},
+        {"namespace": "core", "key": "currency_symbol",   "value": "$",                "description": "Global currency symbol", "level": "framework"},
+        {"namespace": "core", "key": "language_default",  "value": "en",               "description": "Global default language", "level": "framework"},
     ]
     
     for d in defaults:
-        existing = db.query(Aras.SettingsModel).filter_by(namespace=d["namespace"], key=d["key"]).first()
+        existing = db.query(Aras.SettingsModel).filter_by(
+            namespace=d["namespace"],
+            key=d["key"],
+            level=d["level"],
+        ).first()
         if not existing:
             db.add(Aras.SettingsModel(**d))
             

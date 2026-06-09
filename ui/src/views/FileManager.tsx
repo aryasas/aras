@@ -4,7 +4,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { UploadCloud, FileText, Download, Search, Trash2 } from 'lucide-react'
 import api from '../lib/api'
-import { useUIStore } from '../store/uiStore'
 import { EmptyState } from '../components/EmptyState'
 
 interface UploadedFile {
@@ -31,17 +30,11 @@ const fmtSize = (n?: number) => {
 }
 
 export default function FileManager() {
-  const setPageTitle = useUIStore((s) => s.setPageTitle)
   const [recent, setRecent] = useState<UploadedFile[]>(() => loadRecent())
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
   const [lookup, setLookup] = useState('')
   const fileRef = useRef<HTMLInputElement | null>(null)
-
-  useEffect(() => {
-    setPageTitle('File Manager', 'Upload and retrieve framework-managed files.', 'SYSTEM')
-    return () => setPageTitle('', '', '')
-  }, [setPageTitle])
 
   useEffect(() => { saveRecent(recent) }, [recent])
 

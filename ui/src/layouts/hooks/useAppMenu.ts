@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import api from '../../lib/api'
-import { appRoutePath, applySubmenuOrder, flattenAppMenu, isRouteMatch, normalizeRoutePath, type FlatMenuItem } from '../../lib/navUtils'
+import { appRouteMatchTargets, applySubmenuOrder, flattenAppMenu, isRouteMatch, normalizeRoutePath, type FlatMenuItem } from '../../lib/navUtils'
 import { useUIStore } from '../../store/uiStore'
 import type { SidebarApp } from '../types'
 
@@ -12,9 +12,9 @@ export function useAppMenu(apps: SidebarApp[], currentPath: string) {
   const activeApp = useMemo(() => {
     const current = normalizeRoutePath(currentPath)
     return apps
-      .map((app) => ({ app, path: appRoutePath(app) }))
-      .filter(({ path }) => isRouteMatch(current, path))
-      .sort((a, b) => b.path.length - a.path.length)[0]?.app || null
+      .map((app) => ({ app, targets: appRouteMatchTargets(app) }))
+      .filter(({ targets }) => targets.some((target) => isRouteMatch(current, target)))
+      .sort((a, b) => Math.max(...b.targets.map((target) => target.length)) - Math.max(...a.targets.map((target) => target.length)))[0]?.app || null
   }, [apps, currentPath])
 
   useEffect(() => {

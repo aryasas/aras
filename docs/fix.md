@@ -433,3 +433,15 @@ This file is used only to report if there are fix
 ## Split report from "app with app-coupling" into a generic framework engine (core) + app-owned report definitions (inversion of control) — revision (2026-06-08)
   - [Gemini (gemini-3-flash-preview)] Removed illegal core->apps dependencies in api/core/report/, ensuring the framework core remains generic and decoupled.
   - [GPT (codex)] updated the trade dashboard API call from `/report/dashboard` to `/accounting/dashboard`
+
+
+## Custom Page Render Mode & DevTools Migration (2026-06-08)
+  - [Gemini 2.5 Flash] Migrated DevTools 16 tools to custom pages and hid introspection models to prevent menu clutter.
+
+
+## (1) Add a generic **Custom Page** render mode to the framework — a third metadata-driven view type alongside the existing ListView and FormView/AppHome, letting any app declare a menu entry/route that renders an app-owned React component. (2) Make DevTools a first-class framework module that consumes this new mode — surface its 16 tools through the standard menu system (sidebar app + TopMenuBar) as custom pages, and DELETE its bespoke in-page tab strip. DevTools is the proving consumer of the generic loader. (2026-06-08)
+  - [GPT (codex)] Removed DevTools tab-state navigation, updated internal DevTools links to route-based navigation, and added /admin app-path alias handling so custom pages resolve on direct URL and refresh
+
+
+## Consolidate admin surfaces into one self-contained `admin` app — rename the (2026-06-09)
+  - [GPT (codex)] Redirected legacy standalone admin/dev routes to their canonical admin shell or dev app targets and removed self-managed title/header chrome from absorbed admin views

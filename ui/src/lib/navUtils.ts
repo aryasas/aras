@@ -20,6 +20,16 @@ export function appRoutePath(item?: Pick<SidebarApp, 'name' | 'path'> | null): s
   return normalizeRoutePath(item.path || `/${item.name}`)
 }
 
+export function appRouteMatchTargets(item?: Pick<SidebarApp, 'name' | 'path'> | null): string[] {
+  const basePath = appRoutePath(item)
+  const slug = basePath.replace(/^\/+/, '')
+  const targets = new Set<string>([basePath])
+
+  if (slug) targets.add(`/admin/${slug}`)
+
+  return [...targets]
+}
+
 // claude-opus-4-8
 export function isRouteMatch(currentPath: string, targetPath?: string): boolean {
   const current = normalizeRoutePath(currentPath)

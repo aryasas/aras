@@ -10,6 +10,7 @@ from ..base.model import Model
 class AppModel(Model):
     """Stores metadata about installed applications."""
     __tablename__ = "core_apps"
+    __hidden__ = True
 
     name: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     parent_name: Mapped[str] = mapped_column(String(50), nullable=True, index=True)

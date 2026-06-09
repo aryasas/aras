@@ -129,6 +129,8 @@ the user must copy once (license tokens, API keys, one-time passwords).
 
 Always use the **best** approach — not the simplest. Use simple only when it is genuinely the best. Build world-class, not "good enough".
 
+**Think correct, not safe.** Never default to the "safe" option to avoid risk or disruption. If the clean/correct/best approach requires breaking changes, migration, or significant refactor — do it. Long-term correctness and maintainability always win over short-term caution. Ignore perceived risk when the right way is clear. The cost of accumulating wrong architecture is always higher than the cost of fixing it now.
+
 ## Development Mandates
 
 1. Table naming: ALWAYS `{table_prefix}_{table}` — set `table_prefix` on the App class when it differs from `app_name` (e.g. app `stock` uses `table_prefix="erp_stock"`, tables are `erp_stock_products`)
@@ -711,5 +713,16 @@ Aras targets EU, US, and SEA markets. All agents must read and enforce these bef
 
 
 ---
-## Framework Change: Split report from "app with app-coupling" into a generic framework engine (core) + app-owned report definitions (inversion of control) — revision (2026-06-08)
-  - [Gemini (gemini-3-flash-preview)] Genericized ReportService and Report router; simplified ReportApp seeding to remove app-specific logic.
+## Framework Change: Custom Page Support & Model Visibility Control (2026-06-08)
+- [Gemini 2.5 Flash] Updated `App.get_menu_structure` in `api/core/base/app.py` to support `pages` in `menu_groups` (emits `type: "custom"`).
+- [Gemini 2.5 Flash] Added support for `__hidden__` attribute on models and `hidden` attribute on Views to exclude them from auto-generated menu.
+
+
+---
+## Framework Change: Custom Page Render Mode & DevTools Migration (2026-06-08)
+  - [Gemini 2.5 Flash] Updated App.get_menu_structure to handle "pages" in menu_groups and model-level visibility flags.
+
+
+---
+## Framework Change: (1) Add a generic **Custom Page** render mode to the framework — a third metadata-driven view type alongside the existing ListView and FormView/AppHome, letting any app declare a menu entry/route that renders an app-owned React component. (2) Make DevTools a first-class framework module that consumes this new mode — surface its 16 tools through the standard menu system (sidebar app + TopMenuBar) as custom pages, and DELETE its bespoke in-page tab strip. DevTools is the proving consumer of the generic loader. (2026-06-08)
+  - [GPT (codex)] Added frontend custom page registry bootstrapping, expanded menu item typing for custom pages, and updated SmartDispatcher/useAppMenu routing flow to resolve manifest-declared custom components generically

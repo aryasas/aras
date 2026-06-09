@@ -110,39 +110,46 @@ class SyncManager(Manager):
         ]
 
         for key, value, desc in defaults:
-            row = db.query(Aras.SettingsModel).filter_by(namespace="core", key=key).first()
+            row = db.query(Aras.SettingsModel).filter_by(
+                namespace="core",
+                key=key,
+                level="framework",
+            ).first()
             if not row:
                 logger.info(f"Seeding core setting: {key} = {value}")
                 db.add(Aras.SettingsModel(
                     namespace="core", 
                     key=key, 
+                    level="framework",
                     value=value, 
                     description=desc,
                     value_type="str"
                 ))
         
         db.flush()
-        
-        db.flush()
 
     @classmethod
     def seed_core_config_sections(cls, db: Session):
-        """Seed framework-level default settings under the 'core' namespace.
+        """Seed registered framework/admin section defaults into core_settings.
 
-        Section registration happens at import time in core/registry/core_sections.py.
-        This method only writes default values into core_settings if missing.
+        Section registration happens at import time. This method only writes
+        default values for framework-tier namespaces if missing.
         """
-        from ..registry.core_sections import CORE_SECTIONS
         from ..registry.settings_service import SettingsService
         from ..registry.sys_settings import Settings as SettingsModel
 
-        for s in CORE_SECTIONS:
-            for f in s.fields:
-                if f.default is None:
-                    continue
-                existing = db.query(SettingsModel).filter_by(namespace="core", key=f.key).first()
-                if not existing:
-                    SettingsService.set(db, "core", f.key, f.default)
+        for namespace in ("core", "core_config", "admin"):
+            for s in config_registry.by_app(namespace):
+                for f in s.fields:
+                    if f.default is None:
+                        continue
+                    existing = db.query(SettingsModel).filter_by(
+                        namespace=namespace,
+                        key=f.key,
+                        level=getattr(s, "level", "app"),
+                    ).first()
+                    if not existing:
+                        SettingsService.set(db, namespace, f.key, f.default)
         db.flush()
 
     @classmethod

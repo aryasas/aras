@@ -218,7 +218,7 @@ function RecentDocumentListRow({ item, locale }: { item: TradeDashboardRecentDoc
     <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="arc-stat s-released">{tradeDocumentLabel(item.type)}</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--accent)]">{tradeDocumentLabel(item.type)}</span>
           <span className="text-[12.5px] font-medium text-[var(--text)]">{item.number || 'No number'}</span>
           {item.status ? <span className="arc-id arc-dim2">{item.status}</span> : null}
         </div>

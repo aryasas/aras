@@ -1,9 +1,8 @@
 // claude-opus-4-7
 // ARC background tasks: enqueue + poll status against /dev/tasks/*.
 import { useEffect, useState } from 'react'
-import { Activity, Play, RefreshCw, Search, Copy, Trash2 } from 'lucide-react'
+import { Play, RefreshCw, Search, Copy, Trash2 } from 'lucide-react'
 import api from '../lib/api'
-import { useUIStore } from '../store/uiStore'
 import { EmptyState } from '../components/EmptyState'
 import { StatusBadge } from '../components/StatusBadge'
 
@@ -34,7 +33,6 @@ function saveTracked(items: TrackedTask[]) {
 
 
 export default function BackgroundTasks() {
-  const setPageTitle = useUIStore((s) => s.setPageTitle)
   const [tracked, setTracked] = useState<TrackedTask[]>(() => loadTracked())
   const [taskName, setTaskName] = useState('')
   const [argsText, setArgsText] = useState('')
@@ -42,11 +40,6 @@ export default function BackgroundTasks() {
   const [lookup, setLookup] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
-
-  useEffect(() => {
-    setPageTitle('Background Tasks', 'Enqueue and inspect async jobs.', 'DEV')
-    return () => setPageTitle('', '', '')
-  }, [setPageTitle])
 
   useEffect(() => { saveTracked(tracked) }, [tracked])
 
@@ -95,16 +88,8 @@ export default function BackgroundTasks() {
 
   return (
     <div className="arc flex flex-col gap-5">
-      <div className="arc-card arc-dotgrid p-6 flex items-center gap-5" style={{ background: 'var(--bg-2)' }}>
-        <div className="grid place-items-center w-14 h-14 rounded-[var(--radius-lg)]"
-             style={{ background: 'color-mix(in oklch, var(--accent) 18%, var(--surface))', color: 'var(--accent)', border: '1px solid color-mix(in oklch, var(--accent) 35%, var(--line))' }}>
-          <Activity size={26} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="arc-id"><b>dev</b>/background-tasks</div>
-          <h1 className="text-[20px] font-semibold text-[var(--text)] tracking-tight mt-0.5">Background Tasks</h1>
-          <div className="arc-dim text-[12px] mt-0.5">{tracked.length} tracked · status cached in browser</div>
-        </div>
+      <div className="arc-card flex items-center justify-between gap-3 p-4" style={{ background: 'var(--bg-2)' }}>
+        <div className="arc-dim text-[12px]">{tracked.length} tracked · status cached in browser</div>
         <button onClick={refreshAll} className="arc-btn" disabled={!tracked.length}>
           <RefreshCw size={14} /> Refresh all
         </button>

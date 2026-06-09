@@ -11,20 +11,30 @@ from core.workspace.models import Organization, Currency, PrintTemplate, Notific
 from plugins.commerce.models import Uom, PriceType, Charge, ExchangeRate, ModeOfPayment, OrganizationPaymentAccount
 from core.registry.series import Series # Import Series directly, autodiscovery will pick it up if it's an ArasModel
 from core.registry.master_data_registry import MasterEntity
+from core.registry.role import Role
+from core.registry.permission import Permission
+from core.auth.models import User
 from core.seeds import RbacSeed, SeriesSeed
 from .seed_rbac import seed_access
 from .seeds.standard import seed_trade_payment_accounts
 
 class Config(Aras.App):
-    app_name = "settings"
-    app_label = "Settings"
-    app_type = "app"
+    app_name = "admin"
+    app_label = "Administration"
+    app_type = "framework"  # platform infrastructure, not an installable extension — hidden from App Manager
     required = True
     hide_from_sidebar = True
 
+    @classmethod
+    def _get_clean_path(cls, model_name: str = None) -> str:
+        # # gemini-flash - keep API paths stable under /settings for the admin app
+        # even though its app_name identity is now 'admin'.
+        path = super()._get_clean_path(model_name)
+        return path.replace("/admin", "/settings", 1)
+
     routers = [access_router]
 
-    models = autodiscover_models("core.registry", ["series"]) + [UserAccess] + [
+    models = autodiscover_models("core.registry", ["series"]) + [UserAccess, Role, Permission, User] + [
         # commerce plugin primitives surfaced through the config app's UI/menus
         Uom, PriceType, Charge, ExchangeRate, ModeOfPayment, OrganizationPaymentAccount,
     ]

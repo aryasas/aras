@@ -10,7 +10,7 @@ from ..registry.settings_service import SettingsService
 from ..registry.config_registry import config_registry
 from ..response import ok, err
 
-router = APIRouter(prefix="/settings", tags=["Settings"])
+router = APIRouter(prefix="/settings", tags=["Administration"])
 
 def _check_settings_permission(db: Session, user: Any, namespace: str, action: str):
     if user.is_admin:
@@ -35,7 +35,7 @@ def _check_settings_permission(db: Session, user: Any, namespace: str, action: s
     )
 
 @router.get("")
-def list_namespaces(db: Session = Depends(get_db), user: Any = Depends(get_current_user)):
+def list_namespaces(level: str = None, db: Session = Depends(get_db), user: Any = Depends(get_current_user)):
     """Returns a list of namespaces that the user has READ access to."""
     from ..base.app import App
     
@@ -47,7 +47,8 @@ def list_namespaces(db: Session = Depends(get_db), user: Any = Depends(get_curre
         all_namespaces = sorted(set(registered_apps.keys()) | {"core"})
 
     framework_meta = {
-        "core": {"label": "Framework", "icon": "Settings"},
+        "core": {"label": "System Engine", "icon": "Cpu"},
+        "admin": {"label": "Security & Governance", "icon": "Shield"},
     }
 
     for ns in all_namespaces:
@@ -58,6 +59,11 @@ def list_namespaces(db: Session = Depends(get_db), user: Any = Depends(get_curre
             _check_settings_permission(db, user, ns, "read")
         except HTTPException:
             continue
+
+        ns_level = sections[0].level if hasattr(sections[0], "level") else "app"
+        if level and ns_level != level:
+            continue
+
         if ns in registered_apps:
             app_cls = registered_apps[ns]
             label = app_cls.app_label or ns.title()
@@ -66,7 +72,16 @@ def list_namespaces(db: Session = Depends(get_db), user: Any = Depends(get_curre
             meta = framework_meta.get(ns, {"label": ns.title(), "icon": "Box"})
             label = meta["label"]
             icon = meta["icon"]
-        namespaces.append({"name": ns, "label": label, "icon": icon})
+        
+        visible_sections = [s for s in sections if not getattr(s, "hidden", False)]
+        
+        namespaces.append({
+            "name": ns,
+            "label": label,
+            "icon": icon,
+            "level": ns_level,
+            "section_count": len(visible_sections)
+        })
 
     return ok(namespaces)
 

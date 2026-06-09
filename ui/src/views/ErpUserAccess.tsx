@@ -108,8 +108,8 @@ const ErpUserAccess = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-extrabold tracking-tight text-[var(--app-text)]">ERP User Access</h1>
-        <p className="text-[var(--app-muted)]">Manage organization access for ERP users.</p>
+        <h1 className="text-3xl font-extrabold tracking-tight text-[var(--app-text)]">Organization Access</h1>
+        <p className="text-[var(--app-muted)]">Manage which organizations each user can access.</p>
       </div>
 
       {/* claude-sonnet-4-6 */}

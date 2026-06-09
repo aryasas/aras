@@ -34,6 +34,7 @@ class ConfigSection:
     # When True, the section accepts arbitrary field keys not declared in `fields`
     # (e.g. core_config.numbering, whose keys are document series seeded at runtime).
     dynamic: bool = False
+    level: str = "app"
 
 class ConfigRegistry(Registry[ConfigSection]):
     """Registry for configuration sections and fields."""
@@ -67,7 +68,8 @@ class ConfigRegistry(Registry[ConfigSection]):
                     extends=section.get("extends"),
                     read_hook=section.get("read_hook"),
                     write_hook=section.get("write_hook"),
-                    hidden=section.get("hidden", False)
+                    hidden=section.get("hidden", False),
+                    level=section.get("level", "app")
                 )
                 self.register_section(app_name, section_obj)
             elif isinstance(section, ConfigSection):

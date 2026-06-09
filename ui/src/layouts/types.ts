@@ -17,11 +17,12 @@ export interface SidebarItem {
 export type SidebarApp = SidebarItem
 
 export interface MenuItem {
-  type: 'model' | 'app_link'
+  type: 'model' | 'app_link' | 'link' | 'custom'
   name: string
   label?: string
   path: string
   icon?: string
+  component?: string
 }
 
 export interface MenuGroup {

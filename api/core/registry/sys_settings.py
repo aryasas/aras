@@ -6,11 +6,13 @@ from typing import Optional
 
 class Settings(Model):
     __tablename__ = "core_settings"
+    __hidden__ = True
     __public_read__ = True
-    __unique_together__ = [("namespace", "key")]
+    __unique_together__ = [("namespace", "key", "level")]
 
     namespace: Mapped[str] = Field(String(60), index=True, label="Namespace", searchable=True)
     key: Mapped[str] = Field(String(100), label="Setting Key", searchable=True)
+    level: Mapped[str] = Field(String(20), default="app", index=True, label="Level")
     value: Mapped[str] = Field(Text, label="Value", ui_type="textarea")
     value_type: Mapped[str] = Field(String(20), default="str", label="Value Type")
     is_secret: Mapped[bool] = Field(Boolean, default=False, label="Is Secret")

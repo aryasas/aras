@@ -23,7 +23,7 @@ def test_quick_actions_list(auth_client):
     # Verify standard routes are present
     labels = [a["label"] for a in actions]
     assert "Dashboard" in labels
-    assert "Settings" in labels
+    assert "Administration" in labels
 
 def test_landing_section_detail_404(client):
     response = client.get("/api/v1/web/landing/nonexistent_key")

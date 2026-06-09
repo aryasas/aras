@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import './aras-core/customPages'
 import App from './App.tsx'
 import { NotificationProvider } from './aras-core/contexts/NotificationContext'
 import { ConfirmProvider } from './aras-core/contexts/ConfirmContext'

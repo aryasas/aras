@@ -7,7 +7,7 @@ regardless of whether `python manage.py sync` has been run yet.
 from .config_registry import config_registry, ConfigSection, ConfigField
 
 CORE_SECTIONS = [
-    ConfigSection(key="general", label="General", scope="core", fields=[
+    ConfigSection(key="general", label="General", scope="core", level="system", fields=[
         ConfigField(key="site_name", type="string", default="Aras", label="Site Name"),
         ConfigField(key="site_url", type="string", default="http://localhost:5173", label="Public Site URL"),
         ConfigField(key="support_email", type="string", default="support@aras.local", label="Support Email"),
@@ -17,31 +17,19 @@ CORE_SECTIONS = [
         ConfigField(key="default_date_format", type="string", default="YYYY-MM-DD", label="Date Format"),
         ConfigField(key="default_time_format", type="choice", default="24h", label="Time Format",
                     choices=[("12h", "12-hour"), ("24h", "24-hour")]),
-        ConfigField(key="default_currency", type="string", default="USD", label="Default Currency (ISO)"),
-        ConfigField(key="first_day_of_week", type="choice", default="monday", label="First Day of Week",
-                    choices=[("sunday", "Sunday"), ("monday", "Monday")]),
+        ConfigField(key="default_number_format", type="string", default="#,###.##", label="Number Format"),
+        ConfigField(key="first_day_of_week", type="choice", default="1", label="First Day of Week",
+                    choices=[("0", "Sunday"), ("1", "Monday")]),
+        # Default currency/timezone of the instance derive from the `is_default` row of
+        # core_organizations — not stored here, to avoid duplicating per-org identity.
+        ConfigField(key="default_currency", type="string", default="USD", label="Fallback Currency (ISO)",
+                    help="Used only before any organization is configured."),
     ]),
-    ConfigSection(key="security", label="Security", scope="core", fields=[
-        ConfigField(key="session_timeout_minutes", type="number", default=60, label="Session Timeout (minutes)"),
-        ConfigField(key="access_token_expire_minutes", type="number", default=30, label="Access Token Expire (minutes)"),
-        ConfigField(key="password_reset_expire_minutes", type="number", default=15, label="Password Reset Expire (minutes)"),
-        ConfigField(key="enforce_2fa", type="bool", default=False, label="Enforce 2FA for All Users"),
-        ConfigField(key="password_min_length", type="number", default=8, label="Password Minimum Length"),
-        ConfigField(key="password_require_uppercase", type="bool", default=True, label="Require Uppercase in Password"),
-        ConfigField(key="password_require_number", type="bool", default=True, label="Require Number in Password"),
-        ConfigField(key="password_require_symbol", type="bool", default=False, label="Require Symbol in Password"),
-        ConfigField(key="max_login_attempts", type="number", default=5, label="Max Login Attempts Before Lockout"),
-        ConfigField(key="lockout_minutes", type="number", default=15, label="Lockout Duration (minutes)"),
-        ConfigField(key="allow_signup", type="bool", default=True, label="Allow Self-Signup"),
-        ConfigField(key="rbac_enabled", type="bool", default=True, label="Enforce RBAC"),
-        ConfigField(key="cors_origins", type="text", default="http://localhost:5173",
-                    label="CORS Allowed Origins", help="Comma-separated list"),
-    ]),
-    ConfigSection(key="email", label="Email", scope="core", fields=[
+    ConfigSection(key="email", label="Email", scope="core", level="system", fields=[
         ConfigField(key="backend", type="choice", default="console", label="Backend",
                     choices=[("console", "Console (dev)"), ("smtp", "SMTP"), ("resend", "Resend")]),
-        ConfigField(key="from_address", type="string", default="noreply@aras.local", label="From Address"),
-        ConfigField(key="from_name", type="string", default="Aras", label="From Name"),
+        ConfigField(key="from_address", type="string", label="From Address"),
+        ConfigField(key="from_name", type="string", label="From Name"),
         ConfigField(key="smtp_host", type="string", label="SMTP Host"),
         ConfigField(key="smtp_port", type="number", default=587, label="SMTP Port"),
         ConfigField(key="smtp_user", type="string", label="SMTP Username"),
@@ -49,7 +37,7 @@ CORE_SECTIONS = [
         ConfigField(key="smtp_use_tls", type="bool", default=True, label="Use TLS"),
         ConfigField(key="resend_api_key", type="secret", label="Resend API Key", secret=True),
     ]),
-    ConfigSection(key="branding", label="Branding", scope="core", fields=[
+    ConfigSection(key="branding", label="Branding", scope="core", level="system", fields=[
         ConfigField(key="primary_color", type="color", default="#4f46e5", label="Primary Color"),
         ConfigField(key="accent_color", type="color", default="#06b6d4", label="Accent Color"),
         ConfigField(key="logo_url", type="image", label="Logo URL"),
@@ -59,7 +47,7 @@ CORE_SECTIONS = [
         ConfigField(key="default_theme", type="choice", default="system", label="Default Theme",
                     choices=[("light", "Light"), ("dark", "Dark"), ("system", "System")]),
     ]),
-    ConfigSection(key="uploads", label="Uploads & Storage", scope="core", fields=[
+    ConfigSection(key="uploads", label="Uploads & Storage", scope="core", level="system", fields=[
         ConfigField(key="storage_backend", type="choice", default="local", label="Storage Backend",
                     choices=[("local", "Local Filesystem"), ("s3", "Amazon S3"), ("gcs", "Google Cloud Storage")]),
         ConfigField(key="max_upload_mb", type="number", default=10, label="Max Upload Size (MB)"),
@@ -70,20 +58,20 @@ CORE_SECTIONS = [
         ConfigField(key="s3_access_key", type="string", label="S3 Access Key ID"),
         ConfigField(key="s3_secret_key", type="secret", label="S3 Secret Access Key", secret=True),
     ]),
-    ConfigSection(key="notifications", label="Notifications", scope="core", fields=[
+    ConfigSection(key="notifications", label="Notifications", scope="core", level="system", fields=[
         ConfigField(key="enable_email_notifications", type="bool", default=True, label="Enable Email Notifications"),
         ConfigField(key="enable_in_app_notifications", type="bool", default=True, label="Enable In-App Notifications"),
         ConfigField(key="enable_websocket", type="bool", default=True, label="Enable WebSocket Push"),
         ConfigField(key="digest_frequency", type="choice", default="daily", label="Digest Frequency",
                     choices=[("off", "Off"), ("hourly", "Hourly"), ("daily", "Daily"), ("weekly", "Weekly")]),
     ]),
-    ConfigSection(key="i18n", label="Internationalization", scope="core", fields=[
+    ConfigSection(key="i18n", label="Internationalization", scope="core", level="system", fields=[
         ConfigField(key="enabled_languages", type="text", default="en,id", label="Enabled Languages",
                     help="Comma-separated ISO codes"),
         ConfigField(key="auto_detect_browser_language", type="bool", default=True, label="Auto-Detect Browser Language"),
         ConfigField(key="fallback_language", type="string", default="en", label="Fallback Language"),
     ]),
-    ConfigSection(key="developer", label="Developer", scope="core", fields=[
+    ConfigSection(key="developer", label="Developer", scope="core", level="system", fields=[
         ConfigField(key="log_level", type="choice", default="INFO", label="Log Level",
                     choices=[("DEBUG", "Debug"), ("INFO", "Info"), ("WARNING", "Warning"), ("ERROR", "Error")]),
         ConfigField(key="enable_api_docs", type="bool", default=True, label="Enable /docs (Swagger)"),
@@ -91,7 +79,7 @@ CORE_SECTIONS = [
         ConfigField(key="slow_query_threshold_ms", type="number", default=500, label="Slow Query Threshold (ms)"),
         ConfigField(key="show_traceback_to_user", type="bool", default=False, label="Show Tracebacks to End Users (DEV ONLY)"),
     ]),
-    ConfigSection(key="integrations", label="Integrations", scope="core", fields=[
+    ConfigSection(key="integrations", label="Integrations", scope="core", level="system", fields=[
         ConfigField(key="google_oauth_client_id", type="string", label="Google OAuth Client ID"),
         ConfigField(key="google_oauth_client_secret", type="secret", label="Google OAuth Client Secret", secret=True),
         ConfigField(key="github_oauth_client_id", type="string", label="GitHub OAuth Client ID"),
@@ -100,7 +88,7 @@ CORE_SECTIONS = [
         ConfigField(key="posthog_key", type="secret", label="PostHog API Key", secret=True),
         ConfigField(key="webhook_signing_secret", type="secret", label="Webhook Signing Secret", secret=True),
     ]),
-    ConfigSection(key="maintenance", label="Maintenance", scope="core", fields=[
+    ConfigSection(key="maintenance", label="Maintenance", scope="core", level="system", fields=[
         ConfigField(key="maintenance_mode", type="bool", default=False, label="Maintenance Mode (read-only)"),
         ConfigField(key="maintenance_message", type="text",
                     default="We're performing scheduled maintenance. Back soon.", label="Maintenance Message"),

@@ -18,11 +18,7 @@ export default function HealthIntegrityView() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-[var(--app-text)] tracking-tight">System Health & Integrity</h1>
-          <p className="text-[var(--app-muted)] mt-1">Real-time status of framework core and database registry.</p>
-        </div>
+      <div className="flex items-center justify-end">
         <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-full text-xs font-black uppercase tracking-widest border border-emerald-100">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           System Operational

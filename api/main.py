@@ -249,7 +249,6 @@ if aras_role == "control-panel":
 # core_config app (framework tier: core/workspace)
 from core.workspace.router import router as core_config_router
 app.include_router(core_config_router, prefix="/api/v1")
-app.include_router(Aras.api.settings.router, prefix="/api/v1")
 app.include_router(Aras.api.master_data.router, prefix="/api/v1")
 
 # WebSocket — real-time push
@@ -262,6 +261,12 @@ app.include_router(saved_filter_router, prefix="/api/v1")
 
 # Dynamic App Discovery & Route Registration
 Aras.logic.discovery.register_app_routes(app, prefix="/api/v1")
+
+# Generic settings namespace router (GET /settings/{namespace}) is registered AFTER
+# app CRUD routes so its greedy {namespace} param never shadows specific master-data
+# resources mounted under /settings/* (e.g. /settings/config-uoms). FastAPI matches
+# routes in registration order — specific paths must come first.
+app.include_router(Aras.api.settings.router, prefix="/api/v1")
 
 # Register All Models at Root for Dashboard & UI Compatibility
 for model in Aras.Model._registry.values():
@@ -340,9 +345,6 @@ async def get_sidebar_data(_: Any = Depends(get_current_user)):
     # 1. Main Navigation Links
     sidebar = [
         {"type": "link", "name": "dashboard", "label": "Dashboard", "icon": "LayoutDashboard", "path": "/dashboard", "have_home": False},
-        {"type": "link", "name": "pos", "label": "Point of Sale", "icon": "ShoppingCart", "path": "/pot/pos", "have_home": False},
-        {"type": "link", "name": "reports", "label": "Report Center", "icon": "FileBarChart", "path": "/reports", "have_home": False},
-        {"type": "link", "name": "settings", "label": "Settings", "icon": "Settings", "path": "/settings", "have_home": False},
         {"type": "link", "name": "help", "label": "Help", "icon": "HelpCircle", "path": "/help", "have_home": False},
     ]
 

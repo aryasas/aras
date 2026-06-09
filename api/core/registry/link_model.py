@@ -9,8 +9,9 @@ from ..base.model import Model
 from ..base.field import Field
 
 class LinkModel(Model):
-    """Stores metadata about relationships between models."""
+    """Stores metadata about relationship links between models."""
     __tablename__ = "core_links"
+    __hidden__ = True
 
     source_resource_id: Mapped[int] = Field(ForeignKey("core_resources.id"), index=True, display_column="title")
     target_resource_id: Mapped[int] = Field(ForeignKey("core_resources.id"), index=True, display_column="title")

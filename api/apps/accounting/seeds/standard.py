@@ -1,6 +1,5 @@
 # claude-opus-4-8
 from core.config import AppConfigRegistry
-from core.lib.config import config
 from core.workspace.models import Currency, Organization
 
 from apps.accounting.seed_coa import seed_coa
@@ -50,11 +49,9 @@ def seed_trade_defaults(db):
         if account is not None:
             setattr(cfg, field, account.id)
 
-    config.set(db, "core_config.company.name", org.name)
-    config.set(db, "core_config.company.legal_name", org.legal_name)
-    config.set(db, "core_config.company.base_currency", usd.code)
-    config.set(db, "core_config.localization.date_format", "YYYY-MM-DD")
-
+    # Organization identity (name/legal_name/currency) lives on the `org` row above —
+    # single source of truth at /core-config/core-organizations. Instance-wide localization
+    # defaults live in the `core` namespace (settings hub) — no config duplicate here.
     db.flush()
 
 

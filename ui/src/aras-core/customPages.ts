@@ -1,0 +1,1 @@
+import '../views/devtools/registerPages'

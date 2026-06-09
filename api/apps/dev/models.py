@@ -8,6 +8,7 @@ from core import Aras
 # unattributed (pre-tagging)
 class HandoffRun(Aras.Model):
     __tablename__ = "dev_handoff_runs"
+    __hidden__ = True
     __searchable_fields__ = ["feature", "mode", "status"]
     __display_fields__ = ("feature",)
     __layout__ = [
@@ -88,6 +89,7 @@ class StyleOverride(Aras.Model):
     `css_json` stores key/value CSS declarations (e.g. {"color": "#222", "padding": "12px"}).
     """
     __tablename__ = "dev_style_overrides"
+    __hidden__ = True
     __searchable_fields__ = ["scope", "selector", "label"]
     __display_fields__ = ("scope", "selector")
 
@@ -105,6 +107,7 @@ class TemplateAnnotation(Aras.Model):
     Persists template layouts and AI annotations for the Template Builder dev tool.
     """
     __tablename__ = "dev_template_annotations"
+    __hidden__ = True
     __searchable_fields__ = ["template_name", "author", "node_id", "node_kind", "status"]
     __display_fields__ = ("template_name", "node_id", "status")
     __layout__ = [

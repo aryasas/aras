@@ -93,6 +93,7 @@ def list_entities(
             "icon": entity.icon,
             "scope": entity.scope,
             "app": entity.app_name,
+            "resource": model_table,
             "model_table": model_table,
             "resource_url": resource_url,
             "can_write": _check_master_data_permission(db, user, entity.key, "write"),

@@ -83,11 +83,16 @@ type ListParams = {
   filters?: string
 }
 
-const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
+const ListView = ({ resource, onRowClick, onAdd, fixedFilters, apiPathOverride, embedded }: {
   resource: string,
   onRowClick?: (id: string | number) => void,
   onAdd?: () => void,
-  fixedFilters?: Record<string, FieldValue>
+  fixedFilters?: Record<string, FieldValue>,
+  apiPathOverride?: string,
+  // When true, ListView is rendered inside a composite page (e.g. AccessPanel) that
+  // owns its own page chrome — suppress the global page-title side effect so the
+  // embedded list doesn't overwrite the host page's title/breadcrumb.
+  embedded?: boolean,
 }) => {
   const vocabulary = useVocabulary()
   const navigate = useNavigate()
@@ -133,8 +138,8 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   const roleFilter = searchParams.get('role') || 'all'
   const isPartyResource = useMemo(() => /(^|\/)(parties|party)$/.test(cleanResourcePath(resource)), [resource])
   const resourceApiPath = useMemo(
-    () => cleanResourcePath(metadata?.api_path || resource),
-    [metadata?.api_path, resource]
+    () => cleanResourcePath(apiPathOverride || metadata?.api_path || resource),
+    [apiPathOverride, metadata?.api_path, resource]
   )
 
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -148,7 +153,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     try {
       setLoading(true)
       const cleanResource = cleanResourcePath(resource)
-      const resourceApiPath = metadata?.api_path || cleanResource
+      const resourceApiPath = cleanResourcePath(apiPathOverride || metadata?.api_path || cleanResource)
 
       const params: ListParams = {
         page,
@@ -190,7 +195,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
     } finally {
       setLoading(false)
     }
-  }, [resource, metadata, page, perPage, orderBy, desc, debouncedSearch, filters, fixedFilters, isPartyResource, roleFilter, notify, activeTab])
+  }, [resource, apiPathOverride, metadata, page, perPage, orderBy, desc, debouncedSearch, filters, fixedFilters, isPartyResource, roleFilter, notify, activeTab])
 
   useEffect(() => { setActiveTab(0) }, [resource])
 
@@ -225,6 +230,7 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
   }, [resource, notify])
 
   useEffect(() => {
+    if (embedded) return
     if (metadata) {
       const title = vocabulary.get(metadata.title)
       const resourceCrumb = cleanResourcePath(resource)
@@ -232,15 +238,15 @@ const ListView = ({ resource, onRowClick, onAdd, fixedFilters }: {
         .filter(Boolean)
         .map(part => part.replace(/-/g, ' ').replace(/\b\w/g, char => char.toUpperCase()))
         .join(' / ')
-      
+
       setPageTitle(
-        title, 
+        title,
         `Create, search, and manage ${title.toLowerCase()} records.`,
         resourceCrumb
       )
     }
     return () => setPageTitle('', '', '')
-  }, [metadata, resource, vocabulary, setPageTitle])
+  }, [metadata, resource, vocabulary, setPageTitle, embedded])
 
   useEffect(() => {
     const controller = new AbortController()

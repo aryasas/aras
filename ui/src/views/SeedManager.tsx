@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Database, RefreshCw, Play, CheckCircle2, AlertCircle, MinusCircle } from 'lucide-react'
+import { RefreshCw, Play, CheckCircle2, AlertCircle, MinusCircle } from 'lucide-react'
 
 import { seedApi, type SeedCatalogEntry, type SeedRunResult } from '../lib/api'
-import { useUIStore } from '../store/uiStore'
 import { useAuthStore } from '../store/authStore'
 import { useAras } from '../aras-core/hooks/useAras'
 
@@ -21,7 +20,6 @@ const statusIcon = {
 }
 
 export default function SeedManager() {
-  const setPageTitle = useUIStore((state) => state.setPageTitle)
   const activeOrgId = useAuthStore((state) => state.activeOrgId)
   const { confirm, notify } = useAras()
 
@@ -61,10 +59,8 @@ export default function SeedManager() {
   }
 
   useEffect(() => {
-    setPageTitle('Data Seeder', 'Select baseline and optional seed data for the current organization.', 'ADMIN')
     void loadCatalog()
-    return () => setPageTitle('', '', '')
-  }, [setPageTitle])
+  }, [])
 
   const selectedKeys = useMemo(
     () =>
@@ -113,23 +109,9 @@ export default function SeedManager() {
 
   return (
     <div className="arc flex flex-col gap-5">
-      <div className="arc-card arc-dotgrid flex items-center gap-5 p-6" style={{ background: 'var(--bg-2)' }}>
-        <div
-          className="grid h-14 w-14 place-items-center rounded-[var(--radius-lg)]"
-          style={{
-            background: 'color-mix(in oklch, var(--accent) 18%, var(--surface))',
-            color: 'var(--accent)',
-            border: '1px solid color-mix(in oklch, var(--accent) 35%, var(--line))',
-          }}
-        >
-          <Database size={26} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="arc-id"><b>admin</b>/seeder</div>
-          <h1 className="mt-0.5 text-[20px] font-semibold tracking-tight text-[var(--text)]">Data Seeder</h1>
-          <div className="arc-dim mt-0.5 text-[12px]">
-            {catalog.length} apps with declarative seeds · org {orgId ?? 'not selected'}
-          </div>
+      <div className="arc-card flex items-center justify-between gap-3 p-4" style={{ background: 'var(--bg-2)' }}>
+        <div className="arc-dim text-[12px]">
+          {catalog.length} apps with declarative seeds · org {orgId ?? 'not selected'}
         </div>
         <div className="flex items-center gap-2">
           <button className="arc-btn" onClick={() => void loadCatalog()} disabled={loading || running}>

@@ -12,7 +12,7 @@ describe('ConfigPage wiring', () => {
 
     expect(source).toContain('useSections')
     expect(source).toContain('setSelectedKey(item.key)')
-    expect(source).toContain('core_config.company')
+    expect(source).toContain('setSelectedKey(visibleSections[0].key)')
   })
 
   it('saves section values and keeps secrets masked', () => {

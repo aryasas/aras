@@ -49,7 +49,7 @@ class UomView(Aras.View):
         {
             "key": "general",
             "title": "General",
-            "fields": ["name", "abbreviation", "category"],
+            "fields": ["name"],
         },
     ]
 

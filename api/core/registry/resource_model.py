@@ -12,6 +12,7 @@ from typing import List
 class ResourceModel(Model):
     """Stores metadata about models/tables registered in the system."""
     __tablename__ = "core_resources"
+    __hidden__ = True
 
     app_id: Mapped[int] = Field(ForeignKey("core_apps.id"), display_column="name")
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True) # e.g. "sale_invoice"

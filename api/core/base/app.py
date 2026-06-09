@@ -142,8 +142,9 @@ class App(Aras):
             from ..base.view import View as _View
             _view_cls = _View._view_map.get(m.__tablename__)
             show_override = (getattr(_view_cls, "standalone", False) if _view_cls else False) or getattr(m, "__show_in_menu__", False)
-            
-            if not is_child or show_override:
+            hide_override = getattr(m, "__hidden__", False) or (getattr(_view_cls, "hidden", False) if _view_cls else False)
+
+            if (not is_child or show_override) and not hide_override:
                 visible_models.append(m.__tablename__)
 
         # 3. Build menu from menu_groups if defined
@@ -173,6 +174,17 @@ class App(Aras):
                         "label": link.get("label", link.get("name", "Link")),
                         "path": link["path"],
                         "icon": link.get("icon", "ExternalLink"),
+                    })
+
+                # Custom pages: {"name","label","path","icon","component"}  -> rendered by the frontend custom-page registry
+                for page in group.get("pages", []):
+                    group_items.append({
+                        "type": "custom",
+                        "name": page.get("name") or page.get("component"),
+                        "label": page.get("label", page.get("name", "Page")),
+                        "path": page["path"],
+                        "icon": page.get("icon", "File"),
+                        "component": page["component"],   # registry key
                     })
 
                 # Also handle nested sub-apps in menu groups if any

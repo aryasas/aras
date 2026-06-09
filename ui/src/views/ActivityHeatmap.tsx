@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Activity, CalendarDays, RefreshCw } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Activity, RefreshCw } from 'lucide-react'
 import api from '../lib/api'
 import { EmptyState } from '../components/EmptyState'
 import { LoadingState } from '../components/LoadingState'
-import { useUIStore } from '../store/uiStore'
 import { devApi } from './devtools/devApi'
 import { useAsyncData } from '../hooks/useAsyncData'
 
@@ -67,18 +66,12 @@ function buildFallbackCalendar(days: number, totals: ResourceTotals): DayBucket[
 }
 
 export default function ActivityHeatmap() {
-  const setPageTitle = useUIStore((s) => s.setPageTitle)
   const [days, setDays] = useState(90)
 
   const { data: payload, loading, error, reload } = useAsyncData<HeatmapResponse>(
     () => api.get(devApi.activityHeatmap, { params: { days } }).then((r) => r.data),
     [days],
   )
-
-  useEffect(() => {
-    setPageTitle('Activity Heatmap', 'Calendar view of framework audit activity.', 'DEV')
-    return () => setPageTitle('', '', '')
-  }, [setPageTitle])
 
   const calendar = useMemo(() => {
     if (!payload) return []
@@ -117,16 +110,8 @@ export default function ActivityHeatmap() {
 
   return (
     <div className="arc flex flex-col gap-5">
-      <div className="arc-card arc-dotgrid p-6 flex flex-col gap-4 md:flex-row md:items-center md:gap-5" style={{ background: 'var(--bg-2)' }}>
-        <div className="grid place-items-center w-14 h-14 rounded-[var(--radius-lg)] shrink-0"
-             style={{ background: 'color-mix(in oklch, var(--accent) 18%, var(--surface))', color: 'var(--accent)', border: '1px solid color-mix(in oklch, var(--accent) 35%, var(--line))' }}>
-          <CalendarDays size={26} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="arc-id"><b>dev</b>/activity-heatmap</div>
-          <h1 className="text-[20px] font-semibold text-[var(--text)] mt-0.5">Activity Heatmap</h1>
-          <div className="arc-dim text-[12px] mt-0.5">{totalEvents.toLocaleString()} events · {activeDays} active days · {resources.length} resources</div>
-        </div>
+      <div className="arc-card flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between" style={{ background: 'var(--bg-2)' }}>
+        <div className="arc-dim text-[12px]">{totalEvents.toLocaleString()} events · {activeDays} active days · {resources.length} resources</div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)] p-1">
             {RANGE_OPTIONS.map((option) => (

@@ -358,11 +358,12 @@ api.interceptors.response.use(
     return Promise.reject(error)
   },
 )
-
 export interface SettingsNamespace {
   name: string
   label: string
   icon?: string
+  level?: 'organization' | 'app' | 'security' | 'system'
+  section_count?: number
 }
 
 export interface SettingsSetupStep {
@@ -393,6 +394,7 @@ export interface MasterDataEntity {
   icon?: string
   scope: string
   app: string
+  resource?: string
   model_table: string
   resource_url: string
   can_write?: boolean

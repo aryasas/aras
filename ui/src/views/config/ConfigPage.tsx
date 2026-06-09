@@ -8,7 +8,6 @@ import { useAuthStore } from '../../store/authStore'
 import { resolveIcon } from '../../lib/iconUtils'
 import SectionForm from './SectionForm'
 import FeatureFlagsPanel from './FeatureFlagsPanel'
-import CompanyForm from './sections/CompanyForm'
 
 type SectionRenderer = ComponentType<{ section: ConfigSectionDetail; onSaved?: () => void }>
 
@@ -17,8 +16,6 @@ const sectionRenderers = new Map<string, SectionRenderer>()
 export function registerSectionRenderer(key: string, renderer: SectionRenderer) {
   sectionRenderers.set(key, renderer)
 }
-
-registerSectionRenderer('core_config.company', CompanyForm)
 
 function sectionOwner(section: ConfigSectionSummary) {
   return section.app || section.key.split('.')[0] || 'core'
@@ -49,8 +46,7 @@ function ConfigPageInner() {
 
   useEffect(() => {
     if (!selectedKey && visibleSections.length > 0) {
-      const company = visibleSections.find((section) => section.key === 'core_config.company')
-      setSelectedKey(company?.key || visibleSections[0].key)
+      setSelectedKey(visibleSections[0].key)
     }
   }, [selectedKey, visibleSections])
 

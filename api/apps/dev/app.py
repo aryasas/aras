@@ -90,24 +90,28 @@ class Dev(Aras.App):
     ] + autodiscover_models(__name__, ["models"])
 
     menu_groups = [
-        {
-            "label": "Registry",
-            "icon": "Database",
-            "models": ["core_apps", "core_resources", "core_fields", "core_links"]
-        },
-        {
-            "label": "Audit & Config",
-            "icon": "ClipboardList",
-            "models": ["core_activity_logs", "core_settings"]
-        },
-        {
-            "label": "Agent Runs",
-            "icon": "GitBranch",
-            "models": ["dev_handoff_runs"]
-        },
-        {
-            "label": "Templates",
-            "icon": "Layout",
-            "models": ["dev_template_annotations"]
-        }
+        {"label": "Inspect", "icon": "Search", "pages": [
+            {"name": "dev_overview", "label": "Overview", "path": "/admin/dev", "icon": "LayoutDashboard", "component": "dev.overview"},
+            {"name": "dev_schema", "label": "Schema", "path": "/admin/dev/schema", "icon": "GitCompare", "component": "dev.schema"},
+            {"name": "dev_models", "label": "Models", "path": "/admin/dev/models", "icon": "Boxes", "component": "dev.models"},
+            {"name": "dev_routes", "label": "Routes", "path": "/admin/dev/routes-debug", "icon": "Route", "component": "dev.routes"},
+            {"name": "dev_timeline", "label": "Timeline", "path": "/admin/dev/timeline", "icon": "Activity", "component": "dev.timeline"},
+        ]},
+        {"label": "Operate", "icon": "Wrench", "pages": [
+            {"name": "dev_workbench", "label": "Workbench", "path": "/admin/dev/workbench", "icon": "Wrench", "component": "dev.workbench"},
+            {"name": "dev_cache", "label": "Cache", "path": "/admin/dev/cache", "icon": "Trash2", "component": "dev.cache"},
+            {"name": "dev_commands", "label": "Commands", "path": "/admin/dev/commands", "icon": "Command", "component": "dev.commands"},
+            {"name": "dev_sql", "label": "SQL Runner", "path": "/admin/dev/sql", "icon": "Terminal", "component": "dev.sql"},
+            {"name": "dev_access", "label": "Access", "path": "/admin/dev/access", "icon": "Shield", "component": "dev.access"},
+        ]},
+        {"label": "Build & Test", "icon": "Code", "pages": [
+            {"name": "dev_testlab", "label": "Test Lab", "path": "/admin/dev/test-lab", "icon": "Zap", "component": "dev.testlab"},
+            {"name": "dev_scaffold", "label": "Scaffold", "path": "/admin/dev/scaffold", "icon": "Code2", "component": "dev.scaffold"},
+            {"name": "dev_mocks", "label": "Mocks", "path": "/admin/dev/mocks", "icon": "Globe", "component": "dev.mocks"},
+            {"name": "dev_templatebuilder", "label": "Template Builder", "path": "/admin/dev/template-builder", "icon": "FileCode", "component": "dev.templatebuilder"},
+            {"name": "dev_apihelp", "label": "API Help", "path": "/admin/dev/api-help", "icon": "Code2", "component": "dev.apihelp"},
+            {"name": "dev_help", "label": "Dev Help", "path": "/admin/dev/help", "icon": "HelpCircle", "component": "dev.help"},
+            {"name": "dev_handoff", "label": "Handoff", "path": "/admin/dev/handoff", "icon": "GitBranch", "component": "dev.handoff"},
+            {"name": "dev_logs", "label": "Logs", "path": "/admin/dev/logs", "icon": "AlertTriangle", "component": "dev.logs"},
+        ]},
     ]

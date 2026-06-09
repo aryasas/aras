@@ -363,7 +363,7 @@ export default function TopMenuLayout() {
       isVisibleMenuItem(item) && !item.hide_from_sidebar &&
       item.name !== 'settings' && item.name !== 'help'
     ), [sidebarData])
-  const { activeApp, isLoadingMenu, orderedItems } = useAppMenu(apps, location.pathname)
+  const { activeApp, menuData, isLoadingMenu, orderedItems } = useAppMenu(apps, location.pathname)
 
   return (
     <div className="arc arc-bg arc-dotgrid h-screen w-full overflow-hidden flex font-sans antialiased" style={layoutStyle}>
@@ -404,7 +404,7 @@ export default function TopMenuLayout() {
             <div className={fullWidth
               ? 'flex-1 min-h-0 relative w-full flex flex-col'
               : 'flex-1 max-sm:overflow-visible relative w-full max-w-[1280px] mx-auto px-4 md:px-6 lg:px-8 py-5'}>
-              <Outlet context={{ sidebarData }} />
+              <Outlet context={{ sidebarData, menuData, isLoadingMenu }} />
             </div>
           </div>
         </main>

@@ -59,12 +59,14 @@ class AppInstaller(Service):
 
         # 3. Seed default values in DB
         for section in app_cls.config_sections:
+            level = getattr(section, "level", "app")
             for field in section.fields:
                 if field.default is None:
                     continue
                 existing = db.query(Settings).filter_by(
                     namespace=app_cls.app_name,
                     key=field.key,
+                    level=level,
                 ).first()
                 if not existing:
                     logger.info(f"Seeding default setting: {app_cls.app_name}.{field.key} = {field.default}")

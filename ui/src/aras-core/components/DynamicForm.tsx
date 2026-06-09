@@ -47,7 +47,7 @@ interface ModelAction {
 }
 
 
-export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any) => {
+export const DynamicForm = ({ resource, id, initialData, onSave, onCancel, apiPathOverride }: any) => {
   const vocabulary = useVocabulary();
   const navigate = useNavigate();
   const activeApps = useAuthStore((s) => s.activeApps);
@@ -90,7 +90,7 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
   useEffect(() => {
     const controller = new AbortController();
     if (metadata && currentId) {
-      api.get(`/${cleanResourcePath(metadata.api_path || resource)}/${currentId}`, { signal: controller.signal })
+      api.get(`/${cleanResourcePath(apiPathOverride || metadata.api_path || resource)}/${currentId}`, { signal: controller.signal })
         .then(res => {
           setFormData(res.data)
           setInitialValues(res.data)
@@ -155,7 +155,7 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
     }
     setSaving(true);
     try {
-      const cleanPath = cleanResourcePath(metadata?.api_path || resource);
+      const cleanPath = cleanResourcePath(apiPathOverride || metadata?.api_path || resource);
       let savedId = currentId;
       if (currentId) {
         await api.patch(`/${cleanPath}/${currentId}`, formData);
@@ -185,7 +185,7 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel }: any
     if (!currentId || !metadata) return;
     setActionLoading(action.name);
     try {
-      const cleanPath = cleanResourcePath(metadata.api_path || resource);
+      const cleanPath = cleanResourcePath(apiPathOverride || metadata.api_path || resource);
       const res = await api.post(`/${cleanPath}/${currentId}/action/${action.name}`, {});
       const token = findDisplayToken(res.data);
       if (token) setDisplayToken(token);

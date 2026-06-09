@@ -18,12 +18,11 @@ const ResetPassword = lazy(() => import('./views/ResetPassword'))
 const MainLayout = lazy(() => import('./layouts/TopMenuLayout'))
 const HomeView = lazy(() => import('./views/Home'))
 const SettingsPageView = lazy(() => import('./views/settings/SettingsPage'))
-const AccessPanelView = lazy(() => import('./views/settings/AccessPanel'))
+const AccessControlView = lazy(() => import('./views/RBACManager'))
 const MasterDataPageView = lazy(() => import('./views/master-data/MasterDataPage'))
 const DashboardSettingsView = lazy(() => import('./views/DashboardSettings'))
 const ProfileView = lazy(() => import('./views/Profile'))
 const DynamicView = lazy(() => import('./views/DynamicView'))
-const DevToolsView = lazy(() => import('./views/DevTools'))
 const ReportCenterView = lazy(() => import('./views/ReportCenter'))
 const TemplateBuilderView = lazy(() => import('./views/TemplateBuilder'))
 const AppManagerView = lazy(() => import('./views/AppManager'))
@@ -39,9 +38,7 @@ const ControlPanelDashboard = lazy(() => import('./views/control-panel/ControlPa
 const ControlPanelTenantDetail = lazy(() => import('./views/control-panel/TenantDetail'))
 const LicensesPanel = lazy(() => import('./views/control-panel/LicensesPanel'))
 const SaaSPlans = lazy(() => import('./views/saas/Plans'))
-const InspectRoutesView = lazy(() => import('./views/InspectRoutes'))
 const HealthIntegrityView = lazy(() => import('./views/HealthIntegrity'))
-const HandoffRunsView = lazy(() => import('./views/HandoffRuns'))
 const BackgroundTasksView = lazy(() => import('./views/BackgroundTasks'))
 const ActivityHeatmapView = lazy(() => import('./views/ActivityHeatmap'))
 const FileManagerView = lazy(() => import('./views/FileManager'))
@@ -224,26 +221,32 @@ function App() {
             <Route path="dashboard" element={<DashboardSettingsView />} />
             <Route path="preferences" element={<Navigate to="/admin/settings?ns=core" replace />} />
             <Route path="audit" element={<AuditLogsView />} />
-            <Route path="access" element={<AccessPanelView />} />
+            <Route path="access" element={<AccessControlView />} />
+            <Route path="master-data" element={<MasterDataPageView />} />
             <Route path="files" element={<FileManagerView />} />
+            <Route path="seeder" element={<SeedManagerView />} />
+            <Route path="license" element={<TenantRoute><LicenseStatusView /></TenantRoute>} />
+            <Route path="health" element={<HealthIntegrityView />} />
+            <Route path="tasks" element={<BackgroundTasksView />} />
+            <Route path="activity-heatmap" element={<ActivityHeatmapView />} />
           </Route>
-          <Route path="admin/master-data" element={<MasterDataPageView />} />
+          <Route path="admin/master-data" element={<Navigate to="/admin/settings/master-data" replace />} />
           <Route path="settings/dashboard" element={<Navigate to="/admin/settings/dashboard" replace />} />
           <Route path="settings/global" element={<Navigate to="/admin/settings?ns=core" replace />} />
           <Route path="settings/audit" element={<Navigate to="/admin/settings/audit" replace />} />
           <Route path="settings/rbac" element={<Navigate to="/admin/settings/access" replace />} />
-          <Route path="admin/license" element={<TenantRoute><LicenseStatusView /></TenantRoute>} />
+          <Route path="admin/license" element={<Navigate to="/admin/settings/license" replace />} />
           <Route path="preview/:slug" element={<WebPageView />} />
           <Route path="settings/user-access" element={<Navigate to="/admin/settings/access" replace />} />
-          <Route path="dev" element={<DevToolsView />} />
+          <Route path="dev" element={<Navigate to="/admin/dev" replace />} />
           <Route path="dev/template-builder" element={<TemplateBuilderView />} />
-          <Route path="dev/health" element={<HealthIntegrityView />} />
-          <Route path="dev/routes" element={<InspectRoutesView />} />
-          <Route path="dev/handoff-runs" element={<HandoffRunsView />} />
-          <Route path="dev/tasks" element={<BackgroundTasksView />} />
-          <Route path="dev/activity-heatmap" element={<ActivityHeatmapView />} />
+          <Route path="dev/health" element={<Navigate to="/admin/settings/health" replace />} />
+          <Route path="dev/routes" element={<Navigate to="/admin/dev/routes-debug" replace />} />
+          <Route path="dev/handoff-runs" element={<Navigate to="/admin/dev/handoff" replace />} />
+          <Route path="dev/tasks" element={<Navigate to="/admin/settings/tasks" replace />} />
+          <Route path="dev/activity-heatmap" element={<Navigate to="/admin/settings/activity-heatmap" replace />} />
           <Route path="settings/files" element={<Navigate to="/admin/settings/files" replace />} />
-          <Route path="admin/seeder" element={<SeedManagerView />} />
+          <Route path="admin/seeder" element={<Navigate to="/admin/settings/seeder" replace />} />
           <Route path="admin/tenants" element={<Navigate to="/control-panel/tenants" replace />} />
           <Route path="saas-admin" element={<Navigate to="/control-panel" replace />} />
           <Route path="saas-admin/tenants/:id" element={<LegacyTenantDetailRedirect />} />
@@ -265,7 +268,8 @@ function App() {
           <Route path="archive/*" element={<ArchivedView />} />
           <Route path="pot/pos" element={<PosView />} />
           <Route path="pot/sessions/:id/pos" element={<PosView />} />
-          
+
+          <Route path="admin/:segment1/*" element={<SmartDispatcher />} />
           <Route path=":segment1/*" element={<SmartDispatcher />} />
 
           {/* Catch all for authenticated area */}
