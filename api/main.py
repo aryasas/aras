@@ -13,6 +13,9 @@ from core.lib.settings import settings
 settings.validate()
 
 from core import Aras
+from core.lib.limiter import limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
 
 # --- Logging Configuration ---
 def setup_logging():
@@ -87,6 +90,8 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Exception Handlers
 from fastapi.exceptions import RequestValidationError

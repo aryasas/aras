@@ -128,18 +128,19 @@ export default function CookieConsent() {
   }
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-end bg-black/40">
+    <div className={`fixed inset-0 z-[90] flex items-end ${preferencesOpen ? 'bg-black/18' : 'pointer-events-none'}`}>
       <div
         className="w-full pb-4"
         style={{
           insetInline: '1rem',
           position: 'fixed',
           bottom: 0,
+          pointerEvents: 'auto',
         }}
       >
         <section
-          className="mx-auto w-full max-w-4xl rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] py-5 shadow-2xl"
-          style={{ paddingInline: '1.25rem' }}
+          className="mx-auto w-full max-w-4xl rounded-[calc(var(--radius-lg)+2px)] border border-[var(--line)] py-5 shadow-2xl backdrop-blur-xl"
+          style={{ paddingInline: '1.25rem', background: 'color-mix(in oklch, var(--surface) 92%, white)' }}
         >
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">

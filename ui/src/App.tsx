@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 import { lazy, Suspense, useEffect } from 'react'
 import { useAuthStore } from './store/authStore'
 import { useUIStore } from './store/uiStore'
@@ -8,7 +8,7 @@ import SidePanel from './aras-core/components/SidePanel'
 import { FormattingService } from './aras-core/services/FormattingService'
 import { VocabularyProvider } from './context/VocabularyContext'
 import { connectArasWebSocket, disconnectArasWebSocket } from './lib/ws'
-import api from './lib/api'
+import api, { isPublicPath } from './lib/api'
 import CookieConsent from './components/CookieConsent'
 
 const Login = lazy(() => import('./views/Login'))
@@ -87,14 +87,15 @@ const LegacyTenantDetailRedirect = () => {
   return <Navigate to={`/control-panel/tenants/${id}`} replace />
 }
 
-// gpt-5.4
-function App() {
-  const { showAlert, showConfirm, showError } = useUIStore();
+function AppContent() {
+  const { showAlert, showError } = useUIStore();
   const { themeMode, cornerMode, density, fontScale, accentColor } = useUIStore();
   const token = useAuthStore((state) => state.token);
   const setUser = useAuthStore((state) => state.setUser);
   const setOrganizations = useAuthStore((state) => state.setOrganizations);
   const setCapabilities = useAuthStore((state) => state.setCapabilities);
+  const location = useLocation()
+  const publicRoute = isPublicPath(location.pathname)
 
   useEffect(() => {
     const root = document.documentElement
@@ -114,22 +115,22 @@ function App() {
   }, [accentColor, cornerMode, density, fontScale, themeMode]);
 
   useEffect(() => {
-    if (!token) {
+    if (!token || publicRoute) {
       disconnectArasWebSocket()
       return
     }
     connectArasWebSocket()
     return () => disconnectArasWebSocket()
-  }, [token]);
+  }, [publicRoute, token]);
 
   useEffect(() => {
-    if (token) {
+    if (token && !publicRoute) {
       FormattingService.init();
     }
-  }, [token]);
+  }, [publicRoute, token]);
 
   useEffect(() => {
-    if (!token) return
+    if (!token || publicRoute) return
 
     const fetchCurrentUser = async () => {
       try {
@@ -152,18 +153,12 @@ function App() {
 
     fetchCurrentUser()
     fetchCapabilities()
-  }, [token, setUser, setOrganizations, setCapabilities]);
+  }, [publicRoute, token, setUser, setOrganizations, setCapabilities]);
 
   useEffect(() => {
     // Override window.alert
     window.alert = (message?: string) => {
       showAlert('Alert', message || '');
-    };
-
-    // Override window.confirm
-    window.confirm = (message?: string) => {
-      showConfirm('Confirm', message || '', () => {});
-      return false; 
     };
 
     // Global Error Handler for unhandled rejections
@@ -174,11 +169,10 @@ function App() {
 
     window.addEventListener('unhandledrejection', handleError);
     return () => window.removeEventListener('unhandledrejection', handleError);
-  }, [showAlert, showConfirm, showError]);
+  }, [showAlert, showError]);
 
   return (
-    <Router>
-      <VocabularyProvider>
+    <VocabularyProvider enabled={!publicRoute}>
       <CookieConsent />
       <CommandPalette />
       <GlobalDialog />
@@ -280,7 +274,15 @@ function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
       </Suspense>
-      </VocabularyProvider>
+    </VocabularyProvider>
+  )
+}
+
+// gpt-5.4
+function App() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   )
 }

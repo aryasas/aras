@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../lib/api'
 import { Mail, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react'
+import { ArasLogo } from '../components/ArasLogo'
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('')
@@ -26,79 +27,102 @@ const ForgotPassword = () => {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-[var(--app-panel-soft)] flex items-center justify-center p-4 font-sans">
-        <div className="max-w-md w-full bg-[var(--app-panel)] rounded-[var(--app-radius-lg)] shadow-xl p-8 flex flex-col items-center text-center">
-          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-[var(--app-radius-lg)] flex items-center justify-center mb-6">
-            <CheckCircle size={32} />
-          </div>
-          <h2 className="text-2xl font-bold text-[var(--app-text)]">Check your email</h2>
-          <p className="text-[var(--app-muted)] mt-4 mb-8">
-            If an account exists for {email}, we've sent instructions to reset your password.
-          </p>
-          <Link 
-            to="/login"
-            className="w-full py-4 bg-[var(--app-accent)] text-white rounded-[var(--app-radius-lg)] font-bold text-lg shadow-lg hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
-          >
-            <ArrowLeft size={20} />
-            Back to Login
-          </Link>
+      <main className="arc arc-bg arc-dotgrid min-h-screen px-4 py-10">
+        <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-md items-center">
+          <section className="arc-card w-full overflow-hidden bg-[var(--surface)] shadow-[var(--shadow-card-lift)]">
+            <div className="px-8 py-8 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[var(--radius-lg)] bg-emerald-50 text-emerald-600">
+                <CheckCircle size={30} />
+              </div>
+              <p className="arc-id mt-5"><b>arc</b>/auth/<b>forgot-password</b></p>
+              <h2 className="mt-2 text-[28px] font-semibold tracking-tight text-[var(--text)]">Check your email</h2>
+              <p className="mt-3 text-sm leading-6 text-[var(--text-2)]">
+                If an account exists for {email}, we&apos;ve sent a reset link with the next steps.
+              </p>
+            </div>
+            <div className="border-t border-[var(--line)] px-8 py-6">
+              <Link
+                to="/login"
+                className="arc-btn primary flex w-full items-center justify-center"
+                style={{ height: 44 }}
+              >
+                <ArrowLeft size={16} />
+                Back to login
+              </Link>
+            </div>
+          </section>
         </div>
-      </div>
+      </main>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[var(--app-panel-soft)] flex items-center justify-center p-4 font-sans">
-      <div className="max-w-md w-full bg-[var(--app-panel)] rounded-[var(--app-radius-lg)] shadow-xl shadow-slate-200 border border-[var(--app-border)] overflow-hidden">
-        <div className="p-8 pb-0 flex flex-col items-center">
-          <div className="w-16 h-16 bg-[var(--app-accent)] rounded-[var(--app-radius-lg)] flex items-center justify-center shadow-lg shadow-indigo-200 mb-6">
-            <span className="text-white font-black text-3xl">A</span>
-          </div>
-          <h1 className="text-2xl font-bold text-[var(--app-text)]">Forgot Password?</h1>
-          <p className="text-[var(--app-muted)] mt-2 text-center">Enter your email and we'll send you a link to reset your password.</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
-          {error && (
-            <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-[var(--app-radius)] flex items-center gap-3 text-sm">
-              <AlertCircle size={18} />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-[var(--app-text)] ml-1">Email Address</label>
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" size={18} />
-              <input 
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-[var(--app-panel-soft)] border border-[var(--app-border)] rounded-[var(--app-radius)] focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none"
-                placeholder="name@example.com"
-              />
+    <main className="arc arc-bg arc-dotgrid min-h-screen px-4 py-10">
+      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-md items-center">
+        <section className="arc-card w-full overflow-hidden bg-[var(--surface)] shadow-[var(--shadow-card-lift)]">
+          <div className="px-8 pt-8 pb-2 flex items-start gap-4">
+            <ArasLogo size="lg" />
+            <div className="flex-1 min-w-0">
+              <div className="arc-id"><b>arc</b>/auth/<b>forgot-password</b></div>
+              <h1 className="mt-1 text-[26px] font-semibold tracking-tight text-[var(--text)]">Forgot your password?</h1>
+              <p className="mt-1 text-sm leading-6 text-[var(--text-2)]">
+                Enter your workspace email and we&apos;ll send you a secure reset link.
+              </p>
             </div>
           </div>
 
-          <button 
-            type="submit"
-            disabled={loading}
-            className={`w-full py-4 bg-[var(--app-accent)] text-white rounded-[var(--app-radius-lg)] font-bold text-lg shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all transform hover:-translate-y-1 active:translate-y-0
-              ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-          >
-            {loading ? 'Sending link...' : 'Send Reset Link'}
-          </button>
+          <form onSubmit={handleSubmit} className="px-8 py-6 flex flex-col gap-5">
+            {error && (
+              <div
+                className="flex items-center gap-2 rounded-[var(--radius)] border px-3 py-2 text-[12.5px]"
+                style={{
+                  background: 'color-mix(in oklch, var(--danger) 10%, var(--surface))',
+                  borderColor: 'color-mix(in oklch, var(--danger) 30%, var(--line))',
+                  color: 'var(--danger)',
+                }}
+              >
+                <AlertCircle size={15} />
+                <span>{error}</span>
+              </div>
+            )}
 
-          <div className="text-center mt-4">
-            <Link to="/login" className="text-[var(--app-accent)] font-semibold hover:text-indigo-700 flex items-center justify-center gap-2">
-              <ArrowLeft size={16} />
-              Back to Login
+            <label className="flex flex-col gap-1.5">
+              <span className="arc-id">email</span>
+              <span className="relative">
+                <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-3)]" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="arc-input"
+                  style={{ paddingLeft: 32 }}
+                  placeholder="name@example.com"
+                  autoFocus
+                />
+              </span>
+            </label>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="arc-btn primary w-full justify-center"
+              style={{ height: 44 }}
+            >
+              <Mail size={15} />
+              <span>{loading ? 'Sending link…' : 'Send reset link'}</span>
+            </button>
+          </form>
+
+          <div className="border-t border-[var(--line)] px-8 pb-8 pt-4 text-[11.5px] flex flex-col gap-1.5 text-[var(--text-3)]">
+            <Link to="/login" className="inline-flex items-center gap-2 text-[var(--text-3)] hover:text-[var(--accent)]">
+              <ArrowLeft size={15} />
+              Back to login
             </Link>
           </div>
-        </form>
+        </section>
       </div>
-    </div>
+    </main>
   )
 }
 

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Eye, KeyRound, Save, Upload } from 'lucide-react'
 import type { ConfigChoice, ConfigFieldSchema, ConfigSectionDetail } from '../../lib/config'
 import { useRotateSecret, useSaveSection } from '../../lib/config'
+import { useUIStore } from '../../store/uiStore'
+import SimpleCombobox from '../../aras-core/components/SimpleCombobox'
 
 interface SectionFormProps {
   section: ConfigSectionDetail
@@ -41,6 +43,8 @@ function inputClass(hasError?: boolean) {
 }
 
 export default function SectionForm({ section, onSaved }: SectionFormProps) {
+  const showAlert = useUIStore((state) => state.showAlert)
+  const showPrompt = useUIStore((state) => state.showPrompt)
   const saveMutation = useSaveSection()
   const rotateMutation = useRotateSecret()
   const [values, setValues] = useState<FormValues>({})
@@ -91,13 +95,19 @@ export default function SectionForm({ section, onSaved }: SectionFormProps) {
   }
 
   const handleReveal = () => {
-    window.confirm('Re-authentication is required before secrets can be revealed.')
+    showAlert('Re-authentication required', 'Re-authentication is required before secrets can be revealed.')
   }
 
   const handleRotate = async (field: ConfigFieldSchema) => {
-    const nextValue = window.prompt(`New value for ${field.label || field.key}`)
-    if (!nextValue) return
-    await rotateMutation.mutateAsync({ sectionKey: section.key, fieldKey: field.key, value: nextValue })
+    showPrompt(
+      `Rotate ${field.label || field.key}`,
+      `Enter a new value for ${field.label || field.key}.`,
+      async (nextValue) => {
+        if (!nextValue) return
+        await rotateMutation.mutateAsync({ sectionKey: section.key, fieldKey: field.key, value: nextValue })
+      },
+      { confirmLabel: 'Rotate' },
+    )
   }
 
   const renderField = (field: ConfigFieldSchema) => {
@@ -120,14 +130,17 @@ export default function SectionForm({ section, onSaved }: SectionFormProps) {
     }
 
     if (type === 'choice') {
+      const choiceOptions = (field.choices || []).map((choice) => {
+        const normalized = normalizeChoice(choice)
+        return { value: String(normalized.value), label: String(normalized.label) }
+      })
       return (
-        <select className={inputClass(Boolean(error))} value={String(value ?? '')} onChange={(event) => updateValue(field, event.target.value)}>
-          <option value="">Select</option>
-          {(field.choices || []).map((choice) => {
-            const normalized = normalizeChoice(choice)
-            return <option key={String(normalized.value)} value={String(normalized.value)}>{normalized.label}</option>
-          })}
-        </select>
+        <SimpleCombobox
+          options={choiceOptions}
+          value={String(value ?? '')}
+          onChange={(v) => updateValue(field, v)}
+          placeholder="Select..."
+        />
       )
     }
 

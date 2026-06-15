@@ -35,12 +35,16 @@ class ResetPasswordRequest(Validation):
     new_password: str
 
 from .refresh import create_refresh_token, rotate_refresh_token, revoke_refresh_token
+from core.lib.limiter import limiter
+from fastapi import Request
 
 class RefreshRequest(Validation):
     refresh_token: str
 
 @router.post("/token")
+@limiter.limit("5/minute")
 def login_for_access_token(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
@@ -187,7 +191,9 @@ def change_password(
     return {"message": "Password changed successfully"}
 
 @router.post("/forgot-password")
+@limiter.limit("5/minute")
 def forgot_password(
+    request: Request,
     data: ForgotPasswordRequest,
     db: Session = Depends(get_db)
 ):
@@ -204,7 +210,9 @@ def forgot_password(
     return {"message": "If an account with that email exists, we have sent a reset link."}
 
 @router.post("/reset-password")
+@limiter.limit("5/minute")
 def reset_password(
+    request: Request,
     data: ResetPasswordRequest,
     db: Session = Depends(get_db)
 ):

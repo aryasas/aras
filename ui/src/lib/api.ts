@@ -7,13 +7,18 @@ import { useAuthStore } from '../store/authStore'
 const DEV_MULTI_TENANT = import.meta.env.VITE_DEV_MULTI_TENANT === 'true'
 const TENANT_STORAGE_KEY = 'tenant_id'
 const TOKEN_STORAGE_KEY = 'aras_token'
-const PUBLIC_PATHS = ['/login', '/welcome', '/signup', '/portal', '/portal/setup', '/forgot-password', '/reset-password', '/contact']
+const REFRESH_TOKEN_STORAGE_KEY = 'aras_refresh_token'
+const PORTAL_TOKEN_STORAGE_KEY = 'portal_token'
+export const PUBLIC_PATHS = ['/login', '/welcome', '/signup', '/portal', '/portal/setup', '/forgot-password', '/reset-password', '/contact']
 const AUTH_REFRESH_SKIP_PATHS = new Set(['/auth/token', '/auth/refresh'])
 
 type RetryableRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean
   skipAuthRefresh?: boolean
+  portalAuth?: boolean
 }
+
+export type ApiRequestConfig = RetryableRequestConfig
 
 interface ApiEnvelope<T = unknown> {
   success: boolean
@@ -43,21 +48,25 @@ let refreshRequest: Promise<AuthSessionPayload> | null = null
 
 // gpt-5.4
 function getAuthToken() {
-  const sessionToken = sessionStorage.getItem(TOKEN_STORAGE_KEY)
-  if (sessionToken) return sessionToken
-
-  const legacyToken = localStorage.getItem(TOKEN_STORAGE_KEY)
-  if (legacyToken) {
-    sessionStorage.setItem(TOKEN_STORAGE_KEY, legacyToken)
-    localStorage.removeItem(TOKEN_STORAGE_KEY)
-  }
-  return legacyToken
+  return sessionStorage.getItem(TOKEN_STORAGE_KEY)
 }
 
 // gpt-5.4
 function clearAuthToken() {
   sessionStorage.removeItem(TOKEN_STORAGE_KEY)
   localStorage.removeItem(TOKEN_STORAGE_KEY)
+}
+
+function getRefreshToken() {
+  return sessionStorage.getItem(REFRESH_TOKEN_STORAGE_KEY)
+}
+
+function clearRefreshToken() {
+  sessionStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY)
+}
+
+function getPortalToken() {
+  return sessionStorage.getItem(PORTAL_TOKEN_STORAGE_KEY)
 }
 
 // gpt-5.4
@@ -131,6 +140,11 @@ function isApiEnvelope(value: unknown): value is ApiEnvelope {
 // gpt-5.4
 function setRefreshToken(token: string | null) {
   refreshTokenMemory = token
+  if (token) {
+    sessionStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, token)
+  } else {
+    clearRefreshToken()
+  }
 }
 
 // gpt-5.4
@@ -165,7 +179,7 @@ function getApiPath(url?: string) {
 }
 
 // gpt-5.4
-function isPublicPath(pathname: string) {
+export function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`)) || pathname.startsWith('/p/')
 }
 
@@ -174,6 +188,7 @@ function hardLogout(redirectToLogin = true) {
   setRefreshToken(null)
   useAuthStore.getState().logout()
   clearAuthToken()
+  clearRefreshToken()
 
   if (!redirectToLogin) return
 
@@ -223,7 +238,7 @@ function normalizeConsentPolicy(payload: unknown): ConsentPolicy {
 async function refreshSession(): Promise<AuthSessionPayload> {
   if (refreshRequest) return refreshRequest
 
-  const refreshToken = refreshTokenMemory
+  const refreshToken = getRefreshToken() || refreshTokenMemory
   const payload = refreshToken ? { refresh_token: refreshToken } : undefined
 
   refreshRequest = api
@@ -261,7 +276,7 @@ api.interceptors.request.use((config) => {
     requestConfig.url = `${leadingSlash}${cleanResourcePath(path)}${query ? `?${query}` : ''}`
   }
 
-  const token = useAuthStore.getState().token ?? getAuthToken()
+  const token = requestConfig.portalAuth ? getPortalToken() : (useAuthStore.getState().token ?? getAuthToken())
   if (token) {
     setRequestHeader(requestConfig, 'Authorization', `Bearer ${token}`)
   }
@@ -336,6 +351,9 @@ api.interceptors.response.use(
     const path = getApiPath(requestConfig.url)
 
     if (error.response?.status === 401) {
+      if (requestConfig.portalAuth) {
+        return Promise.reject(error)
+      }
       if (!requestConfig._retry && !requestConfig.skipAuthRefresh && !AUTH_REFRESH_SKIP_PATHS.has(path)) {
         requestConfig._retry = true
         try {

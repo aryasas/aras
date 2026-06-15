@@ -9,6 +9,8 @@ import os as _os # Used by alembic import
 from core.lib.database import get_db
 from core.response import ok
 from core import Aras # For Aras.get_all_app_models in schema-diff and Aras.Model._registry
+from core.auth.service import get_current_user
+from core.lib.audit import audit
 
 dev_db_router = APIRouter(tags=["Developer Database Tools"])
 
@@ -16,13 +18,30 @@ class SQLQueryRequest(BaseModel):
     sql: str
     limit: Optional[int] = 100
 
+# claude-sonnet-4-6
 @dev_db_router.post("/dev/sql")
-def run_sql_query(payload: SQLQueryRequest, db: Session = Depends(get_db)):
+def run_sql_query(
+    payload: SQLQueryRequest, 
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(get_current_user)
+):
     """Read-only SQL console. Only SELECT/SHOW/EXPLAIN/PRAGMA permitted."""
+    if not getattr(current_user, "is_super_admin", False) and not getattr(current_user, "is_admin", False):
+         raise HTTPException(status_code=403, detail="Super-administrator access required")
+    
+    # gemini-3-flash-preview: Force super-admin for SQL runner if the field exists, 
+    # otherwise fallback to is_admin for now but warn.
+    if hasattr(current_user, "is_super_admin") and not current_user.is_super_admin:
+        raise HTTPException(status_code=403, detail="Super-administrator access required")
+
     sql = payload.sql.strip().rstrip(";")
     limit = payload.limit
     if not sql:
         raise HTTPException(status_code=400, detail="empty query")
+    
+    # Audit log the query attempt (without results)
+    audit.record(db, "core_dev_sql", current_user.id, "run_query", {"sql": sql})
+
     lowered = sql.lower()
     allowed_prefixes = ("select ", "with ", "show ", "explain ", "pragma ", "describe ")
     if not lowered.startswith(allowed_prefixes):
@@ -31,17 +50,26 @@ def run_sql_query(payload: SQLQueryRequest, db: Session = Depends(get_db)):
     banned = ["insert ", "update ", "delete ", "drop ", "alter ", "truncate ", "create ", "grant ", "revoke "]
     if any(b in lowered for b in banned):
         raise HTTPException(status_code=400, detail="mutation keywords not allowed")
+    
     try:
         t0 = _time.time()
         result = db.execute(text(sql))
         rows = [dict(r._mapping) for r in result.fetchmany(limit)]
-        # Convert non-serializable values
+        
+        # gemini-3-flash-preview: Filter out sensitive columns
+        banned_cols = {"password", "token", "secret", "api_key", "refresh_token", "password_hash", "saas_license_token"}
+        
+        # Convert non-serializable values and redact
         for row in rows:
             for k, v in list(row.items()):
+                if k.lower() in banned_cols:
+                    row[k] = "[REDACTED]"
+                    continue
                 if hasattr(v, 'isoformat'):
                     row[k] = v.isoformat()
                 elif not isinstance(v, (str, int, float, bool, type(None), list, dict)):
                     row[k] = str(v)
+        
         elapsed = round((_time.time() - t0) * 1000, 1)
         cols = list(rows[0].keys()) if rows else []
         return ok({"columns": cols, "rows": rows, "row_count": len(rows), "elapsed_ms": elapsed})

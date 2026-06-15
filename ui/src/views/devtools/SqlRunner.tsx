@@ -7,7 +7,8 @@ import { devApi } from './devApi'
 // claude-opus-4-8
 // Read-only SQL console. Backend (POST /dev/dev/sql) rejects any mutation; this is the UI.
 export default function SqlRunner() {
-  const [sql, setSql] = useState('SELECT name FROM sqlite_master WHERE type = \'table\' LIMIT 50')
+  // PostgreSQL/MySQL only — SQLite is not supported
+  const [sql, setSql] = useState('SELECT table_name FROM information_schema.tables LIMIT 10')
   const [limit, setLimit] = useState(100)
   const [result, setResult] = useState<{ columns: string[]; rows: Record<string, unknown>[]; row_count: number; elapsed_ms: number } | null>(null)
   const [error, setError] = useState('')

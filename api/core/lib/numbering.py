@@ -1,94 +1,98 @@
-# gemini-flash
-import datetime
-import re
+# claude-sonnet-4-6
 import logging
-from sqlalchemy.orm import Session
+import re
+from datetime import datetime, timezone
+from typing import Optional
 from sqlalchemy import select
-from ..registry.numbering_sequence import NumberingSequence
-from .config import config
+from sqlalchemy.orm import Session
+from ..registry.series import Series
 
 logger = logging.getLogger(__name__)
 
 class NumberingService:
-    _defaults = {}
+    """
+    Unified service for generating sequential document numbers.
+    Uses the 'core_series' table as the primary registry.
+    """
 
     @classmethod
-    def next(cls, db: Session, doc_type: str, org_id: int = 0) -> str:
+    def get_next(cls, db: Session, key: str, default_prefix: str = "") -> str:
         """
-        Generates the next sequential number for a document type.
-        Atomic via SELECT ... FOR UPDATE.
+        Atomically increments the series and returns the formatted string.
         """
-        now = datetime.datetime.now(datetime.timezone.utc)
+        # gemini-3-flash-preview: Use FOR UPDATE for atomicity
+        stmt = select(Series).where(Series.key == key).with_for_update()
+        series = db.scalar(stmt)
+
+        now = datetime.now(timezone.utc)
         year = now.year
-        
-        # 1. Get format from config
-        format_key = f"core_config.numbering.{doc_type}"
-        fmt = config.get(db, format_key)
-        if not fmt:
-            fmt = cls._get_default_format(doc_type) or "{prefix}{year}-{seq:04d}"
-        
-        # 2. Atomic increment
-        stmt = select(NumberingSequence).filter_by(
-            doc_type=doc_type, 
-            org_id=org_id, 
-            year=year
-        ).with_for_update()
-        
-        row = db.execute(stmt).scalar_one_or_none()
-        if not row:
-            row = NumberingSequence(doc_type=doc_type, org_id=org_id, year=year, last_seq=1)
-            db.add(row)
-            seq = 1
+
+        if not series:
+            # Auto-create series if missing
+            prefix = default_prefix or (key.split('_')[-1][:3].upper() + "-")
+            series = Series(
+                key=key,
+                prefix=prefix,
+                next_value=1,
+                last_reset_year=year,
+                format="{prefix}{year}{next_value:04d}"
+            )
+            db.add(series)
+            db.flush()
         else:
-            row.last_seq += 1
-            seq = row.last_seq
+            # Handle yearly reset
+            if series.config and series.config.get("reset_yearly") and series.last_reset_year != year:
+                series.next_value = 1
+                series.last_reset_year = year
+            
+        current_val = series.next_value
+        prefix = series.prefix or ""
         
-        return cls._format(fmt, doc_type, seq, now)
+        try:
+            # Support both python format and custom token replacement
+            fmt = series.format or "{prefix}{year}{next_value:04d}"
+            if "{" in fmt:
+                formatted = fmt.format(
+                    prefix=prefix,
+                    year=year,
+                    YYYY=year,
+                    YY=str(year)[2:],
+                    MM=f"{now.month:02d}",
+                    DD=f"{now.day:02d}",
+                    next_value=current_val,
+                    seq=current_val
+                )
+            else:
+                formatted = f"{prefix}{year}{current_val:04d}"
+        except Exception as e:
+            logger.error(f"Failed to format naming series {key}: {e}")
+            formatted = f"{prefix}{year}{current_val:04d}"
+
+        series.next_value += 1
+        db.flush()
+        return formatted
 
     @classmethod
-    def peek(cls, db: Session, doc_type: str, org_id: int = 0) -> str:
-        """Returns the next formatted number without incrementing."""
-        now = datetime.datetime.now(datetime.timezone.utc)
+    def peek_next(cls, db: Session, key: str) -> Optional[str]:
+        """Return the next formatted number without incrementing the counter."""
+        series = db.scalar(select(Series).where(Series.key == key))
+        if not series:
+            return None
+            
+        now = datetime.now(timezone.utc)
         year = now.year
-        format_key = f"core_config.numbering.{doc_type}"
-        fmt = config.get(db, format_key)
-        if not fmt:
-            fmt = cls._get_default_format(doc_type) or "{prefix}{year}-{seq:04d}"
+        current_val = series.next_value
         
-        stmt = select(NumberingSequence).filter_by(doc_type=doc_type, org_id=org_id, year=year)
-        row = db.execute(stmt).scalar_one_or_none()
-        seq = row.last_seq + 1 if row else 1
-        
-        return cls._format(fmt, doc_type, seq, now)
+        if series.config and series.config.get("reset_yearly") and series.last_reset_year != year:
+            current_val = 1
+            
+        prefix = series.prefix or ""
+        try:
+            fmt = series.format or "{prefix}{year}{next_value:04d}"
+            return fmt.format(prefix=prefix, year=year, YYYY=year, next_value=current_val, seq=current_val)
+        except Exception:
+            return f"{prefix}{year}{current_val:04d}"
 
-    @classmethod
-    def _format(cls, fmt: str, doc_type: str, seq: int, now: datetime.datetime) -> str:
-        year = now.year
-        result = fmt
-        result = result.replace("{YYYY}", str(year))
-        result = result.replace("{YY}", str(year)[2:])
-        result = result.replace("{MM}", f"{now.month:02d}")
-        result = result.replace("{DD}", f"{now.day:02d}")
-        result = result.replace("{year}", str(year))
-        
-        def replace_seq(match):
-            length = int(match.group(1)) if match.group(1) else 1
-            return str(seq).zfill(length)
-        
-        result = re.sub(r"\{seq:(\d+)\}", replace_seq, result)
-        result = result.replace("{seq}", str(seq))
-        
-        prefix = doc_type.upper()[:3]
-        result = result.replace("{prefix}", prefix)
-        
-        return result
-
-    @classmethod
-    def register_doc_type(cls, doc_type: str, default_format: str):
-        cls._defaults[doc_type] = default_format
-
-    @classmethod
-    def _get_default_format(cls, doc_type: str) -> str:
-        return cls._defaults.get(doc_type)
-
+# Singleton instance
 numbering = NumberingService
+SeriesManager = NumberingService # gemini-3-flash-preview: Alias for backward compatibility

@@ -21,6 +21,8 @@ class User(Model):
     password_hash: Mapped[str] = Field(String(256), hidden=True, label="Password")
     is_active: Mapped[bool] = Field(Boolean, default=True, label="Is Active")
     is_admin: Mapped[bool] = Field(Boolean, default=False, label="Is Administrator")
+    # gemini-flash
+    is_super_admin: Mapped[bool] = Field(Boolean, default=False, label="Is Super Administrator")
     marketing_consent: Mapped[bool] = Field(Boolean, default=False, label="Marketing Consent")
     consent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     # gemini-3-flash-preview

@@ -59,6 +59,41 @@ TEMPLATES = [
             },
         ],
     },
+    # claude-sonnet-4-6
+    {
+        "name": "Ticket Workflow",
+        "document_type": "ticket_tickets",
+        "states": [
+            {"name": "Open",        "label": "Open",        "is_initial": True,  "is_final": False, "sequence": 10},
+            {"name": "In Progress", "label": "In Progress", "is_initial": False, "is_final": False, "sequence": 20},
+            {"name": "Resolved",    "label": "Resolved",    "is_initial": False, "is_final": True,  "sequence": 30},
+            {"name": "Closed",      "label": "Closed",      "is_initial": False, "is_final": True,  "sequence": 40},
+        ],
+        "transitions": [
+            {"name": "start",   "label": "Start Work", "icon": "Play", "from": "Open", "to": "In Progress", "sequence": 10, "permission": "edit", "actions": []},
+            {"name": "resolve", "label": "Resolve",    "icon": "Check", "from": "In Progress", "to": "Resolved", "sequence": 20, "permission": "edit", "actions": []},
+            {"name": "close",   "label": "Close",      "icon": "Lock", "from": "Resolved", "to": "Closed", "sequence": 30, "permission": "edit", "actions": []},
+            {"name": "reopen",  "label": "Reopen",     "icon": "RefreshCw", "from": "Closed", "to": "Open", "sequence": 40, "permission": "edit", "actions": []},
+        ],
+    },
+    # claude-sonnet-4-6
+    {
+        "name": "CRM Lead Workflow",
+        "document_type": "crm_leads",
+        "states": [
+            {"name": "Lead",      "label": "Lead",      "is_initial": True,  "is_final": False, "sequence": 10},
+            {"name": "Qualified", "label": "Qualified", "is_initial": False, "is_final": False, "sequence": 20},
+            {"name": "Proposal",  "label": "Proposal",  "is_initial": False, "is_final": False, "sequence": 30},
+            {"name": "Won",       "label": "Won",       "is_initial": False, "is_final": True,  "sequence": 40},
+            {"name": "Lost",      "label": "Lost",      "is_initial": False, "is_final": True,  "sequence": 50},
+        ],
+        "transitions": [
+            {"name": "qualify", "label": "Qualify", "icon": "UserCheck", "from": "Lead", "to": "Qualified", "sequence": 10, "permission": "edit", "actions": []},
+            {"name": "propose", "label": "Proposal", "icon": "FileText", "from": "Qualified", "to": "Proposal", "sequence": 20, "permission": "edit", "actions": []},
+            {"name": "win",     "label": "Won",      "icon": "Trophy", "from": "Proposal", "to": "Won", "sequence": 30, "permission": "edit", "actions": []},
+            {"name": "lose",    "label": "Lost",     "icon": "Frown", "from": "Proposal", "to": "Lost", "sequence": 40, "permission": "edit", "actions": []},
+        ],
+    },
 ]
 
 

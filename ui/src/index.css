@@ -331,6 +331,89 @@ input, select, textarea, button { font-family: inherit; }
 .arc-scroll::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
 .arc-scroll::-webkit-scrollbar-track { background: transparent; }
 
+.cms-content {
+  color: var(--text);
+  line-height: 1.75;
+}
+
+.cms-content > :first-child {
+  margin-top: 0;
+}
+
+.cms-content h1,
+.cms-content h2,
+.cms-content h3,
+.cms-content h4 {
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 1.4em 0 0.55em;
+}
+
+.cms-content h1 { font-size: clamp(2rem, 3vw, 3.25rem); font-weight: 700; }
+.cms-content h2 { font-size: clamp(1.6rem, 2.3vw, 2.4rem); font-weight: 650; }
+.cms-content h3 { font-size: clamp(1.25rem, 1.7vw, 1.7rem); font-weight: 650; }
+.cms-content p,
+.cms-content ul,
+.cms-content ol,
+.cms-content blockquote,
+.cms-content table,
+.cms-content pre {
+  margin: 0 0 1.1em;
+}
+
+.cms-content a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+.cms-content strong {
+  color: var(--text);
+}
+
+.cms-content ul,
+.cms-content ol {
+  padding-left: 1.2rem;
+}
+
+.cms-content li + li {
+  margin-top: 0.35rem;
+}
+
+.cms-content blockquote {
+  border-left: 3px solid var(--accent);
+  margin-left: 0;
+  padding: 0.25rem 0 0.25rem 1rem;
+  color: var(--text-2);
+}
+
+.cms-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+}
+
+.cms-content table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+}
+
+.cms-content th,
+.cms-content td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.8rem 0.9rem;
+  text-align: left;
+}
+
+.cms-content thead th {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    Action-bar convention: primary action (Add/Submit/Save) lives on the LEFT.
    Any form footer should use `.arc-actionbar` and put primary first.

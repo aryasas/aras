@@ -1,11 +1,14 @@
 // claude-sonnet-4-6
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Copy, CreditCard, Eye, EyeOff } from 'lucide-react'
+import { Copy, CreditCard, Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { MODULE_LABELS } from '../lib/planUtils'
 import { formatCurrency } from '../lib/formatters'
 import { useNotify } from '../aras-core/contexts/NotificationContext'
+import { ArasLogo } from '../components/ArasLogo'
+import { useLanguage } from '../context/LanguageContext'
+import api, { type ApiRequestConfig } from '../lib/api'
 
 interface Plan {
   id: number
@@ -44,13 +47,6 @@ interface PortalApp {
   path: string
 }
 
-interface ApiEnvelope<T> {
-  success: boolean
-  data?: T
-  message?: string | null
-  error?: string | { message?: string } | null
-}
-
 interface Invoice {
   id: number
   subscription_id?: number
@@ -75,10 +71,6 @@ const STATUS_TONE: Record<string, string> = {
   cancelled: 'border-red-200 bg-red-50 text-red-700',
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  active: 'Aktif', trial: 'Trial', suspended: 'Suspended', cancelled: 'Dibatalkan',
-}
-
 const tokenKey = 'portal_token'
 const tenantKey = 'portal_tenant'
 
@@ -95,49 +87,12 @@ function maskToken(token: string) {
   return `${token.slice(0, 12)}…${token.slice(-6)}`
 }
 
-async function readApiPayload<T>(res: Response): Promise<T> {
-  const json = await res.json()
-  if (json && typeof json === 'object' && typeof (json as ApiEnvelope<T>).success === 'boolean') {
-    const envelope = json as ApiEnvelope<T>
-    if (!envelope.success) {
-      const message = typeof envelope.error === 'string'
-        ? envelope.error
-        : envelope.error?.message || envelope.message || 'Request failed'
-      throw new Error(message)
-    }
-    return envelope.data as T
-  }
-  return json as T
-}
-
-async function readSafeApiPayload<T>(
-  res: Response,
-  notify: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void,
-  fallbackMessage: string,
-): Promise<T | null> {
-  const data = await res.json().catch(() => null)
-  if (!data || typeof data !== 'object') {
-    notify(fallbackMessage, 'error')
-    return null
-  }
-  if (typeof (data as ApiEnvelope<T>).success !== 'boolean' || !(data as ApiEnvelope<T>).success) {
-    const envelope = data as ApiEnvelope<T>
-    const message = typeof envelope.error === 'string'
-      ? envelope.error
-      : envelope.error?.message || envelope.message || fallbackMessage
-    notify(message, 'error')
-    return null
-  }
-  return (data as ApiEnvelope<T>).data as T
-}
-
-
-function LimitBar({ label, value, max }: { label: string; value?: number; max: number }) {
+function LimitBar({ label, value, max, unlimitedLabel }: { label: string; value?: number; max: number; unlimitedLabel: string }) {
   if (max === -1 || value === undefined) {
     return (
       <div className="rounded-[var(--radius)] border border-[var(--line)] px-3 py-2">
         <p className="text-xs text-[var(--text-3)]">{label}</p>
-        <p className="text-sm font-semibold text-[var(--text)]">Unlimited</p>
+        <p className="text-sm font-semibold text-[var(--text)]">{unlimitedLabel}</p>
       </div>
     )
   }
@@ -157,8 +112,9 @@ function LimitBar({ label, value, max }: { label: string; value?: number; max: n
 }
 
 export default function CustomerPortal() {
+  const { t } = useLanguage()
   const showNotification = useNotify()
-  const [token, setToken] = useState(() => localStorage.getItem(tokenKey) || '')
+  const [token, setToken] = useState(() => sessionStorage.getItem(tokenKey) || '')
   const [login, setLogin] = useState({ email: '', password: '' })
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [apps, setApps] = useState<PortalApp[]>([])
@@ -169,6 +125,13 @@ export default function CustomerPortal() {
   const [showToken, setShowToken] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const portalAuthConfig = { portalAuth: true } as ApiRequestConfig
+  const statusLabels: Record<string, string> = {
+    active: t('portal.status.active'),
+    trial: t('portal.status.trial'),
+    suspended: t('portal.status.suspended'),
+    cancelled: t('portal.status.cancelled'),
+  }
 
   useEffect(() => {
     if (!showUpgrade) return
@@ -178,8 +141,8 @@ export default function CustomerPortal() {
   }, [showUpgrade])
 
   const clearSession = () => {
-    localStorage.removeItem(tokenKey)
-    localStorage.removeItem(tenantKey)
+    sessionStorage.removeItem(tokenKey)
+    sessionStorage.removeItem(tenantKey)
     setToken('')
     setSubscription(null)
   }
@@ -190,63 +153,54 @@ export default function CustomerPortal() {
       setLoading(true)
       setError(null)
       try {
-        const res = await fetch('/api/v1/saas/portal/subscription', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (res.status === 401) { clearSession(); return }
-        const sub = await readSafeApiPayload<Subscription>(res, showNotification, 'Portal data load failed')
-        if (!sub) { setError('Tidak dapat memuat data langganan.'); return }
+        const { data: sub } = await api.get<Subscription>('/saas/portal/subscription', portalAuthConfig)
         setSubscription(sub)
 
         // apps and plans are independent — fetch in parallel
         const [appsRes, plansRes, invoicesRes, methodsRes] = await Promise.all([
-          fetch('/api/v1/saas/portal/apps', { headers: { Authorization: `Bearer ${token}` } }),
-          fetch('/api/v1/saas/plans/public'),
-          fetch('/api/v1/saas/billing/invoices', { headers: { Authorization: `Bearer ${token}` } }),
-          fetch('/api/v1/saas/payments/methods'),
+          api.get<{ apps?: PortalApp[] } | PortalApp[]>('/saas/portal/apps', portalAuthConfig),
+          api.get<Plan[]>('/saas/plans/public'),
+          api.get<Invoice[]>('/saas/billing/invoices', portalAuthConfig),
+          api.get<PaymentMethod[]>('/saas/payments/methods'),
         ])
-        const p = await readSafeApiPayload<{ apps?: PortalApp[] } | PortalApp[]>(appsRes, showNotification, 'Portal data load failed')
-        if (!p) return
+        const p = appsRes.data
         setApps(Array.isArray(p) ? p : Array.isArray(p.apps) ? p.apps : [])
 
-        const allPayload = await readSafeApiPayload<Plan[]>(plansRes, showNotification, 'Portal data load failed')
-        if (!allPayload) return
+        const allPayload = plansRes.data
         const all = Array.isArray(allPayload) ? allPayload : []
         setUpgradePlans(all.filter((p) => p.plan_key !== 'enterprise' && p.sort_order > (sub.plan.sort_order ?? 0)))
 
-        const invoicePayload = await readSafeApiPayload<Invoice[]>(invoicesRes, showNotification, 'Portal data load failed')
-        if (!invoicePayload) return
+        const invoicePayload = invoicesRes.data
         setInvoices(Array.isArray(invoicePayload) ? invoicePayload : [])
 
-        const methodPayload = await readSafeApiPayload<PaymentMethod[]>(methodsRes, showNotification, 'Portal data load failed')
-        if (!methodPayload) return
+        const methodPayload = methodsRes.data
         setPaymentMethods(Array.isArray(methodPayload) ? methodPayload : [])
-      } catch (err) {
+      } catch (err: any) {
+        if (err?.response?.status === 401) {
+          clearSession()
+          return
+        }
         console.error(err)
-        setError('Tidak dapat memuat data portal.')
-        showNotification('Portal data load failed', 'error')
+        setError(t('portal.error.loadPortal'))
+        showNotification(t('portal.error.loadPortal'), 'error')
       } finally {
         setLoading(false)
       }
     }
-    load()
-  }, [showNotification, token])
+    void load()
+  }, [showNotification, t, token])
 
   const handleLogin = async (event: FormEvent) => {
     event.preventDefault()
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/v1/saas/portal/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(login),
-      })
-      if (!res.ok) { setError('Email atau password salah.'); return }
-      const data = await readApiPayload<{ token: string; tenant_id: string }>(res)
-      localStorage.setItem(tokenKey, data.token)
-      localStorage.setItem(tenantKey, data.tenant_id)
+      const { data } = await api.post<{ token: string; tenant_id: string }>('/saas/portal/login', login)
+      sessionStorage.setItem(tokenKey, data.token)
+      sessionStorage.setItem(tenantKey, data.tenant_id)
       setToken(data.token)
+    } catch (err: any) {
+      setError(err?.response?.status === 401 ? t('portal.login.invalidCredentials') : t('portal.login.failed'))
     } finally {
       setLoading(false)
     }
@@ -256,37 +210,36 @@ export default function CustomerPortal() {
     setLoading(true)
     setError(null)
     try {
-      const payRes = await fetch(`/api/v1/saas/billing/invoices/${invoice.id}/pay`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (payRes.ok) {
-        const payload = await readApiPayload<{ checkout_url?: string }>(payRes)
+      try {
+        const { data: payload } = await api.post<{ checkout_url?: string }>(`/saas/billing/invoices/${invoice.id}/pay`, {}, portalAuthConfig)
         if (payload.checkout_url) {
           window.location.href = payload.checkout_url
+          return
+        }
+      } catch (err: any) {
+        if (err?.response?.status === 401) {
+          clearSession()
           return
         }
       }
 
       const subscriptionId = invoice.subscription_id || subscription?.id
       if (!subscriptionId) {
-        setError('Invoice belum memiliki referensi subscription untuk checkout.')
+        setError(t('portal.billing.missingSubscription'))
         return
       }
-      const checkoutRes = await fetch('/api/v1/saas/payments/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const { data: checkoutPayload } = await api.post<{ checkout_url?: string }>('/saas/payments/checkout', {
           subscription_id: subscriptionId,
           return_url: `${window.location.origin}/portal/setup?status=pending&invoice_id=${invoice.id}`,
-        }),
-      })
-      if (!checkoutRes.ok) {
-        setError('Tidak dapat memulai pembayaran invoice.')
+        })
+      if (checkoutPayload.checkout_url) window.location.href = checkoutPayload.checkout_url
+      else setError(t('portal.billing.checkoutFailed'))
+    } catch (err: any) {
+      if (err?.response?.status === 401) {
+        clearSession()
         return
       }
-      const checkoutPayload = await readApiPayload<{ checkout_url?: string }>(checkoutRes)
-      if (checkoutPayload.checkout_url) window.location.href = checkoutPayload.checkout_url
+      setError(t('portal.billing.checkoutFailed'))
     } finally {
       setLoading(false)
     }
@@ -294,52 +247,108 @@ export default function CustomerPortal() {
 
   if (!token) {
     return (
-      <main className="mx-auto max-w-md px-6 py-16">
-        <h1 className="text-3xl font-bold">Portal Pelanggan</h1>
-        <p className="mt-1 text-sm text-[var(--text-2)]">Masuk untuk mengelola langganan Anda.</p>
-        <form onSubmit={handleLogin} className="mt-8 space-y-5">
-          <div>
-            <label className="block text-sm font-semibold" htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              value={login.email}
-              onChange={(e) => setLogin({ ...login, email: e.target.value })}
-              required
-              className="mt-2 w-full rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)] px-4 py-2.5 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--aras-accent-glow)]"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold" htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={login.password}
-              onChange={(e) => setLogin({ ...login, password: e.target.value })}
-              required
-              className="mt-2 w-full rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)] px-4 py-2.5 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--aras-accent-glow)]"
-            />
-            <p className="mt-2 text-xs text-[var(--text-3)]">Pertama kali? Gunakan link setup yang dikirim admin.</p>
-          </div>
-          {error && <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-[var(--radius)] bg-[var(--accent)] py-3 text-sm font-semibold text-white hover:bg-[var(--aras-accent-strong)] disabled:opacity-50"
-          >
-            {loading ? 'Masuk...' : 'Masuk'}
-          </button>
-          <p className="text-center text-xs text-[var(--text-3)]">
-            Belum punya akun?{' '}
-            <Link to="/signup" className="text-[var(--accent)] hover:underline">Daftar di sini</Link>
-          </p>
-        </form>
+      <main className="arc arc-bg arc-dotgrid min-h-screen px-4 py-10">
+        <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-5xl items-center gap-10 lg:grid-cols-[minmax(0,1fr)_420px]">
+          <section className="max-lg:text-center">
+            <p className="arc-id"><b>arc</b>/portal/<b>customer</b></p>
+            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-[var(--text)] lg:text-5xl">{t('portal.hero.title')}</h1>
+            <p className="mt-4 max-w-xl text-base leading-7 text-[var(--text-2)] max-lg:mx-auto">
+              {t('portal.hero.subtitle')}
+            </p>
+            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              <div className="arc-card bg-[var(--surface)] p-4">
+                <p className="text-sm font-semibold text-[var(--text)]">{t('portal.hero.cards.billing.title')}</p>
+                <p className="mt-1 text-sm text-[var(--text-2)]">{t('portal.hero.cards.billing.body')}</p>
+              </div>
+              <div className="arc-card bg-[var(--surface)] p-4">
+                <p className="text-sm font-semibold text-[var(--text)]">{t('portal.hero.cards.access.title')}</p>
+                <p className="mt-1 text-sm text-[var(--text-2)]">{t('portal.hero.cards.access.body')}</p>
+              </div>
+              <div className="arc-card bg-[var(--surface)] p-4">
+                <p className="text-sm font-semibold text-[var(--text)]">{t('portal.hero.cards.license.title')}</p>
+                <p className="mt-1 text-sm text-[var(--text-2)]">{t('portal.hero.cards.license.body')}</p>
+              </div>
+            </div>
+          </section>
+
+          <section className="arc-card overflow-hidden bg-[var(--surface)] shadow-[var(--shadow-card-lift)]">
+            <div className="px-8 pt-8 pb-2 flex items-start gap-4">
+              <ArasLogo size="lg" />
+              <div className="flex-1 min-w-0">
+                <div className="arc-id"><b>arc</b>/portal/<b>login</b></div>
+                <h2 className="mt-1 text-[26px] font-semibold tracking-tight text-[var(--text)]">{t('portal.login.title')}</h2>
+                <p className="mt-1 text-sm leading-6 text-[var(--text-2)]">{t('portal.login.subtitle')}</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleLogin} className="px-8 py-6 flex flex-col gap-5">
+              <label className="flex flex-col gap-1.5">
+                <span className="arc-id">{t('portal.login.emailLabel')}</span>
+                <span className="relative">
+                  <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-3)]" />
+                  <input
+                    id="email"
+                    type="email"
+                    value={login.email}
+                    onChange={(e) => setLogin({ ...login, email: e.target.value })}
+                    required
+                    className="arc-input"
+                    style={{ paddingLeft: 32 }}
+                    placeholder={t('portal.login.emailPlaceholder')}
+                  />
+                </span>
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="arc-id">{t('portal.login.passwordLabel')}</span>
+                <span className="relative">
+                  <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-3)]" />
+                  <input
+                    id="password"
+                    type="password"
+                    value={login.password}
+                    onChange={(e) => setLogin({ ...login, password: e.target.value })}
+                    required
+                    className="arc-input"
+                    style={{ paddingLeft: 32 }}
+                    placeholder={t('portal.login.passwordPlaceholder')}
+                  />
+                </span>
+                <p className="mt-1 text-xs text-[var(--text-3)]">{t('portal.login.setupHint')}</p>
+              </label>
+              {error && (
+                <div
+                  className="rounded-[var(--radius)] border px-4 py-3 text-sm font-medium"
+                  style={{
+                    background: 'color-mix(in oklch, var(--danger) 8%, var(--surface))',
+                    borderColor: 'color-mix(in oklch, var(--danger) 25%, var(--line))',
+                    color: 'var(--danger)',
+                  }}
+                >
+                  {error}
+                </div>
+              )}
+              <button type="submit" disabled={loading} className="arc-btn primary w-full justify-center" style={{ height: 44 }}>
+                {loading ? t('portal.login.signingIn') : t('portal.login.submit')}
+              </button>
+            </form>
+            <div className="border-t border-[var(--line)] px-8 pb-8 pt-4 text-[11.5px] flex flex-col gap-2 text-[var(--text-3)]">
+              <div className="inline-flex items-center gap-2 text-[var(--text-3)]">
+                <ShieldCheck size={14} />
+                {t('portal.login.securityNote')}
+              </div>
+              <p>
+                {t('portal.login.needAccount')}{' '}
+                <Link to="/signup" className="text-[var(--accent)] hover:underline">{t('portal.login.startPlan')}</Link>
+              </p>
+            </div>
+          </section>
+        </div>
       </main>
     )
   }
 
   if (loading && !subscription) {
-    return <main className="mx-auto max-w-3xl px-6 py-12 text-sm text-[var(--text-3)]">Memuat...</main>
+    return <main className="mx-auto max-w-3xl px-6 py-12 text-sm text-[var(--text-3)]">{t('portal.loading')}</main>
   }
 
   const statusTone = STATUS_TONE[subscription?.status ?? ''] ?? 'border-red-200 bg-red-50 text-red-700'
@@ -347,8 +356,8 @@ export default function CustomerPortal() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">Portal Pelanggan</h1>
-        <button onClick={clearSession} className="text-sm text-[var(--text-3)] hover:text-[var(--text)]">Keluar</button>
+        <h1 className="text-2xl font-bold">{t('portal.title')}</h1>
+        <button onClick={clearSession} className="text-sm text-[var(--text-3)] hover:text-[var(--text)]">{t('portal.logout')}</button>
       </div>
 
       {error && <div className="mt-6 rounded-[var(--radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
@@ -368,21 +377,21 @@ export default function CustomerPortal() {
                 <div className="mt-3 flex flex-wrap gap-1">
                   {subscription.plan.active_modules.map((m) => (
                     <span key={m} className="rounded-full border border-[var(--line)] bg-[var(--surface-2)] px-2 py-0.5 text-xs font-medium text-[var(--text-2)]">
-                      {MODULE_LABELS[m] ?? m}
+                      {t(`public.modules.${m}`, MODULE_LABELS[m] ?? m)}
                     </span>
                   ))}
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2">
                 <span className={`rounded-full border px-3 py-1 text-xs font-bold uppercase ${statusTone}`}>
-                  {STATUS_LABEL[subscription.status] ?? subscription.status}
+                  {statusLabels[subscription.status] ?? subscription.status}
                 </span>
                 {upgradePlans.length > 0 && (
                   <button
                     onClick={() => setShowUpgrade(true)}
                     className="rounded-[var(--radius)] border border-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--aras-accent-glow)]"
                   >
-                    Upgrade Paket
+                    {t('portal.plan.upgrade')}
                   </button>
                 )}
               </div>
@@ -390,29 +399,29 @@ export default function CustomerPortal() {
 
             <div className="mt-6 grid grid-cols-3 gap-4 border-t border-[var(--line)] pt-5">
               <div>
-                <p className="text-xs text-[var(--text-3)]">Mulai</p>
+                <p className="text-xs text-[var(--text-3)]">{t('portal.plan.started')}</p>
                 <p className="mt-1 text-sm font-medium">{formatDate(subscription.started_at)}</p>
               </div>
               <div>
-                <p className="text-xs text-[var(--text-3)]">Berakhir</p>
+                <p className="text-xs text-[var(--text-3)]">{t('portal.plan.expires')}</p>
                 <p className="mt-1 text-sm font-medium">{formatDate(subscription.expires_at)}</p>
               </div>
               <div>
-                <p className="text-xs text-[var(--text-3)]">Sisa</p>
-                <p className="mt-1 text-sm font-medium">{daysRemaining(subscription.expires_at)} hari</p>
+                <p className="text-xs text-[var(--text-3)]">{t('portal.plan.remaining')}</p>
+                <p className="mt-1 text-sm font-medium">{t('portal.plan.remainingDays').replace('{days}', String(daysRemaining(subscription.expires_at)))}</p>
               </div>
             </div>
             <div className="mt-5 grid gap-3 border-t border-[var(--line)] pt-5 sm:grid-cols-3">
               <div>
-                <p className="text-xs text-[var(--text-3)]">Next billing</p>
+                <p className="text-xs text-[var(--text-3)]">{t('portal.plan.nextBilling')}</p>
                 <p className="mt-1 text-sm font-medium">{subscription.next_billing_at ? formatDate(subscription.next_billing_at) : '-'}</p>
               </div>
               <div>
-                <p className="text-xs text-[var(--text-3)]">Amount</p>
+                <p className="text-xs text-[var(--text-3)]">{t('portal.plan.amount')}</p>
                 <p className="mt-1 text-sm font-medium">{formatCurrency(subscription.plan.price, subscription.plan.currency)}</p>
               </div>
               <div>
-                <p className="text-xs text-[var(--text-3)]">Trial ends</p>
+                <p className="text-xs text-[var(--text-3)]">{t('portal.plan.trialEnds')}</p>
                 <p className="mt-1 text-sm font-medium">{subscription.trial_ends_at ? formatDate(subscription.trial_ends_at) : '-'}</p>
               </div>
             </div>
@@ -420,17 +429,17 @@ export default function CustomerPortal() {
 
           <section className="rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold uppercase text-[var(--text-3)]">Billing</h3>
+              <h3 className="text-sm font-semibold uppercase text-[var(--text-3)]">{t('portal.billing.title')}</h3>
               <button
                 type="button"
                 onClick={() => {
                   const openInvoice = invoices.find((invoice) => invoice.status !== 'paid' && invoice.status !== 'void')
-                  if (openInvoice) handlePayInvoice(openInvoice)
+                  if (openInvoice) void handlePayInvoice(openInvoice)
                 }}
                 disabled={!invoices.some((invoice) => invoice.status !== 'paid' && invoice.status !== 'void') || loading}
                 className="inline-flex items-center gap-2 rounded-[var(--radius)] border border-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--aras-accent-glow)] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <CreditCard size={14} /> Add payment method
+                <CreditCard size={14} /> {t('portal.billing.addPaymentMethod')}
               </button>
             </div>
             {paymentMethods.length > 0 && (
@@ -444,23 +453,23 @@ export default function CustomerPortal() {
             )}
             <div className="mt-4 divide-y divide-[var(--line)] rounded-[var(--radius)] border border-[var(--line)]">
               {invoices.length === 0 ? (
-                <p className="px-4 py-3 text-sm text-[var(--text-3)]">Belum ada invoice.</p>
+                <p className="px-4 py-3 text-sm text-[var(--text-3)]">{t('portal.billing.noInvoices')}</p>
               ) : invoices.map((invoice) => (
                 <div key={invoice.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                   <div>
-                    <p className="text-sm font-semibold text-[var(--text)]">{invoice.number || `Invoice #${invoice.id}`}</p>
-                    <p className="text-xs text-[var(--text-3)]">{invoice.due_at ? formatDate(invoice.due_at) : 'No due date'} · {invoice.status || 'unpaid'}</p>
+                    <p className="text-sm font-semibold text-[var(--text)]">{invoice.number || t('portal.billing.invoiceNumber').replace('{id}', String(invoice.id))}</p>
+                    <p className="text-xs text-[var(--text-3)]">{invoice.due_at ? formatDate(invoice.due_at) : t('portal.billing.noDueDate')} · {invoice.status || t('portal.billing.unpaid')}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <p className="text-sm font-semibold">{invoice.currency || subscription.plan.currency} {Number(invoice.amount || 0).toLocaleString('id-ID')}</p>
                     {invoice.status !== 'paid' && invoice.status !== 'void' && (
                       <button
                         type="button"
-                        onClick={() => handlePayInvoice(invoice)}
+                        onClick={() => void handlePayInvoice(invoice)}
                         disabled={loading}
                         className="rounded-[var(--radius)] bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
                       >
-                        Pay now
+                        {t('portal.billing.payNow')}
                       </button>
                     )}
                   </div>
@@ -471,19 +480,19 @@ export default function CustomerPortal() {
 
           {/* Usage limits */}
           <section className="rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-6">
-            <h3 className="text-sm font-semibold uppercase text-[var(--text-3)]">Penggunaan</h3>
+            <h3 className="text-sm font-semibold uppercase text-[var(--text-3)]">{t('portal.usage.title')}</h3>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <LimitBar label="Pengguna" max={subscription.plan.max_users} />
-              <LimitBar label="Cabang" max={subscription.plan.max_branches} />
-              <LimitBar label="Transaksi / bulan" max={subscription.plan.max_transactions} />
-              <LimitBar label="Produk" max={subscription.plan.max_products} />
+              <LimitBar label={t('portal.usage.users')} max={subscription.plan.max_users} unlimitedLabel={t('portal.plan.unlimited')} />
+              <LimitBar label={t('portal.usage.branches')} max={subscription.plan.max_branches} unlimitedLabel={t('portal.plan.unlimited')} />
+              <LimitBar label={t('portal.usage.transactions')} max={subscription.plan.max_transactions} unlimitedLabel={t('portal.plan.unlimited')} />
+              <LimitBar label={t('portal.usage.products')} max={subscription.plan.max_products} unlimitedLabel={t('portal.plan.unlimited')} />
             </div>
           </section>
 
           {/* Apps */}
           {apps.length > 0 && (
             <section className="rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-6">
-              <h3 className="text-sm font-semibold uppercase text-[var(--text-3)]">Aplikasi Tersedia</h3>
+              <h3 className="text-sm font-semibold uppercase text-[var(--text-3)]">{t('portal.apps.title')}</h3>
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 {apps.map((app) => (
                   <div key={app.name} className="rounded-[var(--radius)] border border-[var(--line)] px-3 py-2">
@@ -497,7 +506,7 @@ export default function CustomerPortal() {
 
           {/* License token */}
           <section className="rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-6">
-            <h3 className="text-sm font-semibold uppercase text-[var(--text-3)]">License Token</h3>
+            <h3 className="text-sm font-semibold uppercase text-[var(--text-3)]">{t('portal.license.title')}</h3>
             {subscription.latest_token ? (
               <div className="mt-3 flex items-center gap-2 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--bg)] px-3 py-2">
                 <code className="flex-1 break-all text-xs text-[var(--text)]">
@@ -507,21 +516,24 @@ export default function CustomerPortal() {
                   type="button"
                   onClick={() => setShowToken(!showToken)}
                   className="rounded p-1.5 text-[var(--text-3)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
-                  aria-label={showToken ? 'Sembunyikan token' : 'Tampilkan token'}
+                  aria-label={showToken ? t('portal.license.hide') : t('portal.license.show')}
                 >
                   {showToken ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigator.clipboard.writeText(subscription.latest_token?.token || '')}
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(subscription.latest_token?.token || '')
+                    showNotification(t('portal.license.copied'), 'success')
+                  }}
                   className="rounded p-1.5 text-[var(--text-3)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
-                  aria-label="Salin token"
+                  aria-label={t('portal.license.copy')}
                 >
                   <Copy size={15} />
                 </button>
               </div>
             ) : (
-              <p className="mt-2 text-sm text-[var(--text-3)]">Tidak ada token aktif.</p>
+              <p className="mt-2 text-sm text-[var(--text-3)]">{t('portal.license.empty')}</p>
             )}
           </section>
         </div>
@@ -532,7 +544,7 @@ export default function CustomerPortal() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setShowUpgrade(false)}>
           <div className="w-full max-w-lg rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h2 className="font-bold">Upgrade Paket</h2>
+              <h2 className="font-bold">{t('portal.plan.upgrade')}</h2>
               <button onClick={() => setShowUpgrade(false)} className="text-sm text-[var(--text-3)] hover:text-[var(--text)]">✕</button>
             </div>
             <div className="mt-4 space-y-3">
@@ -540,14 +552,14 @@ export default function CustomerPortal() {
                 <div key={p.id} className="flex items-center justify-between rounded-[var(--radius)] border border-[var(--line)] px-4 py-3">
                   <div>
                     <p className="font-semibold">{p.name}</p>
-                    <p className="text-xs text-[var(--text-2)]">{formatCurrency(p.price, p.currency)} · {p.max_users === -1 ? 'Unlimited' : p.max_users} pengguna</p>
+                    <p className="text-xs text-[var(--text-2)]">{formatCurrency(p.price, p.currency)} · {p.max_users === -1 ? t('portal.plan.unlimited') : `${p.max_users} ${t('portal.usage.users').toLowerCase()}`}</p>
                   </div>
                   <Link
                     to={`/signup?plan=${p.plan_key}`}
                     className="rounded-[var(--radius)] bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[var(--aras-accent-strong)]"
                     onClick={() => setShowUpgrade(false)}
                   >
-                    Pilih
+                    {t('portal.plan.select')}
                   </Link>
                 </div>
               ))}

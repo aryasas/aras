@@ -77,12 +77,18 @@ function loadVocabularyProfiles() {
 }
 
 // claude-opus-4-8
-export function useVocabularyProfiles() {
+export function useVocabularyProfiles(enabled = true) {
   const [profiles, setProfiles] = useState<VocabularyProfile[]>(() => normalizeProfileCatalog(profileCatalogCache))
-  const [loading, setLoading] = useState(() => !profileCatalogCache)
+  const [loading, setLoading] = useState(() => enabled && !profileCatalogCache)
 
   useEffect(() => {
     let cancelled = false
+
+    if (!enabled) {
+      setProfiles([GENERAL_PROFILE_FALLBACK])
+      setLoading(false)
+      return
+    }
 
     if (profileCatalogCache) {
       setProfiles(normalizeProfileCatalog(profileCatalogCache))
@@ -106,7 +112,7 @@ export function useVocabularyProfiles() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [enabled])
 
   return {
     profiles,
@@ -167,17 +173,17 @@ export const translateVocabularyText = (text: string, vocabulary: VocabularyLabe
     .replace(/\bcompany\b/g, 'organization')
 }
 
-export function VocabularyProvider({ children }: { children: React.ReactNode }) {
+export function VocabularyProvider({ children, enabled = true }: { children: React.ReactNode; enabled?: boolean }) {
   const { activeOrgId, organizations, token } = useAuthStore()
   const activeOrganization = organizations.find((organization) => organization.id === activeOrgId)
   const profile = activeOrganization?.profile || 'general'
   const [overrides, setOverrides] = useState<Partial<VocabularyLabels>>({})
-  const { profiles } = useVocabularyProfiles()
+  const { profiles } = useVocabularyProfiles(enabled)
 
   useEffect(() => {
     let cancelled = false
 
-    if (!token || !activeOrgId || activeOrgId <= 0) {
+    if (!enabled || !token || !activeOrgId || activeOrgId <= 0) {
       setOverrides({})
       return
     }
@@ -203,7 +209,7 @@ export function VocabularyProvider({ children }: { children: React.ReactNode }) 
     return () => {
       cancelled = true
     }
-  }, [activeOrgId, profile, token])
+  }, [activeOrgId, enabled, profile, token])
 
   const value = useMemo<VocabularyContextValue>(() => {
     const defaults = getProfileDefaults(profiles, profile)

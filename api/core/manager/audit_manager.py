@@ -8,18 +8,9 @@ from sqlalchemy.orm import Session
 from ..base.model import Model
 from ..registry.activity_log import ActivityLog
 from .manager import Manager
+from ..lib.audit import redact_pii
 
-PII_FIELDS = frozenset({
-    'password', 'password_hash', 'token', 'refresh_token', 'secret',
-    'email', 'phone', 'address', 'card', 'pan', 'cvv',
-    'bank_account', 'tax_id', 'national_id', 'passport',
-})
-
-# gpt-5
-def _is_pii(col) -> bool:
-    return bool(col.info.get("pii")) or col.name.lower() in PII_FIELDS
-
-# claude-sonnet-4-6
+# gemini-flash
 class AuditManager(Manager):
     """
     Handles automated auditing for all models marked with the 'audit' feature.
@@ -74,29 +65,20 @@ class AuditManager(Manager):
                         
                         # Only log if they are actually different (avoid redundant logs)
                         if old_val != new_val:
-                            if _is_pii(col):
-                                changes[col.name] = ["[redacted]", "[redacted]"]
-                            else:
-                                changes[col.name] = [cls._serialize(old_val), cls._serialize(new_val)]
+                            changes[col.name] = [cls._serialize(old_val), cls._serialize(new_val)]
 
         elif action == "INSERT":
             # Log all non-null initial values
             for col in obj.__table__.columns:
                 val = getattr(obj, col.name, None)
                 if val is not None:
-                    if _is_pii(col):
-                        changes[col.name] = [None, "[redacted]"]
-                    else:
-                        changes[col.name] = [None, cls._serialize(val)]
+                    changes[col.name] = [None, cls._serialize(val)]
 
         elif action == "DELETE":
             # Log final state before deletion
             for col in obj.__table__.columns:
                 val = getattr(obj, col.name, None)
-                if _is_pii(col):
-                    changes[col.name] = ["[redacted]", None]
-                else:
-                    changes[col.name] = [cls._serialize(val), None]
+                changes[col.name] = [cls._serialize(val), None]
 
         if action == "UPDATE" and not changes:
             return # No relevant changes
@@ -106,11 +88,14 @@ class AuditManager(Manager):
         if res_id is None:
             return
 
+        # gemini-flash: Enforce PII redaction
+        safe_changes = redact_pii(changes, model_cls=obj.__class__)
+
         log = ActivityLog(
             resource=obj.__tablename__,
             resource_id=res_id,
             action=action,
-            changes=changes,
+            changes=safe_changes,
             user_id=getattr(obj, "updated_by", None) or getattr(obj, "created_by", None)
         )
         session.add(log)

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate, useOutlet, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Boxes, Cpu, Package, Settings, Shield } from 'lucide-react'
+import { ArrowLeft, Boxes, Cpu, Settings, Shield } from 'lucide-react'
 import SettingsForm from './SettingsForm'
 import SettingsNamespaceList from './SettingsNamespaceList'
 import type { SettingsNamespace } from '../../lib/api'
 import { resolveIcon } from '../../lib/iconUtils'
 import { useUIStore } from '../../store/uiStore'
+import { useAras } from '../../aras-core/hooks/useAras'
 
 // Title/breadcrumb per outlet child route. Keeps the shell as the single owner
 // of the page header so child views never fight over it.
@@ -184,6 +185,7 @@ export default function SettingsPage() {
     searchParams.get('ns') || namespaceFromSectionKey(searchParams.get('section'))
   )
   const [dirty, setDirty] = useState(false)
+  const { confirm } = useAras()
   const focusedSectionKey = searchParams.get('section')
 
   const outletSegment = useMemo(
@@ -223,13 +225,13 @@ export default function SettingsPage() {
     const current = nextSearch.get('ns') || namespaceFromSectionKey(currentSection)
     if (current && !items.some((item) => item.name === current)) {
       setSelectedNamespace(null)
-      setRouteSelection('', null, true)
+      setSearchParams((prev) => { const p = new URLSearchParams(prev); p.delete('ns'); p.delete('section'); return p }, { replace: true })
     }
-  }, [setRouteSelection])
+  }, [setSearchParams])
 
-  const selectNamespace = (namespace: string) => {
+  const selectNamespace = async (namespace: string) => {
     if (namespace === selectedNamespace) return
-    if (dirty && !window.confirm('Discard unsaved settings changes?')) return
+    if (dirty && !await confirm({ title: 'Discard changes?', message: 'Discard unsaved settings changes?', confirmText: 'Discard', type: 'danger' })) return
     setSelectedNamespace(namespace)
     setRouteSelection(namespace, null)
   }
@@ -239,14 +241,14 @@ export default function SettingsPage() {
     [namespaces, selectedNamespace]
   )
 
-  const clearSelection = useCallback(() => {
-    if (dirty && !window.confirm('Discard unsaved settings changes?')) return
+  const clearSelection = useCallback(async () => {
+    if (dirty && !await confirm({ title: 'Discard changes?', message: 'Discard unsaved settings changes?', confirmText: 'Discard', type: 'danger' })) return
     setSelectedNamespace(null)
     const nextParams = new URLSearchParams(searchParams)
     nextParams.delete('ns')
     nextParams.delete('section')
     setSearchParams(nextParams)
-  }, [dirty, searchParams, setSearchParams])
+  }, [confirm, dirty, searchParams, setSearchParams])
 
   return (
     <div className="flex min-h-full bg-[var(--bg)]">

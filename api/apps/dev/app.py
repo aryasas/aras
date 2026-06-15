@@ -35,11 +35,6 @@ def tail_errors(after: Optional[float] = Query(None)):
         entries = [e for e in entries if e.get("ts", 0) > after]
     return entries
 
-@dev_api_router.get("/dev/cause-error")
-def cause_error():
-    """Temporary endpoint to cause an error for testing."""
-    raise HTTPException(status_code=418, detail="I'm a teapot - a test error!")
-
 
 from . import views  # noqa: F401
 from core.logic.discovery import autodiscover_models

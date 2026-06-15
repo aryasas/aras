@@ -5,7 +5,7 @@ Registered in HandlerRegistry so they can be triggered by WorkflowManager
 """
 from sqlalchemy.orm import Session
 from core.logic.handler_registry import HandlerRegistry
-from core.manager.naming_manager import SeriesManager
+from core.lib.numbering import SeriesManager
 from core.lib import math_utils
 from core.exceptions import ValidationException
 

@@ -12,6 +12,8 @@ from ..services.license_service import LicenseService
 from core.auth.license import verify_license_token
 from core.auth.service import create_access_token, require_admin
 from datetime import datetime, timedelta, timezone
+from core.lib.limiter import limiter
+from fastapi import Request
 
 router = APIRouter(prefix="", tags=["SaaS Control Panel"])
 PUBLIC_PLAN_KEYS = ("free", "lite", "growth", "business", "enterprise")
@@ -122,7 +124,8 @@ def get_tenant_config(
 
 # gpt-5
 @router.post("/signup")
-def signup(data: SignupRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def signup(request: Request, data: SignupRequest, db: Session = Depends(get_db)):
     consent_at = datetime.now(timezone.utc) if data.marketing_consent else None
     existing = db.query(Subscription).filter_by(email=data.email).first()
     if existing:
@@ -149,7 +152,8 @@ def signup(data: SignupRequest, db: Session = Depends(get_db)):
 
 @router.post("/portal/register")
 # gpt-5
-def portal_register(data: ConsumerRegisterRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def portal_register(request: Request, data: ConsumerRegisterRequest, db: Session = Depends(get_db)):
     """Self-service consumer registration. Payment/activation happens separately."""
     from core.lib.helpers import slugify
 
@@ -320,7 +324,8 @@ def _plan_payload(plan: Plan) -> dict[str, Any]:
 
 # claude-opus-4-7
 @router.post("/portal/login")
-def portal_login(data: PortalLoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def portal_login(request: Request, data: PortalLoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter_by(email=data.email).first()
     if not user or not user.verify_password(data.password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -339,7 +344,8 @@ def portal_login(data: PortalLoginRequest, db: Session = Depends(get_db)):
 
 # claude-opus-4-7
 @router.post("/portal/setup")
-def portal_setup(data: PortalSetupRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def portal_setup(request: Request, data: PortalSetupRequest, db: Session = Depends(get_db)):
     """Customer clicks setup link from admin's approval message → sets their real password."""
     from core.lib.settings import settings
     from jose import jwt, JWTError

@@ -11,7 +11,7 @@ by core.workspace, which is also framework tier — so no upward dependency exis
 """
 from typing import Optional
 from datetime import date
-from sqlalchemy import String, Integer, ForeignKey, Boolean, Float, Date
+from sqlalchemy import String, Integer, ForeignKey, Boolean, Float, Date, func
 from sqlalchemy.orm import Mapped, mapped_column
 from core import Aras
 
@@ -55,7 +55,10 @@ class DocumentBase(AuditedBase):
     org_id: Mapped[int] = mapped_column(ForeignKey("core_organizations.id"), nullable=False, index=True)
 
     number: Mapped[str] = mapped_column(String(32), info={"read_only": True})
-    doc_date: Mapped[date] = mapped_column(Date, default=date.today)
+    
+    # claude-sonnet-4-6: Using server-side date for UTC compliance
+    doc_date: Mapped[date] = mapped_column(Date, default=func.current_date())
+    
     status: Mapped[str] = mapped_column(
         String(20),
         default="Draft",
@@ -65,7 +68,7 @@ class DocumentBase(AuditedBase):
 
     def before_save(self, is_new: bool, db=None):
         if not self.number and db is not None:
-            from core.manager.naming_manager import SeriesManager
+            from core.lib.numbering import SeriesManager
             self.number = SeriesManager.get_next(db, self.__tablename__)
 
 

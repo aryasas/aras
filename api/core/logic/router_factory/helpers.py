@@ -108,10 +108,12 @@ def _update_or_create_child_record(db: Any, parent_item: Any, row_data: dict, ch
     else:
         child_model.create(db, row_data_cleaned, user_id=user_id)
 
-def _delete_orphaned_child_records(db: Any, existing_children_map: dict, incoming_payload_ids: set):
+# claude-sonnet-4-6
+def _delete_orphaned_child_records(db: Any, existing_children_map: dict, incoming_payload_ids: set, user_id: int = None):
     for existing_id_str, existing_child_instance in existing_children_map.items():
         if existing_id_str not in incoming_payload_ids:
-            db.delete(existing_child_instance)
+            # gemini-3-flash-preview: Use delete_self to respect soft-delete strategy
+            existing_child_instance.delete_self(db, user_id=user_id)
 
 def _save_children(db: Any, parent_item: Any, payload: dict, user_id: int = None):
     child_defs = ArasModel._child_map.get(parent_item.__tablename__, [])
@@ -145,7 +147,7 @@ def _save_children(db: Any, parent_item: Any, payload: dict, user_id: int = None
                 continue
             _update_or_create_child_record(db, parent_item, row_data, child_model, fk_column, user_id, existing_children_map, incoming_payload_ids)
         
-        _delete_orphaned_child_records(db, existing_children_map, incoming_payload_ids)
+        _delete_orphaned_child_records(db, existing_children_map, incoming_payload_ids, user_id=user_id)
         db.flush()
 
 def _generate_pydantic_schemas(model_class: Type[Any]):

@@ -1,8 +1,9 @@
 from typing import Optional
 from datetime import date
-from sqlalchemy import String, ForeignKey, Date
+from sqlalchemy import String, ForeignKey, Date, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from core.base.orm import MasterDataBase
+from core.base.orm import MasterDataBase, AuditedBase
+from core.base.field import Field
 
 # unattributed (pre-tagging)
 class Department(MasterDataBase):
@@ -14,7 +15,7 @@ class Position(MasterDataBase):
     __tablename__ = "hr_positions"
     department_id: Mapped[Optional[int]] = mapped_column(ForeignKey("hr_departments.id"), nullable=True)
 
-# unattributed (pre-tagging)
+# claude-sonnet-4-6
 class Employee(MasterDataBase):
     __tablename__ = "hr_employees"
     party_id: Mapped[Optional[int]] = mapped_column(ForeignKey("party_parties.id"), nullable=True)
@@ -24,3 +25,10 @@ class Employee(MasterDataBase):
     join_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     employment_type: Mapped[str] = mapped_column(String(50), default="full_time")
     status: Mapped[str] = mapped_column(String(50), default="active")
+
+    # gemini-3-flash-preview: Added missing PII fields
+    national_id: Mapped[Optional[str]] = Field(String(50), nullable=True, pii=True)
+    phone: Mapped[Optional[str]] = Field(String(20), nullable=True, pii=True)
+    address: Mapped[Optional[str]] = Field(Text, nullable=True, pii=True)
+    date_of_birth: Mapped[Optional[date]] = Field(Date, nullable=True, pii=True)
+    bank_account: Mapped[Optional[str]] = Field(String(50), nullable=True, pii=True)

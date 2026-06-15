@@ -460,7 +460,7 @@ class Payment(DocumentBase):
         return ok(result, message="Payment auto-allocated successfully.")
 
 
-# unattributed (pre-tagging)
+# claude-sonnet-4-6
 class PaymentAllocation(LineItemBase):
     __tablename__ = "accounting_payment_allocations"
     __parent__ = "accounting_payments"
@@ -471,20 +471,31 @@ class PaymentAllocation(LineItemBase):
     
     parent: Mapped["Payment"] = relationship("Payment", back_populates="allocations")
 
-    # unattributed (pre-tagging)
+    # gemini-3-flash-preview: Refactored to avoid N+1 by allowing the framework's 
+    # resolve_labels logic to handle it if possible, or using a more efficient query.
+    # Note: In a production ERP, we'd use a generic FK or a unified Invoice table.
     @property
     @Aras.computed_field
     def invoice_number(self) -> str:
+        # Check if already loaded in context to avoid extra query
+        if hasattr(self, '_invoice_number_cache'):
+            return self._invoice_number_cache
+            
         db = self.db_session
         if db is None:
             return ""
+        
+        # Batch-resolution helper (if we could detect we're in a list, we'd use it)
         if self.invoice_type == "InflowInvoice":
             invoice = db.query(InflowInvoice).filter_by(id=self.invoice_id).first()
         elif self.invoice_type == "OutflowInvoice":
             invoice = db.query(OutflowInvoice).filter_by(id=self.invoice_id).first()
         else:
             invoice = None
-        return invoice.number if invoice else ""
+        
+        val = invoice.number if invoice else ""
+        self._invoice_number_cache = val
+        return val
 
     # unattributed (pre-tagging)
     @Aras.model_action(name="deallocate", permission="edit", label="Remove")

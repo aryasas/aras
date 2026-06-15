@@ -6,11 +6,14 @@ interface DialogState {
   isOpen: boolean;
   title: string;
   message: string;
-  type: 'alert' | 'confirm' | 'error';
+  type: 'alert' | 'confirm' | 'error' | 'prompt';
   onConfirm?: () => void;
   onCancel?: () => void;
+  onPromptConfirm?: (value: string) => void;
   confirmLabel?: string;
   cancelLabel?: string;
+  promptValue?: string;
+  promptPlaceholder?: string;
 }
 
 interface PanelState {
@@ -54,6 +57,7 @@ interface UIStore {
   breadcrumbs: string;
   showAlert: (title: string, message: string, onConfirm?: () => void) => void;
   showConfirm: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => void;
+  showPrompt: (title: string, message: string, onConfirm: (value: string) => void, options?: { confirmLabel?: string; cancelLabel?: string; placeholder?: string; defaultValue?: string }) => void;
   showError: (title: string, message: string) => void;
   closeDialog: () => void;
 
@@ -129,6 +133,19 @@ export const useUIStore = create<UIStore>()(
       }),
       showConfirm: (title, message, onConfirm, onCancel) => set({
         dialog: { isOpen: true, title, message, type: 'confirm', onConfirm, onCancel, confirmLabel: 'Confirm', cancelLabel: 'Cancel' }
+      }),
+      showPrompt: (title, message, onPromptConfirm, options) => set({
+        dialog: {
+          isOpen: true,
+          title,
+          message,
+          type: 'prompt',
+          onPromptConfirm,
+          confirmLabel: options?.confirmLabel || 'Confirm',
+          cancelLabel: options?.cancelLabel || 'Cancel',
+          promptValue: options?.defaultValue || '',
+          promptPlaceholder: options?.placeholder || '',
+        }
       }),
       showError: (title, message) => set({
         dialog: { isOpen: true, title, message, type: 'error', confirmLabel: 'Close' }

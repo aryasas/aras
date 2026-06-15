@@ -53,7 +53,7 @@ export default function SmartDispatcher() {
     return (app.sub_apps || []).some((subApp) => appRouteMatchTargets(subApp).some((target) => isRouteMatch(currentPath, target)))
   }) || null
 
-  if (activeApp && isLoadingMenu && currentPath.startsWith('/admin/')) return null
+  if (activeApp && (isLoadingMenu || menuData === null) && currentPath.startsWith('/admin/')) return null
 
   const customItem = activeApp
     ? findCustomMenuItem(menuData?.menu, currentPath)

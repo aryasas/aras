@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Activity, Cpu, Database, History, Key, LayoutDashboard, Package, Server, Settings, Shield, Terminal, UploadCloud } from 'lucide-react'
 import { useAras } from '../../aras-core/hooks/useAras'
@@ -129,6 +129,8 @@ export default function SettingsNamespaceList({ selectedNamespace, onSelect, onL
   const [namespaces, setNamespaces] = useState<SettingsNamespace[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const onLoadedRef = useRef(onLoaded)
+  onLoadedRef.current = onLoaded
 
   useEffect(() => {
     let cancelled = false
@@ -137,7 +139,7 @@ export default function SettingsNamespaceList({ selectedNamespace, onSelect, onL
       .then((res) => {
         if (cancelled) return
         setNamespaces(res.data)
-        onLoaded?.(res.data)
+        onLoadedRef.current?.(res.data)
       })
       .catch((err) => {
         if (cancelled) return
@@ -145,7 +147,7 @@ export default function SettingsNamespaceList({ selectedNamespace, onSelect, onL
       })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [api, notify, onLoaded])
+  }, [api, notify])
 
   const visibleTools = useMemo(() => TOOL_LINKS.filter((link) => {
     if (link.adminOnly && !user?.is_admin) return false

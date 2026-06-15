@@ -4,6 +4,7 @@ import api from '../lib/api'
 import { MetadataService } from '../aras-core/services/MetadataService'
 import { useUIStore } from '../store/uiStore'
 import * as Icons from 'lucide-react'
+import { useAras } from '../aras-core/hooks/useAras'
 
 interface AppManifest {
   name: string
@@ -63,6 +64,7 @@ const JSON_TEMPLATE = `{
 }`;
 
 export default function AppManager() {
+  const { confirm, notify } = useAras()
   const [apps, setApps] = useState<AppManifest[]>([])
   const [syncing, setSyncing] = useState(false)
   const setPageTitle = useUIStore(state => state.setPageTitle)
@@ -95,7 +97,7 @@ export default function AppManager() {
     try {
       await api.post('/dev/sync')
       MetadataService.clearCache()
-      fetchApps()
+      void fetchApps()
     } catch (error) {
       alert('Sync failed')
     } finally {
@@ -105,10 +107,16 @@ export default function AppManager() {
 
   const handleUninstall = async (app: AppManifest) => {
     if (app.required) return
-    if (!window.confirm(`Uninstall ${app.label || app.name}?`)) return
+    const confirmed = await confirm({
+      title: 'Uninstall app?',
+      message: `Uninstall ${app.label || app.name}?`,
+      confirmText: 'Uninstall',
+      type: 'danger',
+    })
+    if (!confirmed) return
     try {
       await api.delete(`/admin/apps/${app.name}`).catch(() => api.delete(`/admin/uninstall/${app.name}`))
-      fetchApps()
+      void fetchApps()
     } catch (error: any) {
       alert(error.message || 'Uninstall failed')
     }
@@ -138,8 +146,8 @@ export default function AppManager() {
 
       await api.post('/admin/install', payload, config)
       setInstallModalOpen(false)
-      fetchApps()
-      alert('App installed successfully!')
+      void fetchApps()
+      notify('App installed successfully!', 'success')
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'Installation failed')
     } finally {

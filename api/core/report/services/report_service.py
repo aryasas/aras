@@ -14,12 +14,22 @@ MAX_REPORT_ROWS = 1000
 
 class ReportService(Aras.Service):
     _BUILTIN: dict = {}
+    _SCRIPT_HANDLERS: dict = {} # gemini-3-flash-preview: Safe script-type handlers
 
     @classmethod
     def register(cls, code: str):
         """Decorator to register a builtin report function by code."""
         def decorator(fn):
             cls._BUILTIN[code] = fn
+            return fn
+        return decorator
+
+    # claude-sonnet-4-6
+    @classmethod
+    def register_script(cls, code: str):
+        """Decorator to register a predefined script handler."""
+        def decorator(fn):
+            cls._SCRIPT_HANDLERS[code] = fn
             return fn
         return decorator
 
@@ -65,57 +75,38 @@ class ReportService(Aras.Service):
         result["filters_json"] = filter_defs
         return result
 
+    # claude-sonnet-4-6
     @classmethod
     def _generate_script_report(cls, report, db, params, current_user):
-        """Execute a Python script report with hardening."""
+        """Execute a predefined script handler — exec() removed for security."""
         # Gate behind superuser (is_admin in this framework)
         if not current_user or not getattr(current_user, "is_admin", False):
             return {"error": "403 Forbidden: Script reports require administrator privileges."}
 
-        # Approval check
-        if not report.script_approved_by_id:
-            return {"error": "Report script is not approved for execution."}
+        handler = cls._SCRIPT_HANDLERS.get(report.code)
+        if not handler:
+            return {
+                "error": f"Report handler '{report.code}' not found. Arbitrary script execution is disabled for security.",
+                "data": [], 
+                "columns": []
+            }
 
-        if not report.script:
-            return {"error": "No script defined for this report."}
-
-        # Whitelist globals
-        safe_globals = {
-            "db": db,
-            "params": params,
-            "result": None,
-            "datetime": datetime,
-            "date": date,
-            "__builtins__": {} # NO __builtins__
-        }
-
-        start_time = datetime.now(timezone.utc)
         try:
-            # Wrap in executor for timeout
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(exec, report.script, safe_globals)
-                future.result(timeout=5) # 5s timeout
-            
-            result_data = safe_globals.get("result")
+            start_time = datetime.now(timezone.utc)
+            # Execute the predefined function
+            result_data = handler(db=db, params=params, current_user=current_user)
             duration = (datetime.now(timezone.utc) - start_time).total_seconds()
             
-            # Log execution
-            logger.info(f"Script report execution: user_id={current_user.id}, report_id={report.id}, duration={duration}s")
-            
-            if result_data is None:
-                return {"error": "Script executed but 'result' variable was not set.", "data": [], "columns": report.columns_json or []}
+            logger.info(f"Script report execution: user_id={current_user.id}, report_code={report.code}, duration={duration}s")
             
             return {
                 "title": report.name,
                 "data": result_data if isinstance(result_data, list) else [],
                 "columns": report.columns_json or []
             }
-        except concurrent.futures.TimeoutError:
-            logger.error(f"Script report timeout: user_id={getattr(current_user, 'id', 'unknown')}, report_id={report.id}")
-            return {"error": "Script execution timed out after 5 seconds."}
         except Exception as e:
-            logger.exception(f"Script report failed: {report.id}")
-            return {"error": f"Script execution error: {str(e)}"}
+            logger.exception(f"Script report handler failed: {report.code}")
+            return {"error": f"Report handler error: {str(e)}"}
 
     @classmethod
     def _generate_orm_report(cls, report, db, params):

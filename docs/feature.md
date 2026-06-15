@@ -651,3 +651,7 @@ This file is used only to report if there are feature added
 
 ## Consolidate admin surfaces into one self-contained `admin` app — rename the (2026-06-09)
   - [GPT (codex)] Administration shell now includes seeder, license, health, background tasks, and activity heatmap child routes with left-rail shortcuts and dev custom-page registrations for template builder and dev help
+
+
+## Unknown (2026-06-13)
+  - [GPT (codex)] session-based portal/auth token handling, DynamicForm child/file persistence, shared prompt dialog support, localized customer portal/public landing content

@@ -6,6 +6,7 @@ import { formatCurrency } from '../lib/formatters'
 import { useLanguage } from '../context/LanguageContext'
 import { useAuthStore } from '../store/authStore'
 import { useNotify } from '../aras-core/contexts/NotificationContext'
+import api from '../lib/api'
 
 interface Plan {
   id: number
@@ -70,18 +71,18 @@ export default function PublicLanding() {
   const features = [
     {
       icon: '🛒',
-      title: landingText('feature.pos', 'title', t('public.features.pos.title', 'POS Mudah')),
-      desc: landingText('feature.pos', 'body', t('public.features.pos.desc', 'Kasir digital yang cepat dan ringan.')),
+      title: landingText('feature.pos', 'title', t('public.landing.features.pos.title')),
+      desc: landingText('feature.pos', 'body', t('public.landing.features.pos.desc')),
     },
     {
       icon: '📦',
-      title: landingText('feature.stock', 'title', t('public.features.stock.title', 'Stok Otomatis')),
-      desc: landingText('feature.stock', 'body', t('public.features.stock.desc', 'Stok terpotong otomatis setiap transaksi.')),
+      title: landingText('feature.stock', 'title', t('public.landing.features.stock.title')),
+      desc: landingText('feature.stock', 'body', t('public.landing.features.stock.desc')),
     },
     {
       icon: '📊',
-      title: landingText('feature.report', 'title', t('public.features.report.title', 'Laporan Keuangan')),
-      desc: landingText('feature.report', 'body', t('public.features.report.desc', 'Laba rugi, neraca, dan arus kas tersaji rapi.')),
+      title: landingText('feature.report', 'title', t('public.landing.features.report.title')),
+      desc: landingText('feature.report', 'body', t('public.landing.features.report.desc')),
     },
   ]
 
@@ -102,9 +103,7 @@ export default function PublicLanding() {
     setLandingLoading(true)
     setLandingError(null)
     try {
-      const res = await fetch('/api/v1/web/landing')
-      if (!res.ok) throw new Error('landing-load-failed')
-      const data = await res.json()
+      const { data } = await api.get('/web/landing')
       const payload = data?.data && typeof data.data === 'object' ? data.data : data
       const rows = Array.isArray(payload) ? payload : payload?.items
       if (!Array.isArray(rows)) throw new Error('landing-payload-invalid')
@@ -117,7 +116,7 @@ export default function PublicLanding() {
       setSectionsByKey({})
       setLandingError(t('public.landing.loadFailed', 'Tidak dapat memuat halaman publik. Silakan coba lagi.'))
       if (!landingToastShown.current) {
-        showNotification('Landing content unavailable', 'warning')
+        showNotification(t('public.landing.loadFailed'), 'warning')
         landingToastShown.current = true
       }
       console.error(err)
@@ -128,14 +127,11 @@ export default function PublicLanding() {
 
   const loadPlans = useCallback(async () => {
     try {
-      const res = await fetch('/api/v1/saas/plans/public')
-      if (res.ok) {
-        const data = await res.json()
-        setPlans(Array.isArray(data) ? data.filter((p: Plan) => PUBLIC_PLAN_KEYS.has(p.plan_key)) : [])
-      }
+      const { data } = await api.get('/saas/plans/public')
+      setPlans(Array.isArray(data) ? data.filter((p: Plan) => PUBLIC_PLAN_KEYS.has(p.plan_key)) : [])
     } catch (err) {
       if (!landingToastShown.current) {
-        showNotification('Landing content unavailable', 'warning')
+        showNotification(t('public.landing.loadFailed'), 'warning')
         landingToastShown.current = true
       }
       console.error(err)
@@ -143,7 +139,7 @@ export default function PublicLanding() {
     } finally {
       setPlansLoading(false)
     }
-  }, [showNotification])
+  }, [showNotification, t])
 
   useEffect(() => { loadPlans() }, [loadPlans])
   useEffect(() => { loadLanding() }, [loadLanding])

@@ -17,8 +17,8 @@ class Party(MasterDataBase):
 
     email: Mapped[str] = Field(String(100), nullable=True, pii=True)
     phone: Mapped[str] = Field(String(20), nullable=True, pii=True)
-    mobile: Mapped[str] = mapped_column(String(20), nullable=True)
-    address: Mapped[str] = mapped_column(Text, nullable=True)
+    mobile: Mapped[str] = Field(String(20), nullable=True, pii=True)
+    address: Mapped[str] = Field(Text, nullable=True, pii=True)
     tax_id: Mapped[str] = mapped_column(String(20), nullable=True, info={"pattern": "^[0-9]{1,20}$"})
     pricelist_id: Mapped[int] = mapped_column(ForeignKey("config_price_types.id"), nullable=True)
     
@@ -34,6 +34,7 @@ class Contact(AuditedBase):
     title: Mapped[str] = mapped_column(String(100), nullable=True)
     email: Mapped[str] = Field(String(100), nullable=True, pii=True)
     phone: Mapped[str] = Field(String(20), nullable=True, pii=True)
+    address: Mapped[str] = Field(Text, nullable=True, pii=True)
     is_primary: Mapped[bool] = mapped_column(Boolean, default=False)
     
     parent: Mapped["Party"] = relationship("Party", back_populates="contacts")

@@ -181,43 +181,52 @@ def register_crud_routes(router: APIRouter, model_class: Type[Any], Schema: Type
         data = UIGenerator.generate_metadata(model_class, db=db, lang=lang, org_id=org_id)
         return ok(data, "Metadata retrieved successfully.")
 
-    @router.get("/insights")
     # claude-sonnet-4-6
+    @router.get("/insights")
     def get_insights(
         request: Request,
         record_id: Optional[int] = Query(None),
         db: Session = Depends(get_db),
         _: Any = Depends(check_permissions(model_class.__tablename__, "READ", allow_public=allow_public))
     ):
-        # record_id → form mode: use __form_insights__ scoped to that row
-        # no record_id → list mode: use __insights__ scoped to org
+        """Returns summary metrics (insights) for this resource or a specific record."""
+        # record_id -> form mode: use __form_insights__ scoped to that row
+        # no record_id -> list mode: use __insights__ scoped to org
         if record_id is not None:
             raw = getattr(model_class, "__form_insights__", []) or []
         else:
             raw = getattr(model_class, "__insights__", []) or []
-        scope = _get_scope(request)
-        org_id = scope.get("org_id")
+
+        org_id = _get_scope(request).get("org_id")
         table = model_class.__table__
         results = []
         for ins in raw:
             try:
-                # "sql" = raw cross-table query with :record_id / :org_id params
-                # "agg" = simple aggregate on the model's own table
+                # gemini-3-flash-preview: Refactored to avoid raw SQL string interpolation.
                 if "sql" in ins:
+                    # Deprecated: Log a warning and use text() safely with bound params
+                    logging.warning(f"Insight 'sql' key is deprecated in {model_class.__tablename__}. Use ORM expressions.")
                     params = {}
-                    if record_id is not None:
-                        params["record_id"] = record_id
-                    if org_id:
-                        params["org_id"] = org_id
+                    if record_id is not None: params["record_id"] = record_id
+                    if org_id: params["org_id"] = org_id
                     val = db.execute(text(ins["sql"]), params).scalar()
                 else:
-                    agg_expr = ins.get("agg", "count(*)")
-                    stmt = select(text(agg_expr)).select_from(table)
+                    agg_key = ins.get("agg", "count")
+                    col_name = ins.get("field", "id")
+                    
+                    # Map common aggregates to SQLAlchemy functions
+                    agg_map = {"sum": func.sum, "avg": func.avg, "max": func.max, "min": func.min, "count": func.count}
+                    agg_fn = agg_map.get(agg_key, func.count)
+                    
+                    target_col = getattr(table.c, col_name) if hasattr(table.c, col_name) else table.c.id
+                    stmt = select(agg_fn(target_col)).select_from(table)
+                    
                     if record_id is not None:
                         stmt = stmt.where(table.c.id == record_id)
                     elif org_id and hasattr(model_class, "org_id"):
                         stmt = stmt.where(table.c.org_id == org_id)
                     val = db.execute(stmt).scalar()
+
                 results.append({
                     "key": ins.get("key", ins.get("label", "").lower().replace(" ", "_")),
                     "label": ins.get("label", ""),

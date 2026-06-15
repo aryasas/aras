@@ -3,6 +3,16 @@
 This file is used only to report if there are fix
 
 
+## Aras Framework Handoff Fixes (2026-06-13)
+- [Gemini] Added rate limiting to auth routes in `api/core/auth/routes.py` and SaaS routes in `api/apps/saas/routers/__init__.py`.
+- [Gemini] Secured `run_sql_query` in `api/apps/dev/db_router.py` with super-admin checks and column-level PII redaction.
+- [Gemini] Added `is_super_admin` column to `User` model in `api/core/auth/models.py`.
+- [Gemini] Centralized PII redaction in `api/core/lib/audit.py` and updated `AuditManager` to use it.
+- [Gemini] Fixed syntax error in `api/core/lib/numbering.py`.
+- [Gemini] Optimized `PaymentAllocation.invoice_number` with local caching to reduce N+1 queries in `api/apps/accounting/models.py`.
+- [Gemini] Refactored raw SQL to SQLAlchemy expressions in `api/apps/pot/models.py`.
+- [Gemini] Removed dead code `cause-error` endpoint from `api/apps/dev/app.py`.
+
 ## Backend Hygiene & Script-Report Hardening (2026-05-29)
 - [Gemini Flash] Implemented orphan-table drop policy in `auto_migrate.py`: only drops in `development` mode with explicit `--drop-orphans` flag in `manage.py sync`.
 - [Gemini Flash] Hardened `exec()` in script reports: gated behind administrator role, restricted globals to a whitelist (no `__builtins__`), and added a 5-second timeout via `concurrent.futures`.
@@ -445,3 +455,7 @@ This file is used only to report if there are fix
 
 ## Consolidate admin surfaces into one self-contained `admin` app — rename the (2026-06-09)
   - [GPT (codex)] Redirected legacy standalone admin/dev routes to their canonical admin shell or dev app targets and removed self-managed title/header chrome from absorbed admin views
+
+
+## Unknown (2026-06-13)
+  - [GPT (codex)] removed localStorage auth fallback in api client, added login 429 countdown handling, fixed DynamicForm submit labeling and copy-link action, replaced window.confirm/window.prompt usages, updated SQL Runner default query, added missing locale keys

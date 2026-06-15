@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { CheckCircle2, KeyRound, Plus, RefreshCw, RotateCw, XCircle } from 'lucide-react'
 import api from '../../lib/api'
+import { useAras } from '../../aras-core/hooks/useAras'
+import { useUIStore } from '../../store/uiStore'
 
 interface LicenseRow {
   tenant_id?: string
@@ -21,6 +23,8 @@ const labelDate = (value?: string | null) => {
 }
 
 export default function LicensesPanel() {
+  const { confirm } = useAras()
+  const showPrompt = useUIStore((state) => state.showPrompt)
   const [licenses, setLicenses] = useState<LicenseRow[]>([])
   const [loading, setLoading] = useState(true)
   const [busyKey, setBusyKey] = useState<string | null>(null)
@@ -44,18 +48,19 @@ export default function LicensesPanel() {
   }, [])
 
   const issue = async (tenantId: string) => {
-    const plan = window.prompt(`Plan for ${tenantId}`, 'basic')
-    if (!plan) return
-    setBusyKey(`issue:${tenantId}`)
-    setError(null)
-    try {
-      await api.post('/saas/control-panel/licenses/issue', { tenant_id: tenantId, plan })
-      await load()
-    } catch (err: any) {
-      setError(err.message || 'Failed to issue license.')
-    } finally {
-      setBusyKey(null)
-    }
+    showPrompt(`Issue license for ${tenantId}`, 'Enter a plan key for this tenant.', async (plan) => {
+      if (!plan.trim()) return
+      setBusyKey(`issue:${tenantId}`)
+      setError(null)
+      try {
+        await api.post('/saas/control-panel/licenses/issue', { tenant_id: tenantId, plan: plan.trim() })
+        await load()
+      } catch (err: any) {
+        setError(err.message || 'Failed to issue license.')
+      } finally {
+        setBusyKey(null)
+      }
+    }, { defaultValue: 'basic', placeholder: 'basic', confirmLabel: 'Issue' })
   }
 
   const renew = async (tenantId: string) => {
@@ -72,7 +77,13 @@ export default function LicensesPanel() {
   }
 
   const revoke = async (tenantId: string) => {
-    if (!window.confirm(`Revoke license for ${tenantId}?`)) return
+    const confirmed = await confirm({
+      title: 'Revoke license?',
+      message: `Revoke license for ${tenantId}?`,
+      confirmText: 'Revoke',
+      type: 'danger',
+    })
+    if (!confirmed) return
     setBusyKey(`revoke:${tenantId}`)
     setError(null)
     try {

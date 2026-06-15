@@ -1,6 +1,6 @@
 // claude-opus-4-7
 // ARC-styled login. Dot-grid backdrop, coral accent, mono ID badge, submit on the LEFT.
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import api from '../lib/api'
@@ -12,6 +12,8 @@ const Login = () => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [rateLimited, setRateLimited] = useState(false)
+  const [countdown, setCountdown] = useState(0)
 
   const setToken = useAuthStore((state) => state.setToken)
   const setUser = useAuthStore((state) => state.setUser)
@@ -19,8 +21,23 @@ const Login = () => {
   const setActiveOrg = useAuthStore((state) => state.setActiveOrg)
   const navigate = useNavigate()
 
+  useEffect(() => {
+    if (!rateLimited || countdown <= 0) return
+    const timeout = window.setTimeout(() => {
+      setCountdown((current) => {
+        if (current <= 1) {
+          setRateLimited(false)
+          return 0
+        }
+        return current - 1
+      })
+    }, 1000)
+    return () => window.clearTimeout(timeout)
+  }, [countdown, rateLimited])
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (rateLimited) return
     setError('')
     setLoading(true)
     try {
@@ -36,11 +53,20 @@ const Login = () => {
       setActiveOrg(organizations.length === 1 ? organizations[0].id : null)
       navigate('/')
     } catch (err: unknown) {
-      const detail =
+      const response =
         typeof err === 'object' && err !== null && 'response' in err
-          ? (err as { response?: { data?: { detail?: unknown } } }).response?.data?.detail
+          ? (err as { response?: { status?: number; data?: { detail?: unknown } } }).response
           : undefined
-      setError(typeof detail === 'string' ? detail : 'Login failed. Please check your credentials.')
+      const detail = response?.data?.detail
+      if (response?.status === 429) {
+        setRateLimited(true)
+        setCountdown(60)
+        setError('Too many attempts. Try again in 60s.')
+      } else if (response?.status === 401) {
+        setError('Invalid username or password.')
+      } else {
+        setError(typeof detail === 'string' ? detail : 'Login failed. Please check your credentials.')
+      }
     } finally {
       setLoading(false)
     }
@@ -64,6 +90,13 @@ const Login = () => {
                  style={{ background: 'color-mix(in oklch, var(--danger) 10%, var(--surface))', borderColor: 'color-mix(in oklch, var(--danger) 30%, var(--line))', color: 'var(--danger)' }}>
               <AlertCircle size={15} />
               <span>{error}</span>
+            </div>
+          )}
+          {rateLimited && countdown > 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius)] border text-[12.5px]"
+                 style={{ background: 'rgb(255 251 235)', borderColor: 'rgb(253 230 138)', color: 'rgb(180 83 9)' }}>
+              <AlertCircle size={15} />
+              <span>{`Too many attempts. Try again in ${countdown}s.`}</span>
             </div>
           )}
 
@@ -107,7 +140,7 @@ const Login = () => {
 
           {/* Action bar: primary on the LEFT */}
           <div className="flex items-center gap-2 pt-2">
-            <button type="submit" disabled={loading} className="arc-btn primary" style={{ height: 38, paddingInline: 18 }}>
+            <button type="submit" disabled={loading || rateLimited} className="arc-btn primary" style={{ height: 38, paddingInline: 18 }}>
               <LogIn size={15} />
               <span>{loading ? 'Signing in…' : 'Sign in'}</span>
             </button>

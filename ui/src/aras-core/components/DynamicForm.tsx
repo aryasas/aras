@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../lib/api';
 import { cleanResourcePath } from '../../lib/resourceUtils';
 import {
-  RefreshCw, Check, MoreHorizontal, Share2, Copy, X, Link2, Settings, Zap
+  RefreshCw, Check, Copy, X, Link2, Settings, Zap
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { FieldProps } from '../SchemaRegistry';
@@ -107,6 +107,40 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel, apiPa
     return () => controller.abort();
   }, [metadata, currentId, initialData, resource]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    if (!metadata || !currentId) return () => controller.abort();
+
+    const childFields = metadata.fields.filter((field) => field.type === 'child_table' && field.target_resource && field.fk_column);
+    if (childFields.length === 0) return () => controller.abort();
+
+    Promise.all(
+      childFields.map(async (field) => {
+        const childResource = cleanResourcePath(field.target_resource!);
+        const filters = JSON.stringify([{ field: field.fk_column, op: '=', value: currentId }]);
+        const response = await api.get(`/${childResource}`, {
+          signal: controller.signal,
+          params: { filters },
+        });
+        const payload = Array.isArray(response.data?.items)
+          ? response.data.items
+          : Array.isArray(response.data)
+            ? response.data
+            : [];
+        return [field.target_resource!, payload] as const;
+      }),
+    )
+      .then((entries) => {
+        setChildData(Object.fromEntries(entries));
+      })
+      .catch((err) => {
+        if (err.name === 'CanceledError') return;
+        console.error('Failed to fetch child rows:', err);
+      });
+
+    return () => controller.abort();
+  }, [metadata, currentId]);
+
   const dirtyKey = `${cleanResourcePath(resource)}:${currentId || 'new'}`
   const isDirty = useMemo(() => JSON.stringify(formData) !== JSON.stringify(initialValues), [formData, initialValues])
 
@@ -156,11 +190,30 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel, apiPa
     setSaving(true);
     try {
       const cleanPath = cleanResourcePath(apiPathOverride || metadata?.api_path || resource);
+      const fileFields = (metadata?.fields || []).filter((field) => ['file', 'image'].includes(field.info?.ui_type || field.type));
+      const nextFormData = { ...formData };
+
+      for (const field of fileFields) {
+        const value = nextFormData[field.name];
+        if (!(value instanceof File)) continue;
+        const uploadForm = new FormData();
+        uploadForm.append('file', value);
+        const uploadRes = await api.post('/files/upload', uploadForm, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        nextFormData[field.name] = uploadRes.data?.path || uploadRes.data?.file_path || uploadRes.data?.url || '';
+      }
+
+      const payload = { ...nextFormData };
+      for (const [childKey, rows] of Object.entries(childData)) {
+        payload[childKey] = rows;
+      }
+
       let savedId = currentId;
       if (currentId) {
-        await api.patch(`/${cleanPath}/${currentId}`, formData);
+        await api.patch(`/${cleanPath}/${currentId}`, payload);
       } else {
-        const res = await api.post(`/${cleanPath}`, formData);
+        const res = await api.post(`/${cleanPath}`, payload);
         if (res.data.id) {
           savedId = res.data.id;
           setCurrentId(res.data.id);
@@ -168,10 +221,11 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel, apiPa
       }
       if (savedId && metadata) {
         const m2mFields = metadata.fields.filter((field) => field.type === 'm2m');
-        await Promise.all(m2mFields.map((field) => api.put(`/${cleanPath}/${savedId}/${field.name}`, { ids: formData[field.name] || [] })));
+        await Promise.all(m2mFields.map((field) => api.put(`/${cleanPath}/${savedId}/${field.name}`, { ids: payload[field.name] || [] })));
       }
       notify("Saved successfully", "success");
-      setInitialValues(formData);
+      setFormData(nextFormData);
+      setInitialValues(nextFormData);
       setDirty(dirtyKey, false);
       if (onSave) onSave();
     } catch (err) {
@@ -209,6 +263,15 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel, apiPa
       notify("Token copied", "success");
     } catch {
       notify("Copy failed", "error");
+    }
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      notify('Link copied', 'success');
+    } catch {
+      notify('Copy failed', 'error');
     }
   };
 
@@ -308,6 +371,12 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel, apiPa
   const codeField = formData.number ?? formData.code ?? (currentId ? String(currentId) : 'NEW');
   const titleField = formData.name ?? formData.title ?? formData.subject ?? '';
   const modelActions = (metadata.actions || []) as ModelAction[];
+  const primaryActionLabel =
+    metadata.workflow?.requires_approval && formData.status === 'submitted'
+      ? 'Approve'
+      : currentId
+        ? 'Save Changes'
+        : 'Save';
 
   const openSettings = () => {
     showPanel('Form Settings', <FormSettings resource={resource} metadata={metadata} />, 'max-w-3xl');
@@ -382,14 +451,8 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel, apiPa
           ))}
 
           {/* Right: icon actions + defer + approve */}
-          <button type="button" className="h-6 w-6 grid place-items-center rounded text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors" title="Share">
-            <Share2 size={13} />
-          </button>
-          <button type="button" className="h-6 w-6 grid place-items-center rounded text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors" title="Copy link">
+          <button type="button" onClick={copyLink} className="h-6 w-6 grid place-items-center rounded text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors" title="Copy link">
             <Link2 size={13} />
-          </button>
-          <button type="button" className="h-6 w-6 grid place-items-center rounded text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors" title="More">
-            <MoreHorizontal size={13} />
           </button>
           <button type="button" onClick={openSettings} className="h-6 w-6 grid place-items-center rounded text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors" title="Settings">
             <Settings size={13} />
@@ -408,7 +471,7 @@ export const DynamicForm = ({ resource, id, initialData, onSave, onCancel, apiPa
             className="h-6 px-3 rounded bg-[var(--accent)] text-white text-[11.5px] font-semibold inline-flex items-center gap-1.5 hover:brightness-110 disabled:opacity-60 transition-all"
           >
             {saving ? <RefreshCw size={11} className="animate-spin" /> : <Check size={11} />}
-            {currentId ? 'Approve' : 'Save'}
+            {primaryActionLabel}
           </button>
         </DesignElement>
 
