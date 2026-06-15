@@ -474,6 +474,7 @@ class PaymentAllocation(LineItemBase):
     # gemini-3-flash-preview: Refactored to avoid N+1 by allowing the framework's 
     # resolve_labels logic to handle it if possible, or using a more efficient query.
     # Note: In a production ERP, we'd use a generic FK or a unified Invoice table.
+    # claude-sonnet-4-6
     @property
     @Aras.computed_field
     def invoice_number(self) -> str:
